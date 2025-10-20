@@ -279,7 +279,7 @@ python -m pytest tests/
 ## Support
 
 For issues, questions, or contributions, please contact:
-- Email: ashutosh.sinha@example.com
+- Email: ajsinha@gmail.com
 - GitHub: https://github.com/yourusername/sajhamcpserver
 
 ## License
