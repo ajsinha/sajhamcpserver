@@ -2,7 +2,7 @@
 
 The MCP tool framework  supports **stateful sessions** with **real-time updates** using Server-Sent Events (SSE) and server-side push capabilities!
 
-## 📦 Files Generated
+## 📦 Files
 
 ### Core Implementation Files
 1. **base_mcp_tool_stateful.py** - Enhanced base class with stateful session support
