@@ -7,7 +7,7 @@
 📋 PROJECT SUMMARY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Your MCP tool framework has been enhanced with stateful capabilities using
+The MCP tool framework has been enhanced with stateful capabilities using
 Server-Sent Events (SSE) and server-side push. This allows tools to maintain
 session state and push real-time updates to clients.
 

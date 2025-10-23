@@ -1,8 +1,6 @@
 # Quick Start Guide: Stateful MCP Enhancement
 
-## 🎯 What Was Enhanced
-
-Your MCP tool framework now supports **stateful sessions** with **real-time updates** using Server-Sent Events (SSE) and server-side push capabilities!
+The MCP tool framework  supports **stateful sessions** with **real-time updates** using Server-Sent Events (SSE) and server-side push capabilities!
 
 ## 📦 Files Generated
 
@@ -18,17 +16,10 @@ Your MCP tool framework now supports **stateful sessions** with **real-time upda
 
 ## 🚀 Quick Start (3 Steps)
 
-### Step 1: Replace Your Base Files
+### Step 1: Ensure that stateful version of flask app is running. 
+### On server machine Ensure that env variable SSE_ENABLED is set to Y
 
-```bash
-# Backup originals
-cp base_mcp_tool.py base_mcp_tool.py.backup
-cp mcp_app.py mcp_app.py.backup
 
-# Use enhanced versions
-cp base_mcp_tool_stateful.py base_mcp_tool.py
-cp mcp_app_stateful.py mcp_app.py
-```
 
 ### Step 2: Enable Stateful Features for a Tool
 
