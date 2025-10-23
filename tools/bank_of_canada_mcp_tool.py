@@ -5,7 +5,13 @@ import os
 import requests
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
-from .base_mcp_tool import BaseMCPTool
+import os
+
+if 'SSE_ENABLED' in os.environ:
+    print('SSE Enabled - will use SSE enabled tool')
+    from .base_mcp_tool_stateful import BaseMCPTool
+else:
+    from .base_mcp_tool import BaseMCPTool
 
 
 class BankOfCanadaMCPTool(BaseMCPTool):

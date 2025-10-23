@@ -1,0 +1,300 @@
+{
+  "name": "bank_of_canada_tool",
+  "module": "tools.bank_of_canada_mcp_tool.BankOfCanadaMCPTool",
+  "max_hits": 1000,
+  "max_hit_interval": 10,
+  "stateful_enabled": true,
+  "sse_enabled": true,
+  "push_enabled": true,
+  "session_timeout": 3600,
+  "max_sessions": 100,
+  "tool_description": {
+    "tools": [
+      {
+        "name": "get_policy_rate",
+        "description": "Get Bank of Canada policy interest rate (target for overnight rate)",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "start_date": {
+              "type": "string",
+              "description": "Start date (YYYY-MM-DD)"
+            },
+            "end_date": {
+              "type": "string",
+              "description": "End date (YYYY-MM-DD)"
+            },
+            "recent": {
+              "type": "integer",
+              "description": "Number of recent observations"
+            },
+            "session_id": {
+              "type": "string",
+              "description": "Optional session ID for stateful context"
+            }
+          }
+        }
+      },
+      {
+        "name": "subscribe_rate_updates",
+        "description": "Subscribe to real-time policy rate updates (requires stateful session)",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "Session ID for receiving updates"
+            },
+            "rate_type": {
+              "type": "string",
+              "description": "Type of rate to monitor",
+              "enum": ["policy", "overnight", "prime", "corra"],
+              "default": "policy"
+            },
+            "check_interval": {
+              "type": "integer",
+              "description": "Check interval in seconds",
+              "default": 300
+            }
+          },
+          "required": ["session_id"]
+        }
+      },
+      {
+        "name": "watch_economic_indicator",
+        "description": "Watch an economic indicator and push updates when thresholds are crossed",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "Session ID for receiving updates"
+            },
+            "indicator": {
+              "type": "string",
+              "description": "Economic indicator to watch",
+              "enum": ["cpi", "gdp", "unemployment", "exchange_rate"]
+            },
+            "threshold": {
+              "type": "number",
+              "description": "Alert threshold value"
+            },
+            "condition": {
+              "type": "string",
+              "description": "Threshold condition",
+              "enum": ["above", "below", "equal"],
+              "default": "above"
+            }
+          },
+          "required": ["session_id", "indicator", "threshold"]
+        }
+      },
+      {
+        "name": "get_overnight_rate",
+        "description": "Get overnight money market financing rate",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "recent": {
+              "type": "integer",
+              "description": "Number of recent observations",
+              "default": 10
+            },
+            "session_id": {
+              "type": "string",
+              "description": "Optional session ID for stateful context"
+            }
+          }
+        }
+      },
+      {
+        "name": "get_bank_rate",
+        "description": "Get Bank of Canada bank rate",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "recent": {
+              "type": "integer",
+              "description": "Number of recent observations"
+            }
+          }
+        }
+      },
+      {
+        "name": "get_prime_rate",
+        "description": "Get chartered bank prime business rate",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "recent": {
+              "type": "integer",
+              "description": "Number of recent observations"
+            }
+          }
+        }
+      },
+      {
+        "name": "get_corra",
+        "description": "Get Canadian Overnight Repo Rate Average (CORRA)",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "recent": {
+              "type": "integer",
+              "description": "Number of recent observations"
+            }
+          }
+        }
+      },
+      {
+        "name": "get_cdor",
+        "description": "Get Canadian Dollar Offered Rate (CDOR)",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "term": {
+              "type": "string",
+              "description": "CDOR term",
+              "enum": ["1M", "2M", "3M", "6M", "12M"],
+              "default": "3M"
+            },
+            "recent": {
+              "type": "integer",
+              "description": "Number of recent observations"
+            }
+          }
+        }
+      },
+      {
+        "name": "get_ba_rates",
+        "description": "Get Bankers' Acceptances rates",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "term": {
+              "type": "string",
+              "description": "BA term",
+              "enum": ["1M", "3M", "6M"],
+              "default": "3M"
+            }
+          }
+        }
+      },
+      {
+        "name": "get_treasury_bills",
+        "description": "Get Treasury Bill rates",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "term": {
+              "type": "string",
+              "description": "T-Bill term",
+              "enum": ["1M", "3M", "6M", "12M"],
+              "default": "3M"
+            }
+          }
+        }
+      },
+      {
+        "name": "get_gdp_data",
+        "description": "Get Canadian GDP data",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "gdp_type": {
+              "type": "string",
+              "description": "GDP type",
+              "enum": ["monthly", "quarterly", "real", "nominal"],
+              "default": "monthly"
+            }
+          }
+        }
+      },
+      {
+        "name": "get_cpi_data",
+        "description": "Get Consumer Price Index data",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "cpi_type": {
+              "type": "string",
+              "description": "CPI type",
+              "enum": ["all_items", "ex_food_energy", "goods", "services"],
+              "default": "all_items"
+            }
+          }
+        }
+      },
+      {
+        "name": "get_exchange_rates",
+        "description": "Get foreign exchange rates against CAD",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "currency": {
+              "type": "string",
+              "description": "Foreign currency",
+              "enum": ["USD", "EUR", "GBP", "JPY", "CNY", "MXN", "AUD", "INR"],
+              "default": "USD"
+            },
+            "recent": {
+              "type": "integer",
+              "description": "Number of recent observations"
+            }
+          }
+        }
+      },
+      {
+        "name": "get_employment_data",
+        "description": "Get Canadian employment data",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "recent": {
+              "type": "integer",
+              "description": "Number of recent observations"
+            }
+          }
+        }
+      },
+      {
+        "name": "get_unemployment_rate",
+        "description": "Get unemployment rate",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "recent": {
+              "type": "integer",
+              "description": "Number of recent observations"
+            }
+          }
+        }
+      }
+    ],
+    "resources": [
+      {
+        "uri": "boc://rates/policy",
+        "name": "Policy Rate Resource",
+        "description": "Real-time policy rate information"
+      },
+      {
+        "uri": "boc://indicators/economic",
+        "name": "Economic Indicators Resource",
+        "description": "Collection of key economic indicators"
+      }
+    ],
+    "prompts": [
+      {
+        "name": "analyze_monetary_policy",
+        "description": "Analyze current monetary policy stance",
+        "arguments": [
+          {
+            "name": "time_period",
+            "description": "Time period for analysis",
+            "required": false
+          }
+        ]
+      }
+    ]
+  }
+}
