@@ -11,7 +11,7 @@ The MCP tool framework  supports **stateful sessions** with **real-time updates*
 
 ### Documentation Files
 4. **STATEFUL_MCP_README.md** - Comprehensive documentation
-5. **IMPLEMENTATION_COMPARISON.md** - Detailed comparison with original
+5. **STATEFUL_IMPLEMENTATION_COMPARISON.md** - Detailed comparison with original
 6. **example_stateful_client.py** - Working Python client examples
 
 ## 🚀 Quick Start (3 Steps)
