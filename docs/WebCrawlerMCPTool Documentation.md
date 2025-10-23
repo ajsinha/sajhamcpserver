@@ -1,5 +1,7 @@
 # Web Crawler MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The Web Crawler MCP Tool provides comprehensive web scraping and crawling capabilities with advanced redirect handling. Extract content, links, documents, metadata, and structured data from websites with built-in rate limiting and intelligent pattern detection.
 

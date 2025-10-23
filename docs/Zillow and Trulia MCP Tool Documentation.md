@@ -1,5 +1,7 @@
 # Zillow & Trulia MCP Tools Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 Comprehensive MCP tools for accessing Zillow and Trulia real estate data, including property searches, market trends, neighborhood information, and more. These tools provide programmatic access to millions of property listings and real estate data across the United States.
 

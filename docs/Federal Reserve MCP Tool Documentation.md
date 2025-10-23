@@ -1,5 +1,7 @@
 # Federal Reserve MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The Federal Reserve MCP Tool provides comprehensive access to US economic and financial data through the FRED (Federal Reserve Economic Data) API.
 

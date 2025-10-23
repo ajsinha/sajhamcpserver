@@ -1,5 +1,7 @@
 # EDGAR MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The EDGAR MCP Tool provides comprehensive access to the SEC EDGAR database for retrieving company filings, financial data, and regulatory information.
 

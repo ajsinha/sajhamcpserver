@@ -1,5 +1,7 @@
 # SQL MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The SQL MCP Tool provides SQLite database operations with pre-configured sample tables for demonstration and testing.
 

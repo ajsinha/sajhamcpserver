@@ -280,7 +280,7 @@ python -m pytest tests/
 
 For issues, questions, or contributions, please contact:
 - Email: ajsinha@gmail.com
-- GitHub: https://github.com/yourusername/sajhamcpserver
+- GitHub: https://github.com/ajsinha/sajhamcpserver
 
 ## License
 

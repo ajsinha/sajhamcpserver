@@ -1,5 +1,7 @@
 # Yahoo Finance MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The Yahoo Finance MCP Tool provides real-time and historical financial market data including stock prices, company information, financial statements, and market indices.
 

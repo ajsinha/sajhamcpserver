@@ -1,5 +1,7 @@
 # REST Endpoint MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The REST Endpoint MCP Tool provides a flexible interface for interacting with any REST API endpoint. It supports all standard HTTP methods (GET, POST, PUT, DELETE, PATCH) and includes comprehensive authentication, header management, and error handling capabilities.
 

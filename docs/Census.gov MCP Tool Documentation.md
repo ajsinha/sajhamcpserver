@@ -1,5 +1,7 @@
 # Census.gov MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The Census.gov MCP Tool provides access to US Census Bureau data including population, demographics, economic indicators, housing, and education statistics.
 

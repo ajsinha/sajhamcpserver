@@ -1,5 +1,7 @@
 # US Data.gov MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The US Data.gov MCP Tool provides access to the comprehensive US Government open data catalog through data.gov's CKAN API. Search, retrieve, and analyze datasets from federal, state, and local government agencies covering topics including health, education, climate, finance, and more.
 

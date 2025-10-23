@@ -1,5 +1,7 @@
 # Tavily MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The Tavily MCP Tool provides advanced web search capabilities including news search, entity search, and content extraction with AI-optimized results.
 

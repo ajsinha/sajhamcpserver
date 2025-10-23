@@ -1,5 +1,7 @@
 # MS Office MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The MS Office MCP Tool provides operations for Microsoft Word and Excel files including reading, searching, creating, and analyzing Office documents.
 

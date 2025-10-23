@@ -1,5 +1,7 @@
 # Stateful MCP with Server-Sent Events (SSE) Enhancement
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 
 This enhancement adds stateful capabilities to the MCP (Model Context Protocol) tool framework using Server-Sent Events (SSE) and server-side push. Tools can now maintain session state and push real-time updates to clients.

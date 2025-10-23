@@ -1,5 +1,7 @@
 # MCP Server JWT Authentication Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Table of Contents
 1. [Overview](#overview)
 2. [How JWT Works in MCP Server](#how-jwt-works)

@@ -1,5 +1,7 @@
 # Comparison: Original vs Stateful MCP Implementation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 
 This document compares the original MCP implementation with the enhanced stateful version that supports Server-Sent Events (SSE) and server-side push.

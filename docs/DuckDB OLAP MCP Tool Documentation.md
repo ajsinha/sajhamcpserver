@@ -1,5 +1,7 @@
 # DuckDB OLAP MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The DuckDB OLAP MCP Tool provides analytical database capabilities with OLAP operations, data aggregation, and advanced SQL analytics using DuckDB. **Enhanced with automatic file discovery, intelligent table management, auto-refresh capabilities, and parameterized queries with automatic IN clause generation.**
 

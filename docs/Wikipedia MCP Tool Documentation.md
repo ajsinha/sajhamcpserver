@@ -1,5 +1,7 @@
 # Wikipedia MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The Wikipedia MCP Tool provides access to Wikipedia content including article search, summaries, full content, and metadata.
 

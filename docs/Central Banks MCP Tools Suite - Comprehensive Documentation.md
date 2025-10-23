@@ -1,5 +1,7 @@
 # Central Banks MCP Tools Suite - Comprehensive Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 
 We have built a comprehensive suite of MCP (Model Context Protocol) tools for accessing economic and financial data from four major central banks:

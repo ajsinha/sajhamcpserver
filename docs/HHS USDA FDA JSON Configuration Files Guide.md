@@ -1,5 +1,7 @@
 # JSON Configuration Files Guide
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 Three separate JSON configuration files for US Government Data MCP Tools.
 

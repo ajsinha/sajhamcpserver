@@ -1,5 +1,7 @@
 # Google Search MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The Google Search MCP Tool provides Google search capabilities including web search, image search, news search, and site-specific searches.
 

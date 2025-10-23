@@ -1,5 +1,7 @@
 # Bank of England MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The Bank of England MCP Tool provides access to UK economic data including interest rates, financial statistics, housing market data, and regional economic indicators.
 

@@ -1,5 +1,7 @@
 # Quick Start Guide: Stateful MCP Enhancement
 
+## © 2025-2030 Ashutosh Sinha
+
 The MCP tool framework  supports **stateful sessions** with **real-time updates** using Server-Sent Events (SSE) and server-side push capabilities!
 
 ## 📦 Files

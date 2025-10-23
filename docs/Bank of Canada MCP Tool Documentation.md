@@ -1,5 +1,7 @@
 # Bank of Canada MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The Bank of Canada MCP Tool provides access to Canadian economic and financial data through the Bank of Canada Valet API.
 

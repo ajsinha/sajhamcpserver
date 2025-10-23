@@ -1,6 +1,9 @@
 # US Government Data Tools Documentation
 ## HHS, USDA, and FDA MCP Tools
 
+## © 2025-2030 Ashutosh Sinha
+
+
 ## Overview
 Comprehensive MCP tools providing access to critical US government health, nutrition, and safety data from three major agencies:
 - **HHS (Health and Human Services)** - Healthcare data, hospitals, public health

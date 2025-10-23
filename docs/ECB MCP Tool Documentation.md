@@ -1,5 +1,7 @@
 # ECB MCP Tool Documentation
 
+## © 2025-2030 Ashutosh Sinha
+
 ## Overview
 The ECB MCP Tool provides comprehensive access to European Central Bank data including monetary policy rates, economic indicators, exchange rates, and financial statistics for the Euro area.
 
