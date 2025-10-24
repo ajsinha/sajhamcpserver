@@ -3400,3 +3400,15 @@
 2025-10-23 21:13:37,321 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:13:37] "GET /api/tool/bank_of_canada_tool/stats HTTP/1.1" 200 -
 2025-10-23 21:13:43,550 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:13:43] "POST /api/tool/echo_mcp_tool/call HTTP/1.1" 200 -
 2025-10-23 21:13:55,094 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:13:55] "GET /api/tool/echo_mcp_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:14:25,094 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:14:25] "GET /api/tool/echo_mcp_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:14:37,326 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:14:37] "GET /api/tool/bank_of_canada_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:14:55,098 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:14:55] "GET /api/tool/echo_mcp_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:15:25,325 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:15:25] "GET /api/tool/echo_mcp_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:15:37,324 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:15:37] "GET /api/tool/bank_of_canada_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:15:55,324 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:15:55] "GET /api/tool/echo_mcp_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:16:25,325 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:16:25] "GET /api/tool/echo_mcp_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:16:55,323 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:16:55] "GET /api/tool/echo_mcp_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:17:37,324 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:17:37] "GET /api/tool/echo_mcp_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:18:37,327 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:18:37] "GET /api/tool/echo_mcp_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:19:37,323 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:19:37] "GET /api/tool/echo_mcp_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:20:37,325 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:20:37] "GET /api/tool/echo_mcp_tool/stats HTTP/1.1" 200 -

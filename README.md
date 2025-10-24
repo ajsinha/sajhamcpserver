@@ -1,6 +1,8 @@
 # MCP Server - Model Context Protocol Server
 
-A comprehensive Python-based MCP (Model Context Protocol) server implementation with multiple data source integrations and a web-based dashboard.
+Sajha in Hindi means shared, that is the core idea be=hind this project i.e. use MCP to share data that can be procured from just about anywhere.
+
+It is a comprehensive Python-based MCP (Model Context Protocol) server implementation with multiple data source integrations and a web-based dashboard.
 
 ## © 2025-2030 Ashutosh Sinha
 
