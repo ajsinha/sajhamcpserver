@@ -1,0 +1,26 @@
+{
+  "name": "echo_mcp_tool",
+  "module": "tools.echo_mcp_tool.EchoMCPTool",
+  "max_hits": 1000,
+  "max_hit_interval": 10,
+  "tool_description": {
+    "tools": [
+      {
+        "name": "echo",
+        "description": "Just echo what has ben said",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "string",
+              "description": "User input"
+            }
+          },
+          "required": ["input"]
+        }
+      }
+    ],
+    "resources": [],
+    "prompts": []
+  }
+}

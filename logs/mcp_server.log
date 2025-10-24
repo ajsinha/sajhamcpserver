@@ -3342,3 +3342,61 @@
 2025-10-20 16:38:28,866 - werkzeug - INFO - 127.0.0.1 - - [20/Oct/2025 16:38:28] "GET /api/tool/edgar_mcp_tool/stats HTTP/1.1" 200 -
 2025-10-20 16:38:28,867 - werkzeug - INFO - 127.0.0.1 - - [20/Oct/2025 16:38:28] "GET /api/tool/yahoo_finance_tool/stats HTTP/1.1" 200 -
 2025-10-20 16:38:28,872 - werkzeug - INFO - 127.0.0.1 - - [20/Oct/2025 16:38:28] "GET /login?next=http://localhost:5000/api/tool/wikipedia_tool/stats HTTP/1.1" 200 -
+2025-10-23 20:56:53,059 - __main__ - INFO - Starting MCP Server...
+2025-10-23 20:56:53,063 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.2.54:5001
+2025-10-23 20:56:53,063 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-10-23 20:57:00,335 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 20:57:00] "[32mGET / HTTP/1.1[0m" 302 -
+2025-10-23 20:57:00,353 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 20:57:00] "GET /login HTTP/1.1" 200 -
+2025-10-23 20:57:00,458 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 20:57:00] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-10-23 20:57:00,561 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 20:57:00] "[32mGET / HTTP/1.1[0m" 302 -
+2025-10-23 20:57:00,567 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 20:57:00] "GET /login HTTP/1.1" 200 -
+2025-10-23 20:57:04,158 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 20:57:04] "[32mPOST /login HTTP/1.1[0m" 302 -
+2025-10-23 20:57:04,186 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 20:57:04] "GET /dashboard HTTP/1.1" 200 -
+2025-10-23 20:57:12,768 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 20:57:12] "GET /admin HTTP/1.1" 200 -
+2025-10-23 20:57:14,338 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 20:57:14] "GET /api/tools HTTP/1.1" 200 -
+2025-10-23 20:58:27,492 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 20:58:27] "GET /tool/bank_of_canada_tool HTTP/1.1" 200 -
+2025-10-23 20:58:57,642 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 20:58:57] "GET /api/tool/bank_of_canada_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:03:13,948 - __main__ - INFO - Starting MCP Server...
+2025-10-23 21:03:13,953 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.2.54:5001
+2025-10-23 21:03:13,953 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-10-23 21:03:27,642 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:03:27] "[32mGET /api/tool/bank_of_canada_tool/stats HTTP/1.1[0m" 302 -
+2025-10-23 21:03:27,659 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:03:27] "GET /login?next=http://localhost:5001/api/tool/bank_of_canada_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:03:58,324 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:03:58] "[32mGET /api/tool/bank_of_canada_tool/stats HTTP/1.1[0m" 302 -
+2025-10-23 21:03:58,328 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:03:58] "GET /login?next=http://localhost:5001/api/tool/bank_of_canada_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:04:28,326 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:04:28] "[32mGET /api/tool/bank_of_canada_tool/stats HTTP/1.1[0m" 302 -
+2025-10-23 21:04:28,330 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:04:28] "GET /login?next=http://localhost:5001/api/tool/bank_of_canada_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:04:42,500 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:04:42] "[31m[1mPOST / HTTP/1.1[0m" 405 -
+2025-10-23 21:05:29,322 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:05:29] "[32mGET /api/tool/bank_of_canada_tool/stats HTTP/1.1[0m" 302 -
+2025-10-23 21:05:29,324 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:05:29] "GET /login?next=http://localhost:5001/api/tool/bank_of_canada_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:12:14,390 - __main__ - INFO - Starting MCP Server...
+2025-10-23 21:12:14,394 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.2.54:5001
+2025-10-23 21:12:14,394 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-10-23 21:12:21,623 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:12:21] "[32mPOST /login HTTP/1.1[0m" 302 -
+2025-10-23 21:12:21,659 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:12:21] "GET /dashboard HTTP/1.1" 200 -
+2025-10-23 21:12:25,393 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:12:25] "GET /dashboard HTTP/1.1" 200 -
+2025-10-23 21:12:36,322 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:12:36] "GET /api/tool/bank_of_canada_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:12:55,875 - __main__ - INFO - Starting MCP Server...
+2025-10-23 21:12:55,879 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.2.54:5001
+2025-10-23 21:12:55,879 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-10-23 21:13:02,945 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:13:02] "[32mGET /dashboard HTTP/1.1[0m" 302 -
+2025-10-23 21:13:02,961 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:13:02] "GET /login?next=http://localhost:5001/dashboard HTTP/1.1" 200 -
+2025-10-23 21:13:04,375 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:13:04] "[32mPOST /login?next=http://localhost:5001/dashboard HTTP/1.1[0m" 302 -
+2025-10-23 21:13:04,395 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:13:04] "GET /dashboard HTTP/1.1" 200 -
+2025-10-23 21:13:09,869 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:13:09] "GET /tool/ecb_tool HTTP/1.1" 200 -
+2025-10-23 21:13:19,682 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:13:19] "GET /dashboard HTTP/1.1" 200 -
+2025-10-23 21:13:25,057 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:13:25] "GET /tool/echo_mcp_tool HTTP/1.1" 200 -
+2025-10-23 21:13:37,321 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:13:37] "GET /api/tool/bank_of_canada_tool/stats HTTP/1.1" 200 -
+2025-10-23 21:13:43,550 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:13:43] "POST /api/tool/echo_mcp_tool/call HTTP/1.1" 200 -
+2025-10-23 21:13:55,094 - werkzeug - INFO - 127.0.0.1 - - [23/Oct/2025 21:13:55] "GET /api/tool/echo_mcp_tool/stats HTTP/1.1" 200 -
