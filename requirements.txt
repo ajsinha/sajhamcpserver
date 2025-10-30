@@ -32,3 +32,11 @@ pytest-cov>=4.1.0
 # Additional utilities
 requests>=2.31.0
 urllib3>=2.0.0
+
+#databases
+duckdb==1.4.1
+psycopg2==2.9.11
+PyMySQL==1.1.2
+SQLAlchemy==3.0.1
+
+

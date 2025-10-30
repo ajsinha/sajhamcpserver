@@ -56,9 +56,16 @@ def main():
     
     # Create and run Flask app
     app, socketio = create_app()
-    
+    #
+    cert_file = props.get('server.cert.file', None)
+    key_file = props.get('server.key.file', None)
+    #
     # Run with SocketIO support
-    socketio.run(app, host=host, port=port, debug=debug,allow_unsafe_werkzeug=True)
+    if not cert_file and not key_file:
+        socketio.run(app, host=host, port=port, debug=debug,allow_unsafe_werkzeug=True)
+    else:
+        socketio.run(app, host=host, port=port, debug=debug, ssl_context=(cert_file, key_file))
+
 
 if __name__ == '__main__':
     main()
