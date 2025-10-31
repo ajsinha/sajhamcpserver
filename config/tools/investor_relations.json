@@ -1,6 +1,6 @@
 {
   "name": "investor_relations",
-  "implementation": "tools.impl.investor_relations_tool.InvestorRelationsTool",
+  "implementation": "tools.impl.enhanced_investor_relations_tool.EnhancedInvestorRelationsTool",
   "description": "Find investor relations documents and links for public companies including annual reports, earnings presentations, and management reports. Currently supports: TSLA, MSFT, C, BMO, RY, JPM, GS",
   "version": "1.0.0",
   "enabled": true,

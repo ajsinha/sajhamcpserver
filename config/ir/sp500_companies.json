@@ -1,0 +1,269 @@
+{
+  "companies": [
+    {
+      "ticker": "AAPL",
+      "name": "Apple Inc.",
+      "cik": "0000320193",
+      "ir_url": "https://investor.apple.com",
+      "ir_platform": "generic",
+      "document_urls": {
+        "earnings": "https://investor.apple.com/investor-relations/default.aspx",
+        "sec_filings": "https://investor.apple.com/sec-filings/default.aspx"
+      }
+    },
+    {
+      "ticker": "MSFT",
+      "name": "Microsoft Corporation",
+      "cik": "0000789019",
+      "ir_url": "https://www.microsoft.com/en-us/investor",
+      "ir_platform": "generic",
+      "document_urls": {
+        "earnings": "https://www.microsoft.com/en-us/investor/earnings/overview",
+        "sec_filings": "https://www.microsoft.com/en-us/investor/sec-filings",
+        "annual_report": "https://www.microsoft.com/en-us/investor/annual-report"
+      }
+    },
+    {
+      "ticker": "GOOGL",
+      "name": "Alphabet Inc. Class A",
+      "cik": "0001652044",
+      "ir_url": "https://abc.xyz/investor",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "GOOG",
+      "name": "Alphabet Inc. Class C",
+      "cik": "0001652044",
+      "ir_url": "https://abc.xyz/investor",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AMZN",
+      "name": "Amazon.com Inc.",
+      "cik": "0001018724",
+      "ir_url": "https://ir.aboutamazon.com",
+      "ir_platform": "generic",
+      "document_urls": {
+        "annual_reports": "https://ir.aboutamazon.com/annual-reports-proxies-and-shareholder-letters/default.aspx",
+        "quarterly_results": "https://ir.aboutamazon.com/quarterly-results/default.aspx"
+      }
+    },
+    {
+      "ticker": "NVDA",
+      "name": "NVIDIA Corporation",
+      "cik": "0001045810",
+      "ir_url": "https://investor.nvidia.com",
+      "ir_platform": "generic",
+      "document_urls": {
+        "financial_info": "https://investor.nvidia.com/financial-info/financial-reports/default.aspx"
+      }
+    },
+    {
+      "ticker": "META",
+      "name": "Meta Platforms Inc.",
+      "cik": "0001326801",
+      "ir_url": "https://investor.fb.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TSLA",
+      "name": "Tesla Inc.",
+      "cik": "0001318605",
+      "ir_url": "https://ir.tesla.com",
+      "ir_platform": "generic",
+      "document_urls": {
+        "quarterly_results": "https://ir.tesla.com/financial-information/quarterly-results",
+        "annual_reports": "https://ir.tesla.com/financial-information/annual-reports",
+        "sec_filings": "https://ir.tesla.com/sec-filings"
+      }
+    },
+    {
+      "ticker": "BRK.B",
+      "name": "Berkshire Hathaway Inc. Class B",
+      "cik": "0001067983",
+      "ir_url": "https://www.berkshirehathaway.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "JPM",
+      "name": "JPMorgan Chase & Co.",
+      "cik": "0000019617",
+      "ir_url": "https://www.jpmorganchase.com/ir",
+      "ir_platform": "generic",
+      "document_urls": {
+        "quarterly_earnings": "https://www.jpmorganchase.com/ir/financial-information/quarterly-earnings",
+        "sec_filings": "https://www.jpmorganchase.com/ir/sec-filings"
+      }
+    },
+    {
+      "ticker": "V",
+      "name": "Visa Inc.",
+      "cik": "0001403161",
+      "ir_url": "https://investor.visa.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "WMT",
+      "name": "Walmart Inc.",
+      "cik": "0000104169",
+      "ir_url": "https://stock.walmart.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "JNJ",
+      "name": "Johnson & Johnson",
+      "cik": "0000200406",
+      "ir_url": "https://www.investor.jnj.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PG",
+      "name": "Procter & Gamble Company",
+      "cik": "0000080424",
+      "ir_url": "https://www.pginvestor.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MA",
+      "name": "Mastercard Incorporated",
+      "cik": "0001141391",
+      "ir_url": "https://investor.mastercard.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "HD",
+      "name": "Home Depot Inc.",
+      "cik": "0000354950",
+      "ir_url": "https://ir.homedepot.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "UNH",
+      "name": "UnitedHealth Group Incorporated",
+      "cik": "0000731766",
+      "ir_url": "https://www.unitedhealthgroup.com/investors.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BAC",
+      "name": "Bank of America Corporation",
+      "cik": "0000070858",
+      "ir_url": "https://investor.bankofamerica.com",
+      "ir_platform": "q4",
+      "document_urls": {}
+    },
+    {
+      "ticker": "XOM",
+      "name": "Exxon Mobil Corporation",
+      "cik": "0000034088",
+      "ir_url": "https://corporate.exxonmobil.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CVX",
+      "name": "Chevron Corporation",
+      "cik": "0000093410",
+      "ir_url": "https://www.chevron.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "LLY",
+      "name": "Eli Lilly and Company",
+      "cik": "0000059478",
+      "ir_url": "https://investor.lilly.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ABBV",
+      "name": "AbbVie Inc.",
+      "cik": "0001551152",
+      "ir_url": "https://investors.abbvie.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "KO",
+      "name": "Coca-Cola Company",
+      "cik": "0000021344",
+      "ir_url": "https://investors.coca-colacompany.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "COST",
+      "name": "Costco Wholesale Corporation",
+      "cik": "0000909832",
+      "ir_url": "https://investor.costco.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MRK",
+      "name": "Merck & Co. Inc.",
+      "cik": "0000310158",
+      "ir_url": "https://investors.merck.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PEP",
+      "name": "PepsiCo Inc.",
+      "cik": "0000077476",
+      "ir_url": "https://www.pepsico.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AVGO",
+      "name": "Broadcom Inc.",
+      "cik": "0001730168",
+      "ir_url": "https://investors.broadcom.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TMO",
+      "name": "Thermo Fisher Scientific Inc.",
+      "cik": "0000097745",
+      "ir_url": "https://ir.thermofisher.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ABT",
+      "name": "Abbott Laboratories",
+      "cik": "0000001800",
+      "ir_url": "https://investors.abbott.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MCD",
+      "name": "McDonald's Corporation",
+      "cik": "0000063908",
+      "ir_url": "https://corporate.mcdonalds.com/corpmcd/investors.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "last_updated": "2025-01-28",
+    "description": "S&P 500 company configurations for IR scraping",
+    "note": "This is a sample file with 30 companies. Expand to include all 500+ companies."
+  }
+}
