@@ -3799,3 +3799,546 @@ AssertionError: write() before start_response
 2025-10-31 01:58:25,527 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:58:25] "GET /tools/wikipedia/schema HTTP/1.1" 200 -
 2025-10-31 01:58:25,549 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:58:25] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
 2025-10-31 01:58:25,552 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:58:25] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:01:57,627 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:01:57] "GET /tools/list HTTP/1.1" 200 -
+2025-10-31 02:01:57,646 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:01:57] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:01:57,650 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:01:57] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:02:02,785 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:02:02] "GET /tools/execute/wikipedia HTTP/1.1" 200 -
+2025-10-31 02:02:02,807 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:02:02] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:02:02,809 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:02:02] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:02:02,844 - root - INFO - WebSocket client connected: LSYLlPdDCnhjeLojAAAB
+2025-10-31 02:02:16,690 - WikipediaTool - ERROR - Wikipedia search error: HTTP Error 403: Forbidden
+2025-10-31 02:02:16,690 - WikipediaTool - ERROR - Tool execution failed: wikipedia - Failed to search Wikipedia: HTTP Error 403: Forbidden
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/wikipedia_tool.py", line 103, in _search
+    with urllib.request.urlopen(url) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 403: Forbidden
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 132, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/wikipedia_tool.py", line 74, in execute
+    return self._search(query, arguments.get('limit', 5))
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/wikipedia_tool.py", line 128, in _search
+    raise ValueError(f"Failed to search Wikipedia: {str(e)}")
+ValueError: Failed to search Wikipedia: HTTP Error 403: Forbidden
+2025-10-31 02:02:16,694 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:02:16] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-10-31 02:02:26,547 - WikipediaTool - ERROR - Wikipedia page retrieval error: HTTP Error 403: Forbidden
+2025-10-31 02:02:26,548 - WikipediaTool - ERROR - Tool execution failed: wikipedia - Failed to get Wikipedia page: HTTP Error 403: Forbidden
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/wikipedia_tool.py", line 152, in _get_page
+    with urllib.request.urlopen(url) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 403: Forbidden
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 132, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/wikipedia_tool.py", line 76, in execute
+    return self._get_page(query)
+           ~~~~~~~~~~~~~~^^^^^^^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/wikipedia_tool.py", line 174, in _get_page
+    raise ValueError(f"Failed to get Wikipedia page: {str(e)}")
+ValueError: Failed to get Wikipedia page: HTTP Error 403: Forbidden
+2025-10-31 02:02:26,552 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:02:26] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-10-31 02:07:15,861 - __main__ - INFO - Starting SAJHA MCP Server on 0.0.0.0:5000
+2025-10-31 02:07:15,882 - core.auth_manager - INFO - Loaded 1 users from configuration
+2025-10-31 02:07:15,882 - tools.tools_registry - INFO - Loading tools from config/tools
+2025-10-31 02:07:15,885 - tools.tools_registry - INFO - Tool registered: wikipedia
+2025-10-31 02:07:15,885 - tools.tools_registry - INFO - Loaded built-in tool: wikipedia (wikipedia)
+2025-10-31 02:07:15,885 - tools.tools_registry - INFO - Tool registered: yahoo_finance
+2025-10-31 02:07:15,885 - tools.tools_registry - INFO - Loaded built-in tool: yahoo_finance (yahoo_finance)
+2025-10-31 02:07:15,885 - tools.tools_registry - INFO - Tool registered: tavily
+2025-10-31 02:07:15,885 - tools.tools_registry - INFO - Loaded built-in tool: tavily (tavily)
+2025-10-31 02:07:15,886 - tools.tools_registry - INFO - Tool registered: msdoc_tools
+2025-10-31 02:07:15,886 - tools.tools_registry - INFO - Loaded custom tool: msdoc_tools
+2025-10-31 02:07:15,886 - tools.tools_registry - INFO - Tool registered: fed_reserve
+2025-10-31 02:07:15,886 - tools.tools_registry - INFO - Loaded built-in tool: fed_reserve (fed_reserve)
+2025-10-31 02:07:15,886 - tools.tools_registry - INFO - Tool registered: european_central_bank
+2025-10-31 02:07:15,886 - tools.tools_registry - INFO - Loaded custom tool: european_central_bank
+2025-10-31 02:07:15,886 - tools.tools_registry - INFO - Tool registered: united_nations
+2025-10-31 02:07:15,886 - tools.tools_registry - INFO - Loaded custom tool: united_nations
+2025-10-31 02:07:15,887 - tools.tools_registry - INFO - Tool registered: world_bank
+2025-10-31 02:07:15,887 - tools.tools_registry - INFO - Loaded custom tool: world_bank
+2025-10-31 02:07:15,887 - tools.tools_registry - INFO - Tool registered: bank_of_canada
+2025-10-31 02:07:15,887 - tools.tools_registry - INFO - Loaded custom tool: bank_of_canada
+2025-10-31 02:07:15,918 - DuckDbOlapToolsTool - INFO - DuckDB initialized successfully
+2025-10-31 02:07:15,923 - DuckDbOlapToolsTool - INFO - Registered view: sample_sales_data from sample_sales_data.csv
+2025-10-31 02:07:15,925 - DuckDbOlapToolsTool - INFO - Registered view: sample_inventory_data from sample_inventory_data.csv
+2025-10-31 02:07:15,928 - DuckDbOlapToolsTool - INFO - Registered view: sample_customer_data from sample_customer_data.csv
+2025-10-31 02:07:15,928 - DuckDbOlapToolsTool - INFO - Registered 3 files as views
+2025-10-31 02:07:15,928 - tools.tools_registry - INFO - Tool registered: duckdb_olap_tools
+2025-10-31 02:07:15,928 - tools.tools_registry - INFO - Loaded custom tool: duckdb_olap_tools
+2025-10-31 02:07:15,928 - tools.tools_registry - INFO - Tool registered: google_search
+2025-10-31 02:07:15,928 - tools.tools_registry - INFO - Loaded built-in tool: google_search (google_search)
+2025-10-31 02:07:15,935 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-10-31 02:07:15,935 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-10-31 02:07:15,935 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-10-31 02:07:15,935 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-10-31 02:07:15,935 - SqlSelectTool - INFO - DuckDB connection initialized for sqlselect
+2025-10-31 02:07:15,935 - tools.tools_registry - INFO - Tool registered: sqlselect
+2025-10-31 02:07:15,935 - tools.tools_registry - INFO - Loaded custom tool: sqlselect
+2025-10-31 02:07:15,935 - tools.tools_registry - INFO - Tool registered: sec_edgar
+2025-10-31 02:07:15,935 - tools.tools_registry - INFO - Loaded custom tool: sec_edgar
+2025-10-31 02:07:15,935 - tools.tools_registry - INFO - Tool registered: fbi
+2025-10-31 02:07:15,936 - tools.tools_registry - INFO - Loaded custom tool: fbi
+2025-10-31 02:07:15,936 - tools.tools_registry - INFO - Tool registered: webcrawler
+2025-10-31 02:07:15,936 - tools.tools_registry - INFO - Loaded custom tool: webcrawler
+2025-10-31 02:07:15,936 - tools.tools_registry - INFO - Tool registered: imf
+2025-10-31 02:07:15,937 - tools.tools_registry - INFO - Loaded custom tool: imf
+2025-10-31 02:07:15,937 - tools.tools_registry - INFO - Started file monitoring for tool configurations
+2025-10-31 02:07:15,946 - root - INFO - All routes registered successfully
+2025-10-31 02:07:15,946 - werkzeug - WARNING - Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+2025-10-31 02:07:15,948 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.2.54:5000
+2025-10-31 02:07:15,949 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-10-31 02:07:16,872 - root - INFO - WebSocket client connected: 5CzP1-sijZ8YcOHWAAAB
+2025-10-31 02:07:16,920 - root - INFO - WebSocket client disconnected: 5CzP1-sijZ8YcOHWAAAB
+2025-10-31 02:07:16,933 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:07:16] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 02:07:16,946 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 02:07:34,228 - __main__ - INFO - Starting SAJHA MCP Server on 0.0.0.0:5000
+2025-10-31 02:07:34,244 - core.auth_manager - INFO - Loaded 1 users from configuration
+2025-10-31 02:07:34,244 - tools.tools_registry - INFO - Loading tools from config/tools
+2025-10-31 02:07:34,245 - tools.tools_registry - INFO - Tool registered: wikipedia
+2025-10-31 02:07:34,245 - tools.tools_registry - INFO - Loaded built-in tool: wikipedia (wikipedia)
+2025-10-31 02:07:34,246 - tools.tools_registry - INFO - Tool registered: yahoo_finance
+2025-10-31 02:07:34,246 - tools.tools_registry - INFO - Loaded built-in tool: yahoo_finance (yahoo_finance)
+2025-10-31 02:07:34,246 - tools.tools_registry - INFO - Tool registered: tavily
+2025-10-31 02:07:34,246 - tools.tools_registry - INFO - Loaded built-in tool: tavily (tavily)
+2025-10-31 02:07:34,246 - tools.tools_registry - INFO - Tool registered: msdoc_tools
+2025-10-31 02:07:34,246 - tools.tools_registry - INFO - Loaded custom tool: msdoc_tools
+2025-10-31 02:07:34,246 - tools.tools_registry - INFO - Tool registered: fed_reserve
+2025-10-31 02:07:34,246 - tools.tools_registry - INFO - Loaded built-in tool: fed_reserve (fed_reserve)
+2025-10-31 02:07:34,246 - tools.tools_registry - INFO - Tool registered: european_central_bank
+2025-10-31 02:07:34,247 - tools.tools_registry - INFO - Loaded custom tool: european_central_bank
+2025-10-31 02:07:34,247 - tools.tools_registry - INFO - Tool registered: united_nations
+2025-10-31 02:07:34,247 - tools.tools_registry - INFO - Loaded custom tool: united_nations
+2025-10-31 02:07:34,247 - tools.tools_registry - INFO - Tool registered: world_bank
+2025-10-31 02:07:34,247 - tools.tools_registry - INFO - Loaded custom tool: world_bank
+2025-10-31 02:07:34,248 - tools.tools_registry - INFO - Tool registered: bank_of_canada
+2025-10-31 02:07:34,248 - tools.tools_registry - INFO - Loaded custom tool: bank_of_canada
+2025-10-31 02:07:34,274 - DuckDbOlapToolsTool - INFO - DuckDB initialized successfully
+2025-10-31 02:07:34,279 - DuckDbOlapToolsTool - INFO - Registered view: sample_sales_data from sample_sales_data.csv
+2025-10-31 02:07:34,281 - DuckDbOlapToolsTool - INFO - Registered view: sample_inventory_data from sample_inventory_data.csv
+2025-10-31 02:07:34,283 - DuckDbOlapToolsTool - INFO - Registered view: sample_customer_data from sample_customer_data.csv
+2025-10-31 02:07:34,283 - DuckDbOlapToolsTool - INFO - Registered 3 files as views
+2025-10-31 02:07:34,283 - tools.tools_registry - INFO - Tool registered: duckdb_olap_tools
+2025-10-31 02:07:34,283 - tools.tools_registry - INFO - Loaded custom tool: duckdb_olap_tools
+2025-10-31 02:07:34,283 - tools.tools_registry - INFO - Tool registered: google_search
+2025-10-31 02:07:34,283 - tools.tools_registry - INFO - Loaded built-in tool: google_search (google_search)
+2025-10-31 02:07:34,290 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-10-31 02:07:34,290 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-10-31 02:07:34,290 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-10-31 02:07:34,290 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-10-31 02:07:34,290 - SqlSelectTool - INFO - DuckDB connection initialized for sqlselect
+2025-10-31 02:07:34,290 - tools.tools_registry - INFO - Tool registered: sqlselect
+2025-10-31 02:07:34,290 - tools.tools_registry - INFO - Loaded custom tool: sqlselect
+2025-10-31 02:07:34,290 - tools.tools_registry - INFO - Tool registered: sec_edgar
+2025-10-31 02:07:34,290 - tools.tools_registry - INFO - Loaded custom tool: sec_edgar
+2025-10-31 02:07:34,291 - tools.tools_registry - INFO - Tool registered: fbi
+2025-10-31 02:07:34,291 - tools.tools_registry - INFO - Loaded custom tool: fbi
+2025-10-31 02:07:34,291 - tools.tools_registry - INFO - Tool registered: webcrawler
+2025-10-31 02:07:34,291 - tools.tools_registry - INFO - Loaded custom tool: webcrawler
+2025-10-31 02:07:34,292 - tools.tools_registry - INFO - Tool registered: imf
+2025-10-31 02:07:34,292 - tools.tools_registry - INFO - Loaded custom tool: imf
+2025-10-31 02:07:34,292 - tools.tools_registry - INFO - Started file monitoring for tool configurations
+2025-10-31 02:07:34,301 - root - INFO - All routes registered successfully
+2025-10-31 02:07:34,301 - werkzeug - WARNING - Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+2025-10-31 02:07:34,304 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.2.54:5000
+2025-10-31 02:07:34,304 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-10-31 02:07:40,713 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:07:40] "[32mGET /tools/execute/wikipedia HTTP/1.1[0m" 302 -
+2025-10-31 02:07:40,733 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:07:40] "GET /login?next=http://127.0.0.1:5000/tools/execute/wikipedia HTTP/1.1" 200 -
+2025-10-31 02:07:40,750 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:07:40] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:07:40,753 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:07:40] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:07:47,196 - core.auth_manager - INFO - Saved 1 users to configuration
+2025-10-31 02:07:47,196 - core.auth_manager - INFO - User authenticated successfully: admin
+2025-10-31 02:07:47,196 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:07:47] "[32mPOST /login HTTP/1.1[0m" 302 -
+2025-10-31 02:07:47,210 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:07:47] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 02:07:47,229 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:07:47] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:07:47,235 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:07:47] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:07:55,116 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:07:55] "GET /tools/execute/wikipedia HTTP/1.1" 200 -
+2025-10-31 02:07:55,130 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:07:55] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:07:55,133 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:07:55] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:07:55,171 - root - INFO - WebSocket client connected: jZhTi-yu1DWSRKRGAAAB
+2025-10-31 02:08:04,328 - WikipediaTool - INFO - Tool executed successfully: wikipedia (0.20s)
+2025-10-31 02:08:04,329 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:08:04] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 02:08:12,388 - WikipediaTool - INFO - Tool executed successfully: wikipedia (0.15s)
+2025-10-31 02:08:12,390 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:08:12] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 02:08:20,677 - WikipediaTool - INFO - Tool executed successfully: wikipedia (0.13s)
+2025-10-31 02:08:20,678 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:08:20] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 02:08:28,707 - WikipediaTool - INFO - Tool executed successfully: wikipedia (0.12s)
+2025-10-31 02:08:28,709 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:08:28] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 02:08:37,185 - root - INFO - WebSocket client disconnected: jZhTi-yu1DWSRKRGAAAB
+2025-10-31 02:08:37,206 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:08:37] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 02:08:37,207 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:08:37] "GET /monitoring/tools HTTP/1.1" 200 -
+2025-10-31 02:08:37,218 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:08:37] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:08:37,219 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 02:08:37,221 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:08:37] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:08:44,718 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:08:44] "GET /tools/list HTTP/1.1" 200 -
+2025-10-31 02:08:44,739 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:08:44] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:08:44,744 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:08:44] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:08:47,413 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:08:47] "GET /tools/execute/yahoo_finance HTTP/1.1" 200 -
+2025-10-31 02:08:47,424 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:08:47] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:08:47,426 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:08:47] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:08:47,451 - root - INFO - WebSocket client connected: 57SaRlNY_4QkEs-TAAAD
+2025-10-31 02:08:58,380 - YahooFinanceTool - INFO - Tool executed successfully: yahoo_finance (0.17s)
+2025-10-31 02:08:58,381 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:08:58] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 02:09:13,018 - YahooFinanceTool - INFO - Tool executed successfully: yahoo_finance (0.10s)
+2025-10-31 02:09:13,020 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:09:13] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 02:09:25,515 - root - INFO - WebSocket client disconnected: 57SaRlNY_4QkEs-TAAAD
+2025-10-31 02:09:25,523 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:09:25] "GET /tools/list HTTP/1.1" 200 -
+2025-10-31 02:09:25,526 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:09:25] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 02:09:25,537 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 02:09:25,549 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:09:25] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:09:25,553 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:09:25] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:09:31,327 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:09:31] "GET /tools/execute/world_bank HTTP/1.1" 200 -
+2025-10-31 02:09:31,345 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:09:31] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:09:31,347 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:09:31] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:09:31,374 - root - INFO - WebSocket client connected: 25yjvXZOvEXtQydtAAAF
+2025-10-31 02:09:38,903 - WorldBankTool - INFO - Tool executed successfully: world_bank (0.14s)
+2025-10-31 02:09:38,905 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:09:38] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 02:09:55,802 - WorldBankTool - ERROR - Tool execution failed: world_bank - 'country_code' is required
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 132, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/world_bank_tool.py", line 222, in execute
+    raise ValueError("'country_code' is required")
+ValueError: 'country_code' is required
+2025-10-31 02:09:55,804 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:09:55] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-10-31 02:10:19,284 - WorldBankTool - INFO - Tool executed successfully: world_bank (0.44s)
+2025-10-31 02:10:19,285 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:10:19] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 02:10:41,297 - WorldBankTool - ERROR - Tool execution failed: world_bank - Either 'indicator_code' or 'indicator' is required
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 132, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/world_bank_tool.py", line 272, in execute
+    raise ValueError("Either 'indicator_code' or 'indicator' is required")
+ValueError: Either 'indicator_code' or 'indicator' is required
+2025-10-31 02:10:41,299 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:10:41] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-10-31 02:10:58,285 - WorldBankTool - ERROR - World Bank API error: URL can't contain control characters. '/v2/country/ /indicator/NY.GDP.PCAP.CD?per_page=1000&format=json' (found at least ' ')
+2025-10-31 02:10:58,285 - WorldBankTool - WARNING - Failed to get data for  : Failed to fetch data: URL can't contain control characters. '/v2/country/ /indicator/NY.GDP.PCAP.CD?per_page=1000&format=json' (found at least ' ')
+2025-10-31 02:10:58,912 - WorldBankTool - INFO - Tool executed successfully: world_bank (1.11s)
+2025-10-31 02:10:58,914 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:10:58] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 02:11:22,413 - root - INFO - WebSocket client disconnected: 25yjvXZOvEXtQydtAAAF
+2025-10-31 02:11:22,420 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:22] "GET /tools/list HTTP/1.1" 200 -
+2025-10-31 02:11:22,424 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:22] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 02:11:22,435 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 02:11:22,438 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:22] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:11:22,439 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:22] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:11:28,982 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:28] "GET /tools/execute/fed_reserve HTTP/1.1" 200 -
+2025-10-31 02:11:28,999 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:28] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:11:29,001 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:29] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:11:29,037 - root - INFO - WebSocket client connected: b0oWr1s3DaZj8wqaAAAH
+2025-10-31 02:11:33,815 - FedReserveTool - ERROR - Tool execution failed: fed_reserve - Either 'series_id' or 'indicator' is required
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 132, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/fed_reserve_tool.py", line 115, in execute
+    raise ValueError("Either 'series_id' or 'indicator' is required")
+ValueError: Either 'series_id' or 'indicator' is required
+2025-10-31 02:11:33,818 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:33] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-10-31 02:11:42,364 - FedReserveTool - ERROR - Tool execution failed: fed_reserve - Either 'series_id' or 'indicator' is required
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 132, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/fed_reserve_tool.py", line 132, in execute
+    raise ValueError("Either 'series_id' or 'indicator' is required")
+ValueError: Either 'series_id' or 'indicator' is required
+2025-10-31 02:11:42,365 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:42] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-10-31 02:11:46,389 - root - INFO - WebSocket client disconnected: b0oWr1s3DaZj8wqaAAAH
+2025-10-31 02:11:46,398 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:46] "GET /tools/list HTTP/1.1" 200 -
+2025-10-31 02:11:46,400 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:46] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 02:11:46,402 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 02:11:46,421 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:46] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:11:46,425 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:46] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:11:55,894 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:55] "GET /tools/execute/sec_edgar HTTP/1.1" 200 -
+2025-10-31 02:11:55,916 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:55] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:11:55,918 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:11:55] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:11:55,939 - root - INFO - WebSocket client connected: E_0qe5T4FOrBAyBIAAAJ
+2025-10-31 02:12:13,780 - SECEdgarTool - ERROR - Company search failed: HTTP Error 403: Forbidden
+2025-10-31 02:12:13,780 - SECEdgarTool - ERROR - Tool execution failed: sec_edgar - Company search failed: HTTP Error 403: Forbidden
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/sec_edgar_tool.py", line 260, in _search_company
+    with urllib.request.urlopen(req) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 403: Forbidden
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 132, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/sec_edgar_tool.py", line 141, in execute
+    return self._search_company(company_name or ticker)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/sec_edgar_tool.py", line 285, in _search_company
+    raise ValueError(f"Company search failed: {str(e)}")
+ValueError: Company search failed: HTTP Error 403: Forbidden
+2025-10-31 02:12:13,785 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:12:13] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-10-31 02:18:11,545 - __main__ - INFO - Starting SAJHA MCP Server on 0.0.0.0:5000
+2025-10-31 02:18:11,560 - core.auth_manager - INFO - Loaded 1 users from configuration
+2025-10-31 02:18:11,560 - tools.tools_registry - INFO - Loading tools from config/tools
+2025-10-31 02:18:11,561 - tools.tools_registry - INFO - Tool registered: wikipedia
+2025-10-31 02:18:11,561 - tools.tools_registry - INFO - Loaded built-in tool: wikipedia (wikipedia)
+2025-10-31 02:18:11,561 - tools.tools_registry - INFO - Tool registered: yahoo_finance
+2025-10-31 02:18:11,561 - tools.tools_registry - INFO - Loaded built-in tool: yahoo_finance (yahoo_finance)
+2025-10-31 02:18:11,562 - tools.tools_registry - INFO - Tool registered: tavily
+2025-10-31 02:18:11,562 - tools.tools_registry - INFO - Loaded built-in tool: tavily (tavily)
+2025-10-31 02:18:11,562 - tools.tools_registry - INFO - Tool registered: msdoc_tools
+2025-10-31 02:18:11,562 - tools.tools_registry - INFO - Loaded custom tool: msdoc_tools
+2025-10-31 02:18:11,562 - tools.tools_registry - INFO - Tool registered: fed_reserve
+2025-10-31 02:18:11,562 - tools.tools_registry - INFO - Loaded built-in tool: fed_reserve (fed_reserve)
+2025-10-31 02:18:11,562 - tools.tools_registry - INFO - Tool registered: european_central_bank
+2025-10-31 02:18:11,562 - tools.tools_registry - INFO - Loaded custom tool: european_central_bank
+2025-10-31 02:18:11,563 - tools.tools_registry - INFO - Tool registered: united_nations
+2025-10-31 02:18:11,563 - tools.tools_registry - INFO - Loaded custom tool: united_nations
+2025-10-31 02:18:11,563 - tools.tools_registry - INFO - Tool registered: world_bank
+2025-10-31 02:18:11,563 - tools.tools_registry - INFO - Loaded custom tool: world_bank
+2025-10-31 02:18:11,563 - tools.tools_registry - INFO - Tool registered: bank_of_canada
+2025-10-31 02:18:11,563 - tools.tools_registry - INFO - Loaded custom tool: bank_of_canada
+2025-10-31 02:18:11,593 - DuckDbOlapToolsTool - INFO - DuckDB initialized successfully
+2025-10-31 02:18:11,598 - DuckDbOlapToolsTool - INFO - Registered view: sample_customer_data from sample_customer_data.csv
+2025-10-31 02:18:11,599 - DuckDbOlapToolsTool - INFO - Registered view: sample_inventory_data from sample_inventory_data.csv
+2025-10-31 02:18:11,602 - DuckDbOlapToolsTool - INFO - Registered view: sample_sales_data from sample_sales_data.csv
+2025-10-31 02:18:11,602 - DuckDbOlapToolsTool - INFO - Registered 3 files as views
+2025-10-31 02:18:11,602 - tools.tools_registry - INFO - Tool registered: duckdb_olap_tools
+2025-10-31 02:18:11,602 - tools.tools_registry - INFO - Loaded custom tool: duckdb_olap_tools
+2025-10-31 02:18:11,602 - tools.tools_registry - INFO - Tool registered: google_search
+2025-10-31 02:18:11,602 - tools.tools_registry - INFO - Loaded built-in tool: google_search (google_search)
+2025-10-31 02:18:11,609 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-10-31 02:18:11,609 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-10-31 02:18:11,609 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-10-31 02:18:11,609 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-10-31 02:18:11,609 - SqlSelectTool - INFO - DuckDB connection initialized for sqlselect
+2025-10-31 02:18:11,609 - tools.tools_registry - INFO - Tool registered: sqlselect
+2025-10-31 02:18:11,609 - tools.tools_registry - INFO - Loaded custom tool: sqlselect
+2025-10-31 02:18:11,612 - tools.tools_registry - INFO - Tool registered: sec_edgar
+2025-10-31 02:18:11,612 - tools.tools_registry - INFO - Loaded custom tool: sec_edgar
+2025-10-31 02:18:11,613 - tools.tools_registry - INFO - Tool registered: fbi
+2025-10-31 02:18:11,613 - tools.tools_registry - INFO - Loaded custom tool: fbi
+2025-10-31 02:18:11,613 - tools.tools_registry - INFO - Tool registered: webcrawler
+2025-10-31 02:18:11,613 - tools.tools_registry - INFO - Loaded custom tool: webcrawler
+2025-10-31 02:18:11,613 - tools.tools_registry - INFO - Tool registered: imf
+2025-10-31 02:18:11,613 - tools.tools_registry - INFO - Loaded custom tool: imf
+2025-10-31 02:18:11,614 - tools.tools_registry - INFO - Started file monitoring for tool configurations
+2025-10-31 02:18:11,622 - root - INFO - All routes registered successfully
+2025-10-31 02:18:11,623 - werkzeug - WARNING - Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+2025-10-31 02:18:11,625 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.2.54:5000
+2025-10-31 02:18:11,625 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-10-31 02:18:12,873 - root - INFO - WebSocket client connected: RcM9mFpz4uCPgkGpAAAB
+2025-10-31 02:18:12,919 - root - INFO - WebSocket client disconnected: RcM9mFpz4uCPgkGpAAAB
+2025-10-31 02:18:12,932 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:18:12] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 02:18:12,944 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 02:18:19,442 - __main__ - INFO - Starting SAJHA MCP Server on 0.0.0.0:5000
+2025-10-31 02:18:19,457 - core.auth_manager - INFO - Loaded 1 users from configuration
+2025-10-31 02:18:19,457 - tools.tools_registry - INFO - Loading tools from config/tools
+2025-10-31 02:18:19,458 - tools.tools_registry - INFO - Tool registered: wikipedia
+2025-10-31 02:18:19,458 - tools.tools_registry - INFO - Loaded built-in tool: wikipedia (wikipedia)
+2025-10-31 02:18:19,458 - tools.tools_registry - INFO - Tool registered: yahoo_finance
+2025-10-31 02:18:19,459 - tools.tools_registry - INFO - Loaded built-in tool: yahoo_finance (yahoo_finance)
+2025-10-31 02:18:19,459 - tools.tools_registry - INFO - Tool registered: tavily
+2025-10-31 02:18:19,459 - tools.tools_registry - INFO - Loaded built-in tool: tavily (tavily)
+2025-10-31 02:18:19,459 - tools.tools_registry - INFO - Tool registered: msdoc_tools
+2025-10-31 02:18:19,459 - tools.tools_registry - INFO - Loaded custom tool: msdoc_tools
+2025-10-31 02:18:19,459 - tools.tools_registry - INFO - Tool registered: fed_reserve
+2025-10-31 02:18:19,459 - tools.tools_registry - INFO - Loaded built-in tool: fed_reserve (fed_reserve)
+2025-10-31 02:18:19,459 - tools.tools_registry - INFO - Tool registered: european_central_bank
+2025-10-31 02:18:19,459 - tools.tools_registry - INFO - Loaded custom tool: european_central_bank
+2025-10-31 02:18:19,460 - tools.tools_registry - INFO - Tool registered: united_nations
+2025-10-31 02:18:19,460 - tools.tools_registry - INFO - Loaded custom tool: united_nations
+2025-10-31 02:18:19,460 - tools.tools_registry - INFO - Tool registered: world_bank
+2025-10-31 02:18:19,460 - tools.tools_registry - INFO - Loaded custom tool: world_bank
+2025-10-31 02:18:19,460 - tools.tools_registry - INFO - Tool registered: bank_of_canada
+2025-10-31 02:18:19,460 - tools.tools_registry - INFO - Loaded custom tool: bank_of_canada
+2025-10-31 02:18:19,487 - DuckDbOlapToolsTool - INFO - DuckDB initialized successfully
+2025-10-31 02:18:19,492 - DuckDbOlapToolsTool - INFO - Registered view: sample_sales_data from sample_sales_data.csv
+2025-10-31 02:18:19,494 - DuckDbOlapToolsTool - INFO - Registered view: sample_inventory_data from sample_inventory_data.csv
+2025-10-31 02:18:19,496 - DuckDbOlapToolsTool - INFO - Registered view: sample_customer_data from sample_customer_data.csv
+2025-10-31 02:18:19,496 - DuckDbOlapToolsTool - INFO - Registered 3 files as views
+2025-10-31 02:18:19,496 - tools.tools_registry - INFO - Tool registered: duckdb_olap_tools
+2025-10-31 02:18:19,496 - tools.tools_registry - INFO - Loaded custom tool: duckdb_olap_tools
+2025-10-31 02:18:19,496 - tools.tools_registry - INFO - Tool registered: google_search
+2025-10-31 02:18:19,496 - tools.tools_registry - INFO - Loaded built-in tool: google_search (google_search)
+2025-10-31 02:18:19,503 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-10-31 02:18:19,503 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-10-31 02:18:19,503 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-10-31 02:18:19,503 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-10-31 02:18:19,503 - SqlSelectTool - INFO - DuckDB connection initialized for sqlselect
+2025-10-31 02:18:19,503 - tools.tools_registry - INFO - Tool registered: sqlselect
+2025-10-31 02:18:19,503 - tools.tools_registry - INFO - Loaded custom tool: sqlselect
+2025-10-31 02:18:19,503 - tools.tools_registry - INFO - Tool registered: sec_edgar
+2025-10-31 02:18:19,503 - tools.tools_registry - INFO - Loaded custom tool: sec_edgar
+2025-10-31 02:18:19,504 - tools.tools_registry - INFO - Tool registered: fbi
+2025-10-31 02:18:19,504 - tools.tools_registry - INFO - Loaded custom tool: fbi
+2025-10-31 02:18:19,504 - tools.tools_registry - INFO - Tool registered: webcrawler
+2025-10-31 02:18:19,504 - tools.tools_registry - INFO - Loaded custom tool: webcrawler
+2025-10-31 02:18:19,505 - tools.tools_registry - INFO - Tool registered: imf
+2025-10-31 02:18:19,505 - tools.tools_registry - INFO - Loaded custom tool: imf
+2025-10-31 02:18:19,505 - tools.tools_registry - INFO - Started file monitoring for tool configurations
+2025-10-31 02:18:19,514 - root - INFO - All routes registered successfully
+2025-10-31 02:18:19,514 - werkzeug - WARNING - Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+2025-10-31 02:18:19,516 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.2.54:5000
+2025-10-31 02:18:19,517 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-10-31 02:18:26,352 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:18:26] "[32mGET /dashboard HTTP/1.1[0m" 302 -
+2025-10-31 02:18:26,368 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:18:26] "GET /login?next=http://127.0.0.1:5000/dashboard HTTP/1.1" 200 -
+2025-10-31 02:18:26,388 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:18:26] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:18:26,389 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:18:26] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:18:33,220 - core.auth_manager - INFO - Saved 1 users to configuration
+2025-10-31 02:18:33,220 - core.auth_manager - INFO - User authenticated successfully: admin
+2025-10-31 02:18:33,221 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:18:33] "[32mPOST /login HTTP/1.1[0m" 302 -
+2025-10-31 02:18:33,242 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:18:33] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 02:18:33,261 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:18:33] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:18:33,263 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:18:33] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:18:39,038 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:18:39] "GET /tools/execute/sec_edgar HTTP/1.1" 200 -
+2025-10-31 02:18:39,057 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:18:39] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 02:18:39,060 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:18:39] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 02:18:39,082 - root - INFO - WebSocket client connected: M7W1wrtD1Wg2qX45AAAB
+2025-10-31 02:18:52,597 - SECEdgarTool - ERROR - Tool execution failed: sec_edgar - Either 'cik' or 'ticker' is required
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 132, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/sec_edgar_tool.py", line 158, in execute
+    cik = self._get_cik(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/sec_edgar_tool.py", line 199, in _get_cik
+    raise ValueError("Either 'cik' or 'ticker' is required")
+ValueError: Either 'cik' or 'ticker' is required
+2025-10-31 02:18:52,599 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:18:52] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-10-31 02:19:09,166 - SECEdgarTool - ERROR - Tool execution failed: sec_edgar - Either 'cik' or 'ticker' is required
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 132, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/sec_edgar_tool.py", line 158, in execute
+    cik = self._get_cik(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/sec_edgar_tool.py", line 199, in _get_cik
+    raise ValueError("Either 'cik' or 'ticker' is required")
+ValueError: Either 'cik' or 'ticker' is required
+2025-10-31 02:19:09,168 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:19:09] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-10-31 02:19:29,411 - SECEdgarTool - INFO - Tool executed successfully: sec_edgar (0.81s)
+2025-10-31 02:19:29,442 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 02:19:29] "POST /api/tools/execute HTTP/1.1" 200 -

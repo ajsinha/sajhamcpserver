@@ -100,40 +100,44 @@ class WikipediaTool(BaseMCPTool):
         url = f"{self.api_url}?{urllib.parse.urlencode(params)}"
         
         try:
-            with urllib.request.urlopen(url) as response:
+            # Create request with User-Agent header
+            req = urllib.request.Request(url)
+            req.add_header('User-Agent', 'SAJHA-MCP-Server/1.0 (ajsinha@gmail.com)')
+
+            with urllib.request.urlopen(req) as response:
                 data = json.loads(response.read().decode('utf-8'))
-                
+
                 # Format results
                 results = []
                 if len(data) >= 4:
                     titles = data[1]
                     descriptions = data[2]
                     urls = data[3]
-                    
+
                     for i in range(len(titles)):
                         results.append({
                             'title': titles[i],
                             'description': descriptions[i] if i < len(descriptions) else '',
                             'url': urls[i] if i < len(urls) else ''
                         })
-                
+
                 return {
                     'query': query,
                     'count': len(results),
                     'results': results
                 }
-                
+
         except Exception as e:
             self.logger.error(f"Wikipedia search error: {e}")
             raise ValueError(f"Failed to search Wikipedia: {str(e)}")
-    
+
     def _get_page(self, title: str) -> Dict:
         """
         Get full Wikipedia page content
-        
+
         Args:
             title: Page title
-            
+
         Returns:
             Page content
         """
@@ -145,21 +149,25 @@ class WikipediaTool(BaseMCPTool):
             'exintro': False,
             'explaintext': True
         }
-        
+
         url = f"{self.api_url}?{urllib.parse.urlencode(params)}"
-        
+
         try:
-            with urllib.request.urlopen(url) as response:
+            # Create request with User-Agent header
+            req = urllib.request.Request(url)
+            req.add_header('User-Agent', 'SAJHA-MCP-Server/1.0 (ajsinha@gmail.com)')
+
+            with urllib.request.urlopen(req) as response:
                 data = json.loads(response.read().decode('utf-8'))
-                
+
                 pages = data.get('query', {}).get('pages', {})
                 if pages:
                     page_id = list(pages.keys())[0]
                     page = pages[page_id]
-                    
+
                     if 'missing' in page:
                         raise ValueError(f"Page not found: {title}")
-                    
+
                     return {
                         'title': page.get('title', title),
                         'pageid': page.get('pageid'),
@@ -168,18 +176,18 @@ class WikipediaTool(BaseMCPTool):
                     }
                 else:
                     raise ValueError(f"Page not found: {title}")
-                    
+
         except Exception as e:
             self.logger.error(f"Wikipedia page retrieval error: {e}")
             raise ValueError(f"Failed to get Wikipedia page: {str(e)}")
-    
+
     def _get_summary(self, title: str) -> Dict:
         """
         Get Wikipedia page summary
-        
+
         Args:
             title: Page title
-            
+
         Returns:
             Page summary
         """
@@ -192,21 +200,25 @@ class WikipediaTool(BaseMCPTool):
             'explaintext': True,
             'exsentences': 5  # Get first 5 sentences
         }
-        
+
         url = f"{self.api_url}?{urllib.parse.urlencode(params)}"
-        
+
         try:
-            with urllib.request.urlopen(url) as response:
+            # Create request with User-Agent header
+            req = urllib.request.Request(url)
+            req.add_header('User-Agent', 'SAJHA-MCP-Server/1.0 (ajsinha@gmail.com)')
+
+            with urllib.request.urlopen(req) as response:
                 data = json.loads(response.read().decode('utf-8'))
-                
+
                 pages = data.get('query', {}).get('pages', {})
                 if pages:
                     page_id = list(pages.keys())[0]
                     page = pages[page_id]
-                    
+
                     if 'missing' in page:
                         raise ValueError(f"Page not found: {title}")
-                    
+
                     return {
                         'title': page.get('title', title),
                         'pageid': page.get('pageid'),
@@ -215,7 +227,7 @@ class WikipediaTool(BaseMCPTool):
                     }
                 else:
                     raise ValueError(f"Page not found: {title}")
-                    
+
         except Exception as e:
             self.logger.error(f"Wikipedia summary retrieval error: {e}")
             raise ValueError(f"Failed to get Wikipedia summary: {str(e)}")

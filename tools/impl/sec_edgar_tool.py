@@ -29,8 +29,9 @@ class SECEdgarTool(BaseMCPTool):
         
         # SEC EDGAR API endpoints
         self.api_url = "https://data.sec.gov"
-        self.user_agent = "Mozilla/5.0 (compatible; MCPTool/1.0)"
-        
+        # SEC requires User-Agent with contact email: https://www.sec.gov/os/accessing-edgar-data
+        self.user_agent = "SAJHA-MCP-Server/1.0 (ajsinha@gmail.com)"
+
         # Common filing types
         self.filing_types = {
             '10-K': 'Annual Report',
@@ -49,7 +50,7 @@ class SECEdgarTool(BaseMCPTool):
             'SC 13D': 'Beneficial Ownership Report',
             'SC 13G': 'Beneficial Ownership Report (Passive)'
         }
-    
+
     def get_input_schema(self) -> Dict:
         """Get input schema for SEC EDGAR tool"""
         return {
@@ -118,102 +119,102 @@ class SECEdgarTool(BaseMCPTool):
             },
             "required": ["action"]
         }
-    
+
     def execute(self, arguments: Dict[str, Any]) -> Any:
         """
         Execute SEC EDGAR tool
-        
+
         Args:
             arguments: Tool arguments
-            
+
         Returns:
             Company filings and financial data from SEC EDGAR
         """
         action = arguments.get('action')
-        
+
         if action == 'search_company':
             company_name = arguments.get('company_name')
             ticker = arguments.get('ticker')
-            
+
             if not company_name and not ticker:
                 raise ValueError("Either 'company_name' or 'ticker' is required")
-            
+
             return self._search_company(company_name or ticker)
-            
+
         elif action == 'get_company_info':
             cik = self._get_cik(arguments)
             return self._get_company_info(cik)
-            
+
         elif action == 'get_company_filings':
             cik = self._get_cik(arguments)
             filing_type = arguments.get('filing_type')
             start_date = arguments.get('start_date')
             end_date = arguments.get('end_date')
             limit = arguments.get('limit', 10)
-            
+
             return self._get_company_filings(cik, filing_type, start_date, end_date, limit)
-            
+
         elif action == 'get_company_facts':
             cik = self._get_cik(arguments)
             return self._get_company_facts(cik)
-            
+
         elif action == 'get_financial_data':
             cik = self._get_cik(arguments)
             fact_type = arguments.get('fact_type')
             return self._get_financial_data(cik, fact_type)
-            
+
         elif action == 'get_filing_details':
             accession_number = arguments.get('accession_number')
             if not accession_number:
                 raise ValueError("'accession_number' is required")
-            
+
             return self._get_filing_details(accession_number)
-            
+
         elif action == 'get_insider_trading':
             cik = self._get_cik(arguments)
             limit = arguments.get('limit', 10)
             return self._get_insider_trading(cik, limit)
-            
+
         elif action == 'get_mutual_fund_holdings':
             cik = self._get_cik(arguments)
             return self._get_mutual_fund_holdings(cik)
-            
+
         else:
             raise ValueError(f"Unknown action: {action}")
-    
+
     def _get_cik(self, arguments: Dict) -> str:
         """
         Extract and normalize CIK from arguments
-        
+
         Args:
             arguments: Tool arguments
-            
+
         Returns:
             Normalized 10-digit CIK
         """
         cik = arguments.get('cik')
         ticker = arguments.get('ticker')
-        
+
         if not cik and not ticker:
             raise ValueError("Either 'cik' or 'ticker' is required")
-        
+
         if ticker and not cik:
             # Try to get CIK from ticker via company tickers file
             cik = self._ticker_to_cik(ticker)
-        
+
         # Normalize CIK to 10 digits
         if cik:
             cik = str(cik).zfill(10)
-        
+
         return cik
-    
+
     def _ticker_to_cik(self, ticker: str) -> str:
         """
         Convert ticker to CIK using SEC company tickers file
-        
+
         Args:
             ticker: Stock ticker symbol
-            
+
         Returns:
             CIK number
         """
@@ -223,29 +224,29 @@ class SECEdgarTool(BaseMCPTool):
                 'User-Agent': self.user_agent,
                 'Accept': 'application/json'
             }
-            
+
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req) as response:
                 data = json.loads(response.read().decode('utf-8'))
-                
+
                 ticker_upper = ticker.upper()
                 for company in data.values():
                     if company.get('ticker', '').upper() == ticker_upper:
                         return str(company['cik_str']).zfill(10)
-                
+
                 raise ValueError(f"Ticker not found: {ticker}")
-                
+
         except Exception as e:
             self.logger.error(f"Failed to convert ticker to CIK: {e}")
             raise ValueError(f"Failed to convert ticker to CIK: {str(e)}")
-    
+
     def _search_company(self, query: str) -> Dict:
         """
         Search for companies by name or ticker
-        
+
         Args:
             query: Search query
-            
+
         Returns:
             List of matching companies
         """
@@ -255,42 +256,42 @@ class SECEdgarTool(BaseMCPTool):
                 'User-Agent': self.user_agent,
                 'Accept': 'application/json'
             }
-            
+
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req) as response:
                 data = json.loads(response.read().decode('utf-8'))
-                
+
                 query_lower = query.lower()
                 matches = []
-                
+
                 for company in data.values():
                     title = company.get('title', '').lower()
                     ticker = company.get('ticker', '').lower()
-                    
+
                     if query_lower in title or query_lower == ticker:
                         matches.append({
                             'cik': str(company['cik_str']).zfill(10),
                             'ticker': company['ticker'],
                             'title': company['title']
                         })
-                
+
                 return {
                     'query': query,
                     'match_count': len(matches),
                     'matches': matches[:50]  # Limit to 50 results
                 }
-                
+
         except Exception as e:
             self.logger.error(f"Company search failed: {e}")
             raise ValueError(f"Company search failed: {str(e)}")
-    
+
     def _get_company_info(self, cik: str) -> Dict:
         """
         Get company information
-        
+
         Args:
             cik: Central Index Key
-            
+
         Returns:
             Company information
         """
@@ -300,11 +301,11 @@ class SECEdgarTool(BaseMCPTool):
                 'User-Agent': self.user_agent,
                 'Accept': 'application/json'
             }
-            
+
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req) as response:
                 data = json.loads(response.read().decode('utf-8'))
-                
+
                 return {
                     'cik': cik,
                     'name': data.get('name'),
@@ -322,7 +323,7 @@ class SECEdgarTool(BaseMCPTool):
                     'website': data.get('website'),
                     'investor_website': data.get('investorWebsite')
                 }
-                
+
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 raise ValueError(f"Company not found: CIK {cik}")
@@ -331,7 +332,7 @@ class SECEdgarTool(BaseMCPTool):
         except Exception as e:
             self.logger.error(f"Failed to get company info: {e}")
             raise ValueError(f"Failed to get company info: {str(e)}")
-    
+
     def _get_company_filings(
         self,
         cik: str,
@@ -342,14 +343,14 @@ class SECEdgarTool(BaseMCPTool):
     ) -> Dict:
         """
         Get company filings
-        
+
         Args:
             cik: Central Index Key
             filing_type: Type of filing
             start_date: Start date
             end_date: End date
             limit: Maximum number of results
-            
+
         Returns:
             Company filings
         """
@@ -359,20 +360,20 @@ class SECEdgarTool(BaseMCPTool):
                 'User-Agent': self.user_agent,
                 'Accept': 'application/json'
             }
-            
+
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req) as response:
                 data = json.loads(response.read().decode('utf-8'))
-                
+
                 filings = data.get('filings', {}).get('recent', {})
-                
+
                 # Extract filing arrays
                 accession_numbers = filings.get('accessionNumber', [])
                 filing_dates = filings.get('filingDate', [])
                 report_dates = filings.get('reportDate', [])
                 forms = filings.get('form', [])
                 primary_docs = filings.get('primaryDocument', [])
-                
+
                 # Build filing list
                 filing_list = []
                 for i in range(len(accession_numbers)):
@@ -384,40 +385,40 @@ class SECEdgarTool(BaseMCPTool):
                         'primary_document': primary_docs[i] if i < len(primary_docs) else None,
                         'description': self.filing_types.get(forms[i], '') if i < len(forms) else ''
                     }
-                    
+
                     # Apply filters
                     if filing_type and filing.get('form') != filing_type:
                         continue
-                    
+
                     if start_date and filing.get('filing_date', '9999') < start_date:
                         continue
-                    
+
                     if end_date and filing.get('filing_date', '0000') > end_date:
                         continue
-                    
+
                     filing_list.append(filing)
-                    
+
                     if len(filing_list) >= limit:
                         break
-                
+
                 return {
                     'cik': cik,
                     'name': data.get('name'),
                     'filing_count': len(filing_list),
                     'filings': filing_list
                 }
-                
+
         except Exception as e:
             self.logger.error(f"Failed to get company filings: {e}")
             raise ValueError(f"Failed to get company filings: {str(e)}")
-    
+
     def _get_company_facts(self, cik: str) -> Dict:
         """
         Get company facts (XBRL financial data)
-        
+
         Args:
             cik: Central Index Key
-            
+
         Returns:
             Company facts
         """
@@ -427,17 +428,17 @@ class SECEdgarTool(BaseMCPTool):
                 'User-Agent': self.user_agent,
                 'Accept': 'application/json'
             }
-            
+
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req) as response:
                 data = json.loads(response.read().decode('utf-8'))
-                
+
                 return {
                     'cik': cik,
                     'entity_name': data.get('entityName'),
                     'facts': data.get('facts', {})
                 }
-                
+
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 raise ValueError(f"Company facts not found: CIK {cik}")
@@ -446,34 +447,34 @@ class SECEdgarTool(BaseMCPTool):
         except Exception as e:
             self.logger.error(f"Failed to get company facts: {e}")
             raise ValueError(f"Failed to get company facts: {str(e)}")
-    
+
     def _get_financial_data(self, cik: str, fact_type: Optional[str] = None) -> Dict:
         """
         Get specific financial data for a company
-        
+
         Args:
             cik: Central Index Key
             fact_type: Type of financial fact
-            
+
         Returns:
             Financial data
         """
         try:
             facts_data = self._get_company_facts(cik)
             facts = facts_data.get('facts', {})
-            
+
             if not fact_type:
                 # Return summary of available facts
                 summary = {}
                 for taxonomy in facts:
                     summary[taxonomy] = list(facts[taxonomy].keys())
-                
+
                 return {
                     'cik': cik,
                     'entity_name': facts_data.get('entity_name'),
                     'available_facts': summary
                 }
-            
+
             # Search for specific fact type across taxonomies
             result = {
                 'cik': cik,
@@ -481,7 +482,7 @@ class SECEdgarTool(BaseMCPTool):
                 'fact_type': fact_type,
                 'data': []
             }
-            
+
             for taxonomy, taxonomy_facts in facts.items():
                 if fact_type in taxonomy_facts:
                     fact_data = taxonomy_facts[fact_type]
@@ -491,20 +492,20 @@ class SECEdgarTool(BaseMCPTool):
                         'description': fact_data.get('description'),
                         'units': fact_data.get('units', {})
                     })
-            
+
             return result
-            
+
         except Exception as e:
             self.logger.error(f"Failed to get financial data: {e}")
             raise ValueError(f"Failed to get financial data: {str(e)}")
-    
+
     def _get_filing_details(self, accession_number: str) -> Dict:
         """
         Get details for a specific filing
-        
+
         Args:
             accession_number: Filing accession number
-            
+
         Returns:
             Filing details
         """
@@ -512,27 +513,27 @@ class SECEdgarTool(BaseMCPTool):
             'accession_number': accession_number,
             'note': 'Full filing details require CIK. Use get_company_filings for complete data.'
         }
-    
+
     def _get_insider_trading(self, cik: str, limit: int = 10) -> Dict:
         """
         Get insider trading forms (Form 4)
-        
+
         Args:
             cik: Central Index Key
             limit: Maximum number of results
-            
+
         Returns:
             Insider trading data
         """
         return self._get_company_filings(cik, filing_type='4', limit=limit)
-    
+
     def _get_mutual_fund_holdings(self, cik: str) -> Dict:
         """
         Get mutual fund holdings (Form 13F)
-        
+
         Args:
             cik: Central Index Key
-            
+
         Returns:
             Mutual fund holdings
         """
