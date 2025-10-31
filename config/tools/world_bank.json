@@ -1,0 +1,106 @@
+{
+  "name": "world_bank",
+  "implementation": "tools.impl.world_bank_tool.WorldBankTool",
+  "description": "Retrieve global development indicators and economic data from World Bank",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "description": "Action to perform",
+        "enum": [
+          "get_countries",
+          "get_indicators",
+          "get_country_data",
+          "get_indicator_data",
+          "search_indicators",
+          "get_income_levels",
+          "get_lending_types",
+          "get_regions",
+          "compare_countries",
+          "get_topic_indicators"
+        ]
+      },
+      "country_code": {
+        "type": "string",
+        "description": "ISO2 or ISO3 country code (e.g., US, USA, CHN)"
+      },
+      "country_codes": {
+        "type": "array",
+        "description": "List of country codes for comparison",
+        "items": {"type": "string"}
+      },
+      "indicator_code": {
+        "type": "string",
+        "description": "World Bank indicator code"
+      },
+      "indicator": {
+        "type": "string",
+        "description": "Common indicator name",
+        "enum": [
+          "gdp", "gdp_per_capita", "gdp_growth", "gdp_ppp",
+          "population", "population_growth", "urban_population",
+          "life_expectancy", "birth_rate", "death_rate",
+          "poverty_rate", "gini_index", "income_share_lowest_20",
+          "literacy_rate", "primary_enrollment", "secondary_enrollment", "tertiary_enrollment",
+          "infant_mortality", "maternal_mortality", "health_expenditure", "hospital_beds",
+          "unemployment", "labor_force", "female_labor_force",
+          "exports", "imports", "trade_gdp", "fdi_inflow", "external_debt",
+          "co2_emissions", "co2_per_capita", "renewable_energy", "electricity_access", "forest_area",
+          "internet_users", "mobile_subscriptions", "roads_paved",
+          "inflation", "food_price_inflation"
+        ]
+      },
+      "start_year": {
+        "type": "integer",
+        "description": "Start year for data retrieval",
+        "minimum": 1960,
+        "maximum": 2030
+      },
+      "end_year": {
+        "type": "integer",
+        "description": "End year for data retrieval",
+        "minimum": 1960,
+        "maximum": 2030
+      },
+      "per_page": {
+        "type": "integer",
+        "description": "Number of results per page",
+        "default": 50,
+        "minimum": 1,
+        "maximum": 1000
+      },
+      "search_term": {
+        "type": "string",
+        "description": "Search term for indicators"
+      },
+      "income_level": {
+        "type": "string",
+        "description": "Income level code",
+        "enum": ["HIC", "UMC", "LMC", "LIC"]
+      },
+      "region": {
+        "type": "string",
+        "description": "Region code",
+        "enum": ["EAS", "ECS", "LCN", "MEA", "NAC", "SAS", "SSF", "WLD"]
+      },
+      "topic_id": {
+        "type": "integer",
+        "description": "Topic ID for indicators (1-21)",
+        "minimum": 1,
+        "maximum": 21
+      }
+    },
+    "required": ["action"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["world bank", "development", "global", "economics", "poverty", "gdp", "indicators"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Uses World Bank API v2. No API key required. Returns data in JSON format."
+  }
+}

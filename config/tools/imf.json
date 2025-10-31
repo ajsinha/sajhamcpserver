@@ -1,0 +1,86 @@
+{
+  "name": "imf",
+  "implementation": "tools.impl.imf_tool.IMFTool",
+  "description": "Retrieve international monetary and financial statistics from IMF (International Monetary Fund)",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "description": "Action to perform",
+        "enum": [
+          "get_databases",
+          "get_dataflows",
+          "get_data",
+          "get_ifs_data",
+          "get_weo_data",
+          "get_bop_data",
+          "compare_countries",
+          "get_country_profile"
+        ]
+      },
+      "database": {
+        "type": "string",
+        "description": "IMF database code",
+        "enum": ["IFS", "DOT", "BOP", "GFSR", "FSI", "WEO", "GFSMAB", "CDIS", "CPIS", "WHDREO"]
+      },
+      "country_code": {
+        "type": "string",
+        "description": "ISO 2-letter country code (e.g., US, CN, JP)"
+      },
+      "country_codes": {
+        "type": "array",
+        "description": "List of country codes for comparison",
+        "items": {"type": "string"}
+      },
+      "indicator_code": {
+        "type": "string",
+        "description": "IMF indicator code"
+      },
+      "indicator": {
+        "type": "string",
+        "description": "Common indicator name (IFS or WEO)",
+        "enum": [
+          "exchange_rate", "exchange_rate_avg", "policy_rate", "treasury_bill_rate",
+          "deposit_rate", "lending_rate", "cpi", "core_cpi", "ppi",
+          "money_supply_m1", "money_supply_m2", "money_supply_m3", "reserve_money",
+          "international_reserves", "gold_reserves", "foreign_reserves",
+          "gdp_current", "gdp_constant", "industrial_production",
+          "exports", "imports", "unemployment_rate",
+          "gdp_growth", "gdp_per_capita", "inflation_avg", "inflation_eop",
+          "unemployment", "current_account", "fiscal_balance", "public_debt",
+          "exports_volume", "imports_volume", "population"
+        ]
+      },
+      "start_year": {
+        "type": "integer",
+        "description": "Start year for data retrieval",
+        "minimum": 1950,
+        "maximum": 2030
+      },
+      "end_year": {
+        "type": "integer",
+        "description": "End year for data retrieval",
+        "minimum": 1950,
+        "maximum": 2030
+      },
+      "frequency": {
+        "type": "string",
+        "description": "Data frequency: A=Annual, Q=Quarterly, M=Monthly",
+        "enum": ["A", "Q", "M"],
+        "default": "A"
+      }
+    },
+    "required": ["action"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["imf", "international monetary fund", "economics", "financial", "balance of payments", "exchange rates"],
+    "rateLimit": 60,
+    "cacheTTL": 3600,
+    "note": "Uses IMF Data Services API (SDMX JSON format). No API key required."
+  }
+}

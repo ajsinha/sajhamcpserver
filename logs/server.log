@@ -2845,3 +2845,352 @@ jinja2.exceptions.TemplateRuntimeError: No test named 'contains'.
 2025-10-27 12:56:27,513 - werkzeug - INFO - 127.0.0.1 - - [27/Oct/2025 12:56:27] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
 2025-10-27 12:56:27,518 - werkzeug - INFO - 127.0.0.1 - - [27/Oct/2025 12:56:27] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
 2025-10-27 12:56:27,555 - werkzeug - INFO - 127.0.0.1 - - [27/Oct/2025 12:56:27] "GET /api/admin/tools/fed_reserve/config HTTP/1.1" 200 -
+2025-10-31 00:34:45,734 - __main__ - INFO - Starting SAJHA MCP Server on 0.0.0.0:5000
+2025-10-31 00:34:45,752 - core.auth_manager - INFO - Loaded 1 users from configuration
+2025-10-31 00:34:45,752 - tools.tools_registry - INFO - Loading tools from config/tools
+2025-10-31 00:34:45,753 - tools.tools_registry - INFO - Tool registered: wikipedia
+2025-10-31 00:34:45,753 - tools.tools_registry - INFO - Loaded built-in tool: wikipedia (wikipedia)
+2025-10-31 00:34:45,753 - tools.tools_registry - INFO - Tool registered: yahoo_finance
+2025-10-31 00:34:45,753 - tools.tools_registry - INFO - Loaded built-in tool: yahoo_finance (yahoo_finance)
+2025-10-31 00:34:45,754 - tools.tools_registry - INFO - Tool registered: tavily
+2025-10-31 00:34:45,754 - tools.tools_registry - INFO - Loaded built-in tool: tavily (tavily)
+2025-10-31 00:34:45,754 - tools.tools_registry - INFO - Tool registered: msdoc_tools
+2025-10-31 00:34:45,754 - tools.tools_registry - INFO - Loaded custom tool: msdoc_tools
+2025-10-31 00:34:45,754 - tools.tools_registry - INFO - Tool registered: fed_reserve
+2025-10-31 00:34:45,754 - tools.tools_registry - INFO - Loaded built-in tool: fed_reserve (fed_reserve)
+2025-10-31 00:34:45,754 - tools.tools_registry - INFO - Tool registered: european_central_bank
+2025-10-31 00:34:45,754 - tools.tools_registry - INFO - Loaded custom tool: european_central_bank
+2025-10-31 00:34:45,757 - tools.tools_registry - INFO - Tool registered: united_nations
+2025-10-31 00:34:45,758 - tools.tools_registry - INFO - Loaded custom tool: united_nations
+2025-10-31 00:34:45,761 - tools.tools_registry - INFO - Tool registered: world_bank
+2025-10-31 00:34:45,761 - tools.tools_registry - INFO - Loaded custom tool: world_bank
+2025-10-31 00:34:45,761 - tools.tools_registry - INFO - Tool registered: bank_of_canada
+2025-10-31 00:34:45,761 - tools.tools_registry - INFO - Loaded custom tool: bank_of_canada
+2025-10-31 00:34:45,838 - DuckDbOlapToolsTool - INFO - DuckDB initialized successfully
+2025-10-31 00:34:45,847 - DuckDbOlapToolsTool - INFO - Registered view: sample_customer_data from sample_customer_data.csv
+2025-10-31 00:34:45,849 - DuckDbOlapToolsTool - INFO - Registered view: sample_sales_data from sample_sales_data.csv
+2025-10-31 00:34:45,851 - DuckDbOlapToolsTool - INFO - Registered view: sample_inventory_data from sample_inventory_data.csv
+2025-10-31 00:34:45,851 - DuckDbOlapToolsTool - INFO - Registered 3 files as views
+2025-10-31 00:34:45,851 - tools.tools_registry - INFO - Tool registered: duckdb_olap_tools
+2025-10-31 00:34:45,851 - tools.tools_registry - INFO - Loaded custom tool: duckdb_olap_tools
+2025-10-31 00:34:45,852 - tools.tools_registry - INFO - Tool registered: google_search
+2025-10-31 00:34:45,852 - tools.tools_registry - INFO - Loaded built-in tool: google_search (google_search)
+2025-10-31 00:34:45,858 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-10-31 00:34:45,859 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-10-31 00:34:45,859 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-10-31 00:34:45,859 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-10-31 00:34:45,859 - SqlSelectTool - INFO - DuckDB connection initialized for sqlselect
+2025-10-31 00:34:45,859 - tools.tools_registry - INFO - Tool registered: sqlselect
+2025-10-31 00:34:45,859 - tools.tools_registry - INFO - Loaded custom tool: sqlselect
+2025-10-31 00:34:45,861 - tools.tools_registry - INFO - Tool registered: sec_edgar
+2025-10-31 00:34:45,861 - tools.tools_registry - INFO - Loaded custom tool: sec_edgar
+2025-10-31 00:34:45,862 - tools.tools_registry - INFO - Tool registered: fbi
+2025-10-31 00:34:45,862 - tools.tools_registry - INFO - Loaded custom tool: fbi
+2025-10-31 00:34:45,863 - tools.tools_registry - INFO - Tool registered: webcrawler
+2025-10-31 00:34:45,863 - tools.tools_registry - INFO - Loaded custom tool: webcrawler
+2025-10-31 00:34:45,865 - tools.tools_registry - INFO - Tool registered: imf
+2025-10-31 00:34:45,865 - tools.tools_registry - INFO - Loaded custom tool: imf
+2025-10-31 00:34:45,866 - tools.tools_registry - INFO - Started file monitoring for tool configurations
+2025-10-31 00:34:45,873 - werkzeug - WARNING - Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+2025-10-31 00:34:45,876 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.2.54:5000
+2025-10-31 00:34:45,876 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-10-31 00:34:49,580 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:34:49] "[32mGET / HTTP/1.1[0m" 302 -
+2025-10-31 00:34:49,584 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:34:49] "[32mGET /dashboard HTTP/1.1[0m" 302 -
+2025-10-31 00:34:49,595 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:34:49] "GET /login?next=http://127.0.0.1:5000/dashboard HTTP/1.1" 200 -
+2025-10-31 00:34:49,613 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:34:49] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 00:34:49,613 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:34:49] "GET /static/css/style.css HTTP/1.1" 200 -
+2025-10-31 00:34:49,659 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:34:49] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-10-31 00:34:58,414 - core.auth_manager - INFO - Saved 1 users to configuration
+2025-10-31 00:34:58,414 - core.auth_manager - INFO - User authenticated successfully: admin
+2025-10-31 00:34:58,415 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:34:58] "[32mPOST /login HTTP/1.1[0m" 302 -
+2025-10-31 00:34:58,430 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:34:58] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 00:34:58,445 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:34:58] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 00:34:58,448 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:34:58] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 00:35:14,751 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:35:14] "[33mGET /api/tools/sec_edgar/schema HTTP/1.1[0m" 404 -
+2025-10-31 00:35:22,388 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:35:22] "GET /tools HTTP/1.1" 200 -
+2025-10-31 00:35:22,403 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:35:22] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 00:35:22,406 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:35:22] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 00:35:43,874 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:35:43] "GET /tools/execute/sec_edgar HTTP/1.1" 200 -
+2025-10-31 00:35:43,888 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:35:43] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 00:35:43,892 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:35:43] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 00:35:43,914 - root - INFO - WebSocket client connected: 5JbmZ06C1INk8y2BAAAB
+2025-10-31 00:35:46,111 - root - INFO - WebSocket client disconnected: 5JbmZ06C1INk8y2BAAAB
+2025-10-31 00:35:46,122 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:35:46] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 00:35:46,130 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 00:35:48,495 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:35:48] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 00:35:48,514 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:35:48] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 00:35:48,519 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:35:48] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 00:35:50,884 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:35:50] "[33mGET /api/tools/yahoo_finance/schema HTTP/1.1[0m" 404 -
+2025-10-31 00:51:47,813 - __main__ - INFO - Starting SAJHA MCP Server on 0.0.0.0:5000
+2025-10-31 00:51:47,828 - core.auth_manager - INFO - Loaded 1 users from configuration
+2025-10-31 00:51:47,828 - tools.tools_registry - INFO - Loading tools from config/tools
+2025-10-31 00:51:47,829 - tools.tools_registry - INFO - Tool registered: wikipedia
+2025-10-31 00:51:47,829 - tools.tools_registry - INFO - Loaded built-in tool: wikipedia (wikipedia)
+2025-10-31 00:51:47,829 - tools.tools_registry - INFO - Tool registered: yahoo_finance
+2025-10-31 00:51:47,829 - tools.tools_registry - INFO - Loaded built-in tool: yahoo_finance (yahoo_finance)
+2025-10-31 00:51:47,829 - tools.tools_registry - INFO - Tool registered: tavily
+2025-10-31 00:51:47,829 - tools.tools_registry - INFO - Loaded built-in tool: tavily (tavily)
+2025-10-31 00:51:47,830 - tools.tools_registry - INFO - Tool registered: msdoc_tools
+2025-10-31 00:51:47,830 - tools.tools_registry - INFO - Loaded custom tool: msdoc_tools
+2025-10-31 00:51:47,830 - tools.tools_registry - INFO - Tool registered: fed_reserve
+2025-10-31 00:51:47,830 - tools.tools_registry - INFO - Loaded built-in tool: fed_reserve (fed_reserve)
+2025-10-31 00:51:47,830 - tools.tools_registry - INFO - Tool registered: european_central_bank
+2025-10-31 00:51:47,830 - tools.tools_registry - INFO - Loaded custom tool: european_central_bank
+2025-10-31 00:51:47,830 - tools.tools_registry - INFO - Tool registered: united_nations
+2025-10-31 00:51:47,830 - tools.tools_registry - INFO - Loaded custom tool: united_nations
+2025-10-31 00:51:47,831 - tools.tools_registry - INFO - Tool registered: world_bank
+2025-10-31 00:51:47,831 - tools.tools_registry - INFO - Loaded custom tool: world_bank
+2025-10-31 00:51:47,831 - tools.tools_registry - INFO - Tool registered: bank_of_canada
+2025-10-31 00:51:47,831 - tools.tools_registry - INFO - Loaded custom tool: bank_of_canada
+2025-10-31 00:51:47,858 - DuckDbOlapToolsTool - INFO - DuckDB initialized successfully
+2025-10-31 00:51:47,862 - DuckDbOlapToolsTool - INFO - Registered view: sample_inventory_data from sample_inventory_data.csv
+2025-10-31 00:51:47,865 - DuckDbOlapToolsTool - INFO - Registered view: sample_sales_data from sample_sales_data.csv
+2025-10-31 00:51:47,866 - DuckDbOlapToolsTool - INFO - Registered view: sample_customer_data from sample_customer_data.csv
+2025-10-31 00:51:47,866 - DuckDbOlapToolsTool - INFO - Registered 3 files as views
+2025-10-31 00:51:47,866 - tools.tools_registry - INFO - Tool registered: duckdb_olap_tools
+2025-10-31 00:51:47,867 - tools.tools_registry - INFO - Loaded custom tool: duckdb_olap_tools
+2025-10-31 00:51:47,867 - tools.tools_registry - INFO - Tool registered: google_search
+2025-10-31 00:51:47,867 - tools.tools_registry - INFO - Loaded built-in tool: google_search (google_search)
+2025-10-31 00:51:47,873 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-10-31 00:51:47,873 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-10-31 00:51:47,873 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-10-31 00:51:47,873 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-10-31 00:51:47,873 - SqlSelectTool - INFO - DuckDB connection initialized for sqlselect
+2025-10-31 00:51:47,873 - tools.tools_registry - INFO - Tool registered: sqlselect
+2025-10-31 00:51:47,873 - tools.tools_registry - INFO - Loaded custom tool: sqlselect
+2025-10-31 00:51:47,874 - tools.tools_registry - INFO - Tool registered: sec_edgar
+2025-10-31 00:51:47,874 - tools.tools_registry - INFO - Loaded custom tool: sec_edgar
+2025-10-31 00:51:47,874 - tools.tools_registry - INFO - Tool registered: fbi
+2025-10-31 00:51:47,874 - tools.tools_registry - INFO - Loaded custom tool: fbi
+2025-10-31 00:51:47,875 - tools.tools_registry - INFO - Tool registered: webcrawler
+2025-10-31 00:51:47,875 - tools.tools_registry - INFO - Loaded custom tool: webcrawler
+2025-10-31 00:51:47,875 - tools.tools_registry - INFO - Tool registered: imf
+2025-10-31 00:51:47,875 - tools.tools_registry - INFO - Loaded custom tool: imf
+2025-10-31 00:51:47,875 - tools.tools_registry - INFO - Started file monitoring for tool configurations
+2025-10-31 00:51:47,883 - root - INFO - All routes registered successfully
+2025-10-31 00:51:47,883 - werkzeug - WARNING - Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+2025-10-31 00:51:47,886 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.2.54:5000
+2025-10-31 00:51:47,886 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-10-31 00:51:55,147 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:51:55] "[32mGET /dashboard HTTP/1.1[0m" 302 -
+2025-10-31 00:51:55,159 - web.app - ERROR - Exception on /login [GET]
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/routes/auth_routes.py", line 42, in login
+    return render_template('login.html')
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/web/templates/login.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/web/templates/base.html", line 24, in top-level template code
+    <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+    ^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+        endpoint,
+    ...<3 lines>...
+        force_external=_external,
+    )
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/routing/map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'dashboard'. Did you mean 'dashboard.index' instead?
+2025-10-31 00:51:55,192 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 00:51:55] "[35m[1mGET /login?next=http://127.0.0.1:5000/dashboard HTTP/1.1[0m" 500 -
+2025-10-31 00:51:55,199 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/routes/auth_routes.py", line 42, in login
+    return render_template('login.html')
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/web/templates/login.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/web/templates/base.html", line 24, in top-level template code
+    <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+    ^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+    
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/routing/map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'dashboard'. Did you mean 'dashboard.index' instead?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 331, in execute
+    application_iter = app(environ, start_response)
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask_socketio/__init__.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/engineio/middleware.py", line 74, in __call__
+    return self.wsgi_app(environ, start_response)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 860, in handle_exception
+    server_error = self.ensure_sync(handler)(server_error)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/web/app.py", line 110, in internal_error
+    return render_template('error.html',
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/web/templates/error.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/web/templates/base.html", line 24, in top-level template code
+    <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+    ^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+    
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/routing/map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'dashboard'. Did you mean 'dashboard.index' instead?
+2025-10-31 01:02:48,821 - __main__ - INFO - Starting SAJHA MCP Server on 0.0.0.0:5000
+2025-10-31 01:02:48,836 - core.auth_manager - INFO - Loaded 1 users from configuration
+2025-10-31 01:02:48,836 - tools.tools_registry - INFO - Loading tools from config/tools
+2025-10-31 01:02:48,837 - tools.tools_registry - INFO - Tool registered: wikipedia
+2025-10-31 01:02:48,837 - tools.tools_registry - INFO - Loaded built-in tool: wikipedia (wikipedia)
+2025-10-31 01:02:48,837 - tools.tools_registry - INFO - Tool registered: yahoo_finance
+2025-10-31 01:02:48,837 - tools.tools_registry - INFO - Loaded built-in tool: yahoo_finance (yahoo_finance)
+2025-10-31 01:02:48,837 - tools.tools_registry - INFO - Tool registered: tavily
+2025-10-31 01:02:48,837 - tools.tools_registry - INFO - Loaded built-in tool: tavily (tavily)
+2025-10-31 01:02:48,838 - tools.tools_registry - INFO - Tool registered: msdoc_tools
+2025-10-31 01:02:48,838 - tools.tools_registry - INFO - Loaded custom tool: msdoc_tools
+2025-10-31 01:02:48,838 - tools.tools_registry - INFO - Tool registered: fed_reserve
+2025-10-31 01:02:48,838 - tools.tools_registry - INFO - Loaded built-in tool: fed_reserve (fed_reserve)
+2025-10-31 01:02:48,838 - tools.tools_registry - INFO - Tool registered: european_central_bank
+2025-10-31 01:02:48,838 - tools.tools_registry - INFO - Loaded custom tool: european_central_bank
+2025-10-31 01:02:48,838 - tools.tools_registry - INFO - Tool registered: united_nations
+2025-10-31 01:02:48,838 - tools.tools_registry - INFO - Loaded custom tool: united_nations
+2025-10-31 01:02:48,839 - tools.tools_registry - INFO - Tool registered: world_bank
+2025-10-31 01:02:48,839 - tools.tools_registry - INFO - Loaded custom tool: world_bank
+2025-10-31 01:02:48,839 - tools.tools_registry - INFO - Tool registered: bank_of_canada
+2025-10-31 01:02:48,839 - tools.tools_registry - INFO - Loaded custom tool: bank_of_canada
+2025-10-31 01:02:48,866 - DuckDbOlapToolsTool - INFO - DuckDB initialized successfully
+2025-10-31 01:02:48,871 - DuckDbOlapToolsTool - INFO - Registered view: sample_customer_data from sample_customer_data.csv
+2025-10-31 01:02:48,872 - DuckDbOlapToolsTool - INFO - Registered view: sample_inventory_data from sample_inventory_data.csv
+2025-10-31 01:02:48,874 - DuckDbOlapToolsTool - INFO - Registered view: sample_sales_data from sample_sales_data.csv
+2025-10-31 01:02:48,874 - DuckDbOlapToolsTool - INFO - Registered 3 files as views
+2025-10-31 01:02:48,875 - tools.tools_registry - INFO - Tool registered: duckdb_olap_tools
+2025-10-31 01:02:48,875 - tools.tools_registry - INFO - Loaded custom tool: duckdb_olap_tools
+2025-10-31 01:02:48,875 - tools.tools_registry - INFO - Tool registered: google_search
+2025-10-31 01:02:48,875 - tools.tools_registry - INFO - Loaded built-in tool: google_search (google_search)
+2025-10-31 01:02:48,881 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-10-31 01:02:48,881 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-10-31 01:02:48,881 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-10-31 01:02:48,881 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-10-31 01:02:48,881 - SqlSelectTool - INFO - DuckDB connection initialized for sqlselect
+2025-10-31 01:02:48,881 - tools.tools_registry - INFO - Tool registered: sqlselect
+2025-10-31 01:02:48,881 - tools.tools_registry - INFO - Loaded custom tool: sqlselect
+2025-10-31 01:02:48,882 - tools.tools_registry - INFO - Tool registered: sec_edgar
+2025-10-31 01:02:48,882 - tools.tools_registry - INFO - Loaded custom tool: sec_edgar
+2025-10-31 01:02:48,882 - tools.tools_registry - INFO - Tool registered: fbi
+2025-10-31 01:02:48,882 - tools.tools_registry - INFO - Loaded custom tool: fbi
+2025-10-31 01:02:48,883 - tools.tools_registry - INFO - Tool registered: webcrawler
+2025-10-31 01:02:48,883 - tools.tools_registry - INFO - Loaded custom tool: webcrawler
+2025-10-31 01:02:48,883 - tools.tools_registry - INFO - Tool registered: imf
+2025-10-31 01:02:48,883 - tools.tools_registry - INFO - Loaded custom tool: imf
+2025-10-31 01:02:48,883 - tools.tools_registry - INFO - Started file monitoring for tool configurations
+2025-10-31 01:02:48,891 - root - INFO - All routes registered successfully
+2025-10-31 01:02:48,891 - werkzeug - WARNING - Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+2025-10-31 01:02:48,893 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.2.54:5000
+2025-10-31 01:02:48,893 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-10-31 01:02:53,893 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:02:53] "[32mGET /tools HTTP/1.1[0m" 302 -
+2025-10-31 01:02:53,920 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:02:53] "GET /login?next=http://127.0.0.1:5000/tools HTTP/1.1" 200 -
+2025-10-31 01:02:53,949 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:02:53] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 01:02:53,955 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:02:53] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 01:03:00,585 - core.auth_manager - INFO - Saved 1 users to configuration
+2025-10-31 01:03:00,585 - core.auth_manager - INFO - User authenticated successfully: admin
+2025-10-31 01:03:00,586 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:03:00] "[32mPOST /login HTTP/1.1[0m" 302 -
+2025-10-31 01:03:00,605 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:03:00] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 01:03:00,624 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:03:00] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 01:03:00,625 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:03:00] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 01:03:04,624 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:03:04] "GET /monitoring/tools HTTP/1.1" 200 -
+2025-10-31 01:03:04,646 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:03:04] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 01:03:04,648 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:03:04] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 01:03:07,474 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:03:07] "GET /admin/users HTTP/1.1" 200 -
+2025-10-31 01:03:07,487 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:03:07] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 01:03:07,490 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:03:07] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 01:03:10,046 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:03:10] "GET /admin/tools HTTP/1.1" 200 -
+2025-10-31 01:03:10,063 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:03:10] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 01:03:10,064 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:03:10] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
