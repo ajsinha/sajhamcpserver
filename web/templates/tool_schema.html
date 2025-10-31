@@ -195,6 +195,31 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         </div>
     </div>
 
+    <!-- Literature Content -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="bi bi-book"></i> Literature Content</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label for="literatureContent" class="form-label">
+                    Tool documentation, usage examples, and additional information:
+                </label>
+                <textarea class="form-control" id="literatureContent" rows="15"
+                          style="font-family: 'Courier New', monospace; font-size: 0.9em;">{{ literature_content }}</textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" onclick="saveLiterature()">
+                    <i class="bi bi-save"></i> Save Literature
+                </button>
+                <button class="btn btn-outline-secondary" onclick="copyToClipboard('literature')">
+                    <i class="bi bi-clipboard"></i> Copy to Clipboard
+                </button>
+            </div>
+            <div id="literatureSaveStatus" class="mt-2"></div>
+        </div>
+    </div>
+
     <!-- Actions -->
     <div class="card">
         <div class="card-header bg-success text-white">
@@ -234,13 +259,56 @@ function copyToClipboard(type) {
         alert('No configuration available to copy');
         return;
         {% endif %}
+    } else if (type === 'literature') {
+        textToCopy = document.getElementById('literatureContent').value;
     }
 
     navigator.clipboard.writeText(textToCopy).then(function() {
-        const message = type === 'schema' ? 'Schema' : 'Configuration';
+        let message;
+        if (type === 'schema') {
+            message = 'Schema';
+        } else if (type === 'config') {
+            message = 'Configuration';
+        } else if (type === 'literature') {
+            message = 'Literature content';
+        }
         alert(message + ' copied to clipboard!');
     }, function() {
         alert('Failed to copy to clipboard');
+    });
+}
+
+function saveLiterature() {
+    const literatureContent = document.getElementById('literatureContent').value;
+    const statusDiv = document.getElementById('literatureSaveStatus');
+    const toolName = '{{ tool.name }}';
+
+    // Show loading message
+    statusDiv.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split"></i> Saving literature content...</div>';
+
+    // Create form data
+    const formData = new FormData();
+    formData.append('literature_content', literatureContent);
+
+    // Send POST request
+    fetch(`/tools/${toolName}/literature/save`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            statusDiv.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle"></i> ' + data.message + '</div>';
+            // Clear success message after 3 seconds
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 3000);
+        } else {
+            statusDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Error: ' + data.error + '</div>';
+        }
+    })
+    .catch(error => {
+        statusDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Error saving literature: ' + error + '</div>';
     });
 }
 </script>

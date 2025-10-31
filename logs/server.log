@@ -3720,3 +3720,82 @@ AssertionError: write() before start_response
 2025-10-31 01:48:21,908 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:48:21] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
 2025-10-31 01:48:21,909 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:48:21] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
 2025-10-31 01:48:28,285 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:48:28] "GET /tooljson/wikipedia HTTP/1.1" 200 -
+2025-10-31 01:57:07,153 - __main__ - INFO - Starting SAJHA MCP Server on 0.0.0.0:5000
+2025-10-31 01:57:07,170 - core.auth_manager - INFO - Loaded 1 users from configuration
+2025-10-31 01:57:07,170 - tools.tools_registry - INFO - Loading tools from config/tools
+2025-10-31 01:57:07,171 - tools.tools_registry - INFO - Tool registered: wikipedia
+2025-10-31 01:57:07,171 - tools.tools_registry - INFO - Loaded built-in tool: wikipedia (wikipedia)
+2025-10-31 01:57:07,171 - tools.tools_registry - INFO - Tool registered: yahoo_finance
+2025-10-31 01:57:07,171 - tools.tools_registry - INFO - Loaded built-in tool: yahoo_finance (yahoo_finance)
+2025-10-31 01:57:07,171 - tools.tools_registry - INFO - Tool registered: tavily
+2025-10-31 01:57:07,172 - tools.tools_registry - INFO - Loaded built-in tool: tavily (tavily)
+2025-10-31 01:57:07,172 - tools.tools_registry - INFO - Tool registered: msdoc_tools
+2025-10-31 01:57:07,172 - tools.tools_registry - INFO - Loaded custom tool: msdoc_tools
+2025-10-31 01:57:07,172 - tools.tools_registry - INFO - Tool registered: fed_reserve
+2025-10-31 01:57:07,172 - tools.tools_registry - INFO - Loaded built-in tool: fed_reserve (fed_reserve)
+2025-10-31 01:57:07,172 - tools.tools_registry - INFO - Tool registered: european_central_bank
+2025-10-31 01:57:07,172 - tools.tools_registry - INFO - Loaded custom tool: european_central_bank
+2025-10-31 01:57:07,173 - tools.tools_registry - INFO - Tool registered: united_nations
+2025-10-31 01:57:07,173 - tools.tools_registry - INFO - Loaded custom tool: united_nations
+2025-10-31 01:57:07,173 - tools.tools_registry - INFO - Tool registered: world_bank
+2025-10-31 01:57:07,173 - tools.tools_registry - INFO - Loaded custom tool: world_bank
+2025-10-31 01:57:07,173 - tools.tools_registry - INFO - Tool registered: bank_of_canada
+2025-10-31 01:57:07,173 - tools.tools_registry - INFO - Loaded custom tool: bank_of_canada
+2025-10-31 01:57:07,204 - DuckDbOlapToolsTool - INFO - DuckDB initialized successfully
+2025-10-31 01:57:07,209 - DuckDbOlapToolsTool - INFO - Registered view: sample_sales_data from sample_sales_data.csv
+2025-10-31 01:57:07,211 - DuckDbOlapToolsTool - INFO - Registered view: sample_customer_data from sample_customer_data.csv
+2025-10-31 01:57:07,213 - DuckDbOlapToolsTool - INFO - Registered view: sample_inventory_data from sample_inventory_data.csv
+2025-10-31 01:57:07,213 - DuckDbOlapToolsTool - INFO - Registered 3 files as views
+2025-10-31 01:57:07,214 - tools.tools_registry - INFO - Tool registered: duckdb_olap_tools
+2025-10-31 01:57:07,214 - tools.tools_registry - INFO - Loaded custom tool: duckdb_olap_tools
+2025-10-31 01:57:07,214 - tools.tools_registry - INFO - Tool registered: google_search
+2025-10-31 01:57:07,214 - tools.tools_registry - INFO - Loaded built-in tool: google_search (google_search)
+2025-10-31 01:57:07,221 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-10-31 01:57:07,221 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-10-31 01:57:07,221 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-10-31 01:57:07,221 - SqlSelectTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-10-31 01:57:07,221 - SqlSelectTool - INFO - DuckDB connection initialized for sqlselect
+2025-10-31 01:57:07,221 - tools.tools_registry - INFO - Tool registered: sqlselect
+2025-10-31 01:57:07,221 - tools.tools_registry - INFO - Loaded custom tool: sqlselect
+2025-10-31 01:57:07,221 - tools.tools_registry - INFO - Tool registered: sec_edgar
+2025-10-31 01:57:07,221 - tools.tools_registry - INFO - Loaded custom tool: sec_edgar
+2025-10-31 01:57:07,222 - tools.tools_registry - INFO - Tool registered: fbi
+2025-10-31 01:57:07,222 - tools.tools_registry - INFO - Loaded custom tool: fbi
+2025-10-31 01:57:07,222 - tools.tools_registry - INFO - Tool registered: webcrawler
+2025-10-31 01:57:07,222 - tools.tools_registry - INFO - Loaded custom tool: webcrawler
+2025-10-31 01:57:07,223 - tools.tools_registry - INFO - Tool registered: imf
+2025-10-31 01:57:07,223 - tools.tools_registry - INFO - Loaded custom tool: imf
+2025-10-31 01:57:07,223 - tools.tools_registry - INFO - Started file monitoring for tool configurations
+2025-10-31 01:57:07,232 - root - INFO - All routes registered successfully
+2025-10-31 01:57:07,232 - werkzeug - WARNING - Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+2025-10-31 01:57:07,235 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.2.54:5000
+2025-10-31 01:57:07,235 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-10-31 01:57:11,579 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:57:11] "[32mGET /dashboard HTTP/1.1[0m" 302 -
+2025-10-31 01:57:11,596 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:57:11] "GET /login?next=http://127.0.0.1:5000/dashboard HTTP/1.1" 200 -
+2025-10-31 01:57:11,614 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:57:11] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 01:57:11,616 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:57:11] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 01:57:17,993 - core.auth_manager - INFO - Saved 1 users to configuration
+2025-10-31 01:57:17,993 - core.auth_manager - INFO - User authenticated successfully: admin
+2025-10-31 01:57:17,993 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:57:17] "[32mPOST /login HTTP/1.1[0m" 302 -
+2025-10-31 01:57:18,003 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:57:18] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 01:57:18,019 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:57:18] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 01:57:18,021 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:57:18] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 01:57:25,260 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:57:25] "GET /tools/wikipedia/schema HTTP/1.1" 200 -
+2025-10-31 01:57:25,275 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:57:25] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 01:57:25,275 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:57:25] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 01:57:51,408 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:57:51] "POST /tools/wikipedia/literature/save HTTP/1.1" 200 -
+2025-10-31 01:57:55,115 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:57:55] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 01:57:55,131 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:57:55] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 01:57:55,132 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:57:55] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 01:58:06,328 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:58:06] "GET /tools/yahoo_finance/schema HTTP/1.1" 200 -
+2025-10-31 01:58:06,347 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:58:06] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 01:58:06,348 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:58:06] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 01:58:19,576 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:58:19] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 01:58:19,593 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:58:19] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 01:58:19,596 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:58:19] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 01:58:25,527 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:58:25] "GET /tools/wikipedia/schema HTTP/1.1" 200 -
+2025-10-31 01:58:25,549 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:58:25] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 01:58:25,552 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 01:58:25] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
