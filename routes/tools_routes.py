@@ -80,6 +80,158 @@ class ToolsRoutes(BaseRoutes):
                                  schema_json=schema_json,
                                  config_json=config_json)
 
+        @app.route('/tooljson/list')
+        @self.login_required
+        def tools_list_json():
+            """Get list of all tools in JSON format"""
+            user_session = self.get_user_session()
+
+            # Get all tools
+            tools = self.tools_registry.get_all_tools()
+
+            # Filter based on user permissions
+            accessible_tools = self.auth_manager.get_user_accessible_tools(user_session)
+            if '*' not in accessible_tools:
+                tools = [t for t in tools if t['name'] in accessible_tools]
+
+            from flask import jsonify
+            return jsonify({
+                'success': True,
+                'count': len(tools),
+                'tools': tools
+            })
+
+        @app.route('/tooljson/<tool_name>')
+        @self.login_required
+        def tool_json(tool_name):
+            """Get tool schema and config in JSON format"""
+            user_session = self.get_user_session()
+
+            # Check if user has access to this tool
+            if not self.auth_manager.has_tool_access(user_session, tool_name):
+                from flask import jsonify
+                return jsonify({
+                    'success': False,
+                    'error': 'Access denied'
+                }), 403
+
+            # Get tool details
+            tool = self.tools_registry.get_tool(tool_name)
+            if not tool:
+                from flask import jsonify
+                return jsonify({
+                    'success': False,
+                    'error': 'Tool not found'
+                }), 404
+
+            # Get tool schema
+            tool_schema = tool.to_mcp_format()
+
+            # Load tool configuration from config/tools folder
+            tool_config = None
+            try:
+                import json
+                from pathlib import Path
+                config_file = Path(self.tools_registry.tools_config_dir) / f"{tool_name}.json"
+                if config_file.exists():
+                    with open(config_file, 'r') as f:
+                        tool_config = json.load(f)
+            except Exception as e:
+                tool_config = {'error': f'Error loading configuration: {str(e)}'}
+
+            # Load literature content from config/literature folder
+            literature_content = ""
+            try:
+                from pathlib import Path
+                # Assume config/literature is at the same level as config/tools
+                config_dir = Path(self.tools_registry.tools_config_dir).parent
+                literature_file = config_dir / 'literature' / f"{tool_name}.txt"
+                if literature_file.exists():
+                    with open(literature_file, 'r', encoding='utf-8') as f:
+                        literature_content = f.read()
+            except Exception as e:
+                # If there's an error reading literature, just leave it empty
+                literature_content = ""
+
+            from flask import jsonify
+            return jsonify({
+                'success': True,
+                'tool_name': tool_name,
+                'schema': tool_schema,
+                'config': tool_config,
+                'literature': literature_content
+            })
+
+        @app.route('/tooljsonall')
+        @self.login_required
+        def tools_all_json_list():
+            """Get all tools with their schemas and configs in JSON array format"""
+            user_session = self.get_user_session()
+
+            # Get all tools
+            all_tools = self.tools_registry.get_all_tools()
+
+            # Filter based on user permissions
+            accessible_tools = self.auth_manager.get_user_accessible_tools(user_session)
+            if '*' not in accessible_tools:
+                all_tools = [t for t in all_tools if t['name'] in accessible_tools]
+
+            # Build the comprehensive tools list
+            tools_json_list = []
+
+            import json
+            from pathlib import Path
+
+            for tool_info in all_tools:
+                tool_name = tool_info['name']
+
+                # Get tool instance
+                tool = self.tools_registry.get_tool(tool_name)
+                if not tool:
+                    continue
+
+                # Get tool schema
+                tool_schema = tool.to_mcp_format()
+
+                # Load tool configuration from config/tools folder
+                tool_config = None
+                try:
+                    config_file = Path(self.tools_registry.tools_config_dir) / f"{tool_name}.json"
+                    if config_file.exists():
+                        with open(config_file, 'r') as f:
+                            tool_config = json.load(f)
+                except Exception as e:
+                    tool_config = {'error': f'Error loading configuration: {str(e)}'}
+
+                # Load literature content from config/literature folder
+                literature_content = ""
+                try:
+                    # Assume config/literature is at the same level as config/tools
+                    config_dir = Path(self.tools_registry.tools_config_dir).parent
+                    literature_file = config_dir / 'literature' / f"{tool_name}.txt"
+                    if literature_file.exists():
+                        with open(literature_file, 'r', encoding='utf-8') as f:
+                            literature_content = f.read()
+                except Exception as e:
+                    # If there's an error reading literature, just leave it empty
+                    literature_content = ""
+
+                # Add to list
+                tools_json_list.append({
+                    tool_name: {
+                        'schema': tool_schema,
+                        'config': tool_config,
+                        'literature': literature_content
+                    }
+                })
+
+            from flask import jsonify
+            return jsonify({
+                'success': True,
+                'count': len(tools_json_list),
+                'tools': tools_json_list
+            })
+
         @app.route('/tools/execute/<tool_name>')
         @self.login_required
         def tool_execute(tool_name):
