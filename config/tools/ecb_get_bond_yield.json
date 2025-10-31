@@ -1,0 +1,115 @@
+{
+  "name": "ecb_get_bond_yield",
+  "implementation": "tools.impl.european_central_bank_tool_refactored.ECBGetBondYieldTool",
+  "description": "Retrieve Euro Area government bond yields for various maturities (2Y, 5Y, 10Y) with historical data.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "bond_term": {
+        "type": "string",
+        "description": "Bond maturity term",
+        "enum": ["2y", "5y", "10y"]
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date in YYYY-MM-DD format"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date in YYYY-MM-DD format"
+      },
+      "recent_periods": {
+        "type": "integer",
+        "description": "Number of recent observations (1-100)",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10
+      }
+    },
+    "required": ["bond_term"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "flow": {
+        "type": "string",
+        "description": "ECB data flow (YC for yield curves)"
+      },
+      "key": {
+        "type": "string",
+        "description": "Bond yield series key"
+      },
+      "series_name": {
+        "type": "string",
+        "description": "Bond yield series identifier"
+      },
+      "description": {
+        "type": "string",
+        "description": "Bond description"
+      },
+      "observation_count": {
+        "type": "integer",
+        "description": "Number of yield observations"
+      },
+      "observations": {
+        "type": "array",
+        "description": "Historical bond yield values",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Date of yield observation"
+            },
+            "value": {
+              "type": ["number", "null"],
+              "description": "Bond yield percentage"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["bonds", "yields", "government bonds", "eurozone", "fixed income", "yield curve"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Euro Area government bond yields are average yields weighted by GDP. Useful for yield curve analysis and fixed income trading.",
+    "examples": [
+      {
+        "description": "Get latest 10-year bond yield",
+        "input": {
+          "bond_term": "10y",
+          "recent_periods": 1
+        }
+      },
+      {
+        "description": "Get 5-year yield history for past year",
+        "input": {
+          "bond_term": "5y",
+          "start_date": "2023-11-01",
+          "end_date": "2024-10-31"
+        }
+      },
+      {
+        "description": "Compare recent 2-year vs 10-year yields (call twice)",
+        "input": {
+          "bond_term": "2y",
+          "recent_periods": 30
+        }
+      }
+    ],
+    "useCases": [
+      "Yield curve analysis",
+      "Fixed income trading",
+      "Monetary policy research",
+      "Investment portfolio management",
+      "Economic forecasting",
+      "Risk assessment"
+    ]
+  }
+}

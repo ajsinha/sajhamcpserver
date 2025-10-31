@@ -1,0 +1,99 @@
+{
+  "name": "sec_search_company",
+  "implementation": "tools.impl.sec_edgar_tool_refactored.SECSearchCompanyTool",
+  "description": "Search for companies by name or ticker symbol in SEC EDGAR database",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "search_term": {
+        "type": "string",
+        "description": "Company name or ticker symbol to search for (e.g., 'Apple', 'AAPL')"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of results to return",
+        "default": 10,
+        "minimum": 1,
+        "maximum": 100
+      }
+    },
+    "required": ["search_term"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "search_term": {
+        "type": "string",
+        "description": "Original search term"
+      },
+      "result_count": {
+        "type": "integer",
+        "description": "Number of companies found"
+      },
+      "companies": {
+        "type": "array",
+        "description": "List of matching companies",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cik": {
+              "type": "string",
+              "description": "10-digit Central Index Key"
+            },
+            "name": {
+              "type": "string",
+              "description": "Company name"
+            },
+            "ticker": {
+              "type": "string",
+              "description": "Stock ticker symbol"
+            },
+            "exchange": {
+              "type": "string",
+              "description": "Stock exchange (e.g., 'Nasdaq', 'NYSE')"
+            }
+          },
+          "required": ["cik", "name"]
+        }
+      }
+    },
+    "required": ["search_term", "result_count", "companies"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Financial Data",
+    "tags": ["sec", "edgar", "search", "companies", "ticker", "cik"],
+    "rateLimit": 10,
+    "cacheTTL": 3600,
+    "note": "Search SEC EDGAR database for company information. Returns CIK numbers which can be used with other SEC tools.",
+    "examples": [
+      {
+        "description": "Search for Apple by name",
+        "input": {
+          "search_term": "Apple"
+        }
+      },
+      {
+        "description": "Search for Tesla by ticker",
+        "input": {
+          "search_term": "TSLA",
+          "limit": 5
+        }
+      },
+      {
+        "description": "Search for Microsoft",
+        "input": {
+          "search_term": "Microsoft"
+        }
+      }
+    ],
+    "useCases": [
+      "Find company CIK for further SEC queries",
+      "Lookup ticker symbols",
+      "Verify company names",
+      "Discover exchange listings"
+    ]
+  }
+}

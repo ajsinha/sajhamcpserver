@@ -1,0 +1,136 @@
+{
+  "name": "ecb_search_series",
+  "implementation": "tools.impl.european_central_bank_tool_refactored.ECBSearchSeriesTool",
+  "description": "Search and discover available European Central Bank data series organized by category. Helps users find the right data series for their needs.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "category": {
+        "type": "string",
+        "description": "Filter results by category. Use 'all' or omit to see all categories.",
+        "enum": [
+          "Exchange Rates",
+          "Interest Rates",
+          "Bond Yields",
+          "Inflation (HICP)",
+          "Economic Indicators",
+          "Money Supply",
+          "all"
+        ],
+        "default": "all"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "categories": {
+        "type": "object",
+        "description": "Available series organized by category",
+        "additionalProperties": {
+          "type": "array",
+          "description": "List of series in this category",
+          "items": {
+            "type": "object",
+            "properties": {
+              "indicator": {
+                "type": "string",
+                "description": "Shorthand indicator name (e.g., 'eur_usd', 'main_refinancing_rate')"
+              },
+              "flow": {
+                "type": "string",
+                "description": "ECB data flow identifier"
+              },
+              "key": {
+                "type": "string",
+                "description": "ECB series key"
+              },
+              "description": {
+                "type": "string",
+                "description": "Human-readable description of the data series"
+              }
+            }
+          }
+        }
+      },
+      "total_series": {
+        "type": "integer",
+        "description": "Total number of available series across all returned categories"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["search", "discovery", "catalog", "metadata", "directory", "ecb"],
+    "rateLimit": 120,
+    "cacheTTL": 86400,
+    "note": "This tool returns metadata about available series. No actual economic data is retrieved. Results are static and can be heavily cached (24h).",
+    "examples": [
+      {
+        "description": "Browse all available data series",
+        "input": {}
+      },
+      {
+        "description": "Find all available exchange rates",
+        "input": {
+          "category": "Exchange Rates"
+        }
+      },
+      {
+        "description": "Discover ECB interest rate series",
+        "input": {
+          "category": "Interest Rates"
+        }
+      },
+      {
+        "description": "See HICP inflation measures",
+        "input": {
+          "category": "Inflation (HICP)"
+        }
+      }
+    ],
+    "useCases": [
+      "Initial tool discovery",
+      "Documentation generation",
+      "Building UI selection dropdowns",
+      "API exploration",
+      "Finding series IDs for specific needs",
+      "Understanding available economic indicators"
+    ],
+    "categories": {
+      "Exchange Rates": {
+        "description": "Foreign exchange rates between EUR and major currencies",
+        "seriesCount": 5,
+        "flow": "EXR"
+      },
+      "Interest Rates": {
+        "description": "ECB policy rates and money market rates",
+        "seriesCount": 5,
+        "flow": "FM"
+      },
+      "Bond Yields": {
+        "description": "Euro Area government bond yields",
+        "seriesCount": 3,
+        "flow": "YC"
+      },
+      "Inflation (HICP)": {
+        "description": "Harmonised Index of Consumer Prices measures",
+        "seriesCount": 3,
+        "flow": "ICP"
+      },
+      "Economic Indicators": {
+        "description": "Key Euro Area economic indicators",
+        "seriesCount": 2,
+        "flows": ["MNA", "LFSI"]
+      },
+      "Money Supply": {
+        "description": "Monetary aggregates M1, M2, M3",
+        "seriesCount": 3,
+        "flow": "BSI"
+      }
+    }
+  }
+}

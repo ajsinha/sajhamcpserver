@@ -1,0 +1,92 @@
+{
+  "name": "duckdb_refresh_views",
+  "implementation": "tools.impl.duckdb_olap_tools_refactored.DuckDbRefreshViewsTool",
+  "description": "Refresh materialized views or reload external data files into DuckDB",
+  "version": "1.0.0",
+  "enabled": true,
+  "data_directory": "/home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "view_name": {
+        "type": "string",
+        "description": "Optional: Specific view to refresh. If not provided, refreshes all views."
+      },
+      "reload_external_files": {
+        "type": "boolean",
+        "description": "Reload external CSV/Parquet/JSON files",
+        "default": false
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "refreshed_views": {
+        "type": "array",
+        "description": "List of views that were refreshed",
+        "items": {
+          "type": "object",
+          "properties": {
+            "view_name": {
+              "type": "string",
+              "description": "Name of the view"
+            },
+            "status": {
+              "type": "string",
+              "description": "Refresh status",
+              "enum": ["success", "failed", "skipped"]
+            },
+            "row_count": {
+              "type": "integer",
+              "description": "Number of rows in refreshed view"
+            },
+            "refresh_time_ms": {
+              "type": "number",
+              "description": "Time taken to refresh in milliseconds"
+            },
+            "error_message": {
+              "type": "string",
+              "description": "Error message if refresh failed"
+            }
+          }
+        }
+      },
+      "total_refreshed": {
+        "type": "integer",
+        "description": "Total number of views refreshed"
+      },
+      "external_files_reloaded": {
+        "type": "boolean",
+        "description": "Whether external files were reloaded"
+      }
+    },
+    "required": ["refreshed_views", "total_refreshed"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Data Analytics",
+    "tags": ["duckdb", "views", "refresh", "reload"],
+    "rateLimit": 60,
+    "cacheTTL": 60,
+    "note": "Refresh materialized views and reload external data sources",
+    "examples": [
+      {
+        "description": "Refresh all views",
+        "input": {}
+      },
+      {
+        "description": "Refresh specific view",
+        "input": {
+          "view_name": "monthly_sales_summary"
+        }
+      },
+      {
+        "description": "Reload external files and refresh views",
+        "input": {
+          "reload_external_files": true
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "name": "boc_get_exchange_rate",
+  "implementation": "tools.impl.bank_of_canada_tool_refactored.BoCGetExchangeRateTool",
+  "description": "Retrieve foreign exchange rates between Canadian Dollar and other currencies. Supports major currency pairs with historical data.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "currency_pair": {
+        "type": "string",
+        "description": "Currency pair in format 'XXX/CAD' (e.g., 'USD/CAD', 'EUR/CAD'). Always quotes in terms of CAD."
+      },
+      "indicator": {
+        "type": "string",
+        "description": "Pre-defined currency pair shorthand",
+        "enum": ["usd_cad", "eur_cad", "gbp_cad", "jpy_cad", "cny_cad"]
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date in YYYY-MM-DD format"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date in YYYY-MM-DD format"
+      },
+      "recent_periods": {
+        "type": "integer",
+        "description": "Number of recent observations to retrieve (1-100)",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10
+      }
+    },
+    "oneOf": [
+      {"required": ["currency_pair"]},
+      {"required": ["indicator"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "series_name": {
+        "type": "string",
+        "description": "Bank of Canada FX series identifier"
+      },
+      "label": {
+        "type": "string",
+        "description": "Exchange rate description"
+      },
+      "description": {
+        "type": "string",
+        "description": "Detailed information about the exchange rate"
+      },
+      "dimension": {
+        "type": "object",
+        "description": "Currency units and frequency metadata"
+      },
+      "observation_count": {
+        "type": "integer",
+        "description": "Number of exchange rate observations"
+      },
+      "observations": {
+        "type": "array",
+        "description": "Historical exchange rate data points",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Date of exchange rate"
+            },
+            "value": {
+              "type": ["number", "null"],
+              "description": "Exchange rate value (CAD per unit of foreign currency)"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["forex", "exchange rates", "currency", "bank of canada", "canada"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "examples": [
+      {
+        "description": "Get latest USD/CAD rate",
+        "input": {
+          "indicator": "usd_cad",
+          "recent_periods": 1
+        }
+      },
+      {
+        "description": "Get EUR/CAD for past month",
+        "input": {
+          "currency_pair": "EUR/CAD",
+          "start_date": "2024-10-01",
+          "end_date": "2024-10-31"
+        }
+      }
+    ]
+  }
+}

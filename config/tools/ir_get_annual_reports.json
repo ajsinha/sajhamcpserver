@@ -1,0 +1,80 @@
+{
+  "name": "ir_get_annual_reports",
+  "implementation": "tools.impl.investor_relations_tool_refactored.IRGetAnnualReportsTool",
+  "description": "Get annual reports (10-K) for a company, with optional year filter",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "ticker": {
+        "type": "string",
+        "description": "Stock ticker symbol"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Filter by specific year (optional)",
+        "minimum": 2000,
+        "maximum": 2030
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of reports to return",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 20
+      }
+    },
+    "required": ["ticker"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "ticker": {"type": "string"},
+      "year": {"type": ["integer", "null"]},
+      "count": {"type": "integer"},
+      "annual_reports": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": {"type": "string"},
+            "url": {"type": "string"},
+            "year": {"type": "integer"},
+            "date": {"type": "string"}
+          }
+        }
+      },
+      "success": {"type": "boolean"}
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Financial Analysis",
+    "tags": ["annual reports", "10-K", "financial statements"],
+    "rateLimit": 30,
+    "cacheTTL": 86400,
+    "supported_companies": ["TSLA", "MSFT", "C", "BMO", "RY", "JPM", "GS"],
+    "examples": [
+      {
+        "description": "Get Goldman Sachs annual reports",
+        "input": {
+          "ticker": "GS",
+          "limit": 5
+        }
+      },
+      {
+        "description": "Get Royal Bank of Canada 2023 annual report",
+        "input": {
+          "ticker": "RY",
+          "year": 2023
+        }
+      }
+    ],
+    "useCases": [
+      "Annual financial analysis",
+      "Historical performance research",
+      "Access to 10-K filings"
+    ]
+  }
+}

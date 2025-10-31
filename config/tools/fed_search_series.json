@@ -1,0 +1,113 @@
+{
+  "name": "fed_search_series",
+  "implementation": "tools.impl.fed_reserve_tool_refactored.FedSearchSeriesTool",
+  "description": "Search for economic data series in the FRED database. Find the right data series using keywords and discover available economic indicators.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Search query (e.g., 'unemployment rate', 'GDP', 'treasury yield', 'housing prices')"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of results to return",
+        "default": 20,
+        "minimum": 1,
+        "maximum": 100
+      }
+    },
+    "required": ["query"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Search query used"
+      },
+      "count": {
+        "type": "integer",
+        "description": "Number of results returned"
+      },
+      "results": {
+        "type": "array",
+        "description": "Search results",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Series ID"
+            },
+            "title": {
+              "type": "string",
+              "description": "Series title"
+            },
+            "units": {
+              "type": "string",
+              "description": "Units of measurement"
+            },
+            "frequency": {
+              "type": "string",
+              "description": "Data frequency"
+            },
+            "popularity": {
+              "type": "integer",
+              "description": "Popularity score"
+            },
+            "observation_start": {
+              "type": "string",
+              "description": "First observation date"
+            },
+            "observation_end": {
+              "type": "string",
+              "description": "Last observation date"
+            }
+          },
+          "required": ["id", "title"]
+        }
+      }
+    },
+    "required": ["query", "count", "results"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["fred", "search", "discovery", "economic indicators"],
+    "rateLimit": 60,
+    "cacheTTL": 7200,
+    "note": "Discover economic data series in FRED's extensive database of over 800,000 time series.",
+    "examples": [
+      {
+        "description": "Search for unemployment data",
+        "input": {
+          "query": "unemployment rate",
+          "limit": 10
+        }
+      },
+      {
+        "description": "Find housing price indices",
+        "input": {
+          "query": "housing price index"
+        }
+      },
+      {
+        "description": "Search for inflation measures",
+        "input": {
+          "query": "consumer price index CPI",
+          "limit": 15
+        }
+      }
+    ],
+    "useCases": [
+      "Data discovery",
+      "Finding specific indicators",
+      "Exploring available data",
+      "Research planning",
+      "Alternative data identification"
+    ]
+  }
+}

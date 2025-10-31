@@ -1,0 +1,124 @@
+{
+  "name": "un_get_sdg_progress",
+  "implementation": "tools.impl.united_nations_tool_refactored.UNGetSDGProgressTool",
+  "description": "Track a country's progress towards Sustainable Development Goals with latest indicator values",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "country_code": {
+        "type": "string",
+        "description": "ISO3 country code (e.g., 'USA', 'BRA', 'IND', 'KEN')"
+      },
+      "sdg_code": {
+        "type": "string",
+        "description": "Specific SDG code for detailed progress (optional, omit for overview of all SDGs)",
+        "enum": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17"]
+      }
+    },
+    "required": ["country_code"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "country_code": {
+        "type": "string",
+        "description": "Country code"
+      },
+      "country_name": {
+        "type": "string",
+        "description": "Country name"
+      },
+      "sdg_code": {
+        "type": "string",
+        "description": "SDG code (if specific goal requested)"
+      },
+      "sdg_title": {
+        "type": "string",
+        "description": "SDG title (if specific goal requested)"
+      },
+      "indicators": {
+        "type": "array",
+        "description": "Progress indicators with latest values",
+        "items": {
+          "type": "object",
+          "properties": {
+            "indicator_code": {
+              "type": "string",
+              "description": "Indicator code (e.g., '1.1.1')"
+            },
+            "description": {
+              "type": "string",
+              "description": "Indicator description"
+            },
+            "latest_data": {
+              "type": "object",
+              "description": "Most recent data point",
+              "properties": {
+                "year": {"type": "integer"},
+                "value": {"type": ["number", "null"]},
+                "unit": {"type": "string"}
+              }
+            },
+            "trend": {
+              "type": "string",
+              "description": "Progress trend (improving/declining/stable)",
+              "enum": ["improving", "declining", "stable", "insufficient_data"]
+            }
+          }
+        }
+      },
+      "overall_progress": {
+        "type": "string",
+        "description": "Overall progress assessment (if specific SDG requested)"
+      }
+    },
+    "required": ["country_code"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Global Statistics",
+    "tags": ["un", "sdg", "progress tracking", "country monitoring", "development"],
+    "rateLimit": 60,
+    "cacheTTL": 3600,
+    "note": "Track country-level progress on SDG indicators. Shows latest available data and trends. When no specific SDG is requested, returns overview of all 17 goals. Data availability varies by country and indicator.",
+    "examples": [
+      {
+        "description": "Track India's progress on SDG 1 (No Poverty)",
+        "input": {
+          "country_code": "IND",
+          "sdg_code": "1"
+        }
+      },
+      {
+        "description": "Get Brazil's progress on SDG 13 (Climate Action)",
+        "input": {
+          "country_code": "BRA",
+          "sdg_code": "13"
+        }
+      },
+      {
+        "description": "Get overview of Kenya's SDG progress",
+        "input": {
+          "country_code": "KEN"
+        }
+      },
+      {
+        "description": "Track Norway's progress on SDG 4 (Quality Education)",
+        "input": {
+          "country_code": "NOR",
+          "sdg_code": "4"
+        }
+      }
+    ],
+    "useCases": [
+      "National development monitoring",
+      "Policy impact assessment",
+      "International development reporting",
+      "Funding allocation decisions",
+      "Comparative country analysis",
+      "Academic research"
+    ]
+  }
+}

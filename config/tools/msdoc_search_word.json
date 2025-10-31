@@ -1,0 +1,61 @@
+{
+  "name": "msdoc_search_word",
+  "implementation": "tools.impl.msdoc_tools_tool_refactored.MsDocSearchWordTool",
+  "description": "Search for specific text within Word documents and return matching paragraphs",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "filename": {
+        "type": "string",
+        "description": "Name of the Word file to search"
+      },
+      "search_term": {
+        "type": "string",
+        "description": "Text to search for (case-insensitive)"
+      }
+    },
+    "required": ["filename", "search_term"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "filename": {"type": "string"},
+      "search_term": {"type": "string"},
+      "matches": {
+        "type": "array",
+        "description": "Paragraphs containing the search term",
+        "items": {
+          "type": "object",
+          "properties": {
+            "paragraph_index": {"type": "integer"},
+            "text": {"type": "string"}
+          }
+        }
+      },
+      "match_count": {"type": "integer"}
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Document Processing",
+    "tags": ["word", "search", "find", "text"],
+    "rateLimit": 60,
+    "cacheTTL": 300,
+    "examples": [
+      {
+        "description": "Search for 'revenue' in annual report",
+        "input": {
+          "filename": "annual_report.docx",
+          "search_term": "revenue"
+        }
+      }
+    ],
+    "useCases": [
+      "Find specific content in documents",
+      "Keyword search in Word files",
+      "Document content analysis"
+    ]
+  }
+}

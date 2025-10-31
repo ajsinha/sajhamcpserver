@@ -1,0 +1,91 @@
+{
+  "name": "crawl_sitemap",
+  "implementation": "tools.impl.webcrawler_tool_refactored.CrawlSitemapTool",
+  "description": "Crawl and extract all URLs from a website's sitemap.xml file for complete site structure overview",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "Base website URL or direct sitemap URL. Examples: 'https://example.com' or 'https://example.com/sitemap.xml'"
+      }
+    },
+    "required": ["url"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "sitemap_url": {
+        "type": "string",
+        "description": "The sitemap URL that was successfully crawled"
+      },
+      "status_code": {
+        "type": "integer",
+        "description": "HTTP status code"
+      },
+      "url_count": {
+        "type": "integer",
+        "description": "Total number of URLs found in the sitemap"
+      },
+      "urls": {
+        "type": "array",
+        "description": "Complete list of URLs extracted from the sitemap",
+        "items": {
+          "type": "string"
+        }
+      },
+      "retrieved_at": {
+        "type": "string",
+        "description": "Timestamp when sitemap was retrieved"
+      },
+      "error": {
+        "type": "string",
+        "description": "Error message if sitemap couldn't be found or parsed"
+      },
+      "attempted_urls": {
+        "type": "array",
+        "description": "List of sitemap URLs that were attempted (if primary sitemap not found)",
+        "items": {"type": "string"}
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Web Scraping",
+    "tags": ["sitemap", "xml", "urls", "site structure", "crawling", "discovery"],
+    "rateLimit": 60,
+    "cacheTTL": 3600,
+    "note": "Automatically tries common sitemap locations: /sitemap.xml, /sitemap_index.xml, /sitemap1.xml. Sitemaps provide the complete, official list of URLs a site wants crawled. Much faster than recursive crawling.",
+    "examples": [
+      {
+        "description": "Get all URLs from website sitemap",
+        "input": {
+          "url": "https://example.com"
+        }
+      },
+      {
+        "description": "Crawl specific sitemap file",
+        "input": {
+          "url": "https://example.com/post-sitemap.xml"
+        }
+      },
+      {
+        "description": "Extract blog sitemap",
+        "input": {
+          "url": "https://blog.example.com/sitemap.xml"
+        }
+      }
+    ],
+    "useCases": [
+      "Complete site URL discovery",
+      "Content inventory",
+      "Migration planning",
+      "Bulk URL collection for testing",
+      "SEO auditing",
+      "Competitive analysis",
+      "Archive and backup planning"
+    ]
+  }
+}

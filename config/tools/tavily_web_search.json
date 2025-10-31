@@ -1,0 +1,157 @@
+{
+  "name": "tavily_web_search",
+  "implementation": "tools.impl.tavily_tool_refactored.TavilyWebSearchTool",
+  "description": "Perform general web search using Tavily AI-powered search engine for finding information across the internet",
+  "version": "1.0.0",
+  "enabled": true,
+  "api_key": "",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Search query to find web information"
+      },
+      "search_depth": {
+        "type": "string",
+        "description": "Depth of search - 'basic' for quick results, 'advanced' for comprehensive search",
+        "enum": ["basic", "advanced"],
+        "default": "basic"
+      },
+      "max_results": {
+        "type": "integer",
+        "description": "Maximum number of results to return",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 20
+      },
+      "include_answer": {
+        "type": "boolean",
+        "description": "Include AI-generated answer summary",
+        "default": true
+      },
+      "include_images": {
+        "type": "boolean",
+        "description": "Include relevant images in results",
+        "default": false
+      }
+    },
+    "required": ["query"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "The search query that was executed"
+      },
+      "search_depth": {
+        "type": "string",
+        "description": "Depth of search performed"
+      },
+      "topic": {
+        "type": "string",
+        "description": "Search topic category"
+      },
+      "results_count": {
+        "type": "integer",
+        "description": "Number of results returned"
+      },
+      "results": {
+        "type": "array",
+        "description": "Search results",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "Title of the result"
+            },
+            "url": {
+              "type": "string",
+              "description": "URL of the result"
+            },
+            "content": {
+              "type": "string",
+              "description": "Excerpt or summary of the content"
+            },
+            "score": {
+              "type": "number",
+              "description": "Relevance score (0-1)"
+            },
+            "published_date": {
+              "type": "string",
+              "description": "Publication date if available"
+            }
+          }
+        }
+      },
+      "answer": {
+        "type": "string",
+        "description": "AI-generated answer summary (if requested)"
+      },
+      "images": {
+        "type": "array",
+        "description": "Related images (if requested)",
+        "items": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "required": ["query", "results_count", "results"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "category": "Web Search",
+    "tags": ["search", "tavily", "ai", "web", "information retrieval"],
+    "rateLimit": 100,
+    "cacheTTL": 3600,
+    "note": "Requires Tavily API key for production use. Get your API key at https://tavily.com. Demo mode available without API key.",
+    "examples": [
+      {
+        "description": "Simple web search with AI answer",
+        "input": {
+          "query": "latest developments in quantum computing",
+          "max_results": 5,
+          "include_answer": true
+        }
+      },
+      {
+        "description": "Advanced search with images",
+        "input": {
+          "query": "machine learning frameworks comparison",
+          "search_depth": "advanced",
+          "max_results": 10,
+          "include_answer": true,
+          "include_images": true
+        }
+      },
+      {
+        "description": "Quick basic search",
+        "input": {
+          "query": "Python async programming tutorial",
+          "search_depth": "basic",
+          "max_results": 3
+        }
+      }
+    ],
+    "useCases": [
+      "General information retrieval",
+      "Research and fact-checking",
+      "Current events and news discovery",
+      "Technical documentation search",
+      "Educational content finding",
+      "Product and service research"
+    ],
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha"
+  }
+}

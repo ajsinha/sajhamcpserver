@@ -1,0 +1,97 @@
+{
+  "name": "ir_get_documents",
+  "implementation": "tools.impl.investor_relations_tool_refactored.IRGetDocumentsTool",
+  "description": "Get investor relations documents filtered by type and year",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "ticker": {
+        "type": "string",
+        "description": "Stock ticker symbol"
+      },
+      "document_type": {
+        "type": "string",
+        "description": "Type of document to retrieve",
+        "enum": [
+          "annual_report",
+          "quarterly_report",
+          "earnings_presentation",
+          "investor_presentation",
+          "proxy_statement",
+          "press_release",
+          "esg_report",
+          "all"
+        ],
+        "default": "all"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Filter by specific year (optional)",
+        "minimum": 2000,
+        "maximum": 2030
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of documents to return",
+        "default": 10,
+        "minimum": 1,
+        "maximum": 50
+      }
+    },
+    "required": ["ticker"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "ticker": {"type": "string"},
+      "document_type": {"type": "string"},
+      "year": {"type": ["integer", "null"]},
+      "count": {"type": "integer"},
+      "documents": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": {"type": "string"},
+            "url": {"type": "string"},
+            "date": {"type": "string"},
+            "type": {"type": "string"}
+          }
+        }
+      },
+      "success": {"type": "boolean"}
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Financial Analysis",
+    "tags": ["investor relations", "documents", "reports", "filings"],
+    "rateLimit": 30,
+    "cacheTTL": 3600,
+    "supported_companies": ["TSLA", "MSFT", "C", "BMO", "RY", "JPM", "GS"],
+    "examples": [
+      {
+        "description": "Get all Tesla annual reports",
+        "input": {
+          "ticker": "TSLA",
+          "document_type": "annual_report"
+        }
+      },
+      {
+        "description": "Get Microsoft's 2024 earnings presentations",
+        "input": {
+          "ticker": "MSFT",
+          "document_type": "earnings_presentation",
+          "year": 2024
+        }
+      }
+    ],
+    "useCases": [
+      "Research company filings",
+      "Retrieve specific document types",
+      "Historical document analysis"
+    ]
+  }
+}

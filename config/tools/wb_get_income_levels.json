@@ -1,0 +1,98 @@
+{
+  "name": "wb_get_income_levels",
+  "implementation": "tools.impl.world_bank_tool.WBGetIncomeLevelsTool",
+  "description": "Retrieve World Bank income level classifications and metadata. Get information about income groupings (High, Upper Middle, Lower Middle, Low).",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "per_page": {
+        "type": "integer",
+        "description": "Number of results per page",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 50
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "total_levels": {
+        "type": "integer",
+        "description": "Number of income level classifications"
+      },
+      "income_levels": {
+        "type": "array",
+        "description": "List of income level classifications",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Income level code (e.g., HIC, UMC, LMC, LIC)"
+            },
+            "iso2code": {
+              "type": "string",
+              "description": "ISO2 code for the income level"
+            },
+            "value": {
+              "type": "string",
+              "description": "Full name of income level"
+            }
+          },
+          "required": ["id", "value"]
+        }
+      },
+      "descriptions": {
+        "type": "object",
+        "description": "Detailed descriptions of each income level",
+        "properties": {
+          "HIC": {
+            "type": "string",
+            "description": "High Income Countries"
+          },
+          "UMC": {
+            "type": "string",
+            "description": "Upper Middle Income Countries"
+          },
+          "LMC": {
+            "type": "string",
+            "description": "Lower Middle Income Countries"
+          },
+          "LIC": {
+            "type": "string",
+            "description": "Low Income Countries"
+          }
+        }
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when data was retrieved (ISO format)"
+      }
+    },
+    "required": ["total_levels", "income_levels"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["world bank", "income levels", "classification", "metadata"],
+    "rateLimit": 120,
+    "cacheTTL": 86400,
+    "note": "Income level classifications help categorize countries by GNI per capita. HIC=High Income, UMC=Upper Middle Income, LMC=Lower Middle Income, LIC=Low Income.",
+    "examples": [
+      {
+        "description": "Get all income level classifications",
+        "input": {}
+      }
+    ],
+    "useCases": [
+      "Understanding income classifications",
+      "Building filtered queries",
+      "Country categorization",
+      "Development research",
+      "Policy analysis"
+    ]
+  }
+}

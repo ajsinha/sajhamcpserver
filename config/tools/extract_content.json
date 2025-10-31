@@ -1,0 +1,154 @@
+{
+  "name": "extract_content",
+  "implementation": "tools.impl.webcrawler_tool_refactored.ExtractContentTool",
+  "description": "Extract structured content including text, images, and headings from a web page for content analysis",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "URL of the page to extract content from"
+      },
+      "extract_images": {
+        "type": "boolean",
+        "description": "Extract image URLs and associated metadata (alt text, titles)",
+        "default": true
+      },
+      "extract_text": {
+        "type": "boolean",
+        "description": "Extract and clean text content from HTML",
+        "default": true
+      },
+      "text_max_length": {
+        "type": "integer",
+        "description": "Maximum text length to extract (prevents extremely large returns)",
+        "default": 5000,
+        "minimum": 100,
+        "maximum": 50000
+      }
+    },
+    "required": ["url"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "Source page URL"
+      },
+      "status_code": {
+        "type": "integer",
+        "description": "HTTP status code"
+      },
+      "title": {
+        "type": "string",
+        "description": "Page title from <title> tag"
+      },
+      "text_content": {
+        "type": "string",
+        "description": "Extracted and cleaned text content (HTML tags removed, whitespace normalized)"
+      },
+      "images": {
+        "type": "array",
+        "description": "Image information with normalized URLs",
+        "items": {
+          "type": "object",
+          "properties": {
+            "src": {
+              "type": "string",
+              "description": "Absolute image URL"
+            },
+            "alt": {
+              "type": "string",
+              "description": "Alt text (accessibility description)"
+            },
+            "title": {
+              "type": "string",
+              "description": "Image title attribute"
+            }
+          }
+        }
+      },
+      "image_count": {
+        "type": "integer",
+        "description": "Total number of images found"
+      },
+      "headings": {
+        "type": "object",
+        "description": "Page headings organized by level",
+        "properties": {
+          "h1": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "H1 headings (main titles)"
+          },
+          "h2": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "H2 headings (section titles)"
+          },
+          "h3": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "H3 headings (subsection titles)"
+          }
+        }
+      },
+      "content_length": {
+        "type": "integer",
+        "description": "Total text content length in characters"
+      },
+      "extracted_at": {
+        "type": "string",
+        "description": "Extraction timestamp"
+      }
+    },
+    "required": ["url", "title", "extracted_at"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Web Scraping",
+    "tags": ["content extraction", "text", "images", "html parsing", "scraping"],
+    "rateLimit": 60,
+    "cacheTTL": 1800,
+    "note": "Extracts clean, structured content from HTML pages. Removes scripts, styles, and other non-content elements. Perfect for content analysis, archiving, or feeding to NLP systems.",
+    "examples": [
+      {
+        "description": "Extract all content from a blog post",
+        "input": {
+          "url": "https://example.com/blog/article",
+          "extract_images": true,
+          "extract_text": true
+        }
+      },
+      {
+        "description": "Extract only text (no images)",
+        "input": {
+          "url": "https://example.com/page",
+          "extract_images": false,
+          "extract_text": true,
+          "text_max_length": 10000
+        }
+      },
+      {
+        "description": "Extract images with metadata",
+        "input": {
+          "url": "https://example.com/gallery",
+          "extract_images": true,
+          "extract_text": false
+        }
+      }
+    ],
+    "useCases": [
+      "Content archiving and backup",
+      "Text analysis and NLP",
+      "Content migration",
+      "Plagiarism checking",
+      "Image inventory",
+      "Accessibility auditing (check alt text)",
+      "Content quality assessment"
+    ]
+  }
+}

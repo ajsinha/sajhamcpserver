@@ -1,0 +1,162 @@
+{
+  "name": "wb_get_country_data",
+  "implementation": "tools.impl.world_bank_tool.WBGetCountryDataTool",
+  "description": "Retrieve specific indicator data for a single country over time. Get historical time series data for any World Bank indicator.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "country_code": {
+        "type": "string",
+        "description": "ISO2 or ISO3 country code (e.g., 'US', 'USA', 'CN', 'CHN', 'IN', 'IND')",
+        "pattern": "^[A-Z]{2,3}$"
+      },
+      "indicator": {
+        "type": "string",
+        "description": "Common indicator shorthand",
+        "enum": [
+          "gdp", "gdp_per_capita", "gdp_growth", "gdp_ppp",
+          "population", "population_growth", "urban_population",
+          "life_expectancy", "birth_rate", "death_rate",
+          "poverty_rate", "gini_index", "income_share_lowest_20",
+          "literacy_rate", "primary_enrollment", "secondary_enrollment", "tertiary_enrollment",
+          "infant_mortality", "maternal_mortality", "health_expenditure", "hospital_beds",
+          "unemployment", "labor_force", "female_labor_force",
+          "exports", "imports", "trade_gdp", "fdi_inflow", "external_debt",
+          "co2_emissions", "co2_per_capita", "renewable_energy", "electricity_access", "forest_area",
+          "internet_users", "mobile_subscriptions", "roads_paved",
+          "inflation", "food_price_inflation"
+        ]
+      },
+      "indicator_code": {
+        "type": "string",
+        "description": "World Bank indicator code (e.g., 'NY.GDP.MKTP.CD' for GDP). Use this for direct indicator access."
+      },
+      "start_year": {
+        "type": "integer",
+        "description": "Start year for data retrieval",
+        "minimum": 1960,
+        "maximum": 2030
+      },
+      "end_year": {
+        "type": "integer",
+        "description": "End year for data retrieval",
+        "minimum": 1960,
+        "maximum": 2030
+      },
+      "per_page": {
+        "type": "integer",
+        "description": "Number of data points per page",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100
+      }
+    },
+    "required": ["country_code"],
+    "oneOf": [
+      {"required": ["country_code", "indicator"]},
+      {"required": ["country_code", "indicator_code"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "country": {
+        "type": "object",
+        "description": "Country information",
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string"}
+        }
+      },
+      "indicator": {
+        "type": "object",
+        "description": "Indicator information",
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string"}
+        }
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Number of data points returned"
+      },
+      "data": {
+        "type": "array",
+        "description": "Time series data points",
+        "items": {
+          "type": "object",
+          "properties": {
+            "year": {
+              "type": "integer",
+              "description": "Year of observation"
+            },
+            "value": {
+              "type": ["number", "null"],
+              "description": "Indicator value (null if not available)"
+            },
+            "unit": {
+              "type": "string",
+              "description": "Unit of measurement"
+            },
+            "decimal": {
+              "type": "integer",
+              "description": "Decimal precision"
+            }
+          },
+          "required": ["year", "value"]
+        }
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when data was retrieved (ISO format)"
+      }
+    },
+    "required": ["country", "indicator", "data"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["world bank", "country data", "time series", "historical", "indicators"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Retrieve historical time series data for any country and indicator. Use common indicator names for convenience or direct indicator codes for full catalog access.",
+    "examples": [
+      {
+        "description": "Get US GDP from 2010-2023",
+        "input": {
+          "country_code": "US",
+          "indicator": "gdp",
+          "start_year": 2010,
+          "end_year": 2023
+        }
+      },
+      {
+        "description": "Get India's population growth",
+        "input": {
+          "country_code": "IND",
+          "indicator": "population_growth",
+          "start_year": 2000,
+          "end_year": 2023
+        }
+      },
+      {
+        "description": "Get China's CO2 emissions",
+        "input": {
+          "country_code": "CHN",
+          "indicator": "co2_emissions",
+          "start_year": 1990,
+          "end_year": 2023
+        }
+      }
+    ],
+    "useCases": [
+      "Country-specific analysis",
+      "Time series forecasting",
+      "Historical trend analysis",
+      "Economic research",
+      "Policy impact studies"
+    ]
+  }
+}

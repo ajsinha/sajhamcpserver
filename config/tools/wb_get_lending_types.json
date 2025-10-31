@@ -1,0 +1,98 @@
+{
+  "name": "wb_get_lending_types",
+  "implementation": "tools.impl.world_bank_tool.WBGetLendingTypesTool",
+  "description": "Retrieve World Bank lending type classifications and metadata. Get information about different lending categories for countries.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "per_page": {
+        "type": "integer",
+        "description": "Number of results per page",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 50
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "total_types": {
+        "type": "integer",
+        "description": "Number of lending type classifications"
+      },
+      "lending_types": {
+        "type": "array",
+        "description": "List of lending type classifications",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Lending type code (e.g., IBD, IDB, IDX, LNX)"
+            },
+            "iso2code": {
+              "type": "string",
+              "description": "ISO2 code for the lending type"
+            },
+            "value": {
+              "type": "string",
+              "description": "Full name of lending type"
+            }
+          },
+          "required": ["id", "value"]
+        }
+      },
+      "descriptions": {
+        "type": "object",
+        "description": "Detailed descriptions of each lending type",
+        "properties": {
+          "IBD": {
+            "type": "string",
+            "description": "IBRD (International Bank for Reconstruction and Development)"
+          },
+          "IDB": {
+            "type": "string",
+            "description": "Blend (IBRD and IDA)"
+          },
+          "IDX": {
+            "type": "string",
+            "description": "IDA (International Development Association)"
+          },
+          "LNX": {
+            "type": "string",
+            "description": "Not classified"
+          }
+        }
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when data was retrieved (ISO format)"
+      }
+    },
+    "required": ["total_types", "lending_types"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["world bank", "lending types", "classification", "metadata", "IBRD", "IDA"],
+    "rateLimit": 120,
+    "cacheTTL": 86400,
+    "note": "Lending type classifications indicate how countries access World Bank financing. IBD=IBRD only, IDB=Blend, IDX=IDA only, LNX=Not classified.",
+    "examples": [
+      {
+        "description": "Get all lending type classifications",
+        "input": {}
+      }
+    ],
+    "useCases": [
+      "Understanding lending classifications",
+      "Development finance research",
+      "Country categorization",
+      "Policy analysis",
+      "Aid effectiveness studies"
+    ]
+  }
+}

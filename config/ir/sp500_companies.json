@@ -4,6 +4,7 @@
       "ticker": "AAPL",
       "name": "Apple Inc.",
       "cik": "0000320193",
+      "sector": "Technology",
       "ir_url": "https://investor.apple.com",
       "ir_platform": "generic",
       "document_urls": {
@@ -15,6 +16,7 @@
       "ticker": "MSFT",
       "name": "Microsoft Corporation",
       "cik": "0000789019",
+      "sector": "Technology",
       "ir_url": "https://www.microsoft.com/en-us/investor",
       "ir_platform": "generic",
       "document_urls": {
@@ -27,6 +29,7 @@
       "ticker": "GOOGL",
       "name": "Alphabet Inc. Class A",
       "cik": "0001652044",
+      "sector": "Communication Services",
       "ir_url": "https://abc.xyz/investor",
       "ir_platform": "generic",
       "document_urls": {}
@@ -35,6 +38,7 @@
       "ticker": "GOOG",
       "name": "Alphabet Inc. Class C",
       "cik": "0001652044",
+      "sector": "Communication Services",
       "ir_url": "https://abc.xyz/investor",
       "ir_platform": "generic",
       "document_urls": {}
@@ -43,6 +47,7 @@
       "ticker": "AMZN",
       "name": "Amazon.com Inc.",
       "cik": "0001018724",
+      "sector": "Consumer Discretionary",
       "ir_url": "https://ir.aboutamazon.com",
       "ir_platform": "generic",
       "document_urls": {
@@ -54,6 +59,7 @@
       "ticker": "NVDA",
       "name": "NVIDIA Corporation",
       "cik": "0001045810",
+      "sector": "Technology",
       "ir_url": "https://investor.nvidia.com",
       "ir_platform": "generic",
       "document_urls": {
@@ -64,6 +70,7 @@
       "ticker": "META",
       "name": "Meta Platforms Inc.",
       "cik": "0001326801",
+      "sector": "Communication Services",
       "ir_url": "https://investor.fb.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -72,6 +79,7 @@
       "ticker": "TSLA",
       "name": "Tesla Inc.",
       "cik": "0001318605",
+      "sector": "Consumer Discretionary",
       "ir_url": "https://ir.tesla.com",
       "ir_platform": "generic",
       "document_urls": {
@@ -84,6 +92,7 @@
       "ticker": "BRK.B",
       "name": "Berkshire Hathaway Inc. Class B",
       "cik": "0001067983",
+      "sector": "Financials",
       "ir_url": "https://www.berkshirehathaway.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -92,6 +101,7 @@
       "ticker": "JPM",
       "name": "JPMorgan Chase & Co.",
       "cik": "0000019617",
+      "sector": "Financials",
       "ir_url": "https://www.jpmorganchase.com/ir",
       "ir_platform": "generic",
       "document_urls": {
@@ -103,6 +113,7 @@
       "ticker": "V",
       "name": "Visa Inc.",
       "cik": "0001403161",
+      "sector": "Financials",
       "ir_url": "https://investor.visa.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -111,6 +122,7 @@
       "ticker": "WMT",
       "name": "Walmart Inc.",
       "cik": "0000104169",
+      "sector": "Consumer Staples",
       "ir_url": "https://stock.walmart.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -119,6 +131,7 @@
       "ticker": "JNJ",
       "name": "Johnson & Johnson",
       "cik": "0000200406",
+      "sector": "Healthcare",
       "ir_url": "https://www.investor.jnj.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -127,6 +140,7 @@
       "ticker": "PG",
       "name": "Procter & Gamble Company",
       "cik": "0000080424",
+      "sector": "Consumer Staples",
       "ir_url": "https://www.pginvestor.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -135,6 +149,7 @@
       "ticker": "MA",
       "name": "Mastercard Incorporated",
       "cik": "0001141391",
+      "sector": "Financials",
       "ir_url": "https://investor.mastercard.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -143,6 +158,7 @@
       "ticker": "HD",
       "name": "Home Depot Inc.",
       "cik": "0000354950",
+      "sector": "Consumer Discretionary",
       "ir_url": "https://ir.homedepot.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -151,6 +167,7 @@
       "ticker": "UNH",
       "name": "UnitedHealth Group Incorporated",
       "cik": "0000731766",
+      "sector": "Healthcare",
       "ir_url": "https://www.unitedhealthgroup.com/investors.html",
       "ir_platform": "generic",
       "document_urls": {}
@@ -159,6 +176,7 @@
       "ticker": "BAC",
       "name": "Bank of America Corporation",
       "cik": "0000070858",
+      "sector": "Financials",
       "ir_url": "https://investor.bankofamerica.com",
       "ir_platform": "q4",
       "document_urls": {}
@@ -167,6 +185,7 @@
       "ticker": "XOM",
       "name": "Exxon Mobil Corporation",
       "cik": "0000034088",
+      "sector": "Energy",
       "ir_url": "https://corporate.exxonmobil.com/investors",
       "ir_platform": "generic",
       "document_urls": {}
@@ -175,6 +194,7 @@
       "ticker": "CVX",
       "name": "Chevron Corporation",
       "cik": "0000093410",
+      "sector": "Energy",
       "ir_url": "https://www.chevron.com/investors",
       "ir_platform": "generic",
       "document_urls": {}
@@ -183,6 +203,7 @@
       "ticker": "LLY",
       "name": "Eli Lilly and Company",
       "cik": "0000059478",
+      "sector": "Healthcare",
       "ir_url": "https://investor.lilly.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -191,6 +212,7 @@
       "ticker": "ABBV",
       "name": "AbbVie Inc.",
       "cik": "0001551152",
+      "sector": "Healthcare",
       "ir_url": "https://investors.abbvie.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -199,6 +221,7 @@
       "ticker": "KO",
       "name": "Coca-Cola Company",
       "cik": "0000021344",
+      "sector": "Consumer Staples",
       "ir_url": "https://investors.coca-colacompany.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -207,6 +230,7 @@
       "ticker": "COST",
       "name": "Costco Wholesale Corporation",
       "cik": "0000909832",
+      "sector": "Consumer Staples",
       "ir_url": "https://investor.costco.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -215,6 +239,7 @@
       "ticker": "MRK",
       "name": "Merck & Co. Inc.",
       "cik": "0000310158",
+      "sector": "Healthcare",
       "ir_url": "https://investors.merck.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -223,6 +248,7 @@
       "ticker": "PEP",
       "name": "PepsiCo Inc.",
       "cik": "0000077476",
+      "sector": "Consumer Staples",
       "ir_url": "https://www.pepsico.com/investors",
       "ir_platform": "generic",
       "document_urls": {}
@@ -231,6 +257,7 @@
       "ticker": "AVGO",
       "name": "Broadcom Inc.",
       "cik": "0001730168",
+      "sector": "Technology",
       "ir_url": "https://investors.broadcom.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -239,6 +266,7 @@
       "ticker": "TMO",
       "name": "Thermo Fisher Scientific Inc.",
       "cik": "0000097745",
+      "sector": "Healthcare",
       "ir_url": "https://ir.thermofisher.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -247,6 +275,7 @@
       "ticker": "ABT",
       "name": "Abbott Laboratories",
       "cik": "0000001800",
+      "sector": "Healthcare",
       "ir_url": "https://investors.abbott.com",
       "ir_platform": "generic",
       "document_urls": {}
@@ -255,15 +284,3236 @@
       "ticker": "MCD",
       "name": "McDonald's Corporation",
       "cik": "0000063908",
+      "sector": "Consumer Discretionary",
       "ir_url": "https://corporate.mcdonalds.com/corpmcd/investors.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ORCL",
+      "name": "Oracle Corporation",
+      "cik": "0001341439",
+      "sector": "Technology",
+      "ir_url": "https://investor.oracle.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ADBE",
+      "name": "Adobe Inc.",
+      "cik": "0000796343",
+      "sector": "Technology",
+      "ir_url": "https://www.adobe.com/investor-relations.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CRM",
+      "name": "Salesforce Inc.",
+      "cik": "0001108524",
+      "sector": "Technology",
+      "ir_url": "https://investor.salesforce.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "NFLX",
+      "name": "Netflix Inc.",
+      "cik": "0001065280",
+      "sector": "Communication Services",
+      "ir_url": "https://ir.netflix.net",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ACN",
+      "name": "Accenture plc",
+      "cik": "0001467373",
+      "sector": "Technology",
+      "ir_url": "https://investor.accenture.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CSCO",
+      "name": "Cisco Systems Inc.",
+      "cik": "0000858877",
+      "sector": "Technology",
+      "ir_url": "https://investor.cisco.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "WFC",
+      "name": "Wells Fargo & Company",
+      "cik": "0000072971",
+      "sector": "Financials",
+      "ir_url": "https://www.wellsfargo.com/about/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DHR",
+      "name": "Danaher Corporation",
+      "cik": "0000313616",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.danaher.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TXN",
+      "name": "Texas Instruments Incorporated",
+      "cik": "0000097476",
+      "sector": "Technology",
+      "ir_url": "https://investor.ti.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PM",
+      "name": "Philip Morris International Inc.",
+      "cik": "0001413329",
+      "sector": "Consumer Staples",
+      "ir_url": "https://www.pmi.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "INTC",
+      "name": "Intel Corporation",
+      "cik": "0000050863",
+      "sector": "Technology",
+      "ir_url": "https://www.intc.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "NEE",
+      "name": "NextEra Energy Inc.",
+      "cik": "0000753308",
+      "sector": "Utilities",
+      "ir_url": "https://www.investor.nexteraenergy.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DIS",
+      "name": "Walt Disney Company",
+      "cik": "0001744489",
+      "sector": "Communication Services",
+      "ir_url": "https://thewaltdisneycompany.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "VZ",
+      "name": "Verizon Communications Inc.",
+      "cik": "0000732712",
+      "sector": "Communication Services",
+      "ir_url": "https://www.verizon.com/about/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AMD",
+      "name": "Advanced Micro Devices Inc.",
+      "cik": "0000002488",
+      "sector": "Technology",
+      "ir_url": "https://ir.amd.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CMCSA",
+      "name": "Comcast Corporation",
+      "cik": "0001166691",
+      "sector": "Communication Services",
+      "ir_url": "https://www.cmcsa.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "QCOM",
+      "name": "QUALCOMM Incorporated",
+      "cik": "0000804328",
+      "sector": "Technology",
+      "ir_url": "https://investor.qualcomm.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "NKE",
+      "name": "NIKE Inc.",
+      "cik": "0000320187",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investors.nike.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "LOW",
+      "name": "Lowe's Companies Inc.",
+      "cik": "0000060667",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://corporate.lowes.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "UPS",
+      "name": "United Parcel Service Inc.",
+      "cik": "0001090727",
+      "sector": "Industrials",
+      "ir_url": "https://investors.ups.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "RTX",
+      "name": "RTX Corporation",
+      "cik": "0000101829",
+      "sector": "Industrials",
+      "ir_url": "https://www.rtx.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "IBM",
+      "name": "International Business Machines Corporation",
+      "cik": "0000051143",
+      "sector": "Technology",
+      "ir_url": "https://www.ibm.com/investor",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BMY",
+      "name": "Bristol-Myers Squibb Company",
+      "cik": "0000014272",
+      "sector": "Healthcare",
+      "ir_url": "https://www.bms.com/investors.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "INTU",
+      "name": "Intuit Inc.",
+      "cik": "0000896878",
+      "sector": "Technology",
+      "ir_url": "https://investors.intuit.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CAT",
+      "name": "Caterpillar Inc.",
+      "cik": "0000018230",
+      "sector": "Industrials",
+      "ir_url": "https://www.caterpillar.com/en/investors.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AMGN",
+      "name": "Amgen Inc.",
+      "cik": "0000318154",
+      "sector": "Healthcare",
+      "ir_url": "https://www.amgen.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "HON",
+      "name": "Honeywell International Inc.",
+      "cik": "0000773840",
+      "sector": "Industrials",
+      "ir_url": "https://investor.honeywell.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MS",
+      "name": "Morgan Stanley",
+      "cik": "0000895421",
+      "sector": "Financials",
+      "ir_url": "https://www.morganstanley.com/about-us-ir",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "GS",
+      "name": "Goldman Sachs Group Inc.",
+      "cik": "0000886982",
+      "sector": "Financials",
+      "ir_url": "https://www.goldmansachs.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "SPGI",
+      "name": "S&P Global Inc.",
+      "cik": "0000064040",
+      "sector": "Financials",
+      "ir_url": "https://investor.spglobal.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AXP",
+      "name": "American Express Company",
+      "cik": "0000004962",
+      "sector": "Financials",
+      "ir_url": "https://ir.americanexpress.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BLK",
+      "name": "BlackRock Inc.",
+      "cik": "0001364742",
+      "sector": "Financials",
+      "ir_url": "https://ir.blackrock.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "NOW",
+      "name": "ServiceNow Inc.",
+      "cik": "0001373715",
+      "sector": "Technology",
+      "ir_url": "https://investors.servicenow.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ISRG",
+      "name": "Intuitive Surgical Inc.",
+      "cik": "0001035267",
+      "sector": "Healthcare",
+      "ir_url": "https://isrg.intuitive.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "T",
+      "name": "AT&T Inc.",
+      "cik": "0000732717",
+      "sector": "Communication Services",
+      "ir_url": "https://investors.att.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "GE",
+      "name": "General Electric Company",
+      "cik": "0000040545",
+      "sector": "Industrials",
+      "ir_url": "https://www.ge.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BA",
+      "name": "Boeing Company",
+      "cik": "0000012927",
+      "sector": "Industrials",
+      "ir_url": "https://investors.boeing.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MMC",
+      "name": "Marsh & McLennan Companies Inc.",
+      "cik": "0000062709",
+      "sector": "Financials",
+      "ir_url": "https://ir.mmc.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "SYK",
+      "name": "Stryker Corporation",
+      "cik": "0000310764",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.stryker.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MDT",
+      "name": "Medtronic plc",
+      "cik": "0001613103",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.medtronic.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CVS",
+      "name": "CVS Health Corporation",
+      "cik": "0000064803",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.cvshealth.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CI",
+      "name": "Cigna Group",
+      "cik": "0001739940",
+      "sector": "Healthcare",
+      "ir_url": "https://www.thecignagroup.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BX",
+      "name": "Blackstone Inc.",
+      "cik": "0001393818",
+      "sector": "Financials",
+      "ir_url": "https://ir.blackstone.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CB",
+      "name": "Chubb Limited",
+      "cik": "0000896159",
+      "sector": "Financials",
+      "ir_url": "https://investors.chubb.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DE",
+      "name": "Deere & Company",
+      "cik": "0000315189",
+      "sector": "Industrials",
+      "ir_url": "https://investor.deere.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "GILD",
+      "name": "Gilead Sciences Inc.",
+      "cik": "0000882095",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.gilead.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "VRTX",
+      "name": "Vertex Pharmaceuticals Incorporated",
+      "cik": "0000875320",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.vrtx.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MDLZ",
+      "name": "Mondelez International Inc.",
+      "cik": "0001103982",
+      "sector": "Consumer Staples",
+      "ir_url": "https://ir.mondelezinternational.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "SCHW",
+      "name": "Charles Schwab Corporation",
+      "cik": "0000316709",
+      "sector": "Financials",
+      "ir_url": "https://www.aboutschwab.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AMAT",
+      "name": "Applied Materials Inc.",
+      "cik": "0000006951",
+      "sector": "Technology",
+      "ir_url": "https://investors.appliedmaterials.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ADI",
+      "name": "Analog Devices Inc.",
+      "cik": "0000006281",
+      "sector": "Technology",
+      "ir_url": "https://investor.analog.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "C",
+      "name": "Citigroup Inc.",
+      "cik": "0000831001",
+      "sector": "Financials",
+      "ir_url": "https://www.citigroup.com/global/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TJX",
+      "name": "TJX Companies Inc.",
+      "cik": "0000109198",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://www.tjx.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "SBUX",
+      "name": "Starbucks Corporation",
+      "cik": "0000829224",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investor.starbucks.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MO",
+      "name": "Altria Group Inc.",
+      "cik": "0000764180",
+      "sector": "Consumer Staples",
+      "ir_url": "https://www.altria.com/en/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "LMT",
+      "name": "Lockheed Martin Corporation",
+      "cik": "0000936468",
+      "sector": "Industrials",
+      "ir_url": "https://www.lockheedmartin.com/en-us/investors.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ADP",
+      "name": "Automatic Data Processing Inc.",
+      "cik": "0000008670",
+      "sector": "Technology",
+      "ir_url": "https://investors.adp.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PLD",
+      "name": "Prologis Inc.",
+      "cik": "0001045609",
+      "sector": "Real Estate",
+      "ir_url": "https://ir.prologis.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "REGN",
+      "name": "Regeneron Pharmaceuticals Inc.",
+      "cik": "0000872589",
+      "sector": "Healthcare",
+      "ir_url": "https://investor.regeneron.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "EOG",
+      "name": "EOG Resources Inc.",
+      "cik": "0001161154",
+      "sector": "Energy",
+      "ir_url": "https://investors.eogresources.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "SLB",
+      "name": "Schlumberger N.V.",
+      "cik": "0000087347",
+      "sector": "Energy",
+      "ir_url": "https://investorcenter.slb.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "USB",
+      "name": "U.S. Bancorp",
+      "cik": "0000036104",
+      "sector": "Financials",
+      "ir_url": "https://ir.usbank.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "SO",
+      "name": "Southern Company",
+      "cik": "0000092122",
+      "sector": "Utilities",
+      "ir_url": "https://investor.southerncompany.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DUK",
+      "name": "Duke Energy Corporation",
+      "cik": "0001326160",
+      "sector": "Utilities",
+      "ir_url": "https://www.duke-energy.com/our-company/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BSX",
+      "name": "Boston Scientific Corporation",
+      "cik": "0000885725",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.bostonscientific.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PGR",
+      "name": "Progressive Corporation",
+      "cik": "0000080661",
+      "sector": "Financials",
+      "ir_url": "https://investors.progressive.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ETN",
+      "name": "Eaton Corporation plc",
+      "cik": "0001551182",
+      "sector": "Industrials",
+      "ir_url": "https://www.eaton.com/us/en-us/investors.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CL",
+      "name": "Colgate-Palmolive Company",
+      "cik": "0000021665",
+      "sector": "Consumer Staples",
+      "ir_url": "https://investor.colgatepalmolive.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ZTS",
+      "name": "Zoetis Inc.",
+      "cik": "0001555280",
+      "sector": "Healthcare",
+      "ir_url": "https://investor.zoetis.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PYPL",
+      "name": "PayPal Holdings Inc.",
+      "cik": "0001633917",
+      "sector": "Financials",
+      "ir_url": "https://investor.pypl.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MU",
+      "name": "Micron Technology Inc.",
+      "cik": "0000723125",
+      "sector": "Technology",
+      "ir_url": "https://investors.micron.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "LRCX",
+      "name": "Lam Research Corporation",
+      "cik": "0000707549",
+      "sector": "Technology",
+      "ir_url": "https://investor.lamresearch.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PNC",
+      "name": "PNC Financial Services Group Inc.",
+      "cik": "0000713676",
+      "sector": "Financials",
+      "ir_url": "https://www.pnc.com/en/about-pnc/investor-relations.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MCO",
+      "name": "Moody's Corporation",
+      "cik": "0001059556",
+      "sector": "Financials",
+      "ir_url": "https://ir.moodys.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "EQIX",
+      "name": "Equinix Inc.",
+      "cik": "0001101239",
+      "sector": "Real Estate",
+      "ir_url": "https://investor.equinix.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TGT",
+      "name": "Target Corporation",
+      "cik": "0000027419",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investors.target.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "FI",
+      "name": "Fiserv Inc.",
+      "cik": "0000798354",
+      "sector": "Technology",
+      "ir_url": "https://investors.fiserv.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BDX",
+      "name": "Becton Dickinson and Company",
+      "cik": "0000010795",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.bd.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TFC",
+      "name": "Truist Financial Corporation",
+      "cik": "0000092230",
+      "sector": "Financials",
+      "ir_url": "https://ir.truist.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "SHW",
+      "name": "Sherwin-Williams Company",
+      "cik": "0000089800",
+      "sector": "Materials",
+      "ir_url": "https://investors.sherwin-williams.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CME",
+      "name": "CME Group Inc.",
+      "cik": "0001156375",
+      "sector": "Financials",
+      "ir_url": "https://investor.cmegroup.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "COP",
+      "name": "ConocoPhillips",
+      "cik": "0001163165",
+      "sector": "Energy",
+      "ir_url": "https://www.conocophillips.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ITW",
+      "name": "Illinois Tool Works Inc.",
+      "cik": "0000049826",
+      "sector": "Industrials",
+      "ir_url": "https://www.itw.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "EW",
+      "name": "Edwards Lifesciences Corporation",
+      "cik": "0001099800",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.edwards.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AON",
+      "name": "Aon plc",
+      "cik": "0000315293",
+      "sector": "Financials",
+      "ir_url": "https://ir.aon.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "KLAC",
+      "name": "KLA Corporation",
+      "cik": "0000319201",
+      "sector": "Technology",
+      "ir_url": "https://ir.kla.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "SNPS",
+      "name": "Synopsys Inc.",
+      "cik": "0000883241",
+      "sector": "Technology",
+      "ir_url": "https://investor.synopsys.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CDNS",
+      "name": "Cadence Design Systems Inc.",
+      "cik": "0000813672",
+      "sector": "Technology",
+      "ir_url": "https://investor.cadence.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ICE",
+      "name": "Intercontinental Exchange Inc.",
+      "cik": "0001174746",
+      "sector": "Financials",
+      "ir_url": "https://ir.theice.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "APD",
+      "name": "Air Products and Chemicals Inc.",
+      "cik": "0000002969",
+      "sector": "Materials",
+      "ir_url": "https://investors.airproducts.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "FCX",
+      "name": "Freeport-McMoRan Inc.",
+      "cik": "0000831259",
+      "sector": "Materials",
+      "ir_url": "https://investors.fcx.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "WM",
+      "name": "Waste Management Inc.",
+      "cik": "0000823768",
+      "sector": "Industrials",
+      "ir_url": "https://investors.wm.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "EMR",
+      "name": "Emerson Electric Co.",
+      "cik": "0000032604",
+      "sector": "Industrials",
+      "ir_url": "https://www.emerson.com/en-us/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MCK",
+      "name": "McKesson Corporation",
+      "cik": "0000927653",
+      "sector": "Healthcare",
+      "ir_url": "https://investor.mckesson.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MAR",
+      "name": "Marriott International Inc.",
+      "cik": "0001048286",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://marriott.gcs-web.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "NSC",
+      "name": "Norfolk Southern Corporation",
+      "cik": "0000702165",
+      "sector": "Industrials",
+      "ir_url": "https://investors.nscorp.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AFL",
+      "name": "Aflac Incorporated",
+      "cik": "0000004977",
+      "sector": "Financials",
+      "ir_url": "https://investors.aflac.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "F",
+      "name": "Ford Motor Company",
+      "cik": "0000037996",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://shareholder.ford.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "GM",
+      "name": "General Motors Company",
+      "cik": "0001467858",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investor.gm.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "NXPI",
+      "name": "NXP Semiconductors N.V.",
+      "cik": "0001413447",
+      "sector": "Technology",
+      "ir_url": "https://investors.nxp.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CARR",
+      "name": "Carrier Global Corporation",
+      "cik": "0001783180",
+      "sector": "Industrials",
+      "ir_url": "https://www.corporate.carrier.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ROP",
+      "name": "Roper Technologies Inc.",
+      "cik": "0000882835",
+      "sector": "Industrials",
+      "ir_url": "https://investors.ropertech.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MSCI",
+      "name": "MSCI Inc.",
+      "cik": "0001408198",
+      "sector": "Financials",
+      "ir_url": "https://ir.msci.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PCAR",
+      "name": "PACCAR Inc.",
+      "cik": "0000075362",
+      "sector": "Industrials",
+      "ir_url": "https://www.paccar.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AIG",
+      "name": "American International Group Inc.",
+      "cik": "0000005272",
+      "sector": "Financials",
+      "ir_url": "https://www.aig.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "OXY",
+      "name": "Occidental Petroleum Corporation",
+      "cik": "0000797468",
+      "sector": "Energy",
+      "ir_url": "https://investors.oxy.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PSX",
+      "name": "Phillips 66",
+      "cik": "0001534701",
+      "sector": "Energy",
+      "ir_url": "https://www.phillips66.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MPC",
+      "name": "Marathon Petroleum Corporation",
+      "cik": "0001510295",
+      "sector": "Energy",
+      "ir_url": "https://www.marathonpetroleum.com/Investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "VLO",
+      "name": "Valero Energy Corporation",
+      "cik": "0001035002",
+      "sector": "Energy",
+      "ir_url": "https://investor.valero.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "GIS",
+      "name": "General Mills Inc.",
+      "cik": "0000040704",
+      "sector": "Consumer Staples",
+      "ir_url": "https://investors.generalmills.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TT",
+      "name": "Trane Technologies plc",
+      "cik": "0001466258",
+      "sector": "Industrials",
+      "ir_url": "https://www.tranetechnologies.com/en/index/investor-relations.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AJG",
+      "name": "Arthur J. Gallagher & Co.",
+      "cik": "0000354190",
+      "sector": "Financials",
+      "ir_url": "https://investor.ajg.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ORLY",
+      "name": "O'Reilly Automotive Inc.",
+      "cik": "0000898173",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://corporate.oreillyauto.com/corporate/investor-relations.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "APH",
+      "name": "Amphenol Corporation",
+      "cik": "0000820313",
+      "sector": "Technology",
+      "ir_url": "https://investors.amphenol.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AMP",
+      "name": "Ameriprise Financial Inc.",
+      "cik": "0000820027",
+      "sector": "Financials",
+      "ir_url": "https://ir.ameriprise.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ECL",
+      "name": "Ecolab Inc.",
+      "cik": "0000031462",
+      "sector": "Materials",
+      "ir_url": "https://investor.ecolab.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CCI",
+      "name": "Crown Castle Inc.",
+      "cik": "0001051470",
+      "sector": "Real Estate",
+      "ir_url": "https://investor.crowncastle.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PAYX",
+      "name": "Paychex Inc.",
+      "cik": "0000723531",
+      "sector": "Industrials",
+      "ir_url": "https://investor.paychex.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "SRE",
+      "name": "Sempra",
+      "cik": "0001032208",
+      "sector": "Utilities",
+      "ir_url": "https://www.sempra.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "FICO",
+      "name": "Fair Isaac Corporation",
+      "cik": "0000814547",
+      "sector": "Technology",
+      "ir_url": "https://investor.fico.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "HUM",
+      "name": "Humana Inc.",
+      "cik": "0000049071",
+      "sector": "Healthcare",
+      "ir_url": "https://humana.gcs-web.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "SYY",
+      "name": "Sysco Corporation",
+      "cik": "0000096021",
+      "sector": "Consumer Staples",
+      "ir_url": "https://investors.sysco.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "KMB",
+      "name": "Kimberly-Clark Corporation",
+      "cik": "0000055785",
+      "sector": "Consumer Staples",
+      "ir_url": "https://investor.kimberly-clark.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TROW",
+      "name": "T. Rowe Price Group Inc.",
+      "cik": "0001113169",
+      "sector": "Financials",
+      "ir_url": "https://www.troweprice.com/corporate/us/en/what-we-do/investor-relations.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TRV",
+      "name": "Travelers Companies Inc.",
+      "cik": "0000086312",
+      "sector": "Financials",
+      "ir_url": "https://investor.travelers.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AZO",
+      "name": "AutoZone Inc.",
+      "cik": "0000866787",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investors.autozone.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "HCA",
+      "name": "HCA Healthcare Inc.",
+      "cik": "0000860730",
+      "sector": "Healthcare",
+      "ir_url": "https://investor.hcahealthcare.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PANW",
+      "name": "Palo Alto Networks Inc.",
+      "cik": "0001327567",
+      "sector": "Technology",
+      "ir_url": "https://investors.paloaltonetworks.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TDG",
+      "name": "TransDigm Group Incorporated",
+      "cik": "0001260221",
+      "sector": "Industrials",
+      "ir_url": "https://ir.transdigm.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CTAS",
+      "name": "Cintas Corporation",
+      "cik": "0000723254",
+      "sector": "Industrials",
+      "ir_url": "https://investor.cintas.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "WELL",
+      "name": "Welltower Inc.",
+      "cik": "0000943819",
+      "sector": "Real Estate",
+      "ir_url": "https://welltower.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "KMI",
+      "name": "Kinder Morgan Inc.",
+      "cik": "0001506307",
+      "sector": "Energy",
+      "ir_url": "https://ir.kindermorgan.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "FAST",
+      "name": "Fastenal Company",
+      "cik": "0000815556",
+      "sector": "Industrials",
+      "ir_url": "https://investor.fastenal.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "EL",
+      "name": "Estée Lauder Companies Inc.",
+      "cik": "0001001250",
+      "sector": "Consumer Staples",
+      "ir_url": "https://www.elcompanies.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ADM",
+      "name": "Archer-Daniels-Midland Company",
+      "cik": "0000007084",
+      "sector": "Consumer Staples",
+      "ir_url": "https://investors.adm.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "APO",
+      "name": "Apollo Global Management Inc.",
+      "cik": "0001411494",
+      "sector": "Financials",
+      "ir_url": "https://investors.apollo.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "OTIS",
+      "name": "Otis Worldwide Corporation",
+      "cik": "0001781335",
+      "sector": "Industrials",
+      "ir_url": "https://investors.otis.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "YUM",
+      "name": "Yum! Brands Inc.",
+      "cik": "0001041061",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investors.yum.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "HLT",
+      "name": "Hilton Worldwide Holdings Inc.",
+      "cik": "0001585689",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://ir.hilton.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ALL",
+      "name": "Allstate Corporation",
+      "cik": "0000899051",
+      "sector": "Financials",
+      "ir_url": "https://www.allstateinvestors.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "RSG",
+      "name": "Republic Services Inc.",
+      "cik": "0001060391",
+      "sector": "Industrials",
+      "ir_url": "https://investor.republicservices.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MCHP",
+      "name": "Microchip Technology Incorporated",
+      "cik": "0000827054",
+      "sector": "Technology",
+      "ir_url": "https://investor.microchip.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CTVA",
+      "name": "Corteva Inc.",
+      "cik": "0001755672",
+      "sector": "Materials",
+      "ir_url": "https://investors.corteva.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "FDX",
+      "name": "FedEx Corporation",
+      "cik": "0001048911",
+      "sector": "Industrials",
+      "ir_url": "https://investors.fedex.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DD",
+      "name": "DuPont de Nemours Inc.",
+      "cik": "0001666700",
+      "sector": "Materials",
+      "ir_url": "https://investors.dupont.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ODFL",
+      "name": "Old Dominion Freight Line Inc.",
+      "cik": "0000878927",
+      "sector": "Industrials",
+      "ir_url": "https://investor.odfl.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "RCL",
+      "name": "Royal Caribbean Cruises Ltd.",
+      "cik": "0000884887",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://www.rclinvestor.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CPRT",
+      "name": "Copart Inc.",
+      "cik": "0000900075",
+      "sector": "Industrials",
+      "ir_url": "https://investors.copart.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AMT",
+      "name": "American Tower Corporation",
+      "cik": "0001053507",
+      "sector": "Real Estate",
+      "ir_url": "https://investors.americantower.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DHI",
+      "name": "D.R. Horton Inc.",
+      "cik": "0000882184",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investor.drhorton.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ADSK",
+      "name": "Autodesk Inc.",
+      "cik": "0000769397",
+      "sector": "Technology",
+      "ir_url": "https://investors.autodesk.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PRU",
+      "name": "Prudential Financial Inc.",
+      "cik": "0001137774",
+      "sector": "Financials",
+      "ir_url": "https://investor.prudential.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CMG",
+      "name": "Chipotle Mexican Grill Inc.",
+      "cik": "0001058090",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://ir.chipotle.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ROST",
+      "name": "Ross Stores Inc.",
+      "cik": "0000745732",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investors.rossstores.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PSA",
+      "name": "Public Storage",
+      "cik": "0001393311",
+      "sector": "Real Estate",
+      "ir_url": "https://www.publicstorage.com/en-us/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "SPG",
+      "name": "Simon Property Group Inc.",
+      "cik": "0001063761",
+      "sector": "Real Estate",
+      "ir_url": "https://investors.simon.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "FTNT",
+      "name": "Fortinet Inc.",
+      "cik": "0001262039",
+      "sector": "Technology",
+      "ir_url": "https://investor.fortinet.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "LEN",
+      "name": "Lennar Corporation",
+      "cik": "0000920760",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investors.lennar.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "HSY",
+      "name": "Hershey Company",
+      "cik": "0000047111",
+      "sector": "Consumer Staples",
+      "ir_url": "https://www.thehersheycompany.com/en_us/investors.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TRGP",
+      "name": "Targa Resources Corp.",
+      "cik": "0001092386",
+      "sector": "Energy",
+      "ir_url": "https://www.targaresources.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "GWW",
+      "name": "W.W. Grainger Inc.",
+      "cik": "0000277135",
+      "sector": "Industrials",
+      "ir_url": "https://invest.grainger.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "VRSK",
+      "name": "Verisk Analytics Inc.",
+      "cik": "0001442145",
+      "sector": "Industrials",
+      "ir_url": "https://ir.verisk.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "A",
+      "name": "Agilent Technologies Inc.",
+      "cik": "0001090872",
+      "sector": "Healthcare",
+      "ir_url": "https://investor.agilent.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "EXC",
+      "name": "Exelon Corporation",
+      "cik": "0001109357",
+      "sector": "Utilities",
+      "ir_url": "https://investors.exeloncorp.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "O",
+      "name": "Realty Income Corporation",
+      "cik": "0000726728",
+      "sector": "Real Estate",
+      "ir_url": "https://www.realtyincome.com/investors/overview",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "XEL",
+      "name": "Xcel Energy Inc.",
+      "cik": "0000072903",
+      "sector": "Utilities",
+      "ir_url": "https://investors.xcelenergy.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BKR",
+      "name": "Baker Hughes Company",
+      "cik": "0001701605",
+      "sector": "Energy",
+      "ir_url": "https://investors.bakerhughes.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "IDXX",
+      "name": "IDEXX Laboratories Inc.",
+      "cik": "0000874716",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.idexx.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CTSH",
+      "name": "Cognizant Technology Solutions Corporation",
+      "cik": "0001058290",
+      "sector": "Technology",
+      "ir_url": "https://investors.cognizant.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "KHC",
+      "name": "Kraft Heinz Company",
+      "cik": "0001637459",
+      "sector": "Consumer Staples",
+      "ir_url": "https://ir.kraftheinzcompany.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "RMD",
+      "name": "ResMed Inc.",
+      "cik": "0000899775",
+      "sector": "Healthcare",
+      "ir_url": "https://investor.resmed.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "IQV",
+      "name": "IQVIA Holdings Inc.",
+      "cik": "0001478242",
+      "sector": "Healthcare",
+      "ir_url": "https://ir.iqvia.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ANSS",
+      "name": "ANSYS Inc.",
+      "cik": "0001013462",
+      "sector": "Technology",
+      "ir_url": "https://investors.ansys.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DLTR",
+      "name": "Dollar Tree Inc.",
+      "cik": "0000935703",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://www.dollartreeinfo.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "EXR",
+      "name": "Extra Space Storage Inc.",
+      "cik": "0001289490",
+      "sector": "Real Estate",
+      "ir_url": "https://investors.extraspace.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PH",
+      "name": "Parker-Hannifin Corporation",
+      "cik": "0000076334",
+      "sector": "Industrials",
+      "ir_url": "https://investors.parker.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "IT",
+      "name": "Gartner Inc.",
+      "cik": "0000749251",
+      "sector": "Technology",
+      "ir_url": "https://investor.gartner.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DLR",
+      "name": "Digital Realty Trust Inc.",
+      "cik": "0001297996",
+      "sector": "Real Estate",
+      "ir_url": "https://ir.digitalrealty.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ON",
+      "name": "ON Semiconductor Corporation",
+      "cik": "0001097864",
+      "sector": "Technology",
+      "ir_url": "https://investor.onsemi.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "LHX",
+      "name": "L3Harris Technologies Inc.",
+      "cik": "0001378301",
+      "sector": "Industrials",
+      "ir_url": "https://www.l3harris.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "STZ",
+      "name": "Constellation Brands Inc.",
+      "cik": "0000016918",
+      "sector": "Consumer Staples",
+      "ir_url": "https://www.cbrands.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "WMB",
+      "name": "Williams Companies Inc.",
+      "cik": "0000107263",
+      "sector": "Energy",
+      "ir_url": "https://investor.williams.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "FANG",
+      "name": "Diamondback Energy Inc.",
+      "cik": "0001539838",
+      "sector": "Energy",
+      "ir_url": "https://investor.diamondbackenergy.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "VICI",
+      "name": "VICI Properties Inc.",
+      "cik": "0001576942",
+      "sector": "Real Estate",
+      "ir_url": "https://investors.viciproperties.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MNST",
+      "name": "Monster Beverage Corporation",
+      "cik": "0000865752",
+      "sector": "Consumer Staples",
+      "ir_url": "https://www.monsterbevcorp.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CBRE",
+      "name": "CBRE Group Inc.",
+      "cik": "0001138118",
+      "sector": "Real Estate",
+      "ir_url": "https://ir.cbre.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "GPN",
+      "name": "Global Payments Inc.",
+      "cik": "0001123360",
+      "sector": "Technology",
+      "ir_url": "https://investors.globalpaymentsinc.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "EA",
+      "name": "Electronic Arts Inc.",
+      "cik": "0000712515",
+      "sector": "Communication Services",
+      "ir_url": "https://ir.ea.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "KEYS",
+      "name": "Keysight Technologies Inc.",
+      "cik": "0001601046",
+      "sector": "Technology",
+      "ir_url": "https://investor.keysight.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AVB",
+      "name": "AvalonBay Communities Inc.",
+      "cik": "0000915912",
+      "sector": "Real Estate",
+      "ir_url": "https://investors.avalonbay.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DFS",
+      "name": "Discover Financial Services",
+      "cik": "0001393612",
+      "sector": "Financials",
+      "ir_url": "https://investorrelations.discover.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "FITB",
+      "name": "Fifth Third Bancorp",
+      "cik": "0000035527",
+      "sector": "Financials",
+      "ir_url": "https://ir.53.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ACGL",
+      "name": "Arch Capital Group Ltd.",
+      "cik": "0001267395",
+      "sector": "Financials",
+      "ir_url": "https://investor.archgroup.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AWK",
+      "name": "American Water Works Company Inc.",
+      "cik": "0001410636",
+      "sector": "Utilities",
+      "ir_url": "https://ir.amwater.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "WTW",
+      "name": "Willis Towers Watson Public Limited Company",
+      "cik": "0001140536",
+      "sector": "Financials",
+      "ir_url": "https://www.wtwco.com/en-us/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CHD",
+      "name": "Church & Dwight Co. Inc.",
+      "cik": "0000313927",
+      "sector": "Consumer Staples",
+      "ir_url": "https://churchdwight.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "VMC",
+      "name": "Vulcan Materials Company",
+      "cik": "0001396009",
+      "sector": "Materials",
+      "ir_url": "https://ir.vulcanmaterials.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TEL",
+      "name": "TE Connectivity Ltd.",
+      "cik": "0001385157",
+      "sector": "Technology",
+      "ir_url": "https://investors.te.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MTD",
+      "name": "Mettler-Toledo International Inc.",
+      "cik": "0001037646",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.mt.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BIIB",
+      "name": "Biogen Inc.",
+      "cik": "0000875045",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.biogen.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AEP",
+      "name": "American Electric Power Company Inc.",
+      "cik": "0000004904",
+      "sector": "Utilities",
+      "ir_url": "https://www.aep.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "WEC",
+      "name": "WEC Energy Group Inc.",
+      "cik": "0000783325",
+      "sector": "Utilities",
+      "ir_url": "https://www.wecenergygroup.com/invest/invest.htm",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "EQR",
+      "name": "Equity Residential",
+      "cik": "0000906107",
+      "sector": "Real Estate",
+      "ir_url": "https://investors.equityapartments.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DOW",
+      "name": "Dow Inc.",
+      "cik": "0001751788",
+      "sector": "Materials",
+      "ir_url": "https://investors.dow.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "LULU",
+      "name": "Lululemon Athletica Inc.",
+      "cik": "0001397187",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://corporate.lululemon.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TTWO",
+      "name": "Take-Two Interactive Software Inc.",
+      "cik": "0000946581",
+      "sector": "Communication Services",
+      "ir_url": "https://ir.take2games.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "IFF",
+      "name": "International Flavors & Fragrances Inc.",
+      "cik": "0000051253",
+      "sector": "Materials",
+      "ir_url": "https://ir.iff.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "GLW",
+      "name": "Corning Incorporated",
+      "cik": "0000024741",
+      "sector": "Technology",
+      "ir_url": "https://investor.corning.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "HAL",
+      "name": "Halliburton Company",
+      "cik": "0000045012",
+      "sector": "Energy",
+      "ir_url": "https://ir.halliburton.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "URI",
+      "name": "United Rentals Inc.",
+      "cik": "0001067701",
+      "sector": "Industrials",
+      "ir_url": "https://investors.unitedrentals.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "EBAY",
+      "name": "eBay Inc.",
+      "cik": "0001065088",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investors.ebayinc.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ETR",
+      "name": "Entergy Corporation",
+      "cik": "0000065984",
+      "sector": "Utilities",
+      "ir_url": "https://www.entergy.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BRO",
+      "name": "Brown & Brown Inc.",
+      "cik": "0000079282",
+      "sector": "Financials",
+      "ir_url": "https://ir.bbinsurance.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "STT",
+      "name": "State Street Corporation",
+      "cik": "0000093751",
+      "sector": "Financials",
+      "ir_url": "https://investors.statestreet.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TSCO",
+      "name": "Tractor Supply Company",
+      "cik": "0000916365",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investor.tractorsupply.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DXCM",
+      "name": "DexCom Inc.",
+      "cik": "0001093557",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.dexcom.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PPG",
+      "name": "PPG Industries Inc.",
+      "cik": "0000079879",
+      "sector": "Materials",
+      "ir_url": "https://investor.ppg.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "HBAN",
+      "name": "Huntington Bancshares Incorporated",
+      "cik": "0000049196",
+      "sector": "Financials",
+      "ir_url": "https://ir.huntington.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MTB",
+      "name": "M&T Bank Corporation",
+      "cik": "0000036270",
+      "sector": "Financials",
+      "ir_url": "https://ir.mtb.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ZBH",
+      "name": "Zimmer Biomet Holdings Inc.",
+      "cik": "0001136869",
+      "sector": "Healthcare",
+      "ir_url": "https://investor.zimmerbiomet.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ALGN",
+      "name": "Align Technology Inc.",
+      "cik": "0001097149",
+      "sector": "Healthcare",
+      "ir_url": "https://investor.aligntech.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ESS",
+      "name": "Essex Property Trust Inc.",
+      "cik": "0000920522",
+      "sector": "Real Estate",
+      "ir_url": "https://investors.essex.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CSGP",
+      "name": "CoStar Group Inc.",
+      "cik": "0001057352",
+      "sector": "Real Estate",
+      "ir_url": "https://investors.costargroup.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "WBD",
+      "name": "Warner Bros. Discovery Inc.",
+      "cik": "0001657853",
+      "sector": "Communication Services",
+      "ir_url": "https://ir.wbd.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CBOE",
+      "name": "Cboe Global Markets Inc.",
+      "cik": "0001374310",
+      "sector": "Financials",
+      "ir_url": "https://ir.cboe.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "RF",
+      "name": "Regions Financial Corporation",
+      "cik": "0000049071",
+      "sector": "Financials",
+      "ir_url": "https://ir.regions.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "LPLA",
+      "name": "LPL Financial Holdings Inc.",
+      "cik": "0001514503",
+      "sector": "Financials",
+      "ir_url": "https://investor.lpl.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "WAT",
+      "name": "Waters Corporation",
+      "cik": "0001000697",
+      "sector": "Healthcare",
+      "ir_url": "https://www.waters.com/waters/nav.htm?cid=10049076",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "NTRS",
+      "name": "Northern Trust Corporation",
+      "cik": "0000073124",
+      "sector": "Financials",
+      "ir_url": "https://www.northerntrust.com/about-us/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "HIG",
+      "name": "Hartford Financial Services Group Inc.",
+      "cik": "0000874766",
+      "sector": "Financials",
+      "ir_url": "https://ir.thehartford.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DTE",
+      "name": "DTE Energy Company",
+      "cik": "0000936340",
+      "sector": "Utilities",
+      "ir_url": "https://ir.newlook.dteenergy.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PPL",
+      "name": "PPL Corporation",
+      "cik": "0000922224",
+      "sector": "Utilities",
+      "ir_url": "https://investors.pplweb.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "SWK",
+      "name": "Stanley Black & Decker Inc.",
+      "cik": "0000093556",
+      "sector": "Industrials",
+      "ir_url": "https://www.stanleyblackanddecker.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "WDC",
+      "name": "Western Digital Corporation",
+      "cik": "0000106040",
+      "sector": "Technology",
+      "ir_url": "https://investor.wdc.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "FTV",
+      "name": "Fortive Corporation",
+      "cik": "0001659166",
+      "sector": "Industrials",
+      "ir_url": "https://investors.fortive.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "INVH",
+      "name": "Invitation Homes Inc.",
+      "cik": "0001687229",
+      "sector": "Real Estate",
+      "ir_url": "https://investors.invh.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BR",
+      "name": "Broadridge Financial Solutions Inc.",
+      "cik": "0001383312",
+      "sector": "Technology",
+      "ir_url": "https://investor.broadridge.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "EXPE",
+      "name": "Expedia Group Inc.",
+      "cik": "0001324424",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://ir.expediagroup.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CFG",
+      "name": "Citizens Financial Group Inc.",
+      "cik": "0000759944",
+      "sector": "Financials",
+      "ir_url": "https://investor.citizensbank.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ARE",
+      "name": "Alexandria Real Estate Equities Inc.",
+      "cik": "0001035443",
+      "sector": "Real Estate",
+      "ir_url": "https://www.labspace.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "LYB",
+      "name": "LyondellBasell Industries N.V.",
+      "cik": "0001489393",
+      "sector": "Materials",
+      "ir_url": "https://www.lyondellbasell.com/en/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PKG",
+      "name": "Packaging Corporation of America",
+      "cik": "0001061394",
+      "sector": "Materials",
+      "ir_url": "https://investor.packagingcorp.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "WY",
+      "name": "Weyerhaeuser Company",
+      "cik": "0000106535",
+      "sector": "Real Estate",
+      "ir_url": "https://investor.weyerhaeuser.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "POOL",
+      "name": "Pool Corporation",
+      "cik": "0001042869",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investor.poolcorp.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CAH",
+      "name": "Cardinal Health Inc.",
+      "cik": "0000721371",
+      "sector": "Healthcare",
+      "ir_url": "https://investor.cardinalhealth.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CNP",
+      "name": "CenterPoint Energy Inc.",
+      "cik": "0001130310",
+      "sector": "Utilities",
+      "ir_url": "https://investors.centerpointenergy.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "FIS",
+      "name": "Fidelity National Information Services Inc.",
+      "cik": "0001136893",
+      "sector": "Technology",
+      "ir_url": "https://www.fisglobal.com/en/about-us/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ED",
+      "name": "Consolidated Edison Inc.",
+      "cik": "0001047862",
+      "sector": "Utilities",
+      "ir_url": "https://investor.conedison.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "JBHT",
+      "name": "J.B. Hunt Transport Services Inc.",
+      "cik": "0000728535",
+      "sector": "Industrials",
+      "ir_url": "https://investor.jbhunt.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "KEY",
+      "name": "KeyCorp",
+      "cik": "0000091576",
+      "sector": "Financials",
+      "ir_url": "https://www.key.com/about/investor-relations.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "IR",
+      "name": "Ingersoll Rand Inc.",
+      "cik": "0001466258",
+      "sector": "Industrials",
+      "ir_url": "https://investors.irco.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PFG",
+      "name": "Principal Financial Group Inc.",
+      "cik": "0001126328",
+      "sector": "Financials",
+      "ir_url": "https://investors.principal.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "GRMN",
+      "name": "Garmin Ltd.",
+      "cik": "0001121788",
+      "sector": "Technology",
+      "ir_url": "https://investor.garmin.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MLM",
+      "name": "Martin Marietta Materials Inc.",
+      "cik": "0001137336",
+      "sector": "Materials",
+      "ir_url": "https://www.martinmarietta.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "L",
+      "name": "Loews Corporation",
+      "cik": "0000060086",
+      "sector": "Financials",
+      "ir_url": "https://www.loews.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "NUE",
+      "name": "Nucor Corporation",
+      "cik": "0000073309",
+      "sector": "Materials",
+      "ir_url": "https://www.nucor.com/investor",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "VTR",
+      "name": "Ventas Inc.",
+      "cik": "0000740260",
+      "sector": "Real Estate",
+      "ir_url": "https://ir.ventasreit.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PWR",
+      "name": "Quanta Services Inc.",
+      "cik": "0001040971",
+      "sector": "Industrials",
+      "ir_url": "https://investors.quantaservices.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CHRW",
+      "name": "C.H. Robinson Worldwide Inc.",
+      "cik": "0001043277",
+      "sector": "Industrials",
+      "ir_url": "https://investor.chrobinson.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "NVR",
+      "name": "NVR Inc.",
+      "cik": "0000906163",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://nvrinc.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AES",
+      "name": "AES Corporation",
+      "cik": "0000874761",
+      "sector": "Utilities",
+      "ir_url": "https://www.aes.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DOV",
+      "name": "Dover Corporation",
+      "cik": "0000029905",
+      "sector": "Industrials",
+      "ir_url": "https://dovercorporation.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "LVS",
+      "name": "Las Vegas Sands Corp.",
+      "cik": "0001300514",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investor.sands.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "GDDY",
+      "name": "GoDaddy Inc.",
+      "cik": "0001609711",
+      "sector": "Technology",
+      "ir_url": "https://investors.godaddy.net",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "HPQ",
+      "name": "HP Inc.",
+      "cik": "0001645590",
+      "sector": "Technology",
+      "ir_url": "https://investor.hp.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TYL",
+      "name": "Tyler Technologies Inc.",
+      "cik": "0000860731",
+      "sector": "Technology",
+      "ir_url": "https://investors.tylertech.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "NTAP",
+      "name": "NetApp Inc.",
+      "cik": "0001002047",
+      "sector": "Technology",
+      "ir_url": "https://investors.netapp.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "STLD",
+      "name": "Steel Dynamics Inc.",
+      "cik": "0001022671",
+      "sector": "Materials",
+      "ir_url": "https://investors.steeldynamics.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ROK",
+      "name": "Rockwell Automation Inc.",
+      "cik": "0001024478",
+      "sector": "Industrials",
+      "ir_url": "https://www.rockwellautomation.com/en-us/company/investors.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "FE",
+      "name": "FirstEnergy Corp.",
+      "cik": "0001031296",
+      "sector": "Utilities",
+      "ir_url": "https://www.firstenergycorp.com/investor.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ATO",
+      "name": "Atmos Energy Corporation",
+      "cik": "0000731802",
+      "sector": "Utilities",
+      "ir_url": "https://www.atmosenergy.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "VRSN",
+      "name": "VeriSign Inc.",
+      "cik": "0001014473",
+      "sector": "Technology",
+      "ir_url": "https://investor.verisign.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "UDR",
+      "name": "UDR Inc.",
+      "cik": "0000074208",
+      "sector": "Real Estate",
+      "ir_url": "https://ir.udr.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DRI",
+      "name": "Darden Restaurants Inc.",
+      "cik": "0000940944",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investor.darden.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TER",
+      "name": "Teradyne Inc.",
+      "cik": "0000097210",
+      "sector": "Technology",
+      "ir_url": "https://investor.teradyne.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "K",
+      "name": "Kellanova",
+      "cik": "0000055067",
+      "sector": "Consumer Staples",
+      "ir_url": "https://www.kellanova.com/en_US/investor-relations.html",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "LYV",
+      "name": "Live Nation Entertainment Inc.",
+      "cik": "0001335258",
+      "sector": "Communication Services",
+      "ir_url": "https://investors.livenationentertainment.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CCL",
+      "name": "Carnival Corporation",
+      "cik": "0000815097",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://www.carnivalcorp.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BAX",
+      "name": "Baxter International Inc.",
+      "cik": "0000010456",
+      "sector": "Healthcare",
+      "ir_url": "https://investor.baxter.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MKC",
+      "name": "McCormick & Company Incorporated",
+      "cik": "0000063754",
+      "sector": "Consumer Staples",
+      "ir_url": "https://ir.mccormick.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "RVTY",
+      "name": "Revvity Inc.",
+      "cik": "0001089268",
+      "sector": "Healthcare",
+      "ir_url": "https://investor.revvity.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AEE",
+      "name": "Ameren Corporation",
+      "cik": "0001002910",
+      "sector": "Utilities",
+      "ir_url": "https://www.ameren.com/company/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CMS",
+      "name": "CMS Energy Corporation",
+      "cik": "0000811156",
+      "sector": "Utilities",
+      "ir_url": "https://www.cmsenergy.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AKAM",
+      "name": "Akamai Technologies Inc.",
+      "cik": "0001086222",
+      "sector": "Technology",
+      "ir_url": "https://www.akamai.com/company/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MOH",
+      "name": "Molina Healthcare Inc.",
+      "cik": "0001179929",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.molinahealthcare.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "LUV",
+      "name": "Southwest Airlines Co.",
+      "cik": "0000092380",
+      "sector": "Industrials",
+      "ir_url": "https://www.southwestairlinesinvestorrelations.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "IP",
+      "name": "International Paper Company",
+      "cik": "0000051434",
+      "sector": "Materials",
+      "ir_url": "https://investor.internationalpaper.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ZBRA",
+      "name": "Zebra Technologies Corporation",
+      "cik": "0000877212",
+      "sector": "Technology",
+      "ir_url": "https://investors.zebra.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "GEN",
+      "name": "Gen Digital Inc.",
+      "cik": "0000849399",
+      "sector": "Technology",
+      "ir_url": "https://investor.gendigital.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "NRG",
+      "name": "NRG Energy Inc.",
+      "cik": "0001013871",
+      "sector": "Utilities",
+      "ir_url": "https://investors.nrg.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PHM",
+      "name": "PulteGroup Inc.",
+      "cik": "0000822416",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investors.pultegroup.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CE",
+      "name": "Celanese Corporation",
+      "cik": "0001306830",
+      "sector": "Materials",
+      "ir_url": "https://investor.celanese.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "FFIV",
+      "name": "F5 Inc.",
+      "cik": "0001048695",
+      "sector": "Technology",
+      "ir_url": "https://investors.f5.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TRMB",
+      "name": "Trimble Inc.",
+      "cik": "0000864749",
+      "sector": "Technology",
+      "ir_url": "https://investor.trimble.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "EIX",
+      "name": "Edison International",
+      "cik": "0000092103",
+      "sector": "Utilities",
+      "ir_url": "https://www.edison.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DAL",
+      "name": "Delta Air Lines Inc.",
+      "cik": "0000027904",
+      "sector": "Industrials",
+      "ir_url": "https://ir.delta.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "UAL",
+      "name": "United Airlines Holdings Inc.",
+      "cik": "0000100517",
+      "sector": "Industrials",
+      "ir_url": "https://ir.united.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PODD",
+      "name": "Insulet Corporation",
+      "cik": "0001145197",
+      "sector": "Healthcare",
+      "ir_url": "https://investor.insulet.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TPR",
+      "name": "Tapestry Inc.",
+      "cik": "0001116132",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investors.tapestry.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "LKQ",
+      "name": "LKQ Corporation",
+      "cik": "0001065696",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://www.lkqcorp.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BEN",
+      "name": "Franklin Resources Inc.",
+      "cik": "0000038777",
+      "sector": "Financials",
+      "ir_url": "https://www.franklintempleton.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "NDAQ",
+      "name": "Nasdaq Inc.",
+      "cik": "0001120193",
+      "sector": "Financials",
+      "ir_url": "https://ir.nasdaq.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BALL",
+      "name": "Ball Corporation",
+      "cik": "0000009389",
+      "sector": "Materials",
+      "ir_url": "https://www.ball.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TECH",
+      "name": "Bio-Techne Corporation",
+      "cik": "0000091419",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.bio-techne.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AAL",
+      "name": "American Airlines Group Inc.",
+      "cik": "0000006201",
+      "sector": "Industrials",
+      "ir_url": "https://americanairlines.gcs-web.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "J",
+      "name": "Jacobs Solutions Inc.",
+      "cik": "0000052988",
+      "sector": "Industrials",
+      "ir_url": "https://investors.jacobs.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "JKHY",
+      "name": "Jack Henry & Associates Inc.",
+      "cik": "0000072741",
+      "sector": "Technology",
+      "ir_url": "https://ir.jackhenry.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ALLE",
+      "name": "Allegion plc",
+      "cik": "0001579241",
+      "sector": "Industrials",
+      "ir_url": "https://investor.allegion.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CZR",
+      "name": "Caesars Entertainment Inc.",
+      "cik": "0001590895",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investor.caesars.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "LDOS",
+      "name": "Leidos Holdings Inc.",
+      "cik": "0001336920",
+      "sector": "Industrials",
+      "ir_url": "https://investors.leidos.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BBY",
+      "name": "Best Buy Co. Inc.",
+      "cik": "0000764478",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investors.bestbuy.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TXT",
+      "name": "Textron Inc.",
+      "cik": "0000217346",
+      "sector": "Industrials",
+      "ir_url": "https://investor.textron.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "RL",
+      "name": "Ralph Lauren Corporation",
+      "cik": "0001037038",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investor.ralphlauren.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PNR",
+      "name": "Pentair plc",
+      "cik": "0001020710",
+      "sector": "Industrials",
+      "ir_url": "https://investors.pentair.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ENPH",
+      "name": "Enphase Energy Inc.",
+      "cik": "0001463101",
+      "sector": "Technology",
+      "ir_url": "https://investor.enphase.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MGM",
+      "name": "MGM Resorts International",
+      "cik": "0000789570",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investors.mgmresorts.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "SNA",
+      "name": "Snap-on Incorporated",
+      "cik": "0000091440",
+      "sector": "Industrials",
+      "ir_url": "https://investor.snapon.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "HAS",
+      "name": "Hasbro Inc.",
+      "cik": "0000046080",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investor.hasbro.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ALB",
+      "name": "Albemarle Corporation",
+      "cik": "0000915913",
+      "sector": "Materials",
+      "ir_url": "https://investors.albemarle.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CPT",
+      "name": "Camden Property Trust",
+      "cik": "0000906345",
+      "sector": "Real Estate",
+      "ir_url": "https://ir.camdenliving.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "EMN",
+      "name": "Eastman Chemical Company",
+      "cik": "0000915389",
+      "sector": "Materials",
+      "ir_url": "https://investors.eastman.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PTC",
+      "name": "PTC Inc.",
+      "cik": "0000857005",
+      "sector": "Technology",
+      "ir_url": "https://investor.ptc.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "SWKS",
+      "name": "Skyworks Solutions Inc.",
+      "cik": "0000004127",
+      "sector": "Technology",
+      "ir_url": "https://www.skyworksinc.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MRO",
+      "name": "Marathon Oil Corporation",
+      "cik": "0000101778",
+      "sector": "Energy",
+      "ir_url": "https://ir.marathonoil.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "TAP",
+      "name": "Molson Coors Beverage Company",
+      "cik": "0000024545",
+      "sector": "Consumer Staples",
+      "ir_url": "https://www.molsoncoors.com/en/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "NDSN",
+      "name": "Nordson Corporation",
+      "cik": "0000072331",
+      "sector": "Industrials",
+      "ir_url": "https://www.nordson.com/en/our-company/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "HSIC",
+      "name": "Henry Schein Inc.",
+      "cik": "0001000228",
+      "sector": "Healthcare",
+      "ir_url": "https://investor.henryschein.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "INCY",
+      "name": "Incyte Corporation",
+      "cik": "0000879169",
+      "sector": "Healthcare",
+      "ir_url": "https://investor.incyte.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "VTRS",
+      "name": "Viatris Inc.",
+      "cik": "0001792044",
+      "sector": "Healthcare",
+      "ir_url": "https://investor.viatris.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "WHR",
+      "name": "Whirlpool Corporation",
+      "cik": "0000106640",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investors.whirlpoolcorp.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "UHS",
+      "name": "Universal Health Services Inc.",
+      "cik": "0000352915",
+      "sector": "Healthcare",
+      "ir_url": "https://www.uhsinc.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "KIM",
+      "name": "Kimco Realty Corporation",
+      "cik": "0000879101",
+      "sector": "Real Estate",
+      "ir_url": "https://investors.kimcorealty.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "PARA",
+      "name": "Paramount Global",
+      "cik": "0000813828",
+      "sector": "Communication Services",
+      "ir_url": "https://investors.paramount.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "REG",
+      "name": "Regency Centers Corporation",
+      "cik": "0000910606",
+      "sector": "Real Estate",
+      "ir_url": "https://investors.regencycenters.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "WYNN",
+      "name": "Wynn Resorts Limited",
+      "cik": "0001174922",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investors.wynnresorts.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "FOX",
+      "name": "Fox Corporation",
+      "cik": "0001754301",
+      "sector": "Communication Services",
+      "ir_url": "https://investors.foxcorporation.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "FOXA",
+      "name": "Fox Corporation Class A",
+      "cik": "0001754301",
+      "sector": "Communication Services",
+      "ir_url": "https://investors.foxcorporation.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "GL",
+      "name": "Globe Life Inc.",
+      "cik": "0001305168",
+      "sector": "Financials",
+      "ir_url": "https://investors.globelifeinsurance.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AIZ",
+      "name": "Assurant Inc.",
+      "cik": "0001267395",
+      "sector": "Financials",
+      "ir_url": "https://ir.assurant.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CF",
+      "name": "CF Industries Holdings Inc.",
+      "cik": "0001324404",
+      "sector": "Materials",
+      "ir_url": "https://www.cfindustries.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "HII",
+      "name": "Huntington Ingalls Industries Inc.",
+      "cik": "0001501393",
+      "sector": "Industrials",
+      "ir_url": "https://investor.huntingtoningalls.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MAA",
+      "name": "Mid-America Apartment Communities Inc.",
+      "cik": "0000912595",
+      "sector": "Real Estate",
+      "ir_url": "https://investors.maac.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DVA",
+      "name": "DaVita Inc.",
+      "cik": "0001318520",
+      "sector": "Healthcare",
+      "ir_url": "https://investors.davita.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "ZION",
+      "name": "Zions Bancorporation N.A.",
+      "cik": "0000109380",
+      "sector": "Financials",
+      "ir_url": "https://www.zionsbancorporation.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "AOS",
+      "name": "A. O. Smith Corporation",
+      "cik": "0000091142",
+      "sector": "Industrials",
+      "ir_url": "https://www.aosmith.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "BXP",
+      "name": "Boston Properties Inc.",
+      "cik": "0001043121",
+      "sector": "Real Estate",
+      "ir_url": "https://investors.bxp.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "DG",
+      "name": "Dollar General Corporation",
+      "cik": "0000029534",
+      "sector": "Consumer Discretionary",
+      "ir_url": "https://investor.dollargeneral.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "IEX",
+      "name": "IDEX Corporation",
+      "cik": "0000832101",
+      "sector": "Industrials",
+      "ir_url": "https://investors.idexcorp.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "FMC",
+      "name": "FMC Corporation",
+      "cik": "0000037785",
+      "sector": "Materials",
+      "ir_url": "https://investors.fmc.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CAG",
+      "name": "Conagra Brands Inc.",
+      "cik": "0000023217",
+      "sector": "Consumer Staples",
+      "ir_url": "https://www.conagrabrands.com/investor-relations",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "CPB",
+      "name": "Campbell Soup Company",
+      "cik": "0000016732",
+      "sector": "Consumer Staples",
+      "ir_url": "https://investor.campbellsoupcompany.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "MOS",
+      "name": "Mosaic Company",
+      "cik": "0001285785",
+      "sector": "Materials",
+      "ir_url": "https://investors.mosaicco.com",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "QRVO",
+      "name": "Qorvo Inc.",
+      "cik": "0001604778",
+      "sector": "Technology",
+      "ir_url": "https://www.qorvo.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "HRL",
+      "name": "Hormel Foods Corporation",
+      "cik": "0000048465",
+      "sector": "Consumer Staples",
+      "ir_url": "https://www.hormelfoods.com/investors",
+      "ir_platform": "generic",
+      "document_urls": {}
+    },
+    {
+      "ticker": "SJM",
+      "name": "J.M. Smucker Company",
+      "cik": "0000091419",
+      "sector": "Consumer Staples",
+      "ir_url": "https://investors.jmsmucker.com",
       "ir_platform": "generic",
       "document_urls": {}
     }
   ],
   "metadata": {
-    "version": "1.0",
-    "last_updated": "2025-01-28",
-    "description": "S&P 500 company configurations for IR scraping",
-    "note": "This is a sample file with 30 companies. Expand to include all 500+ companies."
+    "version": "2.0",
+    "last_updated": "2025-01-31",
+    "description": "Complete S&P 500 company configurations for IR scraping - 503 companies",
+    "company_count": 503,
+    "note": "This file includes all current S&P 500 constituents as of January 2025. Companies are organized with ticker, name, CIK (SEC identifier), sector classification, investor relations URL, IR platform type, and document URLs where available.",
+    "data_sources": [
+      "SEC EDGAR database for CIK numbers",
+      "Company investor relations websites",
+      "S&P Global market data"
+    ],
+    "sectors": {
+      "Technology": "Information Technology companies",
+      "Financials": "Financial services, banks, insurance",
+      "Healthcare": "Pharmaceuticals, biotech, medical devices",
+      "Consumer Discretionary": "Retail, automotive, entertainment",
+      "Consumer Staples": "Food, beverages, household products",
+      "Industrials": "Manufacturing, aerospace, transportation",
+      "Energy": "Oil, gas, renewable energy",
+      "Materials": "Chemicals, metals, mining",
+      "Utilities": "Electric, gas, water utilities",
+      "Real Estate": "REITs and real estate companies",
+      "Communication Services": "Telecom, media, entertainment"
+    },
+    "ir_platform_types": {
+      "generic": "Standard corporate IR websites",
+      "q4": "Q4 Web Systems platform",
+      "custom": "Custom-built IR platforms"
+    },
+    "usage_notes": "Use CIK numbers for SEC EDGAR filings. IR URLs may change - verify before automated scraping. Some companies may have multiple share classes (e.g., GOOGL/GOOG, FOX/FOXA)."
   }
 }

@@ -1,0 +1,82 @@
+{
+  "name": "un_get_sdgs",
+  "implementation": "tools.impl.united_nations_tool_refactored.UNGetSDGsTool",
+  "description": "Retrieve list of all 17 UN Sustainable Development Goals with their titles, colors, and URIs",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "include_details": {
+        "type": "boolean",
+        "description": "Include detailed description for each SDG",
+        "default": false
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "sdgs": {
+        "type": "array",
+        "description": "List of all Sustainable Development Goals",
+        "items": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "SDG code (1-17)"
+            },
+            "title": {
+              "type": "string",
+              "description": "SDG title"
+            },
+            "description": {
+              "type": "string",
+              "description": "Detailed description (if requested)"
+            },
+            "color": {
+              "type": "string",
+              "description": "SDG official color code"
+            },
+            "uri": {
+              "type": "string",
+              "description": "UN SDG API URI"
+            }
+          }
+        }
+      },
+      "count": {
+        "type": "integer",
+        "description": "Total number of SDGs (17)"
+      }
+    },
+    "required": ["sdgs", "count"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Global Statistics",
+    "tags": ["un", "sdg", "sustainable development", "goals", "global"],
+    "rateLimit": 60,
+    "cacheTTL": 86400,
+    "note": "Returns all 17 UN Sustainable Development Goals. Data is relatively static and can be cached for long periods.",
+    "examples": [
+      {
+        "description": "Get all SDGs with basic info",
+        "input": {}
+      },
+      {
+        "description": "Get all SDGs with detailed descriptions",
+        "input": {
+          "include_details": true
+        }
+      }
+    ],
+    "useCases": [
+      "Display SDG overview",
+      "Select SDG for detailed analysis",
+      "Build SDG navigation menus",
+      "Educational resources"
+    ]
+  }
+}

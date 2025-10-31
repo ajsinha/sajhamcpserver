@@ -1,0 +1,77 @@
+{
+  "name": "duckdb_list_tables",
+  "implementation": "tools.impl.duckdb_olap_tools_refactored.DuckDbListTablesTool",
+  "description": "List all available tables and views in the DuckDB database",
+  "version": "1.0.0",
+  "enabled": true,
+  "data_directory": "/home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "include_system_tables": {
+        "type": "boolean",
+        "description": "Include system/internal tables in the listing",
+        "default": false
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "tables": {
+        "type": "array",
+        "description": "List of available tables and views",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Table or view name"
+            },
+            "type": {
+              "type": "string",
+              "description": "Object type (table, view, etc.)",
+              "enum": ["table", "view", "external"]
+            },
+            "row_count": {
+              "type": "integer",
+              "description": "Approximate number of rows (if available)"
+            },
+            "schema": {
+              "type": "string",
+              "description": "Schema name (default is 'main')"
+            }
+          },
+          "required": ["name", "type"]
+        }
+      },
+      "total_count": {
+        "type": "integer",
+        "description": "Total number of tables/views found"
+      }
+    },
+    "required": ["tables", "total_count"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Data Analytics",
+    "tags": ["duckdb", "olap", "tables", "schema"],
+    "rateLimit": 60,
+    "cacheTTL": 60,
+    "note": "Lists all tables and views available for querying in DuckDB",
+    "examples": [
+      {
+        "description": "List all user tables",
+        "input": {
+          "include_system_tables": false
+        }
+      },
+      {
+        "description": "List all tables including system tables",
+        "input": {
+          "include_system_tables": true
+        }
+      }
+    ]
+  }
+}

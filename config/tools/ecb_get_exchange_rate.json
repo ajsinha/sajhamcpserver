@@ -1,0 +1,120 @@
+{
+  "name": "ecb_get_exchange_rate",
+  "implementation": "tools.impl.european_central_bank_tool_refactored.ECBGetExchangeRateTool",
+  "description": "Retrieve foreign exchange rates for Euro against major currencies. Specialized tool for FX traders and international business.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "currency_pair": {
+        "type": "string",
+        "description": "Currency pair in format 'EUR/XXX' (e.g., 'EUR/USD', 'EUR/GBP'). Always quotes EUR against other currency."
+      },
+      "indicator": {
+        "type": "string",
+        "description": "Pre-defined currency pair shorthand",
+        "enum": ["eur_usd", "eur_gbp", "eur_jpy", "eur_cny", "eur_chf"]
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date in YYYY-MM-DD format"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date in YYYY-MM-DD format"
+      },
+      "recent_periods": {
+        "type": "integer",
+        "description": "Number of recent observations to retrieve (1-100)",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10
+      }
+    },
+    "oneOf": [
+      {"required": ["currency_pair"]},
+      {"required": ["indicator"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "flow": {
+        "type": "string",
+        "description": "ECB data flow (EXR for exchange rates)"
+      },
+      "key": {
+        "type": "string",
+        "description": "ECB series key"
+      },
+      "series_name": {
+        "type": "string",
+        "description": "Exchange rate series identifier"
+      },
+      "description": {
+        "type": "string",
+        "description": "Exchange rate description"
+      },
+      "observation_count": {
+        "type": "integer",
+        "description": "Number of exchange rate observations"
+      },
+      "observations": {
+        "type": "array",
+        "description": "Historical exchange rate data points",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Date of exchange rate"
+            },
+            "value": {
+              "type": ["number", "null"],
+              "description": "Exchange rate value (units of foreign currency per EUR)"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["forex", "exchange rates", "currency", "ecb", "eurozone", "fx"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "examples": [
+      {
+        "description": "Get latest EUR/USD rate",
+        "input": {
+          "indicator": "eur_usd",
+          "recent_periods": 1
+        }
+      },
+      {
+        "description": "Get EUR/GBP for past month",
+        "input": {
+          "currency_pair": "EUR/GBP",
+          "start_date": "2024-10-01",
+          "end_date": "2024-10-31"
+        }
+      },
+      {
+        "description": "Get EUR/JPY history",
+        "input": {
+          "indicator": "eur_jpy",
+          "recent_periods": 30
+        }
+      }
+    ],
+    "useCases": [
+      "Currency trading",
+      "FX risk analysis",
+      "International business planning",
+      "Cross-border transactions",
+      "Currency hedging strategies"
+    ]
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "name": "fbi_get_offense_data",
+  "implementation": "tools.impl.fbi_tool_refactored.FBIGetOffenseDataTool",
+  "description": "Retrieve detailed offense breakdown and subcategories for major crime types",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "offense_type": {
+        "type": "string",
+        "description": "Type of crime offense to retrieve detailed data for",
+        "enum": [
+          "violent_crime",
+          "homicide",
+          "rape",
+          "robbery",
+          "aggravated_assault",
+          "property_crime",
+          "burglary",
+          "larceny",
+          "motor_vehicle_theft",
+          "arson"
+        ]
+      },
+      "state": {
+        "type": "string",
+        "description": "Optional: Filter by US State abbreviation (e.g., CA, NY, TX)",
+        "pattern": "^[A-Z]{2}$"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year for crime statistics (e.g., 2022)",
+        "minimum": 1960,
+        "maximum": 2024
+      },
+      "include_subcategories": {
+        "type": "boolean",
+        "description": "Include detailed subcategory breakdown",
+        "default": true
+      }
+    },
+    "required": ["offense_type"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "offense_type": {
+        "type": "string",
+        "description": "Type of crime offense"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year of statistics"
+      },
+      "scope": {
+        "type": "string",
+        "description": "Geographic scope (national or state)",
+        "enum": ["national", "state"]
+      },
+      "state": {
+        "type": "string",
+        "description": "State abbreviation if state-level data"
+      },
+      "total_offenses": {
+        "type": "integer",
+        "description": "Total offenses for this category"
+      },
+      "subcategories": {
+        "type": "array",
+        "description": "Detailed breakdown by subcategory",
+        "items": {
+          "type": "object",
+          "properties": {
+            "subcategory": {
+              "type": "string",
+              "description": "Offense subcategory name"
+            },
+            "total_incidents": {
+              "type": "integer",
+              "description": "Number of incidents"
+            },
+            "percentage_of_total": {
+              "type": "number",
+              "description": "Percentage of parent category"
+            }
+          }
+        }
+      },
+      "demographics": {
+        "type": "object",
+        "description": "Demographic breakdown if available",
+        "properties": {
+          "by_location_type": {
+            "type": "object",
+            "description": "Distribution by location (residential, commercial, etc.)"
+          },
+          "by_weapon": {
+            "type": "object",
+            "description": "Distribution by weapon type (for violent crimes)"
+          },
+          "clearance_rate": {
+            "type": "number",
+            "description": "Percentage of cases cleared by arrest"
+          }
+        }
+      }
+    },
+    "required": ["offense_type", "year", "scope", "total_offenses"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Crime Statistics",
+    "tags": ["crime", "fbi", "offense", "detailed", "ucr"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Provides detailed offense breakdowns with subcategories and demographics",
+    "examples": [
+      {
+        "description": "Get detailed violent crime breakdown nationally",
+        "input": {
+          "offense_type": "violent_crime",
+          "year": 2022,
+          "include_subcategories": true
+        }
+      },
+      {
+        "description": "Get California property crime details",
+        "input": {
+          "offense_type": "property_crime",
+          "state": "CA",
+          "year": 2022
+        }
+      }
+    ]
+  }
+}

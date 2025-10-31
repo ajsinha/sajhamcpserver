@@ -1,0 +1,97 @@
+{
+  "name": "fed_get_common_indicators",
+  "implementation": "tools.impl.fed_reserve_tool_refactored.FedGetCommonIndicatorsTool",
+  "description": "Retrieve a dashboard of key US economic indicators with their latest values. Get a comprehensive snapshot of the US economy in a single call.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "indicators": {
+        "type": "array",
+        "description": "Specific indicators to retrieve (optional, defaults to all key indicators)",
+        "items": {
+          "type": "string",
+          "enum": ["gdp", "unemployment", "inflation", "fed_rate", "treasury_10y", "treasury_2y", "sp500", "housing", "retail", "industrial", "m2", "pce"]
+        }
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "indicators": {
+        "type": "object",
+        "description": "Key economic indicators with latest values",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "series_id": {
+              "type": "string",
+              "description": "FRED series identifier"
+            },
+            "title": {
+              "type": "string",
+              "description": "Indicator name"
+            },
+            "value": {
+              "type": ["number", "null"],
+              "description": "Latest value"
+            },
+            "date": {
+              "type": "string",
+              "description": "Date of latest value"
+            },
+            "units": {
+              "type": "string",
+              "description": "Units of measurement"
+            },
+            "error": {
+              "type": "string",
+              "description": "Error message if retrieval failed"
+            }
+          }
+        }
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when this data was retrieved (ISO format)"
+      }
+    },
+    "required": ["indicators", "last_updated"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["fred", "dashboard", "economic indicators", "summary", "overview"],
+    "rateLimit": 60,
+    "cacheTTL": 3600,
+    "note": "Get a comprehensive economic dashboard with key US indicators. Ideal for getting a quick snapshot of economic conditions.",
+    "examples": [
+      {
+        "description": "Get all key economic indicators",
+        "input": {}
+      },
+      {
+        "description": "Get specific financial indicators",
+        "input": {
+          "indicators": ["fed_rate", "treasury_10y", "sp500", "m2"]
+        }
+      },
+      {
+        "description": "Get labor and growth indicators",
+        "input": {
+          "indicators": ["gdp", "unemployment", "inflation"]
+        }
+      }
+    ],
+    "useCases": [
+      "Economic dashboards",
+      "Market overview reports",
+      "Quick economic health checks",
+      "Morning briefings",
+      "Portfolio context analysis",
+      "Executive summaries"
+    ]
+  }
+}

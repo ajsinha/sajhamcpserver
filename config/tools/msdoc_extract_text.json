@@ -1,0 +1,50 @@
+{
+  "name": "msdoc_extract_text",
+  "implementation": "tools.impl.msdoc_tools_tool_refactored.MsDocExtractTextTool",
+  "description": "Extract all plain text content from Word or Excel documents",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "filename": {
+        "type": "string",
+        "description": "Name of the file to extract text from (Word or Excel)"
+      }
+    },
+    "required": ["filename"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "filename": {"type": "string"},
+      "text": {
+        "type": "string",
+        "description": "Extracted plain text content"
+      },
+      "character_count": {"type": "integer"}
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Document Processing",
+    "tags": ["text extraction", "word", "excel", "plain text"],
+    "rateLimit": 60,
+    "cacheTTL": 300,
+    "examples": [
+      {
+        "description": "Extract text from Word document",
+        "input": {"filename": "memo.docx"}
+      },
+      {
+        "description": "Extract text from Excel spreadsheet",
+        "input": {"filename": "data.xlsx"}
+      }
+    ],
+    "useCases": [
+      "Full text extraction",
+      "Document to plain text conversion",
+      "Content analysis preparation"
+    ]
+  }
+}

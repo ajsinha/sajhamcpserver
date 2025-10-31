@@ -1,0 +1,140 @@
+{
+  "name": "un_get_trade_data",
+  "implementation": "tools.impl.united_nations_tool_refactored.UNGetTradeDataTool",
+  "description": "Retrieve bilateral trade data from UN Comtrade database for imports/exports between countries",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "reporter_code": {
+        "type": "string",
+        "description": "Reporter country ISO3 code (the country reporting the trade data, e.g., 'USA', 'CHN', 'DEU')"
+      },
+      "partner_code": {
+        "type": "string",
+        "description": "Partner country ISO3 code or 'all' for trade with the world",
+        "default": "all"
+      },
+      "trade_flow": {
+        "type": "string",
+        "description": "Type of trade flow to retrieve",
+        "enum": ["export", "import", "re_export", "re_import"],
+        "default": "export"
+      },
+      "commodity_code": {
+        "type": "string",
+        "description": "HS (Harmonized System) commodity code or predefined group",
+        "enum": [
+          "all", "agricultural", "mineral", "chemicals", "plastics_rubber",
+          "textiles", "footwear", "metals", "machinery", "vehicles", "optical_instruments"
+        ],
+        "default": "all"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year for data retrieval (most recent year is typically 1-2 years behind current)",
+        "minimum": 1962,
+        "maximum": 2030
+      }
+    },
+    "required": ["reporter_code"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "reporter": {
+        "type": "string",
+        "description": "Reporter country code"
+      },
+      "partner": {
+        "type": "string",
+        "description": "Partner country code or 'all'"
+      },
+      "trade_flow": {
+        "type": "string",
+        "description": "Trade flow type"
+      },
+      "commodity": {
+        "type": "string",
+        "description": "Commodity classification"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Data year"
+      },
+      "data": {
+        "type": "array",
+        "description": "Trade data records",
+        "items": {
+          "type": "object",
+          "properties": {
+            "trade_value": {
+              "type": "number",
+              "description": "Trade value in USD"
+            },
+            "quantity": {
+              "type": "number",
+              "description": "Trade quantity"
+            },
+            "commodity_description": {
+              "type": "string",
+              "description": "Description of traded goods"
+            }
+          }
+        }
+      },
+      "note": {
+        "type": "string",
+        "description": "API access note and data availability information"
+      }
+    },
+    "required": ["reporter", "partner", "trade_flow", "year"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Global Statistics",
+    "tags": ["un", "comtrade", "trade", "imports", "exports", "bilateral"],
+    "rateLimit": 60,
+    "cacheTTL": 3600,
+    "note": "UN Comtrade is the world's largest trade database. Full access requires authentication. Data is typically available with 1-2 year lag. Commodity groups use HS (Harmonized System) classification.",
+    "examples": [
+      {
+        "description": "Get US exports to China in 2022",
+        "input": {
+          "reporter_code": "USA",
+          "partner_code": "CHN",
+          "trade_flow": "export",
+          "year": 2022
+        }
+      },
+      {
+        "description": "Get Germany's machinery exports to all countries",
+        "input": {
+          "reporter_code": "DEU",
+          "partner_code": "all",
+          "trade_flow": "export",
+          "commodity_code": "machinery",
+          "year": 2022
+        }
+      },
+      {
+        "description": "Get India's agricultural imports",
+        "input": {
+          "reporter_code": "IND",
+          "partner_code": "all",
+          "trade_flow": "import",
+          "commodity_code": "agricultural",
+          "year": 2023
+        }
+      }
+    ],
+    "useCases": [
+      "Bilateral trade analysis",
+      "Trade policy research",
+      "Supply chain analysis",
+      "Economic forecasting",
+      "Trade balance calculations"
+    ]
+  }
+}

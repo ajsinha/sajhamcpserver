@@ -1,0 +1,118 @@
+{
+  "name": "wb_get_regions",
+  "implementation": "tools.impl.world_bank_tool.WBGetRegionsTool",
+  "description": "Retrieve World Bank geographic region classifications and metadata. Get information about regional groupings of countries.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "per_page": {
+        "type": "integer",
+        "description": "Number of results per page",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 50
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "total_regions": {
+        "type": "integer",
+        "description": "Number of geographic regions"
+      },
+      "regions": {
+        "type": "array",
+        "description": "List of geographic regions",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Region code (e.g., EAS, ECS, LCN, MEA, NAC, SAS, SSF)"
+            },
+            "iso2code": {
+              "type": "string",
+              "description": "ISO2 code for the region"
+            },
+            "value": {
+              "type": "string",
+              "description": "Full name of region"
+            },
+            "code": {
+              "type": "string",
+              "description": "Alternative region code"
+            }
+          },
+          "required": ["id", "value"]
+        }
+      },
+      "descriptions": {
+        "type": "object",
+        "description": "Detailed descriptions of each region",
+        "properties": {
+          "EAS": {
+            "type": "string",
+            "description": "East Asia & Pacific"
+          },
+          "ECS": {
+            "type": "string",
+            "description": "Europe & Central Asia"
+          },
+          "LCN": {
+            "type": "string",
+            "description": "Latin America & Caribbean"
+          },
+          "MEA": {
+            "type": "string",
+            "description": "Middle East & North Africa"
+          },
+          "NAC": {
+            "type": "string",
+            "description": "North America"
+          },
+          "SAS": {
+            "type": "string",
+            "description": "South Asia"
+          },
+          "SSF": {
+            "type": "string",
+            "description": "Sub-Saharan Africa"
+          },
+          "WLD": {
+            "type": "string",
+            "description": "World"
+          }
+        }
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when data was retrieved (ISO format)"
+      }
+    },
+    "required": ["total_regions", "regions"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["world bank", "regions", "geography", "classification", "metadata"],
+    "rateLimit": 120,
+    "cacheTTL": 86400,
+    "note": "Geographic region classifications help group countries by location. Useful for regional analysis and comparisons.",
+    "examples": [
+      {
+        "description": "Get all geographic regions",
+        "input": {}
+      }
+    ],
+    "useCases": [
+      "Understanding regional classifications",
+      "Regional analysis planning",
+      "Geographic filtering",
+      "Cross-regional comparisons",
+      "Development research"
+    ]
+  }
+}

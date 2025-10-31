@@ -1,0 +1,60 @@
+{
+  "name": "msdoc_read_word",
+  "implementation": "tools.impl.msdoc_tools_tool_refactored.MsDocReadWordTool",
+  "description": "Read and extract content from Word documents including paragraphs and tables",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "filename": {
+        "type": "string",
+        "description": "Name of the Word file to read (.docx)"
+      }
+    },
+    "required": ["filename"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "filename": {"type": "string"},
+      "paragraphs": {
+        "type": "array",
+        "description": "Text paragraphs from the document",
+        "items": {"type": "string"}
+      },
+      "paragraph_count": {"type": "integer"},
+      "tables": {
+        "type": "array",
+        "description": "Tables extracted from the document",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      },
+      "table_count": {"type": "integer"}
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Document Processing",
+    "tags": ["word", "docx", "read", "extract", "text"],
+    "rateLimit": 60,
+    "cacheTTL": 300,
+    "note": "Requires python-docx library",
+    "examples": [
+      {
+        "description": "Read a Word document",
+        "input": {"filename": "report.docx"}
+      }
+    ],
+    "useCases": [
+      "Extract text from Word documents",
+      "Parse document structure",
+      "Read tables from Word files"
+    ]
+  }
+}

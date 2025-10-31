@@ -1,0 +1,141 @@
+{
+  "name": "sec_get_mutual_fund_holdings",
+  "implementation": "tools.impl.sec_edgar_tool_refactored.SECGetMutualFundHoldingsTool",
+  "description": "Retrieve institutional investment manager holdings reports (Form 13F-HR)",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key (CIK) - 10 digit company identifier for the institutional investment manager"
+      },
+      "ticker": {
+        "type": "string",
+        "description": "Stock ticker symbol (typically not applicable for institutional managers, use CIK)"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of Form 13F filings to return",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 20
+      }
+    },
+    "oneOf": [
+      {"required": ["cik"]},
+      {"required": ["ticker"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "10-digit Central Index Key"
+      },
+      "name": {
+        "type": "string",
+        "description": "Institution name"
+      },
+      "filing_count": {
+        "type": "integer",
+        "description": "Number of Form 13F filings returned"
+      },
+      "filings": {
+        "type": "array",
+        "description": "List of Form 13F holdings reports",
+        "items": {
+          "type": "object",
+          "properties": {
+            "accession_number": {
+              "type": "string",
+              "description": "Unique filing identifier"
+            },
+            "filing_date": {
+              "type": "string",
+              "description": "Date filed with SEC (YYYY-MM-DD)"
+            },
+            "report_date": {
+              "type": "string",
+              "description": "Period end date for holdings (YYYY-MM-DD)"
+            },
+            "form": {
+              "type": "string",
+              "description": "Form type (will be '13F-HR')"
+            },
+            "primary_document": {
+              "type": "string",
+              "description": "Primary document filename"
+            },
+            "description": {
+              "type": "string",
+              "description": "Filing description"
+            }
+          },
+          "required": ["accession_number", "filing_date", "form"]
+        }
+      }
+    },
+    "required": ["cik", "name", "filing_count", "filings"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Financial Data",
+    "tags": ["sec", "edgar", "13f", "institutional", "holdings", "mutual funds", "hedge funds", "portfolio"],
+    "rateLimit": 10,
+    "cacheTTL": 3600,
+    "note": "Form 13F discloses equity holdings of institutional investment managers with >$100M in AUM. Filed quarterly.",
+    "examples": [
+      {
+        "description": "Get Berkshire Hathaway (Warren Buffett) holdings",
+        "input": {
+          "cik": "0001067983",
+          "limit": 4
+        }
+      },
+      {
+        "description": "Get recent 13F filings for an institution",
+        "input": {
+          "cik": "0001364742",
+          "limit": 8
+        }
+      },
+      {
+        "description": "Track institutional portfolio changes",
+        "input": {
+          "cik": "0001350694"
+        }
+      }
+    ],
+    "form13fInfo": {
+      "purpose": "Quarterly report of equity holdings by institutional investment managers",
+      "whoMustFile": "Institutional investment managers with >$100M in assets under management",
+      "filingDeadline": "Within 45 days after quarter end",
+      "reportingRequirement": "Holdings of Section 13(f) securities (publicly traded US equities and certain derivatives)",
+      "disclosure": [
+        "Security name and class",
+        "CUSIP number",
+        "Number of shares",
+        "Market value",
+        "Investment discretion"
+      ]
+    },
+    "institutionalManagers": {
+      "berkshireHathaway": "0001067983",
+      "vanguardGroup": "0001102694",
+      "blackrock": "0001364742",
+      "stateStreet": "0001350694",
+      "fidelity": "0000315066"
+    },
+    "useCases": [
+      "Track smart money (institutional investor activity)",
+      "Monitor hedge fund holdings",
+      "Identify popular institutional positions",
+      "Analyze portfolio changes quarter-over-quarter",
+      "Investment research and strategy",
+      "Understand institutional sentiment"
+    ]
+  }
+}

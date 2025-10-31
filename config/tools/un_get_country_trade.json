@@ -1,0 +1,132 @@
+{
+  "name": "un_get_country_trade",
+  "implementation": "tools.impl.united_nations_tool_refactored.UNGetCountryTradeTool",
+  "description": "Retrieve comprehensive trade summary (both imports and exports) for a specific country in a given year",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "country_code": {
+        "type": "string",
+        "description": "ISO3 country code (e.g., 'USA', 'DEU', 'JPN', 'BRA')"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year for data retrieval (defaults to previous year if not specified)",
+        "minimum": 1962,
+        "maximum": 2030
+      }
+    },
+    "required": ["country_code"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "country_code": {
+        "type": "string",
+        "description": "Country code"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Data year"
+      },
+      "exports": {
+        "type": "object",
+        "description": "Export data summary",
+        "properties": {
+          "total_value": {
+            "type": ["number", "null"],
+            "description": "Total export value in USD"
+          },
+          "top_partners": {
+            "type": "array",
+            "description": "Top export destination countries",
+            "items": {
+              "type": "object",
+              "properties": {
+                "country": {"type": "string"},
+                "value": {"type": "number"}
+              }
+            }
+          },
+          "top_commodities": {
+            "type": "array",
+            "description": "Top exported commodity categories"
+          }
+        }
+      },
+      "imports": {
+        "type": "object",
+        "description": "Import data summary",
+        "properties": {
+          "total_value": {
+            "type": ["number", "null"],
+            "description": "Total import value in USD"
+          },
+          "top_partners": {
+            "type": "array",
+            "description": "Top import source countries",
+            "items": {
+              "type": "object",
+              "properties": {
+                "country": {"type": "string"},
+                "value": {"type": "number"}
+              }
+            }
+          },
+          "top_commodities": {
+            "type": "array",
+            "description": "Top imported commodity categories"
+          }
+        }
+      },
+      "trade_balance": {
+        "type": ["number", "null"],
+        "description": "Net trade balance (exports - imports) in USD"
+      },
+      "note": {
+        "type": "string",
+        "description": "Data access and availability note"
+      }
+    },
+    "required": ["country_code", "year"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Global Statistics",
+    "tags": ["un", "comtrade", "trade summary", "country trade", "imports", "exports"],
+    "rateLimit": 60,
+    "cacheTTL": 3600,
+    "note": "Provides a comprehensive trade overview for a country including total trade volumes, major partners, and commodity breakdowns. Requires UN Comtrade API authentication for full data access.",
+    "examples": [
+      {
+        "description": "Get comprehensive trade data for United States in 2022",
+        "input": {
+          "country_code": "USA",
+          "year": 2022
+        }
+      },
+      {
+        "description": "Get latest trade summary for Germany",
+        "input": {
+          "country_code": "DEU"
+        }
+      },
+      {
+        "description": "Get trade overview for Japan in 2023",
+        "input": {
+          "country_code": "JPN",
+          "year": 2023
+        }
+      }
+    ],
+    "useCases": [
+      "Country trade profile analysis",
+      "Economic overview for research",
+      "Trade dependency assessment",
+      "Partner country identification",
+      "Trade policy evaluation"
+    ]
+  }
+}

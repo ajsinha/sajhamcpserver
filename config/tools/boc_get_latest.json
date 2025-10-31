@@ -1,0 +1,127 @@
+{
+  "name": "boc_get_latest",
+  "implementation": "tools.impl.bank_of_canada_tool_refactored.BoCGetLatestTool",
+  "description": "Retrieve the most recent observation for any Bank of Canada data series. Optimized for single-value queries with minimal response payload.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "series_name": {
+        "type": "string",
+        "description": "Bank of Canada series name (e.g., 'FXUSDCAD', 'POLICY_RATE', 'V122539'). Use this for direct series access."
+      },
+      "indicator": {
+        "type": "string",
+        "description": "Common indicator shorthand for convenience",
+        "enum": [
+          "usd_cad",
+          "eur_cad",
+          "gbp_cad",
+          "jpy_cad",
+          "cny_cad",
+          "policy_rate",
+          "overnight_rate",
+          "prime_rate",
+          "bond_2y",
+          "bond_5y",
+          "bond_10y",
+          "bond_30y",
+          "cpi",
+          "core_cpi",
+          "gdp"
+        ]
+      }
+    },
+    "oneOf": [
+      {"required": ["series_name"]},
+      {"required": ["indicator"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "series_name": {
+        "type": "string",
+        "description": "Bank of Canada series identifier"
+      },
+      "label": {
+        "type": "string",
+        "description": "Human-readable series label"
+      },
+      "description": {
+        "type": "string",
+        "description": "Detailed description of the data series"
+      },
+      "date": {
+        "type": "string",
+        "description": "Date of the latest observation (YYYY-MM-DD format)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "value": {
+        "type": ["number", "null"],
+        "description": "Latest observation value (null if not available)"
+      }
+    },
+    "required": ["series_name", "label", "date", "value"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["current", "latest", "real-time", "bank of canada", "snapshot"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Optimized for dashboard and real-time displays. Returns only the most recent value with minimal payload size.",
+    "examples": [
+      {
+        "description": "Get current USD/CAD exchange rate",
+        "input": {
+          "indicator": "usd_cad"
+        },
+        "expectedOutput": {
+          "series_name": "FXUSDCAD",
+          "label": "US dollar, noon spot rate, Canadian dollar, daily",
+          "date": "2024-10-31",
+          "value": 1.3825
+        }
+      },
+      {
+        "description": "Get current Bank of Canada policy rate",
+        "input": {
+          "indicator": "policy_rate"
+        },
+        "expectedOutput": {
+          "series_name": "POLICY_RATE",
+          "label": "Bank of Canada policy interest rate",
+          "date": "2024-10-23",
+          "value": 4.50
+        }
+      },
+      {
+        "description": "Get latest 10-year bond yield",
+        "input": {
+          "indicator": "bond_10y"
+        }
+      },
+      {
+        "description": "Get latest CPI reading",
+        "input": {
+          "series_name": "V41690973"
+        }
+      }
+    ],
+    "useCases": [
+      "Real-time dashboards",
+      "Economic indicator displays",
+      "Trading terminals",
+      "Mobile apps (reduced data)",
+      "Status checks",
+      "Alerting systems"
+    ],
+    "performanceNotes": {
+      "responseSize": "~200 bytes (vs ~2KB for time series)",
+      "apiCalls": "1 per request",
+      "cacheRecommendation": "Cache for 1 hour for non-critical use cases"
+    }
+  }
+}

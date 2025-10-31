@@ -1,0 +1,167 @@
+{
+  "name": "wb_get_topic_indicators",
+  "implementation": "tools.impl.world_bank_tool.WBGetTopicIndicatorsTool",
+  "description": "Retrieve all indicators related to a specific topic (e.g., Education, Health, Climate Change). Get comprehensive indicator lists by development topic.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "topic_id": {
+        "type": "integer",
+        "description": "Topic ID: 1=Agriculture & Rural Development, 2=Aid Effectiveness, 3=Economy & Growth, 4=Education, 5=Energy & Mining, 6=Environment, 7=Financial Sector, 8=Health, 9=Infrastructure, 10=Social Protection & Labor, 11=Poverty, 12=Private Sector, 13=Public Sector, 14=Science & Technology, 15=Social Development, 16=Urban Development, 17=Gender, 18=Trade, 19=Climate Change, 20=External Debt, 21=Millennium Development Goals",
+        "minimum": 1,
+        "maximum": 21
+      },
+      "per_page": {
+        "type": "integer",
+        "description": "Number of indicators per page",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100
+      },
+      "page": {
+        "type": "integer",
+        "description": "Page number for pagination",
+        "minimum": 1,
+        "default": 1
+      }
+    },
+    "required": ["topic_id"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "topic": {
+        "type": "object",
+        "description": "Topic information",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Topic ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Topic name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Topic description"
+          }
+        }
+      },
+      "total_indicators": {
+        "type": "integer",
+        "description": "Total number of indicators for this topic"
+      },
+      "page": {
+        "type": "integer",
+        "description": "Current page number"
+      },
+      "per_page": {
+        "type": "integer",
+        "description": "Results per page"
+      },
+      "total_pages": {
+        "type": "integer",
+        "description": "Total number of pages"
+      },
+      "indicators": {
+        "type": "array",
+        "description": "List of indicators for this topic",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Indicator code"
+            },
+            "name": {
+              "type": "string",
+              "description": "Indicator name"
+            },
+            "source_note": {
+              "type": "string",
+              "description": "Detailed description and methodology"
+            },
+            "source_organization": {
+              "type": "string",
+              "description": "Organization providing the data"
+            },
+            "source": {
+              "type": "object",
+              "description": "Data source information"
+            }
+          },
+          "required": ["id", "name"]
+        }
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when data was retrieved (ISO format)"
+      }
+    },
+    "required": ["topic", "total_indicators", "indicators"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["world bank", "topics", "indicators", "thematic", "research"],
+    "rateLimit": 120,
+    "cacheTTL": 86400,
+    "note": "Retrieve indicators organized by development topics. Useful for comprehensive topic-based research and analysis.",
+    "examples": [
+      {
+        "description": "Get all health indicators",
+        "input": {
+          "topic_id": 8,
+          "per_page": 100
+        }
+      },
+      {
+        "description": "Get education indicators",
+        "input": {
+          "topic_id": 4,
+          "per_page": 50
+        }
+      },
+      {
+        "description": "Get climate change indicators",
+        "input": {
+          "topic_id": 19,
+          "per_page": 100
+        }
+      }
+    ],
+    "topicList": {
+      "1": "Agriculture & Rural Development",
+      "2": "Aid Effectiveness",
+      "3": "Economy & Growth",
+      "4": "Education",
+      "5": "Energy & Mining",
+      "6": "Environment",
+      "7": "Financial Sector",
+      "8": "Health",
+      "9": "Infrastructure",
+      "10": "Social Protection & Labor",
+      "11": "Poverty",
+      "12": "Private Sector",
+      "13": "Public Sector",
+      "14": "Science & Technology",
+      "15": "Social Development",
+      "16": "Urban Development",
+      "17": "Gender",
+      "18": "Trade",
+      "19": "Climate Change",
+      "20": "External Debt",
+      "21": "Millennium Development Goals"
+    },
+    "useCases": [
+      "Thematic research",
+      "Comprehensive topic analysis",
+      "Finding related indicators",
+      "Research scoping",
+      "Topic-based data discovery"
+    ]
+  }
+}

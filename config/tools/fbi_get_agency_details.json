@@ -1,0 +1,130 @@
+{
+  "name": "fbi_get_agency_details",
+  "implementation": "tools.impl.fbi_tool_refactored.FBIGetAgencyDetailsTool",
+  "description": "Retrieve detailed information about a specific law enforcement agency",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "ori": {
+        "type": "string",
+        "description": "Originating Agency Identifier (ORI) code (e.g., 'CA0190000' for LAPD)",
+        "pattern": "^[A-Z]{2}[0-9]{7}$"
+      }
+    },
+    "required": ["ori"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "ori": {
+        "type": "string",
+        "description": "Agency ORI code"
+      },
+      "agency_name": {
+        "type": "string",
+        "description": "Full name of the law enforcement agency"
+      },
+      "agency_type": {
+        "type": "string",
+        "description": "Type of agency (city, county, state, federal, etc.)"
+      },
+      "location": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "description": "State abbreviation"
+          },
+          "state_name": {
+            "type": "string",
+            "description": "Full state name"
+          },
+          "city": {
+            "type": "string",
+            "description": "City where agency is headquartered"
+          },
+          "county": {
+            "type": "string",
+            "description": "County where agency is located"
+          },
+          "region": {
+            "type": "string",
+            "description": "FBI region designation"
+          }
+        }
+      },
+      "jurisdiction": {
+        "type": "object",
+        "properties": {
+          "population": {
+            "type": "integer",
+            "description": "Population served by the agency"
+          },
+          "square_miles": {
+            "type": "number",
+            "description": "Area covered in square miles"
+          }
+        }
+      },
+      "personnel": {
+        "type": "object",
+        "properties": {
+          "total_officers": {
+            "type": "integer",
+            "description": "Total number of sworn officers"
+          },
+          "total_civilians": {
+            "type": "integer",
+            "description": "Total number of civilian employees"
+          },
+          "officers_per_1000": {
+            "type": "number",
+            "description": "Officers per 1,000 residents"
+          }
+        }
+      },
+      "reporting_status": {
+        "type": "object",
+        "properties": {
+          "participates_in_ucr": {
+            "type": "boolean",
+            "description": "Whether agency reports to UCR"
+          },
+          "participates_in_nibrs": {
+            "type": "boolean",
+            "description": "Whether agency reports to NIBRS"
+          },
+          "last_reported_year": {
+            "type": "integer",
+            "description": "Most recent year of data submission"
+          }
+        }
+      }
+    },
+    "required": ["ori", "agency_name", "agency_type", "location"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Crime Statistics",
+    "tags": ["crime", "fbi", "agency", "details", "information"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Get comprehensive agency information including jurisdiction, personnel, and reporting status",
+    "examples": [
+      {
+        "description": "Get LAPD details",
+        "input": {
+          "ori": "CA0190000"
+        }
+      },
+      {
+        "description": "Get Chicago Police Department information",
+        "input": {
+          "ori": "IL0160000"
+        }
+      }
+    ]
+  }
+}

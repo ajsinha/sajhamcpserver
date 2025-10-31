@@ -1,0 +1,155 @@
+{
+  "name": "sec_get_financial_data",
+  "implementation": "tools.impl.sec_edgar_tool_refactored.SECGetFinancialDataTool",
+  "description": "Retrieve specific financial metrics (Assets, Revenue, Net Income, etc.) from company XBRL filings",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key (CIK) - 10 digit company identifier"
+      },
+      "ticker": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "fact_type": {
+        "type": "string",
+        "description": "Type of financial fact/metric to retrieve (optional - if not provided, returns list of available facts)",
+        "enum": [
+          "Assets",
+          "Liabilities",
+          "StockholdersEquity",
+          "Revenues",
+          "NetIncomeLoss",
+          "EarningsPerShare",
+          "Cash",
+          "OperatingIncome",
+          "GrossProfit",
+          "CurrentAssets",
+          "CurrentLiabilities",
+          "LongTermDebt"
+        ]
+      }
+    },
+    "oneOf": [
+      {"required": ["cik"]},
+      {"required": ["ticker"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "10-digit Central Index Key"
+      },
+      "entity_name": {
+        "type": "string",
+        "description": "Company entity name"
+      },
+      "fact_type": {
+        "type": "string",
+        "description": "Financial fact type requested"
+      },
+      "available_facts": {
+        "type": "object",
+        "description": "Summary of all available facts (returned when fact_type not specified)"
+      },
+      "data": {
+        "type": "array",
+        "description": "Financial data for the requested fact type",
+        "items": {
+          "type": "object",
+          "properties": {
+            "taxonomy": {
+              "type": "string",
+              "description": "Taxonomy source (e.g., us-gaap)"
+            },
+            "label": {
+              "type": "string",
+              "description": "Human-readable label"
+            },
+            "description": {
+              "type": "string",
+              "description": "Fact description"
+            },
+            "units": {
+              "type": "object",
+              "description": "Historical data values organized by unit (USD, shares, etc.) with timestamps and reporting periods"
+            }
+          }
+        }
+      }
+    },
+    "required": ["cik", "entity_name"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Financial Data",
+    "tags": ["sec", "edgar", "financial", "metrics", "revenue", "assets", "income", "xbrl"],
+    "rateLimit": 10,
+    "cacheTTL": 3600,
+    "note": "Extract specific financial metrics from XBRL filings. More efficient than sec_get_company_facts for targeted queries.",
+    "financialMetrics": {
+      "Assets": "Total assets",
+      "Liabilities": "Total liabilities",
+      "StockholdersEquity": "Shareholders' equity",
+      "Revenues": "Revenue/Sales",
+      "NetIncomeLoss": "Net income",
+      "EarningsPerShare": "Earnings per share (EPS)",
+      "Cash": "Cash and cash equivalents",
+      "OperatingIncome": "Operating income",
+      "GrossProfit": "Gross profit",
+      "CurrentAssets": "Current assets",
+      "CurrentLiabilities": "Current liabilities",
+      "LongTermDebt": "Long-term debt"
+    },
+    "examples": [
+      {
+        "description": "Get list of available financial metrics for Apple",
+        "input": {
+          "ticker": "AAPL"
+        }
+      },
+      {
+        "description": "Get revenue history for Tesla",
+        "input": {
+          "ticker": "TSLA",
+          "fact_type": "Revenues"
+        }
+      },
+      {
+        "description": "Get net income for Microsoft",
+        "input": {
+          "ticker": "MSFT",
+          "fact_type": "NetIncomeLoss"
+        }
+      },
+      {
+        "description": "Get total assets for Amazon",
+        "input": {
+          "ticker": "AMZN",
+          "fact_type": "Assets"
+        }
+      },
+      {
+        "description": "Get earnings per share for Google",
+        "input": {
+          "ticker": "GOOGL",
+          "fact_type": "EarningsPerShare"
+        }
+      }
+    ],
+    "useCases": [
+      "Financial ratio analysis",
+      "Revenue trend analysis",
+      "Balance sheet analysis",
+      "Profitability metrics",
+      "Time-series financial modeling",
+      "Comparative financial analysis"
+    ]
+  }
+}

@@ -1,0 +1,175 @@
+{
+  "name": "wb_get_indicator_data",
+  "implementation": "tools.impl.world_bank_tool.WBGetIndicatorDataTool",
+  "description": "Retrieve a specific indicator across all countries for comparison. Get cross-country data for any World Bank indicator in a single query.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "indicator": {
+        "type": "string",
+        "description": "Common indicator shorthand",
+        "enum": [
+          "gdp", "gdp_per_capita", "gdp_growth", "gdp_ppp",
+          "population", "population_growth", "urban_population",
+          "life_expectancy", "birth_rate", "death_rate",
+          "poverty_rate", "gini_index", "income_share_lowest_20",
+          "literacy_rate", "primary_enrollment", "secondary_enrollment", "tertiary_enrollment",
+          "infant_mortality", "maternal_mortality", "health_expenditure", "hospital_beds",
+          "unemployment", "labor_force", "female_labor_force",
+          "exports", "imports", "trade_gdp", "fdi_inflow", "external_debt",
+          "co2_emissions", "co2_per_capita", "renewable_energy", "electricity_access", "forest_area",
+          "internet_users", "mobile_subscriptions", "roads_paved",
+          "inflation", "food_price_inflation"
+        ]
+      },
+      "indicator_code": {
+        "type": "string",
+        "description": "World Bank indicator code (e.g., 'SP.POP.TOTL' for population). Use this for direct indicator access."
+      },
+      "year": {
+        "type": "integer",
+        "description": "Specific year for cross-country comparison",
+        "minimum": 1960,
+        "maximum": 2030
+      },
+      "start_year": {
+        "type": "integer",
+        "description": "Start year for time range",
+        "minimum": 1960,
+        "maximum": 2030
+      },
+      "end_year": {
+        "type": "integer",
+        "description": "End year for time range",
+        "minimum": 1960,
+        "maximum": 2030
+      },
+      "income_level": {
+        "type": "string",
+        "description": "Filter by income level",
+        "enum": ["HIC", "UMC", "LMC", "LIC"]
+      },
+      "region": {
+        "type": "string",
+        "description": "Filter by region",
+        "enum": ["EAS", "ECS", "LCN", "MEA", "NAC", "SAS", "SSF"]
+      },
+      "per_page": {
+        "type": "integer",
+        "description": "Number of results per page",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100
+      }
+    },
+    "oneOf": [
+      {"required": ["indicator"]},
+      {"required": ["indicator_code"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "indicator": {
+        "type": "object",
+        "description": "Indicator information",
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string"}
+        }
+      },
+      "year_filter": {
+        "type": ["integer", "object", "null"],
+        "description": "Year or year range applied"
+      },
+      "filters_applied": {
+        "type": "object",
+        "description": "Additional filters used",
+        "properties": {
+          "income_level": {"type": ["string", "null"]},
+          "region": {"type": ["string", "null"]}
+        }
+      },
+      "country_count": {
+        "type": "integer",
+        "description": "Number of countries in results"
+      },
+      "data": {
+        "type": "array",
+        "description": "Cross-country indicator data",
+        "items": {
+          "type": "object",
+          "properties": {
+            "country": {
+              "type": "object",
+              "properties": {
+                "id": {"type": "string"},
+                "name": {"type": "string"}
+              }
+            },
+            "year": {
+              "type": "integer",
+              "description": "Year of observation"
+            },
+            "value": {
+              "type": ["number", "null"],
+              "description": "Indicator value"
+            },
+            "unit": {
+              "type": "string",
+              "description": "Unit of measurement"
+            }
+          },
+          "required": ["country", "year", "value"]
+        }
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when data was retrieved (ISO format)"
+      }
+    },
+    "required": ["indicator", "data"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["world bank", "cross-country", "comparison", "rankings", "indicators"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Retrieve indicator data across all countries for comparative analysis and rankings. Filter by region, income level, or year.",
+    "examples": [
+      {
+        "description": "Compare GDP per capita across all countries in 2023",
+        "input": {
+          "indicator": "gdp_per_capita",
+          "year": 2023
+        }
+      },
+      {
+        "description": "Get life expectancy for high-income countries",
+        "input": {
+          "indicator": "life_expectancy",
+          "income_level": "HIC",
+          "year": 2022
+        }
+      },
+      {
+        "description": "Compare CO2 emissions in South Asia",
+        "input": {
+          "indicator": "co2_emissions",
+          "region": "SAS",
+          "year": 2021
+        }
+      }
+    ],
+    "useCases": [
+      "Cross-country comparisons",
+      "Global rankings",
+      "Regional analysis",
+      "Income group comparisons",
+      "Benchmarking"
+    ]
+  }
+}

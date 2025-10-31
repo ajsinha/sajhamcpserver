@@ -1,0 +1,127 @@
+{
+  "name": "boc_get_bond_yield",
+  "implementation": "tools.impl.bank_of_canada_tool_refactored.BoCGetBondYieldTool",
+  "description": "Retrieve Government of Canada benchmark bond yields for various maturities (2Y, 5Y, 10Y, 30Y) with historical data.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "bond_term": {
+        "type": "string",
+        "description": "Bond maturity term",
+        "enum": ["2y", "5y", "10y", "30y"],
+        "default": "10y"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date in YYYY-MM-DD format"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date in YYYY-MM-DD format"
+      },
+      "recent_periods": {
+        "type": "integer",
+        "description": "Number of recent observations (1-100)",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10
+      }
+    },
+    "required": ["bond_term"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "series_name": {
+        "type": "string",
+        "description": "Bond yield series identifier (e.g., 'V122539' for 10-year)"
+      },
+      "label": {
+        "type": "string",
+        "description": "Bond description (e.g., '10-Year Government of Canada Bond Yield')"
+      },
+      "description": {
+        "type": "string",
+        "description": "Detailed bond information"
+      },
+      "dimension": {
+        "type": "object",
+        "description": "Yield units and frequency (percentage, daily)",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Dimension key (typically 'd' for daily)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Dimension name (typically 'Date')"
+          }
+        }
+      },
+      "observation_count": {
+        "type": "integer",
+        "description": "Number of yield observations returned"
+      },
+      "observations": {
+        "type": "array",
+        "description": "Historical bond yield values",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Date of yield observation (YYYY-MM-DD format)"
+            },
+            "value": {
+              "type": ["number", "null"],
+              "description": "Bond yield percentage (null if not available)"
+            }
+          },
+          "required": ["date", "value"]
+        }
+      }
+    },
+    "required": ["series_name", "label", "observations"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["bonds", "yields", "government bonds", "canada", "fixed income", "treasuries"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Government of Canada benchmark bond yields across the yield curve. Useful for fixed income analysis and monetary policy assessment.",
+    "examples": [
+      {
+        "description": "Get latest 10-year bond yield",
+        "input": {
+          "bond_term": "10y",
+          "recent_periods": 1
+        }
+      },
+      {
+        "description": "Get 5-year yield history for past year",
+        "input": {
+          "bond_term": "5y",
+          "start_date": "2023-11-01",
+          "end_date": "2024-10-31"
+        }
+      },
+      {
+        "description": "Compare recent 2-year vs 30-year yields (call twice)",
+        "input": {
+          "bond_term": "2y",
+          "recent_periods": 30
+        }
+      }
+    ],
+    "useCases": [
+      "Yield curve analysis",
+      "Fixed income trading",
+      "Monetary policy research",
+      "Investment portfolio management",
+      "Economic forecasting"
+    ]
+  }
+}

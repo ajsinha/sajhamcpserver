@@ -1,0 +1,119 @@
+{
+  "name": "sqlselect_count_rows",
+  "implementation": "tools.impl.sqlselect_tool_refactored.SqlSelectCountRowsTool",
+  "description": "Count rows in a data source with optional WHERE clause filtering for data profiling and validation",
+  "version": "1.0.0",
+  "enabled": true,
+  "data_directory": "data/sqlselect",
+  "data_sources": {
+    "customers": {
+      "file": "customers.csv",
+      "type": "csv",
+      "description": "Customer master data"
+    },
+    "orders": {
+      "file": "orders.csv",
+      "type": "csv",
+      "description": "Order transactions"
+    },
+    "products": {
+      "file": "products.csv",
+      "type": "csv",
+      "description": "Product catalog"
+    },
+    "sales": {
+      "file": "sales.csv",
+      "type": "csv",
+      "description": "Sales data with customer and product details"
+    }
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "source_name": {
+        "type": "string",
+        "description": "Name of the data source"
+      },
+      "where_clause": {
+        "type": "string",
+        "description": "Optional WHERE clause for filtering (without 'WHERE' keyword)"
+      }
+    },
+    "required": ["source_name"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Operation status"
+      },
+      "source_name": {
+        "type": "string",
+        "description": "Data source name"
+      },
+      "row_count": {
+        "type": "integer",
+        "description": "Number of rows"
+      },
+      "where_clause": {
+        "type": ["string", "null"],
+        "description": "Applied filter clause"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "ISO timestamp"
+      }
+    },
+    "required": ["success", "source_name", "row_count"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "category": "Data Query",
+    "tags": ["sql", "count", "aggregate", "filter", "statistics", "duckdb"],
+    "rateLimit": 100,
+    "cacheTTL": 300,
+    "dependencies": ["duckdb"],
+    "note": "Fast row counting with optional filtering. Useful for data profiling and validation.",
+    "examples": [
+      {
+        "description": "Count all customers",
+        "input": {
+          "source_name": "customers"
+        }
+      },
+      {
+        "description": "Count active customers",
+        "input": {
+          "source_name": "customers",
+          "where_clause": "status = 'active'"
+        }
+      },
+      {
+        "description": "Count high-value orders",
+        "input": {
+          "source_name": "orders",
+          "where_clause": "total_amount > 1000"
+        }
+      },
+      {
+        "description": "Count recent sales",
+        "input": {
+          "source_name": "sales",
+          "where_clause": "sale_date >= '2024-01-01'"
+        }
+      }
+    ],
+    "useCases": [
+      "Data volume assessment",
+      "Data quality validation",
+      "Filter effectiveness testing",
+      "Segment size analysis",
+      "Data profiling",
+      "Reporting metrics",
+      "ETL validation"
+    ],
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha"
+  }
+}

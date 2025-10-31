@@ -1,0 +1,148 @@
+{
+  "name": "wb_get_countries",
+  "implementation": "tools.impl.world_bank_tool.WBGetCountriesTool",
+  "description": "Retrieve list of all countries and regions with their metadata including income levels, regions, and lending types from the World Bank API.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "income_level": {
+        "type": "string",
+        "description": "Filter by income level classification",
+        "enum": ["HIC", "UMC", "LMC", "LIC", "all"],
+        "default": "all"
+      },
+      "region": {
+        "type": "string",
+        "description": "Filter by geographic region",
+        "enum": ["EAS", "ECS", "LCN", "MEA", "NAC", "SAS", "SSF", "WLD", "all"],
+        "default": "all"
+      },
+      "lending_type": {
+        "type": "string",
+        "description": "Filter by lending type",
+        "enum": ["IBD", "IDB", "IDX", "LNX", "all"],
+        "default": "all"
+      },
+      "per_page": {
+        "type": "integer",
+        "description": "Number of results per page",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 300
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "total_countries": {
+        "type": "integer",
+        "description": "Total number of countries returned"
+      },
+      "filters_applied": {
+        "type": "object",
+        "description": "Filters used in the query",
+        "properties": {
+          "income_level": {"type": "string"},
+          "region": {"type": "string"},
+          "lending_type": {"type": "string"}
+        }
+      },
+      "countries": {
+        "type": "array",
+        "description": "List of countries with metadata",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "ISO2 country code"
+            },
+            "iso3": {
+              "type": "string",
+              "description": "ISO3 country code"
+            },
+            "name": {
+              "type": "string",
+              "description": "Country name"
+            },
+            "capital": {
+              "type": "string",
+              "description": "Capital city"
+            },
+            "region": {
+              "type": "object",
+              "properties": {
+                "id": {"type": "string"},
+                "value": {"type": "string"}
+              }
+            },
+            "income_level": {
+              "type": "object",
+              "properties": {
+                "id": {"type": "string"},
+                "value": {"type": "string"}
+              }
+            },
+            "lending_type": {
+              "type": "object",
+              "properties": {
+                "id": {"type": "string"},
+                "value": {"type": "string"}
+              }
+            },
+            "longitude": {
+              "type": ["string", "null"],
+              "description": "Geographic longitude"
+            },
+            "latitude": {
+              "type": ["string", "null"],
+              "description": "Geographic latitude"
+            }
+          },
+          "required": ["id", "name"]
+        }
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when data was retrieved (ISO format)"
+      }
+    },
+    "required": ["total_countries", "countries"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["world bank", "countries", "metadata", "regions", "income levels"],
+    "rateLimit": 120,
+    "cacheTTL": 86400,
+    "note": "Complete list of World Bank countries and regions. Income levels: HIC=High, UMC=Upper Middle, LMC=Lower Middle, LIC=Low. Regions: EAS=East Asia, ECS=Europe & Central Asia, LCN=Latin America, MEA=Middle East & Africa, NAC=North America, SAS=South Asia, SSF=Sub-Saharan Africa.",
+    "examples": [
+      {
+        "description": "Get all countries",
+        "input": {}
+      },
+      {
+        "description": "Get high-income countries",
+        "input": {
+          "income_level": "HIC"
+        }
+      },
+      {
+        "description": "Get South Asian countries",
+        "input": {
+          "region": "SAS"
+        }
+      }
+    ],
+    "useCases": [
+      "Country discovery",
+      "Regional analysis",
+      "Income classification research",
+      "Geographic data enrichment",
+      "Building country selection lists"
+    ]
+  }
+}

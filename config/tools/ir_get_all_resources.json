@@ -1,0 +1,58 @@
+{
+  "name": "ir_get_all_resources",
+  "implementation": "tools.impl.investor_relations_tool_refactored.IRGetAllResourcesTool",
+  "description": "Get comprehensive investor relations resources including all reports, presentations, and documents",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "ticker": {
+        "type": "string",
+        "description": "Stock ticker symbol"
+      }
+    },
+    "required": ["ticker"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "ticker": {"type": "string"},
+      "ir_page_url": {"type": "string"},
+      "resources": {
+        "type": "object",
+        "description": "Complete collection of IR resources",
+        "properties": {
+          "annual_reports": {"type": "array"},
+          "quarterly_reports": {"type": "array"},
+          "presentations": {"type": "array"},
+          "press_releases": {"type": "array"}
+        }
+      },
+      "success": {"type": "boolean"}
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Financial Analysis",
+    "tags": ["investor relations", "comprehensive", "all documents"],
+    "rateLimit": 10,
+    "cacheTTL": 3600,
+    "supported_companies": ["TSLA", "MSFT", "C", "BMO", "RY", "JPM", "GS"],
+    "examples": [
+      {
+        "description": "Get all Citigroup IR resources",
+        "input": {"ticker": "C"}
+      },
+      {
+        "description": "Get all Tesla IR materials",
+        "input": {"ticker": "TSLA"}
+      }
+    ],
+    "useCases": [
+      "Comprehensive company research",
+      "Build complete IR document library",
+      "Full corporate disclosure analysis"
+    ]
+  }
+}

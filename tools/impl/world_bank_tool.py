@@ -1,6 +1,6 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-World Bank MCP Tool Implementation
+World Bank MCP Tool Implementation - Refactored with Individual Tools
 """
 
 import json
@@ -10,645 +10,1378 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 from tools.base_mcp_tool import BaseMCPTool
 
-class WorldBankTool(BaseMCPTool):
+
+class WorldBankBaseTool(BaseMCPTool):
     """
-    World Bank API tool for retrieving global development indicators and data
+    Base class for World Bank tools with shared functionality
     """
     
     def __init__(self, config: Dict = None):
-        """Initialize World Bank tool"""
+        """Initialize World Bank base tool"""
+        super().__init__(config)
+        
+        # World Bank API v2 endpoint
+        self.api_url = "https://api.worldbank.org/v2"
+        
+        # Common indicator mappings
+        self.indicator_map = {
+            # Economic
+            'gdp': 'NY.GDP.MKTP.CD',
+            'gdp_per_capita': 'NY.GDP.PCAP.CD',
+            'gdp_growth': 'NY.GDP.MKTP.KD.ZG',
+            'gdp_ppp': 'NY.GDP.MKTP.PP.CD',
+            'inflation': 'FP.CPI.TOTL.ZG',
+            'food_price_inflation': 'FP.CPI.FOOD.ZG',
+            
+            # Population & Demographics
+            'population': 'SP.POP.TOTL',
+            'population_growth': 'SP.POP.GROW',
+            'urban_population': 'SP.URB.TOTL.IN.ZS',
+            'life_expectancy': 'SP.DYN.LE00.IN',
+            'birth_rate': 'SP.DYN.CBRT.IN',
+            'death_rate': 'SP.DYN.CDRT.IN',
+            
+            # Social
+            'poverty_rate': 'SI.POV.DDAY',
+            'gini_index': 'SI.POV.GINI',
+            'income_share_lowest_20': 'SI.DST.FRST.20',
+            'literacy_rate': 'SE.ADT.LITR.ZS',
+            'primary_enrollment': 'SE.PRM.NENR',
+            'secondary_enrollment': 'SE.SEC.NENR',
+            'tertiary_enrollment': 'SE.TER.ENRR',
+            
+            # Health
+            'infant_mortality': 'SP.DYN.IMRT.IN',
+            'maternal_mortality': 'SH.STA.MMRT',
+            'health_expenditure': 'SH.XPD.CHEX.GD.ZS',
+            'hospital_beds': 'SH.MED.BEDS.ZS',
+            
+            # Labor & Employment
+            'unemployment': 'SL.UEM.TOTL.ZS',
+            'labor_force': 'SL.TLF.TOTL.IN',
+            'female_labor_force': 'SL.TLF.CACT.FE.ZS',
+            
+            # Trade & Finance
+            'exports': 'NE.EXP.GNFS.CD',
+            'imports': 'NE.IMP.GNFS.CD',
+            'trade_gdp': 'NE.TRD.GNFS.ZS',
+            'fdi_inflow': 'BX.KLT.DINV.CD.WD',
+            'external_debt': 'DT.DOD.DECT.CD',
+            
+            # Environment
+            'co2_emissions': 'EN.ATM.CO2E.KT',
+            'co2_per_capita': 'EN.ATM.CO2E.PC',
+            'renewable_energy': 'EG.FEC.RNEW.ZS',
+            'electricity_access': 'EG.ELC.ACCS.ZS',
+            'forest_area': 'AG.LND.FRST.ZS',
+            
+            # Technology & Infrastructure
+            'internet_users': 'IT.NET.USER.ZS',
+            'mobile_subscriptions': 'IT.CEL.SETS.P2',
+            'roads_paved': 'IS.ROD.PAVE.ZP'
+        }
+    
+    def _make_request(self, endpoint: str, params: Dict = None) -> List:
+        """
+        Make API request to World Bank
+        
+        Args:
+            endpoint: API endpoint path
+            params: Query parameters
+            
+        Returns:
+            Parsed response data
+        """
+        url = f"{self.api_url}/{endpoint}"
+        params = params or {}
+        params['format'] = 'json'
+        params['per_page'] = params.get('per_page', 100)
+        
+        if params:
+            url += '?' + urllib.parse.urlencode(params)
+        
+        try:
+            req = urllib.request.Request(url)
+            with urllib.request.urlopen(req, timeout=15) as response:
+                data = json.loads(response.read().decode('utf-8'))
+                return data
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                raise ValueError(f"Resource not found: {endpoint}")
+            else:
+                raise ValueError(f"World Bank API request failed: HTTP {e.code}")
+        except Exception as e:
+            raise ValueError(f"World Bank API request failed: {str(e)}")
+
+
+class WBGetCountriesTool(WorldBankBaseTool):
+    """
+    Tool to retrieve list of all countries and regions with metadata
+    """
+    
+    def __init__(self, config: Dict = None):
         default_config = {
-            'name': 'world_bank',
-            'description': 'Retrieve global development indicators from World Bank',
+            'name': 'wb_get_countries',
+            'description': 'Retrieve list of all countries and regions with their metadata',
             'version': '1.0.0',
             'enabled': True
         }
         if config:
             default_config.update(config)
         super().__init__(default_config)
-        
-        # World Bank API endpoint
-        self.api_url = "https://api.worldbank.org/v2"
-        
-        # Common indicators
-        self.common_indicators = {
-            # GDP & Growth
-            'gdp': 'NY.GDP.MKTP.CD',  # GDP (current US$)
-            'gdp_per_capita': 'NY.GDP.PCAP.CD',  # GDP per capita (current US$)
-            'gdp_growth': 'NY.GDP.MKTP.KD.ZG',  # GDP growth (annual %)
-            'gdp_ppp': 'NY.GDP.MKTP.PP.CD',  # GDP, PPP (current international $)
-            
-            # Population
-            'population': 'SP.POP.TOTL',  # Population, total
-            'population_growth': 'SP.POP.GROW',  # Population growth (annual %)
-            'urban_population': 'SP.URB.TOTL.IN.ZS',  # Urban population (% of total)
-            'life_expectancy': 'SP.DYN.LE00.IN',  # Life expectancy at birth
-            'birth_rate': 'SP.DYN.CBRT.IN',  # Birth rate (per 1,000 people)
-            'death_rate': 'SP.DYN.CDRT.IN',  # Death rate (per 1,000 people)
-            
-            # Poverty & Inequality
-            'poverty_rate': 'SI.POV.DDAY',  # Poverty headcount ratio at $2.15/day
-            'gini_index': 'SI.POV.GINI',  # Gini index
-            'income_share_lowest_20': 'SI.DST.FRST.20',  # Income share held by lowest 20%
-            
-            # Education
-            'literacy_rate': 'SE.ADT.LITR.ZS',  # Literacy rate, adult total
-            'primary_enrollment': 'SE.PRM.ENRR',  # School enrollment, primary
-            'secondary_enrollment': 'SE.SEC.ENRR',  # School enrollment, secondary
-            'tertiary_enrollment': 'SE.TER.ENRR',  # School enrollment, tertiary
-            
-            # Health
-            'infant_mortality': 'SP.DYN.IMRT.IN',  # Infant mortality rate
-            'maternal_mortality': 'SH.STA.MMRT',  # Maternal mortality ratio
-            'health_expenditure': 'SH.XPD.CHEX.GD.ZS',  # Current health expenditure (% of GDP)
-            'hospital_beds': 'SH.MED.BEDS.ZS',  # Hospital beds (per 1,000 people)
-            
-            # Employment & Labor
-            'unemployment': 'SL.UEM.TOTL.ZS',  # Unemployment, total (% of labor force)
-            'labor_force': 'SL.TLF.TOTL.IN',  # Labor force, total
-            'female_labor_force': 'SL.TLF.CACT.FE.ZS',  # Female labor force participation
-            
-            # Trade & Finance
-            'exports': 'NE.EXP.GNFS.CD',  # Exports of goods and services (current US$)
-            'imports': 'NE.IMP.GNFS.CD',  # Imports of goods and services (current US$)
-            'trade_gdp': 'NE.TRD.GNFS.ZS',  # Trade (% of GDP)
-            'fdi_inflow': 'BX.KLT.DINV.CD.WD',  # Foreign direct investment, net inflows
-            'external_debt': 'DT.DOD.DECT.CD',  # External debt stocks, total
-            
-            # Energy & Environment
-            'co2_emissions': 'EN.ATM.CO2E.KT',  # CO2 emissions (kt)
-            'co2_per_capita': 'EN.ATM.CO2E.PC',  # CO2 emissions (metric tons per capita)
-            'renewable_energy': 'EG.FEC.RNEW.ZS',  # Renewable energy consumption
-            'electricity_access': 'EG.ELC.ACCS.ZS',  # Access to electricity (% of population)
-            'forest_area': 'AG.LND.FRST.ZS',  # Forest area (% of land area)
-            
-            # Infrastructure
-            'internet_users': 'IT.NET.USER.ZS',  # Individuals using the Internet (% of population)
-            'mobile_subscriptions': 'IT.CEL.SETS.P2',  # Mobile cellular subscriptions (per 100 people)
-            'roads_paved': 'IS.ROD.PVED.ZS',  # Roads, paved (% of total roads)
-            
-            # Inflation & Prices
-            'inflation': 'FP.CPI.TOTL.ZG',  # Inflation, consumer prices (annual %)
-            'food_price_inflation': 'FP.CPI.FOOD.ZG',  # Food price inflation (annual %)
-        }
-        
-        # Region codes
-        self.regions = {
-            'EAS': 'East Asia & Pacific',
-            'ECS': 'Europe & Central Asia',
-            'LCN': 'Latin America & Caribbean',
-            'MEA': 'Middle East & North Africa',
-            'NAC': 'North America',
-            'SAS': 'South Asia',
-            'SSF': 'Sub-Saharan Africa',
-            'WLD': 'World'
-        }
-        
-        # Income level codes
-        self.income_levels = {
-            'HIC': 'High income',
-            'UMC': 'Upper middle income',
-            'LMC': 'Lower middle income',
-            'LIC': 'Low income'
-        }
     
     def get_input_schema(self) -> Dict:
-        """Get input schema for World Bank tool"""
         return {
             "type": "object",
             "properties": {
-                "action": {
+                "income_level": {
                     "type": "string",
-                    "description": "Action to perform",
-                    "enum": [
-                        "get_countries",
-                        "get_indicators",
-                        "get_country_data",
-                        "get_indicator_data",
-                        "search_indicators",
-                        "get_income_levels",
-                        "get_lending_types",
-                        "get_regions",
-                        "compare_countries",
-                        "get_topic_indicators"
-                    ]
+                    "enum": ["HIC", "UMC", "LMC", "LIC", "all"],
+                    "default": "all"
                 },
+                "region": {
+                    "type": "string",
+                    "enum": ["EAS", "ECS", "LCN", "MEA", "NAC", "SAS", "SSF", "WLD", "all"],
+                    "default": "all"
+                },
+                "lending_type": {
+                    "type": "string",
+                    "enum": ["IBD", "IDB", "IDX", "LNX", "all"],
+                    "default": "all"
+                },
+                "per_page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 500,
+                    "default": 300
+                }
+            }
+        }
+    
+    def get_output_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "total_countries": {"type": "integer"},
+                "filters_applied": {"type": "object"},
+                "countries": {"type": "array"},
+                "last_updated": {"type": "string"}
+            }
+        }
+    
+    def execute(self, arguments: Dict[str, Any]) -> Dict:
+        income_level = arguments.get('income_level', 'all')
+        region = arguments.get('region', 'all')
+        lending_type = arguments.get('lending_type', 'all')
+        per_page = arguments.get('per_page', 300)
+        
+        params = {'per_page': per_page}
+        
+        # Build endpoint with filters
+        if income_level != 'all':
+            params['incomeLevel'] = income_level
+        if region != 'all':
+            params['region'] = region
+        if lending_type != 'all':
+            params['lendingType'] = lending_type
+        
+        try:
+            data = self._make_request('country', params)
+            
+            if len(data) < 2:
+                return {
+                    'total_countries': 0,
+                    'filters_applied': {
+                        'income_level': income_level,
+                        'region': region,
+                        'lending_type': lending_type
+                    },
+                    'countries': [],
+                    'last_updated': datetime.now().isoformat()
+                }
+            
+            countries_data = data[1]
+            countries = []
+            
+            for country in countries_data:
+                countries.append({
+                    'id': country.get('id'),
+                    'iso3': country.get('iso2Code'),
+                    'name': country.get('name'),
+                    'capital': country.get('capitalCity'),
+                    'region': country.get('region'),
+                    'income_level': country.get('incomeLevel'),
+                    'lending_type': country.get('lendingType'),
+                    'longitude': country.get('longitude'),
+                    'latitude': country.get('latitude')
+                })
+            
+            return {
+                'total_countries': len(countries),
+                'filters_applied': {
+                    'income_level': income_level,
+                    'region': region,
+                    'lending_type': lending_type
+                },
+                'countries': countries,
+                'last_updated': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get countries: {e}")
+            raise
+
+
+class WBGetIndicatorsTool(WorldBankBaseTool):
+    """
+    Tool to retrieve list of all available indicators
+    """
+    
+    def __init__(self, config: Dict = None):
+        default_config = {
+            'name': 'wb_get_indicators',
+            'description': 'Retrieve list of all available World Bank development indicators',
+            'version': '1.0.0',
+            'enabled': True
+        }
+        if config:
+            default_config.update(config)
+        super().__init__(default_config)
+    
+    def get_input_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "topic_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 21
+                },
+                "source": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                },
+                "per_page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000,
+                    "default": 100
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 1
+                }
+            }
+        }
+    
+    def get_output_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "total_indicators": {"type": "integer"},
+                "page": {"type": "integer"},
+                "per_page": {"type": "integer"},
+                "total_pages": {"type": "integer"},
+                "indicators": {"type": "array"},
+                "last_updated": {"type": "string"}
+            }
+        }
+    
+    def execute(self, arguments: Dict[str, Any]) -> Dict:
+        per_page = arguments.get('per_page', 100)
+        page = arguments.get('page', 1)
+        
+        params = {
+            'per_page': per_page,
+            'page': page
+        }
+        
+        if 'topic_id' in arguments:
+            params['topic'] = arguments['topic_id']
+        if 'source' in arguments:
+            params['source'] = arguments['source']
+        
+        try:
+            data = self._make_request('indicator', params)
+            
+            if len(data) < 2:
+                return {
+                    'total_indicators': 0,
+                    'page': page,
+                    'per_page': per_page,
+                    'total_pages': 0,
+                    'indicators': [],
+                    'last_updated': datetime.now().isoformat()
+                }
+            
+            metadata = data[0]
+            indicators_data = data[1]
+            
+            indicators = []
+            for ind in indicators_data:
+                indicators.append({
+                    'id': ind.get('id'),
+                    'name': ind.get('name'),
+                    'source': ind.get('source'),
+                    'source_note': ind.get('sourceNote'),
+                    'source_organization': ind.get('sourceOrganization'),
+                    'topics': ind.get('topics', [])
+                })
+            
+            return {
+                'total_indicators': metadata.get('total', len(indicators)),
+                'page': metadata.get('page', page),
+                'per_page': metadata.get('per_page', per_page),
+                'total_pages': metadata.get('pages', 1),
+                'indicators': indicators,
+                'last_updated': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get indicators: {e}")
+            raise
+
+
+class WBGetCountryDataTool(WorldBankBaseTool):
+    """
+    Tool to retrieve specific indicator data for a single country
+    """
+    
+    def __init__(self, config: Dict = None):
+        default_config = {
+            'name': 'wb_get_country_data',
+            'description': 'Retrieve specific indicator data for a single country over time',
+            'version': '1.0.0',
+            'enabled': True
+        }
+        if config:
+            default_config.update(config)
+        super().__init__(default_config)
+    
+    def get_input_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
                 "country_code": {
                     "type": "string",
-                    "description": "ISO2 or ISO3 country code (e.g., US, USA, CHN)"
-                },
-                "country_codes": {
-                    "type": "array",
-                    "description": "List of country codes for comparison",
-                    "items": {"type": "string"}
-                },
-                "indicator_code": {
-                    "type": "string",
-                    "description": "World Bank indicator code"
+                    "pattern": "^[A-Z]{2,3}$"
                 },
                 "indicator": {
                     "type": "string",
-                    "description": "Common indicator name",
-                    "enum": list(self.common_indicators.keys())
+                    "enum": list(self.indicator_map.keys())
+                },
+                "indicator_code": {
+                    "type": "string"
                 },
                 "start_year": {
                     "type": "integer",
-                    "description": "Start year for data retrieval",
                     "minimum": 1960,
                     "maximum": 2030
                 },
                 "end_year": {
                     "type": "integer",
-                    "description": "End year for data retrieval",
                     "minimum": 1960,
                     "maximum": 2030
                 },
                 "per_page": {
                     "type": "integer",
-                    "description": "Number of results per page",
-                    "default": 50,
                     "minimum": 1,
-                    "maximum": 1000
+                    "maximum": 1000,
+                    "default": 100
+                }
+            },
+            "required": ["country_code"]
+        }
+    
+    def get_output_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "country": {"type": "object"},
+                "indicator": {"type": "object"},
+                "data_points": {"type": "integer"},
+                "data": {"type": "array"},
+                "last_updated": {"type": "string"}
+            }
+        }
+    
+    def execute(self, arguments: Dict[str, Any]) -> Dict:
+        country_code = arguments['country_code'].upper()
+        indicator = arguments.get('indicator')
+        indicator_code = arguments.get('indicator_code')
+        start_year = arguments.get('start_year')
+        end_year = arguments.get('end_year')
+        per_page = arguments.get('per_page', 100)
+        
+        # Get indicator code
+        if indicator and not indicator_code:
+            indicator_code = self.indicator_map.get(indicator)
+            if not indicator_code:
+                raise ValueError(f"Unknown indicator: {indicator}")
+        
+        if not indicator_code:
+            raise ValueError("Either 'indicator' or 'indicator_code' must be provided")
+        
+        # Build endpoint
+        endpoint = f"country/{country_code}/indicator/{indicator_code}"
+        
+        params = {'per_page': per_page}
+        if start_year and end_year:
+            params['date'] = f"{start_year}:{end_year}"
+        
+        try:
+            data = self._make_request(endpoint, params)
+            
+            if len(data) < 2 or not data[1]:
+                return {
+                    'country': {'id': country_code, 'name': ''},
+                    'indicator': {'id': indicator_code, 'name': ''},
+                    'data_points': 0,
+                    'data': [],
+                    'last_updated': datetime.now().isoformat()
+                }
+            
+            results = data[1]
+            
+            formatted_data = []
+            for item in results:
+                if item.get('value') is not None:
+                    formatted_data.append({
+                        'year': int(item['date']),
+                        'value': float(item['value']) if item['value'] else None,
+                        'unit': '',
+                        'decimal': item.get('decimal', 2)
+                    })
+            
+            # Sort by year
+            formatted_data.sort(key=lambda x: x['year'])
+            
+            return {
+                'country': {
+                    'id': country_code,
+                    'name': results[0]['country']['value'] if results else ''
                 },
-                "search_term": {
+                'indicator': {
+                    'id': indicator_code,
+                    'name': results[0]['indicator']['value'] if results else ''
+                },
+                'data_points': len(formatted_data),
+                'data': formatted_data,
+                'last_updated': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get country data: {e}")
+            raise
+
+
+class WBGetIndicatorDataTool(WorldBankBaseTool):
+    """
+    Tool to retrieve indicator data across all countries
+    """
+    
+    def __init__(self, config: Dict = None):
+        default_config = {
+            'name': 'wb_get_indicator_data',
+            'description': 'Retrieve a specific indicator across all countries for comparison',
+            'version': '1.0.0',
+            'enabled': True
+        }
+        if config:
+            default_config.update(config)
+        super().__init__(default_config)
+    
+    def get_input_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "indicator": {
                     "type": "string",
-                    "description": "Search term for indicators"
+                    "enum": list(self.indicator_map.keys())
+                },
+                "indicator_code": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "integer",
+                    "minimum": 1960,
+                    "maximum": 2030
+                },
+                "start_year": {
+                    "type": "integer",
+                    "minimum": 1960,
+                    "maximum": 2030
+                },
+                "end_year": {
+                    "type": "integer",
+                    "minimum": 1960,
+                    "maximum": 2030
                 },
                 "income_level": {
                     "type": "string",
-                    "description": "Income level code",
-                    "enum": list(self.income_levels.keys())
+                    "enum": ["HIC", "UMC", "LMC", "LIC"]
                 },
                 "region": {
                     "type": "string",
-                    "description": "Region code",
-                    "enum": list(self.regions.keys())
+                    "enum": ["EAS", "ECS", "LCN", "MEA", "NAC", "SAS", "SSF"]
+                },
+                "per_page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000,
+                    "default": 100
+                }
+            }
+        }
+    
+    def get_output_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "indicator": {"type": "object"},
+                "year_filter": {"type": ["integer", "object", "null"]},
+                "filters_applied": {"type": "object"},
+                "country_count": {"type": "integer"},
+                "data": {"type": "array"},
+                "last_updated": {"type": "string"}
+            }
+        }
+    
+    def execute(self, arguments: Dict[str, Any]) -> Dict:
+        indicator = arguments.get('indicator')
+        indicator_code = arguments.get('indicator_code')
+        year = arguments.get('year')
+        start_year = arguments.get('start_year')
+        end_year = arguments.get('end_year')
+        income_level = arguments.get('income_level')
+        region = arguments.get('region')
+        per_page = arguments.get('per_page', 100)
+        
+        # Get indicator code
+        if indicator and not indicator_code:
+            indicator_code = self.indicator_map.get(indicator)
+            if not indicator_code:
+                raise ValueError(f"Unknown indicator: {indicator}")
+        
+        if not indicator_code:
+            raise ValueError("Either 'indicator' or 'indicator_code' must be provided")
+        
+        # Build country filter
+        country_filter = 'all'
+        if income_level:
+            country_filter = income_level
+        elif region:
+            country_filter = region
+        
+        endpoint = f"country/{country_filter}/indicator/{indicator_code}"
+        
+        params = {'per_page': per_page}
+        if year:
+            params['date'] = str(year)
+        elif start_year and end_year:
+            params['date'] = f"{start_year}:{end_year}"
+        
+        try:
+            data = self._make_request(endpoint, params)
+            
+            if len(data) < 2 or not data[1]:
+                return {
+                    'indicator': {'id': indicator_code, 'name': ''},
+                    'year_filter': year or {'start': start_year, 'end': end_year} if start_year else None,
+                    'filters_applied': {
+                        'income_level': income_level,
+                        'region': region
+                    },
+                    'country_count': 0,
+                    'data': [],
+                    'last_updated': datetime.now().isoformat()
+                }
+            
+            results = data[1]
+            
+            formatted_data = []
+            for item in results:
+                if item.get('value') is not None:
+                    formatted_data.append({
+                        'country': {
+                            'id': item['country']['id'],
+                            'name': item['country']['value']
+                        },
+                        'year': int(item['date']),
+                        'value': float(item['value']) if item['value'] else None,
+                        'unit': ''
+                    })
+            
+            return {
+                'indicator': {
+                    'id': indicator_code,
+                    'name': results[0]['indicator']['value'] if results else ''
+                },
+                'year_filter': year or {'start': start_year, 'end': end_year} if start_year else None,
+                'filters_applied': {
+                    'income_level': income_level,
+                    'region': region
+                },
+                'country_count': len(set(item['country']['id'] for item in formatted_data)),
+                'data': formatted_data,
+                'last_updated': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get indicator data: {e}")
+            raise
+"""
+World Bank MCP Tool Implementation - Part 2 (Remaining Tools)
+"""
+
+from typing import Dict, Any, List
+from datetime import datetime
+
+
+class WBSearchIndicatorsTool(WorldBankBaseTool):
+    """
+    Tool to search indicators by keyword
+    """
+    
+    def __init__(self, config: Dict = None):
+        default_config = {
+            'name': 'wb_search_indicators',
+            'description': 'Search World Bank indicators by keyword or topic',
+            'version': '1.0.0',
+            'enabled': True
+        }
+        if config:
+            default_config.update(config)
+        super().__init__(default_config)
+    
+    def get_input_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "search_term": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
                 },
                 "topic_id": {
                     "type": "integer",
-                    "description": "Topic ID for indicators (1-21)",
                     "minimum": 1,
                     "maximum": 21
+                },
+                "per_page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 500,
+                    "default": 50
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 1
                 }
             },
-            "required": ["action"]
+            "required": ["search_term"]
         }
     
-    def execute(self, arguments: Dict[str, Any]) -> Any:
-        """
-        Execute World Bank tool
-        
-        Args:
-            arguments: Tool arguments
-            
-        Returns:
-            Development indicators and data from World Bank
-        """
-        action = arguments.get('action')
-        
-        if action == 'get_countries':
-            per_page = arguments.get('per_page', 300)
-            income_level = arguments.get('income_level')
-            region = arguments.get('region')
-            return self._get_countries(per_page, income_level, region)
-            
-        elif action == 'get_indicators':
-            per_page = arguments.get('per_page', 100)
-            return self._get_indicators(per_page)
-            
-        elif action == 'get_country_data':
-            country_code = arguments.get('country_code')
-            if not country_code:
-                raise ValueError("'country_code' is required")
-            return self._get_country_data(country_code)
-            
-        elif action == 'get_indicator_data':
-            country_code = arguments.get('country_code')
-            indicator_code = arguments.get('indicator_code')
-            indicator = arguments.get('indicator')
-            
-            if not country_code:
-                raise ValueError("'country_code' is required")
-            
-            if indicator and not indicator_code:
-                indicator_code = self.common_indicators.get(indicator)
-            
-            if not indicator_code:
-                raise ValueError("Either 'indicator_code' or 'indicator' is required")
-            
-            start_year = arguments.get('start_year')
-            end_year = arguments.get('end_year')
-            
-            return self._get_indicator_data(country_code, indicator_code, start_year, end_year)
-            
-        elif action == 'search_indicators':
-            search_term = arguments.get('search_term')
-            if not search_term:
-                raise ValueError("'search_term' is required")
-            per_page = arguments.get('per_page', 50)
-            return self._search_indicators(search_term, per_page)
-            
-        elif action == 'get_income_levels':
-            return self._get_income_levels()
-            
-        elif action == 'get_lending_types':
-            return self._get_lending_types()
-            
-        elif action == 'get_regions':
-            return self._get_regions()
-            
-        elif action == 'compare_countries':
-            country_codes = arguments.get('country_codes', [])
-            indicator_code = arguments.get('indicator_code')
-            indicator = arguments.get('indicator')
-            
-            if not country_codes or len(country_codes) < 2:
-                raise ValueError("At least 2 country codes required in 'country_codes'")
-            
-            if indicator and not indicator_code:
-                indicator_code = self.common_indicators.get(indicator)
-            
-            if not indicator_code:
-                raise ValueError("Either 'indicator_code' or 'indicator' is required")
-            
-            start_year = arguments.get('start_year')
-            end_year = arguments.get('end_year')
-            
-            return self._compare_countries(country_codes, indicator_code, start_year, end_year)
-            
-        elif action == 'get_topic_indicators':
-            topic_id = arguments.get('topic_id')
-            if not topic_id:
-                raise ValueError("'topic_id' is required")
-            per_page = arguments.get('per_page', 100)
-            return self._get_topic_indicators(topic_id, per_page)
-            
-        else:
-            raise ValueError(f"Unknown action: {action}")
+    def get_output_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "search_term": {"type": "string"},
+                "total_results": {"type": "integer"},
+                "page": {"type": "integer"},
+                "per_page": {"type": "integer"},
+                "results": {"type": "array"},
+                "last_updated": {"type": "string"}
+            }
+        }
     
-    def _make_request(self, endpoint: str, params: Dict = None) -> Any:
-        """
-        Make request to World Bank API
+    def execute(self, arguments: Dict[str, Any]) -> Dict:
+        search_term = arguments['search_term'].lower()
+        topic_id = arguments.get('topic_id')
+        per_page = arguments.get('per_page', 50)
+        page = arguments.get('page', 1)
         
-        Args:
-            endpoint: API endpoint
-            params: Query parameters
-            
-        Returns:
-            API response data
-        """
-        url = f"{self.api_url}/{endpoint}"
+        params = {
+            'per_page': per_page,
+            'page': page
+        }
         
-        # Add format parameter
-        if params is None:
-            params = {}
-        params['format'] = 'json'
-        params['per_page'] = params.get('per_page', 1000)
-        
-        if params:
-            url += '?' + urllib.parse.urlencode(params)
+        if topic_id:
+            params['topic'] = topic_id
         
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0',
-                'Accept': 'application/json'
-            }
+            # Get all indicators
+            data = self._make_request('indicator', params)
             
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req) as response:
-                data = json.loads(response.read().decode('utf-8'))
+            if len(data) < 2:
+                return {
+                    'search_term': search_term,
+                    'total_results': 0,
+                    'page': page,
+                    'per_page': per_page,
+                    'results': [],
+                    'last_updated': datetime.now().isoformat()
+                }
+            
+            indicators_data = data[1]
+            
+            # Filter by search term
+            results = []
+            for ind in indicators_data:
+                name = ind.get('name', '').lower()
+                source_note = ind.get('sourceNote', '').lower()
                 
-                # World Bank API returns array with metadata and data
-                if isinstance(data, list) and len(data) > 1:
-                    return data[1]  # Return the data portion
-                return data
-                
-        except urllib.error.HTTPError as e:
-            self.logger.error(f"World Bank API error: {e}")
-            raise ValueError(f"Failed to fetch data: HTTP {e.code}")
-        except Exception as e:
-            self.logger.error(f"World Bank API error: {e}")
-            raise ValueError(f"Failed to fetch data: {str(e)}")
-    
-    def _get_countries(self, per_page: int = 300, income_level: str = None, region: str = None) -> Dict:
-        """
-        Get list of countries
-        
-        Args:
-            per_page: Number of results per page
-            income_level: Filter by income level
-            region: Filter by region
+                if search_term in name or search_term in source_note:
+                    # Calculate simple relevance score
+                    relevance = 0.0
+                    if search_term in name:
+                        relevance += 0.6
+                    if search_term in source_note:
+                        relevance += 0.4
+                    
+                    results.append({
+                        'id': ind.get('id'),
+                        'name': ind.get('name'),
+                        'source_note': ind.get('sourceNote'),
+                        'source_organization': ind.get('sourceOrganization'),
+                        'topics': ind.get('topics', []),
+                        'relevance_score': relevance
+                    })
             
-        Returns:
-            List of countries
-        """
-        params = {'per_page': per_page}
-        
-        if income_level:
-            endpoint = f"incomelevel/{income_level}/country"
-        elif region:
-            endpoint = f"region/{region}/country"
-        else:
-            endpoint = "country"
-        
-        countries = self._make_request(endpoint, params)
-        
-        if not countries:
-            return {'countries': [], 'count': 0}
-        
-        formatted_countries = []
-        for country in countries:
-            if isinstance(country, dict):
-                formatted_countries.append({
-                    'id': country.get('id'),
-                    'iso2Code': country.get('iso2Code'),
-                    'name': country.get('name'),
-                    'region': country.get('region', {}).get('value') if isinstance(country.get('region'), dict) else None,
-                    'income_level': country.get('incomeLevel', {}).get('value') if isinstance(country.get('incomeLevel'), dict) else None,
-                    'capital_city': country.get('capitalCity'),
-                    'longitude': country.get('longitude'),
-                    'latitude': country.get('latitude')
-                })
-        
-        return {
-            'countries': formatted_countries,
-            'count': len(formatted_countries)
-        }
-    
-    def _get_indicators(self, per_page: int = 100) -> Dict:
-        """
-        Get list of indicators
-        
-        Args:
-            per_page: Number of results per page
+            # Sort by relevance
+            results.sort(key=lambda x: x['relevance_score'], reverse=True)
             
-        Returns:
-            List of indicators
-        """
-        params = {'per_page': per_page}
-        indicators = self._make_request("indicator", params)
-        
-        if not indicators:
-            return {'indicators': [], 'count': 0}
-        
-        formatted_indicators = []
-        for indicator in indicators:
-            if isinstance(indicator, dict):
-                formatted_indicators.append({
-                    'id': indicator.get('id'),
-                    'name': indicator.get('name'),
-                    'source': indicator.get('source', {}).get('value') if isinstance(indicator.get('source'), dict) else None,
-                    'unit': indicator.get('unit'),
-                    'sourceOrganization': indicator.get('sourceOrganization')
-                })
-        
-        return {
-            'indicators': formatted_indicators,
-            'count': len(formatted_indicators),
-            'note': f'Showing first {per_page} indicators. Use search_indicators for specific topics.'
-        }
-    
-    def _get_country_data(self, country_code: str) -> Dict:
-        """
-        Get country information
-        
-        Args:
-            country_code: Country code
-            
-        Returns:
-            Country information
-        """
-        countries = self._make_request(f"country/{country_code}")
-        
-        if not countries or len(countries) == 0:
-            raise ValueError(f"Country not found: {country_code}")
-        
-        country = countries[0] if isinstance(countries, list) else countries
-        
-        return {
-            'id': country.get('id'),
-            'iso2Code': country.get('iso2Code'),
-            'name': country.get('name'),
-            'region': country.get('region', {}).get('value') if isinstance(country.get('region'), dict) else None,
-            'income_level': country.get('incomeLevel', {}).get('value') if isinstance(country.get('incomeLevel'), dict) else None,
-            'lending_type': country.get('lendingType', {}).get('value') if isinstance(country.get('lendingType'), dict) else None,
-            'capital_city': country.get('capitalCity'),
-            'longitude': country.get('longitude'),
-            'latitude': country.get('latitude')
-        }
-    
-    def _get_indicator_data(
-        self,
-        country_code: str,
-        indicator_code: str,
-        start_year: Optional[int] = None,
-        end_year: Optional[int] = None
-    ) -> Dict:
-        """
-        Get indicator data for a country
-        
-        Args:
-            country_code: Country code
-            indicator_code: Indicator code
-            start_year: Start year
-            end_year: End year
-            
-        Returns:
-            Indicator data
-        """
-        params = {'per_page': 1000}
-        
-        if start_year and end_year:
-            params['date'] = f"{start_year}:{end_year}"
-        elif start_year:
-            params['date'] = f"{start_year}:{datetime.now().year}"
-        elif end_year:
-            params['date'] = f"1960:{end_year}"
-        
-        endpoint = f"country/{country_code}/indicator/{indicator_code}"
-        data = self._make_request(endpoint, params)
-        
-        if not data:
             return {
-                'country_code': country_code,
-                'indicator_code': indicator_code,
-                'data': [],
-                'count': 0
+                'search_term': search_term,
+                'total_results': len(results),
+                'page': page,
+                'per_page': per_page,
+                'results': results[:per_page],
+                'last_updated': datetime.now().isoformat()
             }
-        
-        formatted_data = []
-        for item in data:
-            if isinstance(item, dict) and item.get('value') is not None:
-                formatted_data.append({
-                    'year': item.get('date'),
-                    'value': item.get('value'),
-                    'country': item.get('country', {}).get('value') if isinstance(item.get('country'), dict) else None
-                })
-        
-        # Sort by year descending
-        formatted_data.sort(key=lambda x: x['year'], reverse=True)
-        
+            
+        except Exception as e:
+            self.logger.error(f"Failed to search indicators: {e}")
+            raise
+
+
+class WBCompareCountriesTool(WorldBankBaseTool):
+    """
+    Tool to compare multiple countries for a specific indicator
+    """
+    
+    def __init__(self, config: Dict = None):
+        default_config = {
+            'name': 'wb_compare_countries',
+            'description': 'Compare multiple countries side-by-side for a specific indicator',
+            'version': '1.0.0',
+            'enabled': True
+        }
+        if config:
+            default_config.update(config)
+        super().__init__(default_config)
+    
+    def get_input_schema(self) -> Dict:
         return {
-            'country_code': country_code,
-            'indicator_code': indicator_code,
-            'indicator_name': data[0].get('indicator', {}).get('value') if data and isinstance(data[0], dict) else None,
-            'data': formatted_data,
-            'count': len(formatted_data)
+            "type": "object",
+            "properties": {
+                "country_codes": {
+                    "type": "array",
+                    "items": {"type": "string", "pattern": "^[A-Z]{2,3}$"},
+                    "minItems": 2,
+                    "maxItems": 10
+                },
+                "indicator": {
+                    "type": "string",
+                    "enum": list(self.indicator_map.keys())
+                },
+                "indicator_code": {
+                    "type": "string"
+                },
+                "start_year": {
+                    "type": "integer",
+                    "minimum": 1960,
+                    "maximum": 2030
+                },
+                "end_year": {
+                    "type": "integer",
+                    "minimum": 1960,
+                    "maximum": 2030
+                },
+                "most_recent_year": {
+                    "type": "boolean",
+                    "default": False
+                }
+            },
+            "required": ["country_codes"]
         }
     
-    def _search_indicators(self, search_term: str, per_page: int = 50) -> Dict:
-        """
-        Search for indicators
-        
-        Args:
-            search_term: Search term
-            per_page: Number of results per page
-            
-        Returns:
-            Matching indicators
-        """
-        # Get all indicators and filter locally
-        indicators = self._get_indicators(per_page=1000)
-        
-        search_lower = search_term.lower()
-        matches = []
-        
-        for indicator in indicators['indicators']:
-            name = indicator.get('name', '').lower()
-            source_org = indicator.get('sourceOrganization', '').lower()
-            
-            if search_lower in name or search_lower in source_org:
-                matches.append(indicator)
-                if len(matches) >= per_page:
-                    break
-        
+    def get_output_schema(self) -> Dict:
         return {
-            'search_term': search_term,
-            'matches': matches,
-            'count': len(matches)
+            "type": "object",
+            "properties": {
+                "indicator": {"type": "object"},
+                "year_range": {"type": "object"},
+                "countries": {"type": "array"},
+                "summary": {"type": "object"},
+                "last_updated": {"type": "string"}
+            }
         }
     
-    def _get_income_levels(self) -> Dict:
-        """Get list of income levels"""
-        levels = self._make_request("incomelevel")
+    def execute(self, arguments: Dict[str, Any]) -> Dict:
+        country_codes = [c.upper() for c in arguments['country_codes']]
+        indicator = arguments.get('indicator')
+        indicator_code = arguments.get('indicator_code')
+        start_year = arguments.get('start_year')
+        end_year = arguments.get('end_year')
+        most_recent = arguments.get('most_recent_year', False)
         
-        formatted_levels = []
-        for level in levels:
-            if isinstance(level, dict):
-                formatted_levels.append({
+        # Get indicator code
+        if indicator and not indicator_code:
+            indicator_code = self.indicator_map.get(indicator)
+            if not indicator_code:
+                raise ValueError(f"Unknown indicator: {indicator}")
+        
+        if not indicator_code:
+            raise ValueError("Either 'indicator' or 'indicator_code' must be provided")
+        
+        try:
+            countries_data = []
+            
+            # Fetch data for each country
+            for country_code in country_codes:
+                endpoint = f"country/{country_code}/indicator/{indicator_code}"
+                
+                params = {'per_page': 100}
+                if start_year and end_year:
+                    params['date'] = f"{start_year}:{end_year}"
+                
+                try:
+                    data = self._make_request(endpoint, params)
+                    
+                    if len(data) < 2 or not data[1]:
+                        countries_data.append({
+                            'country': {
+                                'id': country_code,
+                                'name': country_code
+                            },
+                            'data': [],
+                            'latest_value': None,
+                            'latest_year': None,
+                            'average': None,
+                            'min': None,
+                            'max': None
+                        })
+                        continue
+                    
+                    results = data[1]
+                    
+                    # Format data points
+                    data_points = []
+                    values = []
+                    for item in results:
+                        if item.get('value') is not None:
+                            year = int(item['date'])
+                            value = float(item['value'])
+                            data_points.append({
+                                'year': year,
+                                'value': value
+                            })
+                            values.append(value)
+                    
+                    # Sort by year
+                    data_points.sort(key=lambda x: x['year'])
+                    
+                    # Calculate statistics
+                    latest = data_points[-1] if data_points else None
+                    avg = sum(values) / len(values) if values else None
+                    min_val = min(values) if values else None
+                    max_val = max(values) if values else None
+                    
+                    countries_data.append({
+                        'country': {
+                            'id': country_code,
+                            'name': results[0]['country']['value'] if results else country_code
+                        },
+                        'data': data_points,
+                        'latest_value': latest['value'] if latest else None,
+                        'latest_year': latest['year'] if latest else None,
+                        'average': round(avg, 2) if avg else None,
+                        'min': round(min_val, 2) if min_val else None,
+                        'max': round(max_val, 2) if max_val else None
+                    })
+                    
+                except Exception as e:
+                    self.logger.warning(f"Failed to get data for {country_code}: {e}")
+                    countries_data.append({
+                        'country': {
+                            'id': country_code,
+                            'name': country_code
+                        },
+                        'data': [],
+                        'latest_value': None,
+                        'latest_year': None,
+                        'average': None,
+                        'min': None,
+                        'max': None
+                    })
+            
+            # Calculate summary
+            latest_values = [(c['country']['name'], c['latest_value']) 
+                           for c in countries_data if c['latest_value'] is not None]
+            
+            summary = {}
+            if latest_values:
+                highest = max(latest_values, key=lambda x: x[1])
+                lowest = min(latest_values, key=lambda x: x[1])
+                avg_val = sum(v for _, v in latest_values) / len(latest_values)
+                
+                summary = {
+                    'highest_country': {
+                        'name': highest[0],
+                        'value': highest[1]
+                    },
+                    'lowest_country': {
+                        'name': lowest[0],
+                        'value': lowest[1]
+                    },
+                    'average_across_countries': round(avg_val, 2)
+                }
+            
+            indicator_name = countries_data[0]['data'][0] if countries_data and countries_data[0]['data'] else ''
+            
+            return {
+                'indicator': {
+                    'id': indicator_code,
+                    'name': indicator_code  # Would need separate call to get full name
+                },
+                'year_range': {
+                    'start': start_year,
+                    'end': end_year
+                } if start_year else {},
+                'countries': countries_data,
+                'summary': summary,
+                'last_updated': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to compare countries: {e}")
+            raise
+
+
+class WBGetIncomeLevelsTool(WorldBankBaseTool):
+    """
+    Tool to retrieve income level classifications
+    """
+    
+    def __init__(self, config: Dict = None):
+        default_config = {
+            'name': 'wb_get_income_levels',
+            'description': 'Retrieve World Bank income level classifications and metadata',
+            'version': '1.0.0',
+            'enabled': True
+        }
+        if config:
+            default_config.update(config)
+        super().__init__(default_config)
+    
+    def get_input_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "per_page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 50
+                }
+            }
+        }
+    
+    def get_output_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "total_levels": {"type": "integer"},
+                "income_levels": {"type": "array"},
+                "descriptions": {"type": "object"},
+                "last_updated": {"type": "string"}
+            }
+        }
+    
+    def execute(self, arguments: Dict[str, Any]) -> Dict:
+        per_page = arguments.get('per_page', 50)
+        
+        params = {'per_page': per_page}
+        
+        try:
+            data = self._make_request('incomeLevels', params)
+            
+            if len(data) < 2:
+                return {
+                    'total_levels': 0,
+                    'income_levels': [],
+                    'descriptions': {},
+                    'last_updated': datetime.now().isoformat()
+                }
+            
+            levels_data = data[1]
+            
+            income_levels = []
+            for level in levels_data:
+                income_levels.append({
                     'id': level.get('id'),
-                    'code': level.get('iso2code'),
+                    'iso2code': level.get('iso2code'),
                     'value': level.get('value')
                 })
-        
-        return {
-            'income_levels': formatted_levels,
-            'count': len(formatted_levels)
-        }
-    
-    def _get_lending_types(self) -> Dict:
-        """Get list of lending types"""
-        types = self._make_request("lendingtype")
-        
-        formatted_types = []
-        for lending_type in types:
-            if isinstance(lending_type, dict):
-                formatted_types.append({
-                    'id': lending_type.get('id'),
-                    'code': lending_type.get('iso2code'),
-                    'value': lending_type.get('value')
-                })
-        
-        return {
-            'lending_types': formatted_types,
-            'count': len(formatted_types)
-        }
-    
-    def _get_regions(self) -> Dict:
-        """Get list of regions"""
-        regions = self._make_request("region")
-        
-        formatted_regions = []
-        for region in regions:
-            if isinstance(region, dict):
-                formatted_regions.append({
-                    'id': region.get('id'),
-                    'code': region.get('code'),
-                    'name': region.get('name')
-                })
-        
-        return {
-            'regions': formatted_regions,
-            'count': len(formatted_regions)
-        }
-    
-    def _compare_countries(
-        self,
-        country_codes: List[str],
-        indicator_code: str,
-        start_year: Optional[int] = None,
-        end_year: Optional[int] = None
-    ) -> Dict:
-        """
-        Compare indicator data across multiple countries
-        
-        Args:
-            country_codes: List of country codes
-            indicator_code: Indicator code
-            start_year: Start year
-            end_year: End year
             
-        Returns:
-            Comparison data
-        """
-        comparison = {
-            'indicator_code': indicator_code,
-            'countries': []
-        }
-        
-        for country_code in country_codes:
-            try:
-                data = self._get_indicator_data(country_code, indicator_code, start_year, end_year)
-                comparison['countries'].append(data)
-            except Exception as e:
-                self.logger.warning(f"Failed to get data for {country_code}: {e}")
-                comparison['countries'].append({
-                    'country_code': country_code,
-                    'error': str(e)
-                })
-        
-        return comparison
-    
-    def _get_topic_indicators(self, topic_id: int, per_page: int = 100) -> Dict:
-        """
-        Get indicators for a specific topic
-        
-        Args:
-            topic_id: Topic ID
-            per_page: Number of results per page
+            descriptions = {
+                'HIC': 'High Income Countries',
+                'UMC': 'Upper Middle Income Countries',
+                'LMC': 'Lower Middle Income Countries',
+                'LIC': 'Low Income Countries'
+            }
             
-        Returns:
-            Topic indicators
-        """
+            return {
+                'total_levels': len(income_levels),
+                'income_levels': income_levels,
+                'descriptions': descriptions,
+                'last_updated': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get income levels: {e}")
+            raise
+
+
+class WBGetLendingTypesTool(WorldBankBaseTool):
+    """
+    Tool to retrieve lending type classifications
+    """
+    
+    def __init__(self, config: Dict = None):
+        default_config = {
+            'name': 'wb_get_lending_types',
+            'description': 'Retrieve World Bank lending type classifications and metadata',
+            'version': '1.0.0',
+            'enabled': True
+        }
+        if config:
+            default_config.update(config)
+        super().__init__(default_config)
+    
+    def get_input_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "per_page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 50
+                }
+            }
+        }
+    
+    def get_output_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "total_types": {"type": "integer"},
+                "lending_types": {"type": "array"},
+                "descriptions": {"type": "object"},
+                "last_updated": {"type": "string"}
+            }
+        }
+    
+    def execute(self, arguments: Dict[str, Any]) -> Dict:
+        per_page = arguments.get('per_page', 50)
+        
         params = {'per_page': per_page}
-        endpoint = f"topic/{topic_id}/indicator"
-        indicators = self._make_request(endpoint, params)
         
-        if not indicators:
-            return {'indicators': [], 'count': 0}
-        
-        formatted_indicators = []
-        for indicator in indicators:
-            if isinstance(indicator, dict):
-                formatted_indicators.append({
-                    'id': indicator.get('id'),
-                    'name': indicator.get('name'),
-                    'source': indicator.get('source', {}).get('value') if isinstance(indicator.get('source'), dict) else None,
-                    'unit': indicator.get('unit')
+        try:
+            data = self._make_request('lendingTypes', params)
+            
+            if len(data) < 2:
+                return {
+                    'total_types': 0,
+                    'lending_types': [],
+                    'descriptions': {},
+                    'last_updated': datetime.now().isoformat()
+                }
+            
+            types_data = data[1]
+            
+            lending_types = []
+            for ltype in types_data:
+                lending_types.append({
+                    'id': ltype.get('id'),
+                    'iso2code': ltype.get('iso2code'),
+                    'value': ltype.get('value')
                 })
-        
-        return {
-            'topic_id': topic_id,
-            'indicators': formatted_indicators,
-            'count': len(formatted_indicators)
+            
+            descriptions = {
+                'IBD': 'IBRD (International Bank for Reconstruction and Development)',
+                'IDB': 'Blend (IBRD and IDA)',
+                'IDX': 'IDA (International Development Association)',
+                'LNX': 'Not classified'
+            }
+            
+            return {
+                'total_types': len(lending_types),
+                'lending_types': lending_types,
+                'descriptions': descriptions,
+                'last_updated': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get lending types: {e}")
+            raise
+
+
+class WBGetRegionsTool(WorldBankBaseTool):
+    """
+    Tool to retrieve geographic region classifications
+    """
+    
+    def __init__(self, config: Dict = None):
+        default_config = {
+            'name': 'wb_get_regions',
+            'description': 'Retrieve World Bank geographic region classifications and metadata',
+            'version': '1.0.0',
+            'enabled': True
         }
+        if config:
+            default_config.update(config)
+        super().__init__(default_config)
+    
+    def get_input_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "per_page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 50
+                }
+            }
+        }
+    
+    def get_output_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "total_regions": {"type": "integer"},
+                "regions": {"type": "array"},
+                "descriptions": {"type": "object"},
+                "last_updated": {"type": "string"}
+            }
+        }
+    
+    def execute(self, arguments: Dict[str, Any]) -> Dict:
+        per_page = arguments.get('per_page', 50)
+        
+        params = {'per_page': per_page}
+        
+        try:
+            data = self._make_request('regions', params)
+            
+            if len(data) < 2:
+                return {
+                    'total_regions': 0,
+                    'regions': [],
+                    'descriptions': {},
+                    'last_updated': datetime.now().isoformat()
+                }
+            
+            regions_data = data[1]
+            
+            regions = []
+            for region in regions_data:
+                regions.append({
+                    'id': region.get('id'),
+                    'iso2code': region.get('iso2code'),
+                    'value': region.get('name'),
+                    'code': region.get('code')
+                })
+            
+            descriptions = {
+                'EAS': 'East Asia & Pacific',
+                'ECS': 'Europe & Central Asia',
+                'LCN': 'Latin America & Caribbean',
+                'MEA': 'Middle East & North Africa',
+                'NAC': 'North America',
+                'SAS': 'South Asia',
+                'SSF': 'Sub-Saharan Africa',
+                'WLD': 'World'
+            }
+            
+            return {
+                'total_regions': len(regions),
+                'regions': regions,
+                'descriptions': descriptions,
+                'last_updated': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get regions: {e}")
+            raise
+
+
+class WBGetTopicIndicatorsTool(WorldBankBaseTool):
+    """
+    Tool to retrieve indicators by topic
+    """
+    
+    def __init__(self, config: Dict = None):
+        default_config = {
+            'name': 'wb_get_topic_indicators',
+            'description': 'Retrieve all indicators related to a specific topic',
+            'version': '1.0.0',
+            'enabled': True
+        }
+        if config:
+            default_config.update(config)
+        super().__init__(default_config)
+    
+    def get_input_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "topic_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 21
+                },
+                "per_page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000,
+                    "default": 100
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 1
+                }
+            },
+            "required": ["topic_id"]
+        }
+    
+    def get_output_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "topic": {"type": "object"},
+                "total_indicators": {"type": "integer"},
+                "page": {"type": "integer"},
+                "per_page": {"type": "integer"},
+                "total_pages": {"type": "integer"},
+                "indicators": {"type": "array"},
+                "last_updated": {"type": "string"}
+            }
+        }
+    
+    def execute(self, arguments: Dict[str, Any]) -> Dict:
+        topic_id = arguments['topic_id']
+        per_page = arguments.get('per_page', 100)
+        page = arguments.get('page', 1)
+        
+        params = {
+            'per_page': per_page,
+            'page': page,
+            'topic': topic_id
+        }
+        
+        # Topic names mapping
+        topic_names = {
+            1: 'Agriculture & Rural Development',
+            2: 'Aid Effectiveness',
+            3: 'Economy & Growth',
+            4: 'Education',
+            5: 'Energy & Mining',
+            6: 'Environment',
+            7: 'Financial Sector',
+            8: 'Health',
+            9: 'Infrastructure',
+            10: 'Social Protection & Labor',
+            11: 'Poverty',
+            12: 'Private Sector',
+            13: 'Public Sector',
+            14: 'Science & Technology',
+            15: 'Social Development',
+            16: 'Urban Development',
+            17: 'Gender',
+            18: 'Trade',
+            19: 'Climate Change',
+            20: 'External Debt',
+            21: 'Millennium Development Goals'
+        }
+        
+        try:
+            data = self._make_request('indicator', params)
+            
+            if len(data) < 2:
+                return {
+                    'topic': {
+                        'id': topic_id,
+                        'name': topic_names.get(topic_id, f'Topic {topic_id}'),
+                        'description': ''
+                    },
+                    'total_indicators': 0,
+                    'page': page,
+                    'per_page': per_page,
+                    'total_pages': 0,
+                    'indicators': [],
+                    'last_updated': datetime.now().isoformat()
+                }
+            
+            metadata = data[0]
+            indicators_data = data[1]
+            
+            indicators = []
+            for ind in indicators_data:
+                indicators.append({
+                    'id': ind.get('id'),
+                    'name': ind.get('name'),
+                    'source_note': ind.get('sourceNote'),
+                    'source_organization': ind.get('sourceOrganization'),
+                    'source': ind.get('source')
+                })
+            
+            return {
+                'topic': {
+                    'id': topic_id,
+                    'name': topic_names.get(topic_id, f'Topic {topic_id}'),
+                    'description': f'Indicators related to {topic_names.get(topic_id, "this topic")}'
+                },
+                'total_indicators': metadata.get('total', len(indicators)),
+                'page': metadata.get('page', page),
+                'per_page': metadata.get('per_page', per_page),
+                'total_pages': metadata.get('pages', 1),
+                'indicators': indicators,
+                'last_updated': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get topic indicators: {e}")
+            raise
+
+
+# Tool registry for easy access
+WORLD_BANK_TOOLS = {
+    'wb_get_countries': WBGetCountriesTool,
+    'wb_get_indicators': WBGetIndicatorsTool,
+    'wb_get_country_data': WBGetCountryDataTool,
+    'wb_get_indicator_data': WBGetIndicatorDataTool,
+    'wb_search_indicators': WBSearchIndicatorsTool,
+    'wb_compare_countries': WBCompareCountriesTool,
+    'wb_get_income_levels': WBGetIncomeLevelsTool,
+    'wb_get_lending_types': WBGetLendingTypesTool,
+    'wb_get_regions': WBGetRegionsTool,
+    'wb_get_topic_indicators': WBGetTopicIndicatorsTool
+}

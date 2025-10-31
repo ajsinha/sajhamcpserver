@@ -1,0 +1,52 @@
+{
+  "name": "msdoc_get_excel_metadata",
+  "implementation": "tools.impl.msdoc_tools_tool_refactored.MsDocGetExcelMetadataTool",
+  "description": "Extract metadata and workbook properties from Excel files",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "filename": {
+        "type": "string",
+        "description": "Name of the Excel file"
+      }
+    },
+    "required": ["filename"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "filename": {"type": "string"},
+      "metadata": {
+        "type": "object",
+        "description": "Workbook metadata",
+        "properties": {
+          "creator": {"type": "string"},
+          "title": {"type": "string"},
+          "subject": {"type": "string"},
+          "created": {"type": "string"},
+          "modified": {"type": "string"}
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Document Processing",
+    "tags": ["excel", "metadata", "properties"],
+    "rateLimit": 60,
+    "cacheTTL": 3600,
+    "examples": [
+      {
+        "description": "Get Excel workbook metadata",
+        "input": {"filename": "budget.xlsx"}
+      }
+    ],
+    "useCases": [
+      "Workbook provenance tracking",
+      "Metadata extraction",
+      "Property analysis"
+    ]
+  }
+}

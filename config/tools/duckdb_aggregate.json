@@ -1,0 +1,147 @@
+{
+  "name": "duckdb_aggregate",
+  "implementation": "tools.impl.duckdb_olap_tools_refactored.DuckDbAggregateTool",
+  "description": "Perform aggregation operations on tables with grouping (SUM, AVG, COUNT, MIN, MAX)",
+  "version": "1.0.0",
+  "enabled": true,
+  "data_directory": "data/duckdb",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "table_name": {
+        "type": "string",
+        "description": "Name of table to aggregate",
+        "minLength": 1
+      },
+      "aggregations": {
+        "type": "object",
+        "description": "Aggregation functions to apply. Format: {'column_name': 'function'} where function is one of: sum, avg, count, min, max",
+        "additionalProperties": {
+          "type": "string",
+          "enum": ["sum", "avg", "count", "min", "max", "count_distinct"]
+        },
+        "minProperties": 1
+      },
+      "group_by": {
+        "type": "array",
+        "description": "Optional: Columns to group by for aggregation",
+        "items": {
+          "type": "string"
+        }
+      },
+      "having": {
+        "type": "string",
+        "description": "Optional: HAVING clause for filtering aggregated results (e.g., 'total_sales > 1000')"
+      },
+      "order_by": {
+        "type": "array",
+        "description": "Optional: Columns to order results by",
+        "items": {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "string"
+            },
+            "direction": {
+              "type": "string",
+              "enum": ["asc", "desc"],
+              "default": "asc"
+            }
+          }
+        }
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of result rows",
+        "minimum": 1,
+        "maximum": 10000,
+        "default": 100
+      }
+    },
+    "required": ["table_name", "aggregations"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "table_name": {
+        "type": "string",
+        "description": "Source table name"
+      },
+      "aggregations_applied": {
+        "type": "object",
+        "description": "Aggregation functions that were applied"
+      },
+      "grouped_by": {
+        "type": "array",
+        "description": "Columns used for grouping",
+        "items": {
+          "type": "string"
+        }
+      },
+      "results": {
+        "type": "array",
+        "description": "Aggregated results",
+        "items": {
+          "type": "object",
+          "description": "Row with group columns and aggregated values"
+        }
+      },
+      "row_count": {
+        "type": "integer",
+        "description": "Number of result rows"
+      },
+      "execution_time_ms": {
+        "type": "number",
+        "description": "Query execution time in milliseconds"
+      }
+    },
+    "required": ["table_name", "aggregations_applied", "results", "row_count"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Data Analytics",
+    "tags": ["duckdb", "aggregation", "group by", "analytics"],
+    "rateLimit": 60,
+    "cacheTTL": 60,
+    "note": "Simplified interface for common aggregation operations without writing SQL",
+    "examples": [
+      {
+        "description": "Sum revenue by region",
+        "input": {
+          "table_name": "sales",
+          "aggregations": {
+            "revenue": "sum"
+          },
+          "group_by": ["region"]
+        }
+      },
+      {
+        "description": "Multiple aggregations with ordering",
+        "input": {
+          "table_name": "orders",
+          "aggregations": {
+            "order_amount": "sum",
+            "order_id": "count"
+          },
+          "group_by": ["customer_id", "order_date"],
+          "order_by": [
+            {"column": "sum_order_amount", "direction": "desc"}
+          ],
+          "limit": 50
+        }
+      },
+      {
+        "description": "Aggregate with HAVING filter",
+        "input": {
+          "table_name": "transactions",
+          "aggregations": {
+            "amount": "avg",
+            "transaction_id": "count"
+          },
+          "group_by": ["merchant"],
+          "having": "count_transaction_id > 100"
+        }
+      }
+    ]
+  }
+}

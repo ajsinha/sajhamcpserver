@@ -1,0 +1,125 @@
+{
+  "name": "sqlselect_execute_query",
+  "implementation": "tools.impl.sqlselect_tool_refactored.SqlSelectExecuteQueryTool",
+  "description": "Execute SQL SELECT queries on configured data sources with built-in safety checks and result limiting",
+  "version": "1.0.0",
+  "enabled": true,
+  "data_directory": "data/sqlselect",
+  "data_sources": {
+    "customers": {
+      "file": "customers.csv",
+      "type": "csv",
+      "description": "Customer master data"
+    },
+    "orders": {
+      "file": "orders.csv",
+      "type": "csv",
+      "description": "Order transactions"
+    },
+    "products": {
+      "file": "products.csv",
+      "type": "csv",
+      "description": "Product catalog"
+    },
+    "sales": {
+      "file": "sales.csv",
+      "type": "csv",
+      "description": "Sales data with customer and product details"
+    }
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "SQL SELECT query to execute"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of rows to return",
+        "default": 100,
+        "minimum": 1,
+        "maximum": 10000
+      }
+    },
+    "required": ["query"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Query execution status"
+      },
+      "columns": {
+        "type": "array",
+        "description": "Column names",
+        "items": {
+          "type": "string"
+        }
+      },
+      "rows": {
+        "type": "array",
+        "description": "Query result rows",
+        "items": {
+          "type": "object",
+          "description": "Row data as key-value pairs"
+        }
+      },
+      "row_count": {
+        "type": "integer",
+        "description": "Number of rows returned"
+      },
+      "query": {
+        "type": "string",
+        "description": "The executed query"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "ISO timestamp"
+      }
+    },
+    "required": ["success", "columns", "rows", "row_count"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "category": "Data Query",
+    "tags": ["sql", "select", "query", "analytics", "duckdb"],
+    "rateLimit": 100,
+    "cacheTTL": 60,
+    "dependencies": ["duckdb"],
+    "note": "Only SELECT queries allowed. Prevents DROP, DELETE, UPDATE, INSERT, CREATE, ALTER, TRUNCATE operations for safety.",
+    "examples": [
+      {
+        "description": "Select all customers",
+        "input": {
+          "query": "SELECT * FROM customers",
+          "limit": 50
+        }
+      },
+      {
+        "description": "Aggregate sales by product",
+        "input": {
+          "query": "SELECT product_id, SUM(amount) as total_sales FROM sales GROUP BY product_id ORDER BY total_sales DESC",
+          "limit": 20
+        }
+      },
+      {
+        "description": "Join customers and orders",
+        "input": {
+          "query": "SELECT c.customer_name, COUNT(o.order_id) as order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_name"
+        }
+      }
+    ],
+    "useCases": [
+      "Ad-hoc data analysis",
+      "Business intelligence queries",
+      "Data exploration",
+      "Report generation",
+      "Data validation",
+      "Complex analytics"
+    ],
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha"
+  }
+}

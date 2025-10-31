@@ -1,0 +1,114 @@
+{
+  "name": "extract_links",
+  "implementation": "tools.impl.webcrawler_tool_refactored.ExtractLinksTool",
+  "description": "Extract all hyperlinks from a web page with options to normalize URLs and filter by internal/external",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "URL of the page to extract links from"
+      },
+      "normalize": {
+        "type": "boolean",
+        "description": "Convert relative URLs to absolute URLs (recommended: true)",
+        "default": true
+      },
+      "internal_only": {
+        "type": "boolean",
+        "description": "Return only internal (same-domain) links",
+        "default": false
+      }
+    },
+    "required": ["url"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "Source page URL"
+      },
+      "links": {
+        "type": "array",
+        "description": "Extracted hyperlinks with metadata",
+        "items": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "Link URL (absolute or relative based on normalize setting)"
+            },
+            "is_internal": {
+              "type": "boolean",
+              "description": "Whether link points to same domain"
+            },
+            "is_absolute": {
+              "type": "boolean",
+              "description": "Whether URL is absolute (has protocol)"
+            }
+          }
+        }
+      },
+      "link_count": {
+        "type": "integer",
+        "description": "Total number of links found"
+      },
+      "internal_count": {
+        "type": "integer",
+        "description": "Number of internal links"
+      },
+      "external_count": {
+        "type": "integer",
+        "description": "Number of external links"
+      },
+      "extracted_at": {
+        "type": "string",
+        "description": "Extraction timestamp (ISO format)"
+      }
+    },
+    "required": ["url", "links", "link_count", "extracted_at"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Web Scraping",
+    "tags": ["links", "hyperlinks", "extraction", "url", "navigation"],
+    "rateLimit": 60,
+    "cacheTTL": 1800,
+    "note": "Extracts all <a href> links from HTML. Useful for navigation analysis, broken link checking, and understanding site structure.",
+    "examples": [
+      {
+        "description": "Extract all links with absolute URLs",
+        "input": {
+          "url": "https://example.com/page",
+          "normalize": true
+        }
+      },
+      {
+        "description": "Get only internal links",
+        "input": {
+          "url": "https://example.com",
+          "normalize": true,
+          "internal_only": true
+        }
+      },
+      {
+        "description": "Extract raw links as-is",
+        "input": {
+          "url": "https://example.com",
+          "normalize": false
+        }
+      }
+    ],
+    "useCases": [
+      "Link validation and checking",
+      "Navigation structure analysis",
+      "Broken link detection",
+      "Outbound link monitoring",
+      "Internal linking optimization",
+      "Site architecture mapping"
+    ]
+  }
+}

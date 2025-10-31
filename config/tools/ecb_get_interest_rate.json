@@ -1,0 +1,120 @@
+{
+  "name": "ecb_get_interest_rate",
+  "implementation": "tools.impl.european_central_bank_tool_refactored.ECBGetInterestRateTool",
+  "description": "Retrieve ECB interest rates including main refinancing rate, deposit facility rate, and money market rates (EONIA, €STR).",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "rate_type": {
+        "type": "string",
+        "description": "Type of interest rate to retrieve",
+        "enum": [
+          "main_refinancing_rate",
+          "deposit_facility_rate",
+          "marginal_lending_rate",
+          "eonia",
+          "ester"
+        ]
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date in YYYY-MM-DD format"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date in YYYY-MM-DD format"
+      },
+      "recent_periods": {
+        "type": "integer",
+        "description": "Number of recent observations (1-100)",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10
+      }
+    },
+    "required": ["rate_type"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "flow": {
+        "type": "string",
+        "description": "ECB data flow (FM for financial markets)"
+      },
+      "key": {
+        "type": "string",
+        "description": "Interest rate series key"
+      },
+      "series_name": {
+        "type": "string",
+        "description": "Interest rate series identifier"
+      },
+      "description": {
+        "type": "string",
+        "description": "Description of the interest rate"
+      },
+      "observation_count": {
+        "type": "integer",
+        "description": "Number of rate observations"
+      },
+      "observations": {
+        "type": "array",
+        "description": "Historical interest rate values",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Effective date of the rate"
+            },
+            "value": {
+              "type": ["number", "null"],
+              "description": "Interest rate percentage"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["interest rates", "monetary policy", "ecb", "eurozone", "policy rates", "EONIA", "ESTER"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Main refinancing rate is the primary ECB policy rate. Deposit facility rate sets the floor. €STR replaced EONIA as the overnight reference rate in 2022.",
+    "examples": [
+      {
+        "description": "Get current main refinancing rate",
+        "input": {
+          "rate_type": "main_refinancing_rate",
+          "recent_periods": 1
+        }
+      },
+      {
+        "description": "Get deposit facility rate history",
+        "input": {
+          "rate_type": "deposit_facility_rate",
+          "start_date": "2024-01-01",
+          "end_date": "2024-10-31"
+        }
+      },
+      {
+        "description": "Get recent €STR (Euro Short-Term Rate)",
+        "input": {
+          "rate_type": "ester",
+          "recent_periods": 30
+        }
+      }
+    ],
+    "useCases": [
+      "Monetary policy analysis",
+      "Rate change tracking",
+      "Economic research",
+      "Financial modeling",
+      "Banking sector analysis"
+    ]
+  }
+}

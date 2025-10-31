@@ -1,0 +1,75 @@
+{
+  "name": "msdoc_search_excel",
+  "implementation": "tools.impl.msdoc_tools_tool_refactored.MsDocSearchExcelTool",
+  "description": "Search for specific text or values within Excel spreadsheets",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "filename": {
+        "type": "string",
+        "description": "Name of the Excel file to search"
+      },
+      "search_term": {
+        "type": "string",
+        "description": "Text or value to search for (case-insensitive)"
+      },
+      "sheet_name": {
+        "type": "string",
+        "description": "Name of the sheet to search (optional, searches active sheet if not specified)"
+      }
+    },
+    "required": ["filename", "search_term"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "filename": {"type": "string"},
+      "sheet_name": {"type": "string"},
+      "search_term": {"type": "string"},
+      "matches": {
+        "type": "array",
+        "description": "Cells containing the search term",
+        "items": {
+          "type": "object",
+          "properties": {
+            "row_index": {"type": "integer"},
+            "column_index": {"type": "integer"},
+            "value": {"type": "string"}
+          }
+        }
+      },
+      "match_count": {"type": "integer"}
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Document Processing",
+    "tags": ["excel", "search", "find", "data"],
+    "rateLimit": 60,
+    "cacheTTL": 300,
+    "examples": [
+      {
+        "description": "Search for product name in spreadsheet",
+        "input": {
+          "filename": "inventory.xlsx",
+          "search_term": "Widget"
+        }
+      },
+      {
+        "description": "Search in specific sheet",
+        "input": {
+          "filename": "sales.xlsx",
+          "search_term": "Q4",
+          "sheet_name": "2024"
+        }
+      }
+    ],
+    "useCases": [
+      "Find data in spreadsheets",
+      "Locate specific values",
+      "Cell content discovery"
+    ]
+  }
+}

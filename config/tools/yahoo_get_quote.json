@@ -1,0 +1,125 @@
+{
+  "name": "yahoo_get_quote",
+  "implementation": "tools.impl.yahoo_finance_tool.YahooGetQuoteTool",
+  "description": "Retrieve real-time stock quote data including current price, volume, market cap, and key statistics for a given stock symbol.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, GOOGL, MSFT, TSLA, ^GSPC for S&P 500)",
+        "pattern": "^[A-Z^.]{1,10}$"
+      }
+    },
+    "required": ["symbol"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol"
+      },
+      "name": {
+        "type": "string",
+        "description": "Company or security name"
+      },
+      "price": {
+        "type": ["number", "null"],
+        "description": "Current/latest price"
+      },
+      "currency": {
+        "type": "string",
+        "description": "Currency of the price (e.g., USD, EUR)"
+      },
+      "change": {
+        "type": ["number", "null"],
+        "description": "Price change from previous close"
+      },
+      "change_percent": {
+        "type": ["number", "null"],
+        "description": "Percentage change from previous close"
+      },
+      "volume": {
+        "type": ["integer", "null"],
+        "description": "Trading volume"
+      },
+      "avg_volume": {
+        "type": ["integer", "null"],
+        "description": "Average trading volume"
+      },
+      "market_cap": {
+        "type": ["number", "null"],
+        "description": "Market capitalization"
+      },
+      "pe_ratio": {
+        "type": ["number", "null"],
+        "description": "Price-to-earnings ratio"
+      },
+      "dividend_yield": {
+        "type": ["number", "null"],
+        "description": "Dividend yield percentage"
+      },
+      "fifty_two_week_high": {
+        "type": ["number", "null"],
+        "description": "52-week high price"
+      },
+      "fifty_two_week_low": {
+        "type": ["number", "null"],
+        "description": "52-week low price"
+      },
+      "day_high": {
+        "type": ["number", "null"],
+        "description": "Today's high price"
+      },
+      "day_low": {
+        "type": ["number", "null"],
+        "description": "Today's low price"
+      },
+      "open": {
+        "type": ["number", "null"],
+        "description": "Opening price"
+      },
+      "previous_close": {
+        "type": ["number", "null"],
+        "description": "Previous closing price"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp of last update (ISO format)"
+      }
+    },
+    "required": ["symbol", "price"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Financial Data",
+    "tags": ["finance", "stocks", "quotes", "real-time", "market data"],
+    "rateLimit": 60,
+    "cacheTTL": 60,
+    "note": "Real-time stock quotes from Yahoo Finance. Includes comprehensive market statistics and metrics.",
+    "examples": [
+      {
+        "description": "Get Apple stock quote",
+        "input": {
+          "symbol": "AAPL"
+        }
+      },
+      {
+        "description": "Get S&P 500 index quote",
+        "input": {
+          "symbol": "^GSPC"
+        }
+      }
+    ],
+    "useCases": [
+      "Portfolio monitoring",
+      "Trading analysis",
+      "Market research",
+      "Investment decisions",
+      "Price alerts"
+    ]
+  }
+}

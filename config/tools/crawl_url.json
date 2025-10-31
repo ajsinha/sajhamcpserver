@@ -1,0 +1,197 @@
+{
+  "name": "crawl_url",
+  "implementation": "tools.impl.webcrawler_tool_refactored.CrawlURLTool",
+  "description": "Recursively crawl a website starting from a URL, following links up to a specified depth (max 3 levels). Extract page metadata, links, images, and text content.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "Starting URL to crawl (e.g., 'https://example.com' or 'https://example.com/blog')"
+      },
+      "max_depth": {
+        "type": "integer",
+        "description": "Maximum crawl depth (0-3). 0 = only start page, 1 = start page + direct links, 2 = two levels deep, etc.",
+        "default": 1,
+        "minimum": 0,
+        "maximum": 3
+      },
+      "max_pages": {
+        "type": "integer",
+        "description": "Maximum number of pages to crawl (hard limit: 100)",
+        "default": 10,
+        "minimum": 1,
+        "maximum": 100
+      },
+      "follow_external": {
+        "type": "boolean",
+        "description": "Follow links to external domains (if false, stays on same domain)",
+        "default": false
+      },
+      "respect_robots": {
+        "type": "boolean",
+        "description": "Respect robots.txt rules (recommended: true)",
+        "default": true
+      },
+      "extract_images": {
+        "type": "boolean",
+        "description": "Extract and include image URLs from crawled pages",
+        "default": true
+      },
+      "extract_text": {
+        "type": "boolean",
+        "description": "Extract and include text content previews from pages",
+        "default": true
+      },
+      "delay": {
+        "type": "number",
+        "description": "Delay between requests in seconds (to be polite to servers)",
+        "default": 1.0,
+        "minimum": 0.5,
+        "maximum": 5.0
+      },
+      "timeout": {
+        "type": "integer",
+        "description": "Request timeout in seconds",
+        "default": 10,
+        "minimum": 5,
+        "maximum": 30
+      }
+    },
+    "required": ["url"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "start_url": {
+        "type": "string",
+        "description": "Starting URL that was crawled"
+      },
+      "max_depth": {
+        "type": "integer",
+        "description": "Maximum depth setting used"
+      },
+      "max_pages": {
+        "type": "integer",
+        "description": "Maximum pages limit"
+      },
+      "pages_crawled": {
+        "type": "integer",
+        "description": "Actual number of pages successfully crawled"
+      },
+      "pages": {
+        "type": "array",
+        "description": "Detailed information about each crawled page",
+        "items": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "Page URL"
+            },
+            "depth": {
+              "type": "integer",
+              "description": "Depth level of this page from start"
+            },
+            "status_code": {
+              "type": "integer",
+              "description": "HTTP status code"
+            },
+            "title": {
+              "type": "string",
+              "description": "Page title"
+            },
+            "meta_description": {
+              "type": "string",
+              "description": "Meta description"
+            },
+            "link_count": {
+              "type": "integer",
+              "description": "Number of links on page"
+            },
+            "image_count": {
+              "type": "integer",
+              "description": "Number of images on page"
+            },
+            "images": {
+              "type": "array",
+              "description": "Sample image URLs (up to 10)",
+              "items": {"type": "string"}
+            },
+            "text_preview": {
+              "type": "string",
+              "description": "Text content preview (first 500 chars)"
+            },
+            "crawled_at": {
+              "type": "string",
+              "description": "Timestamp when page was crawled"
+            }
+          }
+        }
+      },
+      "follow_external": {
+        "type": "boolean",
+        "description": "Whether external links were followed"
+      },
+      "respect_robots": {
+        "type": "boolean",
+        "description": "Whether robots.txt was respected"
+      },
+      "crawl_duration": {
+        "type": "number",
+        "description": "Total crawl time in seconds"
+      },
+      "completed_at": {
+        "type": "string",
+        "description": "Timestamp when crawl completed"
+      }
+    },
+    "required": ["start_url", "pages_crawled", "pages", "completed_at"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Web Scraping",
+    "tags": ["crawler", "scraper", "website", "recursive", "links", "sitemap"],
+    "rateLimit": 30,
+    "cacheTTL": 1800,
+    "note": "Performs breadth-first crawling up to 3 levels deep. Always respects politeness with configurable delays. Maximum 100 pages per crawl session. Check robots.txt before large crawls.",
+    "examples": [
+      {
+        "description": "Quick crawl of homepage and direct links",
+        "input": {
+          "url": "https://example.com",
+          "max_depth": 1,
+          "max_pages": 20
+        }
+      },
+      {
+        "description": "Deep crawl of blog section (3 levels)",
+        "input": {
+          "url": "https://example.com/blog",
+          "max_depth": 3,
+          "max_pages": 50,
+          "delay": 2.0
+        }
+      },
+      {
+        "description": "Crawl with external link following",
+        "input": {
+          "url": "https://example.com",
+          "max_depth": 2,
+          "follow_external": true,
+          "max_pages": 30
+        }
+      }
+    ],
+    "useCases": [
+      "Website structure analysis",
+      "Content inventory and auditing",
+      "Link validation and checking",
+      "Site migration planning",
+      "Competitor website analysis",
+      "SEO research"
+    ]
+  }
+}

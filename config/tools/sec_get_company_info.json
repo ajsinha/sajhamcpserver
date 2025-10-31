@@ -1,0 +1,134 @@
+{
+  "name": "sec_get_company_info",
+  "implementation": "tools.impl.sec_edgar_tool_refactored.SECGetCompanyInfoTool",
+  "description": "Retrieve detailed company information including business address, SIC code, and fiscal year end",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key (CIK) - 10 digit company identifier"
+      },
+      "ticker": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      }
+    },
+    "oneOf": [
+      {"required": ["cik"]},
+      {"required": ["ticker"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "10-digit Central Index Key"
+      },
+      "name": {
+        "type": "string",
+        "description": "Company legal name"
+      },
+      "tickers": {
+        "type": "array",
+        "description": "Stock ticker symbols",
+        "items": {"type": "string"}
+      },
+      "sic": {
+        "type": "string",
+        "description": "Standard Industrial Classification code"
+      },
+      "sic_description": {
+        "type": "string",
+        "description": "SIC code description"
+      },
+      "category": {
+        "type": "string",
+        "description": "SEC filer category"
+      },
+      "fiscal_year_end": {
+        "type": "string",
+        "description": "Fiscal year end date (MMDD format)"
+      },
+      "state_of_incorporation": {
+        "type": "string",
+        "description": "State or country of incorporation"
+      },
+      "business_address": {
+        "type": "object",
+        "description": "Business address",
+        "properties": {
+          "street1": {"type": "string"},
+          "street2": {"type": "string"},
+          "city": {"type": "string"},
+          "stateOrCountry": {"type": "string"},
+          "zipCode": {"type": "string"}
+        }
+      },
+      "mailing_address": {
+        "type": "object",
+        "description": "Mailing address"
+      },
+      "ein": {
+        "type": "string",
+        "description": "Employer Identification Number"
+      },
+      "phone": {
+        "type": "string",
+        "description": "Phone number"
+      },
+      "exchanges": {
+        "type": "array",
+        "description": "Stock exchanges",
+        "items": {"type": "string"}
+      },
+      "website": {
+        "type": "string",
+        "description": "Company website URL"
+      },
+      "investor_website": {
+        "type": "string",
+        "description": "Investor relations website URL"
+      }
+    },
+    "required": ["cik", "name"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Financial Data",
+    "tags": ["sec", "edgar", "company", "information", "profile", "sic"],
+    "rateLimit": 10,
+    "cacheTTL": 3600,
+    "note": "Retrieve comprehensive company profile information from SEC EDGAR including addresses, SIC codes, and contact details.",
+    "examples": [
+      {
+        "description": "Get Apple company info by ticker",
+        "input": {
+          "ticker": "AAPL"
+        }
+      },
+      {
+        "description": "Get company info by CIK",
+        "input": {
+          "cik": "0000320193"
+        }
+      },
+      {
+        "description": "Get Tesla company information",
+        "input": {
+          "ticker": "TSLA"
+        }
+      }
+    ],
+    "useCases": [
+      "Company due diligence",
+      "Verify company details",
+      "Get business address",
+      "Check industry classification",
+      "Find investor relations contacts"
+    ]
+  }
+}

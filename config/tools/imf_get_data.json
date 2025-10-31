@@ -1,0 +1,87 @@
+{
+  "name": "imf_get_data",
+  "implementation": "tools.impl.imf_tool_refactored.IMFGetDataTool",
+  "description": "Retrieve economic data from any IMF database for a specific country and indicator. Generic access to all IMF data.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "database": {
+        "type": "string",
+        "description": "IMF database code",
+        "enum": ["IFS", "DOT", "BOP", "GFSR", "FSI", "WEO", "GFSMAB", "CDIS", "CPIS", "WHDREO"]
+      },
+      "country_code": {
+        "type": "string",
+        "description": "ISO 2-letter country code (e.g., 'US', 'CN', 'JP')"
+      },
+      "indicator_code": {
+        "type": "string",
+        "description": "IMF indicator code"
+      },
+      "start_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2030
+      },
+      "end_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2030
+      },
+      "frequency": {
+        "type": "string",
+        "enum": ["A", "Q", "M"],
+        "default": "A",
+        "description": "A=Annual, Q=Quarterly, M=Monthly"
+      }
+    },
+    "required": ["database", "country_code", "indicator_code"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "database": {"type": "string"},
+      "country_code": {"type": "string"},
+      "indicator_code": {"type": "string"},
+      "frequency": {"type": "string"},
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "period": {"type": "string"},
+            "value": {"type": ["number", "null"]}
+          }
+        }
+      },
+      "count": {"type": "integer"}
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["imf", "data retrieval", "international", "economics"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Generic tool for accessing any IMF database. Use specialized tools like imf_get_ifs_data or imf_get_weo_data for easier access to common indicators.",
+    "examples": [
+      {
+        "description": "Get US GDP from WEO",
+        "input": {
+          "database": "WEO",
+          "country_code": "US",
+          "indicator_code": "NGDP_RPCH",
+          "start_year": 2020,
+          "end_year": 2024
+        }
+      }
+    ],
+    "useCases": [
+      "Custom data retrieval",
+      "Accessing specific indicators",
+      "Research with precise requirements"
+    ]
+  }
+}

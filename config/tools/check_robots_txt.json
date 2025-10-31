@@ -1,0 +1,97 @@
+{
+  "name": "check_robots_txt",
+  "implementation": "tools.impl.webcrawler_tool_refactored.CheckRobotsTxtTool",
+  "description": "Check robots.txt file to determine if web crawling is allowed and get crawl delay recommendations",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "URL to check (can be base domain like 'https://example.com' or specific path like 'https://example.com/admin')"
+      },
+      "user_agent": {
+        "type": "string",
+        "description": "User agent string to check rules for (optional, defaults to tool's default user agent)",
+        "default": "Mozilla/5.0 (compatible; WebCrawlerTool/1.0)"
+      }
+    },
+    "required": ["url"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "The URL that was checked"
+      },
+      "robots_url": {
+        "type": "string",
+        "description": "The robots.txt URL that was consulted"
+      },
+      "can_fetch": {
+        "type": "boolean",
+        "description": "Whether crawling is allowed for this URL and user agent"
+      },
+      "user_agent": {
+        "type": "string",
+        "description": "User agent that was checked"
+      },
+      "crawl_delay": {
+        "type": ["number", "null"],
+        "description": "Suggested crawl delay in seconds (null if not specified in robots.txt)"
+      },
+      "checked_at": {
+        "type": "string",
+        "description": "Timestamp when check was performed"
+      },
+      "note": {
+        "type": "string",
+        "description": "Additional notes (e.g., if robots.txt not found)"
+      },
+      "error": {
+        "type": "string",
+        "description": "Error message if robots.txt couldn't be read"
+      }
+    },
+    "required": ["url", "can_fetch", "checked_at"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Web Scraping",
+    "tags": ["robots.txt", "crawling rules", "politeness", "web ethics", "seo"],
+    "rateLimit": 60,
+    "cacheTTL": 86400,
+    "note": "Always check robots.txt before crawling to respect website policies. If robots.txt doesn't exist, crawling is generally allowed. Crawl-delay directive indicates minimum seconds between requests.",
+    "examples": [
+      {
+        "description": "Check if homepage can be crawled",
+        "input": {
+          "url": "https://example.com"
+        }
+      },
+      {
+        "description": "Check specific path with custom user agent",
+        "input": {
+          "url": "https://example.com/admin",
+          "user_agent": "MyBot/1.0"
+        }
+      },
+      {
+        "description": "Check API endpoint crawlability",
+        "input": {
+          "url": "https://api.example.com/v1"
+        }
+      }
+    ],
+    "useCases": [
+      "Pre-crawl permission checking",
+      "Ethical web scraping compliance",
+      "Crawler configuration",
+      "Rate limiting determination",
+      "Automated crawl planning",
+      "SEO tool development"
+    ]
+  }
+}

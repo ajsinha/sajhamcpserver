@@ -1,0 +1,130 @@
+{
+  "name": "wiki_search",
+  "implementation": "tools.impl.wikipedia_tool.WikiSearchTool",
+  "description": "Search Wikipedia articles by keyword or phrase. Returns a list of matching article titles with brief descriptions.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Search query - topic, keyword, or phrase to search for (e.g., 'quantum computing', 'Marie Curie', 'photosynthesis')",
+        "minLength": 1,
+        "maxLength": 300
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of search results to return",
+        "minimum": 1,
+        "maximum": 20,
+        "default": 5
+      },
+      "language": {
+        "type": "string",
+        "description": "Wikipedia language edition (e.g., 'en' for English, 'es' for Spanish, 'fr' for French)",
+        "pattern": "^[a-z]{2,3}$",
+        "default": "en"
+      }
+    },
+    "required": ["query"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Original search query"
+      },
+      "language": {
+        "type": "string",
+        "description": "Wikipedia language edition used"
+      },
+      "result_count": {
+        "type": "integer",
+        "description": "Number of results returned"
+      },
+      "results": {
+        "type": "array",
+        "description": "List of matching Wikipedia articles",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "Article title"
+            },
+            "page_id": {
+              "type": "integer",
+              "description": "Wikipedia page ID"
+            },
+            "snippet": {
+              "type": "string",
+              "description": "Brief excerpt from the article with search terms highlighted"
+            },
+            "url": {
+              "type": "string",
+              "description": "Full URL to the Wikipedia article"
+            },
+            "timestamp": {
+              "type": "string",
+              "description": "Last modified timestamp (ISO format)"
+            },
+            "word_count": {
+              "type": "integer",
+              "description": "Approximate word count of the article"
+            }
+          },
+          "required": ["title", "page_id", "url"]
+        }
+      },
+      "suggestion": {
+        "type": ["string", "null"],
+        "description": "Alternative search suggestion if no exact matches found"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when search was performed (ISO format)"
+      }
+    },
+    "required": ["query", "results"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Information Retrieval",
+    "tags": ["wikipedia", "search", "knowledge", "articles", "encyclopedia"],
+    "rateLimit": 100,
+    "cacheTTL": 3600,
+    "note": "Search Wikipedia's vast knowledge base. Returns article titles and snippets matching the search query. Use wiki_get_page or wiki_get_summary to retrieve full article content.",
+    "examples": [
+      {
+        "description": "Search for articles about artificial intelligence",
+        "input": {
+          "query": "artificial intelligence",
+          "limit": 10
+        }
+      },
+      {
+        "description": "Search for Marie Curie",
+        "input": {
+          "query": "Marie Curie"
+        }
+      },
+      {
+        "description": "Search Spanish Wikipedia",
+        "input": {
+          "query": "revolución francesa",
+          "language": "es",
+          "limit": 5
+        }
+      }
+    ],
+    "useCases": [
+      "Article discovery",
+      "Topic exploration",
+      "Research starting points",
+      "Finding related articles",
+      "General knowledge queries"
+    ]
+  }
+}

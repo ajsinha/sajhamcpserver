@@ -1,0 +1,122 @@
+{
+  "name": "fbi_search_agencies",
+  "implementation": "tools.impl.fbi_tool_refactored.FBISearchAgenciesTool",
+  "description": "Search for law enforcement agencies by name or location to find their ORI codes",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "agency_name": {
+        "type": "string",
+        "description": "Full or partial name of law enforcement agency to search (e.g., 'Los Angeles', 'NYPD')",
+        "minLength": 3
+      },
+      "state": {
+        "type": "string",
+        "description": "Filter by US State abbreviation (e.g., CA, NY, TX)",
+        "pattern": "^[A-Z]{2}$"
+      },
+      "agency_type": {
+        "type": "string",
+        "description": "Filter by type of agency",
+        "enum": ["city", "county", "state", "federal", "tribal", "university", "all"]
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of results to return",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 20
+      }
+    },
+    "required": ["agency_name"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "search_query": {
+        "type": "string",
+        "description": "Original search query"
+      },
+      "total_results": {
+        "type": "integer",
+        "description": "Total number of matching agencies found"
+      },
+      "agencies": {
+        "type": "array",
+        "description": "List of matching agencies",
+        "items": {
+          "type": "object",
+          "properties": {
+            "ori": {
+              "type": "string",
+              "description": "Agency ORI code"
+            },
+            "agency_name": {
+              "type": "string",
+              "description": "Full agency name"
+            },
+            "agency_type": {
+              "type": "string",
+              "description": "Type of agency"
+            },
+            "state": {
+              "type": "string",
+              "description": "State abbreviation"
+            },
+            "state_name": {
+              "type": "string",
+              "description": "Full state name"
+            },
+            "city": {
+              "type": "string",
+              "description": "City where agency is located"
+            },
+            "county": {
+              "type": "string",
+              "description": "County where agency is located"
+            },
+            "population": {
+              "type": "integer",
+              "description": "Population served by agency"
+            }
+          },
+          "required": ["ori", "agency_name", "state"]
+        }
+      }
+    },
+    "required": ["search_query", "total_results", "agencies"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Crime Statistics",
+    "tags": ["crime", "fbi", "agency", "search", "ori"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Search and discover law enforcement agencies to find their ORI codes for detailed queries",
+    "examples": [
+      {
+        "description": "Find all agencies with 'police' in California",
+        "input": {
+          "agency_name": "police",
+          "state": "CA",
+          "limit": 10
+        }
+      },
+      {
+        "description": "Find NYPD ORI code",
+        "input": {
+          "agency_name": "New York City Police"
+        }
+      },
+      {
+        "description": "Find all state police agencies",
+        "input": {
+          "agency_name": "state police",
+          "agency_type": "state"
+        }
+      }
+    ]
+  }
+}

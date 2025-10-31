@@ -1,0 +1,207 @@
+{
+  "name": "wiki_get_page",
+  "implementation": "tools.impl.wikipedia_tool.WikiGetPageTool",
+  "description": "Retrieve the complete content of a Wikipedia article by title or page ID. Returns full article text, images, links, and metadata.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Article title or exact page name (e.g., 'Machine Learning', 'Python (programming language)', 'World War II')",
+        "minLength": 1,
+        "maxLength": 300
+      },
+      "page_id": {
+        "type": "integer",
+        "description": "Wikipedia page ID (alternative to title for exact page retrieval)",
+        "minimum": 1
+      },
+      "language": {
+        "type": "string",
+        "description": "Wikipedia language edition (e.g., 'en', 'es', 'fr', 'de', 'zh')",
+        "pattern": "^[a-z]{2,3}$",
+        "default": "en"
+      },
+      "redirect": {
+        "type": "boolean",
+        "description": "Follow redirects to the target article",
+        "default": true
+      },
+      "include_images": {
+        "type": "boolean",
+        "description": "Include image URLs from the article",
+        "default": true
+      },
+      "include_links": {
+        "type": "boolean",
+        "description": "Include internal and external links",
+        "default": true
+      },
+      "include_references": {
+        "type": "boolean",
+        "description": "Include article references and citations",
+        "default": false
+      }
+    },
+    "oneOf": [
+      {"required": ["query"]},
+      {"required": ["page_id"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "Article title"
+      },
+      "page_id": {
+        "type": "integer",
+        "description": "Wikipedia page ID"
+      },
+      "url": {
+        "type": "string",
+        "description": "Full URL to the article"
+      },
+      "language": {
+        "type": "string",
+        "description": "Wikipedia language edition"
+      },
+      "content": {
+        "type": "string",
+        "description": "Full article content in plain text"
+      },
+      "html_content": {
+        "type": "string",
+        "description": "Article content in HTML format"
+      },
+      "summary": {
+        "type": "string",
+        "description": "Brief summary/lead section of the article"
+      },
+      "sections": {
+        "type": "array",
+        "description": "Article sections with headings",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": {"type": "string"},
+            "level": {"type": "integer"},
+            "content": {"type": "string"}
+          }
+        }
+      },
+      "images": {
+        "type": "array",
+        "description": "Image URLs from the article",
+        "items": {
+          "type": "object",
+          "properties": {
+            "url": {"type": "string"},
+            "title": {"type": "string"},
+            "description": {"type": ["string", "null"]}
+          }
+        }
+      },
+      "links": {
+        "type": "object",
+        "description": "Internal and external links",
+        "properties": {
+          "internal": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "external": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      },
+      "references": {
+        "type": "array",
+        "description": "Article references and citations",
+        "items": {
+          "type": "object",
+          "properties": {
+            "number": {"type": "integer"},
+            "text": {"type": "string"},
+            "url": {"type": ["string", "null"]}
+          }
+        }
+      },
+      "categories": {
+        "type": "array",
+        "description": "Wikipedia categories for this article",
+        "items": {"type": "string"}
+      },
+      "last_modified": {
+        "type": "string",
+        "description": "Last modification timestamp (ISO format)"
+      },
+      "last_modified_by": {
+        "type": "string",
+        "description": "Username of last editor"
+      },
+      "revision_id": {
+        "type": "integer",
+        "description": "Current revision ID"
+      },
+      "word_count": {
+        "type": "integer",
+        "description": "Total word count"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when data was retrieved (ISO format)"
+      }
+    },
+    "required": ["title", "page_id", "url", "content"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Information Retrieval",
+    "tags": ["wikipedia", "articles", "content", "knowledge", "encyclopedia", "full text"],
+    "rateLimit": 100,
+    "cacheTTL": 3600,
+    "note": "Retrieve complete Wikipedia article content including text, images, links, and metadata. Ideal for in-depth research and content analysis.",
+    "examples": [
+      {
+        "description": "Get the Machine Learning article",
+        "input": {
+          "query": "Machine Learning"
+        }
+      },
+      {
+        "description": "Get article with images and links",
+        "input": {
+          "query": "Eiffel Tower",
+          "include_images": true,
+          "include_links": true
+        }
+      },
+      {
+        "description": "Get article by page ID",
+        "input": {
+          "page_id": 5043734
+        }
+      },
+      {
+        "description": "Get Spanish article",
+        "input": {
+          "query": "Inteligencia artificial",
+          "language": "es"
+        }
+      }
+    ],
+    "useCases": [
+      "In-depth research",
+      "Content analysis",
+      "Knowledge extraction",
+      "Fact-checking",
+      "Educational content",
+      "Article archiving"
+    ]
+  }
+}

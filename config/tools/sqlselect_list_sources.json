@@ -1,0 +1,113 @@
+{
+  "name": "sqlselect_list_sources",
+  "implementation": "tools.impl.sqlselect_tool_refactored.SqlSelectListSourcesTool",
+  "description": "List all available data sources with their metadata and file information",
+  "version": "1.0.0",
+  "enabled": true,
+  "data_directory": "data/sqlselect",
+  "data_sources": {
+    "customers": {
+      "file": "customers.csv",
+      "type": "csv",
+      "description": "Customer master data"
+    },
+    "orders": {
+      "file": "orders.csv",
+      "type": "csv",
+      "description": "Order transactions"
+    },
+    "products": {
+      "file": "products.csv",
+      "type": "csv",
+      "description": "Product catalog"
+    },
+    "sales": {
+      "file": "sales.csv",
+      "type": "csv",
+      "description": "Sales data with customer and product details"
+    }
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether the operation was successful"
+      },
+      "sources": {
+        "type": "array",
+        "description": "List of available data sources",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Data source name"
+            },
+            "file": {
+              "type": "string",
+              "description": "Source file name"
+            },
+            "type": {
+              "type": "string",
+              "description": "File type (csv, parquet, json)"
+            },
+            "description": {
+              "type": "string",
+              "description": "Source description"
+            }
+          }
+        }
+      },
+      "count": {
+        "type": "integer",
+        "description": "Number of available sources"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "ISO timestamp of response"
+      }
+    },
+    "required": ["success", "sources", "count", "timestamp"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "category": "Data Query",
+    "tags": ["sql", "data sources", "catalog", "metadata", "duckdb"],
+    "rateLimit": 100,
+    "cacheTTL": 3600,
+    "dependencies": ["duckdb"],
+    "note": "Requires DuckDB library: pip install duckdb",
+    "examples": [
+      {
+        "description": "List all available data sources",
+        "input": {},
+        "expectedOutput": {
+          "success": true,
+          "sources": [
+            {
+              "name": "customers",
+              "file": "customers.csv",
+              "type": "csv",
+              "description": "Customer master data"
+            }
+          ],
+          "count": 4
+        }
+      }
+    ],
+    "useCases": [
+      "Data source discovery",
+      "Database catalog exploration",
+      "Available tables listing",
+      "Data inventory management"
+    ],
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha"
+  }
+}

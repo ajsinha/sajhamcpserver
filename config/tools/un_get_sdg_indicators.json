@@ -1,0 +1,89 @@
+{
+  "name": "un_get_sdg_indicators",
+  "implementation": "tools.impl.united_nations_tool_refactored.UNGetSDGIndicatorsTool",
+  "description": "Retrieve all indicators and metrics for a specific Sustainable Development Goal (1-17)",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "sdg_code": {
+        "type": "string",
+        "description": "SDG code (1-17)",
+        "enum": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17"]
+      }
+    },
+    "required": ["sdg_code"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "sdg_code": {
+        "type": "string",
+        "description": "SDG code"
+      },
+      "sdg_title": {
+        "type": "string",
+        "description": "SDG title (e.g., 'No Poverty')"
+      },
+      "indicators": {
+        "type": "array",
+        "description": "List of indicators for this SDG",
+        "items": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Indicator code (e.g., '1.1.1', '3.2.1')"
+            },
+            "description": {
+              "type": "string",
+              "description": "Indicator description"
+            },
+            "tier": {
+              "type": "string",
+              "description": "Indicator tier classification (Tier I, II, or III)"
+            },
+            "uri": {
+              "type": "string",
+              "description": "UN SDG API URI"
+            }
+          }
+        }
+      },
+      "count": {
+        "type": "integer",
+        "description": "Number of indicators for this SDG"
+      }
+    },
+    "required": ["sdg_code", "sdg_title", "indicators", "count"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Global Statistics",
+    "tags": ["un", "sdg", "indicators", "metrics", "sustainable development"],
+    "rateLimit": 60,
+    "cacheTTL": 3600,
+    "note": "Each SDG has multiple indicators used to measure progress. Tier I indicators have established methodology and data, Tier II have methodology but limited data, and Tier III lack established methodology.",
+    "examples": [
+      {
+        "description": "Get all indicators for SDG 1 (No Poverty)",
+        "input": {
+          "sdg_code": "1"
+        }
+      },
+      {
+        "description": "Get all indicators for SDG 13 (Climate Action)",
+        "input": {
+          "sdg_code": "13"
+        }
+      }
+    ],
+    "useCases": [
+      "Explore measurable targets within an SDG",
+      "Select specific indicators for data analysis",
+      "Understand SDG measurement methodology",
+      "Research and reporting"
+    ]
+  }
+}

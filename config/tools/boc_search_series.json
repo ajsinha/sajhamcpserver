@@ -1,0 +1,169 @@
+{
+  "name": "boc_search_series",
+  "implementation": "tools.impl.bank_of_canada_tool_refactored.BoCSearchSeriesTool",
+  "description": "Search and discover available Bank of Canada economic data series organized by category. Helps users find the right data series for their needs.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "category": {
+        "type": "string",
+        "description": "Filter results by category. Use 'all' or omit to see all categories.",
+        "enum": [
+          "Exchange Rates",
+          "Interest Rates",
+          "Bond Yields",
+          "Economic Indicators",
+          "all"
+        ],
+        "default": "all"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "categories": {
+        "type": "object",
+        "description": "Available series organized by category",
+        "additionalProperties": {
+          "type": "array",
+          "description": "List of series in this category",
+          "items": {
+            "type": "object",
+            "properties": {
+              "indicator": {
+                "type": "string",
+                "description": "Shorthand indicator name (e.g., 'usd_cad', 'policy_rate')"
+              },
+              "series_name": {
+                "type": "string",
+                "description": "Official Bank of Canada series identifier (e.g., 'FXUSDCAD', 'POLICY_RATE')"
+              },
+              "description": {
+                "type": "string",
+                "description": "Human-readable description of the data series"
+              }
+            },
+            "required": ["indicator", "series_name", "description"]
+          }
+        }
+      },
+      "total_series": {
+        "type": "integer",
+        "description": "Total number of available series across all returned categories"
+      }
+    },
+    "required": ["categories", "total_series"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["search", "discovery", "catalog", "metadata", "directory"],
+    "rateLimit": 120,
+    "cacheTTL": 86400,
+    "note": "This tool returns metadata about available series. No actual economic data is retrieved. Results are static and can be heavily cached.",
+    "examples": [
+      {
+        "description": "Browse all available data series",
+        "input": {},
+        "expectedOutput": {
+          "categories": {
+            "Exchange Rates": [
+              {
+                "indicator": "usd_cad",
+                "series_name": "FXUSDCAD",
+                "description": "US Dollar to Canadian Dollar Exchange Rate"
+              }
+            ],
+            "Interest Rates": ["..."],
+            "Bond Yields": ["..."],
+            "Economic Indicators": ["..."]
+          },
+          "total_series": 15
+        }
+      },
+      {
+        "description": "Find all available exchange rates",
+        "input": {
+          "category": "Exchange Rates"
+        },
+        "expectedOutput": {
+          "categories": {
+            "Exchange Rates": [
+              {
+                "indicator": "usd_cad",
+                "series_name": "FXUSDCAD",
+                "description": "US Dollar to Canadian Dollar Exchange Rate"
+              },
+              {
+                "indicator": "eur_cad",
+                "series_name": "FXEURCAD",
+                "description": "Euro to Canadian Dollar Exchange Rate"
+              },
+              {
+                "indicator": "gbp_cad",
+                "series_name": "FXGBPCAD",
+                "description": "British Pound to Canadian Dollar Exchange Rate"
+              },
+              {
+                "indicator": "jpy_cad",
+                "series_name": "FXJPYCAD",
+                "description": "Japanese Yen to Canadian Dollar Exchange Rate"
+              },
+              {
+                "indicator": "cny_cad",
+                "series_name": "FXCNYCAD",
+                "description": "Chinese Yuan to Canadian Dollar Exchange Rate"
+              }
+            ]
+          },
+          "total_series": 5
+        }
+      },
+      {
+        "description": "Discover available interest rate series",
+        "input": {
+          "category": "Interest Rates"
+        }
+      },
+      {
+        "description": "See what bond yield maturities are available",
+        "input": {
+          "category": "Bond Yields"
+        }
+      }
+    ],
+    "useCases": [
+      "Initial tool discovery",
+      "Documentation generation",
+      "Building UI selection dropdowns",
+      "API exploration",
+      "Finding series IDs for specific needs",
+      "Understanding available economic indicators"
+    ],
+    "categories": {
+      "Exchange Rates": {
+        "description": "Foreign exchange rates between CAD and major currencies",
+        "seriesCount": 5,
+        "indicators": ["usd_cad", "eur_cad", "gbp_cad", "jpy_cad", "cny_cad"]
+      },
+      "Interest Rates": {
+        "description": "Bank of Canada policy and market interest rates",
+        "seriesCount": 3,
+        "indicators": ["policy_rate", "overnight_rate", "prime_rate"]
+      },
+      "Bond Yields": {
+        "description": "Government of Canada benchmark bond yields",
+        "seriesCount": 4,
+        "indicators": ["bond_2y", "bond_5y", "bond_10y", "bond_30y"]
+      },
+      "Economic Indicators": {
+        "description": "Key Canadian economic indicators",
+        "seriesCount": 3,
+        "indicators": ["cpi", "core_cpi", "gdp"]
+      }
+    }
+  }
+}

@@ -1,0 +1,200 @@
+{
+  "name": "wb_compare_countries",
+  "implementation": "tools.impl.world_bank_tool.WBCompareCountriesTool",
+  "description": "Compare multiple countries side-by-side for a specific indicator. Get comparative analysis across selected countries.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "country_codes": {
+        "type": "array",
+        "description": "List of country codes to compare (2-10 countries)",
+        "items": {
+          "type": "string",
+          "pattern": "^[A-Z]{2,3}$"
+        },
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "indicator": {
+        "type": "string",
+        "description": "Common indicator shorthand",
+        "enum": [
+          "gdp", "gdp_per_capita", "gdp_growth", "gdp_ppp",
+          "population", "population_growth", "urban_population",
+          "life_expectancy", "birth_rate", "death_rate",
+          "poverty_rate", "gini_index", "income_share_lowest_20",
+          "literacy_rate", "primary_enrollment", "secondary_enrollment", "tertiary_enrollment",
+          "infant_mortality", "maternal_mortality", "health_expenditure", "hospital_beds",
+          "unemployment", "labor_force", "female_labor_force",
+          "exports", "imports", "trade_gdp", "fdi_inflow", "external_debt",
+          "co2_emissions", "co2_per_capita", "renewable_energy", "electricity_access", "forest_area",
+          "internet_users", "mobile_subscriptions", "roads_paved",
+          "inflation", "food_price_inflation"
+        ]
+      },
+      "indicator_code": {
+        "type": "string",
+        "description": "World Bank indicator code for direct access"
+      },
+      "start_year": {
+        "type": "integer",
+        "description": "Start year for comparison",
+        "minimum": 1960,
+        "maximum": 2030
+      },
+      "end_year": {
+        "type": "integer",
+        "description": "End year for comparison",
+        "minimum": 1960,
+        "maximum": 2030
+      },
+      "most_recent_year": {
+        "type": "boolean",
+        "description": "Compare only the most recent available year for each country",
+        "default": false
+      }
+    },
+    "required": ["country_codes"],
+    "oneOf": [
+      {"required": ["country_codes", "indicator"]},
+      {"required": ["country_codes", "indicator_code"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "indicator": {
+        "type": "object",
+        "description": "Indicator information",
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string"}
+        }
+      },
+      "year_range": {
+        "type": "object",
+        "description": "Time period covered",
+        "properties": {
+          "start": {"type": "integer"},
+          "end": {"type": "integer"}
+        }
+      },
+      "countries": {
+        "type": "array",
+        "description": "Country-by-country comparison data",
+        "items": {
+          "type": "object",
+          "properties": {
+            "country": {
+              "type": "object",
+              "properties": {
+                "id": {"type": "string"},
+                "name": {"type": "string"}
+              }
+            },
+            "data": {
+              "type": "array",
+              "description": "Time series data for this country",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "year": {"type": "integer"},
+                  "value": {"type": ["number", "null"]}
+                }
+              }
+            },
+            "latest_value": {
+              "type": ["number", "null"],
+              "description": "Most recent available value"
+            },
+            "latest_year": {
+              "type": "integer",
+              "description": "Year of most recent value"
+            },
+            "average": {
+              "type": ["number", "null"],
+              "description": "Average value over the period"
+            },
+            "min": {
+              "type": ["number", "null"],
+              "description": "Minimum value in period"
+            },
+            "max": {
+              "type": ["number", "null"],
+              "description": "Maximum value in period"
+            }
+          },
+          "required": ["country", "data"]
+        }
+      },
+      "summary": {
+        "type": "object",
+        "description": "Comparative summary statistics",
+        "properties": {
+          "highest_country": {
+            "type": "object",
+            "description": "Country with highest value"
+          },
+          "lowest_country": {
+            "type": "object",
+            "description": "Country with lowest value"
+          },
+          "average_across_countries": {
+            "type": ["number", "null"],
+            "description": "Average value across all countries"
+          }
+        }
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when data was retrieved (ISO format)"
+      }
+    },
+    "required": ["indicator", "countries"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["world bank", "comparison", "countries", "benchmarking", "analysis"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Compare development indicators across multiple countries with summary statistics. Ideal for benchmarking and comparative analysis.",
+    "examples": [
+      {
+        "description": "Compare GDP per capita of US, China, and India",
+        "input": {
+          "country_codes": ["US", "CHN", "IND"],
+          "indicator": "gdp_per_capita",
+          "start_year": 2010,
+          "end_year": 2023
+        }
+      },
+      {
+        "description": "Compare life expectancy in G7 countries",
+        "input": {
+          "country_codes": ["US", "CA", "GB", "FR", "DE", "IT", "JP"],
+          "indicator": "life_expectancy",
+          "start_year": 2000,
+          "end_year": 2023
+        }
+      },
+      {
+        "description": "Compare latest CO2 emissions",
+        "input": {
+          "country_codes": ["US", "CHN", "IND", "BR"],
+          "indicator": "co2_emissions",
+          "most_recent_year": true
+        }
+      }
+    ],
+    "useCases": [
+      "Country benchmarking",
+      "Peer group analysis",
+      "Regional comparisons",
+      "Performance tracking",
+      "Policy evaluation"
+    ]
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "name": "get_page_info",
+  "implementation": "tools.impl.webcrawler_tool_refactored.GetPageInfoTool",
+  "description": "Get comprehensive information and statistics about a web page including metadata, structure, link/image counts, and content metrics",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "URL of the page to analyze"
+      }
+    },
+    "required": ["url"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "Page URL"
+      },
+      "status_code": {
+        "type": "integer",
+        "description": "HTTP status code (200 = OK, 404 = Not Found, etc.)"
+      },
+      "content_type": {
+        "type": "string",
+        "description": "Content-Type header (e.g., 'text/html; charset=UTF-8')"
+      },
+      "title": {
+        "type": "string",
+        "description": "Page title"
+      },
+      "meta_description": {
+        "type": "string",
+        "description": "Meta description content"
+      },
+      "meta_keywords": {
+        "type": "string",
+        "description": "Meta keywords content"
+      },
+      "headings": {
+        "type": "object",
+        "description": "Heading counts and samples",
+        "properties": {
+          "h1_count": {
+            "type": "integer",
+            "description": "Total number of H1 headings"
+          },
+          "h2_count": {
+            "type": "integer",
+            "description": "Total number of H2 headings"
+          },
+          "h3_count": {
+            "type": "integer",
+            "description": "Total number of H3 headings"
+          },
+          "h1": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "First 5 H1 headings"
+          },
+          "h2": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "First 5 H2 headings"
+          },
+          "h3": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "First 5 H3 headings"
+          }
+        }
+      },
+      "link_count": {
+        "type": "integer",
+        "description": "Total number of hyperlinks on the page"
+      },
+      "image_count": {
+        "type": "integer",
+        "description": "Total number of images on the page"
+      },
+      "content_length": {
+        "type": "integer",
+        "description": "HTML content length in characters"
+      },
+      "retrieved_at": {
+        "type": "string",
+        "description": "Timestamp when information was retrieved"
+      }
+    },
+    "required": ["url", "status_code", "retrieved_at"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Web Scraping",
+    "tags": ["page analysis", "statistics", "seo audit", "page info", "metrics"],
+    "rateLimit": 60,
+    "cacheTTL": 1800,
+    "note": "Provides a complete statistical overview of a web page in a single call. Perfect for quick page audits, quality checks, and understanding page structure without downloading full content.",
+    "examples": [
+      {
+        "description": "Analyze homepage structure and content",
+        "input": {
+          "url": "https://example.com"
+        }
+      },
+      {
+        "description": "Quick audit of blog post",
+        "input": {
+          "url": "https://example.com/blog/post-title"
+        }
+      },
+      {
+        "description": "Check product page metrics",
+        "input": {
+          "url": "https://shop.example.com/products/item-123"
+        }
+      }
+    ],
+    "useCases": [
+      "Quick page audits",
+      "Page quality assessment",
+      "SEO preliminary checks",
+      "Content density analysis",
+      "Page complexity evaluation",
+      "Batch page comparison",
+      "Monitoring page changes over time"
+    ]
+  }
+}

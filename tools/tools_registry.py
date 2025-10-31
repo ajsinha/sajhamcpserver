@@ -52,6 +52,8 @@ class ToolsRegistry:
         self._stop_monitor = threading.Event()
         
         # Built-in tools mapping
+        self.builtin_tools = {}
+        '''
         self.builtin_tools = {
             'wikipedia': 'tools.impl.wikipedia_tool.WikipediaTool',
             'yahoo_finance': 'tools.impl.yahoo_finance_tool.YahooFinanceTool',
@@ -59,7 +61,7 @@ class ToolsRegistry:
             'fed_reserve': 'tools.impl.fed_reserve_tool.FedReserveTool',
              'tavily': 'tools.impl.tavily_tool.TavilyTool'
         }
-        
+        '''
         # Load initial tools
         self.load_all_tools()
         

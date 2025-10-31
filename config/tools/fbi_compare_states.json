@@ -1,0 +1,172 @@
+{
+  "name": "fbi_compare_states",
+  "implementation": "tools.impl.fbi_tool_refactored.FBICompareStatesTool",
+  "description": "Compare crime statistics across multiple US states for analysis and ranking",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "states": {
+        "type": "array",
+        "description": "List of US state abbreviations to compare (e.g., ['CA', 'NY', 'TX'])",
+        "items": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "offense_type": {
+        "type": "string",
+        "description": "Type of crime offense to compare",
+        "enum": [
+          "violent_crime",
+          "homicide",
+          "rape",
+          "robbery",
+          "aggravated_assault",
+          "property_crime",
+          "burglary",
+          "larceny",
+          "motor_vehicle_theft",
+          "arson"
+        ]
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year for comparison statistics (e.g., 2022)",
+        "minimum": 1960,
+        "maximum": 2024
+      },
+      "per_capita": {
+        "type": "boolean",
+        "description": "Compare using per capita rates (recommended for fair comparison)",
+        "default": true
+      },
+      "include_national_average": {
+        "type": "boolean",
+        "description": "Include national average as reference point",
+        "default": true
+      }
+    },
+    "required": ["states", "offense_type"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "offense_type": {
+        "type": "string",
+        "description": "Type of crime offense compared"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year of comparison"
+      },
+      "comparison_type": {
+        "type": "string",
+        "description": "Type of comparison metric",
+        "enum": ["absolute", "per_capita"]
+      },
+      "states_compared": {
+        "type": "array",
+        "description": "State-by-state comparison data",
+        "items": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "description": "State abbreviation"
+            },
+            "state_name": {
+              "type": "string",
+              "description": "Full state name"
+            },
+            "total_incidents": {
+              "type": "integer",
+              "description": "Total incidents in the state"
+            },
+            "rate_per_100k": {
+              "type": "number",
+              "description": "Crime rate per 100,000 population"
+            },
+            "state_population": {
+              "type": "integer",
+              "description": "State population"
+            },
+            "rank": {
+              "type": "integer",
+              "description": "Rank among compared states (1=highest rate)"
+            },
+            "percent_of_national": {
+              "type": "number",
+              "description": "Rate as percentage of national average"
+            }
+          }
+        }
+      },
+      "national_reference": {
+        "type": "object",
+        "properties": {
+          "total_incidents": {
+            "type": "integer",
+            "description": "Total US incidents"
+          },
+          "rate_per_100k": {
+            "type": "number",
+            "description": "National average rate"
+          }
+        }
+      },
+      "comparison_summary": {
+        "type": "object",
+        "properties": {
+          "highest_state": {
+            "type": "string",
+            "description": "State with highest rate"
+          },
+          "lowest_state": {
+            "type": "string",
+            "description": "State with lowest rate"
+          },
+          "range": {
+            "type": "number",
+            "description": "Difference between highest and lowest rates"
+          },
+          "average_of_compared": {
+            "type": "number",
+            "description": "Average rate among compared states"
+          }
+        }
+      }
+    },
+    "required": ["offense_type", "year", "comparison_type", "states_compared"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Crime Statistics",
+    "tags": ["crime", "fbi", "comparison", "states", "ranking"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Compare and rank crime statistics across multiple states with national context",
+    "examples": [
+      {
+        "description": "Compare violent crime across major states",
+        "input": {
+          "states": ["CA", "TX", "FL", "NY"],
+          "offense_type": "violent_crime",
+          "year": 2022,
+          "per_capita": true
+        }
+      },
+      {
+        "description": "Compare property crime in Northeast states",
+        "input": {
+          "states": ["NY", "MA", "CT", "PA", "NJ"],
+          "offense_type": "property_crime",
+          "year": 2022
+        }
+      }
+    ]
+  }
+}

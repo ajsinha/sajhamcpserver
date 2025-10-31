@@ -1,0 +1,145 @@
+{
+  "name": "wb_get_indicators",
+  "implementation": "tools.impl.world_bank_tool.WBGetIndicatorsTool",
+  "description": "Retrieve list of all available World Bank development indicators with their descriptions and metadata. Browse thousands of economic, social, and environmental indicators.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "topic_id": {
+        "type": "integer",
+        "description": "Filter by topic ID (1=Agriculture, 2=Aid Effectiveness, 3=Economy & Growth, 4=Education, 5=Energy & Mining, 6=Environment, 7=Financial Sector, 8=Health, 9=Infrastructure, 10=Social Protection & Labor, 11=Poverty, 12=Private Sector, 13=Public Sector, 14=Science & Technology, 15=Social Development, 16=Urban Development, 17=Gender, 18=Trade, 19=Climate Change, 20=External Debt, 21=Millenium Development Goals)",
+        "minimum": 1,
+        "maximum": 21
+      },
+      "source": {
+        "type": "integer",
+        "description": "Filter by data source ID",
+        "minimum": 1,
+        "maximum": 100
+      },
+      "per_page": {
+        "type": "integer",
+        "description": "Number of indicators per page",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100
+      },
+      "page": {
+        "type": "integer",
+        "description": "Page number for pagination",
+        "minimum": 1,
+        "default": 1
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "total_indicators": {
+        "type": "integer",
+        "description": "Total number of indicators available"
+      },
+      "page": {
+        "type": "integer",
+        "description": "Current page number"
+      },
+      "per_page": {
+        "type": "integer",
+        "description": "Results per page"
+      },
+      "total_pages": {
+        "type": "integer",
+        "description": "Total number of pages"
+      },
+      "indicators": {
+        "type": "array",
+        "description": "List of development indicators",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Indicator code (e.g., 'NY.GDP.MKTP.CD')"
+            },
+            "name": {
+              "type": "string",
+              "description": "Indicator name"
+            },
+            "source": {
+              "type": "object",
+              "description": "Data source information",
+              "properties": {
+                "id": {"type": "string"},
+                "value": {"type": "string"}
+              }
+            },
+            "source_note": {
+              "type": "string",
+              "description": "Detailed description and methodology"
+            },
+            "source_organization": {
+              "type": "string",
+              "description": "Organization providing the data"
+            },
+            "topics": {
+              "type": "array",
+              "description": "Related topics",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {"type": "string"},
+                  "value": {"type": "string"}
+                }
+              }
+            }
+          },
+          "required": ["id", "name"]
+        }
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when data was retrieved (ISO format)"
+      }
+    },
+    "required": ["total_indicators", "indicators"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["world bank", "indicators", "metadata", "development", "statistics"],
+    "rateLimit": 120,
+    "cacheTTL": 86400,
+    "note": "Browse World Bank's comprehensive catalog of over 16,000 development indicators covering economic, social, environmental, and institutional dimensions.",
+    "examples": [
+      {
+        "description": "Get first 100 indicators",
+        "input": {
+          "per_page": 100
+        }
+      },
+      {
+        "description": "Get health-related indicators",
+        "input": {
+          "topic_id": 8,
+          "per_page": 50
+        }
+      },
+      {
+        "description": "Get climate change indicators",
+        "input": {
+          "topic_id": 19,
+          "per_page": 100
+        }
+      }
+    ],
+    "useCases": [
+      "Indicator discovery",
+      "Research planning",
+      "Data catalog exploration",
+      "Topic-based analysis",
+      "Methodology review"
+    ]
+  }
+}

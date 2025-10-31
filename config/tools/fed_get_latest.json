@@ -1,0 +1,94 @@
+{
+  "name": "fed_get_latest",
+  "implementation": "tools.impl.fed_reserve_tool_refactored.FedGetLatestTool",
+  "description": "Retrieve the most recent observation for a FRED economic data series. Perfect for getting current values of key economic indicators.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "series_id": {
+        "type": "string",
+        "description": "FRED series ID (e.g., 'GDP', 'UNRATE', 'DGS10')"
+      },
+      "indicator": {
+        "type": "string",
+        "description": "Common indicator shorthand name",
+        "enum": ["gdp", "unemployment", "inflation", "fed_rate", "treasury_10y", "treasury_2y", "sp500", "housing", "retail", "industrial", "m2", "pce"]
+      }
+    },
+    "oneOf": [
+      {"required": ["series_id"]},
+      {"required": ["indicator"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "series_id": {
+        "type": "string",
+        "description": "FRED series identifier"
+      },
+      "title": {
+        "type": "string",
+        "description": "Series title"
+      },
+      "units": {
+        "type": "string",
+        "description": "Units of measurement"
+      },
+      "frequency": {
+        "type": "string",
+        "description": "Data frequency"
+      },
+      "date": {
+        "type": "string",
+        "description": "Date of latest observation"
+      },
+      "value": {
+        "type": ["number", "null"],
+        "description": "Latest observation value"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "When the series was last updated"
+      }
+    },
+    "required": ["series_id", "title", "date", "value"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["fred", "federal reserve", "economic data", "latest", "current data"],
+    "rateLimit": 120,
+    "cacheTTL": 1800,
+    "note": "Quick access to the most recent value of any FRED series. Ideal for dashboards and real-time monitoring.",
+    "examples": [
+      {
+        "description": "Get current unemployment rate",
+        "input": {
+          "indicator": "unemployment"
+        }
+      },
+      {
+        "description": "Get latest Fed funds rate",
+        "input": {
+          "indicator": "fed_rate"
+        }
+      },
+      {
+        "description": "Get current 10-year treasury yield",
+        "input": {
+          "series_id": "DGS10"
+        }
+      }
+    ],
+    "useCases": [
+      "Real-time economic monitoring",
+      "Dashboard displays",
+      "Quick fact checking",
+      "Market analysis",
+      "Economic alerts"
+    ]
+  }
+}

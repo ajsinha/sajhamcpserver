@@ -1,0 +1,129 @@
+{
+  "name": "fed_get_series",
+  "implementation": "tools.impl.fed_reserve_tool_refactored.FedGetSeriesTool",
+  "description": "Retrieve time series economic data from Federal Reserve Economic Data (FRED) database. Access thousands of US and international economic indicators including GDP, unemployment, inflation, interest rates, and more.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "series_id": {
+        "type": "string",
+        "description": "FRED series ID (e.g., 'GDP', 'UNRATE', 'DGS10'). Use this for direct series access."
+      },
+      "indicator": {
+        "type": "string",
+        "description": "Common indicator shorthand name for convenience",
+        "enum": ["gdp", "unemployment", "inflation", "fed_rate", "treasury_10y", "treasury_2y", "sp500", "housing", "retail", "industrial", "m2", "pce"]
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date in YYYY-MM-DD format"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date in YYYY-MM-DD format"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of observations to return",
+        "default": 100,
+        "minimum": 1,
+        "maximum": 1000
+      }
+    },
+    "oneOf": [
+      {"required": ["series_id"]},
+      {"required": ["indicator"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "series_id": {
+        "type": "string",
+        "description": "FRED series identifier"
+      },
+      "title": {
+        "type": "string",
+        "description": "Series title/name"
+      },
+      "units": {
+        "type": "string",
+        "description": "Units of measurement"
+      },
+      "frequency": {
+        "type": "string",
+        "description": "Data frequency (Daily, Monthly, Quarterly, Annual)"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "When the series was last updated"
+      },
+      "observation_count": {
+        "type": "integer",
+        "description": "Number of observations returned"
+      },
+      "observations": {
+        "type": "array",
+        "description": "Time series observations",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Observation date (YYYY-MM-DD)"
+            },
+            "value": {
+              "type": ["number", "null"],
+              "description": "Observation value (null if not available)"
+            }
+          },
+          "required": ["date", "value"]
+        }
+      }
+    },
+    "required": ["series_id", "title", "observations"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["fred", "federal reserve", "economic data", "us economy", "time series"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Access to Federal Reserve Economic Data (FRED) - the premier source for US economic data. Requires FRED API key for production use.",
+    "examples": [
+      {
+        "description": "Get latest year of GDP data",
+        "input": {
+          "indicator": "gdp",
+          "limit": 4
+        }
+      },
+      {
+        "description": "Get unemployment rate for 2024",
+        "input": {
+          "series_id": "UNRATE",
+          "start_date": "2024-01-01",
+          "end_date": "2024-12-31"
+        }
+      },
+      {
+        "description": "Get 10-year treasury yield history",
+        "input": {
+          "indicator": "treasury_10y",
+          "start_date": "2023-01-01",
+          "limit": 250
+        }
+      }
+    ],
+    "useCases": [
+      "Economic research and analysis",
+      "Financial modeling",
+      "Investment analysis",
+      "Policy research",
+      "Academic studies",
+      "Market forecasting"
+    ]
+  }
+}

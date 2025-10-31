@@ -1,0 +1,183 @@
+{
+  "name": "wiki_get_summary",
+  "implementation": "tools.impl.wikipedia_tool.WikiGetSummaryTool",
+  "description": "Retrieve a concise summary of a Wikipedia article. Returns the lead section/introduction without the full article content. Ideal for quick overviews.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Article title or page name to get summary for (e.g., 'Photosynthesis', 'Albert Einstein', 'Blockchain')",
+        "minLength": 1,
+        "maxLength": 300
+      },
+      "page_id": {
+        "type": "integer",
+        "description": "Wikipedia page ID (alternative to title)",
+        "minimum": 1
+      },
+      "language": {
+        "type": "string",
+        "description": "Wikipedia language edition (e.g., 'en', 'es', 'fr', 'de')",
+        "pattern": "^[a-z]{2,3}$",
+        "default": "en"
+      },
+      "sentences": {
+        "type": "integer",
+        "description": "Number of sentences to return in summary",
+        "minimum": 1,
+        "maximum": 10,
+        "default": 3
+      },
+      "redirect": {
+        "type": "boolean",
+        "description": "Follow redirects to the target article",
+        "default": true
+      },
+      "include_image": {
+        "type": "boolean",
+        "description": "Include main article image/thumbnail",
+        "default": true
+      }
+    },
+    "oneOf": [
+      {"required": ["query"]},
+      {"required": ["page_id"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "Article title"
+      },
+      "page_id": {
+        "type": "integer",
+        "description": "Wikipedia page ID"
+      },
+      "url": {
+        "type": "string",
+        "description": "Full URL to the article"
+      },
+      "language": {
+        "type": "string",
+        "description": "Wikipedia language edition"
+      },
+      "summary": {
+        "type": "string",
+        "description": "Concise summary from the lead section"
+      },
+      "extract": {
+        "type": "string",
+        "description": "Plain text extract (lead section)"
+      },
+      "extract_html": {
+        "type": "string",
+        "description": "HTML formatted extract"
+      },
+      "thumbnail": {
+        "type": ["object", "null"],
+        "description": "Main article image/thumbnail",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Thumbnail URL"
+          },
+          "width": {
+            "type": "integer",
+            "description": "Image width in pixels"
+          },
+          "height": {
+            "type": "integer",
+            "description": "Image height in pixels"
+          }
+        }
+      },
+      "original_image": {
+        "type": ["object", "null"],
+        "description": "Original full-size image",
+        "properties": {
+          "url": {"type": "string"},
+          "width": {"type": "integer"},
+          "height": {"type": "integer"}
+        }
+      },
+      "coordinates": {
+        "type": ["object", "null"],
+        "description": "Geographic coordinates if applicable",
+        "properties": {
+          "latitude": {"type": "number"},
+          "longitude": {"type": "number"}
+        }
+      },
+      "last_modified": {
+        "type": "string",
+        "description": "Last modification timestamp (ISO format)"
+      },
+      "description": {
+        "type": "string",
+        "description": "Short one-line description"
+      },
+      "content_type": {
+        "type": "string",
+        "description": "Type of content (standard page, disambiguation, redirect, etc.)"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when data was retrieved (ISO format)"
+      }
+    },
+    "required": ["title", "page_id", "url", "summary"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Information Retrieval",
+    "tags": ["wikipedia", "summary", "overview", "quick reference", "encyclopedia", "extract"],
+    "rateLimit": 100,
+    "cacheTTL": 3600,
+    "note": "Get quick, concise summaries of Wikipedia articles. Returns only the lead section without full article content. Perfect for rapid information lookup and overviews.",
+    "examples": [
+      {
+        "description": "Get a 3-sentence summary of Python",
+        "input": {
+          "query": "Python (programming language)",
+          "sentences": 3
+        }
+      },
+      {
+        "description": "Get summary with thumbnail image",
+        "input": {
+          "query": "Mount Everest",
+          "include_image": true
+        }
+      },
+      {
+        "description": "Get brief 1-sentence summary",
+        "input": {
+          "query": "Quantum Computing",
+          "sentences": 1
+        }
+      },
+      {
+        "description": "Get summary from French Wikipedia",
+        "input": {
+          "query": "Tour Eiffel",
+          "language": "fr",
+          "sentences": 5
+        }
+      }
+    ],
+    "useCases": [
+      "Quick information lookup",
+      "Overview generation",
+      "Fact verification",
+      "Chatbot responses",
+      "Content previews",
+      "Educational quick facts",
+      "Research starting points"
+    ]
+  }
+}

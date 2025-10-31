@@ -1,0 +1,128 @@
+{
+  "name": "duckdb_get_stats",
+  "implementation": "tools.impl.duckdb_olap_tools_refactored.DuckDbGetStatsTool",
+  "description": "Get statistical summary for numeric columns in a table (count, mean, std, min, max, percentiles)",
+  "version": "1.0.0",
+  "enabled": true,
+  "data_directory": "data/duckdb",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "table_name": {
+        "type": "string",
+        "description": "Name of table to analyze",
+        "minLength": 1
+      },
+      "columns": {
+        "type": "array",
+        "description": "Optional: Specific columns to analyze. If not provided, analyzes all numeric columns.",
+        "items": {
+          "type": "string"
+        }
+      },
+      "include_percentiles": {
+        "type": "boolean",
+        "description": "Include percentile calculations (25th, 50th, 75th)",
+        "default": true
+      }
+    },
+    "required": ["table_name"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "table_name": {
+        "type": "string",
+        "description": "Name of the analyzed table"
+      },
+      "total_rows": {
+        "type": "integer",
+        "description": "Total number of rows in the table"
+      },
+      "column_statistics": {
+        "type": "object",
+        "description": "Statistical summary for each column",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "description": "Number of non-null values"
+            },
+            "null_count": {
+              "type": "integer",
+              "description": "Number of null values"
+            },
+            "mean": {
+              "type": "number",
+              "description": "Average value (numeric columns only)"
+            },
+            "std_dev": {
+              "type": "number",
+              "description": "Standard deviation (numeric columns only)"
+            },
+            "min": {
+              "type": ["number", "string"],
+              "description": "Minimum value"
+            },
+            "max": {
+              "type": ["number", "string"],
+              "description": "Maximum value"
+            },
+            "percentile_25": {
+              "type": "number",
+              "description": "25th percentile (numeric columns only)"
+            },
+            "median": {
+              "type": "number",
+              "description": "50th percentile/median (numeric columns only)"
+            },
+            "percentile_75": {
+              "type": "number",
+              "description": "75th percentile (numeric columns only)"
+            },
+            "unique_count": {
+              "type": "integer",
+              "description": "Number of unique values"
+            },
+            "data_type": {
+              "type": "string",
+              "description": "Column data type"
+            }
+          }
+        }
+      }
+    },
+    "required": ["table_name", "total_rows", "column_statistics"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Data Analytics",
+    "tags": ["duckdb", "statistics", "summary", "analytics"],
+    "rateLimit": 60,
+    "cacheTTL": 60,
+    "note": "Provides comprehensive statistical summary similar to pandas describe()",
+    "examples": [
+      {
+        "description": "Get stats for all numeric columns in sales table",
+        "input": {
+          "table_name": "sales"
+        }
+      },
+      {
+        "description": "Get stats for specific columns",
+        "input": {
+          "table_name": "orders",
+          "columns": ["order_amount", "quantity", "discount"]
+        }
+      },
+      {
+        "description": "Get basic stats without percentiles",
+        "input": {
+          "table_name": "transactions",
+          "include_percentiles": false
+        }
+      }
+    ]
+  }
+}

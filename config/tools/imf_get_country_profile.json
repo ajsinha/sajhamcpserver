@@ -1,0 +1,77 @@
+{
+  "name": "imf_get_country_profile",
+  "implementation": "tools.impl.imf_tool_refactored.IMFGetCountryProfileTool",
+  "description": "Get a comprehensive economic profile for a country with key indicators including GDP growth, inflation, unemployment, current account, and public debt.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "country_code": {
+        "type": "string",
+        "description": "ISO 2-letter country code (e.g., 'US', 'CN', 'JP', 'DE')"
+      }
+    },
+    "required": ["country_code"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "country_code": {"type": "string"},
+      "country_name": {"type": "string"},
+      "indicators": {
+        "type": "object",
+        "description": "Key economic indicators",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "code": {"type": "string"},
+            "latest_value": {"type": ["number", "null"]},
+            "latest_period": {"type": "string"},
+            "recent_data": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "period": {"type": "string"},
+                  "value": {"type": ["number", "null"]}
+                }
+              }
+            },
+            "error": {"type": "string"}
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["imf", "country profile", "dashboard", "overview"],
+    "rateLimit": 80,
+    "cacheTTL": 7200,
+    "note": "Get a comprehensive economic snapshot for any country with key macroeconomic indicators.",
+    "examples": [
+      {
+        "description": "Get US economic profile",
+        "input": {
+          "country_code": "US"
+        }
+      },
+      {
+        "description": "Get China economic profile",
+        "input": {
+          "country_code": "CN"
+        }
+      }
+    ],
+    "useCases": [
+      "Country economic overview",
+      "Quick country assessment",
+      "Investment research",
+      "Economic briefings",
+      "Dashboard creation",
+      "Executive summaries"
+    ]
+  }
+}

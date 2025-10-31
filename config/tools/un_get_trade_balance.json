@@ -1,0 +1,110 @@
+{
+  "name": "un_get_trade_balance",
+  "implementation": "tools.impl.united_nations_tool_refactored.UNGetTradeBalanceTool",
+  "description": "Calculate trade balance (exports minus imports) for a country, optionally with a specific trading partner",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "country_code": {
+        "type": "string",
+        "description": "ISO3 country code (e.g., 'USA', 'CHN', 'IND')"
+      },
+      "partner_code": {
+        "type": "string",
+        "description": "Partner country ISO3 code (optional, defaults to 'all' for overall world trade balance)"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year for calculation (defaults to previous year)",
+        "minimum": 1962,
+        "maximum": 2030
+      }
+    },
+    "required": ["country_code"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "country_code": {
+        "type": "string",
+        "description": "Country code"
+      },
+      "partner_code": {
+        "type": "string",
+        "description": "Partner country code or 'all'"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Data year"
+      },
+      "data": {
+        "type": "object",
+        "description": "Trade balance calculation",
+        "properties": {
+          "exports": {
+            "type": ["number", "null"],
+            "description": "Total exports to partner/world in USD"
+          },
+          "imports": {
+            "type": ["number", "null"],
+            "description": "Total imports from partner/world in USD"
+          },
+          "balance": {
+            "type": ["number", "null"],
+            "description": "Trade balance (exports - imports) in USD. Positive indicates trade surplus, negative indicates deficit."
+          }
+        }
+      },
+      "interpretation": {
+        "type": "string",
+        "description": "Surplus or deficit interpretation"
+      },
+      "note": {
+        "type": "string",
+        "description": "Data access note"
+      }
+    },
+    "required": ["country_code", "year", "data"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Global Statistics",
+    "tags": ["un", "comtrade", "trade balance", "surplus", "deficit", "bilateral trade"],
+    "rateLimit": 60,
+    "cacheTTL": 3600,
+    "note": "Trade balance is a key economic indicator. A positive balance (surplus) means exports exceed imports; a negative balance (deficit) means imports exceed exports. This tool requires UN Comtrade API authentication.",
+    "examples": [
+      {
+        "description": "Get US-China bilateral trade balance for 2022",
+        "input": {
+          "country_code": "USA",
+          "partner_code": "CHN",
+          "year": 2022
+        }
+      },
+      {
+        "description": "Get Germany's overall trade balance with the world",
+        "input": {
+          "country_code": "DEU",
+          "partner_code": "all",
+          "year": 2023
+        }
+      },
+      {
+        "description": "Get India's latest trade balance",
+        "input": {
+          "country_code": "IND"
+        }
+      }
+    ],
+    "useCases": [
+      "Economic competitiveness analysis",
+      "Trade policy evaluation",
+      "Bilateral trade relationship assessment",
+      "Currency valuation analysis",
+      "Economic forecasting"
+    ]
+  }
+}

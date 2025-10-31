@@ -1,0 +1,47 @@
+{
+  "name": "ir_list_supported_companies",
+  "implementation": "tools.impl.investor_relations_tool_refactored.IRListSupportedCompaniesTool",
+  "description": "List all companies with supported investor relations data access",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {}
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "supported_companies": {
+        "type": "array",
+        "description": "List of all supported companies with IR data",
+        "items": {
+          "type": "object",
+          "properties": {
+            "ticker": {"type": "string", "description": "Stock ticker symbol"},
+            "name": {"type": "string", "description": "Company name"},
+            "ir_url": {"type": "string", "description": "Investor relations URL"}
+          }
+        }
+      },
+      "count": {"type": "integer", "description": "Total number of supported companies"}
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Financial Analysis",
+    "tags": ["investor relations", "companies", "support"],
+    "rateLimit": 10,
+    "cacheTTL": 86400,
+    "examples": [
+      {
+        "description": "List all supported companies",
+        "input": {}
+      }
+    ],
+    "useCases": [
+      "Discover available companies for IR data",
+      "Check if a company is supported",
+      "Get IR page URLs for supported companies"
+    ]
+  }
+}

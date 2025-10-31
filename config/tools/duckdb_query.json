@@ -1,0 +1,105 @@
+{
+  "name": "duckdb_query",
+  "implementation": "tools.impl.duckdb_olap_tools_refactored.DuckDbQueryTool",
+  "description": "Execute SQL queries on CSV, Parquet, and JSON files using DuckDB analytics engine",
+  "version": "1.0.0",
+  "enabled": true,
+  "data_directory": "/home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "sql_query": {
+        "type": "string",
+        "description": "SQL query to execute (SELECT, WITH, etc. - read-only queries)",
+        "minLength": 1
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of rows to return",
+        "minimum": 1,
+        "maximum": 10000,
+        "default": 100
+      },
+      "output_format": {
+        "type": "string",
+        "description": "Format for query results",
+        "enum": ["json", "csv", "table"],
+        "default": "json"
+      }
+    },
+    "required": ["sql_query"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "The SQL query that was executed"
+      },
+      "columns": {
+        "type": "array",
+        "description": "Column names in result set",
+        "items": {
+          "type": "string"
+        }
+      },
+      "rows": {
+        "type": "array",
+        "description": "Query results as array of rows",
+        "items": {
+          "type": "object",
+          "description": "Row data as key-value pairs"
+        }
+      },
+      "row_count": {
+        "type": "integer",
+        "description": "Number of rows returned"
+      },
+      "execution_time_ms": {
+        "type": "number",
+        "description": "Query execution time in milliseconds"
+      },
+      "limited": {
+        "type": "boolean",
+        "description": "Whether results were limited by the limit parameter"
+      }
+    },
+    "required": ["query", "columns", "rows", "row_count"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Data Analytics",
+    "tags": ["duckdb", "sql", "query", "analytics"],
+    "rateLimit": 60,
+    "cacheTTL": 60,
+    "note": "Execute analytical SQL queries with DuckDB. Supports complex queries, joins, window functions, and aggregations.",
+    "examples": [
+      {
+        "description": "Simple SELECT query",
+        "input": {
+          "sql_query": "SELECT * FROM sales WHERE amount > 1000",
+          "limit": 50
+        }
+      },
+      {
+        "description": "Aggregation with GROUP BY",
+        "input": {
+          "sql_query": "SELECT region, SUM(revenue) as total_revenue FROM sales GROUP BY region ORDER BY total_revenue DESC"
+        }
+      },
+      {
+        "description": "Complex query with JOIN",
+        "input": {
+          "sql_query": "SELECT c.name, COUNT(o.id) as order_count FROM customers c LEFT JOIN orders o ON c.id = o.customer_id GROUP BY c.name"
+        }
+      }
+    ],
+    "useCases": [
+      "Ad-hoc data analysis",
+      "Complex aggregations and reporting",
+      "Multi-table joins and analysis",
+      "Data exploration and discovery",
+      "Business intelligence queries"
+    ]
+  }
+}

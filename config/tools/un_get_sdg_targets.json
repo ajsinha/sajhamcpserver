@@ -1,0 +1,96 @@
+{
+  "name": "un_get_sdg_targets",
+  "implementation": "tools.impl.united_nations_tool_refactored.UNGetSDGTargetsTool",
+  "description": "Retrieve all specific targets for a Sustainable Development Goal. Each SDG has multiple measurable targets.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "sdg_code": {
+        "type": "string",
+        "description": "SDG code (1-17)",
+        "enum": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17"]
+      }
+    },
+    "required": ["sdg_code"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "sdg_code": {
+        "type": "string",
+        "description": "SDG code"
+      },
+      "sdg_title": {
+        "type": "string",
+        "description": "SDG title"
+      },
+      "targets": {
+        "type": "array",
+        "description": "List of specific targets for this SDG",
+        "items": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Target code (e.g., '1.1', '3.2', '13.1')"
+            },
+            "title": {
+              "type": "string",
+              "description": "Short target title"
+            },
+            "description": {
+              "type": "string",
+              "description": "Detailed target description with specific measurable objectives"
+            },
+            "uri": {
+              "type": "string",
+              "description": "UN SDG API URI for this target"
+            }
+          }
+        }
+      },
+      "count": {
+        "type": "integer",
+        "description": "Number of targets for this SDG"
+      }
+    },
+    "required": ["sdg_code", "sdg_title", "targets", "count"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Global Statistics",
+    "tags": ["un", "sdg", "targets", "goals", "objectives"],
+    "rateLimit": 60,
+    "cacheTTL": 3600,
+    "note": "Targets break down each SDG into specific, measurable objectives. For example, SDG 1 (No Poverty) includes targets like 1.1 (eradicate extreme poverty) and 1.2 (reduce poverty by half).",
+    "examples": [
+      {
+        "description": "Get all targets for SDG 1 (No Poverty)",
+        "input": {
+          "sdg_code": "1"
+        }
+      },
+      {
+        "description": "Get all targets for SDG 7 (Affordable and Clean Energy)",
+        "input": {
+          "sdg_code": "7"
+        }
+      },
+      {
+        "description": "Get all targets for SDG 13 (Climate Action)",
+        "input": {
+          "sdg_code": "13"
+        }
+      }
+    ],
+    "useCases": [
+      "Understand specific objectives within an SDG",
+      "Policy planning and alignment",
+      "Project goal setting",
+      "Progress reporting",
+      "Educational resources"
+    ]
+  }
+}

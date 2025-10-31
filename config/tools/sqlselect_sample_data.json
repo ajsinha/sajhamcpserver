@@ -1,0 +1,125 @@
+{
+  "name": "sqlselect_sample_data",
+  "implementation": "tools.impl.sqlselect_tool_refactored.SqlSelectSampleDataTool",
+  "description": "Retrieve sample rows from a data source for quick preview and data exploration",
+  "version": "1.0.0",
+  "enabled": true,
+  "data_directory": "data/sqlselect",
+  "data_sources": {
+    "customers": {
+      "file": "customers.csv",
+      "type": "csv",
+      "description": "Customer master data"
+    },
+    "orders": {
+      "file": "orders.csv",
+      "type": "csv",
+      "description": "Order transactions"
+    },
+    "products": {
+      "file": "products.csv",
+      "type": "csv",
+      "description": "Product catalog"
+    },
+    "sales": {
+      "file": "sales.csv",
+      "type": "csv",
+      "description": "Sales data with customer and product details"
+    }
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "source_name": {
+        "type": "string",
+        "description": "Name of the data source"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of sample rows to return",
+        "default": 10,
+        "minimum": 1,
+        "maximum": 1000
+      }
+    },
+    "required": ["source_name"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Operation status"
+      },
+      "source_name": {
+        "type": "string",
+        "description": "Data source name"
+      },
+      "columns": {
+        "type": "array",
+        "description": "Column names",
+        "items": {
+          "type": "string"
+        }
+      },
+      "rows": {
+        "type": "array",
+        "description": "Sample data rows",
+        "items": {
+          "type": "object"
+        }
+      },
+      "row_count": {
+        "type": "integer",
+        "description": "Number of sample rows"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "ISO timestamp"
+      }
+    },
+    "required": ["success", "source_name", "columns", "rows", "row_count"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "category": "Data Query",
+    "tags": ["sql", "sample", "preview", "exploration", "duckdb"],
+    "rateLimit": 100,
+    "cacheTTL": 300,
+    "dependencies": ["duckdb"],
+    "note": "Quick way to preview data without writing SQL queries. Ideal for data exploration.",
+    "examples": [
+      {
+        "description": "Get 10 sample customers",
+        "input": {
+          "source_name": "customers",
+          "limit": 10
+        }
+      },
+      {
+        "description": "Preview first 5 products",
+        "input": {
+          "source_name": "products",
+          "limit": 5
+        }
+      },
+      {
+        "description": "Peek at sales data",
+        "input": {
+          "source_name": "sales",
+          "limit": 20
+        }
+      }
+    ],
+    "useCases": [
+      "Data preview",
+      "Quick data inspection",
+      "Understanding data format",
+      "Data quality checks",
+      "Example data for documentation",
+      "UI data display"
+    ],
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha"
+  }
+}

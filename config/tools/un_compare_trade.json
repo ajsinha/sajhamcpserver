@@ -1,0 +1,129 @@
+{
+  "name": "un_compare_trade",
+  "implementation": "tools.impl.united_nations_tool_refactored.UNCompareCountryTradeTool",
+  "description": "Compare trade statistics (exports or imports) across multiple countries for benchmarking and analysis",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "country_codes": {
+        "type": "array",
+        "description": "List of ISO3 country codes to compare (minimum 2, maximum 10 countries)",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "trade_flow": {
+        "type": "string",
+        "description": "Trade flow to compare across countries",
+        "enum": ["export", "import", "re_export", "re_import"],
+        "default": "export"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year for comparison (same year for all countries)",
+        "minimum": 1962,
+        "maximum": 2030
+      }
+    },
+    "required": ["country_codes"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "trade_flow": {
+        "type": "string",
+        "description": "Trade flow being compared"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Comparison year"
+      },
+      "countries": {
+        "type": "array",
+        "description": "Trade data for each country",
+        "items": {
+          "type": "object",
+          "properties": {
+            "country_code": {
+              "type": "string",
+              "description": "Country code"
+            },
+            "country_name": {
+              "type": "string",
+              "description": "Country name"
+            },
+            "total_value": {
+              "type": ["number", "null"],
+              "description": "Total trade value in USD"
+            },
+            "rank": {
+              "type": "integer",
+              "description": "Rank among compared countries"
+            },
+            "top_partners": {
+              "type": "array",
+              "description": "Top trading partners"
+            }
+          }
+        }
+      },
+      "summary": {
+        "type": "object",
+        "description": "Comparison summary statistics",
+        "properties": {
+          "highest": {
+            "type": "object",
+            "description": "Country with highest trade value"
+          },
+          "lowest": {
+            "type": "object",
+            "description": "Country with lowest trade value"
+          }
+        }
+      }
+    },
+    "required": ["trade_flow", "year", "countries"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Global Statistics",
+    "tags": ["un", "comtrade", "comparison", "benchmarking", "multi-country", "trade analysis"],
+    "rateLimit": 60,
+    "cacheTTL": 3600,
+    "note": "Compare trade performance across multiple countries. Useful for regional analysis, competitive positioning, and identifying trade leaders. Requires UN Comtrade API authentication.",
+    "examples": [
+      {
+        "description": "Compare exports among BRICS countries in 2022",
+        "input": {
+          "country_codes": ["BRA", "RUS", "IND", "CHN", "ZAF"],
+          "trade_flow": "export",
+          "year": 2022
+        }
+      },
+      {
+        "description": "Compare imports for major Asian economies",
+        "input": {
+          "country_codes": ["CHN", "JPN", "IND", "KOR"],
+          "trade_flow": "import",
+          "year": 2023
+        }
+      },
+      {
+        "description": "Compare exports across G7 countries",
+        "input": {
+          "country_codes": ["USA", "CAN", "GBR", "FRA", "DEU", "ITA", "JPN"],
+          "trade_flow": "export"
+        }
+      }
+    ],
+    "useCases": [
+      "Regional trade analysis",
+      "Competitive benchmarking",
+      "Economic bloc comparison (EU, ASEAN, etc.)",
+      "Trade policy impact assessment",
+      "Market opportunity identification"
+    ]
+  }
+}

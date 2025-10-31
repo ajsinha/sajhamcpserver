@@ -1,0 +1,111 @@
+{
+  "name": "fbi_get_participation_rate",
+  "implementation": "tools.impl.fbi_tool_refactored.FBIGetParticipationRateTool",
+  "description": "Retrieve participation rates showing percentage of agencies reporting crime data",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "state": {
+        "type": "string",
+        "description": "Optional: Filter by US State abbreviation (e.g., CA, NY, TX). If not provided, returns national data.",
+        "pattern": "^[A-Z]{2}$"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year for participation statistics (e.g., 2022)",
+        "minimum": 1960,
+        "maximum": 2024
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "scope": {
+        "type": "string",
+        "description": "Geographic scope of data",
+        "enum": ["national", "state"]
+      },
+      "state": {
+        "type": "string",
+        "description": "State abbreviation if state-level data"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year of participation statistics"
+      },
+      "participation_data": {
+        "type": "object",
+        "properties": {
+          "total_agencies": {
+            "type": "integer",
+            "description": "Total number of law enforcement agencies"
+          },
+          "reporting_agencies": {
+            "type": "integer",
+            "description": "Number of agencies that reported data"
+          },
+          "participation_rate": {
+            "type": "number",
+            "description": "Percentage of agencies reporting (0-100)"
+          },
+          "population_covered": {
+            "type": "integer",
+            "description": "Total population covered by reporting agencies"
+          },
+          "total_population": {
+            "type": "integer",
+            "description": "Total population in scope"
+          },
+          "population_coverage_rate": {
+            "type": "number",
+            "description": "Percentage of population covered (0-100)"
+          }
+        }
+      },
+      "reporting_quality": {
+        "type": "object",
+        "properties": {
+          "full_year_reporters": {
+            "type": "integer",
+            "description": "Agencies reporting all 12 months"
+          },
+          "partial_year_reporters": {
+            "type": "integer",
+            "description": "Agencies reporting less than 12 months"
+          },
+          "zero_reporters": {
+            "type": "integer",
+            "description": "Agencies reporting zero crimes"
+          }
+        }
+      }
+    },
+    "required": ["scope", "year", "participation_data"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Crime Statistics",
+    "tags": ["crime", "fbi", "participation", "reporting", "ucr"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Assess data quality and coverage by examining agency participation rates",
+    "examples": [
+      {
+        "description": "Get 2022 national participation rate",
+        "input": {
+          "year": 2022
+        }
+      },
+      {
+        "description": "Check California agencies' reporting participation",
+        "input": {
+          "state": "CA",
+          "year": 2022
+        }
+      }
+    ]
+  }
+}

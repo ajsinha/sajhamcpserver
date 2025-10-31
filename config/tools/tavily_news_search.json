@@ -1,0 +1,121 @@
+{
+  "name": "tavily_news_search",
+  "implementation": "tools.impl.tavily_tool_refactored.TavilyNewsSearchTool",
+  "description": "Search for recent news articles using Tavily with news-optimized results and recency prioritization",
+  "version": "1.0.0",
+  "enabled": true,
+  "api_key": "",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "News search query"
+      },
+      "max_results": {
+        "type": "integer",
+        "description": "Maximum number of news articles to return",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 20
+      },
+      "include_answer": {
+        "type": "boolean",
+        "description": "Include AI-generated news summary",
+        "default": true
+      }
+    },
+    "required": ["query"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "The news search query"
+      },
+      "results_count": {
+        "type": "integer",
+        "description": "Number of news articles returned"
+      },
+      "results": {
+        "type": "array",
+        "description": "News articles",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "News article title"
+            },
+            "url": {
+              "type": "string",
+              "description": "Article URL"
+            },
+            "content": {
+              "type": "string",
+              "description": "Article excerpt"
+            },
+            "score": {
+              "type": "number",
+              "description": "Relevance score"
+            },
+            "published_date": {
+              "type": "string",
+              "description": "Publication date"
+            }
+          }
+        }
+      },
+      "answer": {
+        "type": "string",
+        "description": "AI-generated news summary"
+      }
+    },
+    "required": ["query", "results_count", "results"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "category": "News Search",
+    "tags": ["news", "articles", "current events", "journalism", "media", "tavily"],
+    "rateLimit": 100,
+    "cacheTTL": 1800,
+    "note": "Optimized for news articles with recency weighting. Requires Tavily API key for production use.",
+    "examples": [
+      {
+        "description": "Search for breaking tech news",
+        "input": {
+          "query": "artificial intelligence regulations",
+          "max_results": 5,
+          "include_answer": true
+        }
+      },
+      {
+        "description": "Financial market news",
+        "input": {
+          "query": "stock market trends today",
+          "max_results": 10
+        }
+      },
+      {
+        "description": "Political news summary",
+        "input": {
+          "query": "climate change policy updates",
+          "max_results": 7,
+          "include_answer": true
+        }
+      }
+    ],
+    "useCases": [
+      "Breaking news monitoring",
+      "Market and financial updates",
+      "Political and policy tracking",
+      "Technology news aggregation",
+      "Industry trend analysis",
+      "Event coverage and updates",
+      "News briefing generation"
+    ],
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha"
+  }
+}

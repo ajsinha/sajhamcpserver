@@ -1,0 +1,121 @@
+{
+  "name": "ecb_get_inflation",
+  "implementation": "tools.impl.european_central_bank_tool_refactored.ECBGetInflationTool",
+  "description": "Retrieve HICP (Harmonised Index of Consumer Prices) inflation measures for the Euro Area including overall, core, and energy inflation.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "inflation_type": {
+        "type": "string",
+        "description": "Type of inflation measure",
+        "enum": ["overall", "core", "energy"],
+        "default": "overall"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date in YYYY-MM-DD format"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date in YYYY-MM-DD format"
+      },
+      "recent_periods": {
+        "type": "integer",
+        "description": "Number of recent observations (1-100)",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 12
+      }
+    },
+    "required": ["inflation_type"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "flow": {
+        "type": "string",
+        "description": "ECB data flow (ICP for inflation)"
+      },
+      "key": {
+        "type": "string",
+        "description": "Inflation series key"
+      },
+      "series_name": {
+        "type": "string",
+        "description": "Inflation series identifier"
+      },
+      "description": {
+        "type": "string",
+        "description": "Description of inflation measure"
+      },
+      "observation_count": {
+        "type": "integer",
+        "description": "Number of inflation observations"
+      },
+      "observations": {
+        "type": "array",
+        "description": "Historical inflation values (annual rate of change)",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Date of inflation reading (YYYY-MM format for monthly)"
+            },
+            "value": {
+              "type": ["number", "null"],
+              "description": "Annual inflation rate (%)"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["inflation", "hicp", "prices", "ecb", "eurozone", "consumer prices", "core inflation"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "HICP (Harmonised Index of Consumer Prices) is the official inflation measure for the Euro Area. Core inflation excludes energy and food. ECB targets 2% inflation.",
+    "examples": [
+      {
+        "description": "Get latest overall HICP inflation",
+        "input": {
+          "inflation_type": "overall",
+          "recent_periods": 1
+        }
+      },
+      {
+        "description": "Get core inflation trend (past year)",
+        "input": {
+          "inflation_type": "core",
+          "recent_periods": 12
+        }
+      },
+      {
+        "description": "Get energy inflation history",
+        "input": {
+          "inflation_type": "energy",
+          "start_date": "2023-01-01",
+          "end_date": "2024-10-31"
+        }
+      }
+    ],
+    "useCases": [
+      "Inflation tracking",
+      "Monetary policy analysis",
+      "Economic forecasting",
+      "Central bank research",
+      "Investment decisions",
+      "Real return calculations"
+    ],
+    "inflationTypes": {
+      "overall": "HICP - All items. The broadest measure of consumer price inflation.",
+      "core": "HICP excluding energy and food. Provides better signal of underlying inflation trends.",
+      "energy": "HICP - Energy component only. Most volatile component of inflation."
+    }
+  }
+}

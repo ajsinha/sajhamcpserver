@@ -1,0 +1,117 @@
+{
+  "name": "fbi_get_national_statistics",
+  "implementation": "tools.impl.fbi_tool_refactored.FBIGetNationalStatisticsTool",
+  "description": "Retrieve nationwide US crime statistics for specified offense types and years",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "offense_type": {
+        "type": "string",
+        "description": "Type of crime offense to retrieve",
+        "enum": [
+          "violent_crime",
+          "homicide",
+          "rape",
+          "robbery",
+          "aggravated_assault",
+          "property_crime",
+          "burglary",
+          "larceny",
+          "motor_vehicle_theft",
+          "arson"
+        ]
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year for crime statistics (e.g., 2022)",
+        "minimum": 1960,
+        "maximum": 2024
+      },
+      "per_capita": {
+        "type": "boolean",
+        "description": "Return statistics per capita (per 100,000 population)",
+        "default": false
+      }
+    },
+    "required": ["offense_type"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "offense_type": {
+        "type": "string",
+        "description": "Type of crime offense"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year of statistics"
+      },
+      "national_data": {
+        "type": "object",
+        "properties": {
+          "total_incidents": {
+            "type": "integer",
+            "description": "Total number of incidents nationwide"
+          },
+          "rate_per_100k": {
+            "type": "number",
+            "description": "Crime rate per 100,000 population"
+          },
+          "population": {
+            "type": "integer",
+            "description": "Total US population for the year"
+          },
+          "reporting_agencies": {
+            "type": "integer",
+            "description": "Number of agencies reporting data"
+          },
+          "population_covered": {
+            "type": "integer",
+            "description": "Population covered by reporting agencies"
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "data_source": {
+            "type": "string",
+            "description": "FBI data source identifier"
+          },
+          "last_updated": {
+            "type": "string",
+            "description": "When the data was last updated (ISO format)"
+          }
+        }
+      }
+    },
+    "required": ["offense_type", "year", "national_data"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Crime Statistics",
+    "tags": ["crime", "fbi", "statistics", "national", "ucr"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Retrieves nationwide crime statistics from FBI UCR data",
+    "examples": [
+      {
+        "description": "Get 2022 national violent crime statistics",
+        "input": {
+          "offense_type": "violent_crime",
+          "year": 2022
+        }
+      },
+      {
+        "description": "Get per capita homicide rates",
+        "input": {
+          "offense_type": "homicide",
+          "year": 2022,
+          "per_capita": true
+        }
+      }
+    ]
+  }
+}

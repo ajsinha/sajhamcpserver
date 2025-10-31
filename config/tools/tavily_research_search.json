@@ -1,0 +1,144 @@
+{
+  "name": "tavily_research_search",
+  "implementation": "tools.impl.tavily_tool_refactored.TavilyResearchSearchTool",
+  "description": "Perform comprehensive research search with advanced depth, analysis, and higher result counts for academic and professional research",
+  "version": "1.0.0",
+  "enabled": true,
+  "api_key": "",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Research query for comprehensive search"
+      },
+      "topic": {
+        "type": "string",
+        "description": "Research topic category for optimized results",
+        "enum": ["general", "science", "finance"],
+        "default": "general"
+      },
+      "max_results": {
+        "type": "integer",
+        "description": "Maximum number of results (higher for research)",
+        "default": 10,
+        "minimum": 5,
+        "maximum": 20
+      },
+      "include_raw_content": {
+        "type": "boolean",
+        "description": "Include full HTML content for deeper analysis",
+        "default": false
+      }
+    },
+    "required": ["query"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "The research query"
+      },
+      "search_depth": {
+        "type": "string",
+        "description": "Search depth (always 'advanced' for research)"
+      },
+      "topic": {
+        "type": "string",
+        "description": "Research topic category"
+      },
+      "results_count": {
+        "type": "integer",
+        "description": "Number of research results"
+      },
+      "results": {
+        "type": "array",
+        "description": "Comprehensive research results",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "Result title"
+            },
+            "url": {
+              "type": "string",
+              "description": "Result URL"
+            },
+            "content": {
+              "type": "string",
+              "description": "Content excerpt or summary"
+            },
+            "score": {
+              "type": "number",
+              "description": "Relevance score"
+            },
+            "published_date": {
+              "type": "string",
+              "description": "Publication date"
+            },
+            "raw_content": {
+              "type": "string",
+              "description": "Full HTML content (if requested)"
+            }
+          }
+        }
+      },
+      "answer": {
+        "type": "string",
+        "description": "AI-generated comprehensive research summary"
+      }
+    },
+    "required": ["query", "results_count", "results", "answer"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "category": "Research",
+    "tags": ["research", "academic", "analysis", "deep search", "comprehensive", "science", "finance"],
+    "rateLimit": 50,
+    "cacheTTL": 7200,
+    "note": "Uses advanced search depth for comprehensive results. Best for academic research, market analysis, and in-depth investigations. Requires Tavily API key.",
+    "examples": [
+      {
+        "description": "Academic research on machine learning",
+        "input": {
+          "query": "transformer architecture in natural language processing",
+          "topic": "science",
+          "max_results": 15,
+          "include_raw_content": false
+        }
+      },
+      {
+        "description": "Financial market research",
+        "input": {
+          "query": "venture capital trends in biotechnology",
+          "topic": "finance",
+          "max_results": 10
+        }
+      },
+      {
+        "description": "Comprehensive topic analysis with full content",
+        "input": {
+          "query": "renewable energy adoption barriers",
+          "topic": "general",
+          "max_results": 20,
+          "include_raw_content": true
+        }
+      }
+    ],
+    "useCases": [
+      "Academic literature review",
+      "Market research and analysis",
+      "Competitive intelligence gathering",
+      "Scientific research synthesis",
+      "Policy and regulatory research",
+      "Industry trend analysis",
+      "Technical deep dives",
+      "Investment research",
+      "Patent and innovation research"
+    ],
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha"
+  }
+}

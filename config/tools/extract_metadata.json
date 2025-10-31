@@ -1,0 +1,113 @@
+{
+  "name": "extract_metadata",
+  "implementation": "tools.impl.webcrawler_tool_refactored.ExtractMetadataTool",
+  "description": "Extract SEO and structural metadata including title, meta tags, headings, and content metrics from a web page",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "URL of the page to extract metadata from"
+      }
+    },
+    "required": ["url"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "Page URL"
+      },
+      "status_code": {
+        "type": "integer",
+        "description": "HTTP status code"
+      },
+      "content_type": {
+        "type": "string",
+        "description": "Content-Type response header"
+      },
+      "title": {
+        "type": "string",
+        "description": "Page title from <title> tag (important for SEO)"
+      },
+      "meta_description": {
+        "type": "string",
+        "description": "Meta description tag content (shown in search results)"
+      },
+      "meta_keywords": {
+        "type": "string",
+        "description": "Meta keywords tag content (legacy SEO)"
+      },
+      "headings": {
+        "type": "object",
+        "description": "All page headings organized by level",
+        "properties": {
+          "h1": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "H1 headings (should typically be only 1 per page)"
+          },
+          "h2": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "H2 headings (main sections)"
+          },
+          "h3": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "H3 headings (subsections)"
+          }
+        }
+      },
+      "content_length": {
+        "type": "integer",
+        "description": "Total HTML content length in bytes"
+      },
+      "extracted_at": {
+        "type": "string",
+        "description": "Extraction timestamp (ISO format)"
+      }
+    },
+    "required": ["url", "status_code", "extracted_at"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Web Scraping",
+    "tags": ["metadata", "seo", "meta tags", "headings", "title", "description"],
+    "rateLimit": 60,
+    "cacheTTL": 3600,
+    "note": "Extracts SEO-critical metadata and structural information. Essential for SEO audits, content strategy, and understanding page optimization.",
+    "examples": [
+      {
+        "description": "Audit page metadata for SEO",
+        "input": {
+          "url": "https://example.com/blog/post"
+        }
+      },
+      {
+        "description": "Check homepage metadata",
+        "input": {
+          "url": "https://example.com"
+        }
+      },
+      {
+        "description": "Extract metadata from product page",
+        "input": {
+          "url": "https://shop.example.com/product/123"
+        }
+      }
+    ],
+    "useCases": [
+      "SEO auditing and optimization",
+      "Meta tag validation",
+      "Heading structure analysis",
+      "Content hierarchy review",
+      "Page title optimization",
+      "Search result preview testing",
+      "Multi-page metadata comparison"
+    ]
+  }
+}

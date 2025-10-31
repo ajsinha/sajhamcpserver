@@ -1,0 +1,166 @@
+{
+  "name": "tavily_domain_search",
+  "implementation": "tools.impl.tavily_tool_refactored.TavilyDomainSearchTool",
+  "description": "Search within specific domains or exclude domains using Tavily for targeted information retrieval from trusted or preferred sources",
+  "version": "1.0.0",
+  "enabled": true,
+  "api_key": "",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Search query"
+      },
+      "include_domains": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of domains to specifically search within (e.g., ['github.com', 'stackoverflow.com'])"
+      },
+      "exclude_domains": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of domains to exclude from search (e.g., ['pinterest.com', 'facebook.com'])"
+      },
+      "max_results": {
+        "type": "integer",
+        "description": "Maximum number of results",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 20
+      },
+      "include_answer": {
+        "type": "boolean",
+        "description": "Include AI-generated answer",
+        "default": true
+      }
+    },
+    "required": ["query"],
+    "oneOf": [
+      {
+        "required": ["include_domains"]
+      },
+      {
+        "required": ["exclude_domains"]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "The search query"
+      },
+      "included_domains": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Domains that were included in search"
+      },
+      "excluded_domains": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Domains that were excluded from search"
+      },
+      "results_count": {
+        "type": "integer",
+        "description": "Number of results"
+      },
+      "results": {
+        "type": "array",
+        "description": "Search results from specified domains",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "Result title"
+            },
+            "url": {
+              "type": "string",
+              "description": "Result URL"
+            },
+            "content": {
+              "type": "string",
+              "description": "Content excerpt"
+            },
+            "score": {
+              "type": "number",
+              "description": "Relevance score"
+            }
+          }
+        }
+      },
+      "answer": {
+        "type": "string",
+        "description": "AI-generated answer"
+      }
+    },
+    "required": ["query", "results_count", "results"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "category": "Targeted Search",
+    "tags": ["domain filter", "site search", "targeted search", "source control", "tavily"],
+    "rateLimit": 100,
+    "cacheTTL": 3600,
+    "note": "Filter search results by including or excluding specific domains. Useful for searching trusted sources or avoiding low-quality content. Requires Tavily API key.",
+    "examples": [
+      {
+        "description": "Search only technical documentation sites",
+        "input": {
+          "query": "React hooks best practices",
+          "include_domains": ["react.dev", "github.com", "stackoverflow.com"],
+          "max_results": 10
+        }
+      },
+      {
+        "description": "Search academic sources for research",
+        "input": {
+          "query": "quantum entanglement experiments",
+          "include_domains": ["arxiv.org", "nature.com", "science.org"],
+          "max_results": 15,
+          "include_answer": true
+        }
+      },
+      {
+        "description": "Exclude social media and aggregators",
+        "input": {
+          "query": "healthy meal prep ideas",
+          "exclude_domains": ["pinterest.com", "facebook.com", "reddit.com"],
+          "max_results": 5
+        }
+      },
+      {
+        "description": "Search official documentation only",
+        "input": {
+          "query": "PostgreSQL transaction isolation",
+          "include_domains": ["postgresql.org"],
+          "max_results": 5,
+          "include_answer": true
+        }
+      }
+    ],
+    "useCases": [
+      "Search trusted technical documentation",
+      "Academic and research paper discovery",
+      "Official source verification",
+      "Developer documentation lookup",
+      "Filter out low-quality or spam sites",
+      "Brand-specific information retrieval",
+      "Regulatory and compliance research",
+      "Corporate knowledge base search",
+      "Educational content from verified sources"
+    ],
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha"
+  }
+}

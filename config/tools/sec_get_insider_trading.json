@@ -1,0 +1,142 @@
+{
+  "name": "sec_get_insider_trading",
+  "implementation": "tools.impl.sec_edgar_tool_refactored.SECGetInsiderTradingTool",
+  "description": "Retrieve insider trading reports (Form 4) for company insiders and executives",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key (CIK) - 10 digit company identifier"
+      },
+      "ticker": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of Form 4 filings to return",
+        "default": 10,
+        "minimum": 1,
+        "maximum": 100
+      }
+    },
+    "oneOf": [
+      {"required": ["cik"]},
+      {"required": ["ticker"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "10-digit Central Index Key"
+      },
+      "name": {
+        "type": "string",
+        "description": "Company name"
+      },
+      "filing_count": {
+        "type": "integer",
+        "description": "Number of Form 4 filings returned"
+      },
+      "filings": {
+        "type": "array",
+        "description": "List of insider trading filings (Form 4)",
+        "items": {
+          "type": "object",
+          "properties": {
+            "accession_number": {
+              "type": "string",
+              "description": "Unique filing identifier"
+            },
+            "filing_date": {
+              "type": "string",
+              "description": "Date filed with SEC (YYYY-MM-DD)"
+            },
+            "report_date": {
+              "type": "string",
+              "description": "Transaction date (YYYY-MM-DD)"
+            },
+            "form": {
+              "type": "string",
+              "description": "Form type (will be '4')"
+            },
+            "primary_document": {
+              "type": "string",
+              "description": "Primary document filename"
+            },
+            "description": {
+              "type": "string",
+              "description": "Filing description"
+            }
+          },
+          "required": ["accession_number", "filing_date", "form"]
+        }
+      }
+    },
+    "required": ["cik", "name", "filing_count", "filings"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Financial Data",
+    "tags": ["sec", "edgar", "insider trading", "form 4", "executives", "officers", "directors"],
+    "rateLimit": 10,
+    "cacheTTL": 1800,
+    "note": "Form 4 reports insider transactions (purchases, sales) by company officers, directors, and beneficial owners.",
+    "examples": [
+      {
+        "description": "Get recent insider trading for Apple",
+        "input": {
+          "ticker": "AAPL",
+          "limit": 20
+        }
+      },
+      {
+        "description": "Get insider transactions for Tesla",
+        "input": {
+          "ticker": "TSLA",
+          "limit": 15
+        }
+      },
+      {
+        "description": "Get latest 10 insider trades for Microsoft",
+        "input": {
+          "ticker": "MSFT"
+        }
+      },
+      {
+        "description": "Monitor executive stock activity for Amazon",
+        "input": {
+          "ticker": "AMZN",
+          "limit": 25
+        }
+      }
+    ],
+    "form4Info": {
+      "purpose": "Report changes in beneficial ownership by insiders",
+      "filingDeadline": "Within 2 business days of transaction",
+      "whoMustFile": [
+        "Officers",
+        "Directors",
+        "Beneficial owners of >10% of company stock"
+      ],
+      "transactionTypes": [
+        "Open market purchases/sales",
+        "Option exercises",
+        "Gifts",
+        "Awards and grants"
+      ]
+    },
+    "useCases": [
+      "Track insider buying/selling patterns",
+      "Monitor executive confidence in company",
+      "Identify potential trading signals",
+      "Compliance monitoring",
+      "Investment research"
+    ]
+  }
+}

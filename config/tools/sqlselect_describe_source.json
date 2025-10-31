@@ -1,0 +1,127 @@
+{
+  "name": "sqlselect_describe_source",
+  "implementation": "tools.impl.sqlselect_tool_refactored.SqlSelectDescribeSourceTool",
+  "description": "Get detailed information about a specific data source including columns, types, row count, and metadata",
+  "version": "1.0.0",
+  "enabled": true,
+  "data_directory": "data/sqlselect",
+  "data_sources": {
+    "customers": {
+      "file": "customers.csv",
+      "type": "csv",
+      "description": "Customer master data"
+    },
+    "orders": {
+      "file": "orders.csv",
+      "type": "csv",
+      "description": "Order transactions"
+    },
+    "products": {
+      "file": "products.csv",
+      "type": "csv",
+      "description": "Product catalog"
+    },
+    "sales": {
+      "file": "sales.csv",
+      "type": "csv",
+      "description": "Sales data with customer and product details"
+    }
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "source_name": {
+        "type": "string",
+        "description": "Name of the data source to describe"
+      }
+    },
+    "required": ["source_name"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Operation success status"
+      },
+      "source_name": {
+        "type": "string",
+        "description": "Data source name"
+      },
+      "file": {
+        "type": "string",
+        "description": "Source file name"
+      },
+      "type": {
+        "type": "string",
+        "description": "File type"
+      },
+      "description": {
+        "type": "string",
+        "description": "Source description"
+      },
+      "row_count": {
+        "type": "integer",
+        "description": "Total number of rows"
+      },
+      "columns": {
+        "type": "array",
+        "description": "Column information",
+        "items": {
+          "type": "object",
+          "properties": {
+            "column_name": {
+              "type": "string"
+            },
+            "data_type": {
+              "type": "string"
+            },
+            "nullable": {
+              "type": "string"
+            },
+            "key": {
+              "type": ["string", "null"]
+            }
+          }
+        }
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "ISO timestamp"
+      }
+    },
+    "required": ["success", "source_name", "row_count", "columns"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "category": "Data Query",
+    "tags": ["sql", "schema", "describe", "metadata", "columns", "duckdb"],
+    "rateLimit": 100,
+    "cacheTTL": 1800,
+    "dependencies": ["duckdb"],
+    "note": "Provides comprehensive data source information including schema and statistics",
+    "examples": [
+      {
+        "description": "Describe customers table",
+        "input": {
+          "source_name": "customers"
+        }
+      },
+      {
+        "description": "Get sales data details",
+        "input": {
+          "source_name": "sales"
+        }
+      }
+    ],
+    "useCases": [
+      "Understanding data structure",
+      "Schema validation",
+      "Data profiling",
+      "Documentation generation",
+      "Query planning"
+    ],
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha"
+  }
+}

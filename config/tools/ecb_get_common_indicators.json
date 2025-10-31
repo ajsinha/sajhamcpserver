@@ -1,0 +1,162 @@
+{
+  "name": "ecb_get_common_indicators",
+  "implementation": "tools.impl.european_central_bank_tool_refactored.ECBGetCommonIndicatorsTool",
+  "description": "Retrieve a dashboard of key Euro Area economic indicators with their latest values in a single API call. Optimized for economic overview displays.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "indicators": {
+        "type": "array",
+        "description": "Specific indicators to retrieve. If omitted, returns default set of key indicators (eur_usd, main_refinancing_rate, bond_10y, hicp_overall, unemployment_rate).",
+        "items": {
+          "type": "string",
+          "enum": [
+            "eur_usd", "eur_gbp",
+            "main_refinancing_rate", "deposit_facility_rate",
+            "bond_2y", "bond_5y", "bond_10y",
+            "hicp_overall", "hicp_core",
+            "gdp", "unemployment_rate",
+            "m1", "m2", "m3"
+          ]
+        },
+        "minItems": 1,
+        "maxItems": 20,
+        "uniqueItems": true
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "indicators": {
+        "type": "object",
+        "description": "Key economic indicators with their latest values",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "flow": {
+              "type": "string",
+              "description": "ECB data flow"
+            },
+            "key": {
+              "type": "string",
+              "description": "ECB series key"
+            },
+            "description": {
+              "type": "string",
+              "description": "Indicator description"
+            },
+            "value": {
+              "type": ["number", "null"],
+              "description": "Latest value of the indicator"
+            },
+            "date": {
+              "type": "string",
+              "description": "Date of the latest value"
+            },
+            "error": {
+              "type": "string",
+              "description": "Error message if this indicator could not be retrieved"
+            }
+          }
+        }
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when this data was retrieved (ISO 8601 format)",
+        "format": "date-time"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["dashboard", "summary", "indicators", "overview", "batch", "snapshot", "ecb", "eurozone"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Batch operation that retrieves multiple indicators in one call. More efficient than calling ecb_get_latest multiple times. All values share the same retrieval timestamp.",
+    "examples": [
+      {
+        "description": "Get default Euro Area economic dashboard (5 key indicators)",
+        "input": {}
+      },
+      {
+        "description": "Custom FX dashboard (multiple currencies)",
+        "input": {
+          "indicators": ["eur_usd", "eur_gbp"]
+        }
+      },
+      {
+        "description": "ECB policy rates overview",
+        "input": {
+          "indicators": ["main_refinancing_rate", "deposit_facility_rate"]
+        }
+      },
+      {
+        "description": "Yield curve snapshot",
+        "input": {
+          "indicators": ["bond_2y", "bond_5y", "bond_10y"]
+        }
+      },
+      {
+        "description": "Inflation analysis",
+        "input": {
+          "indicators": ["hicp_overall", "hicp_core"]
+        }
+      },
+      {
+        "description": "Complete economic snapshot",
+        "input": {
+          "indicators": [
+            "eur_usd",
+            "main_refinancing_rate",
+            "bond_10y",
+            "hicp_overall",
+            "gdp",
+            "unemployment_rate"
+          ]
+        }
+      }
+    ],
+    "useCases": [
+      "Economic dashboards",
+      "Market overview displays",
+      "Morning briefing reports",
+      "Executive summaries",
+      "Trading terminal widgets",
+      "Mobile app home screens",
+      "Email alerts with multiple indicators",
+      "PowerPoint slides with key metrics"
+    ],
+    "performanceNotes": {
+      "batchEfficiency": "Retrieves N indicators with N API calls but returns consistent timestamp",
+      "vsIndividualCalls": "Same API calls as calling ecb_get_latest N times, but unified response format",
+      "recommendation": "Use for 2+ indicators to get consistent snapshot timestamp",
+      "errorHandling": "Individual indicator failures don't stop other indicators from being retrieved"
+    },
+    "defaultIndicators": [
+      {
+        "indicator": "eur_usd",
+        "rationale": "Most widely watched FX rate for Euro Area"
+      },
+      {
+        "indicator": "main_refinancing_rate",
+        "rationale": "Primary ECB policy rate"
+      },
+      {
+        "indicator": "bond_10y",
+        "rationale": "Benchmark for long-term interest rates"
+      },
+      {
+        "indicator": "hicp_overall",
+        "rationale": "Primary inflation measure (ECB targets 2%)"
+      },
+      {
+        "indicator": "unemployment_rate",
+        "rationale": "Key labor market indicator"
+      }
+    ]
+  }
+}

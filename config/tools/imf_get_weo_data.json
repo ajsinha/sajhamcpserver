@@ -1,0 +1,91 @@
+{
+  "name": "imf_get_weo_data",
+  "implementation": "tools.impl.imf_tool_refactored.IMFGetWEODataTool",
+  "description": "Retrieve World Economic Outlook (WEO) data including GDP growth, inflation, unemployment, fiscal balance, public debt, and other macroeconomic indicators.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "country_code": {
+        "type": "string",
+        "description": "ISO 2-letter country code"
+      },
+      "indicator": {
+        "type": "string",
+        "description": "Common WEO indicator name",
+        "enum": ["gdp_growth", "gdp_per_capita", "inflation_avg", "inflation_eop", "unemployment", "current_account", "fiscal_balance", "public_debt", "exports_volume", "imports_volume", "population"]
+      },
+      "indicator_code": {
+        "type": "string",
+        "description": "WEO indicator code"
+      },
+      "start_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2030
+      },
+      "end_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2030
+      }
+    },
+    "required": ["country_code"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "database": {"type": "string"},
+      "country_code": {"type": "string"},
+      "indicator_code": {"type": "string"},
+      "frequency": {"type": "string"},
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "period": {"type": "string"},
+            "value": {"type": ["number", "null"]}
+          }
+        }
+      },
+      "count": {"type": "integer"}
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["imf", "weo", "gdp", "growth", "forecasts", "macroeconomics"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "World Economic Outlook provides macroeconomic indicators and forecasts from the IMF.",
+    "examples": [
+      {
+        "description": "Get US GDP growth",
+        "input": {
+          "country_code": "US",
+          "indicator": "gdp_growth",
+          "start_year": 2020
+        }
+      },
+      {
+        "description": "Get China inflation",
+        "input": {
+          "country_code": "CN",
+          "indicator": "inflation_avg",
+          "start_year": 2023,
+          "end_year": 2025
+        }
+      }
+    ],
+    "useCases": [
+      "GDP analysis",
+      "Economic growth tracking",
+      "Inflation monitoring",
+      "Fiscal analysis",
+      "Economic forecasting",
+      "Cross-country comparisons"
+    ]
+  }
+}

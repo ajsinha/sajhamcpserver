@@ -1,0 +1,94 @@
+{
+  "name": "imf_get_ifs_data",
+  "implementation": "tools.impl.imf_tool_refactored.IMFGetIFSDataTool",
+  "description": "Retrieve International Financial Statistics (IFS) data including exchange rates, interest rates, prices, monetary aggregates, reserves, and more.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "country_code": {
+        "type": "string",
+        "description": "ISO 2-letter country code"
+      },
+      "indicator": {
+        "type": "string",
+        "description": "Common IFS indicator name",
+        "enum": ["exchange_rate", "exchange_rate_avg", "policy_rate", "treasury_bill_rate", "deposit_rate", "lending_rate", "cpi", "core_cpi", "ppi", "money_supply_m1", "money_supply_m2", "money_supply_m3", "reserve_money", "international_reserves", "gold_reserves", "foreign_reserves", "gdp_current", "gdp_constant", "industrial_production", "exports", "imports", "unemployment_rate"]
+      },
+      "indicator_code": {
+        "type": "string",
+        "description": "IFS indicator code"
+      },
+      "start_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2030
+      },
+      "end_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2030
+      },
+      "frequency": {
+        "type": "string",
+        "enum": ["A", "Q", "M"],
+        "default": "M"
+      }
+    },
+    "required": ["country_code"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "database": {"type": "string"},
+      "country_code": {"type": "string"},
+      "indicator_code": {"type": "string"},
+      "frequency": {"type": "string"},
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "period": {"type": "string"},
+            "value": {"type": ["number", "null"]}
+          }
+        }
+      },
+      "count": {"type": "integer"}
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["imf", "ifs", "financial statistics", "exchange rates", "interest rates"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "International Financial Statistics provides comprehensive financial and monetary data.",
+    "examples": [
+      {
+        "description": "Get US exchange rate",
+        "input": {
+          "country_code": "US",
+          "indicator": "exchange_rate",
+          "start_year": 2024
+        }
+      },
+      {
+        "description": "Get Japan CPI",
+        "input": {
+          "country_code": "JP",
+          "indicator": "cpi",
+          "frequency": "M"
+        }
+      }
+    ],
+    "useCases": [
+      "Exchange rate analysis",
+      "Interest rate tracking",
+      "Inflation monitoring",
+      "Monetary policy research",
+      "Reserve analysis"
+    ]
+  }
+}

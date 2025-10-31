@@ -1,0 +1,79 @@
+{
+  "name": "msdoc_read_excel_sheet",
+  "implementation": "tools.impl.msdoc_tools_tool_refactored.MsDocReadExcelSheetTool",
+  "description": "Read data from a specific worksheet by name or index",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "filename": {
+        "type": "string",
+        "description": "Name of the Excel file"
+      },
+      "sheet_name": {
+        "type": "string",
+        "description": "Name of the sheet to read"
+      },
+      "sheet_index": {
+        "type": "integer",
+        "description": "0-based index of the sheet to read",
+        "minimum": 0
+      },
+      "max_rows": {
+        "type": "integer",
+        "description": "Maximum number of rows to return",
+        "default": 100,
+        "minimum": 1,
+        "maximum": 10000
+      }
+    },
+    "required": ["filename"],
+    "oneOf": [
+      {"required": ["sheet_name"]},
+      {"required": ["sheet_index"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "filename": {"type": "string"},
+      "sheet_name": {"type": "string"},
+      "data": {
+        "type": "array",
+        "description": "Worksheet data",
+        "items": {"type": "array"}
+      },
+      "row_count": {"type": "integer"},
+      "column_count": {"type": "integer"}
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Document Processing",
+    "tags": ["excel", "worksheet", "sheet", "read"],
+    "rateLimit": 60,
+    "cacheTTL": 300,
+    "examples": [
+      {
+        "description": "Read specific sheet by name",
+        "input": {
+          "filename": "sales.xlsx",
+          "sheet_name": "January"
+        }
+      },
+      {
+        "description": "Read second sheet by index",
+        "input": {
+          "filename": "report.xlsx",
+          "sheet_index": 1
+        }
+      }
+    ],
+    "useCases": [
+      "Read specific worksheets",
+      "Extract data from named sheets",
+      "Targeted worksheet access"
+    ]
+  }
+}

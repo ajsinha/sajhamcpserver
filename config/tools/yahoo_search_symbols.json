@@ -1,0 +1,131 @@
+{
+  "name": "yahoo_search_symbols",
+  "implementation": "tools.impl.yahoo_finance_tool.YahooSearchSymbolsTool",
+  "description": "Search for stock symbols and companies by name, ticker, or keyword. Returns matching securities with their symbols and basic info.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Search query - company name, ticker symbol, or keyword (e.g., 'Apple', 'AAPL', 'electric vehicles')",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of results to return",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 10
+      },
+      "exchange": {
+        "type": "string",
+        "description": "Filter by exchange (optional)",
+        "enum": ["NYSE", "NASDAQ", "AMEX", "LSE", "TSX", "all"],
+        "default": "all"
+      }
+    },
+    "required": ["query"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Original search query"
+      },
+      "result_count": {
+        "type": "integer",
+        "description": "Number of results returned"
+      },
+      "results": {
+        "type": "array",
+        "description": "List of matching securities",
+        "items": {
+          "type": "object",
+          "properties": {
+            "symbol": {
+              "type": "string",
+              "description": "Stock ticker symbol"
+            },
+            "name": {
+              "type": "string",
+              "description": "Company or security name"
+            },
+            "exchange": {
+              "type": "string",
+              "description": "Stock exchange (e.g., NASDAQ, NYSE)"
+            },
+            "type": {
+              "type": "string",
+              "description": "Security type",
+              "enum": ["EQUITY", "ETF", "INDEX", "MUTUALFUND", "CRYPTOCURRENCY", "FUTURE", "CURRENCY"]
+            },
+            "sector": {
+              "type": ["string", "null"],
+              "description": "Industry sector"
+            },
+            "industry": {
+              "type": ["string", "null"],
+              "description": "Specific industry"
+            },
+            "market_cap": {
+              "type": ["number", "null"],
+              "description": "Market capitalization"
+            },
+            "description": {
+              "type": ["string", "null"],
+              "description": "Brief company description"
+            }
+          },
+          "required": ["symbol", "name"]
+        }
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when search was performed (ISO format)"
+      }
+    },
+    "required": ["query", "results"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Financial Data",
+    "tags": ["finance", "stocks", "search", "symbols", "tickers", "discovery"],
+    "rateLimit": 60,
+    "cacheTTL": 3600,
+    "note": "Search Yahoo Finance for stock symbols, ETFs, and other securities. Useful for discovering ticker symbols from company names.",
+    "examples": [
+      {
+        "description": "Search for Apple stock",
+        "input": {
+          "query": "Apple"
+        }
+      },
+      {
+        "description": "Search for electric vehicle companies",
+        "input": {
+          "query": "electric vehicle",
+          "limit": 20
+        }
+      },
+      {
+        "description": "Find NASDAQ-listed semiconductor companies",
+        "input": {
+          "query": "semiconductor",
+          "exchange": "NASDAQ",
+          "limit": 15
+        }
+      }
+    ],
+    "useCases": [
+      "Symbol discovery",
+      "Company research",
+      "Building watchlists",
+      "Sector exploration",
+      "Competitor analysis"
+    ]
+  }
+}

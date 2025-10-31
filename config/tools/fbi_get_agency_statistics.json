@@ -1,0 +1,136 @@
+{
+  "name": "fbi_get_agency_statistics",
+  "implementation": "tools.impl.fbi_tool_refactored.FBIGetAgencyStatisticsTool",
+  "description": "Retrieve crime statistics for a specific law enforcement agency using ORI code",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "ori": {
+        "type": "string",
+        "description": "Originating Agency Identifier (ORI) code (e.g., 'CA0190000' for LAPD)",
+        "pattern": "^[A-Z]{2}[0-9]{7}$"
+      },
+      "offense_type": {
+        "type": "string",
+        "description": "Type of crime offense to retrieve",
+        "enum": [
+          "violent_crime",
+          "homicide",
+          "rape",
+          "robbery",
+          "aggravated_assault",
+          "property_crime",
+          "burglary",
+          "larceny",
+          "motor_vehicle_theft",
+          "arson"
+        ]
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year for crime statistics (e.g., 2022)",
+        "minimum": 1960,
+        "maximum": 2024
+      },
+      "per_capita": {
+        "type": "boolean",
+        "description": "Return statistics per capita (per 100,000 population)",
+        "default": false
+      }
+    },
+    "required": ["ori", "offense_type"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "ori": {
+        "type": "string",
+        "description": "Agency ORI code"
+      },
+      "agency_name": {
+        "type": "string",
+        "description": "Full name of the law enforcement agency"
+      },
+      "agency_type": {
+        "type": "string",
+        "description": "Type of agency (e.g., city, county, state)"
+      },
+      "state": {
+        "type": "string",
+        "description": "State where agency is located"
+      },
+      "offense_type": {
+        "type": "string",
+        "description": "Type of crime offense"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year of statistics"
+      },
+      "agency_data": {
+        "type": "object",
+        "properties": {
+          "total_incidents": {
+            "type": "integer",
+            "description": "Total incidents reported by agency"
+          },
+          "rate_per_100k": {
+            "type": "number",
+            "description": "Crime rate per 100,000 in jurisdiction"
+          },
+          "jurisdiction_population": {
+            "type": "integer",
+            "description": "Population served by the agency"
+          },
+          "months_reported": {
+            "type": "integer",
+            "description": "Number of months agency reported data"
+          }
+        }
+      },
+      "comparison": {
+        "type": "object",
+        "properties": {
+          "state_rate": {
+            "type": "number",
+            "description": "State average rate"
+          },
+          "national_rate": {
+            "type": "number",
+            "description": "National average rate"
+          }
+        }
+      }
+    },
+    "required": ["ori", "agency_name", "offense_type", "year", "agency_data"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Crime Statistics",
+    "tags": ["crime", "fbi", "agency", "police", "ucr"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Retrieves agency-specific crime statistics with state and national comparison",
+    "examples": [
+      {
+        "description": "Get LAPD violent crime statistics",
+        "input": {
+          "ori": "CA0190000",
+          "offense_type": "violent_crime",
+          "year": 2022
+        }
+      },
+      {
+        "description": "Get NYPD robbery data per capita",
+        "input": {
+          "ori": "NY0300000",
+          "offense_type": "robbery",
+          "year": 2022,
+          "per_capita": true
+        }
+      }
+    ]
+  }
+}

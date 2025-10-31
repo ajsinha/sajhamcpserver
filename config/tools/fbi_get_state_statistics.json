@@ -1,0 +1,132 @@
+{
+  "name": "fbi_get_state_statistics",
+  "implementation": "tools.impl.fbi_tool_refactored.FBIGetStateStatisticsTool",
+  "description": "Retrieve crime statistics for a specific US state by offense type and year",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "state": {
+        "type": "string",
+        "description": "US State abbreviation (e.g., CA, NY, TX)",
+        "pattern": "^[A-Z]{2}$"
+      },
+      "offense_type": {
+        "type": "string",
+        "description": "Type of crime offense to retrieve",
+        "enum": [
+          "violent_crime",
+          "homicide",
+          "rape",
+          "robbery",
+          "aggravated_assault",
+          "property_crime",
+          "burglary",
+          "larceny",
+          "motor_vehicle_theft",
+          "arson"
+        ]
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year for crime statistics (e.g., 2022)",
+        "minimum": 1960,
+        "maximum": 2024
+      },
+      "per_capita": {
+        "type": "boolean",
+        "description": "Return statistics per capita (per 100,000 population)",
+        "default": false
+      }
+    },
+    "required": ["state", "offense_type"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "state": {
+        "type": "string",
+        "description": "State abbreviation"
+      },
+      "state_name": {
+        "type": "string",
+        "description": "Full state name"
+      },
+      "offense_type": {
+        "type": "string",
+        "description": "Type of crime offense"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year of statistics"
+      },
+      "state_data": {
+        "type": "object",
+        "properties": {
+          "total_incidents": {
+            "type": "integer",
+            "description": "Total incidents in the state"
+          },
+          "rate_per_100k": {
+            "type": "number",
+            "description": "Crime rate per 100,000 population"
+          },
+          "state_population": {
+            "type": "integer",
+            "description": "State population for the year"
+          },
+          "reporting_agencies": {
+            "type": "integer",
+            "description": "Number of agencies reporting in state"
+          },
+          "national_rank": {
+            "type": "integer",
+            "description": "State's rank compared to other states (1=highest)"
+          }
+        }
+      },
+      "comparison": {
+        "type": "object",
+        "properties": {
+          "national_rate": {
+            "type": "number",
+            "description": "National average rate per 100,000"
+          },
+          "percent_of_national": {
+            "type": "number",
+            "description": "State rate as percentage of national rate"
+          }
+        }
+      }
+    },
+    "required": ["state", "offense_type", "year", "state_data"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Crime Statistics",
+    "tags": ["crime", "fbi", "statistics", "state", "ucr"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Retrieves state-level crime statistics with national comparison",
+    "examples": [
+      {
+        "description": "Get California violent crime stats for 2022",
+        "input": {
+          "state": "CA",
+          "offense_type": "violent_crime",
+          "year": 2022
+        }
+      },
+      {
+        "description": "Compare Texas property crime to national average",
+        "input": {
+          "state": "TX",
+          "offense_type": "property_crime",
+          "year": 2022,
+          "per_capita": true
+        }
+      }
+    ]
+  }
+}

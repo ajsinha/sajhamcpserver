@@ -28,6 +28,7 @@ class BaseMCPTool(ABC):
         self._version = self.config.get('version', '1.0.0')
         self._enabled = self.config.get('enabled', True)
         self._input_schema = self.config.get('inputSchema', {})
+        self._output_schema = self.config.get('outputSchema', {})
         self._metadata = self.config.get('metadata', {})
         self._execution_count = 0
         self._last_execution = None
@@ -59,7 +60,14 @@ class BaseMCPTool(ABC):
         if not self._input_schema:
             return self.get_input_schema()
         return self._input_schema
-    
+
+    @property
+    def output_schema(self) -> Dict:
+        if not self._output_schema:
+            return self.get_output_schema()
+        return self._output_schema
+
+
     def enable(self):
         """Enable the tool"""
         self._enabled = True
@@ -92,7 +100,18 @@ class BaseMCPTool(ABC):
             JSON schema dictionary
         """
         pass
-    
+
+    @abstractmethod
+    def get_output_schema(self) -> Dict:
+        """
+            Get the JSON schema for tool outputs
+
+            Returns:
+                JSON schema dictionary
+            """
+        pass
+
+
     def validate_arguments(self, arguments: Dict[str, Any]) -> bool:
         """
         Validate arguments against input schema

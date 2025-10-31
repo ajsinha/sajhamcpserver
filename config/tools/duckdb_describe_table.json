@@ -1,0 +1,112 @@
+{
+  "name": "duckdb_describe_table",
+  "implementation": "tools.impl.duckdb_olap_tools_refactored.DuckDbDescribeTableTool",
+  "description": "Get detailed schema information for a specific table or view including column types and constraints",
+  "version": "1.0.0",
+  "enabled": true,
+  "data_directory": "data/duckdb",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "table_name": {
+        "type": "string",
+        "description": "Name of table or view to describe",
+        "minLength": 1
+      },
+      "include_sample_data": {
+        "type": "boolean",
+        "description": "Include sample rows from the table",
+        "default": false
+      },
+      "sample_size": {
+        "type": "integer",
+        "description": "Number of sample rows to return (if include_sample_data is true)",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 5
+      }
+    },
+    "required": ["table_name"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "table_name": {
+        "type": "string",
+        "description": "Name of the table"
+      },
+      "table_type": {
+        "type": "string",
+        "description": "Type of object (table, view, external)",
+        "enum": ["table", "view", "external"]
+      },
+      "columns": {
+        "type": "array",
+        "description": "Column schema information",
+        "items": {
+          "type": "object",
+          "properties": {
+            "column_name": {
+              "type": "string",
+              "description": "Name of the column"
+            },
+            "data_type": {
+              "type": "string",
+              "description": "DuckDB data type (e.g., INTEGER, VARCHAR, DOUBLE)"
+            },
+            "nullable": {
+              "type": "boolean",
+              "description": "Whether column allows NULL values"
+            },
+            "default_value": {
+              "type": ["string", "null"],
+              "description": "Default value for the column (if any)"
+            },
+            "is_primary_key": {
+              "type": "boolean",
+              "description": "Whether column is part of primary key"
+            }
+          },
+          "required": ["column_name", "data_type"]
+        }
+      },
+      "row_count": {
+        "type": "integer",
+        "description": "Total number of rows in the table"
+      },
+      "sample_data": {
+        "type": "array",
+        "description": "Sample rows from the table (if requested)",
+        "items": {
+          "type": "object",
+          "description": "Row data as key-value pairs"
+        }
+      }
+    },
+    "required": ["table_name", "table_type", "columns", "row_count"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Data Analytics",
+    "tags": ["duckdb", "schema", "describe", "metadata"],
+    "rateLimit": 60,
+    "cacheTTL": 60,
+    "note": "Provides detailed schema information for tables and views",
+    "examples": [
+      {
+        "description": "Get schema for sales table",
+        "input": {
+          "table_name": "sales"
+        }
+      },
+      {
+        "description": "Describe table with sample data",
+        "input": {
+          "table_name": "customers",
+          "include_sample_data": true,
+          "sample_size": 10
+        }
+      }
+    ]
+  }
+}

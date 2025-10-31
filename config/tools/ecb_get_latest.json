@@ -1,0 +1,106 @@
+{
+  "name": "ecb_get_latest",
+  "implementation": "tools.impl.european_central_bank_tool_refactored.ECBGetLatestTool",
+  "description": "Retrieve the most recent observation for any European Central Bank data series. Optimized for single-value queries with minimal response payload.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "flow": {
+        "type": "string",
+        "description": "ECB data flow identifier (e.g., 'EXR', 'FM', 'ICP')"
+      },
+      "key": {
+        "type": "string",
+        "description": "ECB series key"
+      },
+      "indicator": {
+        "type": "string",
+        "description": "Common indicator shorthand",
+        "enum": [
+          "eur_usd", "eur_gbp", "eur_jpy", "eur_cny", "eur_chf",
+          "main_refinancing_rate", "deposit_facility_rate", "marginal_lending_rate", "eonia", "ester",
+          "bond_2y", "bond_5y", "bond_10y",
+          "hicp_overall", "hicp_core", "hicp_energy",
+          "gdp", "m1", "m2", "m3", "unemployment_rate"
+        ]
+      }
+    },
+    "oneOf": [
+      {"required": ["flow", "key"]},
+      {"required": ["indicator"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "flow": {
+        "type": "string",
+        "description": "ECB data flow identifier"
+      },
+      "key": {
+        "type": "string",
+        "description": "ECB series key"
+      },
+      "series_name": {
+        "type": "string",
+        "description": "Series identifier"
+      },
+      "description": {
+        "type": "string",
+        "description": "Series description"
+      },
+      "date": {
+        "type": "string",
+        "description": "Date of the latest observation"
+      },
+      "value": {
+        "type": ["number", "null"],
+        "description": "Latest observation value"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["current", "latest", "real-time", "ecb", "eurozone", "snapshot"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Optimized for dashboard and real-time displays. Returns only the most recent value with minimal payload size.",
+    "examples": [
+      {
+        "description": "Get current EUR/USD exchange rate",
+        "input": {
+          "indicator": "eur_usd"
+        }
+      },
+      {
+        "description": "Get current ECB main refinancing rate",
+        "input": {
+          "indicator": "main_refinancing_rate"
+        }
+      },
+      {
+        "description": "Get latest HICP overall inflation",
+        "input": {
+          "flow": "ICP",
+          "key": "M.U2.N.000000.4.ANR"
+        }
+      }
+    ],
+    "useCases": [
+      "Real-time dashboards",
+      "Economic indicator displays",
+      "Trading terminals",
+      "Mobile apps (reduced data)",
+      "Status checks",
+      "Alerting systems"
+    ],
+    "performanceNotes": {
+      "responseSize": "~200 bytes (vs ~2KB for time series)",
+      "apiCalls": "1 per request",
+      "cacheRecommendation": "Cache for 1 hour for non-critical use cases"
+    }
+  }
+}

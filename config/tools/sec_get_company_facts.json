@@ -1,0 +1,88 @@
+{
+  "name": "sec_get_company_facts",
+  "implementation": "tools.impl.sec_edgar_tool_refactored.SECGetCompanyFactsTool",
+  "description": "Retrieve all XBRL financial facts reported by a company in structured format",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key (CIK) - 10 digit company identifier"
+      },
+      "ticker": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      }
+    },
+    "oneOf": [
+      {"required": ["cik"]},
+      {"required": ["ticker"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "10-digit Central Index Key"
+      },
+      "entity_name": {
+        "type": "string",
+        "description": "Company entity name"
+      },
+      "facts": {
+        "type": "object",
+        "description": "XBRL facts organized by taxonomy (us-gaap, dei, etc.)",
+        "additionalProperties": {
+          "type": "object",
+          "description": "Facts for a specific taxonomy containing hundreds of financial metrics"
+        }
+      }
+    },
+    "required": ["cik", "entity_name", "facts"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Financial Data",
+    "tags": ["sec", "edgar", "xbrl", "facts", "financial", "structured data", "gaap"],
+    "rateLimit": 10,
+    "cacheTTL": 3600,
+    "note": "Returns comprehensive XBRL financial data. Can be large (megabytes). Use sec_get_financial_data for specific metrics.",
+    "examples": [
+      {
+        "description": "Get all XBRL facts for Apple",
+        "input": {
+          "ticker": "AAPL"
+        }
+      },
+      {
+        "description": "Get structured financial data for Tesla",
+        "input": {
+          "ticker": "TSLA"
+        }
+      },
+      {
+        "description": "Get company facts by CIK",
+        "input": {
+          "cik": "0000789019"
+        }
+      }
+    ],
+    "taxonomies": {
+      "us-gaap": "Generally Accepted Accounting Principles (GAAP) metrics",
+      "dei": "Document and Entity Information",
+      "invest": "Investment company facts",
+      "srt": "SEC Reporting Taxonomy"
+    },
+    "useCases": [
+      "Comprehensive financial data extraction",
+      "Build custom financial models",
+      "Time-series financial analysis",
+      "Historical financial trending",
+      "XBRL data processing"
+    ],
+    "warning": "This endpoint returns ALL financial facts and can be very large (>5MB). Consider using sec_get_financial_data for specific metrics."
+  }
+}

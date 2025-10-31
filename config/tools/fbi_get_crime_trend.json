@@ -1,0 +1,172 @@
+{
+  "name": "fbi_get_crime_trend",
+  "implementation": "tools.impl.fbi_tool_refactored.FBIGetCrimeTrendTool",
+  "description": "Analyze crime trends over time for specified offense types and jurisdictions",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "offense_type": {
+        "type": "string",
+        "description": "Type of crime offense to analyze",
+        "enum": [
+          "violent_crime",
+          "homicide",
+          "rape",
+          "robbery",
+          "aggravated_assault",
+          "property_crime",
+          "burglary",
+          "larceny",
+          "motor_vehicle_theft",
+          "arson"
+        ]
+      },
+      "start_year": {
+        "type": "integer",
+        "description": "Start year for trend analysis",
+        "minimum": 1960,
+        "maximum": 2024
+      },
+      "end_year": {
+        "type": "integer",
+        "description": "End year for trend analysis",
+        "minimum": 1960,
+        "maximum": 2024
+      },
+      "state": {
+        "type": "string",
+        "description": "Optional: Filter by US State abbreviation for state-level trends",
+        "pattern": "^[A-Z]{2}$"
+      },
+      "ori": {
+        "type": "string",
+        "description": "Optional: Analyze trends for specific agency by ORI code",
+        "pattern": "^[A-Z]{2}[0-9]{7}$"
+      },
+      "per_capita": {
+        "type": "boolean",
+        "description": "Analyze trends using per capita rates (per 100,000)",
+        "default": true
+      }
+    },
+    "required": ["offense_type", "start_year", "end_year"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "offense_type": {
+        "type": "string",
+        "description": "Type of crime offense analyzed"
+      },
+      "scope": {
+        "type": "string",
+        "description": "Geographic scope of analysis",
+        "enum": ["national", "state", "agency"]
+      },
+      "time_period": {
+        "type": "object",
+        "properties": {
+          "start_year": {
+            "type": "integer",
+            "description": "Start year of analysis"
+          },
+          "end_year": {
+            "type": "integer",
+            "description": "End year of analysis"
+          },
+          "years_analyzed": {
+            "type": "integer",
+            "description": "Number of years in the time series"
+          }
+        }
+      },
+      "time_series": {
+        "type": "array",
+        "description": "Year-by-year data points",
+        "items": {
+          "type": "object",
+          "properties": {
+            "year": {
+              "type": "integer",
+              "description": "Year"
+            },
+            "total_incidents": {
+              "type": "integer",
+              "description": "Total incidents for the year"
+            },
+            "rate_per_100k": {
+              "type": "number",
+              "description": "Rate per 100,000 population"
+            },
+            "percent_change": {
+              "type": "number",
+              "description": "Percent change from previous year"
+            }
+          }
+        }
+      },
+      "trend_analysis": {
+        "type": "object",
+        "properties": {
+          "overall_change": {
+            "type": "number",
+            "description": "Total percent change from start to end year"
+          },
+          "average_annual_change": {
+            "type": "number",
+            "description": "Average percent change per year"
+          },
+          "direction": {
+            "type": "string",
+            "description": "Overall trend direction",
+            "enum": ["increasing", "decreasing", "stable"]
+          },
+          "peak_year": {
+            "type": "integer",
+            "description": "Year with highest rate"
+          },
+          "lowest_year": {
+            "type": "integer",
+            "description": "Year with lowest rate"
+          },
+          "volatility": {
+            "type": "string",
+            "description": "Measure of trend stability",
+            "enum": ["high", "medium", "low"]
+          }
+        }
+      }
+    },
+    "required": ["offense_type", "scope", "time_period", "time_series", "trend_analysis"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Crime Statistics",
+    "tags": ["crime", "fbi", "trend", "analysis", "time series"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Analyze historical crime trends with statistical analysis over specified time periods",
+    "examples": [
+      {
+        "description": "Analyze national violent crime trends 2010-2022",
+        "input": {
+          "offense_type": "violent_crime",
+          "start_year": 2010,
+          "end_year": 2022,
+          "per_capita": true
+        }
+      },
+      {
+        "description": "Track California property crime trends",
+        "input": {
+          "offense_type": "property_crime",
+          "state": "CA",
+          "start_year": 2015,
+          "end_year": 2022
+        }
+      }
+    ]
+  }
+}

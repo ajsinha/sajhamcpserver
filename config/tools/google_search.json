@@ -1,11 +1,9 @@
 {
   "name": "google_search",
-  "type": "google_search",
-  "description": "Search the web using Google",
+  "implementation": "tools.impl.google_search_tool_refactored.GoogleSearchTool",
+  "description": "Search the web using Google Custom Search API. Find web pages, images, and information across the internet with Google's powerful search technology.",
   "version": "1.0.0",
   "enabled": true,
-  "api_key": "",
-  "search_engine_id": "",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -35,22 +33,138 @@
       "search_type": {
         "type": "string",
         "description": "Type of search",
-        "enum": ["web", "image", "video"],
+        "enum": ["web", "image"],
         "default": "web"
       },
       "site": {
         "type": "string",
-        "description": "Restrict search to specific site (e.g., wikipedia.org)"
+        "description": "Restrict search to specific site (e.g., 'wikipedia.org', 'github.com')"
+      },
+      "date_restrict": {
+        "type": "string",
+        "description": "Restrict results by date (e.g., 'd7' for past week, 'm3' for past 3 months, 'y1' for past year)"
+      },
+      "language": {
+        "type": "string",
+        "description": "Language of results (e.g., 'en', 'es', 'fr', 'de', 'ja')",
+        "default": "en"
       }
     },
     "required": ["query"]
   },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Search query used"
+      },
+      "totalResults": {
+        "type": "string",
+        "description": "Estimated total number of results"
+      },
+      "searchTime": {
+        "type": "number",
+        "description": "Time taken to execute search (seconds)"
+      },
+      "count": {
+        "type": "integer",
+        "description": "Number of results returned in this response"
+      },
+      "results": {
+        "type": "array",
+        "description": "Search results",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "Page title"
+            },
+            "link": {
+              "type": "string",
+              "description": "Page URL"
+            },
+            "snippet": {
+              "type": "string",
+              "description": "Page snippet/description"
+            },
+            "displayLink": {
+              "type": "string",
+              "description": "Display URL domain"
+            },
+            "image": {
+              "type": "object",
+              "description": "Image information (for image search only)",
+              "properties": {
+                "thumbnailLink": {
+                  "type": "string"
+                },
+                "contextLink": {
+                  "type": "string"
+                },
+                "height": {
+                  "type": "integer"
+                },
+                "width": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "required": ["title", "link", "snippet"]
+        }
+      }
+    },
+    "required": ["query", "count", "results"]
+  },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Web Search",
-    "tags": ["search", "google", "web"],
+    "tags": ["google", "search", "web", "internet", "information retrieval"],
     "rateLimit": 100,
     "cacheTTL": 3600,
-    "note": "Requires Google Custom Search API key and Search Engine ID for production use"
+    "note": "Requires Google Custom Search API key and Search Engine ID. Create at https://developers.google.com/custom-search",
+    "examples": [
+      {
+        "description": "Basic web search",
+        "input": {
+          "query": "artificial intelligence trends 2025"
+        }
+      },
+      {
+        "description": "Search within a specific site",
+        "input": {
+          "query": "machine learning",
+          "site": "wikipedia.org"
+        }
+      },
+      {
+        "description": "Recent news search",
+        "input": {
+          "query": "climate change policy",
+          "date_restrict": "m1",
+          "num_results": 5
+        }
+      },
+      {
+        "description": "Image search",
+        "input": {
+          "query": "golden gate bridge",
+          "search_type": "image",
+          "num_results": 5
+        }
+      }
+    ],
+    "useCases": [
+      "Web information retrieval",
+      "Research and fact-checking",
+      "News monitoring",
+      "Image search",
+      "Site-specific searches",
+      "Content discovery",
+      "Competitive intelligence",
+      "Market research"
+    ]
   }
 }

@@ -1,0 +1,112 @@
+{
+  "name": "imf_compare_countries",
+  "implementation": "tools.impl.imf_tool_refactored.IMFCompareCountriesTool",
+  "description": "Compare economic indicators across multiple countries for cross-country analysis. Perfect for benchmarking and comparative studies.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "country_codes": {
+        "type": "array",
+        "description": "List of ISO 2-letter country codes (minimum 2)",
+        "items": {"type": "string"},
+        "minItems": 2
+      },
+      "database": {
+        "type": "string",
+        "description": "IMF database to use",
+        "enum": ["IFS", "DOT", "BOP", "GFSR", "FSI", "WEO", "GFSMAB", "CDIS", "CPIS", "WHDREO"],
+        "default": "IFS"
+      },
+      "indicator": {
+        "type": "string",
+        "description": "Common indicator name"
+      },
+      "indicator_code": {
+        "type": "string",
+        "description": "Specific indicator code"
+      },
+      "start_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2030
+      },
+      "end_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2030
+      },
+      "frequency": {
+        "type": "string",
+        "enum": ["A", "Q", "M"],
+        "default": "A"
+      }
+    },
+    "required": ["country_codes"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "database": {"type": "string"},
+      "indicator_code": {"type": "string"},
+      "frequency": {"type": "string"},
+      "countries": {
+        "type": "array",
+        "description": "Data for each country",
+        "items": {
+          "type": "object",
+          "properties": {
+            "country_code": {"type": "string"},
+            "data": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "period": {"type": "string"},
+                  "value": {"type": ["number", "null"]}
+                }
+              }
+            },
+            "error": {"type": "string"}
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["imf", "comparison", "cross-country", "benchmarking"],
+    "rateLimit": 100,
+    "cacheTTL": 3600,
+    "note": "Compare economic indicators across countries for benchmarking and analysis.",
+    "examples": [
+      {
+        "description": "Compare GDP growth across G7",
+        "input": {
+          "country_codes": ["US", "CA", "GB", "FR", "DE", "IT", "JP"],
+          "database": "WEO",
+          "indicator": "gdp_growth",
+          "start_year": 2020
+        }
+      },
+      {
+        "description": "Compare emerging markets inflation",
+        "input": {
+          "country_codes": ["CN", "IN", "BR"],
+          "database": "WEO",
+          "indicator": "inflation_avg",
+          "start_year": 2023
+        }
+      }
+    ],
+    "useCases": [
+      "Cross-country analysis",
+      "Benchmarking",
+      "Regional comparisons",
+      "Policy evaluation",
+      "Investment research"
+    ]
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "name": "msdoc_list_files",
+  "implementation": "tools.impl.msdoc_tools_tool_refactored.MsDocListFilesTool",
+  "description": "List all Word and Excel documents in the configured docs directory",
+  "version": "1.0.0",
+  "enabled": true,
+  "docs_directory": "data/msdocs",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "file_type": {
+        "type": "string",
+        "description": "Type of files to list",
+        "enum": ["all", "word", "excel"],
+        "default": "all"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "directory": {"type": "string"},
+      "file_type": {"type": "string"},
+      "count": {"type": "integer"},
+      "files": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "filename": {"type": "string"},
+            "path": {"type": "string"},
+            "extension": {"type": "string"},
+            "size": {"type": "integer"},
+            "modified": {"type": "number"}
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Document Processing",
+    "tags": ["microsoft", "word", "excel", "files", "list"],
+    "rateLimit": 60,
+    "cacheTTL": 60,
+    "examples": [
+      {
+        "description": "List all documents",
+        "input": {"file_type": "all"}
+      },
+      {
+        "description": "List only Word documents",
+        "input": {"file_type": "word"}
+      },
+      {
+        "description": "List only Excel spreadsheets",
+        "input": {"file_type": "excel"}
+      }
+    ],
+    "useCases": [
+      "Discover available documents",
+      "File inventory management",
+      "Document type filtering"
+    ]
+  }
+}

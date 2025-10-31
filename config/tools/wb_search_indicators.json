@@ -1,0 +1,143 @@
+{
+  "name": "wb_search_indicators",
+  "implementation": "tools.impl.world_bank_tool.WBSearchIndicatorsTool",
+  "description": "Search World Bank indicators by keyword or topic. Find relevant indicators by searching through names and descriptions.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "search_term": {
+        "type": "string",
+        "description": "Keyword or phrase to search for in indicator names and descriptions (e.g., 'education', 'carbon', 'poverty', 'trade')",
+        "minLength": 2,
+        "maxLength": 100
+      },
+      "topic_id": {
+        "type": "integer",
+        "description": "Filter by topic ID (1=Agriculture, 3=Economy & Growth, 4=Education, 5=Energy, 6=Environment, 8=Health, 11=Poverty, 17=Gender, 19=Climate Change)",
+        "minimum": 1,
+        "maximum": 21
+      },
+      "per_page": {
+        "type": "integer",
+        "description": "Number of results per page",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 50
+      },
+      "page": {
+        "type": "integer",
+        "description": "Page number for pagination",
+        "minimum": 1,
+        "default": 1
+      }
+    },
+    "required": ["search_term"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "search_term": {
+        "type": "string",
+        "description": "Search query used"
+      },
+      "total_results": {
+        "type": "integer",
+        "description": "Total number of matching indicators"
+      },
+      "page": {
+        "type": "integer",
+        "description": "Current page number"
+      },
+      "per_page": {
+        "type": "integer",
+        "description": "Results per page"
+      },
+      "results": {
+        "type": "array",
+        "description": "Matching indicators",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Indicator code"
+            },
+            "name": {
+              "type": "string",
+              "description": "Indicator name"
+            },
+            "source_note": {
+              "type": "string",
+              "description": "Detailed description"
+            },
+            "source_organization": {
+              "type": "string",
+              "description": "Data source organization"
+            },
+            "topics": {
+              "type": "array",
+              "description": "Related topics",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {"type": "string"},
+                  "value": {"type": "string"}
+                }
+              }
+            },
+            "relevance_score": {
+              "type": "number",
+              "description": "Search relevance score (0-1)"
+            }
+          },
+          "required": ["id", "name"]
+        }
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when search was performed (ISO format)"
+      }
+    },
+    "required": ["search_term", "results"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["world bank", "search", "indicators", "discovery", "keywords"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Search through World Bank's indicator catalog to find relevant development indicators by keyword. Useful for discovering appropriate indicators for research.",
+    "examples": [
+      {
+        "description": "Search for education indicators",
+        "input": {
+          "search_term": "school enrollment"
+        }
+      },
+      {
+        "description": "Find renewable energy indicators",
+        "input": {
+          "search_term": "renewable energy",
+          "topic_id": 5,
+          "per_page": 20
+        }
+      },
+      {
+        "description": "Search for gender indicators",
+        "input": {
+          "search_term": "female participation",
+          "topic_id": 17
+        }
+      }
+    ],
+    "useCases": [
+      "Indicator discovery",
+      "Research planning",
+      "Finding relevant metrics",
+      "Exploring data availability",
+      "Topic-based searches"
+    ]
+  }
+}

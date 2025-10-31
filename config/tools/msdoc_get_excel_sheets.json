@@ -1,0 +1,53 @@
+{
+  "name": "msdoc_get_excel_sheets",
+  "implementation": "tools.impl.msdoc_tools_tool_refactored.MsDocGetExcelSheetsTool",
+  "description": "List all worksheets in an Excel workbook",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "filename": {
+        "type": "string",
+        "description": "Name of the Excel file"
+      }
+    },
+    "required": ["filename"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "filename": {"type": "string"},
+      "sheets": {
+        "type": "array",
+        "description": "List of worksheets",
+        "items": {
+          "type": "object",
+          "properties": {
+            "index": {"type": "integer", "description": "0-based sheet index"},
+            "name": {"type": "string", "description": "Sheet name"}
+          }
+        }
+      },
+      "count": {"type": "integer", "description": "Total number of sheets"}
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Document Processing",
+    "tags": ["excel", "worksheets", "sheets", "list"],
+    "rateLimit": 60,
+    "cacheTTL": 3600,
+    "examples": [
+      {
+        "description": "List all sheets in workbook",
+        "input": {"filename": "quarterly_report.xlsx"}
+      }
+    ],
+    "useCases": [
+      "Discover workbook structure",
+      "Sheet inventory",
+      "Workbook navigation"
+    ]
+  }
+}

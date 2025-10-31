@@ -1,0 +1,123 @@
+{
+  "name": "ecb_get_series",
+  "implementation": "tools.impl.european_central_bank_tool_refactored.ECBGetSeriesTool",
+  "description": "Retrieve time series economic data from European Central Bank by flow/key or indicator. Supports date ranges and recent periods.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "flow": {
+        "type": "string",
+        "description": "ECB data flow identifier (e.g., 'EXR' for exchange rates, 'FM' for financial markets, 'ICP' for inflation)"
+      },
+      "key": {
+        "type": "string",
+        "description": "ECB series key (e.g., 'D.USD.EUR.SP00.A' for USD/EUR daily)"
+      },
+      "indicator": {
+        "type": "string",
+        "description": "Common indicator shorthand name for convenience",
+        "enum": [
+          "eur_usd", "eur_gbp", "eur_jpy", "eur_cny", "eur_chf",
+          "main_refinancing_rate", "deposit_facility_rate", "marginal_lending_rate", "eonia", "ester",
+          "bond_2y", "bond_5y", "bond_10y",
+          "hicp_overall", "hicp_core", "hicp_energy",
+          "gdp", "m1", "m2", "m3", "unemployment_rate"
+        ]
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date in YYYY-MM-DD format (e.g., '2024-01-01')"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date in YYYY-MM-DD format (e.g., '2024-12-31')"
+      },
+      "recent_periods": {
+        "type": "integer",
+        "description": "Number of most recent observations to retrieve (1-100). Used when start_date and end_date are not specified.",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10
+      }
+    },
+    "oneOf": [
+      {"required": ["flow", "key"]},
+      {"required": ["indicator"]}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "flow": {
+        "type": "string",
+        "description": "ECB data flow identifier"
+      },
+      "key": {
+        "type": "string",
+        "description": "ECB series key"
+      },
+      "series_name": {
+        "type": "string",
+        "description": "Series identifier"
+      },
+      "description": {
+        "type": "string",
+        "description": "Detailed description of the data series"
+      },
+      "observation_count": {
+        "type": "integer",
+        "description": "Number of observations returned"
+      },
+      "observations": {
+        "type": "array",
+        "description": "Time series observations",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Observation date (YYYY-MM-DD format)"
+            },
+            "value": {
+              "type": ["number", "null"],
+              "description": "Observation value (null if not available)"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["economics", "european central bank", "ecb", "eurozone", "time series", "financial data"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "examples": [
+      {
+        "description": "Get recent EUR/USD exchange rates",
+        "input": {
+          "indicator": "eur_usd",
+          "recent_periods": 5
+        }
+      },
+      {
+        "description": "Get main refinancing rate for date range",
+        "input": {
+          "flow": "FM",
+          "key": "B.U2.EUR.4F.KR.MRR_FR.LEV",
+          "start_date": "2024-01-01",
+          "end_date": "2024-12-31"
+        }
+      }
+    ],
+    "useCases": [
+      "Historical data analysis",
+      "Economic trend research",
+      "Custom date range analysis",
+      "Any ECB data series retrieval"
+    ]
+  }
+}

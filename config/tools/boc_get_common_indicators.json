@@ -1,0 +1,196 @@
+{
+  "name": "boc_get_common_indicators",
+  "implementation": "tools.impl.bank_of_canada_tool_refactored.BoCGetCommonIndicatorsTool",
+  "description": "Retrieve a dashboard of key Canadian economic indicators with their latest values in a single API call. Optimized for economic overview displays.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "indicators": {
+        "type": "array",
+        "description": "Specific indicators to retrieve. If omitted, returns default set of key indicators (usd_cad, policy_rate, bond_10y, cpi).",
+        "items": {
+          "type": "string",
+          "enum": [
+            "usd_cad",
+            "eur_cad",
+            "gbp_cad",
+            "jpy_cad",
+            "cny_cad",
+            "policy_rate",
+            "overnight_rate",
+            "prime_rate",
+            "bond_2y",
+            "bond_5y",
+            "bond_10y",
+            "bond_30y",
+            "cpi",
+            "core_cpi",
+            "gdp"
+          ]
+        },
+        "minItems": 1,
+        "maxItems": 15,
+        "uniqueItems": true
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "indicators": {
+        "type": "object",
+        "description": "Key economic indicators with their latest values",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "series_name": {
+              "type": "string",
+              "description": "Bank of Canada series identifier"
+            },
+            "label": {
+              "type": "string",
+              "description": "Human-readable indicator name"
+            },
+            "value": {
+              "type": ["number", "null"],
+              "description": "Latest value of the indicator"
+            },
+            "date": {
+              "type": "string",
+              "description": "Date of the latest value (YYYY-MM-DD)",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "description": {
+              "type": "string",
+              "description": "Detailed description of the indicator"
+            },
+            "error": {
+              "type": "string",
+              "description": "Error message if this indicator could not be retrieved"
+            }
+          },
+          "required": ["series_name"]
+        }
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when this data was retrieved (ISO 8601 format)",
+        "format": "date-time"
+      }
+    },
+    "required": ["indicators", "last_updated"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["dashboard", "summary", "indicators", "overview", "batch", "snapshot"],
+    "rateLimit": 120,
+    "cacheTTL": 3600,
+    "note": "Batch operation that retrieves multiple indicators in one call. More efficient than calling boc_get_latest multiple times. All values share the same retrieval timestamp.",
+    "examples": [
+      {
+        "description": "Get default economic dashboard (4 key indicators)",
+        "input": {},
+        "expectedOutput": {
+          "indicators": {
+            "usd_cad": {
+              "series_name": "FXUSDCAD",
+              "label": "US dollar, noon spot rate, Canadian dollar, daily",
+              "value": 1.3825,
+              "date": "2024-10-31",
+              "description": "US Dollar to Canadian Dollar Exchange Rate"
+            },
+            "policy_rate": {
+              "series_name": "POLICY_RATE",
+              "label": "Bank of Canada policy interest rate",
+              "value": 4.50,
+              "date": "2024-10-23",
+              "description": "Bank of Canada Policy Interest Rate"
+            },
+            "bond_10y": {
+              "series_name": "V122539",
+              "label": "10-Year Government of Canada Bond Yield",
+              "value": 3.25,
+              "date": "2024-10-31",
+              "description": "10-Year Government of Canada Bond Yield"
+            },
+            "cpi": {
+              "series_name": "V41690973",
+              "label": "Consumer Price Index",
+              "value": 162.5,
+              "date": "2024-09-30",
+              "description": "Consumer Price Index"
+            }
+          },
+          "last_updated": "2024-10-31T14:30:00.000Z"
+        }
+      },
+      {
+        "description": "Custom FX dashboard (multiple currencies)",
+        "input": {
+          "indicators": ["usd_cad", "eur_cad", "gbp_cad", "jpy_cad"]
+        }
+      },
+      {
+        "description": "Interest rate overview",
+        "input": {
+          "indicators": ["policy_rate", "overnight_rate", "prime_rate"]
+        }
+      },
+      {
+        "description": "Yield curve snapshot",
+        "input": {
+          "indicators": ["bond_2y", "bond_5y", "bond_10y", "bond_30y"]
+        }
+      },
+      {
+        "description": "Complete economic snapshot",
+        "input": {
+          "indicators": [
+            "usd_cad",
+            "policy_rate",
+            "bond_10y",
+            "cpi",
+            "gdp"
+          ]
+        }
+      }
+    ],
+    "useCases": [
+      "Economic dashboards",
+      "Market overview displays",
+      "Morning briefing reports",
+      "Executive summaries",
+      "Trading terminal widgets",
+      "Mobile app home screens",
+      "Email alerts with multiple indicators",
+      "PowerPoint slides with key metrics"
+    ],
+    "performanceNotes": {
+      "batchEfficiency": "Retrieves N indicators with N API calls but returns consistent timestamp",
+      "vsIndividualCalls": "Same API calls as calling boc_get_latest N times, but unified response format",
+      "recommendation": "Use for 2+ indicators to get consistent snapshot timestamp",
+      "errorHandling": "Individual indicator failures don't stop other indicators from being retrieved"
+    },
+    "defaultIndicators": [
+      {
+        "indicator": "usd_cad",
+        "rationale": "Most widely watched FX rate for Canadian economy"
+      },
+      {
+        "indicator": "policy_rate",
+        "rationale": "Key monetary policy indicator"
+      },
+      {
+        "indicator": "bond_10y",
+        "rationale": "Benchmark for long-term interest rates"
+      },
+      {
+        "indicator": "cpi",
+        "rationale": "Primary inflation measure"
+      }
+    ]
+  }
+}

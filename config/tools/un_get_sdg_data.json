@@ -1,0 +1,122 @@
+{
+  "name": "un_get_sdg_data",
+  "implementation": "tools.impl.united_nations_tool_refactored.UNGetSDGDataTool",
+  "description": "Retrieve historical time series data for a specific SDG indicator, optionally filtered by country and date range",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "indicator_code": {
+        "type": "string",
+        "description": "SDG indicator code (e.g., '1.1.1' for poverty headcount ratio, '3.2.1' for under-5 mortality rate)"
+      },
+      "country_code": {
+        "type": "string",
+        "description": "ISO3 country code (e.g., 'USA', 'CHN', 'IND'). Optional - omit for global/all countries data."
+      },
+      "start_year": {
+        "type": "integer",
+        "description": "Start year for data retrieval (e.g., 2015)",
+        "minimum": 2000,
+        "maximum": 2030
+      },
+      "end_year": {
+        "type": "integer",
+        "description": "End year for data retrieval (e.g., 2024)",
+        "minimum": 2000,
+        "maximum": 2030
+      }
+    },
+    "required": ["indicator_code"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "indicator_code": {
+        "type": "string",
+        "description": "SDG indicator code"
+      },
+      "indicator_description": {
+        "type": "string",
+        "description": "Full description of the indicator"
+      },
+      "country_code": {
+        "type": "string",
+        "description": "Country code (if specified)"
+      },
+      "country_name": {
+        "type": "string",
+        "description": "Country name (if applicable)"
+      },
+      "data": {
+        "type": "array",
+        "description": "Time series data points",
+        "items": {
+          "type": "object",
+          "properties": {
+            "year": {
+              "type": "integer",
+              "description": "Year of observation"
+            },
+            "value": {
+              "type": ["number", "null"],
+              "description": "Indicator value (null if not available)"
+            },
+            "unit": {
+              "type": "string",
+              "description": "Unit of measurement (e.g., '%', 'per 1,000 live births')"
+            }
+          },
+          "required": ["year", "value"]
+        }
+      },
+      "count": {
+        "type": "integer",
+        "description": "Number of data points returned"
+      }
+    },
+    "required": ["indicator_code", "data", "count"]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Global Statistics",
+    "tags": ["un", "sdg", "time series", "historical data", "country data"],
+    "rateLimit": 60,
+    "cacheTTL": 3600,
+    "note": "Retrieves actual measurement data for SDG indicators. Data availability varies by country and indicator. Some indicators are updated annually, others less frequently.",
+    "examples": [
+      {
+        "description": "Get poverty rate data for India (indicator 1.1.1)",
+        "input": {
+          "indicator_code": "1.1.1",
+          "country_code": "IND",
+          "start_year": 2015,
+          "end_year": 2023
+        }
+      },
+      {
+        "description": "Get global renewable energy data (indicator 7.2.1)",
+        "input": {
+          "indicator_code": "7.2.1",
+          "start_year": 2010,
+          "end_year": 2024
+        }
+      },
+      {
+        "description": "Get recent maternal mortality data for Brazil",
+        "input": {
+          "indicator_code": "3.1.1",
+          "country_code": "BRA"
+        }
+      }
+    ],
+    "useCases": [
+      "Track country progress on specific SDG indicators",
+      "Compare historical trends",
+      "Generate data visualizations and charts",
+      "Research and policy analysis",
+      "Report generation"
+    ]
+  }
+}
