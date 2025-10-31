@@ -112,9 +112,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                             <i class="bi bi-play-circle"></i> Execute
                                         </a>
                                         {% if is_admin %}
-                                        <button class="btn btn-sm btn-info" onclick="viewToolSchema('{{ tool.name }}')">
+                                        <a href="{{ url_for('tool_schema', tool_name=tool.name) }}"
+                                           class="btn btn-sm btn-info">
                                             <i class="bi bi-code-square"></i> Schema
-                                        </button>
+                                        </a>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -189,9 +190,6 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     </div>
 </div>
 
-<!-- Tool Schema Modal (for viewing, not editing) -->
-<div id="schemaContent" style="display: none;"></div>
-
 {% endblock %}
 
 {% block extra_js %}
@@ -203,9 +201,6 @@ const toolsData = [
         name: "{{ tool.name }}",
         description: "{{ tool.description }}",
         executeUrl: "{{ url_for('tool_execute', tool_name=tool.name) }}"
-        {% if is_admin %},
-        schemaFunc: function() { viewToolSchema('{{ tool.name }}'); }
-        {% endif %}
     }{% if not loop.last %},{% endif %}
     {% endfor %}
 ];
@@ -281,6 +276,15 @@ function renderTable() {
     // Render rows
     pageData.forEach(tool => {
         const row = document.createElement('tr');
+
+        const schemaButton = {% if is_admin %}
+            `<a href="/tools/${tool.name}/schema" class="btn btn-sm btn-info">
+                <i class="bi bi-code-square"></i> Schema
+            </a>`;
+        {% else %}
+            '';
+        {% endif %}
+
         row.innerHTML = `
             <td><strong>${tool.name}</strong></td>
             <td>${tool.description}</td>
@@ -288,11 +292,7 @@ function renderTable() {
                 <a href="${tool.executeUrl}" class="btn btn-sm btn-success">
                     <i class="bi bi-play-circle"></i> Execute
                 </a>
-                {% if is_admin %}
-                <button class="btn btn-sm btn-info" onclick="viewToolSchema('${tool.name}')">
-                    <i class="bi bi-code-square"></i> Schema
-                </button>
-                {% endif %}
+                ${schemaButton}
             </td>
         `;
         tbody.appendChild(row);
@@ -383,17 +383,6 @@ function changePage(page) {
         currentPage = page;
         renderTable();
     }
-}
-
-function viewToolSchema(toolName) {
-    // Fetch and display tool schema
-    $.get(`/api/tools/${toolName}/schema`)
-        .done(function(data) {
-            alert(JSON.stringify(data, null, 2));
-        })
-        .fail(function() {
-            alert('Failed to load tool schema');
-        });
 }
 
 function reloadTool(toolName) {

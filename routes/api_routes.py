@@ -128,6 +128,29 @@ class ApiRoutes(BaseRoutes):
                 logging.error(f"Error getting tools list: {e}")
                 return jsonify({'error': str(e)}), 500
 
+        @app.route('/api/tools/<tool_name>/schema', methods=['GET'])
+        @self.login_required
+        def api_get_tool_schema(tool_name):
+            """Get tool input schema"""
+            try:
+                user_session = self.get_user_session()
+
+                # Check if user has access to this tool
+                if not self.auth_manager.has_tool_access(user_session, tool_name):
+                    return jsonify({'error': 'Access denied'}), 403
+
+                # Get tool
+                tool = self.tools_registry.get_tool(tool_name)
+                if not tool:
+                    return jsonify({'error': 'Tool not found'}), 404
+
+                # Return tool schema in MCP format
+                return jsonify(tool.to_mcp_format())
+
+            except Exception as e:
+                logging.error(f"Error getting tool schema: {e}")
+                return jsonify({'error': str(e)}), 500
+
         # ==================== Admin Tools Management ====================
         @app.route('/api/admin/tools/<tool_name>/enable', methods=['POST'])
         @self.admin_required

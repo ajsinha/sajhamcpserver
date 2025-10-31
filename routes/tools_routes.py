@@ -36,6 +36,50 @@ class ToolsRoutes(BaseRoutes):
                                  user=user_session,
                                  tools=tools)
 
+        @app.route('/tools/<tool_name>/schema')
+        @self.login_required
+        def tool_schema(tool_name):
+            """Tool schema display page"""
+            user_session = self.get_user_session()
+
+            # Check if user has access to this tool
+            if not self.auth_manager.has_tool_access(user_session, tool_name):
+                return render_template('error.html',
+                                     error="Access Denied",
+                                     message=f"You don't have permission to view {tool_name}"), 403
+
+            # Get tool details
+            tool = self.tools_registry.get_tool(tool_name)
+            if not tool:
+                return render_template('error.html',
+                                     error="Tool Not Found",
+                                     message=f"Tool {tool_name} not found"), 404
+
+            # Get tool data in MCP format
+            tool_data = tool.to_mcp_format()
+
+            # Import json for pretty printing
+            import json
+            schema_json = json.dumps(tool_data, indent=2)
+
+            # Load tool configuration from config/tools folder
+            config_json = None
+            try:
+                from pathlib import Path
+                config_file = Path(self.tools_registry.tools_config_dir) / f"{tool_name}.json"
+                if config_file.exists():
+                    with open(config_file, 'r') as f:
+                        config_data = json.load(f)
+                    config_json = json.dumps(config_data, indent=2)
+            except Exception as e:
+                config_json = f"Error loading configuration: {str(e)}"
+
+            return render_template('tool_schema.html',
+                                 user=user_session,
+                                 tool=tool_data,
+                                 schema_json=schema_json,
+                                 config_json=config_json)
+
         @app.route('/tools/execute/<tool_name>')
         @self.login_required
         def tool_execute(tool_name):
