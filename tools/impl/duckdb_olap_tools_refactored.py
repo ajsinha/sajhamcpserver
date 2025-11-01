@@ -1,11 +1,14 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 DuckDB OLAP Analytics MCP Tool Implementation - Refactored with Individual Tools
+With Auto-Refresh Support
 """
 
 import os
 import json
 import time
+import threading
+import atexit
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from tools.base_mcp_tool import BaseMCPTool
@@ -20,23 +23,40 @@ class DuckDbBaseTool(BaseMCPTool):
     """
     Base class for DuckDB tools with shared functionality
     """
-    
+
     def __init__(self, config: Dict = None):
         """Initialize DuckDB base tool"""
         super().__init__(config)
-        
+
         # Data directory for CSV, Parquet, JSON files
         self.data_directory = self.config.get('data_directory', '/home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb')
-        
+
+        # Auto-refresh configuration
+        self.auto_refresh_enabled = self.config.get('auto_refresh_enabled', True)
+        self.auto_refresh_interval = self.config.get('auto_refresh_interval', 600)  # Default: 10 minutes (600 seconds)
+
         # Ensure data directory exists
         os.makedirs(self.data_directory, exist_ok=True)
-        
+
         # Initialize DuckDB connection
         self.db_path = os.path.join(self.data_directory, 'duckdb_analytics.db')
         self.conn = None
 
+        # Track file states for change detection
+        self._file_states = {}  # {filename: {'mtime': timestamp, 'size': bytes, 'view_name': str}}
+
+        # Auto-refresh thread control
+        self._refresh_thread = None
+        self._stop_refresh = threading.Event()
+
         # Initialize views from data files
         self._initialize_views_from_files()
+
+        # Start auto-refresh thread if enabled
+        if self.auto_refresh_enabled:
+            self._start_auto_refresh()
+            # Register cleanup on exit
+            atexit.register(self._stop_auto_refresh)
 
     def _get_connection(self):
         """Get or create DuckDB connection"""
@@ -204,6 +224,19 @@ class DuckDbBaseTool(BaseMCPTool):
                     # Execute the CREATE VIEW statement
                     conn.execute(create_view_sql)
 
+                    # Track file state for change detection
+                    try:
+                        stat = os.stat(file_path)
+                        self._file_states[filename] = {
+                            'mtime': stat.st_mtime,
+                            'size': stat.st_size,
+                            'view_name': view_name,
+                            'file_type': file_type,
+                            'file_path': file_path
+                        }
+                    except:
+                        pass
+
                     # Get row count for verification
                     try:
                         row_count = conn.execute(f"SELECT COUNT(*) FROM {view_name}").fetchone()[0]
@@ -224,8 +257,202 @@ class DuckDbBaseTool(BaseMCPTool):
             self.logger.error(f"Failed to initialize views from files: {e}")
             # Don't raise - allow the tool to continue even if initialization fails
 
+    def _start_auto_refresh(self):
+        """Start the auto-refresh background thread"""
+        if self._refresh_thread is None or not self._refresh_thread.is_alive():
+            self._stop_refresh.clear()
+            self._refresh_thread = threading.Thread(
+                target=self._auto_refresh_worker,
+                daemon=True,
+                name="DuckDB-AutoRefresh"
+            )
+            self._refresh_thread.start()
+            self.logger.info(f"Auto-refresh enabled: checking every {self.auto_refresh_interval} seconds")
+
+    def _stop_auto_refresh(self):
+        """Stop the auto-refresh background thread"""
+        if self._refresh_thread and self._refresh_thread.is_alive():
+            self._stop_refresh.set()
+            self._refresh_thread.join(timeout=5)
+            self.logger.info("Auto-refresh stopped")
+
+    def _auto_refresh_worker(self):
+        """Background worker that periodically checks for file changes"""
+        while not self._stop_refresh.is_set():
+            try:
+                # Wait for the configured interval (but check every second for stop signal)
+                for _ in range(self.auto_refresh_interval):
+                    if self._stop_refresh.is_set():
+                        return
+                    time.sleep(1)
+
+                # Perform the refresh check
+                self._check_and_sync_views()
+
+            except Exception as e:
+                self.logger.error(f"Auto-refresh error: {e}")
+                # Continue running despite errors
+
+    def _check_and_sync_views(self):
+        """
+        Check for file changes and sync views accordingly:
+        - Add views for new files
+        - Remove views for deleted files
+        - Reload views for modified files
+        """
+        try:
+            conn = self._get_connection()
+
+            # Scan current files in directory
+            current_files = self._scan_data_files()
+            current_filenames = {f['filename'] for f in current_files}
+            current_file_map = {f['filename']: f for f in current_files}
+
+            # Track what we tracked before
+            tracked_filenames = set(self._file_states.keys())
+
+            changes_made = False
+
+            # 1. Detect and handle DELETED files
+            deleted_files = tracked_filenames - current_filenames
+            for filename in deleted_files:
+                try:
+                    view_name = self._file_states[filename]['view_name']
+                    conn.execute(f"DROP VIEW IF EXISTS {view_name}")
+                    del self._file_states[filename]
+                    self.logger.info(f"🗑️  Removed view '{view_name}' (file deleted: {filename})")
+                    changes_made = True
+                except Exception as e:
+                    self.logger.error(f"Failed to remove view for {filename}: {e}")
+
+            # 2. Detect and handle NEW files
+            new_files = current_filenames - tracked_filenames
+            for filename in new_files:
+                try:
+                    file_info = current_file_map[filename]
+                    file_path = file_info['file_path']
+                    file_type = file_info['file_type']
+
+                    # Generate view name
+                    view_name = os.path.splitext(filename)[0]
+                    view_name = ''.join(c if c.isalnum() or c == '_' else '_' for c in view_name)
+
+                    # Create view based on file type
+                    if file_type == 'csv':
+                        create_view_sql = f"""
+                            CREATE VIEW {view_name} AS 
+                            SELECT * FROM read_csv_auto('{file_path}', 
+                                header=true, auto_detect=true, sample_size=-1)
+                        """
+                    elif file_type == 'parquet':
+                        create_view_sql = f"""
+                            CREATE VIEW {view_name} AS 
+                            SELECT * FROM read_parquet('{file_path}')
+                        """
+                    elif file_type == 'json':
+                        create_view_sql = f"""
+                            CREATE VIEW {view_name} AS 
+                            SELECT * FROM read_json_auto('{file_path}')
+                        """
+                    elif file_type == 'tsv':
+                        create_view_sql = f"""
+                            CREATE VIEW {view_name} AS 
+                            SELECT * FROM read_csv_auto('{file_path}', 
+                                header=true, delim='\\t', auto_detect=true, sample_size=-1)
+                        """
+                    else:
+                        continue
+
+                    # Create the view
+                    conn.execute(create_view_sql)
+
+                    # Track the new file
+                    stat = os.stat(file_path)
+                    self._file_states[filename] = {
+                        'mtime': stat.st_mtime,
+                        'size': stat.st_size,
+                        'view_name': view_name,
+                        'file_type': file_type,
+                        'file_path': file_path
+                    }
+
+                    self.logger.info(f"➕ Created view '{view_name}' (new file: {filename})")
+                    changes_made = True
+
+                except Exception as e:
+                    self.logger.error(f"Failed to create view for new file {filename}: {e}")
+
+            # 3. Detect and handle MODIFIED files
+            existing_files = current_filenames & tracked_filenames
+            for filename in existing_files:
+                try:
+                    file_info = current_file_map[filename]
+                    file_path = file_info['file_path']
+
+                    # Check if file was modified
+                    stat = os.stat(file_path)
+                    old_state = self._file_states[filename]
+
+                    if stat.st_mtime != old_state['mtime'] or stat.st_size != old_state['size']:
+                        # File was modified - reload the view
+                        view_name = old_state['view_name']
+                        file_type = old_state['file_type']
+
+                        # Drop and recreate the view
+                        conn.execute(f"DROP VIEW IF EXISTS {view_name}")
+
+                        if file_type == 'csv':
+                            create_view_sql = f"""
+                                CREATE VIEW {view_name} AS 
+                                SELECT * FROM read_csv_auto('{file_path}', 
+                                    header=true, auto_detect=true, sample_size=-1)
+                            """
+                        elif file_type == 'parquet':
+                            create_view_sql = f"""
+                                CREATE VIEW {view_name} AS 
+                                SELECT * FROM read_parquet('{file_path}')
+                            """
+                        elif file_type == 'json':
+                            create_view_sql = f"""
+                                CREATE VIEW {view_name} AS 
+                                SELECT * FROM read_json_auto('{file_path}')
+                            """
+                        elif file_type == 'tsv':
+                            create_view_sql = f"""
+                                CREATE VIEW {view_name} AS 
+                                SELECT * FROM read_csv_auto('{file_path}', 
+                                    header=true, delim='\\t', auto_detect=true, sample_size=-1)
+                            """
+                        else:
+                            continue
+
+                        conn.execute(create_view_sql)
+
+                        # Update tracked state
+                        self._file_states[filename]['mtime'] = stat.st_mtime
+                        self._file_states[filename]['size'] = stat.st_size
+
+                        self.logger.info(f"🔄 Reloaded view '{view_name}' (file modified: {filename})")
+                        changes_made = True
+
+                except Exception as e:
+                    self.logger.error(f"Failed to reload view for modified file {filename}: {e}")
+
+            # Log summary if changes were made
+            if changes_made:
+                views_result = conn.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_type = 'VIEW'").fetchone()
+                total_views = views_result[0] if views_result else 0
+                self.logger.info(f"Auto-refresh complete: {total_views} views available")
+
+        except Exception as e:
+            self.logger.error(f"Failed to check and sync views: {e}")
+
     def close(self):
-        """Close DuckDB connection"""
+        """Close DuckDB connection and stop auto-refresh"""
+        # Stop auto-refresh thread
+        self._stop_auto_refresh()
+
+        # Close connection
         if self.conn:
             self.conn.close()
             self.conn = None
