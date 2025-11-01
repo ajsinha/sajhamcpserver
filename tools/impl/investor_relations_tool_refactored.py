@@ -6,8 +6,8 @@ Investor Relations MCP Tool Implementation - Refactored with Individual Tools
 import json
 from typing import Dict, Any, List, Optional
 from tools.base_mcp_tool import BaseMCPTool
-from ir.ir_webscraper_factory import IRWebScraperFactory
-
+#from ir.ir_webscraper_factory import IRWebScraperFactory
+from ir.enhanced_factory import EnhancedIRScraperFactory as IRWebScraperFactory
 
 class InvestorRelationsBaseTool(BaseMCPTool):
     """
