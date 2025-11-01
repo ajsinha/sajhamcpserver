@@ -10758,3 +10758,1820 @@ AssertionError: write() before start_response
 2025-10-31 20:31:36,695 - EnhancedHTTPClient - INFO - Got 403, waiting 8.9s before retry
 2025-10-31 20:31:45,915 - EnhancedHTTPClient - WARNING - HTTP Error 403 for https://ir.aboutamazon.com/quarterly-results
 2025-10-31 20:31:45,915 - EnhancedHTTPClient - INFO - Got 403, waiting 11.2s before retry
+2025-10-31 20:31:57,446 - EnhancedHTTPClient - WARNING - HTTP Error 403 for https://ir.aboutamazon.com/quarterly-results
+2025-10-31 20:31:57,447 - GenericIRScraper.AMZN - ERROR - Error fetching https://ir.aboutamazon.com/quarterly-results: HTTP Error 403: Forbidden
+2025-10-31 20:31:57,447 - GenericIRScraper.AMZN - WARNING - Error scraping https://ir.aboutamazon.com/quarterly-results: HTTP Error 403: Forbidden
+2025-10-31 20:32:01,369 - EnhancedHTTPClient - WARNING - HTTP Error 404 for https://ir.aboutamazon.com/quarterly-earnings
+2025-10-31 20:32:03,239 - EnhancedHTTPClient - WARNING - HTTP Error 404 for https://ir.aboutamazon.com/quarterly-earnings
+2025-10-31 20:32:06,762 - EnhancedHTTPClient - WARNING - HTTP Error 404 for https://ir.aboutamazon.com/quarterly-earnings
+2025-10-31 20:32:06,762 - GenericIRScraper.AMZN - ERROR - Error fetching https://ir.aboutamazon.com/quarterly-earnings: HTTP Error 404: Not Found
+2025-10-31 20:32:06,762 - GenericIRScraper.AMZN - WARNING - Error scraping https://ir.aboutamazon.com/quarterly-earnings: HTTP Error 404: Not Found
+2025-10-31 20:32:11,506 - EnhancedHTTPClient - WARNING - HTTP Error 404 for https://ir.aboutamazon.com/earnings
+2025-10-31 20:32:14,125 - EnhancedHTTPClient - WARNING - HTTP Error 404 for https://ir.aboutamazon.com/earnings
+2025-10-31 20:32:16,883 - EnhancedHTTPClient - WARNING - HTTP Error 404 for https://ir.aboutamazon.com/earnings
+2025-10-31 20:32:16,883 - GenericIRScraper.AMZN - ERROR - Error fetching https://ir.aboutamazon.com/earnings: HTTP Error 404: Not Found
+2025-10-31 20:32:16,883 - GenericIRScraper.AMZN - WARNING - Error scraping https://ir.aboutamazon.com/earnings: HTTP Error 404: Not Found
+2025-10-31 20:32:19,289 - EnhancedHTTPClient - WARNING - HTTP Error 403 for https://ir.aboutamazon.com/annual-reports
+2025-10-31 20:32:19,289 - EnhancedHTTPClient - INFO - Got 403, waiting 7.4s before retry
+2025-10-31 20:32:26,971 - EnhancedHTTPClient - WARNING - HTTP Error 403 for https://ir.aboutamazon.com/annual-reports
+2025-10-31 20:32:26,972 - EnhancedHTTPClient - INFO - Got 403, waiting 13.0s before retry
+2025-10-31 20:32:40,358 - EnhancedHTTPClient - WARNING - HTTP Error 403 for https://ir.aboutamazon.com/annual-reports
+2025-10-31 20:32:40,358 - GenericIRScraper.AMZN - ERROR - Error fetching https://ir.aboutamazon.com/annual-reports: HTTP Error 403: Forbidden
+2025-10-31 20:32:40,358 - GenericIRScraper.AMZN - WARNING - Error scraping https://ir.aboutamazon.com/annual-reports: HTTP Error 403: Forbidden
+2025-10-31 20:32:43,069 - EnhancedHTTPClient - WARNING - HTTP Error 404 for https://ir.aboutamazon.com/presentations
+2025-10-31 20:32:43,937 - root - INFO - WebSocket client disconnected: M5EiTQyNycv6cWFnAAAF
+2025-10-31 20:32:43,947 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:32:43] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 20:32:43,948 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:32:43] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 20:32:43,959 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 20:32:43,966 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:32:43] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:32:43,967 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:32:43] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:32:46,655 - EnhancedHTTPClient - WARNING - HTTP Error 404 for https://ir.aboutamazon.com/presentations
+2025-10-31 20:32:48,978 - EnhancedHTTPClient - WARNING - HTTP Error 404 for https://ir.aboutamazon.com/presentations
+2025-10-31 20:32:48,978 - GenericIRScraper.AMZN - ERROR - Error fetching https://ir.aboutamazon.com/presentations: HTTP Error 404: Not Found
+2025-10-31 20:32:48,978 - GenericIRScraper.AMZN - WARNING - Error scraping https://ir.aboutamazon.com/presentations: HTTP Error 404: Not Found
+2025-10-31 20:32:52,599 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:32:52] "GET /tools/execute/imf_get_bop_data HTTP/1.1" 200 -
+2025-10-31 20:32:52,624 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:32:52] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:32:52,628 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:32:52] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:32:52,647 - root - INFO - WebSocket client connected: _j4nSnO12x-TKwz9AAAH
+2025-10-31 20:32:53,594 - EnhancedHTTPClient - WARNING - HTTP Error 404 for https://ir.aboutamazon.com/investor-presentations
+2025-10-31 20:32:57,373 - EnhancedHTTPClient - WARNING - HTTP Error 404 for https://ir.aboutamazon.com/investor-presentations
+2025-10-31 20:33:01,089 - EnhancedHTTPClient - WARNING - HTTP Error 404 for https://ir.aboutamazon.com/investor-presentations
+2025-10-31 20:33:01,090 - GenericIRScraper.AMZN - ERROR - Error fetching https://ir.aboutamazon.com/investor-presentations: HTTP Error 404: Not Found
+2025-10-31 20:33:01,090 - GenericIRScraper.AMZN - WARNING - Error scraping https://ir.aboutamazon.com/investor-presentations: HTTP Error 404: Not Found
+2025-10-31 20:33:01,090 - GenericIRScraper.AMZN - INFO - Falling back to SEC EDGAR for AMZN
+2025-10-31 20:33:01,259 - SECEdgarClient - ERROR - Error fetching SEC submissions for CIK 0001018724: Expecting value: line 1 column 1 (char 0)
+2025-10-31 20:33:01,259 - SECEdgarClient - ERROR - Error getting recent filings for CIK 0001018724: Failed to fetch SEC data: Expecting value: line 1 column 1 (char 0)
+2025-10-31 20:33:01,259 - IRGetDocumentsTool - INFO - Tool executed successfully: ir_get_documents (139.69s)
+2025-10-31 20:33:01,261 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:01] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 20:33:14,075 - IMFGetBOPDataTool - ERROR - Failed to get IMF data: <urlopen error [Errno 111] Connection refused>
+2025-10-31 20:33:14,075 - IMFGetBOPDataTool - ERROR - Tool execution failed: imf_get_bop_data - Failed to get IMF data: <urlopen error [Errno 111] Connection refused>
+Traceback (most recent call last):
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 1321, in do_open
+    h.request(req.get_method(), req.selector, req.data, headers,
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              encode_chunked=req.has_header('Transfer-encoding'))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 1338, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 1384, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 1333, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 1093, in _send_output
+    self.send(msg)
+    ~~~~~~~~~^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 1037, in send
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 1003, in connect
+    self.sock = self._create_connection(
+                ~~~~~~~~~~~~~~~~~~~~~~~^
+        (self.host,self.port), self.timeout, self.source_address)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/socket.py", line 870, in create_connection
+    raise exceptions[0]
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/socket.py", line 855, in create_connection
+    sock.connect(sa)
+    ~~~~~~~~~~~~^^^^
+ConnectionRefusedError: [Errno 111] Connection refused
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/imf_tool_refactored.py", line 120, in _get_data
+    with urllib.request.urlopen(req) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 487, in open
+    response = self._open(req, data)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 504, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+                              '_open', req)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 1350, in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 1324, in do_open
+    raise URLError(err)
+urllib.error.URLError: <urlopen error [Errno 111] Connection refused>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 151, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/imf_tool_refactored.py", line 650, in execute
+    return self._get_data('BOP', country_code, indicator_code, start_year, end_year, frequency)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/imf_tool_refactored.py", line 165, in _get_data
+    raise ValueError(f"Failed to get IMF data: {str(e)}")
+ValueError: Failed to get IMF data: <urlopen error [Errno 111] Connection refused>
+2025-10-31 20:33:14,101 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:14] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-10-31 20:33:33,852 - root - INFO - WebSocket client disconnected: _j4nSnO12x-TKwz9AAAH
+2025-10-31 20:33:33,865 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:33] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 20:33:33,865 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:33] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 20:33:33,876 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 20:33:33,878 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:33] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:33:33,880 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:33] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:33:37,615 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:37] "GET /tools/execute/un_get_sdgs HTTP/1.1" 200 -
+2025-10-31 20:33:37,630 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:37] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:33:37,633 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:37] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:33:37,658 - root - INFO - WebSocket client connected: tMq9zdC-FCWM6GsqAAAJ
+2025-10-31 20:33:41,312 - UNGetSDGsTool - INFO - Tool executed successfully: un_get_sdgs (0.71s)
+2025-10-31 20:33:41,314 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:41] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 20:33:49,885 - root - INFO - WebSocket client disconnected: tMq9zdC-FCWM6GsqAAAJ
+2025-10-31 20:33:49,894 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:49] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 20:33:49,895 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:49] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 20:33:49,896 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 20:33:49,909 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:49] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:33:49,912 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:49] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:33:54,002 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:54] "GET /tools/execute/duckdb_list_tables HTTP/1.1" 200 -
+2025-10-31 20:33:54,032 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:54] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:33:54,037 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:54] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:33:54,072 - root - INFO - WebSocket client connected: IyXnoNg8hBTKMqMWAAAL
+2025-10-31 20:33:55,320 - DuckDbListTablesTool - INFO - Tool executed successfully: duckdb_list_tables (0.02s)
+2025-10-31 20:33:55,320 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:55] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 20:33:58,212 - root - INFO - WebSocket client disconnected: IyXnoNg8hBTKMqMWAAAL
+2025-10-31 20:33:58,230 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:58] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 20:33:58,231 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:58] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 20:33:58,232 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 20:33:58,258 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:58] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:33:58,259 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:33:58] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:34:01,539 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:34:01] "GET /tools/execute/imf_compare_countries HTTP/1.1" 200 -
+2025-10-31 20:34:01,561 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:34:01] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:34:01,568 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:34:01] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:34:01,599 - root - INFO - WebSocket client connected: JX9bSD9ZP0hVi-zsAAAN
+2025-10-31 20:34:22,042 - IMFCompareCountriesTool - ERROR - Tool execution failed: imf_compare_countries - Either 'indicator' or 'indicator_code' is required
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 151, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/imf_tool_refactored.py", line 758, in execute
+    raise ValueError("Either 'indicator' or 'indicator_code' is required")
+ValueError: Either 'indicator' or 'indicator_code' is required
+2025-10-31 20:34:22,044 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:34:22] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-10-31 20:34:34,414 - IMFCompareCountriesTool - ERROR - Failed to get IMF data: <urlopen error [Errno 111] Connection refused>
+2025-10-31 20:34:34,414 - IMFCompareCountriesTool - WARNING - Failed to get data for i: Failed to get IMF data: <urlopen error [Errno 111] Connection refused>
+2025-10-31 20:34:34,455 - IMFCompareCountriesTool - ERROR - Failed to get IMF data: <urlopen error [Errno 111] Connection refused>
+2025-10-31 20:34:34,455 - IMFCompareCountriesTool - WARNING - Failed to get data for n: Failed to get IMF data: <urlopen error [Errno 111] Connection refused>
+2025-10-31 20:34:34,455 - IMFCompareCountriesTool - ERROR - Failed to get IMF data: URL can't contain control characters. '/REST/SDMX_JSON.svc/CompactData/IFS/A. .gdp' (found at least ' ')
+2025-10-31 20:34:34,455 - IMFCompareCountriesTool - WARNING - Failed to get data for  : Failed to get IMF data: URL can't contain control characters. '/REST/SDMX_JSON.svc/CompactData/IFS/A. .gdp' (found at least ' ')
+2025-10-31 20:34:34,497 - IMFCompareCountriesTool - ERROR - Failed to get IMF data: <urlopen error [Errno 111] Connection refused>
+2025-10-31 20:34:34,497 - IMFCompareCountriesTool - WARNING - Failed to get data for p: Failed to get IMF data: <urlopen error [Errno 111] Connection refused>
+2025-10-31 20:34:34,537 - IMFCompareCountriesTool - ERROR - Failed to get IMF data: <urlopen error [Errno 111] Connection refused>
+2025-10-31 20:34:34,538 - IMFCompareCountriesTool - WARNING - Failed to get data for k: Failed to get IMF data: <urlopen error [Errno 111] Connection refused>
+2025-10-31 20:34:34,538 - IMFCompareCountriesTool - INFO - Tool executed successfully: imf_compare_countries (0.17s)
+2025-10-31 20:34:34,540 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:34:34] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 20:34:47,476 - root - INFO - WebSocket client disconnected: JX9bSD9ZP0hVi-zsAAAN
+2025-10-31 20:34:47,489 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:34:47] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 20:34:47,489 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:34:47] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 20:34:47,501 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 20:34:47,509 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:34:47] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:34:47,512 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:34:47] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:34:53,343 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:34:53] "GET /tools/execute/un_get_trade_data HTTP/1.1" 200 -
+2025-10-31 20:34:53,368 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:34:53] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:34:53,370 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:34:53] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:34:53,405 - root - INFO - WebSocket client connected: TnMWLRiAVdcBThyEAAAP
+2025-10-31 20:35:10,124 - UNGetTradeDataTool - INFO - Tool executed successfully: un_get_trade_data (0.00s)
+2025-10-31 20:35:10,125 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:35:10] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 20:35:20,100 - root - INFO - WebSocket client disconnected: TnMWLRiAVdcBThyEAAAP
+2025-10-31 20:35:20,117 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:35:20] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 20:35:20,117 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:35:20] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 20:35:20,129 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 20:35:20,137 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:35:20] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:35:20,142 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:35:20] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:35:29,852 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:35:29] "GET /tools/execute/fed_get_latest HTTP/1.1" 200 -
+2025-10-31 20:35:29,875 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:35:29] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:35:29,876 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:35:29] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:35:29,902 - root - INFO - WebSocket client connected: ZidutCjbFtt3wwcwAAAR
+2025-10-31 20:35:34,799 - FedGetLatestTool - INFO - Tool executed successfully: fed_get_latest (0.00s)
+2025-10-31 20:35:34,800 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:35:34] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 20:35:41,523 - FedGetLatestTool - INFO - Tool executed successfully: fed_get_latest (0.00s)
+2025-10-31 20:35:41,524 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:35:41] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 20:36:02,973 - root - INFO - WebSocket client disconnected: ZidutCjbFtt3wwcwAAAR
+2025-10-31 20:36:02,986 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:02] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 20:36:02,987 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:02] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 20:36:02,998 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 20:36:03,002 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:03] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:36:03,004 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:03] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:36:11,535 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:11] "GET /tools/execute/fed_get_common_indicators HTTP/1.1" 200 -
+2025-10-31 20:36:11,561 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:11] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:36:11,563 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:11] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:36:11,596 - root - INFO - WebSocket client connected: m7SymMwq3oApSRI4AAAT
+2025-10-31 20:36:13,361 - FedGetCommonIndicatorsTool - INFO - Tool executed successfully: fed_get_common_indicators (0.00s)
+2025-10-31 20:36:13,362 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:13] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 20:36:29,899 - root - INFO - WebSocket client disconnected: m7SymMwq3oApSRI4AAAT
+2025-10-31 20:36:29,910 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:29] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 20:36:29,911 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 20:36:35,981 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:35] "GET /tools/execute/fed_get_series HTTP/1.1" 200 -
+2025-10-31 20:36:36,001 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:36] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:36:36,004 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:36] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:36:36,030 - root - INFO - WebSocket client connected: fZXwor9hKmV6LnsvAAAV
+2025-10-31 20:36:43,243 - FedGetSeriesTool - INFO - Tool executed successfully: fed_get_series (0.00s)
+2025-10-31 20:36:43,244 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:43] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 20:36:52,845 - root - INFO - WebSocket client disconnected: fZXwor9hKmV6LnsvAAAV
+2025-10-31 20:36:52,859 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:52] "GET /dashboard HTTP/1.1" 200 -
+2025-10-31 20:36:52,859 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:52] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 20:36:52,862 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 20:36:52,881 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:52] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:36:52,883 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:36:52] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:37:00,894 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:00] "GET /tools/execute/ecb_search_series HTTP/1.1" 200 -
+2025-10-31 20:37:00,914 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:00] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:37:00,915 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:00] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:37:00,953 - root - INFO - WebSocket client connected: lwgGJuXT52WjkSUPAAAX
+2025-10-31 20:37:02,593 - ECBSearchSeriesTool - INFO - Tool executed successfully: ecb_search_series (0.00s)
+2025-10-31 20:37:02,594 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:02] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 20:37:10,834 - root - INFO - WebSocket client disconnected: lwgGJuXT52WjkSUPAAAX
+2025-10-31 20:37:10,845 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:10] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 20:37:10,846 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 20:37:19,171 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:19] "GET /tools/execute/boc_get_interest_rate HTTP/1.1" 200 -
+2025-10-31 20:37:19,196 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:19] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:37:19,202 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:19] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:37:19,232 - root - INFO - WebSocket client connected: SmlsLl3joKfaU_5hAAAZ
+2025-10-31 20:37:23,314 - BoCGetInterestRateTool - ERROR - Tool execution failed: boc_get_interest_rate - Series not found: POLICY_RATE
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/bank_of_canada_tool_refactored.py", line 91, in _fetch_series
+    with urllib.request.urlopen(req) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 151, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/bank_of_canada_tool_refactored.py", line 466, in execute
+    return self._fetch_series(series_name, start_date, end_date, recent_periods)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/bank_of_canada_tool_refactored.py", line 116, in _fetch_series
+    raise ValueError(f"Series not found: {series_name}")
+ValueError: Series not found: POLICY_RATE
+2025-10-31 20:37:23,317 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:23] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-10-31 20:37:28,128 - BoCGetInterestRateTool - ERROR - Tool execution failed: boc_get_interest_rate - Series not found: CORRA
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/bank_of_canada_tool_refactored.py", line 91, in _fetch_series
+    with urllib.request.urlopen(req) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 151, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/bank_of_canada_tool_refactored.py", line 466, in execute
+    return self._fetch_series(series_name, start_date, end_date, recent_periods)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/bank_of_canada_tool_refactored.py", line 116, in _fetch_series
+    raise ValueError(f"Series not found: {series_name}")
+ValueError: Series not found: CORRA
+2025-10-31 20:37:28,132 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:28] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-10-31 20:37:40,109 - BoCGetInterestRateTool - ERROR - Tool execution failed: boc_get_interest_rate - Series not found: CORRA
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/bank_of_canada_tool_refactored.py", line 91, in _fetch_series
+    with urllib.request.urlopen(req) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 151, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/bank_of_canada_tool_refactored.py", line 466, in execute
+    return self._fetch_series(series_name, start_date, end_date, recent_periods)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/bank_of_canada_tool_refactored.py", line 116, in _fetch_series
+    raise ValueError(f"Series not found: {series_name}")
+ValueError: Series not found: CORRA
+2025-10-31 20:37:40,114 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:40] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-10-31 20:37:48,266 - root - INFO - WebSocket client disconnected: SmlsLl3joKfaU_5hAAAZ
+2025-10-31 20:37:48,277 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:48] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 20:37:48,288 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 20:37:51,548 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:51] "GET /tools/execute/boc_get_latest HTTP/1.1" 200 -
+2025-10-31 20:37:51,564 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:51] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:37:51,566 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:51] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:37:51,595 - root - INFO - WebSocket client connected: JEwwk9CjHt7e4q79AAAb
+2025-10-31 20:37:57,256 - BoCGetLatestTool - INFO - Tool executed successfully: boc_get_latest (0.10s)
+2025-10-31 20:37:57,257 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:37:57] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-10-31 20:38:17,862 - root - INFO - WebSocket client disconnected: JEwwk9CjHt7e4q79AAAb
+2025-10-31 20:38:17,879 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:38:17] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-10-31 20:38:17,879 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:38:17] "GET /monitoring/tools HTTP/1.1" 200 -
+2025-10-31 20:38:17,890 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-10-31 20:38:17,899 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:38:17] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:38:17,900 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:38:17] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:38:26,243 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:38:26] "GET /monitoring/users HTTP/1.1" 200 -
+2025-10-31 20:38:26,258 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:38:26] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:38:26,264 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:38:26] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:38:39,128 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:38:39] "GET /monitoring/tools HTTP/1.1" 200 -
+2025-10-31 20:38:39,149 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:38:39] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:38:39,154 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:38:39] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-10-31 20:39:19,748 - core.auth_manager - INFO - User logged out: admin
+2025-10-31 20:39:19,748 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:39:19] "[32mGET /logout HTTP/1.1[0m" 302 -
+2025-10-31 20:39:19,752 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:39:19] "GET /login HTTP/1.1" 200 -
+2025-10-31 20:39:19,769 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:39:19] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-31 20:39:19,770 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 20:39:19] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 06:40:37,269 - DuckDbDescribeTableTool - INFO - Auto-refresh stopped
+2025-11-01 06:40:38,242 - DuckDbRefreshViewsTool - INFO - Auto-refresh stopped
+2025-11-01 06:52:00,810 - __main__ - INFO - Starting SAJHA MCP Server on 0.0.0.0:5000
+2025-11-01 06:52:00,826 - core.auth_manager - INFO - Loaded 1 users from configuration
+2025-11-01 06:52:00,826 - tools.tools_registry - INFO - Loading tools from config/tools
+2025-11-01 06:52:00,827 - tools.tools_registry - INFO - Tool registered: ecb_get_exchange_rate
+2025-11-01 06:52:00,827 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_exchange_rate
+2025-11-01 06:52:00,827 - tools.tools_registry - INFO - Tool registered: un_get_sdgs
+2025-11-01 06:52:00,827 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdgs
+2025-11-01 06:52:00,874 - DuckDbListTablesTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-01 06:52:00,890 - DuckDbListTablesTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 06:52:00,896 - DuckDbListTablesTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 06:52:00,901 - DuckDbListTablesTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 06:52:00,909 - DuckDbListTablesTool - INFO - Initialization complete: 3 views available
+2025-11-01 06:52:00,910 - DuckDbListTablesTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 06:52:00,910 - tools.tools_registry - INFO - Tool registered: duckdb_list_tables
+2025-11-01 06:52:00,910 - tools.tools_registry - INFO - Loaded custom tool: duckdb_list_tables
+2025-11-01 06:52:00,911 - tools.tools_registry - INFO - Tool registered: check_robots_txt
+2025-11-01 06:52:00,911 - tools.tools_registry - INFO - Loaded custom tool: check_robots_txt
+2025-11-01 06:52:00,911 - tools.tools_registry - INFO - Tool registered: imf_compare_countries
+2025-11-01 06:52:00,911 - tools.tools_registry - INFO - Loaded custom tool: imf_compare_countries
+2025-11-01 06:52:00,912 - tools.tools_registry - INFO - Tool registered: ecb_get_bond_yield
+2025-11-01 06:52:00,912 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_bond_yield
+2025-11-01 06:52:00,912 - tools.tools_registry - INFO - Tool registered: imf_get_bop_data
+2025-11-01 06:52:00,912 - tools.tools_registry - INFO - Loaded custom tool: imf_get_bop_data
+2025-11-01 06:52:00,912 - tools.tools_registry - INFO - Tool registered: extract_content
+2025-11-01 06:52:00,912 - tools.tools_registry - INFO - Loaded custom tool: extract_content
+2025-11-01 06:52:00,912 - tools.tools_registry - INFO - Tool registered: ecb_search_series
+2025-11-01 06:52:00,912 - tools.tools_registry - INFO - Loaded custom tool: ecb_search_series
+2025-11-01 06:52:00,912 - tools.tools_registry - INFO - Tool registered: un_get_trade_data
+2025-11-01 06:52:00,912 - tools.tools_registry - INFO - Loaded custom tool: un_get_trade_data
+2025-11-01 06:52:00,912 - tools.tools_registry - INFO - Tool registered: un_get_sdg_targets
+2025-11-01 06:52:00,912 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_targets
+2025-11-01 06:52:00,913 - tools.tools_registry - INFO - Tool registered: fbi_get_participation_rate
+2025-11-01 06:52:00,913 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_participation_rate
+2025-11-01 06:52:00,913 - tools.tools_registry - INFO - Tool registered: fbi_get_agency_statistics
+2025-11-01 06:52:00,913 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_agency_statistics
+2025-11-01 06:52:00,920 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 06:52:00,920 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 06:52:00,920 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 06:52:00,920 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 06:52:00,920 - SqlSelectCountRowsTool - INFO - DuckDB connection initialized for sqlselect_count_rows
+2025-11-01 06:52:00,920 - tools.tools_registry - INFO - Tool registered: sqlselect_count_rows
+2025-11-01 06:52:00,920 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_count_rows
+2025-11-01 06:52:00,921 - tools.tools_registry - INFO - Tool registered: fed_get_latest
+2025-11-01 06:52:00,921 - tools.tools_registry - INFO - Loaded custom tool: fed_get_latest
+2025-11-01 06:52:00,923 - tools.tools_registry - INFO - Tool registered: ir_get_all_resources
+2025-11-01 06:52:00,923 - tools.tools_registry - INFO - Loaded custom tool: ir_get_all_resources
+2025-11-01 06:52:00,923 - tools.tools_registry - INFO - Tool registered: extract_links
+2025-11-01 06:52:00,923 - tools.tools_registry - INFO - Loaded custom tool: extract_links
+2025-11-01 06:52:00,923 - tools.tools_registry - INFO - Tool registered: msdoc_read_excel_sheet
+2025-11-01 06:52:00,923 - tools.tools_registry - INFO - Loaded custom tool: msdoc_read_excel_sheet
+2025-11-01 06:52:00,924 - tools.tools_registry - INFO - Tool registered: fbi_get_offense_data
+2025-11-01 06:52:00,924 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_offense_data
+2025-11-01 06:52:00,924 - tools.tools_registry - INFO - Tool registered: fbi_compare_states
+2025-11-01 06:52:00,924 - tools.tools_registry - INFO - Loaded custom tool: fbi_compare_states
+2025-11-01 06:52:00,924 - tools.tools_registry - INFO - Tool registered: tavily_news_search
+2025-11-01 06:52:00,924 - tools.tools_registry - INFO - Loaded custom tool: tavily_news_search
+2025-11-01 06:52:00,925 - DuckDbGetStatsTool - INFO - Found 3 data files in data/duckdb
+2025-11-01 06:52:00,931 - DuckDbGetStatsTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 06:52:00,937 - DuckDbGetStatsTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 06:52:00,941 - DuckDbGetStatsTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 06:52:00,944 - DuckDbGetStatsTool - INFO - Initialization complete: 3 views available
+2025-11-01 06:52:00,944 - DuckDbGetStatsTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 06:52:00,944 - tools.tools_registry - INFO - Tool registered: duckdb_get_stats
+2025-11-01 06:52:00,944 - tools.tools_registry - INFO - Loaded custom tool: duckdb_get_stats
+2025-11-01 06:52:00,944 - tools.tools_registry - INFO - Tool registered: msdoc_extract_text
+2025-11-01 06:52:00,944 - tools.tools_registry - INFO - Loaded custom tool: msdoc_extract_text
+2025-11-01 06:52:00,944 - tools.tools_registry - INFO - Tool registered: extract_metadata
+2025-11-01 06:52:00,944 - tools.tools_registry - INFO - Loaded custom tool: extract_metadata
+2025-11-01 06:52:00,945 - tools.tools_registry - INFO - Tool registered: boc_get_interest_rate
+2025-11-01 06:52:00,945 - tools.tools_registry - INFO - Loaded custom tool: boc_get_interest_rate
+2025-11-01 06:52:00,945 - tools.tools_registry - INFO - Tool registered: imf_get_weo_data
+2025-11-01 06:52:00,945 - tools.tools_registry - INFO - Loaded custom tool: imf_get_weo_data
+2025-11-01 06:52:00,945 - tools.tools_registry - INFO - Tool registered: msdoc_search_word
+2025-11-01 06:52:00,945 - tools.tools_registry - INFO - Loaded custom tool: msdoc_search_word
+2025-11-01 06:52:00,945 - tools.tools_registry - INFO - Tool registered: fbi_search_agencies
+2025-11-01 06:52:00,945 - tools.tools_registry - INFO - Loaded custom tool: fbi_search_agencies
+2025-11-01 06:52:00,946 - tools.tools_registry - INFO - Tool registered: ir_get_documents
+2025-11-01 06:52:00,946 - tools.tools_registry - INFO - Loaded custom tool: ir_get_documents
+2025-11-01 06:52:00,946 - tools.tools_registry - INFO - Tool registered: sec_get_insider_trading
+2025-11-01 06:52:00,946 - tools.tools_registry - INFO - Loaded custom tool: sec_get_insider_trading
+2025-11-01 06:52:00,946 - tools.tools_registry - INFO - Tool registered: fbi_get_national_statistics
+2025-11-01 06:52:00,946 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_national_statistics
+2025-11-01 06:52:00,954 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 06:52:00,954 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 06:52:00,954 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 06:52:00,954 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 06:52:00,954 - SqlSelectGetSchemaTool - INFO - DuckDB connection initialized for sqlselect_get_schema
+2025-11-01 06:52:00,954 - tools.tools_registry - INFO - Tool registered: sqlselect_get_schema
+2025-11-01 06:52:00,954 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_get_schema
+2025-11-01 06:52:00,954 - tools.tools_registry - INFO - Tool registered: msdoc_read_word
+2025-11-01 06:52:00,954 - tools.tools_registry - INFO - Loaded custom tool: msdoc_read_word
+2025-11-01 06:52:00,954 - tools.tools_registry - INFO - Tool registered: ecb_get_inflation
+2025-11-01 06:52:00,954 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_inflation
+2025-11-01 06:52:00,954 - tools.tools_registry - INFO - Tool registered: tavily_research_search
+2025-11-01 06:52:00,954 - tools.tools_registry - INFO - Loaded custom tool: tavily_research_search
+2025-11-01 06:52:00,954 - tools.tools_registry - INFO - Tool registered: boc_get_latest
+2025-11-01 06:52:00,954 - tools.tools_registry - INFO - Loaded custom tool: boc_get_latest
+2025-11-01 06:52:00,955 - DuckDbAggregateTool - INFO - Found 3 data files in data/duckdb
+2025-11-01 06:52:00,961 - DuckDbAggregateTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 06:52:00,966 - DuckDbAggregateTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 06:52:00,972 - DuckDbAggregateTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 06:52:00,975 - DuckDbAggregateTool - INFO - Initialization complete: 3 views available
+2025-11-01 06:52:00,976 - DuckDbAggregateTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 06:52:00,976 - tools.tools_registry - INFO - Tool registered: duckdb_aggregate
+2025-11-01 06:52:00,976 - tools.tools_registry - INFO - Loaded custom tool: duckdb_aggregate
+2025-11-01 06:52:00,976 - tools.tools_registry - INFO - Tool registered: boc_get_bond_yield
+2025-11-01 06:52:00,976 - tools.tools_registry - INFO - Loaded custom tool: boc_get_bond_yield
+2025-11-01 06:52:00,977 - tools.tools_registry - INFO - Tool registered: wb_search_indicators
+2025-11-01 06:52:00,977 - tools.tools_registry - INFO - Loaded custom tool: wb_search_indicators
+2025-11-01 06:52:00,977 - tools.tools_registry - INFO - Tool registered: wiki_search
+2025-11-01 06:52:00,977 - tools.tools_registry - INFO - Loaded custom tool: wiki_search
+2025-11-01 06:52:00,977 - tools.tools_registry - INFO - Tool registered: wb_get_indicator_data
+2025-11-01 06:52:00,977 - tools.tools_registry - INFO - Loaded custom tool: wb_get_indicator_data
+2025-11-01 06:52:00,977 - tools.tools_registry - INFO - Tool registered: msdoc_list_files
+2025-11-01 06:52:00,977 - tools.tools_registry - INFO - Loaded custom tool: msdoc_list_files
+2025-11-01 06:52:00,977 - tools.tools_registry - INFO - Tool registered: wb_compare_countries
+2025-11-01 06:52:00,977 - tools.tools_registry - INFO - Loaded custom tool: wb_compare_countries
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Tool registered: boc_get_common_indicators
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Loaded custom tool: boc_get_common_indicators
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Tool registered: tavily_web_search
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Loaded custom tool: tavily_web_search
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Tool registered: un_get_sdg_indicators
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_indicators
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Tool registered: un_get_country_trade
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Loaded custom tool: un_get_country_trade
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Tool registered: imf_get_country_profile
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Loaded custom tool: imf_get_country_profile
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Tool registered: un_compare_trade
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Loaded custom tool: un_compare_trade
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Tool registered: fbi_get_state_statistics
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_state_statistics
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Tool registered: wb_get_countries
+2025-11-01 06:52:00,978 - tools.tools_registry - INFO - Loaded custom tool: wb_get_countries
+2025-11-01 06:52:00,979 - DuckDbQueryTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-01 06:52:00,984 - DuckDbQueryTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 06:52:00,991 - DuckDbQueryTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 06:52:00,996 - DuckDbQueryTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 06:52:00,998 - DuckDbQueryTool - INFO - Initialization complete: 3 views available
+2025-11-01 06:52:00,998 - DuckDbQueryTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 06:52:00,998 - tools.tools_registry - INFO - Tool registered: duckdb_query
+2025-11-01 06:52:00,998 - tools.tools_registry - INFO - Loaded custom tool: duckdb_query
+2025-11-01 06:52:00,998 - tools.tools_registry - INFO - Tool registered: ecb_get_latest
+2025-11-01 06:52:00,998 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_latest
+2025-11-01 06:52:00,998 - tools.tools_registry - INFO - Tool registered: yahoo_search_symbols
+2025-11-01 06:52:00,998 - tools.tools_registry - INFO - Loaded custom tool: yahoo_search_symbols
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Tool registered: ir_find_page
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Loaded custom tool: ir_find_page
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Tool registered: crawl_sitemap
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Loaded custom tool: crawl_sitemap
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Tool registered: boc_get_series
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Loaded custom tool: boc_get_series
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Tool registered: wb_get_indicators
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Loaded custom tool: wb_get_indicators
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Tool registered: ir_get_latest_earnings
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Loaded custom tool: ir_get_latest_earnings
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Tool registered: imf_get_databases
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Loaded custom tool: imf_get_databases
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Tool registered: fed_get_common_indicators
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Loaded custom tool: fed_get_common_indicators
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Tool registered: un_get_trade_balance
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Loaded custom tool: un_get_trade_balance
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Tool registered: msdoc_get_word_metadata
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Loaded custom tool: msdoc_get_word_metadata
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Tool registered: msdoc_get_excel_metadata
+2025-11-01 06:52:00,999 - tools.tools_registry - INFO - Loaded custom tool: msdoc_get_excel_metadata
+2025-11-01 06:52:01,000 - tools.tools_registry - INFO - Tool registered: msdoc_read_excel
+2025-11-01 06:52:01,000 - tools.tools_registry - INFO - Loaded custom tool: msdoc_read_excel
+2025-11-01 06:52:01,000 - tools.tools_registry - INFO - Tool registered: boc_get_exchange_rate
+2025-11-01 06:52:01,000 - tools.tools_registry - INFO - Loaded custom tool: boc_get_exchange_rate
+2025-11-01 06:52:01,006 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 06:52:01,006 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 06:52:01,006 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 06:52:01,006 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 06:52:01,006 - SqlSelectExecuteQueryTool - INFO - DuckDB connection initialized for sqlselect_execute_query
+2025-11-01 06:52:01,007 - tools.tools_registry - INFO - Tool registered: sqlselect_execute_query
+2025-11-01 06:52:01,007 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_execute_query
+2025-11-01 06:52:01,007 - tools.tools_registry - INFO - Tool registered: msdoc_search_excel
+2025-11-01 06:52:01,007 - tools.tools_registry - INFO - Loaded custom tool: msdoc_search_excel
+2025-11-01 06:52:01,007 - tools.tools_registry - INFO - Tool registered: ir_list_supported_companies
+2025-11-01 06:52:01,007 - tools.tools_registry - INFO - Loaded custom tool: ir_list_supported_companies
+2025-11-01 06:52:01,007 - tools.tools_registry - INFO - Tool registered: wb_get_lending_types
+2025-11-01 06:52:01,007 - tools.tools_registry - INFO - Loaded custom tool: wb_get_lending_types
+2025-11-01 06:52:01,007 - tools.tools_registry - INFO - Tool registered: msdoc_get_excel_sheets
+2025-11-01 06:52:01,007 - tools.tools_registry - INFO - Loaded custom tool: msdoc_get_excel_sheets
+2025-11-01 06:52:01,007 - tools.tools_registry - INFO - Tool registered: imf_get_dataflows
+2025-11-01 06:52:01,007 - tools.tools_registry - INFO - Loaded custom tool: imf_get_dataflows
+2025-11-01 06:52:01,007 - tools.tools_registry - INFO - Tool registered: google_search
+2025-11-01 06:52:01,007 - tools.tools_registry - INFO - Loaded custom tool: google_search
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Tool registered: ir_get_annual_reports
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Loaded custom tool: ir_get_annual_reports
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Tool registered: wb_get_topic_indicators
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Loaded custom tool: wb_get_topic_indicators
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Tool registered: ecb_get_interest_rate
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_interest_rate
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Tool registered: sec_search_company
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Loaded custom tool: sec_search_company
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Tool registered: wb_get_country_data
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Loaded custom tool: wb_get_country_data
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Tool registered: sec_get_company_facts
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Loaded custom tool: sec_get_company_facts
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Tool registered: fbi_get_agency_details
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_agency_details
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Tool registered: fed_search_series
+2025-11-01 06:52:01,008 - tools.tools_registry - INFO - Loaded custom tool: fed_search_series
+2025-11-01 06:52:01,015 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 06:52:01,015 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 06:52:01,015 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 06:52:01,015 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 06:52:01,015 - SqlSelectDescribeSourceTool - INFO - DuckDB connection initialized for sqlselect_describe_source
+2025-11-01 06:52:01,015 - tools.tools_registry - INFO - Tool registered: sqlselect_describe_source
+2025-11-01 06:52:01,015 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_describe_source
+2025-11-01 06:52:01,016 - DuckDbListFilesTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-01 06:52:01,022 - DuckDbListFilesTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 06:52:01,028 - DuckDbListFilesTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 06:52:01,034 - DuckDbListFilesTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 06:52:01,036 - DuckDbListFilesTool - INFO - Initialization complete: 3 views available
+2025-11-01 06:52:01,036 - DuckDbListFilesTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 06:52:01,036 - tools.tools_registry - INFO - Tool registered: duckdb_list_files
+2025-11-01 06:52:01,036 - tools.tools_registry - INFO - Loaded custom tool: duckdb_list_files
+2025-11-01 06:52:01,036 - tools.tools_registry - INFO - Tool registered: sec_get_company_info
+2025-11-01 06:52:01,036 - tools.tools_registry - INFO - Loaded custom tool: sec_get_company_info
+2025-11-01 06:52:01,036 - tools.tools_registry - INFO - Tool registered: boc_search_series
+2025-11-01 06:52:01,036 - tools.tools_registry - INFO - Loaded custom tool: boc_search_series
+2025-11-01 06:52:01,037 - tools.tools_registry - INFO - Tool registered: wiki_get_summary
+2025-11-01 06:52:01,037 - tools.tools_registry - INFO - Loaded custom tool: wiki_get_summary
+2025-11-01 06:52:01,037 - tools.tools_registry - INFO - Tool registered: imf_get_data
+2025-11-01 06:52:01,037 - tools.tools_registry - INFO - Loaded custom tool: imf_get_data
+2025-11-01 06:52:01,037 - tools.tools_registry - INFO - Tool registered: tavily_domain_search
+2025-11-01 06:52:01,037 - tools.tools_registry - INFO - Loaded custom tool: tavily_domain_search
+2025-11-01 06:52:01,037 - tools.tools_registry - INFO - Tool registered: un_get_sdg_data
+2025-11-01 06:52:01,037 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_data
+2025-11-01 06:52:01,037 - tools.tools_registry - INFO - Tool registered: get_page_info
+2025-11-01 06:52:01,037 - tools.tools_registry - INFO - Loaded custom tool: get_page_info
+2025-11-01 06:52:01,037 - tools.tools_registry - INFO - Tool registered: un_get_sdg_progress
+2025-11-01 06:52:01,037 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_progress
+2025-11-01 06:52:01,037 - tools.tools_registry - INFO - Tool registered: yahoo_get_history
+2025-11-01 06:52:01,037 - tools.tools_registry - INFO - Loaded custom tool: yahoo_get_history
+2025-11-01 06:52:01,038 - tools.tools_registry - INFO - Tool registered: ir_get_presentations
+2025-11-01 06:52:01,038 - tools.tools_registry - INFO - Loaded custom tool: ir_get_presentations
+2025-11-01 06:52:01,038 - tools.tools_registry - INFO - Tool registered: yahoo_get_quote
+2025-11-01 06:52:01,038 - tools.tools_registry - INFO - Loaded custom tool: yahoo_get_quote
+2025-11-01 06:52:01,038 - tools.tools_registry - INFO - Tool registered: fbi_get_crime_trend
+2025-11-01 06:52:01,038 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_crime_trend
+2025-11-01 06:52:01,038 - tools.tools_registry - INFO - Tool registered: fed_get_series
+2025-11-01 06:52:01,038 - tools.tools_registry - INFO - Loaded custom tool: fed_get_series
+2025-11-01 06:52:01,038 - tools.tools_registry - INFO - Tool registered: imf_get_ifs_data
+2025-11-01 06:52:01,038 - tools.tools_registry - INFO - Loaded custom tool: imf_get_ifs_data
+2025-11-01 06:52:01,038 - tools.tools_registry - INFO - Tool registered: sec_get_mutual_fund_holdings
+2025-11-01 06:52:01,038 - tools.tools_registry - INFO - Loaded custom tool: sec_get_mutual_fund_holdings
+2025-11-01 06:52:01,039 - DuckDbRefreshViewsTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-01 06:52:01,045 - DuckDbRefreshViewsTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 06:52:01,052 - DuckDbRefreshViewsTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 06:52:01,058 - DuckDbRefreshViewsTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 06:52:01,062 - DuckDbRefreshViewsTool - INFO - Initialization complete: 3 views available
+2025-11-01 06:52:01,062 - DuckDbRefreshViewsTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 06:52:01,062 - tools.tools_registry - INFO - Tool registered: duckdb_refresh_views
+2025-11-01 06:52:01,062 - tools.tools_registry - INFO - Loaded custom tool: duckdb_refresh_views
+2025-11-01 06:52:01,062 - tools.tools_registry - INFO - Tool registered: sec_get_company_filings
+2025-11-01 06:52:01,062 - tools.tools_registry - INFO - Loaded custom tool: sec_get_company_filings
+2025-11-01 06:52:01,062 - tools.tools_registry - INFO - Tool registered: sec_get_financial_data
+2025-11-01 06:52:01,062 - tools.tools_registry - INFO - Loaded custom tool: sec_get_financial_data
+2025-11-01 06:52:01,062 - tools.tools_registry - INFO - Tool registered: wb_get_regions
+2025-11-01 06:52:01,062 - tools.tools_registry - INFO - Loaded custom tool: wb_get_regions
+2025-11-01 06:52:01,063 - DuckDbDescribeTableTool - INFO - Found 3 data files in data/duckdb
+2025-11-01 06:52:01,071 - DuckDbDescribeTableTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 06:52:01,078 - DuckDbDescribeTableTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 06:52:01,085 - DuckDbDescribeTableTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 06:52:01,087 - DuckDbDescribeTableTool - INFO - Initialization complete: 3 views available
+2025-11-01 06:52:01,087 - DuckDbDescribeTableTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 06:52:01,087 - tools.tools_registry - INFO - Tool registered: duckdb_describe_table
+2025-11-01 06:52:01,087 - tools.tools_registry - INFO - Loaded custom tool: duckdb_describe_table
+2025-11-01 06:52:01,088 - tools.tools_registry - INFO - Tool registered: wiki_get_page
+2025-11-01 06:52:01,088 - tools.tools_registry - INFO - Loaded custom tool: wiki_get_page
+2025-11-01 06:52:01,088 - tools.tools_registry - INFO - Tool registered: crawl_url
+2025-11-01 06:52:01,088 - tools.tools_registry - INFO - Loaded custom tool: crawl_url
+2025-11-01 06:52:01,088 - tools.tools_registry - INFO - Tool registered: ecb_get_series
+2025-11-01 06:52:01,088 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_series
+2025-11-01 06:52:01,088 - tools.tools_registry - INFO - Tool registered: ecb_get_common_indicators
+2025-11-01 06:52:01,088 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_common_indicators
+2025-11-01 06:52:01,096 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 06:52:01,096 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 06:52:01,096 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 06:52:01,096 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 06:52:01,096 - SqlSelectSampleDataTool - INFO - DuckDB connection initialized for sqlselect_sample_data
+2025-11-01 06:52:01,096 - tools.tools_registry - INFO - Tool registered: sqlselect_sample_data
+2025-11-01 06:52:01,096 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_sample_data
+2025-11-01 06:52:01,104 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 06:52:01,104 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 06:52:01,104 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 06:52:01,104 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 06:52:01,104 - SqlSelectListSourcesTool - INFO - DuckDB connection initialized for sqlselect_list_sources
+2025-11-01 06:52:01,104 - tools.tools_registry - INFO - Tool registered: sqlselect_list_sources
+2025-11-01 06:52:01,104 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_list_sources
+2025-11-01 06:52:01,104 - tools.tools_registry - INFO - Tool registered: wb_get_income_levels
+2025-11-01 06:52:01,104 - tools.tools_registry - INFO - Loaded custom tool: wb_get_income_levels
+2025-11-01 06:52:01,105 - tools.tools_registry - INFO - Started file monitoring for tool configurations
+2025-11-01 06:52:01,114 - root - INFO - All routes registered successfully
+2025-11-01 06:52:01,115 - werkzeug - WARNING - Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+2025-11-01 06:52:01,118 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.2.54:5000
+2025-11-01 06:52:01,118 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-11-01 06:54:03,326 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 06:54:03] "[32mGET / HTTP/1.1[0m" 302 -
+2025-11-01 06:54:03,331 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 06:54:03] "[32mGET /dashboard HTTP/1.1[0m" 302 -
+2025-11-01 06:54:03,343 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 06:54:03] "GET /login?next=http://127.0.0.1:5000/dashboard HTTP/1.1" 200 -
+2025-11-01 06:54:03,358 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 06:54:03] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 06:54:03,359 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 06:54:03] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 06:54:12,954 - core.auth_manager - INFO - Saved 1 users to configuration
+2025-11-01 06:54:12,954 - core.auth_manager - INFO - User authenticated successfully: admin
+2025-11-01 06:54:12,955 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 06:54:12] "[32mPOST /login HTTP/1.1[0m" 302 -
+2025-11-01 06:54:12,968 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 06:54:12] "GET /dashboard HTTP/1.1" 200 -
+2025-11-01 06:54:12,984 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 06:54:12] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 06:54:12,985 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 06:54:12] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 07:15:16,573 - tools.tools_registry - INFO - New tool configuration detected: edgar_financial_ratios.json
+2025-11-01 07:15:16,600 - tools.tools_registry - ERROR - Error loading custom tool edgar_financial_ratios: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,600 - tools.tools_registry - INFO - New tool configuration detected: edgar_proxy_statements.json
+2025-11-01 07:15:16,601 - tools.tools_registry - ERROR - Error loading custom tool edgar_proxy_statements: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,601 - tools.tools_registry - INFO - New tool configuration detected: edgar_registration_statements.json
+2025-11-01 07:15:16,602 - tools.tools_registry - ERROR - Error loading custom tool edgar_registration_statements: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,602 - tools.tools_registry - INFO - New tool configuration detected: edgar_xbrl_frames_multi_concept.json
+2025-11-01 07:15:16,602 - tools.tools_registry - ERROR - Error loading custom tool edgar_xbrl_frames_multi_concept: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,602 - tools.tools_registry - INFO - New tool configuration detected: edgar_amendments.json
+2025-11-01 07:15:16,603 - tools.tools_registry - ERROR - Error loading custom tool edgar_amendments: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,603 - tools.tools_registry - INFO - New tool configuration detected: edgar_company_concept.json
+2025-11-01 07:15:16,603 - tools.tools_registry - ERROR - Error loading custom tool edgar_company_concept: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,603 - tools.tools_registry - INFO - New tool configuration detected: edgar_ownership_reports.json
+2025-11-01 07:15:16,604 - tools.tools_registry - ERROR - Error loading custom tool edgar_ownership_reports: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,604 - tools.tools_registry - INFO - New tool configuration detected: edgar_frame_data.json
+2025-11-01 07:15:16,604 - tools.tools_registry - ERROR - Error loading custom tool edgar_frame_data: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,604 - tools.tools_registry - INFO - New tool configuration detected: edgar_current_reports.json
+2025-11-01 07:15:16,605 - tools.tools_registry - ERROR - Error loading custom tool edgar_current_reports: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,605 - tools.tools_registry - INFO - New tool configuration detected: edgar_company_search.json
+2025-11-01 07:15:16,605 - tools.tools_registry - ERROR - Error loading custom tool edgar_company_search: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,605 - tools.tools_registry - INFO - New tool configuration detected: edgar_foreign_issuers.json
+2025-11-01 07:15:16,606 - tools.tools_registry - ERROR - Error loading custom tool edgar_foreign_issuers: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,606 - tools.tools_registry - INFO - New tool configuration detected: edgar_filings_by_form.json
+2025-11-01 07:15:16,606 - tools.tools_registry - ERROR - Error loading custom tool edgar_filings_by_form: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,606 - tools.tools_registry - INFO - New tool configuration detected: edgar_company_tickers_by_exchange.json
+2025-11-01 07:15:16,607 - tools.tools_registry - ERROR - Error loading custom tool edgar_company_tickers_by_exchange: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,607 - tools.tools_registry - INFO - New tool configuration detected: edgar_company_submissions.json
+2025-11-01 07:15:16,607 - tools.tools_registry - ERROR - Error loading custom tool edgar_company_submissions: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,607 - tools.tools_registry - INFO - New tool configuration detected: edgar_companies_by_sic.json
+2025-11-01 07:15:16,608 - tools.tools_registry - ERROR - Error loading custom tool edgar_companies_by_sic: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,608 - tools.tools_registry - INFO - New tool configuration detected: edgar_insider_transactions.json
+2025-11-01 07:15:16,609 - tools.tools_registry - ERROR - Error loading custom tool edgar_insider_transactions: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,609 - tools.tools_registry - INFO - New tool configuration detected: edgar_institutional_holdings.json
+2025-11-01 07:15:16,609 - tools.tools_registry - ERROR - Error loading custom tool edgar_institutional_holdings: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,610 - tools.tools_registry - INFO - New tool configuration detected: edgar_filing_details.json
+2025-11-01 07:15:16,610 - tools.tools_registry - ERROR - Error loading custom tool edgar_filing_details: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,611 - tools.tools_registry - INFO - New tool configuration detected: edgar_company_facts.json
+2025-11-01 07:15:16,612 - tools.tools_registry - ERROR - Error loading custom tool edgar_company_facts: No module named 'base_mcp_tool'
+2025-11-01 07:15:16,612 - tools.tools_registry - INFO - New tool configuration detected: edgar_mutual_fund_holdings.json
+2025-11-01 07:15:16,612 - tools.tools_registry - ERROR - Error loading custom tool edgar_mutual_fund_holdings: No module named 'base_mcp_tool'
+2025-11-01 07:15:20,651 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:15:20] "GET /dashboard HTTP/1.1" 200 -
+2025-11-01 07:15:20,671 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:15:20] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 07:15:20,672 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:15:20] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 07:15:48,283 - DuckDbDescribeTableTool - INFO - Auto-refresh stopped
+2025-11-01 07:15:49,240 - DuckDbRefreshViewsTool - INFO - Auto-refresh stopped
+2025-11-01 07:15:50,227 - DuckDbListFilesTool - INFO - Auto-refresh stopped
+2025-11-01 07:15:51,183 - DuckDbQueryTool - INFO - Auto-refresh stopped
+2025-11-01 07:15:52,172 - DuckDbAggregateTool - INFO - Auto-refresh stopped
+2025-11-01 07:15:53,136 - DuckDbGetStatsTool - INFO - Auto-refresh stopped
+2025-11-01 07:15:53,876 - __main__ - INFO - Starting SAJHA MCP Server on 0.0.0.0:5000
+2025-11-01 07:15:53,891 - core.auth_manager - INFO - Loaded 1 users from configuration
+2025-11-01 07:15:53,891 - tools.tools_registry - INFO - Loading tools from config/tools
+2025-11-01 07:15:53,892 - tools.tools_registry - INFO - Tool registered: ecb_get_exchange_rate
+2025-11-01 07:15:53,892 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_exchange_rate
+2025-11-01 07:15:53,892 - tools.tools_registry - INFO - Tool registered: un_get_sdgs
+2025-11-01 07:15:53,892 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdgs
+2025-11-01 07:15:53,943 - DuckDbListTablesTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-01 07:15:53,959 - DuckDbListTablesTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 07:15:53,964 - DuckDbListTablesTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 07:15:53,969 - DuckDbListTablesTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 07:15:53,976 - DuckDbListTablesTool - INFO - Initialization complete: 3 views available
+2025-11-01 07:15:53,976 - DuckDbListTablesTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 07:15:53,976 - tools.tools_registry - INFO - Tool registered: duckdb_list_tables
+2025-11-01 07:15:53,976 - tools.tools_registry - INFO - Loaded custom tool: duckdb_list_tables
+2025-11-01 07:15:53,977 - tools.tools_registry - INFO - Tool registered: check_robots_txt
+2025-11-01 07:15:53,977 - tools.tools_registry - INFO - Loaded custom tool: check_robots_txt
+2025-11-01 07:15:53,978 - tools.tools_registry - INFO - Tool registered: imf_compare_countries
+2025-11-01 07:15:53,978 - tools.tools_registry - INFO - Loaded custom tool: imf_compare_countries
+2025-11-01 07:15:53,978 - tools.tools_registry - INFO - Tool registered: ecb_get_bond_yield
+2025-11-01 07:15:53,978 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_bond_yield
+2025-11-01 07:15:53,978 - tools.tools_registry - INFO - Tool registered: imf_get_bop_data
+2025-11-01 07:15:53,978 - tools.tools_registry - INFO - Loaded custom tool: imf_get_bop_data
+2025-11-01 07:15:53,978 - tools.tools_registry - INFO - Tool registered: extract_content
+2025-11-01 07:15:53,978 - tools.tools_registry - INFO - Loaded custom tool: extract_content
+2025-11-01 07:15:53,978 - tools.tools_registry - INFO - Tool registered: ecb_search_series
+2025-11-01 07:15:53,978 - tools.tools_registry - INFO - Loaded custom tool: ecb_search_series
+2025-11-01 07:15:53,989 - tools.tools_registry - INFO - Tool registered: edgar_financial_ratios
+2025-11-01 07:15:53,989 - tools.tools_registry - INFO - Loaded custom tool: edgar_financial_ratios
+2025-11-01 07:15:53,989 - tools.tools_registry - INFO - Tool registered: un_get_trade_data
+2025-11-01 07:15:53,989 - tools.tools_registry - INFO - Loaded custom tool: un_get_trade_data
+2025-11-01 07:15:53,989 - tools.tools_registry - INFO - Tool registered: un_get_sdg_targets
+2025-11-01 07:15:53,989 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_targets
+2025-11-01 07:15:53,990 - tools.tools_registry - INFO - Tool registered: fbi_get_participation_rate
+2025-11-01 07:15:53,990 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_participation_rate
+2025-11-01 07:15:53,990 - tools.tools_registry - INFO - Tool registered: fbi_get_agency_statistics
+2025-11-01 07:15:53,990 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_agency_statistics
+2025-11-01 07:15:53,990 - tools.tools_registry - INFO - Tool registered: edgar_proxy_statements
+2025-11-01 07:15:53,990 - tools.tools_registry - INFO - Loaded custom tool: edgar_proxy_statements
+2025-11-01 07:15:53,997 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 07:15:53,997 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 07:15:53,997 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 07:15:53,997 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 07:15:53,997 - SqlSelectCountRowsTool - INFO - DuckDB connection initialized for sqlselect_count_rows
+2025-11-01 07:15:53,997 - tools.tools_registry - INFO - Tool registered: sqlselect_count_rows
+2025-11-01 07:15:53,997 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_count_rows
+2025-11-01 07:15:53,997 - tools.tools_registry - INFO - Tool registered: fed_get_latest
+2025-11-01 07:15:53,997 - tools.tools_registry - INFO - Loaded custom tool: fed_get_latest
+2025-11-01 07:15:53,999 - tools.tools_registry - INFO - Tool registered: ir_get_all_resources
+2025-11-01 07:15:53,999 - tools.tools_registry - INFO - Loaded custom tool: ir_get_all_resources
+2025-11-01 07:15:53,999 - tools.tools_registry - INFO - Tool registered: extract_links
+2025-11-01 07:15:53,999 - tools.tools_registry - INFO - Loaded custom tool: extract_links
+2025-11-01 07:15:53,999 - tools.tools_registry - INFO - Tool registered: edgar_registration_statements
+2025-11-01 07:15:53,999 - tools.tools_registry - INFO - Loaded custom tool: edgar_registration_statements
+2025-11-01 07:15:54,000 - tools.tools_registry - INFO - Tool registered: msdoc_read_excel_sheet
+2025-11-01 07:15:54,000 - tools.tools_registry - INFO - Loaded custom tool: msdoc_read_excel_sheet
+2025-11-01 07:15:54,000 - tools.tools_registry - INFO - Tool registered: fbi_get_offense_data
+2025-11-01 07:15:54,000 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_offense_data
+2025-11-01 07:15:54,000 - tools.tools_registry - INFO - Tool registered: fbi_compare_states
+2025-11-01 07:15:54,000 - tools.tools_registry - INFO - Loaded custom tool: fbi_compare_states
+2025-11-01 07:15:54,000 - tools.tools_registry - INFO - Tool registered: tavily_news_search
+2025-11-01 07:15:54,000 - tools.tools_registry - INFO - Loaded custom tool: tavily_news_search
+2025-11-01 07:15:54,001 - DuckDbGetStatsTool - INFO - Found 3 data files in data/duckdb
+2025-11-01 07:15:54,007 - DuckDbGetStatsTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 07:15:54,012 - DuckDbGetStatsTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 07:15:54,017 - DuckDbGetStatsTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 07:15:54,019 - DuckDbGetStatsTool - INFO - Initialization complete: 3 views available
+2025-11-01 07:15:54,019 - DuckDbGetStatsTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 07:15:54,019 - tools.tools_registry - INFO - Tool registered: duckdb_get_stats
+2025-11-01 07:15:54,019 - tools.tools_registry - INFO - Loaded custom tool: duckdb_get_stats
+2025-11-01 07:15:54,019 - tools.tools_registry - INFO - Tool registered: msdoc_extract_text
+2025-11-01 07:15:54,019 - tools.tools_registry - INFO - Loaded custom tool: msdoc_extract_text
+2025-11-01 07:15:54,019 - tools.tools_registry - INFO - Tool registered: extract_metadata
+2025-11-01 07:15:54,019 - tools.tools_registry - INFO - Loaded custom tool: extract_metadata
+2025-11-01 07:15:54,020 - tools.tools_registry - INFO - Tool registered: boc_get_interest_rate
+2025-11-01 07:15:54,020 - tools.tools_registry - INFO - Loaded custom tool: boc_get_interest_rate
+2025-11-01 07:15:54,020 - tools.tools_registry - INFO - Tool registered: imf_get_weo_data
+2025-11-01 07:15:54,020 - tools.tools_registry - INFO - Loaded custom tool: imf_get_weo_data
+2025-11-01 07:15:54,020 - tools.tools_registry - INFO - Tool registered: msdoc_search_word
+2025-11-01 07:15:54,020 - tools.tools_registry - INFO - Loaded custom tool: msdoc_search_word
+2025-11-01 07:15:54,020 - tools.tools_registry - INFO - Tool registered: fbi_search_agencies
+2025-11-01 07:15:54,020 - tools.tools_registry - INFO - Loaded custom tool: fbi_search_agencies
+2025-11-01 07:15:54,020 - tools.tools_registry - INFO - Tool registered: edgar_xbrl_frames_multi_concept
+2025-11-01 07:15:54,020 - tools.tools_registry - INFO - Loaded custom tool: edgar_xbrl_frames_multi_concept
+2025-11-01 07:15:54,020 - tools.tools_registry - INFO - Tool registered: ir_get_documents
+2025-11-01 07:15:54,020 - tools.tools_registry - INFO - Loaded custom tool: ir_get_documents
+2025-11-01 07:15:54,021 - tools.tools_registry - INFO - Tool registered: sec_get_insider_trading
+2025-11-01 07:15:54,021 - tools.tools_registry - INFO - Loaded custom tool: sec_get_insider_trading
+2025-11-01 07:15:54,021 - tools.tools_registry - INFO - Tool registered: fbi_get_national_statistics
+2025-11-01 07:15:54,021 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_national_statistics
+2025-11-01 07:15:54,028 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 07:15:54,028 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 07:15:54,028 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 07:15:54,028 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 07:15:54,028 - SqlSelectGetSchemaTool - INFO - DuckDB connection initialized for sqlselect_get_schema
+2025-11-01 07:15:54,028 - tools.tools_registry - INFO - Tool registered: sqlselect_get_schema
+2025-11-01 07:15:54,028 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_get_schema
+2025-11-01 07:15:54,028 - tools.tools_registry - INFO - Tool registered: edgar_amendments
+2025-11-01 07:15:54,028 - tools.tools_registry - INFO - Loaded custom tool: edgar_amendments
+2025-11-01 07:15:54,029 - tools.tools_registry - INFO - Tool registered: msdoc_read_word
+2025-11-01 07:15:54,029 - tools.tools_registry - INFO - Loaded custom tool: msdoc_read_word
+2025-11-01 07:15:54,029 - tools.tools_registry - INFO - Tool registered: ecb_get_inflation
+2025-11-01 07:15:54,029 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_inflation
+2025-11-01 07:15:54,029 - tools.tools_registry - INFO - Tool registered: edgar_company_concept
+2025-11-01 07:15:54,029 - tools.tools_registry - INFO - Loaded custom tool: edgar_company_concept
+2025-11-01 07:15:54,029 - tools.tools_registry - INFO - Tool registered: tavily_research_search
+2025-11-01 07:15:54,029 - tools.tools_registry - INFO - Loaded custom tool: tavily_research_search
+2025-11-01 07:15:54,029 - tools.tools_registry - INFO - Tool registered: boc_get_latest
+2025-11-01 07:15:54,029 - tools.tools_registry - INFO - Loaded custom tool: boc_get_latest
+2025-11-01 07:15:54,030 - DuckDbAggregateTool - INFO - Found 3 data files in data/duckdb
+2025-11-01 07:15:54,035 - DuckDbAggregateTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 07:15:54,041 - DuckDbAggregateTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 07:15:54,048 - DuckDbAggregateTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 07:15:54,051 - DuckDbAggregateTool - INFO - Initialization complete: 3 views available
+2025-11-01 07:15:54,052 - DuckDbAggregateTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 07:15:54,052 - tools.tools_registry - INFO - Tool registered: duckdb_aggregate
+2025-11-01 07:15:54,052 - tools.tools_registry - INFO - Loaded custom tool: duckdb_aggregate
+2025-11-01 07:15:54,052 - tools.tools_registry - INFO - Tool registered: edgar_ownership_reports
+2025-11-01 07:15:54,052 - tools.tools_registry - INFO - Loaded custom tool: edgar_ownership_reports
+2025-11-01 07:15:54,052 - tools.tools_registry - INFO - Tool registered: edgar_frame_data
+2025-11-01 07:15:54,052 - tools.tools_registry - INFO - Loaded custom tool: edgar_frame_data
+2025-11-01 07:15:54,052 - tools.tools_registry - INFO - Tool registered: boc_get_bond_yield
+2025-11-01 07:15:54,052 - tools.tools_registry - INFO - Loaded custom tool: boc_get_bond_yield
+2025-11-01 07:15:54,053 - tools.tools_registry - INFO - Tool registered: wb_search_indicators
+2025-11-01 07:15:54,053 - tools.tools_registry - INFO - Loaded custom tool: wb_search_indicators
+2025-11-01 07:15:54,054 - tools.tools_registry - INFO - Tool registered: wiki_search
+2025-11-01 07:15:54,054 - tools.tools_registry - INFO - Loaded custom tool: wiki_search
+2025-11-01 07:15:54,054 - tools.tools_registry - INFO - Tool registered: wb_get_indicator_data
+2025-11-01 07:15:54,054 - tools.tools_registry - INFO - Loaded custom tool: wb_get_indicator_data
+2025-11-01 07:15:54,055 - tools.tools_registry - INFO - Tool registered: msdoc_list_files
+2025-11-01 07:15:54,055 - tools.tools_registry - INFO - Loaded custom tool: msdoc_list_files
+2025-11-01 07:15:54,055 - tools.tools_registry - INFO - Tool registered: wb_compare_countries
+2025-11-01 07:15:54,055 - tools.tools_registry - INFO - Loaded custom tool: wb_compare_countries
+2025-11-01 07:15:54,055 - tools.tools_registry - INFO - Tool registered: boc_get_common_indicators
+2025-11-01 07:15:54,055 - tools.tools_registry - INFO - Loaded custom tool: boc_get_common_indicators
+2025-11-01 07:15:54,055 - tools.tools_registry - INFO - Tool registered: tavily_web_search
+2025-11-01 07:15:54,055 - tools.tools_registry - INFO - Loaded custom tool: tavily_web_search
+2025-11-01 07:15:54,055 - tools.tools_registry - INFO - Tool registered: un_get_sdg_indicators
+2025-11-01 07:15:54,055 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_indicators
+2025-11-01 07:15:54,055 - tools.tools_registry - INFO - Tool registered: un_get_country_trade
+2025-11-01 07:15:54,055 - tools.tools_registry - INFO - Loaded custom tool: un_get_country_trade
+2025-11-01 07:15:54,056 - tools.tools_registry - INFO - Tool registered: edgar_current_reports
+2025-11-01 07:15:54,056 - tools.tools_registry - INFO - Loaded custom tool: edgar_current_reports
+2025-11-01 07:15:54,056 - tools.tools_registry - INFO - Tool registered: imf_get_country_profile
+2025-11-01 07:15:54,056 - tools.tools_registry - INFO - Loaded custom tool: imf_get_country_profile
+2025-11-01 07:15:54,056 - tools.tools_registry - INFO - Tool registered: edgar_company_search
+2025-11-01 07:15:54,056 - tools.tools_registry - INFO - Loaded custom tool: edgar_company_search
+2025-11-01 07:15:54,056 - tools.tools_registry - INFO - Tool registered: un_compare_trade
+2025-11-01 07:15:54,056 - tools.tools_registry - INFO - Loaded custom tool: un_compare_trade
+2025-11-01 07:15:54,056 - tools.tools_registry - INFO - Tool registered: fbi_get_state_statistics
+2025-11-01 07:15:54,056 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_state_statistics
+2025-11-01 07:15:54,056 - tools.tools_registry - INFO - Tool registered: wb_get_countries
+2025-11-01 07:15:54,056 - tools.tools_registry - INFO - Loaded custom tool: wb_get_countries
+2025-11-01 07:15:54,058 - DuckDbQueryTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-01 07:15:54,067 - DuckDbQueryTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 07:15:54,087 - DuckDbQueryTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 07:15:54,104 - DuckDbQueryTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 07:15:54,107 - DuckDbQueryTool - INFO - Initialization complete: 3 views available
+2025-11-01 07:15:54,109 - DuckDbQueryTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 07:15:54,109 - tools.tools_registry - INFO - Tool registered: duckdb_query
+2025-11-01 07:15:54,109 - tools.tools_registry - INFO - Loaded custom tool: duckdb_query
+2025-11-01 07:15:54,110 - tools.tools_registry - INFO - Tool registered: ecb_get_latest
+2025-11-01 07:15:54,110 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_latest
+2025-11-01 07:15:54,110 - tools.tools_registry - INFO - Tool registered: yahoo_search_symbols
+2025-11-01 07:15:54,111 - tools.tools_registry - INFO - Loaded custom tool: yahoo_search_symbols
+2025-11-01 07:15:54,111 - tools.tools_registry - INFO - Tool registered: ir_find_page
+2025-11-01 07:15:54,111 - tools.tools_registry - INFO - Loaded custom tool: ir_find_page
+2025-11-01 07:15:54,111 - tools.tools_registry - INFO - Tool registered: crawl_sitemap
+2025-11-01 07:15:54,111 - tools.tools_registry - INFO - Loaded custom tool: crawl_sitemap
+2025-11-01 07:15:54,111 - tools.tools_registry - INFO - Tool registered: boc_get_series
+2025-11-01 07:15:54,111 - tools.tools_registry - INFO - Loaded custom tool: boc_get_series
+2025-11-01 07:15:54,111 - tools.tools_registry - INFO - Tool registered: wb_get_indicators
+2025-11-01 07:15:54,111 - tools.tools_registry - INFO - Loaded custom tool: wb_get_indicators
+2025-11-01 07:15:54,112 - tools.tools_registry - INFO - Tool registered: ir_get_latest_earnings
+2025-11-01 07:15:54,112 - tools.tools_registry - INFO - Loaded custom tool: ir_get_latest_earnings
+2025-11-01 07:15:54,112 - tools.tools_registry - INFO - Tool registered: imf_get_databases
+2025-11-01 07:15:54,112 - tools.tools_registry - INFO - Loaded custom tool: imf_get_databases
+2025-11-01 07:15:54,112 - tools.tools_registry - INFO - Tool registered: fed_get_common_indicators
+2025-11-01 07:15:54,112 - tools.tools_registry - INFO - Loaded custom tool: fed_get_common_indicators
+2025-11-01 07:15:54,112 - tools.tools_registry - INFO - Tool registered: edgar_foreign_issuers
+2025-11-01 07:15:54,112 - tools.tools_registry - INFO - Loaded custom tool: edgar_foreign_issuers
+2025-11-01 07:15:54,112 - tools.tools_registry - INFO - Tool registered: un_get_trade_balance
+2025-11-01 07:15:54,112 - tools.tools_registry - INFO - Loaded custom tool: un_get_trade_balance
+2025-11-01 07:15:54,113 - tools.tools_registry - INFO - Tool registered: msdoc_get_word_metadata
+2025-11-01 07:15:54,113 - tools.tools_registry - INFO - Loaded custom tool: msdoc_get_word_metadata
+2025-11-01 07:15:54,113 - tools.tools_registry - INFO - Tool registered: edgar_filings_by_form
+2025-11-01 07:15:54,113 - tools.tools_registry - INFO - Loaded custom tool: edgar_filings_by_form
+2025-11-01 07:15:54,113 - tools.tools_registry - INFO - Tool registered: msdoc_get_excel_metadata
+2025-11-01 07:15:54,113 - tools.tools_registry - INFO - Loaded custom tool: msdoc_get_excel_metadata
+2025-11-01 07:15:54,113 - tools.tools_registry - INFO - Tool registered: msdoc_read_excel
+2025-11-01 07:15:54,113 - tools.tools_registry - INFO - Loaded custom tool: msdoc_read_excel
+2025-11-01 07:15:54,113 - tools.tools_registry - INFO - Tool registered: boc_get_exchange_rate
+2025-11-01 07:15:54,113 - tools.tools_registry - INFO - Loaded custom tool: boc_get_exchange_rate
+2025-11-01 07:15:54,126 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 07:15:54,126 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 07:15:54,126 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 07:15:54,126 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 07:15:54,126 - SqlSelectExecuteQueryTool - INFO - DuckDB connection initialized for sqlselect_execute_query
+2025-11-01 07:15:54,126 - tools.tools_registry - INFO - Tool registered: sqlselect_execute_query
+2025-11-01 07:15:54,127 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_execute_query
+2025-11-01 07:15:54,127 - tools.tools_registry - INFO - Tool registered: msdoc_search_excel
+2025-11-01 07:15:54,127 - tools.tools_registry - INFO - Loaded custom tool: msdoc_search_excel
+2025-11-01 07:15:54,127 - tools.tools_registry - INFO - Tool registered: ir_list_supported_companies
+2025-11-01 07:15:54,127 - tools.tools_registry - INFO - Loaded custom tool: ir_list_supported_companies
+2025-11-01 07:15:54,127 - tools.tools_registry - INFO - Tool registered: wb_get_lending_types
+2025-11-01 07:15:54,127 - tools.tools_registry - INFO - Loaded custom tool: wb_get_lending_types
+2025-11-01 07:15:54,127 - tools.tools_registry - INFO - Tool registered: msdoc_get_excel_sheets
+2025-11-01 07:15:54,127 - tools.tools_registry - INFO - Loaded custom tool: msdoc_get_excel_sheets
+2025-11-01 07:15:54,128 - tools.tools_registry - INFO - Tool registered: imf_get_dataflows
+2025-11-01 07:15:54,128 - tools.tools_registry - INFO - Loaded custom tool: imf_get_dataflows
+2025-11-01 07:15:54,128 - tools.tools_registry - INFO - Tool registered: google_search
+2025-11-01 07:15:54,128 - tools.tools_registry - INFO - Loaded custom tool: google_search
+2025-11-01 07:15:54,128 - tools.tools_registry - INFO - Tool registered: ir_get_annual_reports
+2025-11-01 07:15:54,129 - tools.tools_registry - INFO - Loaded custom tool: ir_get_annual_reports
+2025-11-01 07:15:54,129 - tools.tools_registry - INFO - Tool registered: wb_get_topic_indicators
+2025-11-01 07:15:54,129 - tools.tools_registry - INFO - Loaded custom tool: wb_get_topic_indicators
+2025-11-01 07:15:54,129 - tools.tools_registry - INFO - Tool registered: ecb_get_interest_rate
+2025-11-01 07:15:54,129 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_interest_rate
+2025-11-01 07:15:54,129 - tools.tools_registry - INFO - Tool registered: sec_search_company
+2025-11-01 07:15:54,129 - tools.tools_registry - INFO - Loaded custom tool: sec_search_company
+2025-11-01 07:15:54,129 - tools.tools_registry - INFO - Tool registered: edgar_company_tickers_by_exchange
+2025-11-01 07:15:54,129 - tools.tools_registry - INFO - Loaded custom tool: edgar_company_tickers_by_exchange
+2025-11-01 07:15:54,129 - tools.tools_registry - INFO - Tool registered: wb_get_country_data
+2025-11-01 07:15:54,129 - tools.tools_registry - INFO - Loaded custom tool: wb_get_country_data
+2025-11-01 07:15:54,130 - tools.tools_registry - INFO - Tool registered: sec_get_company_facts
+2025-11-01 07:15:54,130 - tools.tools_registry - INFO - Loaded custom tool: sec_get_company_facts
+2025-11-01 07:15:54,130 - tools.tools_registry - INFO - Tool registered: fbi_get_agency_details
+2025-11-01 07:15:54,130 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_agency_details
+2025-11-01 07:15:54,130 - tools.tools_registry - INFO - Tool registered: fed_search_series
+2025-11-01 07:15:54,130 - tools.tools_registry - INFO - Loaded custom tool: fed_search_series
+2025-11-01 07:15:54,142 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 07:15:54,143 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 07:15:54,143 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 07:15:54,143 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 07:15:54,143 - SqlSelectDescribeSourceTool - INFO - DuckDB connection initialized for sqlselect_describe_source
+2025-11-01 07:15:54,143 - tools.tools_registry - INFO - Tool registered: sqlselect_describe_source
+2025-11-01 07:15:54,143 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_describe_source
+2025-11-01 07:15:54,143 - tools.tools_registry - INFO - Tool registered: edgar_company_submissions
+2025-11-01 07:15:54,143 - tools.tools_registry - INFO - Loaded custom tool: edgar_company_submissions
+2025-11-01 07:15:54,144 - DuckDbListFilesTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-01 07:15:54,156 - DuckDbListFilesTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 07:15:54,165 - DuckDbListFilesTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 07:15:54,178 - DuckDbListFilesTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 07:15:54,187 - DuckDbListFilesTool - INFO - Initialization complete: 3 views available
+2025-11-01 07:15:54,190 - DuckDbListFilesTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 07:15:54,190 - tools.tools_registry - INFO - Tool registered: duckdb_list_files
+2025-11-01 07:15:54,191 - tools.tools_registry - INFO - Loaded custom tool: duckdb_list_files
+2025-11-01 07:15:54,191 - tools.tools_registry - INFO - Tool registered: sec_get_company_info
+2025-11-01 07:15:54,191 - tools.tools_registry - INFO - Loaded custom tool: sec_get_company_info
+2025-11-01 07:15:54,191 - tools.tools_registry - INFO - Tool registered: edgar_companies_by_sic
+2025-11-01 07:15:54,191 - tools.tools_registry - INFO - Loaded custom tool: edgar_companies_by_sic
+2025-11-01 07:15:54,191 - tools.tools_registry - INFO - Tool registered: boc_search_series
+2025-11-01 07:15:54,191 - tools.tools_registry - INFO - Loaded custom tool: boc_search_series
+2025-11-01 07:15:54,191 - tools.tools_registry - INFO - Tool registered: wiki_get_summary
+2025-11-01 07:15:54,191 - tools.tools_registry - INFO - Loaded custom tool: wiki_get_summary
+2025-11-01 07:15:54,192 - tools.tools_registry - INFO - Tool registered: imf_get_data
+2025-11-01 07:15:54,192 - tools.tools_registry - INFO - Loaded custom tool: imf_get_data
+2025-11-01 07:15:54,192 - tools.tools_registry - INFO - Tool registered: tavily_domain_search
+2025-11-01 07:15:54,192 - tools.tools_registry - INFO - Loaded custom tool: tavily_domain_search
+2025-11-01 07:15:54,192 - tools.tools_registry - INFO - Tool registered: un_get_sdg_data
+2025-11-01 07:15:54,192 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_data
+2025-11-01 07:15:54,192 - tools.tools_registry - INFO - Tool registered: get_page_info
+2025-11-01 07:15:54,192 - tools.tools_registry - INFO - Loaded custom tool: get_page_info
+2025-11-01 07:15:54,192 - tools.tools_registry - INFO - Tool registered: edgar_insider_transactions
+2025-11-01 07:15:54,192 - tools.tools_registry - INFO - Loaded custom tool: edgar_insider_transactions
+2025-11-01 07:15:54,193 - tools.tools_registry - INFO - Tool registered: un_get_sdg_progress
+2025-11-01 07:15:54,193 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_progress
+2025-11-01 07:15:54,193 - tools.tools_registry - INFO - Tool registered: yahoo_get_history
+2025-11-01 07:15:54,193 - tools.tools_registry - INFO - Loaded custom tool: yahoo_get_history
+2025-11-01 07:15:54,193 - tools.tools_registry - INFO - Tool registered: edgar_institutional_holdings
+2025-11-01 07:15:54,193 - tools.tools_registry - INFO - Loaded custom tool: edgar_institutional_holdings
+2025-11-01 07:15:54,193 - tools.tools_registry - INFO - Tool registered: ir_get_presentations
+2025-11-01 07:15:54,193 - tools.tools_registry - INFO - Loaded custom tool: ir_get_presentations
+2025-11-01 07:15:54,193 - tools.tools_registry - INFO - Tool registered: yahoo_get_quote
+2025-11-01 07:15:54,193 - tools.tools_registry - INFO - Loaded custom tool: yahoo_get_quote
+2025-11-01 07:15:54,194 - tools.tools_registry - INFO - Tool registered: fbi_get_crime_trend
+2025-11-01 07:15:54,194 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_crime_trend
+2025-11-01 07:15:54,194 - tools.tools_registry - INFO - Tool registered: fed_get_series
+2025-11-01 07:15:54,194 - tools.tools_registry - INFO - Loaded custom tool: fed_get_series
+2025-11-01 07:15:54,194 - tools.tools_registry - INFO - Tool registered: imf_get_ifs_data
+2025-11-01 07:15:54,194 - tools.tools_registry - INFO - Loaded custom tool: imf_get_ifs_data
+2025-11-01 07:15:54,194 - tools.tools_registry - INFO - Tool registered: sec_get_mutual_fund_holdings
+2025-11-01 07:15:54,194 - tools.tools_registry - INFO - Loaded custom tool: sec_get_mutual_fund_holdings
+2025-11-01 07:15:54,195 - DuckDbRefreshViewsTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-01 07:15:54,208 - DuckDbRefreshViewsTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 07:15:54,219 - DuckDbRefreshViewsTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 07:15:54,238 - DuckDbRefreshViewsTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 07:15:54,247 - DuckDbRefreshViewsTool - INFO - Initialization complete: 3 views available
+2025-11-01 07:15:54,247 - DuckDbRefreshViewsTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 07:15:54,247 - tools.tools_registry - INFO - Tool registered: duckdb_refresh_views
+2025-11-01 07:15:54,247 - tools.tools_registry - INFO - Loaded custom tool: duckdb_refresh_views
+2025-11-01 07:15:54,248 - tools.tools_registry - INFO - Tool registered: sec_get_company_filings
+2025-11-01 07:15:54,248 - tools.tools_registry - INFO - Loaded custom tool: sec_get_company_filings
+2025-11-01 07:15:54,248 - tools.tools_registry - INFO - Tool registered: sec_get_financial_data
+2025-11-01 07:15:54,248 - tools.tools_registry - INFO - Loaded custom tool: sec_get_financial_data
+2025-11-01 07:15:54,248 - tools.tools_registry - INFO - Tool registered: wb_get_regions
+2025-11-01 07:15:54,248 - tools.tools_registry - INFO - Loaded custom tool: wb_get_regions
+2025-11-01 07:15:54,249 - DuckDbDescribeTableTool - INFO - Found 3 data files in data/duckdb
+2025-11-01 07:15:54,276 - DuckDbDescribeTableTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 07:15:54,286 - DuckDbDescribeTableTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 07:15:54,301 - DuckDbDescribeTableTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 07:15:54,308 - DuckDbDescribeTableTool - INFO - Initialization complete: 3 views available
+2025-11-01 07:15:54,310 - DuckDbDescribeTableTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 07:15:54,310 - tools.tools_registry - INFO - Tool registered: duckdb_describe_table
+2025-11-01 07:15:54,310 - tools.tools_registry - INFO - Loaded custom tool: duckdb_describe_table
+2025-11-01 07:15:54,310 - tools.tools_registry - INFO - Tool registered: wiki_get_page
+2025-11-01 07:15:54,310 - tools.tools_registry - INFO - Loaded custom tool: wiki_get_page
+2025-11-01 07:15:54,310 - tools.tools_registry - INFO - Tool registered: crawl_url
+2025-11-01 07:15:54,310 - tools.tools_registry - INFO - Loaded custom tool: crawl_url
+2025-11-01 07:15:54,310 - tools.tools_registry - INFO - Tool registered: ecb_get_series
+2025-11-01 07:15:54,310 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_series
+2025-11-01 07:15:54,311 - tools.tools_registry - INFO - Tool registered: ecb_get_common_indicators
+2025-11-01 07:15:54,311 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_common_indicators
+2025-11-01 07:15:54,334 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 07:15:54,334 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 07:15:54,334 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 07:15:54,334 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 07:15:54,335 - SqlSelectSampleDataTool - INFO - DuckDB connection initialized for sqlselect_sample_data
+2025-11-01 07:15:54,335 - tools.tools_registry - INFO - Tool registered: sqlselect_sample_data
+2025-11-01 07:15:54,335 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_sample_data
+2025-11-01 07:15:54,335 - tools.tools_registry - INFO - Tool registered: edgar_filing_details
+2025-11-01 07:15:54,335 - tools.tools_registry - INFO - Loaded custom tool: edgar_filing_details
+2025-11-01 07:15:54,349 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 07:15:54,349 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 07:15:54,349 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 07:15:54,349 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 07:15:54,349 - SqlSelectListSourcesTool - INFO - DuckDB connection initialized for sqlselect_list_sources
+2025-11-01 07:15:54,349 - tools.tools_registry - INFO - Tool registered: sqlselect_list_sources
+2025-11-01 07:15:54,349 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_list_sources
+2025-11-01 07:15:54,350 - tools.tools_registry - INFO - Tool registered: wb_get_income_levels
+2025-11-01 07:15:54,350 - tools.tools_registry - INFO - Loaded custom tool: wb_get_income_levels
+2025-11-01 07:15:54,350 - tools.tools_registry - INFO - Tool registered: edgar_company_facts
+2025-11-01 07:15:54,350 - tools.tools_registry - INFO - Loaded custom tool: edgar_company_facts
+2025-11-01 07:15:54,350 - tools.tools_registry - INFO - Tool registered: edgar_mutual_fund_holdings
+2025-11-01 07:15:54,350 - tools.tools_registry - INFO - Loaded custom tool: edgar_mutual_fund_holdings
+2025-11-01 07:15:54,350 - tools.tools_registry - INFO - Started file monitoring for tool configurations
+2025-11-01 07:15:54,369 - root - INFO - All routes registered successfully
+2025-11-01 07:15:54,370 - werkzeug - WARNING - Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+2025-11-01 07:15:54,375 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.2.54:5000
+2025-11-01 07:15:54,375 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-11-01 07:15:57,728 - __main__ - INFO - Starting SAJHA MCP Server on 0.0.0.0:5000
+2025-11-01 07:15:57,744 - core.auth_manager - INFO - Loaded 1 users from configuration
+2025-11-01 07:15:57,744 - tools.tools_registry - INFO - Loading tools from config/tools
+2025-11-01 07:15:57,745 - tools.tools_registry - INFO - Tool registered: ecb_get_exchange_rate
+2025-11-01 07:15:57,745 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_exchange_rate
+2025-11-01 07:15:57,745 - tools.tools_registry - INFO - Tool registered: un_get_sdgs
+2025-11-01 07:15:57,745 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdgs
+2025-11-01 07:15:57,800 - DuckDbListTablesTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-01 07:15:57,817 - DuckDbListTablesTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 07:15:57,822 - DuckDbListTablesTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 07:15:57,827 - DuckDbListTablesTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 07:15:57,835 - DuckDbListTablesTool - INFO - Initialization complete: 3 views available
+2025-11-01 07:15:57,836 - DuckDbListTablesTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 07:15:57,836 - tools.tools_registry - INFO - Tool registered: duckdb_list_tables
+2025-11-01 07:15:57,836 - tools.tools_registry - INFO - Loaded custom tool: duckdb_list_tables
+2025-11-01 07:15:57,837 - tools.tools_registry - INFO - Tool registered: check_robots_txt
+2025-11-01 07:15:57,837 - tools.tools_registry - INFO - Loaded custom tool: check_robots_txt
+2025-11-01 07:15:57,837 - tools.tools_registry - INFO - Tool registered: imf_compare_countries
+2025-11-01 07:15:57,837 - tools.tools_registry - INFO - Loaded custom tool: imf_compare_countries
+2025-11-01 07:15:57,837 - tools.tools_registry - INFO - Tool registered: ecb_get_bond_yield
+2025-11-01 07:15:57,837 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_bond_yield
+2025-11-01 07:15:57,838 - tools.tools_registry - INFO - Tool registered: imf_get_bop_data
+2025-11-01 07:15:57,838 - tools.tools_registry - INFO - Loaded custom tool: imf_get_bop_data
+2025-11-01 07:15:57,838 - tools.tools_registry - INFO - Tool registered: extract_content
+2025-11-01 07:15:57,838 - tools.tools_registry - INFO - Loaded custom tool: extract_content
+2025-11-01 07:15:57,838 - tools.tools_registry - INFO - Tool registered: ecb_search_series
+2025-11-01 07:15:57,838 - tools.tools_registry - INFO - Loaded custom tool: ecb_search_series
+2025-11-01 07:15:57,838 - tools.tools_registry - INFO - Tool registered: edgar_financial_ratios
+2025-11-01 07:15:57,839 - tools.tools_registry - INFO - Loaded custom tool: edgar_financial_ratios
+2025-11-01 07:15:57,839 - tools.tools_registry - INFO - Tool registered: un_get_trade_data
+2025-11-01 07:15:57,839 - tools.tools_registry - INFO - Loaded custom tool: un_get_trade_data
+2025-11-01 07:15:57,839 - tools.tools_registry - INFO - Tool registered: un_get_sdg_targets
+2025-11-01 07:15:57,839 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_targets
+2025-11-01 07:15:57,839 - tools.tools_registry - INFO - Tool registered: fbi_get_participation_rate
+2025-11-01 07:15:57,839 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_participation_rate
+2025-11-01 07:15:57,840 - tools.tools_registry - INFO - Tool registered: fbi_get_agency_statistics
+2025-11-01 07:15:57,840 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_agency_statistics
+2025-11-01 07:15:57,840 - tools.tools_registry - INFO - Tool registered: edgar_proxy_statements
+2025-11-01 07:15:57,840 - tools.tools_registry - INFO - Loaded custom tool: edgar_proxy_statements
+2025-11-01 07:15:57,847 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 07:15:57,847 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 07:15:57,847 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 07:15:57,847 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 07:15:57,847 - SqlSelectCountRowsTool - INFO - DuckDB connection initialized for sqlselect_count_rows
+2025-11-01 07:15:57,847 - tools.tools_registry - INFO - Tool registered: sqlselect_count_rows
+2025-11-01 07:15:57,847 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_count_rows
+2025-11-01 07:15:57,847 - tools.tools_registry - INFO - Tool registered: fed_get_latest
+2025-11-01 07:15:57,847 - tools.tools_registry - INFO - Loaded custom tool: fed_get_latest
+2025-11-01 07:15:57,849 - tools.tools_registry - INFO - Tool registered: ir_get_all_resources
+2025-11-01 07:15:57,849 - tools.tools_registry - INFO - Loaded custom tool: ir_get_all_resources
+2025-11-01 07:15:57,849 - tools.tools_registry - INFO - Tool registered: extract_links
+2025-11-01 07:15:57,849 - tools.tools_registry - INFO - Loaded custom tool: extract_links
+2025-11-01 07:15:57,849 - tools.tools_registry - INFO - Tool registered: edgar_registration_statements
+2025-11-01 07:15:57,849 - tools.tools_registry - INFO - Loaded custom tool: edgar_registration_statements
+2025-11-01 07:15:57,850 - tools.tools_registry - INFO - Tool registered: msdoc_read_excel_sheet
+2025-11-01 07:15:57,850 - tools.tools_registry - INFO - Loaded custom tool: msdoc_read_excel_sheet
+2025-11-01 07:15:57,850 - tools.tools_registry - INFO - Tool registered: fbi_get_offense_data
+2025-11-01 07:15:57,850 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_offense_data
+2025-11-01 07:15:57,850 - tools.tools_registry - INFO - Tool registered: fbi_compare_states
+2025-11-01 07:15:57,850 - tools.tools_registry - INFO - Loaded custom tool: fbi_compare_states
+2025-11-01 07:15:57,850 - tools.tools_registry - INFO - Tool registered: tavily_news_search
+2025-11-01 07:15:57,850 - tools.tools_registry - INFO - Loaded custom tool: tavily_news_search
+2025-11-01 07:15:57,851 - DuckDbGetStatsTool - INFO - Found 3 data files in data/duckdb
+2025-11-01 07:15:57,856 - DuckDbGetStatsTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 07:15:57,861 - DuckDbGetStatsTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 07:15:57,866 - DuckDbGetStatsTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 07:15:57,869 - DuckDbGetStatsTool - INFO - Initialization complete: 3 views available
+2025-11-01 07:15:57,870 - DuckDbGetStatsTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 07:15:57,870 - tools.tools_registry - INFO - Tool registered: duckdb_get_stats
+2025-11-01 07:15:57,870 - tools.tools_registry - INFO - Loaded custom tool: duckdb_get_stats
+2025-11-01 07:15:57,870 - tools.tools_registry - INFO - Tool registered: msdoc_extract_text
+2025-11-01 07:15:57,870 - tools.tools_registry - INFO - Loaded custom tool: msdoc_extract_text
+2025-11-01 07:15:57,870 - tools.tools_registry - INFO - Tool registered: extract_metadata
+2025-11-01 07:15:57,870 - tools.tools_registry - INFO - Loaded custom tool: extract_metadata
+2025-11-01 07:15:57,870 - tools.tools_registry - INFO - Tool registered: boc_get_interest_rate
+2025-11-01 07:15:57,870 - tools.tools_registry - INFO - Loaded custom tool: boc_get_interest_rate
+2025-11-01 07:15:57,870 - tools.tools_registry - INFO - Tool registered: imf_get_weo_data
+2025-11-01 07:15:57,870 - tools.tools_registry - INFO - Loaded custom tool: imf_get_weo_data
+2025-11-01 07:15:57,871 - tools.tools_registry - INFO - Tool registered: msdoc_search_word
+2025-11-01 07:15:57,871 - tools.tools_registry - INFO - Loaded custom tool: msdoc_search_word
+2025-11-01 07:15:57,871 - tools.tools_registry - INFO - Tool registered: fbi_search_agencies
+2025-11-01 07:15:57,871 - tools.tools_registry - INFO - Loaded custom tool: fbi_search_agencies
+2025-11-01 07:15:57,871 - tools.tools_registry - INFO - Tool registered: edgar_xbrl_frames_multi_concept
+2025-11-01 07:15:57,871 - tools.tools_registry - INFO - Loaded custom tool: edgar_xbrl_frames_multi_concept
+2025-11-01 07:15:57,871 - tools.tools_registry - INFO - Tool registered: ir_get_documents
+2025-11-01 07:15:57,871 - tools.tools_registry - INFO - Loaded custom tool: ir_get_documents
+2025-11-01 07:15:57,871 - tools.tools_registry - INFO - Tool registered: sec_get_insider_trading
+2025-11-01 07:15:57,871 - tools.tools_registry - INFO - Loaded custom tool: sec_get_insider_trading
+2025-11-01 07:15:57,871 - tools.tools_registry - INFO - Tool registered: fbi_get_national_statistics
+2025-11-01 07:15:57,871 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_national_statistics
+2025-11-01 07:15:57,879 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 07:15:57,879 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 07:15:57,879 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 07:15:57,879 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 07:15:57,879 - SqlSelectGetSchemaTool - INFO - DuckDB connection initialized for sqlselect_get_schema
+2025-11-01 07:15:57,879 - tools.tools_registry - INFO - Tool registered: sqlselect_get_schema
+2025-11-01 07:15:57,879 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_get_schema
+2025-11-01 07:15:57,879 - tools.tools_registry - INFO - Tool registered: edgar_amendments
+2025-11-01 07:15:57,879 - tools.tools_registry - INFO - Loaded custom tool: edgar_amendments
+2025-11-01 07:15:57,879 - tools.tools_registry - INFO - Tool registered: msdoc_read_word
+2025-11-01 07:15:57,879 - tools.tools_registry - INFO - Loaded custom tool: msdoc_read_word
+2025-11-01 07:15:57,879 - tools.tools_registry - INFO - Tool registered: ecb_get_inflation
+2025-11-01 07:15:57,879 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_inflation
+2025-11-01 07:15:57,879 - tools.tools_registry - INFO - Tool registered: edgar_company_concept
+2025-11-01 07:15:57,879 - tools.tools_registry - INFO - Loaded custom tool: edgar_company_concept
+2025-11-01 07:15:57,879 - tools.tools_registry - INFO - Tool registered: tavily_research_search
+2025-11-01 07:15:57,880 - tools.tools_registry - INFO - Loaded custom tool: tavily_research_search
+2025-11-01 07:15:57,880 - tools.tools_registry - INFO - Tool registered: boc_get_latest
+2025-11-01 07:15:57,880 - tools.tools_registry - INFO - Loaded custom tool: boc_get_latest
+2025-11-01 07:15:57,880 - DuckDbAggregateTool - INFO - Found 3 data files in data/duckdb
+2025-11-01 07:15:57,886 - DuckDbAggregateTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 07:15:57,891 - DuckDbAggregateTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 07:15:57,896 - DuckDbAggregateTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 07:15:57,898 - DuckDbAggregateTool - INFO - Initialization complete: 3 views available
+2025-11-01 07:15:57,898 - DuckDbAggregateTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 07:15:57,898 - tools.tools_registry - INFO - Tool registered: duckdb_aggregate
+2025-11-01 07:15:57,898 - tools.tools_registry - INFO - Loaded custom tool: duckdb_aggregate
+2025-11-01 07:15:57,899 - tools.tools_registry - INFO - Tool registered: edgar_ownership_reports
+2025-11-01 07:15:57,899 - tools.tools_registry - INFO - Loaded custom tool: edgar_ownership_reports
+2025-11-01 07:15:57,899 - tools.tools_registry - INFO - Tool registered: edgar_frame_data
+2025-11-01 07:15:57,899 - tools.tools_registry - INFO - Loaded custom tool: edgar_frame_data
+2025-11-01 07:15:57,899 - tools.tools_registry - INFO - Tool registered: boc_get_bond_yield
+2025-11-01 07:15:57,899 - tools.tools_registry - INFO - Loaded custom tool: boc_get_bond_yield
+2025-11-01 07:15:57,900 - tools.tools_registry - INFO - Tool registered: wb_search_indicators
+2025-11-01 07:15:57,900 - tools.tools_registry - INFO - Loaded custom tool: wb_search_indicators
+2025-11-01 07:15:57,900 - tools.tools_registry - INFO - Tool registered: wiki_search
+2025-11-01 07:15:57,900 - tools.tools_registry - INFO - Loaded custom tool: wiki_search
+2025-11-01 07:15:57,900 - tools.tools_registry - INFO - Tool registered: wb_get_indicator_data
+2025-11-01 07:15:57,900 - tools.tools_registry - INFO - Loaded custom tool: wb_get_indicator_data
+2025-11-01 07:15:57,900 - tools.tools_registry - INFO - Tool registered: msdoc_list_files
+2025-11-01 07:15:57,900 - tools.tools_registry - INFO - Loaded custom tool: msdoc_list_files
+2025-11-01 07:15:57,900 - tools.tools_registry - INFO - Tool registered: wb_compare_countries
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Loaded custom tool: wb_compare_countries
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Tool registered: boc_get_common_indicators
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Loaded custom tool: boc_get_common_indicators
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Tool registered: tavily_web_search
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Loaded custom tool: tavily_web_search
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Tool registered: un_get_sdg_indicators
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_indicators
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Tool registered: un_get_country_trade
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Loaded custom tool: un_get_country_trade
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Tool registered: edgar_current_reports
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Loaded custom tool: edgar_current_reports
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Tool registered: imf_get_country_profile
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Loaded custom tool: imf_get_country_profile
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Tool registered: edgar_company_search
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Loaded custom tool: edgar_company_search
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Tool registered: un_compare_trade
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Loaded custom tool: un_compare_trade
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Tool registered: fbi_get_state_statistics
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_state_statistics
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Tool registered: wb_get_countries
+2025-11-01 07:15:57,901 - tools.tools_registry - INFO - Loaded custom tool: wb_get_countries
+2025-11-01 07:15:57,902 - DuckDbQueryTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-01 07:15:57,907 - DuckDbQueryTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 07:15:57,912 - DuckDbQueryTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 07:15:57,916 - DuckDbQueryTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 07:15:57,918 - DuckDbQueryTool - INFO - Initialization complete: 3 views available
+2025-11-01 07:15:57,918 - DuckDbQueryTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 07:15:57,918 - tools.tools_registry - INFO - Tool registered: duckdb_query
+2025-11-01 07:15:57,918 - tools.tools_registry - INFO - Loaded custom tool: duckdb_query
+2025-11-01 07:15:57,918 - tools.tools_registry - INFO - Tool registered: ecb_get_latest
+2025-11-01 07:15:57,918 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_latest
+2025-11-01 07:15:57,919 - tools.tools_registry - INFO - Tool registered: yahoo_search_symbols
+2025-11-01 07:15:57,919 - tools.tools_registry - INFO - Loaded custom tool: yahoo_search_symbols
+2025-11-01 07:15:57,919 - tools.tools_registry - INFO - Tool registered: ir_find_page
+2025-11-01 07:15:57,919 - tools.tools_registry - INFO - Loaded custom tool: ir_find_page
+2025-11-01 07:15:57,919 - tools.tools_registry - INFO - Tool registered: crawl_sitemap
+2025-11-01 07:15:57,919 - tools.tools_registry - INFO - Loaded custom tool: crawl_sitemap
+2025-11-01 07:15:57,919 - tools.tools_registry - INFO - Tool registered: boc_get_series
+2025-11-01 07:15:57,919 - tools.tools_registry - INFO - Loaded custom tool: boc_get_series
+2025-11-01 07:15:57,919 - tools.tools_registry - INFO - Tool registered: wb_get_indicators
+2025-11-01 07:15:57,919 - tools.tools_registry - INFO - Loaded custom tool: wb_get_indicators
+2025-11-01 07:15:57,919 - tools.tools_registry - INFO - Tool registered: ir_get_latest_earnings
+2025-11-01 07:15:57,919 - tools.tools_registry - INFO - Loaded custom tool: ir_get_latest_earnings
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Tool registered: imf_get_databases
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Loaded custom tool: imf_get_databases
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Tool registered: fed_get_common_indicators
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Loaded custom tool: fed_get_common_indicators
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Tool registered: edgar_foreign_issuers
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Loaded custom tool: edgar_foreign_issuers
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Tool registered: un_get_trade_balance
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Loaded custom tool: un_get_trade_balance
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Tool registered: msdoc_get_word_metadata
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Loaded custom tool: msdoc_get_word_metadata
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Tool registered: edgar_filings_by_form
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Loaded custom tool: edgar_filings_by_form
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Tool registered: msdoc_get_excel_metadata
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Loaded custom tool: msdoc_get_excel_metadata
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Tool registered: msdoc_read_excel
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Loaded custom tool: msdoc_read_excel
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Tool registered: boc_get_exchange_rate
+2025-11-01 07:15:57,920 - tools.tools_registry - INFO - Loaded custom tool: boc_get_exchange_rate
+2025-11-01 07:15:57,927 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 07:15:57,927 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 07:15:57,927 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 07:15:57,927 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 07:15:57,927 - SqlSelectExecuteQueryTool - INFO - DuckDB connection initialized for sqlselect_execute_query
+2025-11-01 07:15:57,927 - tools.tools_registry - INFO - Tool registered: sqlselect_execute_query
+2025-11-01 07:15:57,927 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_execute_query
+2025-11-01 07:15:57,927 - tools.tools_registry - INFO - Tool registered: msdoc_search_excel
+2025-11-01 07:15:57,927 - tools.tools_registry - INFO - Loaded custom tool: msdoc_search_excel
+2025-11-01 07:15:57,927 - tools.tools_registry - INFO - Tool registered: ir_list_supported_companies
+2025-11-01 07:15:57,927 - tools.tools_registry - INFO - Loaded custom tool: ir_list_supported_companies
+2025-11-01 07:15:57,927 - tools.tools_registry - INFO - Tool registered: wb_get_lending_types
+2025-11-01 07:15:57,927 - tools.tools_registry - INFO - Loaded custom tool: wb_get_lending_types
+2025-11-01 07:15:57,928 - tools.tools_registry - INFO - Tool registered: msdoc_get_excel_sheets
+2025-11-01 07:15:57,928 - tools.tools_registry - INFO - Loaded custom tool: msdoc_get_excel_sheets
+2025-11-01 07:15:57,928 - tools.tools_registry - INFO - Tool registered: imf_get_dataflows
+2025-11-01 07:15:57,928 - tools.tools_registry - INFO - Loaded custom tool: imf_get_dataflows
+2025-11-01 07:15:57,928 - tools.tools_registry - INFO - Tool registered: google_search
+2025-11-01 07:15:57,928 - tools.tools_registry - INFO - Loaded custom tool: google_search
+2025-11-01 07:15:57,928 - tools.tools_registry - INFO - Tool registered: ir_get_annual_reports
+2025-11-01 07:15:57,928 - tools.tools_registry - INFO - Loaded custom tool: ir_get_annual_reports
+2025-11-01 07:15:57,928 - tools.tools_registry - INFO - Tool registered: wb_get_topic_indicators
+2025-11-01 07:15:57,928 - tools.tools_registry - INFO - Loaded custom tool: wb_get_topic_indicators
+2025-11-01 07:15:57,928 - tools.tools_registry - INFO - Tool registered: ecb_get_interest_rate
+2025-11-01 07:15:57,928 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_interest_rate
+2025-11-01 07:15:57,928 - tools.tools_registry - INFO - Tool registered: sec_search_company
+2025-11-01 07:15:57,928 - tools.tools_registry - INFO - Loaded custom tool: sec_search_company
+2025-11-01 07:15:57,928 - tools.tools_registry - INFO - Tool registered: edgar_company_tickers_by_exchange
+2025-11-01 07:15:57,929 - tools.tools_registry - INFO - Loaded custom tool: edgar_company_tickers_by_exchange
+2025-11-01 07:15:57,929 - tools.tools_registry - INFO - Tool registered: wb_get_country_data
+2025-11-01 07:15:57,929 - tools.tools_registry - INFO - Loaded custom tool: wb_get_country_data
+2025-11-01 07:15:57,929 - tools.tools_registry - INFO - Tool registered: sec_get_company_facts
+2025-11-01 07:15:57,929 - tools.tools_registry - INFO - Loaded custom tool: sec_get_company_facts
+2025-11-01 07:15:57,929 - tools.tools_registry - INFO - Tool registered: fbi_get_agency_details
+2025-11-01 07:15:57,929 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_agency_details
+2025-11-01 07:15:57,929 - tools.tools_registry - INFO - Tool registered: fed_search_series
+2025-11-01 07:15:57,929 - tools.tools_registry - INFO - Loaded custom tool: fed_search_series
+2025-11-01 07:15:57,936 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 07:15:57,936 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 07:15:57,936 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 07:15:57,936 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 07:15:57,936 - SqlSelectDescribeSourceTool - INFO - DuckDB connection initialized for sqlselect_describe_source
+2025-11-01 07:15:57,936 - tools.tools_registry - INFO - Tool registered: sqlselect_describe_source
+2025-11-01 07:15:57,936 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_describe_source
+2025-11-01 07:15:57,936 - tools.tools_registry - INFO - Tool registered: edgar_company_submissions
+2025-11-01 07:15:57,936 - tools.tools_registry - INFO - Loaded custom tool: edgar_company_submissions
+2025-11-01 07:15:57,937 - DuckDbListFilesTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-01 07:15:57,943 - DuckDbListFilesTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 07:15:57,949 - DuckDbListFilesTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 07:15:57,954 - DuckDbListFilesTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 07:15:57,956 - DuckDbListFilesTool - INFO - Initialization complete: 3 views available
+2025-11-01 07:15:57,956 - DuckDbListFilesTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 07:15:57,956 - tools.tools_registry - INFO - Tool registered: duckdb_list_files
+2025-11-01 07:15:57,956 - tools.tools_registry - INFO - Loaded custom tool: duckdb_list_files
+2025-11-01 07:15:57,956 - tools.tools_registry - INFO - Tool registered: sec_get_company_info
+2025-11-01 07:15:57,956 - tools.tools_registry - INFO - Loaded custom tool: sec_get_company_info
+2025-11-01 07:15:57,956 - tools.tools_registry - INFO - Tool registered: edgar_companies_by_sic
+2025-11-01 07:15:57,956 - tools.tools_registry - INFO - Loaded custom tool: edgar_companies_by_sic
+2025-11-01 07:15:57,956 - tools.tools_registry - INFO - Tool registered: boc_search_series
+2025-11-01 07:15:57,956 - tools.tools_registry - INFO - Loaded custom tool: boc_search_series
+2025-11-01 07:15:57,956 - tools.tools_registry - INFO - Tool registered: wiki_get_summary
+2025-11-01 07:15:57,956 - tools.tools_registry - INFO - Loaded custom tool: wiki_get_summary
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Tool registered: imf_get_data
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Loaded custom tool: imf_get_data
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Tool registered: tavily_domain_search
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Loaded custom tool: tavily_domain_search
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Tool registered: un_get_sdg_data
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_data
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Tool registered: get_page_info
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Loaded custom tool: get_page_info
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Tool registered: edgar_insider_transactions
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Loaded custom tool: edgar_insider_transactions
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Tool registered: un_get_sdg_progress
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_progress
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Tool registered: yahoo_get_history
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Loaded custom tool: yahoo_get_history
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Tool registered: edgar_institutional_holdings
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Loaded custom tool: edgar_institutional_holdings
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Tool registered: ir_get_presentations
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Loaded custom tool: ir_get_presentations
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Tool registered: yahoo_get_quote
+2025-11-01 07:15:57,957 - tools.tools_registry - INFO - Loaded custom tool: yahoo_get_quote
+2025-11-01 07:15:57,958 - tools.tools_registry - INFO - Tool registered: fbi_get_crime_trend
+2025-11-01 07:15:57,958 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_crime_trend
+2025-11-01 07:15:57,958 - tools.tools_registry - INFO - Tool registered: fed_get_series
+2025-11-01 07:15:57,958 - tools.tools_registry - INFO - Loaded custom tool: fed_get_series
+2025-11-01 07:15:57,958 - tools.tools_registry - INFO - Tool registered: imf_get_ifs_data
+2025-11-01 07:15:57,958 - tools.tools_registry - INFO - Loaded custom tool: imf_get_ifs_data
+2025-11-01 07:15:57,958 - tools.tools_registry - INFO - Tool registered: sec_get_mutual_fund_holdings
+2025-11-01 07:15:57,958 - tools.tools_registry - INFO - Loaded custom tool: sec_get_mutual_fund_holdings
+2025-11-01 07:15:57,959 - DuckDbRefreshViewsTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-01 07:15:57,963 - DuckDbRefreshViewsTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 07:15:57,969 - DuckDbRefreshViewsTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 07:15:57,981 - DuckDbRefreshViewsTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 07:15:57,982 - DuckDbRefreshViewsTool - INFO - Initialization complete: 3 views available
+2025-11-01 07:15:57,983 - DuckDbRefreshViewsTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 07:15:57,983 - tools.tools_registry - INFO - Tool registered: duckdb_refresh_views
+2025-11-01 07:15:57,983 - tools.tools_registry - INFO - Loaded custom tool: duckdb_refresh_views
+2025-11-01 07:15:57,983 - tools.tools_registry - INFO - Tool registered: sec_get_company_filings
+2025-11-01 07:15:57,983 - tools.tools_registry - INFO - Loaded custom tool: sec_get_company_filings
+2025-11-01 07:15:57,983 - tools.tools_registry - INFO - Tool registered: sec_get_financial_data
+2025-11-01 07:15:57,983 - tools.tools_registry - INFO - Loaded custom tool: sec_get_financial_data
+2025-11-01 07:15:57,983 - tools.tools_registry - INFO - Tool registered: wb_get_regions
+2025-11-01 07:15:57,983 - tools.tools_registry - INFO - Loaded custom tool: wb_get_regions
+2025-11-01 07:15:57,984 - DuckDbDescribeTableTool - INFO - Found 3 data files in data/duckdb
+2025-11-01 07:15:57,988 - DuckDbDescribeTableTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-01 07:15:57,994 - DuckDbDescribeTableTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-01 07:15:57,999 - DuckDbDescribeTableTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-01 07:15:58,002 - DuckDbDescribeTableTool - INFO - Initialization complete: 3 views available
+2025-11-01 07:15:58,002 - DuckDbDescribeTableTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-01 07:15:58,002 - tools.tools_registry - INFO - Tool registered: duckdb_describe_table
+2025-11-01 07:15:58,002 - tools.tools_registry - INFO - Loaded custom tool: duckdb_describe_table
+2025-11-01 07:15:58,002 - tools.tools_registry - INFO - Tool registered: wiki_get_page
+2025-11-01 07:15:58,002 - tools.tools_registry - INFO - Loaded custom tool: wiki_get_page
+2025-11-01 07:15:58,002 - tools.tools_registry - INFO - Tool registered: crawl_url
+2025-11-01 07:15:58,003 - tools.tools_registry - INFO - Loaded custom tool: crawl_url
+2025-11-01 07:15:58,003 - tools.tools_registry - INFO - Tool registered: ecb_get_series
+2025-11-01 07:15:58,003 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_series
+2025-11-01 07:15:58,003 - tools.tools_registry - INFO - Tool registered: ecb_get_common_indicators
+2025-11-01 07:15:58,003 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_common_indicators
+2025-11-01 07:15:58,010 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 07:15:58,010 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 07:15:58,010 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 07:15:58,010 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 07:15:58,010 - SqlSelectSampleDataTool - INFO - DuckDB connection initialized for sqlselect_sample_data
+2025-11-01 07:15:58,010 - tools.tools_registry - INFO - Tool registered: sqlselect_sample_data
+2025-11-01 07:15:58,010 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_sample_data
+2025-11-01 07:15:58,010 - tools.tools_registry - INFO - Tool registered: edgar_filing_details
+2025-11-01 07:15:58,011 - tools.tools_registry - INFO - Loaded custom tool: edgar_filing_details
+2025-11-01 07:15:58,018 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-01 07:15:58,018 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-01 07:15:58,018 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-01 07:15:58,018 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-01 07:15:58,018 - SqlSelectListSourcesTool - INFO - DuckDB connection initialized for sqlselect_list_sources
+2025-11-01 07:15:58,018 - tools.tools_registry - INFO - Tool registered: sqlselect_list_sources
+2025-11-01 07:15:58,018 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_list_sources
+2025-11-01 07:15:58,018 - tools.tools_registry - INFO - Tool registered: wb_get_income_levels
+2025-11-01 07:15:58,018 - tools.tools_registry - INFO - Loaded custom tool: wb_get_income_levels
+2025-11-01 07:15:58,018 - tools.tools_registry - INFO - Tool registered: edgar_company_facts
+2025-11-01 07:15:58,018 - tools.tools_registry - INFO - Loaded custom tool: edgar_company_facts
+2025-11-01 07:15:58,018 - tools.tools_registry - INFO - Tool registered: edgar_mutual_fund_holdings
+2025-11-01 07:15:58,018 - tools.tools_registry - INFO - Loaded custom tool: edgar_mutual_fund_holdings
+2025-11-01 07:15:58,019 - tools.tools_registry - INFO - Started file monitoring for tool configurations
+2025-11-01 07:15:58,028 - root - INFO - All routes registered successfully
+2025-11-01 07:15:58,028 - werkzeug - WARNING - Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+2025-11-01 07:15:58,031 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.2.54:5000
+2025-11-01 07:15:58,031 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-11-01 07:16:04,708 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:16:04] "[32mGET /dashboard HTTP/1.1[0m" 302 -
+2025-11-01 07:16:04,734 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:16:04] "GET /login?next=http://127.0.0.1:5000/dashboard HTTP/1.1" 200 -
+2025-11-01 07:16:04,760 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:16:04] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 07:16:04,765 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:16:04] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 07:16:10,975 - core.auth_manager - INFO - Saved 1 users to configuration
+2025-11-01 07:16:10,975 - core.auth_manager - INFO - User authenticated successfully: admin
+2025-11-01 07:16:10,976 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:16:10] "[32mPOST /login HTTP/1.1[0m" 302 -
+2025-11-01 07:16:10,998 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:16:10] "GET /dashboard HTTP/1.1" 200 -
+2025-11-01 07:16:11,019 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:16:11] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 07:16:11,021 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:16:11] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 07:16:44,425 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:16:44] "GET /tools/execute/edgar_company_concept HTTP/1.1" 200 -
+2025-11-01 07:16:44,442 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:16:44] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 07:16:44,443 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:16:44] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 07:16:44,479 - root - INFO - WebSocket client connected: jeDYv0nNf9Jh89L3AAAB
+2025-11-01 07:16:56,080 - root - INFO - WebSocket client disconnected: jeDYv0nNf9Jh89L3AAAB
+2025-11-01 07:16:56,091 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:16:56] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-11-01 07:16:56,093 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-11-01 07:17:04,233 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:17:04] "GET /tools/execute/edgar_amendments HTTP/1.1" 200 -
+2025-11-01 07:17:04,258 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:17:04] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 07:17:04,260 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:17:04] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 07:17:04,295 - root - INFO - WebSocket client connected: BLGg-bVKBkHvvtN7AAAD
+2025-11-01 07:17:13,819 - root - INFO - WebSocket client disconnected: BLGg-bVKBkHvvtN7AAAD
+2025-11-01 07:17:13,830 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:17:13] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-11-01 07:17:13,832 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-11-01 07:17:19,238 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:17:19] "GET /tools/execute/edgar_company_search HTTP/1.1" 200 -
+2025-11-01 07:17:19,261 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:17:19] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 07:17:19,266 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:17:19] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 07:17:19,294 - root - INFO - WebSocket client connected: LIDg-KHX7DwH1_kSAAAF
+2025-11-01 07:17:29,722 - EDGARCompanySearchTool - ERROR - Tool execution failed: edgar_company_search - Resource not found: https://data.sec.gov/files/company_tickers.json
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 125, in _make_request
+    with urllib.request.urlopen(req, timeout=30) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 151, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 276, in execute
+    tickers_data = self._get_company_tickers()
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 175, in _get_company_tickers
+    self._tickers_cache = self._make_request(self.company_tickers_url)
+                          ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 131, in _make_request
+    raise ValueError(f"Resource not found: {url}")
+ValueError: Resource not found: https://data.sec.gov/files/company_tickers.json
+2025-11-01 07:17:29,727 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:17:29] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-11-01 07:18:04,292 - EDGARCompanySearchTool - ERROR - Tool execution failed: edgar_company_search - Resource not found: https://data.sec.gov/files/company_tickers.json
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 125, in _make_request
+    with urllib.request.urlopen(req, timeout=30) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 151, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 276, in execute
+    tickers_data = self._get_company_tickers()
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 175, in _get_company_tickers
+    self._tickers_cache = self._make_request(self.company_tickers_url)
+                          ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 131, in _make_request
+    raise ValueError(f"Resource not found: {url}")
+ValueError: Resource not found: https://data.sec.gov/files/company_tickers.json
+2025-11-01 07:18:04,299 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:18:04] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-11-01 07:18:26,361 - EDGARCompanySearchTool - ERROR - Tool execution failed: edgar_company_search - Resource not found: https://data.sec.gov/files/company_tickers.json
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 125, in _make_request
+    with urllib.request.urlopen(req, timeout=30) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 151, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 276, in execute
+    tickers_data = self._get_company_tickers()
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 175, in _get_company_tickers
+    self._tickers_cache = self._make_request(self.company_tickers_url)
+                          ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 131, in _make_request
+    raise ValueError(f"Resource not found: {url}")
+ValueError: Resource not found: https://data.sec.gov/files/company_tickers.json
+2025-11-01 07:18:26,365 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:18:26] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-11-01 07:19:02,969 - EDGARCompanySearchTool - ERROR - Tool execution failed: edgar_company_search - Resource not found: https://data.sec.gov/files/company_tickers.json
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 125, in _make_request
+    with urllib.request.urlopen(req, timeout=30) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 151, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 276, in execute
+    tickers_data = self._get_company_tickers()
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 175, in _get_company_tickers
+    self._tickers_cache = self._make_request(self.company_tickers_url)
+                          ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/enhanced_edgar_tool.py", line 131, in _make_request
+    raise ValueError(f"Resource not found: {url}")
+ValueError: Resource not found: https://data.sec.gov/files/company_tickers.json
+2025-11-01 07:19:02,973 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:19:02] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-11-01 07:19:17,504 - root - INFO - WebSocket client disconnected: LIDg-KHX7DwH1_kSAAAF
+2025-11-01 07:19:17,515 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:19:17] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-11-01 07:19:17,527 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-11-01 07:19:23,743 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:19:23] "GET /tools/execute/edgar_institutional_holdings HTTP/1.1" 200 -
+2025-11-01 07:19:23,766 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:19:23] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 07:19:23,767 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:19:23] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 07:19:23,790 - root - INFO - WebSocket client connected: Jf7zC1btg3ZcynR2AAAH
+2025-11-01 07:19:32,196 - root - INFO - WebSocket client disconnected: Jf7zC1btg3ZcynR2AAAH
+2025-11-01 07:19:32,207 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:19:32] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-11-01 07:19:32,209 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-11-01 07:19:34,654 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:19:34] "GET /tools/execute/edgar_company_facts HTTP/1.1" 200 -
+2025-11-01 07:19:34,680 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:19:34] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 07:19:34,684 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:19:34] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 07:19:34,713 - root - INFO - WebSocket client connected: ZYZsbTStpsxsWAd7AAAJ
+2025-11-01 07:19:40,162 - root - INFO - WebSocket client disconnected: ZYZsbTStpsxsWAd7AAAJ
+2025-11-01 07:19:40,173 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:19:40] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-11-01 07:19:40,174 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-11-01 07:19:44,590 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:19:44] "GET /tools/execute/edgar_mutual_fund_holdings HTTP/1.1" 200 -
+2025-11-01 07:19:44,609 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:19:44] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 07:19:44,615 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:19:44] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 07:19:44,639 - root - INFO - WebSocket client connected: 7L8jKXfd1P-KGwXfAAAL
+2025-11-01 07:19:50,355 - root - INFO - WebSocket client disconnected: 7L8jKXfd1P-KGwXfAAAL
+2025-11-01 07:19:50,365 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:19:50] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-11-01 07:19:50,367 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-11-01 07:20:00,839 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:20:00] "GET /dashboard HTTP/1.1" 200 -
+2025-11-01 07:20:00,855 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:20:00] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 07:20:00,856 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:20:00] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 07:20:03,938 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:20:03] "GET /tools/execute/ecb_get_exchange_rate HTTP/1.1" 200 -
+2025-11-01 07:20:03,963 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:20:03] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 07:20:03,967 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:20:03] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 07:20:04,007 - root - INFO - WebSocket client connected: uNbePZFK_XN7SOG6AAAN
+2025-11-01 07:20:16,096 - ECBGetExchangeRateTool - INFO - Tool executed successfully: ecb_get_exchange_rate (0.89s)
+2025-11-01 07:20:16,097 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:20:16] "POST /api/tools/execute HTTP/1.1" 200 -

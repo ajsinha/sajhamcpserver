@@ -1,0 +1,120 @@
+{
+  "name": "edgar_company_submissions",
+  "implementation": "tools.impl.enhanced_edgar_tool.EDGARCompanySubmissionsTool",
+  "description": "Retrieve comprehensive company information and all SEC filing submissions for a company",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key (CIK) - 10 digit identifier (e.g., '0000320193' for Apple) or shorter format"
+      },
+      "include_old_filings": {
+        "type": "boolean",
+        "description": "Include historical filings beyond recent submissions (may require additional API calls)",
+        "default": false
+      }
+    },
+    "required": ["cik"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key"
+      },
+      "name": {
+        "type": "string",
+        "description": "Company legal name"
+      },
+      "sic": {
+        "type": "string",
+        "description": "Standard Industrial Classification code"
+      },
+      "sicDescription": {
+        "type": "string",
+        "description": "Industry description"
+      },
+      "category": {
+        "type": "string",
+        "description": "Filer category (e.g., 'Large Accelerated Filer', 'Accelerated Filer')"
+      },
+      "fiscalYearEnd": {
+        "type": "string",
+        "description": "Fiscal year end in MMDD format"
+      },
+      "stateOfIncorporation": {
+        "type": "string",
+        "description": "State or country of incorporation"
+      },
+      "addresses": {
+        "type": "object",
+        "description": "Business and mailing addresses"
+      },
+      "filings_count": {
+        "type": "integer",
+        "description": "Total number of recent filings available"
+      },
+      "recent_filings": {
+        "type": "array",
+        "description": "Recent filing submissions with accession numbers, dates, and form types",
+        "items": {
+          "type": "object",
+          "properties": {
+            "accessionNumber": {
+              "type": "string"
+            },
+            "filingDate": {
+              "type": "string"
+            },
+            "reportDate": {
+              "type": "string"
+            },
+            "form": {
+              "type": "string"
+            },
+            "primaryDocument": {
+              "type": "string"
+            },
+            "primaryDocDescription": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "SEC EDGAR",
+    "tags": ["sec", "edgar", "filings", "submissions", "company info", "10-K", "10-Q"],
+    "rateLimit": 10,
+    "cacheTTL": 1800,
+    "note": "Primary endpoint for company information and filing history. Returns all recent submissions including 10-K, 10-Q, 8-K, and other forms.",
+    "examples": [
+      {
+        "description": "Get Apple Inc. submissions",
+        "input": {
+          "cik": "320193"
+        }
+      },
+      {
+        "description": "Get Tesla submissions with full 10-digit CIK",
+        "input": {
+          "cik": "0001318605",
+          "include_old_filings": false
+        }
+      }
+    ],
+    "useCases": [
+      "Company due diligence research",
+      "Tracking filing history",
+      "Finding recent SEC reports",
+      "Compliance monitoring",
+      "Corporate governance analysis"
+    ]
+  }
+}

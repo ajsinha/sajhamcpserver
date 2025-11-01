@@ -1,0 +1,83 @@
+{
+  "name": "edgar_company_facts",
+  "implementation": "tools.impl.enhanced_edgar_tool.EDGARCompanyFactsTool",
+  "description": "Retrieve all structured financial facts and XBRL data reported by a company across all filings",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key (CIK) - 10 digit identifier or shorter format"
+      }
+    },
+    "required": ["cik"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key"
+      },
+      "entityName": {
+        "type": "string",
+        "description": "Company name"
+      },
+      "facts_count": {
+        "type": "integer",
+        "description": "Number of distinct XBRL facts/concepts available"
+      },
+      "taxonomies": {
+        "type": "array",
+        "description": "Available XBRL taxonomies (e.g., 'us-gaap', 'dei', 'srt', 'ifrs-full')",
+        "items": {
+          "type": "string"
+        }
+      },
+      "facts": {
+        "type": "object",
+        "description": "Complete financial facts organized by taxonomy, containing all reported XBRL concepts with historical values",
+        "additionalProperties": {
+          "type": "object",
+          "description": "Facts for specific taxonomy with all concepts and their time series data"
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "SEC EDGAR",
+    "tags": ["sec", "edgar", "xbrl", "financial data", "facts", "gaap", "financial statements"],
+    "rateLimit": 10,
+    "cacheTTL": 3600,
+    "note": "Returns ALL structured financial data from XBRL filings. Includes income statement, balance sheet, cash flow, and custom metrics. Large response size (can be several MB).",
+    "examples": [
+      {
+        "description": "Get all Apple financial facts",
+        "input": {
+          "cik": "320193"
+        }
+      },
+      {
+        "description": "Get Microsoft XBRL data",
+        "input": {
+          "cik": "0000789019"
+        }
+      }
+    ],
+    "useCases": [
+      "Comprehensive financial analysis",
+      "Building financial models",
+      "Historical trend analysis",
+      "Financial statement reconstruction",
+      "Data extraction for analytics platforms"
+    ],
+    "warnings": [
+      "Response can be very large (multiple MB)",
+      "Consider using edgar_company_concept for specific metrics",
+      "Parse response carefully due to size"
+    ]
+  }
+}

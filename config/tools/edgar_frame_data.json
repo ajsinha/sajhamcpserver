@@ -1,0 +1,187 @@
+{
+  "name": "edgar_frame_data",
+  "implementation": "tools.impl.enhanced_edgar_tool.EDGARFrameDataTool",
+  "description": "Retrieve aggregated XBRL frame data across ALL companies for a specific financial concept and time period - useful for market-wide analysis and benchmarking",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "taxonomy": {
+        "type": "string",
+        "description": "XBRL taxonomy standard",
+        "enum": ["us-gaap", "ifrs-full", "dei", "srt"],
+        "default": "us-gaap"
+      },
+      "concept": {
+        "type": "string",
+        "description": "XBRL concept to aggregate (e.g., 'Revenue', 'Assets', 'NetIncomeLoss', 'CashAndCashEquivalents')"
+      },
+      "unit": {
+        "type": "string",
+        "description": "Unit of measure for the concept",
+        "enum": ["USD", "shares", "pure"],
+        "default": "USD"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Calendar year (e.g., 2023, 2024)",
+        "minimum": 2009,
+        "maximum": 2030
+      },
+      "quarter": {
+        "type": "string",
+        "description": "Fiscal period: Q1, Q2, Q3, Q4 for quarters, or CY for full calendar year",
+        "enum": ["Q1", "Q2", "Q3", "Q4", "CY"],
+        "default": "CY"
+      }
+    },
+    "required": ["concept", "year"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "taxonomy": {
+        "type": "string",
+        "description": "XBRL taxonomy"
+      },
+      "tag": {
+        "type": "string",
+        "description": "XBRL concept tag"
+      },
+      "label": {
+        "type": "string",
+        "description": "Human-readable label"
+      },
+      "description": {
+        "type": "string",
+        "description": "Concept description"
+      },
+      "frame": {
+        "type": "string",
+        "description": "Frame identifier (e.g., 'CY2023Q4', 'CY2024')"
+      },
+      "units_count": {
+        "type": "integer",
+        "description": "Number of company data points in frame"
+      },
+      "data": {
+        "type": "array",
+        "description": "Company-level data points for the specified frame",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cik": {
+              "type": "string",
+              "description": "Company CIK"
+            },
+            "entityName": {
+              "type": "string",
+              "description": "Company name"
+            },
+            "loc": {
+              "type": "string",
+              "description": "Location/country code"
+            },
+            "val": {
+              "type": "number",
+              "description": "Value of the concept"
+            },
+            "accn": {
+              "type": "string",
+              "description": "Accession number of source filing"
+            },
+            "filed": {
+              "type": "string",
+              "description": "Filing date (YYYY-MM-DD)"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "SEC EDGAR",
+    "tags": ["sec", "edgar", "xbrl", "frame", "aggregated data", "market analysis", "benchmarking", "peer comparison"],
+    "rateLimit": 10,
+    "cacheTTL": 7200,
+    "note": "Aggregated view across ALL public companies for a specific metric and time period. Excellent for industry analysis, peer comparisons, and market-wide trends. Response can be large with thousands of companies.",
+    "examples": [
+      {
+        "description": "Get all company revenues for 2023",
+        "input": {
+          "taxonomy": "us-gaap",
+          "concept": "Revenues",
+          "unit": "USD",
+          "year": 2023,
+          "quarter": "CY"
+        }
+      },
+      {
+        "description": "Get Q4 2023 total assets across all companies",
+        "input": {
+          "concept": "Assets",
+          "unit": "USD",
+          "year": 2023,
+          "quarter": "Q4"
+        }
+      },
+      {
+        "description": "Analyze market-wide cash positions in Q1 2024",
+        "input": {
+          "concept": "CashAndCashEquivalents",
+          "year": 2024,
+          "quarter": "Q1"
+        }
+      },
+      {
+        "description": "Track shares outstanding across market",
+        "input": {
+          "concept": "CommonStockSharesOutstanding",
+          "unit": "shares",
+          "year": 2024,
+          "quarter": "CY"
+        }
+      }
+    ],
+    "useCases": [
+      "Industry-wide analysis and benchmarking",
+      "Peer group comparisons",
+      "Market trend identification",
+      "Sector performance analysis",
+      "Competitive positioning",
+      "Economic research",
+      "Building market indices",
+      "Statistical analysis of corporate metrics"
+    ],
+    "performanceNotes": [
+      "Response can be very large (thousands of companies)",
+      "Consider filtering/processing on client side",
+      "Quarterly frames typically smaller than annual",
+      "Not all companies report all metrics"
+    ],
+    "commonFrameAnalyses": {
+      "revenue_analysis": {
+        "concept": "Revenues",
+        "use": "Compare company size and growth across industry"
+      },
+      "profitability": {
+        "concept": "NetIncomeLoss",
+        "use": "Analyze profit margins and performance"
+      },
+      "financial_health": {
+        "concepts": ["Assets", "Liabilities", "StockholdersEquity"],
+        "use": "Assess balance sheet strength"
+      },
+      "cash_position": {
+        "concept": "CashAndCashEquivalents",
+        "use": "Evaluate liquidity across market"
+      },
+      "valuation": {
+        "concepts": ["EarningsPerShareBasic", "CommonStockSharesOutstanding"],
+        "use": "Calculate market-wide valuation metrics"
+      }
+    }
+  }
+}

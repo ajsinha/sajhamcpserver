@@ -1,0 +1,136 @@
+{
+  "name": "edgar_institutional_holdings",
+  "implementation": "tools.impl.enhanced_edgar_tool.EDGARInstitutionalHoldingsTool",
+  "description": "Retrieve institutional investment manager holdings (Form 13F-HR) showing quarterly portfolio positions of hedge funds, mutual funds, and other institutions",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key (CIK) of the institutional investment manager (not the company being held)"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of 13F-HR filings to return (1-50)",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 10
+      }
+    },
+    "required": ["cik"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key"
+      },
+      "manager_name": {
+        "type": "string",
+        "description": "Investment manager name (e.g., 'Berkshire Hathaway', 'Vanguard Group')"
+      },
+      "filings_count": {
+        "type": "integer",
+        "description": "Number of 13F-HR filings returned"
+      },
+      "filings": {
+        "type": "array",
+        "description": "List of 13F-HR quarterly holdings reports",
+        "items": {
+          "type": "object",
+          "properties": {
+            "accessionNumber": {
+              "type": "string",
+              "description": "Filing accession number"
+            },
+            "filingDate": {
+              "type": "string",
+              "description": "Date filed with SEC (YYYY-MM-DD)"
+            },
+            "reportDate": {
+              "type": "string",
+              "description": "Quarter end date (YYYY-MM-DD)"
+            },
+            "primaryDocument": {
+              "type": "string",
+              "description": "Primary document filename (typically XML)"
+            },
+            "document_url": {
+              "type": "string",
+              "description": "Direct URL to view the 13F filing"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "SEC EDGAR",
+    "tags": ["sec", "edgar", "13F", "institutional holdings", "portfolio", "hedge funds", "mutual funds", "investments"],
+    "rateLimit": 10,
+    "cacheTTL": 1800,
+    "note": "Form 13F-HR discloses institutional holdings. Required for managers with $100M+ in 13(f) securities. Filed quarterly within 45 days of quarter end. Use institutional manager CIK, not company CIK.",
+    "examples": [
+      {
+        "description": "Get Berkshire Hathaway's portfolio holdings",
+        "input": {
+          "cik": "1067983",
+          "limit": 8
+        }
+      },
+      {
+        "description": "Get Vanguard Group holdings history",
+        "input": {
+          "cik": "0000102909",
+          "limit": 12
+        }
+      },
+      {
+        "description": "Track Renaissance Technologies positions",
+        "input": {
+          "cik": "1037389"
+        }
+      }
+    ],
+    "useCases": [
+      "Following smart money/institutional activity",
+      "Portfolio composition analysis",
+      "Identifying long/short positions",
+      "Tracking changes in holdings quarter-over-quarter",
+      "Competitive intelligence",
+      "Investment idea generation"
+    ],
+    "regulatoryInfo": {
+      "form": "Form 13F-HR",
+      "description": "Quarterly Report of Holdings by Institutional Investment Managers",
+      "threshold": "$100 million in 13(f) securities under management",
+      "frequency": "Quarterly",
+      "filingDeadline": "45 days after quarter end",
+      "whoMustFile": [
+        "Hedge funds",
+        "Mutual funds",
+        "Pension funds",
+        "Investment advisors",
+        "Banks with investment management"
+      ],
+      "disclosure": [
+        "Equity holdings only (stocks, options, convertibles)",
+        "Does NOT include short positions",
+        "Does NOT include bonds, cash, or private equity",
+        "Position sizes and values",
+        "May request confidential treatment"
+      ]
+    },
+    "notableInstitutions": {
+      "1067983": "Berkshire Hathaway (Warren Buffett)",
+      "0000102909": "Vanguard Group",
+      "1037389": "Renaissance Technologies",
+      "1364742": "Citadel Advisors",
+      "1649993": "Bridgewater Associates"
+    }
+  }
+}

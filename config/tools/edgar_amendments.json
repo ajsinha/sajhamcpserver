@@ -1,0 +1,72 @@
+{
+  "name": "edgar_amendments",
+  "implementation": "tools.impl.enhanced_edgar_tool.EDGARAmendmentsTool",
+  "description": "Track amended filings (10-K/A, 10-Q/A, 8-K/A) to identify corrections and restatements",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum amendments to return (1-100)",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 20
+      }
+    },
+    "required": ["cik"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {"type": "string"},
+      "company_name": {"type": "string"},
+      "amendments_count": {"type": "integer"},
+      "amendments": {
+        "type": "array",
+        "description": "List of amended filings",
+        "items": {
+          "type": "object",
+          "properties": {
+            "accessionNumber": {"type": "string"},
+            "filingDate": {"type": "string"},
+            "form": {"type": "string", "description": "Form type ending with /A"},
+            "reportDate": {"type": "string"},
+            "document_url": {"type": "string"}
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "SEC EDGAR",
+    "tags": ["sec", "edgar", "amendments", "restatements", "corrections", "10-K/A", "10-Q/A"],
+    "rateLimit": 10,
+    "cacheTTL": 1800,
+    "note": "Amendments (forms ending with /A) indicate corrections to previously filed reports. May signal accounting issues or errors.",
+    "examples": [
+      {
+        "description": "Find all Apple amendments",
+        "input": {"cik": "320193", "limit": 20}
+      }
+    ],
+    "useCases": [
+      "Tracking financial restatements",
+      "Identifying reporting problems",
+      "Due diligence red flags",
+      "Accounting quality assessment",
+      "Compliance monitoring"
+    ],
+    "warnings": [
+      "Multiple amendments may indicate accounting issues",
+      "Material amendments can impact financial analysis",
+      "Compare amended vs original filings for changes"
+    ]
+  }
+}

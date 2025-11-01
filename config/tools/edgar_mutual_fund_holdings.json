@@ -1,0 +1,127 @@
+{
+  "name": "edgar_mutual_fund_holdings",
+  "implementation": "tools.impl.enhanced_edgar_tool.EDGARMutualFundHoldingsTool",
+  "description": "Retrieve mutual fund portfolio holdings (Form N-PORT) showing monthly investment positions",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key (CIK) of the mutual fund"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of N-PORT filings to return (1-50)",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 10
+      }
+    },
+    "required": ["cik"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key"
+      },
+      "fund_name": {
+        "type": "string",
+        "description": "Mutual fund name"
+      },
+      "filings_count": {
+        "type": "integer",
+        "description": "Number of N-PORT filings returned"
+      },
+      "filings": {
+        "type": "array",
+        "description": "List of N-PORT monthly portfolio holdings reports",
+        "items": {
+          "type": "object",
+          "properties": {
+            "accessionNumber": {
+              "type": "string",
+              "description": "Filing accession number"
+            },
+            "filingDate": {
+              "type": "string",
+              "description": "Date filed with SEC (YYYY-MM-DD)"
+            },
+            "reportDate": {
+              "type": "string",
+              "description": "Report period end date (YYYY-MM-DD)"
+            },
+            "primaryDocument": {
+              "type": "string",
+              "description": "Primary document filename (typically XML)"
+            },
+            "document_url": {
+              "type": "string",
+              "description": "Direct URL to view the N-PORT filing"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "SEC EDGAR",
+    "tags": ["sec", "edgar", "mutual funds", "n-port", "portfolio", "holdings", "investment company"],
+    "rateLimit": 10,
+    "cacheTTL": 1800,
+    "note": "Form N-PORT provides detailed monthly portfolio holdings for registered investment companies (mutual funds, ETFs). Filed monthly with 30-day lag. More granular than quarterly N-CSR reports.",
+    "examples": [
+      {
+        "description": "Get Vanguard 500 Index Fund holdings",
+        "input": {
+          "cik": "0000862084",
+          "limit": 12
+        }
+      },
+      {
+        "description": "Track Fidelity Contrafund positions",
+        "input": {
+          "cik": "0000861929",
+          "limit": 6
+        }
+      }
+    ],
+    "useCases": [
+      "Mutual fund holdings analysis",
+      "ETF composition tracking",
+      "Comparing fund strategies",
+      "Monitoring portfolio changes",
+      "Investment research",
+      "Due diligence on funds"
+    ],
+    "regulatoryInfo": {
+      "form": "Form N-PORT",
+      "description": "Monthly Portfolio Investments Report",
+      "frequency": "Monthly",
+      "filingDeadline": "30 days after month end (60 days for Q1 & Q3)",
+      "whoMustFile": [
+        "Registered investment companies",
+        "Mutual funds",
+        "ETFs",
+        "Closed-end funds"
+      ],
+      "disclosure": [
+        "Complete portfolio holdings",
+        "Position-level details",
+        "Fair values",
+        "Country and currency exposure",
+        "Securities lending",
+        "Derivatives positions"
+      ]
+    },
+    "relatedForms": {
+      "N-CSR": "Semi-annual and annual certified shareholder reports",
+      "N-Q": "Quarterly holdings (deprecated, replaced by N-PORT)",
+      "N-1A": "Registration statement for mutual funds"
+    }
+  }
+}

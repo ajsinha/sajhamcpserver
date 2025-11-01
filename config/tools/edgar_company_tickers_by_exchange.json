@@ -1,0 +1,68 @@
+{
+  "name": "edgar_company_tickers_by_exchange",
+  "implementation": "tools.impl.enhanced_edgar_tool.EDGARCompanyTickersByExchangeTool",
+  "description": "Get all public companies listed on a specific stock exchange (NYSE, NASDAQ, AMEX, etc.)",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "exchange": {
+        "type": "string",
+        "description": "Stock exchange code",
+        "enum": ["Nasdaq", "NYSE", "AMEX", "BATS", "OTC"]
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of companies to return",
+        "minimum": 1,
+        "maximum": 5000,
+        "default": 100
+      }
+    },
+    "required": ["exchange"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "exchange": {
+        "type": "string",
+        "description": "Stock exchange queried"
+      },
+      "companies_count": {
+        "type": "integer",
+        "description": "Number of companies returned"
+      },
+      "companies": {
+        "type": "array",
+        "description": "List of companies on the exchange",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cik": {"type": "string"},
+            "ticker": {"type": "string"},
+            "title": {"type": "string"}
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "SEC EDGAR",
+    "tags": ["sec", "edgar", "exchange", "nyse", "nasdaq", "listings"],
+    "rateLimit": 10,
+    "cacheTTL": 7200,
+    "examples": [
+      {
+        "description": "Get all NYSE companies",
+        "input": {"exchange": "NYSE", "limit": 500}
+      },
+      {
+        "description": "Get NASDAQ listings",
+        "input": {"exchange": "Nasdaq"}
+      }
+    ],
+    "useCases": ["Exchange-specific company screening", "Market analysis by exchange", "Building exchange indices"]
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "name": "edgar_financial_ratios",
+  "implementation": "tools.impl.enhanced_edgar_tool.EDGARFinancialRatiosTool",
+  "description": "Calculate common financial ratios (profitability, liquidity, solvency) from XBRL data automatically",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key"
+      },
+      "fiscal_year": {
+        "type": "integer",
+        "description": "Fiscal year for ratio calculation",
+        "minimum": 2009,
+        "maximum": 2030
+      },
+      "fiscal_period": {
+        "type": "string",
+        "description": "Fiscal period (FY for full year, Q1-Q4 for quarters)",
+        "enum": ["FY", "Q1", "Q2", "Q3", "Q4"],
+        "default": "FY"
+      }
+    },
+    "required": ["cik"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {"type": "string"},
+      "entityName": {"type": "string"},
+      "fiscal_year": {"type": "integer"},
+      "fiscal_period": {"type": "string"},
+      "profitability_ratios": {
+        "type": "object",
+        "properties": {
+          "gross_margin": {"type": "number", "description": "Percentage"},
+          "operating_margin": {"type": "number"},
+          "net_margin": {"type": "number"},
+          "return_on_assets": {"type": "number"},
+          "return_on_equity": {"type": "number"}
+        }
+      },
+      "liquidity_ratios": {
+        "type": "object",
+        "properties": {
+          "current_ratio": {"type": "number"},
+          "quick_ratio": {"type": "number"},
+          "cash_ratio": {"type": "number"}
+        }
+      },
+      "solvency_ratios": {
+        "type": "object",
+        "properties": {
+          "debt_to_equity": {"type": "number"},
+          "debt_to_assets": {"type": "number"},
+          "equity_multiplier": {"type": "number"}
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "SEC EDGAR",
+    "tags": ["sec", "edgar", "financial ratios", "analysis", "profitability", "liquidity", "solvency"],
+    "rateLimit": 10,
+    "cacheTTL": 3600,
+    "note": "Automatically calculates key financial ratios from XBRL data. Saves time compared to manual calculation.",
+    "examples": [
+      {
+        "description": "Get Apple's financial ratios for 2023",
+        "input": {"cik": "320193", "fiscal_year": 2023, "fiscal_period": "FY"}
+      },
+      {
+        "description": "Analyze Microsoft's Q4 2023 ratios",
+        "input": {"cik": "789019", "fiscal_year": 2023, "fiscal_period": "Q4"}
+      }
+    ],
+    "useCases": [
+      "Quick financial health assessment",
+      "Peer comparison",
+      "Investment screening",
+      "Credit analysis",
+      "Financial modeling"
+    ],
+    "ratioDescriptions": {
+      "profitability": {
+        "gross_margin": "Gross profit as % of revenue - measures production efficiency",
+        "operating_margin": "Operating income as % of revenue - measures operational efficiency",
+        "net_margin": "Net income as % of revenue - bottom-line profitability",
+        "return_on_assets": "Net income as % of assets - how well assets generate profit",
+        "return_on_equity": "Net income as % of equity - return to shareholders"
+      },
+      "liquidity": {
+        "current_ratio": "Current assets / current liabilities - ability to pay short-term debts",
+        "quick_ratio": "(Current assets - inventory) / current liabilities - stricter liquidity test",
+        "cash_ratio": "Cash / current liabilities - most conservative liquidity measure"
+      },
+      "solvency": {
+        "debt_to_equity": "Total liabilities / equity - financial leverage",
+        "debt_to_assets": "Total liabilities / assets - portion of assets financed by debt",
+        "equity_multiplier": "Assets / equity - measures financial leverage"
+      }
+    }
+  }
+}

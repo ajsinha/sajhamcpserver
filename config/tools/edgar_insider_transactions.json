@@ -1,0 +1,125 @@
+{
+  "name": "edgar_insider_transactions",
+  "implementation": "tools.impl.enhanced_edgar_tool.EDGARInsiderTransactionsTool",
+  "description": "Retrieve insider trading transactions (Form 4 filings) showing buy/sell activities by company officers, directors, and 10% owners",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key (CIK) of the company"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of Form 4 transactions to return (1-100)",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 20
+      }
+    },
+    "required": ["cik"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key"
+      },
+      "company_name": {
+        "type": "string",
+        "description": "Company name"
+      },
+      "transactions_count": {
+        "type": "integer",
+        "description": "Number of Form 4 filings returned"
+      },
+      "transactions": {
+        "type": "array",
+        "description": "List of insider transaction filings (Form 4)",
+        "items": {
+          "type": "object",
+          "properties": {
+            "accessionNumber": {
+              "type": "string",
+              "description": "Filing accession number"
+            },
+            "filingDate": {
+              "type": "string",
+              "description": "Date filed with SEC (YYYY-MM-DD)"
+            },
+            "reportDate": {
+              "type": "string",
+              "description": "Transaction date (YYYY-MM-DD)"
+            },
+            "primaryDocument": {
+              "type": "string",
+              "description": "Primary document filename (typically XML)"
+            },
+            "document_url": {
+              "type": "string",
+              "description": "Direct URL to view the Form 4 filing"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "SEC EDGAR",
+    "tags": ["sec", "edgar", "insider trading", "form 4", "beneficial ownership", "stock transactions", "officers", "directors"],
+    "rateLimit": 10,
+    "cacheTTL": 900,
+    "note": "Form 4 reports insider buy/sell transactions. Must be filed within 2 business days of transaction. Useful for tracking management sentiment and potential conflicts.",
+    "examples": [
+      {
+        "description": "Get Apple's recent insider transactions",
+        "input": {
+          "cik": "320193",
+          "limit": 30
+        }
+      },
+      {
+        "description": "Get Tesla insider trading activity",
+        "input": {
+          "cik": "1318605",
+          "limit": 50
+        }
+      },
+      {
+        "description": "Monitor recent Microsoft insider activity",
+        "input": {
+          "cik": "789019"
+        }
+      }
+    ],
+    "useCases": [
+      "Monitoring insider buy/sell signals",
+      "Tracking executive compensation",
+      "Identifying potential information asymmetry",
+      "Corporate governance research",
+      "Investment decision support",
+      "Detecting unusual trading patterns"
+    ],
+    "regulatoryInfo": {
+      "form": "Form 4",
+      "description": "Statement of Changes in Beneficial Ownership",
+      "filingDeadline": "Within 2 business days of transaction",
+      "whoMustFile": [
+        "Officers (CEO, CFO, etc.)",
+        "Directors",
+        "10% or greater shareholders"
+      ],
+      "transactionTypes": [
+        "Purchase",
+        "Sale",
+        "Gift",
+        "Exercise of options",
+        "Award/grant"
+      ]
+    }
+  }
+}

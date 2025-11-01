@@ -1,0 +1,145 @@
+{
+  "name": "edgar_company_concept",
+  "implementation": "tools.impl.enhanced_edgar_tool.EDGARCompanyConceptTool",
+  "description": "Retrieve historical data for a specific financial concept/metric (e.g., Revenue, Assets, EPS) across all company filings",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key (CIK)"
+      },
+      "taxonomy": {
+        "type": "string",
+        "description": "XBRL taxonomy standard",
+        "enum": ["us-gaap", "ifrs-full", "dei", "srt"],
+        "default": "us-gaap"
+      },
+      "concept": {
+        "type": "string",
+        "description": "XBRL concept tag (e.g., 'Revenue', 'Assets', 'Liabilities', 'EarningsPerShareBasic', 'OperatingIncomeLoss')"
+      }
+    },
+    "required": ["cik", "concept"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key"
+      },
+      "taxonomy": {
+        "type": "string",
+        "description": "XBRL taxonomy"
+      },
+      "tag": {
+        "type": "string",
+        "description": "XBRL concept tag"
+      },
+      "label": {
+        "type": "string",
+        "description": "Human-readable label for the concept"
+      },
+      "description": {
+        "type": "string",
+        "description": "Detailed concept description"
+      },
+      "entityName": {
+        "type": "string",
+        "description": "Company name"
+      },
+      "units_count": {
+        "type": "integer",
+        "description": "Number of different unit types (e.g., USD, shares, pure number)"
+      },
+      "units": {
+        "type": "object",
+        "description": "Historical values organized by unit type with fiscal year, quarter, filing date, and accession number",
+        "additionalProperties": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "end": {
+                "type": "string",
+                "description": "Period end date (YYYY-MM-DD)"
+              },
+              "val": {
+                "type": "number",
+                "description": "Value"
+              },
+              "accn": {
+                "type": "string",
+                "description": "Accession number"
+              },
+              "fy": {
+                "type": "integer",
+                "description": "Fiscal year"
+              },
+              "fp": {
+                "type": "string",
+                "description": "Fiscal period (Q1, Q2, Q3, Q4, or FY)"
+              },
+              "form": {
+                "type": "string",
+                "description": "Form type (10-K, 10-Q, etc.)"
+              },
+              "filed": {
+                "type": "string",
+                "description": "Filing date (YYYY-MM-DD)"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "SEC EDGAR",
+    "tags": ["sec", "edgar", "xbrl", "financial metrics", "time series", "revenue", "earnings", "assets"],
+    "rateLimit": 10,
+    "cacheTTL": 3600,
+    "note": "Focused endpoint for time-series analysis of specific financial metrics. More efficient than edgar_company_facts when you need just one metric.",
+    "examples": [
+      {
+        "description": "Get Apple's revenue history",
+        "input": {
+          "cik": "320193",
+          "taxonomy": "us-gaap",
+          "concept": "Revenues"
+        }
+      },
+      {
+        "description": "Get Tesla's total assets over time",
+        "input": {
+          "cik": "1318605",
+          "concept": "Assets"
+        }
+      },
+      {
+        "description": "Get Microsoft's EPS history",
+        "input": {
+          "cik": "789019",
+          "concept": "EarningsPerShareBasic"
+        }
+      }
+    ],
+    "useCases": [
+      "Time-series financial analysis",
+      "Trend identification",
+      "Historical performance tracking",
+      "Building financial charts",
+      "Comparative period analysis"
+    ],
+    "commonConcepts": {
+      "income_statement": ["Revenue", "Revenues", "OperatingIncomeLoss", "NetIncomeLoss", "GrossProfit", "CostOfRevenue"],
+      "balance_sheet": ["Assets", "Liabilities", "StockholdersEquity", "Cash", "AccountsReceivable", "Inventory"],
+      "cash_flow": ["NetCashProvidedByUsedInOperatingActivities", "NetCashProvidedByUsedInInvestingActivities", "NetCashProvidedByUsedInFinancingActivities"],
+      "per_share": ["EarningsPerShareBasic", "EarningsPerShareDiluted", "CommonStockSharesOutstanding"]
+    }
+  }
+}

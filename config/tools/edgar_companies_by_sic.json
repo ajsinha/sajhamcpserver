@@ -1,0 +1,103 @@
+{
+  "name": "edgar_companies_by_sic",
+  "implementation": "tools.impl.enhanced_edgar_tool.EDGARCompaniesBySICTool",
+  "description": "Search companies by Standard Industrial Classification (SIC) code for industry and sector analysis",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "sic_code": {
+        "type": "string",
+        "description": "4-digit SIC code (e.g., '7372' for prepackaged software, '6022' for state commercial banks, '3674' for semiconductors)"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum companies to return (1-500)",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 50
+      }
+    },
+    "required": ["sic_code"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "sic_code": {
+        "type": "string",
+        "description": "SIC code queried"
+      },
+      "companies_count": {
+        "type": "integer",
+        "description": "Number of companies in this industry"
+      },
+      "companies": {
+        "type": "array",
+        "description": "Companies in the specified SIC code",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cik": {"type": "string"},
+            "name": {"type": "string"},
+            "sic": {"type": "string"},
+            "sicDescription": {"type": "string"},
+            "fiscalYearEnd": {"type": "string"}
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "SEC EDGAR",
+    "tags": ["sec", "edgar", "sic", "industry", "sector", "classification"],
+    "rateLimit": 10,
+    "cacheTTL": 7200,
+    "note": "SIC codes classify companies by industry. Useful for peer analysis and sector research.",
+    "examples": [
+      {
+        "description": "Find all software companies",
+        "input": {"sic_code": "7372", "limit": 100}
+      },
+      {
+        "description": "Find semiconductor companies",
+        "input": {"sic_code": "3674"}
+      },
+      {
+        "description": "Find commercial banks",
+        "input": {"sic_code": "6022", "limit": 50}
+      }
+    ],
+    "useCases": [
+      "Industry peer group analysis",
+      "Sector screening",
+      "Competitive intelligence",
+      "Market research",
+      "Building industry indices"
+    ],
+    "commonSICCodes": {
+      "technology": {
+        "7370": "Computer Programming, Data Processing",
+        "7372": "Prepackaged Software",
+        "7373": "Computer Integrated Systems Design",
+        "3674": "Semiconductors & Related Devices"
+      },
+      "finance": {
+        "6022": "State Commercial Banks",
+        "6211": "Security Brokers, Dealers & Flotation Companies",
+        "6282": "Investment Advice"
+      },
+      "pharma": {
+        "2834": "Pharmaceutical Preparations",
+        "2835": "In Vitro & In Vivo Diagnostic Substances",
+        "2836": "Biological Products"
+      },
+      "retail": {
+        "5331": "Variety Stores",
+        "5735": "Record & Prerecorded Tape Stores",
+        "5961": "Catalog & Mail-Order Houses"
+      }
+    }
+  }
+}

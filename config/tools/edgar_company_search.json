@@ -1,0 +1,105 @@
+{
+  "name": "edgar_company_search",
+  "implementation": "tools.impl.enhanced_edgar_tool.EDGARCompanySearchTool",
+  "description": "Search for public companies in SEC EDGAR database by company name or ticker symbol to retrieve CIK numbers",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Company name or ticker symbol to search for (e.g., 'Apple Inc', 'AAPL', 'Microsoft')"
+      },
+      "search_type": {
+        "type": "string",
+        "description": "Type of search to perform: 'name' for company name search, 'ticker' for ticker symbol search, 'auto' to search both",
+        "enum": ["name", "ticker", "auto"],
+        "default": "auto"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of results to return (1-100)",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10
+      }
+    },
+    "required": ["query"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Original search query"
+      },
+      "results_count": {
+        "type": "integer",
+        "description": "Number of companies found"
+      },
+      "companies": {
+        "type": "array",
+        "description": "List of matching companies with CIK, ticker, name, and exchange",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cik": {
+              "type": "string",
+              "description": "Central Index Key (10-digit identifier)"
+            },
+            "ticker": {
+              "type": "string",
+              "description": "Stock ticker symbol"
+            },
+            "title": {
+              "type": "string",
+              "description": "Company name"
+            },
+            "exchange": {
+              "type": "string",
+              "description": "Stock exchange where traded (NYSE, NASDAQ, etc.)"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "SEC EDGAR",
+    "tags": ["sec", "edgar", "company", "search", "cik", "ticker", "public companies"],
+    "rateLimit": 10,
+    "cacheTTL": 3600,
+    "note": "Search interface for SEC EDGAR company database. Returns CIK numbers needed for other EDGAR API calls. No API key required.",
+    "examples": [
+      {
+        "description": "Search for Apple by ticker",
+        "input": {
+          "query": "AAPL",
+          "search_type": "ticker"
+        }
+      },
+      {
+        "description": "Search for Microsoft by name",
+        "input": {
+          "query": "Microsoft",
+          "search_type": "name",
+          "limit": 5
+        }
+      },
+      {
+        "description": "Auto-search for Tesla",
+        "input": {
+          "query": "TSLA"
+        }
+      }
+    ],
+    "useCases": [
+      "Find company CIK for other EDGAR queries",
+      "Validate ticker symbols",
+      "Discover company official names",
+      "Find exchange listing information"
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "name": "edgar_filing_details",
+  "implementation": "tools.impl.enhanced_edgar_tool.EDGARFilingDetailsTool",
+  "description": "Get detailed information about a specific SEC filing by accession number with direct document URLs",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "Central Index Key"
+      },
+      "accession_number": {
+        "type": "string",
+        "description": "Filing accession number (e.g., '0000320193-23-000077' or '000032019323000077')"
+      }
+    },
+    "required": ["cik", "accession_number"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {"type": "string"},
+      "accessionNumber": {"type": "string"},
+      "form": {"type": "string"},
+      "filingDate": {"type": "string"},
+      "reportDate": {"type": "string"},
+      "acceptanceDateTime": {"type": "string"},
+      "primaryDocument": {"type": "string"},
+      "primaryDocDescription": {"type": "string"},
+      "document_url": {"type": "string", "description": "SEC viewer URL"},
+      "filing_url": {"type": "string", "description": "Direct document URL"}
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "SEC EDGAR",
+    "tags": ["sec", "edgar", "filing", "accession number", "documents"],
+    "rateLimit": 10,
+    "cacheTTL": 3600,
+    "examples": [
+      {
+        "description": "Get specific Apple 10-K filing details",
+        "input": {
+          "cik": "320193",
+          "accession_number": "0000320193-23-000106"
+        }
+      }
+    ],
+    "useCases": ["Direct filing access", "Document retrieval", "Filing verification", "Link generation"]
+  }
+}
