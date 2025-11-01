@@ -1,0 +1,14 @@
+{
+  "name": "pboc_get_forex_reserves",
+  "implementation": "tools.impl.china_central_bank.PBoCGetForexReservesTool",
+  "description": "Retrieve China foreign exchange and gold reserves",
+  "version": "1.0.0",
+  "enabled": true,
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["china", "pboc", "economic data"],
+    "rateLimit": 120,
+    "cacheTTL": 3600
+  }
+}

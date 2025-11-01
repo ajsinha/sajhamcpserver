@@ -1,0 +1,14 @@
+{
+  "name": "bdf_get_exchange_rate",
+  "implementation": "tools.impl.france_central_bank.BdFGetExchangeRateTool",
+  "description": "Retrieve Euro exchange rates against major currencies",
+  "version": "1.0.0",
+  "enabled": true,
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["france", "ecb", "eurozone", "economic data"],
+    "rateLimit": 120,
+    "cacheTTL": 3600
+  }
+}

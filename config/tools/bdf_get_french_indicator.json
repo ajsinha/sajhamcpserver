@@ -1,0 +1,14 @@
+{
+  "name": "bdf_get_french_indicator",
+  "implementation": "tools.impl.france_central_bank.BdFGetFrenchEconomicIndicatorTool",
+  "description": "Retrieve French economic indicators including CPI, GDP, and unemployment",
+  "version": "1.0.0",
+  "enabled": true,
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["france", "ecb", "eurozone", "economic data"],
+    "rateLimit": 120,
+    "cacheTTL": 3600
+  }
+}

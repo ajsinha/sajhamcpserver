@@ -1,0 +1,14 @@
+{
+  "name": "rbi_get_policy_rate",
+  "implementation": "tools.impl.india_central_bank.RBIGetPolicyRateTool",
+  "description": "Retrieve RBI policy rates including repo, reverse repo, bank rate, CRR, and SLR",
+  "version": "1.0.0",
+  "enabled": true,
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["india", "rbi", "economic data"],
+    "rateLimit": 120,
+    "cacheTTL": 3600
+  }
+}

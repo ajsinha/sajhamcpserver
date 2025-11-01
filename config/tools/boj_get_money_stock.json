@@ -1,0 +1,60 @@
+{
+  "name": "boj_get_money_stock",
+  "implementation": "tools.impl.japan_central_bank.BoJGetMoneyStockTool",
+  "description": "Retrieve Japanese money stock indicators (M1, M2, M3) with historical data.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "aggregate": {
+        "type": "string",
+        "description": "Money stock aggregate",
+        "enum": ["m1", "m2", "m3"],
+        "default": "m2"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date in YYYY-MM-DD format"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date in YYYY-MM-DD format"
+      },
+      "recent_periods": {
+        "type": "integer",
+        "description": "Number of recent observations (1-100)",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10
+      }
+    },
+    "required": ["aggregate"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "series_code": {"type": "string"},
+      "label": {"type": "string"},
+      "unit": {"type": "string"},
+      "observation_count": {"type": "integer"},
+      "observations": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {"type": "string"},
+            "value": {"type": ["number", "null"]}
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Monetary Data",
+    "tags": ["money supply", "m1", "m2", "m3", "japan", "monetary aggregates"],
+    "rateLimit": 120,
+    "cacheTTL": 3600
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "name": "boj_get_price_index",
+  "implementation": "tools.impl.japan_central_bank.BoJGetPriceIndexTool",
+  "description": "Retrieve Japanese price indices including CPI and PPI with historical data.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "index_type": {
+        "type": "string",
+        "description": "Type of price index",
+        "enum": ["cpi", "core_cpi", "ppi"],
+        "default": "cpi"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date in YYYY-MM-DD format"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date in YYYY-MM-DD format"
+      },
+      "recent_periods": {
+        "type": "integer",
+        "description": "Number of recent observations (1-100)",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10
+      }
+    },
+    "required": ["index_type"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "series_code": {"type": "string"},
+      "label": {"type": "string"},
+      "observation_count": {"type": "integer"},
+      "observations": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {"type": "string"},
+            "value": {"type": ["number", "null"]}
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Inflation Data",
+    "tags": ["cpi", "ppi", "inflation", "japan", "price index"],
+    "rateLimit": 120,
+    "cacheTTL": 3600
+  }
+}

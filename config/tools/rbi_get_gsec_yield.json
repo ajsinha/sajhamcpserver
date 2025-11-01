@@ -1,0 +1,14 @@
+{
+  "name": "rbi_get_gsec_yield",
+  "implementation": "tools.impl.india_central_bank.RBIGetGSecYieldTool",
+  "description": "Retrieve Indian Government Securities yields for various maturities",
+  "version": "1.0.0",
+  "enabled": true,
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["india", "rbi", "economic data"],
+    "rateLimit": 120,
+    "cacheTTL": 3600
+  }
+}

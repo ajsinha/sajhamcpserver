@@ -1,0 +1,14 @@
+{
+  "name": "bdf_get_ecb_policy_rate",
+  "implementation": "tools.impl.france_central_bank.BdFGetECBPolicyRateTool",
+  "description": "Retrieve ECB policy rates including main refinancing, deposit, and marginal lending rates",
+  "version": "1.0.0",
+  "enabled": true,
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": ["france", "ecb", "eurozone", "economic data"],
+    "rateLimit": 120,
+    "cacheTTL": 3600
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "name": "boj_get_exchange_rate",
+  "implementation": "tools.impl.japan_central_bank.BoJGetExchangeRateTool",
+  "description": "Retrieve Japanese Yen exchange rates against major currencies (USD, EUR, GBP, CNY).",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "currency_pair": {
+        "type": "string",
+        "description": "Currency pair (foreign currency per JPY)",
+        "enum": ["usd_jpy", "eur_jpy", "gbp_jpy", "cny_jpy"],
+        "default": "usd_jpy"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date in YYYY-MM-DD format"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date in YYYY-MM-DD format"
+      },
+      "recent_periods": {
+        "type": "integer",
+        "description": "Number of recent observations (1-100)",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10
+      }
+    },
+    "required": ["currency_pair"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "series_code": {
+        "type": "string",
+        "description": "Exchange rate series code"
+      },
+      "label": {
+        "type": "string",
+        "description": "Currency pair description"
+      },
+      "observation_count": {
+        "type": "integer",
+        "description": "Number of observations returned"
+      },
+      "observations": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Date of observation"
+            },
+            "value": {
+              "type": ["number", "null"],
+              "description": "Exchange rate value"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Foreign Exchange",
+    "tags": ["forex", "exchange rates", "jpy", "japan", "currency"],
+    "rateLimit": 120,
+    "cacheTTL": 1800,
+    "examples": [
+      {
+        "description": "Get latest USD/JPY rate",
+        "input": {
+          "currency_pair": "usd_jpy",
+          "recent_periods": 1
+        }
+      }
+    ]
+  }
+}

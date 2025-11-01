@@ -12575,3 +12575,293 @@ AssertionError: write() before start_response
 2025-11-01 07:20:04,007 - root - INFO - WebSocket client connected: uNbePZFK_XN7SOG6AAAN
 2025-11-01 07:20:16,096 - ECBGetExchangeRateTool - INFO - Tool executed successfully: ecb_get_exchange_rate (0.89s)
 2025-11-01 07:20:16,097 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 07:20:16] "POST /api/tools/execute HTTP/1.1" 200 -
+2025-11-01 08:02:04,299 - tools.tools_registry - INFO - New tool configuration detected: boj_get_jgb_yield.json
+2025-11-01 08:02:04,303 - tools.tools_registry - INFO - Tool registered: boj_get_jgb_yield
+2025-11-01 08:02:04,303 - tools.tools_registry - INFO - Loaded custom tool: boj_get_jgb_yield
+2025-11-01 08:02:04,303 - tools.tools_registry - INFO - New tool configuration detected: boj_get_exchange_rate.json
+2025-11-01 08:02:04,303 - tools.tools_registry - INFO - Tool registered: boj_get_exchange_rate
+2025-11-01 08:02:04,303 - tools.tools_registry - INFO - Loaded custom tool: boj_get_exchange_rate
+2025-11-01 08:02:04,303 - tools.tools_registry - INFO - New tool configuration detected: bdf_get_oat_yield.json
+2025-11-01 08:02:04,306 - tools.tools_registry - INFO - Tool registered: bdf_get_oat_yield
+2025-11-01 08:02:04,306 - tools.tools_registry - INFO - Loaded custom tool: bdf_get_oat_yield
+2025-11-01 08:02:04,306 - tools.tools_registry - INFO - New tool configuration detected: rbi_get_policy_rate.json
+2025-11-01 08:02:04,308 - tools.tools_registry - INFO - Tool registered: rbi_get_policy_rate
+2025-11-01 08:02:04,308 - tools.tools_registry - INFO - Loaded custom tool: rbi_get_policy_rate
+2025-11-01 08:02:04,309 - tools.tools_registry - INFO - New tool configuration detected: pboc_get_cgb_yield.json
+2025-11-01 08:02:04,311 - tools.tools_registry - INFO - Tool registered: pboc_get_cgb_yield
+2025-11-01 08:02:04,311 - tools.tools_registry - INFO - Loaded custom tool: pboc_get_cgb_yield
+2025-11-01 08:02:04,311 - tools.tools_registry - INFO - New tool configuration detected: boj_get_money_stock.json
+2025-11-01 08:02:04,311 - tools.tools_registry - INFO - Tool registered: boj_get_money_stock
+2025-11-01 08:02:04,311 - tools.tools_registry - INFO - Loaded custom tool: boj_get_money_stock
+2025-11-01 08:02:04,311 - tools.tools_registry - INFO - New tool configuration detected: bdf_get_exchange_rate.json
+2025-11-01 08:02:04,311 - tools.tools_registry - INFO - Tool registered: bdf_get_exchange_rate
+2025-11-01 08:02:04,311 - tools.tools_registry - INFO - Loaded custom tool: bdf_get_exchange_rate
+2025-11-01 08:02:04,311 - tools.tools_registry - INFO - New tool configuration detected: rbi_get_exchange_rate.json
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Tool registered: rbi_get_exchange_rate
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Loaded custom tool: rbi_get_exchange_rate
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - New tool configuration detected: boj_get_policy_rate.json
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Tool registered: boj_get_policy_rate
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Loaded custom tool: boj_get_policy_rate
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - New tool configuration detected: pboc_get_forex_reserves.json
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Tool registered: pboc_get_forex_reserves
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Loaded custom tool: pboc_get_forex_reserves
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - New tool configuration detected: bdf_get_eurozone_indicator.json
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Tool registered: bdf_get_eurozone_indicator
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Loaded custom tool: bdf_get_eurozone_indicator
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - New tool configuration detected: boj_get_price_index.json
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Tool registered: boj_get_price_index
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Loaded custom tool: boj_get_price_index
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - New tool configuration detected: bdf_get_ecb_policy_rate.json
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Tool registered: bdf_get_ecb_policy_rate
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Loaded custom tool: bdf_get_ecb_policy_rate
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - New tool configuration detected: bdf_get_french_indicator.json
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Tool registered: bdf_get_french_indicator
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Loaded custom tool: bdf_get_french_indicator
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - New tool configuration detected: pboc_get_money_supply.json
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Tool registered: pboc_get_money_supply
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Loaded custom tool: pboc_get_money_supply
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - New tool configuration detected: rbi_get_gsec_yield.json
+2025-11-01 08:02:04,312 - tools.tools_registry - INFO - Tool registered: rbi_get_gsec_yield
+2025-11-01 08:02:04,313 - tools.tools_registry - INFO - Loaded custom tool: rbi_get_gsec_yield
+2025-11-01 08:02:04,313 - tools.tools_registry - INFO - New tool configuration detected: pboc_get_lpr.json
+2025-11-01 08:02:04,313 - tools.tools_registry - INFO - Tool registered: pboc_get_lpr
+2025-11-01 08:02:04,313 - tools.tools_registry - INFO - Loaded custom tool: pboc_get_lpr
+2025-11-01 08:02:04,313 - tools.tools_registry - INFO - New tool configuration detected: rbi_get_forex_reserves.json
+2025-11-01 08:02:04,313 - tools.tools_registry - INFO - Tool registered: rbi_get_forex_reserves
+2025-11-01 08:02:04,313 - tools.tools_registry - INFO - Loaded custom tool: rbi_get_forex_reserves
+2025-11-01 08:02:04,313 - tools.tools_registry - INFO - New tool configuration detected: rbi_get_inflation.json
+2025-11-01 08:02:04,313 - tools.tools_registry - INFO - Tool registered: rbi_get_inflation
+2025-11-01 08:02:04,313 - tools.tools_registry - INFO - Loaded custom tool: rbi_get_inflation
+2025-11-01 08:02:04,313 - tools.tools_registry - INFO - New tool configuration detected: pboc_get_exchange_rate.json
+2025-11-01 08:02:04,313 - tools.tools_registry - INFO - Tool registered: pboc_get_exchange_rate
+2025-11-01 08:02:04,313 - tools.tools_registry - INFO - Loaded custom tool: pboc_get_exchange_rate
+2025-11-01 08:02:05,179 - root - INFO - WebSocket client disconnected: uNbePZFK_XN7SOG6AAAN
+2025-11-01 08:02:05,190 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:02:05] "GET /dashboard HTTP/1.1" 200 -
+2025-11-01 08:02:05,190 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:02:05] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-11-01 08:02:05,201 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-11-01 08:02:05,204 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:02:05] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 08:02:05,205 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:02:05] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 08:02:10,185 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:02:10] "GET /dashboard HTTP/1.1" 200 -
+2025-11-01 08:02:10,196 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:02:10] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 08:02:10,198 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:02:10] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 08:02:18,454 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:02:18] "GET /tools/execute/pboc_get_cgb_yield HTTP/1.1" 200 -
+2025-11-01 08:02:18,475 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:02:18] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 08:02:18,478 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:02:18] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 08:02:18,523 - root - INFO - WebSocket client connected: rI1MtiFbNM7Gy1m5AAAP
+2025-11-01 08:02:52,150 - PBoCGetCGBYieldTool - ERROR - Tool execution failed: pboc_get_cgb_yield - Failed to get series data: timed out
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/china_central_bank.py", line 97, in _fetch_series
+    with urllib.request.urlopen(req, timeout=30) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 487, in open
+    response = self._open(req, data)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 504, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+                              '_open', req)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 1350, in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 1325, in do_open
+    r = h.getresponse()
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 1430, in getresponse
+    response.begin()
+    ~~~~~~~~~~~~~~^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 331, in begin
+    version, status, reason = self._read_status()
+                              ~~~~~~~~~~~~~~~~~^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 292, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/socket.py", line 725, in readinto
+    return self._sock.recv_into(b)
+           ~~~~~~~~~~~~~~~~~~~~^^^
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 151, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/china_central_bank.py", line 189, in execute
+    return self._fetch_series(
+           ~~~~~~~~~~~~~~~~~~^
+        series_code,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        arguments.get('recent_periods', 10)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/china_central_bank.py", line 128, in _fetch_series
+    raise ValueError(f"Failed to get series data: {str(e)}")
+ValueError: Failed to get series data: timed out
+2025-11-01 08:02:52,155 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:02:52] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-11-01 08:03:53,180 - PBoCGetCGBYieldTool - ERROR - Tool execution failed: pboc_get_cgb_yield - Failed to get series data: timed out
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/china_central_bank.py", line 97, in _fetch_series
+    with urllib.request.urlopen(req, timeout=30) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 487, in open
+    response = self._open(req, data)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 504, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+                              '_open', req)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 1350, in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 1325, in do_open
+    r = h.getresponse()
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 1430, in getresponse
+    response.begin()
+    ~~~~~~~~~~~~~~^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 331, in begin
+    version, status, reason = self._read_status()
+                              ~~~~~~~~~~~~~~~~~^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 292, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/socket.py", line 725, in readinto
+    return self._sock.recv_into(b)
+           ~~~~~~~~~~~~~~~~~~~~^^^
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 151, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/china_central_bank.py", line 189, in execute
+    return self._fetch_series(
+           ~~~~~~~~~~~~~~~~~~^
+        series_code,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        arguments.get('recent_periods', 10)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/china_central_bank.py", line 128, in _fetch_series
+    raise ValueError(f"Failed to get series data: {str(e)}")
+ValueError: Failed to get series data: timed out
+2025-11-01 08:03:53,181 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:03:53] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
+2025-11-01 08:08:35,823 - root - INFO - WebSocket client disconnected: rI1MtiFbNM7Gy1m5AAAP
+2025-11-01 08:08:35,834 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:08:35] "[35m[1mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 500 -
+2025-11-01 08:08:35,845 - werkzeug - ERROR - Error on request:
+Traceback (most recent call last):
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 336, in execute
+    write(b"")
+    ~~~~~^^^^^
+  File "/home/ashutosh/.local/lib/python3.14/site-packages/werkzeug/serving.py", line 261, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+2025-11-01 08:09:08,381 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:09:08] "GET /tools/execute/bdf_get_oat_yield HTTP/1.1" 200 -
+2025-11-01 08:09:08,397 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:09:08] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-01 08:09:08,398 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:09:08] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-01 08:09:08,423 - root - INFO - WebSocket client connected: xCmuy4jttidj04MaAAAR
+2025-11-01 08:09:12,142 - BdFGetOATYieldTool - ERROR - Tool execution failed: bdf_get_oat_yield - Failed to get series data: <urlopen error [Errno -2] Name or service not known>
+Traceback (most recent call last):
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 1321, in do_open
+    h.request(req.get_method(), req.selector, req.data, headers,
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              encode_chunked=req.has_header('Transfer-encoding'))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 1338, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 1384, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 1333, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 1093, in _send_output
+    self.send(msg)
+    ~~~~~~~~~^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 1037, in send
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 1472, in connect
+    super().connect()
+    ~~~~~~~~~~~~~~~^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/http/client.py", line 1003, in connect
+    self.sock = self._create_connection(
+                ~~~~~~~~~~~~~~~~~~~~~~~^
+        (self.host,self.port), self.timeout, self.source_address)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/socket.py", line 846, in create_connection
+    for res in getaddrinfo(host, port, 0, SOCK_STREAM):
+               ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/socket.py", line 983, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno -2] Name or service not known
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/france_central_bank.py", line 94, in _fetch_series_ecb
+    with urllib.request.urlopen(req, timeout=30) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 487, in open
+    response = self._open(req, data)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 504, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+                              '_open', req)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 1369, in https_open
+    return self.do_open(http.client.HTTPSConnection, req,
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        context=self._context)
+                        ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ashutosh/ide/python/python3.14.0/lib/python3.14/urllib/request.py", line 1324, in do_open
+    raise URLError(err)
+urllib.error.URLError: <urlopen error [Errno -2] Name or service not known>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/base_mcp_tool.py", line 151, in execute_with_tracking
+    result = self.execute(arguments)
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/france_central_bank.py", line 195, in execute
+    return self._fetch_series(
+           ~~~~~~~~~~~~~~~~~~^
+        series_code,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        arguments.get('recent_periods', 10)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/ashutosh/PycharmProjects/sajhamcpserver/tools/impl/france_central_bank.py", line 132, in _fetch_series_ecb
+    raise ValueError(f"Failed to get series data: {str(e)}")
+ValueError: Failed to get series data: <urlopen error [Errno -2] Name or service not known>
+2025-11-01 08:09:12,148 - werkzeug - INFO - 127.0.0.1 - - [01/Nov/2025 08:09:12] "[35m[1mPOST /api/tools/execute HTTP/1.1[0m" 500 -
