@@ -34,7 +34,9 @@ class DuckDbBaseTool(BaseMCPTool):
         # Initialize DuckDB connection
         self.db_path = os.path.join(self.data_directory, 'duckdb_analytics.db')
         self.conn = None
-        self._scan_data_files()
+
+        # Initialize views from data files
+        self._initialize_views_from_files()
 
     def _get_connection(self):
         """Get or create DuckDB connection"""
@@ -43,14 +45,14 @@ class DuckDbBaseTool(BaseMCPTool):
             # Enable automatic CSV/Parquet detection
             self.conn.execute("SET enable_object_cache=true")
         return self.conn
-    
+
     def _execute_query(self, query: str) -> duckdb.DuckDBPyRelation:
         """
         Execute a query and return results
-        
+
         Args:
             query: SQL query string
-            
+
         Returns:
             Query results
         """
@@ -61,7 +63,7 @@ class DuckDbBaseTool(BaseMCPTool):
         except Exception as e:
             self.logger.error(f"Query execution failed: {e}")
             raise ValueError(f"Query failed: {str(e)}")
-    
+
     def _format_file_size(self, size_bytes: int) -> str:
         """Format file size in human-readable format"""
         for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
@@ -69,7 +71,7 @@ class DuckDbBaseTool(BaseMCPTool):
                 return f"{size_bytes:.2f} {unit}"
             size_bytes /= 1024.0
         return f"{size_bytes:.2f} PB"
-    
+
     def _scan_data_files(self, file_type: str = 'all') -> List[Dict]:
         """Scan data directory for supported file types"""
         supported_extensions = {
@@ -78,23 +80,23 @@ class DuckDbBaseTool(BaseMCPTool):
             'json': ['.json', '.jsonl'],
             'tsv': ['.tsv']
         }
-        
+
         if file_type != 'all':
             extensions = supported_extensions.get(file_type, [])
         else:
             extensions = [ext for exts in supported_extensions.values() for ext in exts]
-        
+
         files = []
-        
+
         if os.path.exists(self.data_directory):
             for filename in os.listdir(self.data_directory):
                 if filename.startswith('.') or filename.endswith('.db'):
                     continue
-                
+
                 file_ext = os.path.splitext(filename)[1].lower()
                 if file_ext in extensions:
                     file_path = os.path.join(self.data_directory, filename)
-                    
+
                     # Determine file type
                     if file_ext in ['.csv']:
                         ftype = 'csv'
@@ -106,13 +108,13 @@ class DuckDbBaseTool(BaseMCPTool):
                         ftype = 'tsv'
                     else:
                         continue
-                    
+
                     file_info = {
                         'filename': filename,
                         'file_type': ftype,
                         'file_path': file_path
                     }
-                    
+
                     try:
                         stat = os.stat(file_path)
                         file_info['file_size_bytes'] = stat.st_size
@@ -120,11 +122,108 @@ class DuckDbBaseTool(BaseMCPTool):
                         file_info['modified_date'] = datetime.fromtimestamp(stat.st_mtime).isoformat()
                     except:
                         pass
-                    
+
                     files.append(file_info)
-        
+
         return files
-    
+
+    def _initialize_views_from_files(self):
+        """
+        Initialize views from all data files in the data directory.
+        Creates a view for each CSV, Parquet, JSON, and TSV file found.
+        """
+        try:
+            # Get connection
+            conn = self._get_connection()
+
+            # Scan for all data files
+            files = self._scan_data_files()
+
+            if not files:
+                self.logger.info(f"No data files found in {self.data_directory}")
+                return
+
+            self.logger.info(f"Found {len(files)} data files in {self.data_directory}")
+
+            # Create views for each file
+            for file_info in files:
+                try:
+                    filename = file_info['filename']
+                    file_path = file_info['file_path']
+                    file_type = file_info['file_type']
+
+                    # Generate view name from filename (remove extension and sanitize)
+                    view_name = os.path.splitext(filename)[0]
+                    # Replace special characters with underscores
+                    view_name = ''.join(c if c.isalnum() or c == '_' else '_' for c in view_name)
+
+                    # Drop existing view if it exists
+                    try:
+                        conn.execute(f"DROP VIEW IF EXISTS {view_name}")
+                    except:
+                        pass
+
+                    # Create view based on file type
+                    if file_type == 'csv':
+                        # DuckDB can read CSV files directly
+                        create_view_sql = f"""
+                            CREATE VIEW {view_name} AS 
+                            SELECT * FROM read_csv_auto('{file_path}', 
+                                header=true, 
+                                auto_detect=true,
+                                sample_size=-1
+                            )
+                        """
+                    elif file_type == 'parquet':
+                        # DuckDB can read Parquet files directly
+                        create_view_sql = f"""
+                            CREATE VIEW {view_name} AS 
+                            SELECT * FROM read_parquet('{file_path}')
+                        """
+                    elif file_type == 'json':
+                        # DuckDB can read JSON files directly
+                        create_view_sql = f"""
+                            CREATE VIEW {view_name} AS 
+                            SELECT * FROM read_json_auto('{file_path}')
+                        """
+                    elif file_type == 'tsv':
+                        # Read TSV as CSV with tab delimiter
+                        create_view_sql = f"""
+                            CREATE VIEW {view_name} AS 
+                            SELECT * FROM read_csv_auto('{file_path}', 
+                                header=true,
+                                delim='\\t',
+                                auto_detect=true,
+                                sample_size=-1
+                            )
+                        """
+                    else:
+                        self.logger.warning(f"Unsupported file type '{file_type}' for {filename}")
+                        continue
+
+                    # Execute the CREATE VIEW statement
+                    conn.execute(create_view_sql)
+
+                    # Get row count for verification
+                    try:
+                        row_count = conn.execute(f"SELECT COUNT(*) FROM {view_name}").fetchone()[0]
+                        self.logger.info(f"✓ Created view '{view_name}' from {filename} ({row_count:,} rows)")
+                    except Exception as e:
+                        self.logger.info(f"✓ Created view '{view_name}' from {filename}")
+
+                except Exception as e:
+                    self.logger.error(f"Failed to create view for {filename}: {e}")
+                    continue
+
+            # Log summary
+            views_result = conn.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_type = 'VIEW'").fetchone()
+            total_views = views_result[0] if views_result else 0
+            self.logger.info(f"Initialization complete: {total_views} views available")
+
+        except Exception as e:
+            self.logger.error(f"Failed to initialize views from files: {e}")
+            # Don't raise - allow the tool to continue even if initialization fails
+
     def close(self):
         """Close DuckDB connection"""
         if self.conn:
@@ -136,7 +235,7 @@ class DuckDbListTablesTool(DuckDbBaseTool):
     """
     Tool to list all available tables and views
     """
-    
+
     def __init__(self, config: Dict = None):
         default_config = {
             'name': 'duckdb_list_tables',
@@ -147,20 +246,20 @@ class DuckDbListTablesTool(DuckDbBaseTool):
         if config:
             default_config.update(config)
         super().__init__(default_config)
-    
+
     def get_input_schema(self) -> Dict:
         return self.config.get('inputSchema', {})
-    
+
     def get_output_schema(self) -> Dict:
         return self.config.get('outputSchema', {})
-    
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
         """Execute list tables operation"""
         include_system = arguments.get('include_system_tables', False)
-        
+
         try:
             conn = self._get_connection()
-            
+
             # Get all tables and views
             query = """
                 SELECT 
@@ -169,12 +268,12 @@ class DuckDbListTablesTool(DuckDbBaseTool):
                     'main' as schema
                 FROM information_schema.tables
             """
-            
+
             if not include_system:
                 query += " WHERE table_schema = 'main'"
-            
+
             result = conn.execute(query).fetchall()
-            
+
             tables = []
             for row in result:
                 table_info = {
@@ -182,7 +281,7 @@ class DuckDbListTablesTool(DuckDbBaseTool):
                     'type': 'view' if row[1].lower() == 'view' else 'table',
                     'schema': row[2]
                 }
-                
+
                 # Try to get row count
                 try:
                     count_query = f"SELECT COUNT(*) FROM {row[0]}"
@@ -190,14 +289,14 @@ class DuckDbListTablesTool(DuckDbBaseTool):
                     table_info['row_count'] = count_result[0] if count_result else 0
                 except:
                     table_info['row_count'] = None
-                
+
                 tables.append(table_info)
-            
+
             return {
                 'tables': tables,
                 'total_count': len(tables)
             }
-            
+
         except Exception as e:
             self.logger.error(f"Failed to list tables: {e}")
             raise
@@ -207,7 +306,7 @@ class DuckDbDescribeTableTool(DuckDbBaseTool):
     """
     Tool to describe table schema and structure
     """
-    
+
     def __init__(self, config: Dict = None):
         default_config = {
             'name': 'duckdb_describe_table',
@@ -218,22 +317,22 @@ class DuckDbDescribeTableTool(DuckDbBaseTool):
         if config:
             default_config.update(config)
         super().__init__(default_config)
-    
+
     def get_input_schema(self) -> Dict:
         return self.config.get('inputSchema', {})
-    
+
     def get_output_schema(self) -> Dict:
         return self.config.get('outputSchema', {})
-    
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
         """Execute describe table operation"""
         table_name = arguments['table_name']
         include_sample = arguments.get('include_sample_data', False)
         sample_size = arguments.get('sample_size', 5)
-        
+
         try:
             conn = self._get_connection()
-            
+
             # Get table type
             table_type_query = f"""
                 SELECT table_type 
@@ -242,11 +341,11 @@ class DuckDbDescribeTableTool(DuckDbBaseTool):
             """
             table_type_result = conn.execute(table_type_query).fetchone()
             table_type = 'view' if table_type_result and table_type_result[0].lower() == 'view' else 'table'
-            
+
             # Get column information
             describe_query = f"DESCRIBE {table_name}"
             describe_result = conn.execute(describe_query).fetchall()
-            
+
             columns = []
             for row in describe_result:
                 column_info = {
@@ -255,31 +354,31 @@ class DuckDbDescribeTableTool(DuckDbBaseTool):
                     'nullable': row[2] == 'YES' if len(row) > 2 else True,
                     'is_primary_key': False
                 }
-                
+
                 if len(row) > 3 and row[3]:
                     column_info['default_value'] = str(row[3])
-                
+
                 columns.append(column_info)
-            
+
             # Get row count
             count_query = f"SELECT COUNT(*) FROM {table_name}"
             row_count = conn.execute(count_query).fetchone()[0]
-            
+
             result = {
                 'table_name': table_name,
                 'table_type': table_type,
                 'columns': columns,
                 'row_count': row_count
             }
-            
+
             # Get sample data if requested
             if include_sample:
                 sample_query = f"SELECT * FROM {table_name} LIMIT {sample_size}"
                 sample_result = conn.execute(sample_query).fetchdf()
                 result['sample_data'] = sample_result.to_dict(orient='records')
-            
+
             return result
-            
+
         except Exception as e:
             self.logger.error(f"Failed to describe table: {e}")
             raise
@@ -289,7 +388,7 @@ class DuckDbQueryTool(DuckDbBaseTool):
     """
     Tool to execute SQL queries
     """
-    
+
     def __init__(self, config: Dict = None):
         default_config = {
             'name': 'duckdb_query',
@@ -300,41 +399,41 @@ class DuckDbQueryTool(DuckDbBaseTool):
         if config:
             default_config.update(config)
         super().__init__(default_config)
-    
+
     def get_input_schema(self) -> Dict:
         return self.config.get('inputSchema', {})
-    
+
     def get_output_schema(self) -> Dict:
         return self.config.get('outputSchema', {})
-    
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
         """Execute SQL query"""
         sql_query = arguments['sql_query']
         limit = arguments.get('limit', 100)
         output_format = arguments.get('output_format', 'json')
-        
+
         # Prevent destructive operations
         forbidden_keywords = ['DROP', 'DELETE', 'TRUNCATE', 'ALTER', 'CREATE', 'INSERT', 'UPDATE']
         query_upper = sql_query.upper()
         for keyword in forbidden_keywords:
             if keyword in query_upper:
                 raise ValueError(f"Forbidden operation: {keyword}. Only read-only queries are allowed.")
-        
+
         try:
             start_time = time.time()
-            
+
             # Add LIMIT if not already present
             if 'LIMIT' not in query_upper:
                 sql_query = f"{sql_query.rstrip(';')} LIMIT {limit}"
-            
+
             conn = self._get_connection()
             result = conn.execute(sql_query)
-            
+
             # Get results as DataFrame for easier manipulation
             df = result.fetchdf()
-            
+
             execution_time = (time.time() - start_time) * 1000  # Convert to ms
-            
+
             response = {
                 'query': sql_query,
                 'columns': list(df.columns),
@@ -343,9 +442,9 @@ class DuckDbQueryTool(DuckDbBaseTool):
                 'execution_time_ms': round(execution_time, 2),
                 'limited': len(df) >= limit
             }
-            
+
             return response
-            
+
         except Exception as e:
             self.logger.error(f"Failed to execute query: {e}")
             raise
@@ -355,7 +454,7 @@ class DuckDbRefreshViewsTool(DuckDbBaseTool):
     """
     Tool to refresh materialized views
     """
-    
+
     def __init__(self, config: Dict = None):
         default_config = {
             'name': 'duckdb_refresh_views',
@@ -366,22 +465,27 @@ class DuckDbRefreshViewsTool(DuckDbBaseTool):
         if config:
             default_config.update(config)
         super().__init__(default_config)
-    
+
     def get_input_schema(self) -> Dict:
         return self.config.get('inputSchema', {})
-    
+
     def get_output_schema(self) -> Dict:
         return self.config.get('outputSchema', {})
-    
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
         """Execute refresh views operation"""
         view_name = arguments.get('view_name')
         reload_external = arguments.get('reload_external_files', False)
-        
+
         try:
             conn = self._get_connection()
             refreshed_views = []
-            
+
+            # Reload external files if requested
+            if reload_external:
+                self.logger.info("Reloading external data files...")
+                self._initialize_views_from_files()
+
             # Get list of views to refresh
             if view_name:
                 views = [view_name]
@@ -392,38 +496,38 @@ class DuckDbRefreshViewsTool(DuckDbBaseTool):
                     WHERE table_type = 'VIEW'
                 """
                 views = [row[0] for row in conn.execute(views_query).fetchall()]
-            
+
             # Refresh each view
             for view in views:
                 try:
                     start_time = time.time()
-                    
+
                     # For standard views, just query to validate
                     count_result = conn.execute(f"SELECT COUNT(*) FROM {view}").fetchone()
                     row_count = count_result[0] if count_result else 0
-                    
+
                     refresh_time = (time.time() - start_time) * 1000
-                    
+
                     refreshed_views.append({
                         'view_name': view,
                         'status': 'success',
                         'row_count': row_count,
                         'refresh_time_ms': round(refresh_time, 2)
                     })
-                    
+
                 except Exception as e:
                     refreshed_views.append({
                         'view_name': view,
                         'status': 'failed',
                         'error_message': str(e)
                     })
-            
+
             return {
                 'refreshed_views': refreshed_views,
                 'total_refreshed': len([v for v in refreshed_views if v['status'] == 'success']),
                 'external_files_reloaded': reload_external
             }
-            
+
         except Exception as e:
             self.logger.error(f"Failed to refresh views: {e}")
             raise
@@ -433,7 +537,7 @@ class DuckDbGetStatsTool(DuckDbBaseTool):
     """
     Tool to get statistical summary for table columns
     """
-    
+
     def __init__(self, config: Dict = None):
         default_config = {
             'name': 'duckdb_get_stats',
@@ -444,34 +548,34 @@ class DuckDbGetStatsTool(DuckDbBaseTool):
         if config:
             default_config.update(config)
         super().__init__(default_config)
-    
+
     def get_input_schema(self) -> Dict:
         return self.config.get('inputSchema', {})
-    
+
     def get_output_schema(self) -> Dict:
         return self.config.get('outputSchema', {})
-    
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
         """Execute get stats operation"""
         table_name = arguments['table_name']
         columns = arguments.get('columns', [])
         include_percentiles = arguments.get('include_percentiles', True)
-        
+
         try:
             conn = self._get_connection()
-            
+
             # Get all columns if not specified
             if not columns:
                 describe_result = conn.execute(f"DESCRIBE {table_name}").fetchall()
                 all_columns = [row[0] for row in describe_result]
             else:
                 all_columns = columns
-            
+
             # Get total row count
             total_rows = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
-            
+
             column_statistics = {}
-            
+
             for col in all_columns:
                 try:
                     # Build statistics query
@@ -482,24 +586,24 @@ class DuckDbGetStatsTool(DuckDbBaseTool):
                         f"MAX({col}) as max",
                         f"COUNT(DISTINCT {col}) as unique_count"
                     ]
-                    
+
                     # Try numeric statistics
                     try:
                         numeric_stats = [
                             f"AVG({col}) as mean",
                             f"STDDEV({col}) as std_dev"
                         ]
-                        
+
                         if include_percentiles:
                             numeric_stats.extend([
                                 f"PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY {col}) as percentile_25",
                                 f"PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY {col}) as median",
                                 f"PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY {col}) as percentile_75"
                             ])
-                        
+
                         stats_query = f"SELECT {', '.join(stats_parts + numeric_stats)} FROM {table_name}"
                         stats = conn.execute(stats_query).fetchone()
-                        
+
                         column_statistics[col] = {
                             'count': stats[0],
                             'null_count': stats[1],
@@ -510,19 +614,19 @@ class DuckDbGetStatsTool(DuckDbBaseTool):
                             'std_dev': float(stats[6]) if stats[6] is not None else None,
                             'data_type': 'numeric'
                         }
-                        
+
                         if include_percentiles:
                             column_statistics[col].update({
                                 'percentile_25': float(stats[7]) if stats[7] is not None else None,
                                 'median': float(stats[8]) if stats[8] is not None else None,
                                 'percentile_75': float(stats[9]) if stats[9] is not None else None
                             })
-                        
+
                     except:
                         # Non-numeric column
                         stats_query = f"SELECT {', '.join(stats_parts)} FROM {table_name}"
                         stats = conn.execute(stats_query).fetchone()
-                        
+
                         column_statistics[col] = {
                             'count': stats[0],
                             'null_count': stats[1],
@@ -531,17 +635,17 @@ class DuckDbGetStatsTool(DuckDbBaseTool):
                             'unique_count': stats[4],
                             'data_type': 'non-numeric'
                         }
-                    
+
                 except Exception as e:
                     self.logger.warning(f"Failed to get stats for column {col}: {e}")
                     continue
-            
+
             return {
                 'table_name': table_name,
                 'total_rows': total_rows,
                 'column_statistics': column_statistics
             }
-            
+
         except Exception as e:
             self.logger.error(f"Failed to get statistics: {e}")
             raise
@@ -551,7 +655,7 @@ class DuckDbAggregateTool(DuckDbBaseTool):
     """
     Tool to perform aggregation operations
     """
-    
+
     def __init__(self, config: Dict = None):
         default_config = {
             'name': 'duckdb_aggregate',
@@ -562,13 +666,13 @@ class DuckDbAggregateTool(DuckDbBaseTool):
         if config:
             default_config.update(config)
         super().__init__(default_config)
-    
+
     def get_input_schema(self) -> Dict:
         return self.config.get('inputSchema', {})
-    
+
     def get_output_schema(self) -> Dict:
         return self.config.get('outputSchema', {})
-    
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
         """Execute aggregation operation"""
         table_name = arguments['table_name']
@@ -577,10 +681,10 @@ class DuckDbAggregateTool(DuckDbBaseTool):
         having = arguments.get('having')
         order_by = arguments.get('order_by', [])
         limit = arguments.get('limit', 100)
-        
+
         try:
             start_time = time.time()
-            
+
             # Build aggregation expressions
             agg_expressions = []
             for col, func in aggregations.items():
@@ -589,22 +693,22 @@ class DuckDbAggregateTool(DuckDbBaseTool):
                     agg_expressions.append(f"{func_upper}({col}) as {func}_{col}")
                 elif func_upper == 'COUNT_DISTINCT':
                     agg_expressions.append(f"COUNT(DISTINCT {col}) as count_distinct_{col}")
-            
+
             # Build SELECT clause
             if group_by:
                 select_clause = f"SELECT {', '.join(group_by)}, {', '.join(agg_expressions)}"
             else:
                 select_clause = f"SELECT {', '.join(agg_expressions)}"
-            
+
             # Build query
             query = f"{select_clause} FROM {table_name}"
-            
+
             if group_by:
                 query += f" GROUP BY {', '.join(group_by)}"
-            
+
             if having:
                 query += f" HAVING {having}"
-            
+
             if order_by:
                 order_clauses = []
                 for order in order_by:
@@ -612,15 +716,15 @@ class DuckDbAggregateTool(DuckDbBaseTool):
                     direction = order.get('direction', 'asc').upper()
                     order_clauses.append(f"{col} {direction}")
                 query += f" ORDER BY {', '.join(order_clauses)}"
-            
+
             query += f" LIMIT {limit}"
-            
+
             conn = self._get_connection()
             result = conn.execute(query)
             df = result.fetchdf()
-            
+
             execution_time = (time.time() - start_time) * 1000
-            
+
             return {
                 'table_name': table_name,
                 'aggregations_applied': aggregations,
@@ -629,7 +733,7 @@ class DuckDbAggregateTool(DuckDbBaseTool):
                 'row_count': len(df),
                 'execution_time_ms': round(execution_time, 2)
             }
-            
+
         except Exception as e:
             self.logger.error(f"Failed to perform aggregation: {e}")
             raise
@@ -639,7 +743,7 @@ class DuckDbListFilesTool(DuckDbBaseTool):
     """
     Tool to list available data files
     """
-    
+
     def __init__(self, config: Dict = None):
         default_config = {
             'name': 'duckdb_list_files',
@@ -650,21 +754,21 @@ class DuckDbListFilesTool(DuckDbBaseTool):
         if config:
             default_config.update(config)
         super().__init__(default_config)
-    
+
     def get_input_schema(self) -> Dict:
         return self.config.get('inputSchema', {})
-    
+
     def get_output_schema(self) -> Dict:
         return self.config.get('outputSchema', {})
-    
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
         """Execute list files operation"""
         file_type = arguments.get('file_type', 'all')
         include_metadata = arguments.get('include_metadata', True)
-        
+
         try:
             files = self._scan_data_files(file_type)
-            
+
             # Calculate summary
             summary = {
                 'csv_count': len([f for f in files if f['file_type'] == 'csv']),
@@ -673,13 +777,13 @@ class DuckDbListFilesTool(DuckDbBaseTool):
                 'tsv_count': len([f for f in files if f['file_type'] == 'tsv']),
                 'total_size_bytes': sum(f.get('file_size_bytes', 0) for f in files)
             }
-            
+
             # Check which files are loaded
             try:
                 conn = self._get_connection()
                 tables_result = conn.execute("SELECT table_name FROM information_schema.tables").fetchall()
                 loaded_tables = [row[0] for row in tables_result]
-                
+
                 for file_info in files:
                     table_name = os.path.splitext(file_info['filename'])[0]
                     file_info['is_loaded'] = table_name in loaded_tables
@@ -687,14 +791,14 @@ class DuckDbListFilesTool(DuckDbBaseTool):
                         file_info['table_name'] = table_name
             except:
                 pass
-            
+
             return {
                 'data_directory': self.data_directory,
                 'files': files,
                 'total_files': len(files),
                 'summary': summary
             }
-            
+
         except Exception as e:
             self.logger.error(f"Failed to list files: {e}")
             raise
