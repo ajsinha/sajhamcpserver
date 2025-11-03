@@ -372,6 +372,53 @@ class PropertiesConfigurator:
         except (ValueError, TypeError):
             return default_value
 
+    def get_bool(self, key: str, default_value: Optional[bool] = None) -> Optional[bool]:
+        """
+        Get a property value as boolean
+
+        Recognizes the following as True (case-insensitive):
+        - true, yes, on, 1, y, t
+
+        Recognizes the following as False (case-insensitive):
+        - false, no, off, 0, n, f
+
+        Args:
+            key: Property key
+            default_value: Default value if key not found or cannot be converted
+
+        Returns:
+            Property value as bool or default_value
+        """
+        value = self.get(key)
+        if value is None:
+            return default_value
+
+        # Handle boolean values
+        if isinstance(value, bool):
+            return value
+
+        # Handle string values (case-insensitive)
+        if isinstance(value, str):
+            value_lower = value.lower().strip()
+
+            # True values
+            if value_lower in ('true', 'yes', 'on', '1', 'y', 't'):
+                return True
+
+            # False values
+            if value_lower in ('false', 'no', 'off', '0', 'n', 'f'):
+                return False
+
+        # If value is numeric, use Python's bool conversion
+        try:
+            num_value = float(value)
+            return bool(num_value)
+        except (ValueError, TypeError):
+            pass
+
+        # Cannot convert, return default
+        return default_value
+
     def get_list(self, key: str, delim: str = ',') -> Optional[List[str]]:
         """
         Get a property value as list by splitting with delimiter

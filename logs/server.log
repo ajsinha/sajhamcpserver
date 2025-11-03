@@ -14624,3 +14624,10 @@ AssertionError: write() before start_response
 2025-11-03 16:25:12,619 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:12] "GET /dashboard HTTP/1.1" 200 -
 2025-11-03 16:25:12,630 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:12] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
 2025-11-03 16:25:12,631 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:12] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-03 16:50:28,489 - DuckDbDescribeTableTool - INFO - Auto-refresh stopped
+2025-11-03 16:50:29,471 - DuckDbRefreshViewsTool - INFO - Auto-refresh stopped
+2025-11-03 16:50:30,448 - DuckDbListFilesTool - INFO - Auto-refresh stopped
+2025-11-03 16:50:31,422 - DuckDbQueryTool - INFO - Auto-refresh stopped
+2025-11-03 16:50:32,396 - DuckDbAggregateTool - INFO - Auto-refresh stopped
+2025-11-03 16:50:33,338 - DuckDbGetStatsTool - INFO - Auto-refresh stopped
+2025-11-03 16:50:34,317 - DuckDbListTablesTool - INFO - Auto-refresh stopped
