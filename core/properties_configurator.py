@@ -1,357 +1,291 @@
 """
-Properties configurator for managing application properties with auto-reload
+Properties Configurator for Abhikarta System
+Manages application configuration from properties files with precedence support
+
+© 2025-2030 All rights reserved Ashutosh Sinha
+email: ajsinha@gmail.com
+https://www.github.com/ajsinha/abhikarta
 """
+
 import os
-import re
-import threading
-import time
-from typing import Optional, List, Union, Dict, Any
-from pathlib import Path
+import sys
+from typing import Any, Dict, Optional, List
 
 
 class PropertiesConfigurator:
     """
-    Singleton thread-safe class for managing properties from configuration files.
-    Supports property value resolution with ${...} patterns and auto-reload.
-    """
-    _instance = None
-    _lock = threading.Lock()
+    Singleton class to manage application properties with precedence rules.
 
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            with cls._lock:
-                if not cls._instance:
-                    cls._instance = super().__new__(cls)
+    Precedence Order (highest to lowest):
+    1. Command-line arguments (--key=value)
+    2. Environment variables
+    3. Properties files (right to left when multiple files provided)
+
+    Example:
+        If files are provided as "a.txt,b.txt,c.txt", then:
+        c.txt overrides b.txt, which overrides a.txt
+    """
+
+    _instance = None
+    _properties: Dict[str, str] = {}
+    _cli_properties: Dict[str, str] = {}
+    _initialized: bool = False
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(PropertiesConfigurator, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, properties_files: List[str] = None, reload_interval: int = 300):
+    def __init__(self):
+        """Initialize and parse command-line arguments if not already done"""
+        if not self._initialized:
+            self._parse_cli_arguments()
+            self._initialized = True
+
+    def _parse_cli_arguments(self) -> None:
         """
-        Initialize the PropertiesConfigurator
+        Parse command-line arguments in the format --key=value
+
+        Examples:
+            --api.key=sk-123456
+            --app.name=MyApp
+        """
+        for arg in sys.argv[1:]:
+            if arg.startswith('--') and '=' in arg:
+                # Remove the leading '--'
+                arg = arg[2:]
+                key, value = arg.split('=', 1)
+                self._cli_properties[key.strip()] = value.strip()
+
+    def load_properties(self, filepath: str) -> None:
+        """
+        Load properties from one or more files.
 
         Args:
-            properties_files: List of property file paths
-            reload_interval: Interval in seconds for auto-reload (default: 300 seconds = 5 minutes)
+            filepath: Single file path or comma-separated list of file paths
+                     Files are processed left to right, with rightmost having highest precedence
+
+        Raises:
+            FileNotFoundError: If any specified file does not exist
+
+        Examples:
+            load_properties("llmconfig.properties")
+            load_properties("base.properties,override.properties")
         """
-        if hasattr(self, '_initialized'):
-            return
+        # Split by comma and process each file
+        filepaths = [fp.strip() for fp in filepath.split(',')]
 
-        self._initialized = True
-        self._properties_files = properties_files or []
-        self._reload_interval = reload_interval
-        self._properties: Dict[str, str] = {}
-        self._properties_lock = threading.RLock()
-        self._stop_reload = threading.Event()
-        self._file_timestamps: Dict[str, float] = {}
+        # Validate all files exist before loading any
+        for fp in filepaths:
+            if not os.path.exists(fp):
+                raise FileNotFoundError(f"Properties file not found: {fp}")
 
-        # Initial load
-        self._load_properties()
+        # Load files from left to right (rightmost will override leftmost)
+        for fp in filepaths:
+            self._load_single_file(fp)
 
-        # Start auto-reload thread
-        self._reload_thread = threading.Thread(target=self._auto_reload_worker, daemon=True)
-        self._reload_thread.start()
+    def _load_single_file(self, filepath: str) -> None:
+        """
+        Load properties from a single file.
 
-    def _load_properties(self):
-        """Load properties from all configured files"""
-        with self._properties_lock:
-            new_properties = {}
+        Args:
+            filepath: Path to the properties file
+        """
+        with open(filepath, 'r', encoding='utf-8') as f:
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
 
-            for file_path in self._properties_files:
-                if not os.path.exists(file_path):
+                # Skip empty lines and comments
+                if not line or line.startswith('#'):
                     continue
 
-                # Track file modification time
-                self._file_timestamps[file_path] = os.path.getmtime(file_path)
+                # Parse key=value pairs
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
 
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        for line_num, line in enumerate(f, 1):
-                            line = line.strip()
+                    # Remove quotes if present
+                    if value.startswith('"') and value.endswith('"'):
+                        value = value[1:-1]
+                    elif value.startswith("'") and value.endswith("'"):
+                        value = value[1:-1]
 
-                            # Skip empty lines and comments
-                            if not line or line.startswith('#') or line.startswith('//'):
-                                continue
+                    self._properties[key] = value
 
-                            # Split by first '=' only
-                            if '=' not in line:
-                                continue
-
-                            key, value = line.split('=', 1)
-                            key = key.strip()
-                            value = value.strip()
-
-                            if key:
-                                new_properties[key] = value
-
-                except Exception as e:
-                    print(f"Error loading properties from {file_path}: {e}")
-
-            # Resolve all property references
-            self._properties = self._resolve_all_properties(new_properties)
-
-    def _resolve_all_properties(self, properties: Dict[str, str]) -> Dict[str, str]:
-        """Resolve all ${...} references in properties"""
-        resolved = {}
-
-        for key, value in properties.items():
-            resolved[key] = self._resolve_value(value, properties, set())
-
-        return resolved
-
-    def _resolve_value(self, value: str, properties: Dict[str, str], visited: set) -> str:
+    def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
         """
-        Recursively resolve ${...} references in a value, including nested references
+        Get a property value following precedence rules.
+
+        Precedence: CLI args > Environment vars > Properties files
 
         Args:
-            value: The value to resolve
-            properties: Dictionary of all properties
-            visited: Set of keys already visited (to prevent circular references)
+            key: Property key to retrieve
+            default: Default value if key not found
 
         Returns:
-            Resolved value
+            Property value or default if not found
         """
-        if not value or '${' not in value:
-            return value
+        # 1. Check command-line arguments (highest precedence)
+        if key in self._cli_properties:
+            return self._cli_properties[key]
 
-        max_iterations = 100  # Prevent infinite loops
-        iteration = 0
+        # 2. Check environment variables
+        env_value = os.environ.get(key)
+        if env_value is not None:
+            return env_value
 
-        while '${' in value and iteration < max_iterations:
-            iteration += 1
+        # 3. Check properties files (lowest precedence)
+        return self._properties.get(key, default)
 
-            # Find innermost ${...} pattern
-            pattern = r'\$\{([^{}]+)\}'
-            matches = list(re.finditer(pattern, value))
-
-            if not matches:
-                # Handle nested patterns like ${x${y}}
-                nested_pattern = r'\$\{([^}]*\$\{[^}]*\}[^}]*)\}'
-                nested_matches = list(re.finditer(nested_pattern, value))
-
-                if nested_matches:
-                    # Process innermost references first
-                    for match in reversed(nested_matches):
-                        inner_ref = match.group(1)
-                        resolved_inner = self._resolve_value(inner_ref, properties, visited)
-                        value = value[:match.start()] + '${' + resolved_inner + '}' + value[match.end():]
-                    continue
-                else:
-                    break
-
-            # Replace all simple ${key} references
-            for match in reversed(matches):
-                ref_key = match.group(1)
-
-                # Check for circular reference
-                if ref_key in visited:
-                    replacement = match.group(0)  # Keep original if circular
-                else:
-                    # First check environment variables
-                    replacement = os.environ.get(ref_key)
-
-                    # If not in env, check properties
-                    if replacement is None:
-                        replacement = properties.get(ref_key, match.group(0))
-
-                        # Recursively resolve the replacement
-                        if replacement != match.group(0):
-                            new_visited = visited.copy()
-                            new_visited.add(ref_key)
-                            replacement = self._resolve_value(replacement, properties, new_visited)
-
-                value = value[:match.start()] + replacement + value[match.end():]
-
-        return value
-
-    def _auto_reload_worker(self):
-        """Worker thread for auto-reloading properties"""
-        while not self._stop_reload.wait(self._reload_interval):
-            try:
-                # Check if any files have been modified
-                needs_reload = False
-
-                for file_path in self._properties_files:
-                    if os.path.exists(file_path):
-                        current_mtime = os.path.getmtime(file_path)
-                        if file_path not in self._file_timestamps or \
-                                self._file_timestamps[file_path] < current_mtime:
-                            needs_reload = True
-                            break
-
-                if needs_reload:
-                    self._load_properties()
-
-            except Exception as e:
-                print(f"Error in auto-reload: {e}")
-
-    def get(self, key: str, default_value: Optional[str] = None) -> Optional[str]:
+    def get_int(self, key: str, default: int = 0) -> int:
         """
-        Get a property value by key
+        Get a property as integer.
 
         Args:
-            key: Property key
-            default_value: Default value if key not found
+            key: Property key to retrieve
+            default: Default value if key not found or conversion fails
 
         Returns:
-            Property value or default_value
-        """
-        with self._properties_lock:
-            return self._properties.get(key, default_value)
-
-    def get_int(self, key: str, default_value: Optional[int] = None) -> Optional[int]:
-        """
-        Get a property value as integer
-
-        Args:
-            key: Property key
-            default_value: Default value if key not found
-
-        Returns:
-            Property value as int or default_value
+            Property value as integer or default
         """
         value = self.get(key)
         if value is None:
-            return default_value
-
+            return default
         try:
             return int(value)
-        except (ValueError, TypeError):
-            return default_value
+        except ValueError:
+            return default
 
-    def get_float(self, key: str, default_value: Optional[float] = None) -> Optional[float]:
+    def get_bool(self, key: str, default: bool = False) -> bool:
         """
-        Get a property value as float
+        Get a property as boolean.
+
+        Accepts: true, yes, 1, on (case-insensitive) as True
 
         Args:
-            key: Property key
-            default_value: Default value if key not found
+            key: Property key to retrieve
+            default: Default value if key not found
 
         Returns:
-            Property value as float or default_value
+            Property value as boolean or default
         """
         value = self.get(key)
         if value is None:
-            return default_value
+            return default
+        return value.lower() in ('true', 'yes', '1', 'on')
 
+    def get_float(self, key: str, default: float = 0.0) -> float:
+        """
+        Get a property as float.
+
+        Args:
+            key: Property key to retrieve
+            default: Default value if key not found or conversion fails
+
+        Returns:
+            Property value as float or default
+        """
+        value = self.get(key)
+        if value is None:
+            return default
         try:
             return float(value)
-        except (ValueError, TypeError):
-            return default_value
+        except ValueError:
+            return default
 
-    def get_list(self, key: str, delim: str = ',') -> Optional[List[str]]:
+    def get_list(self, key: str, separator: str = ',', default: Optional[List[str]] = None) -> List[str]:
         """
-        Get a property value as list by splitting with delimiter
+        Get a property as list of strings.
 
         Args:
-            key: Property key
-            delim: Delimiter for splitting (default: ',')
+            key: Property key to retrieve
+            separator: Separator character (default: comma)
+            default: Default value if key not found
 
         Returns:
-            List of strings or None
+            Property value as list of strings or default
         """
         value = self.get(key)
         if value is None:
-            return None
+            return default or []
+        return [item.strip() for item in value.split(separator) if item.strip()]
 
-        return [item.strip() for item in value.split(delim) if item.strip()]
-
-    def get_int_list(self, key: str, delim: str = ',') -> Optional[List[int]]:
+    def set(self, key: str, value: str) -> None:
         """
-        Get a property value as list of integers
+        Set a property value in the properties dictionary.
+
+        Note: This does not override CLI or environment values
 
         Args:
             key: Property key
-            delim: Delimiter for splitting (default: ',')
+            value: Property value
+        """
+        self._properties[key] = value
+
+    def get_all(self) -> Dict[str, str]:
+        """
+        Get all properties with precedence applied.
 
         Returns:
-            List of integers or None
+            Dictionary of all properties with resolved precedence
         """
-        str_list = self.get_list(key, delim)
-        if str_list is None:
-            return None
+        # Start with file properties
+        result = self._properties.copy()
 
-        result = []
-        for item in str_list:
-            try:
-                result.append(int(item))
-            except (ValueError, TypeError):
-                continue  # Skip invalid integers
+        # Override with environment variables
+        for key in result.keys():
+            env_value = os.environ.get(key)
+            if env_value is not None:
+                result[key] = env_value
 
-        return result if result else None
+        # Override with CLI arguments
+        result.update(self._cli_properties)
 
-    def get_float_list(self, key: str, delim: str = ',') -> Optional[List[float]]:
+        return result
+
+    def get_system_name(self) -> str:
         """
-        Get a property value as list of floats
+        Get the system/application name.
+
+        Returns:
+            Application name from llmconfig or 'Abhikarta' as default
+        """
+        return self.get('app.name', 'Abhikarta')
+
+    def has_property(self, key: str) -> bool:
+        """
+        Check if a property exists.
+
+        Args:
+            key: Property key to check
+
+        Returns:
+            True if property exists, False otherwise
+        """
+        return self.get(key) is not None
+
+    def clear(self) -> None:
+        """
+        Clear all properties (useful for testing).
+        Does not clear CLI arguments.
+        """
+        self._properties.clear()
+
+    def get_source(self, key: str) -> Optional[str]:
+        """
+        Get the source of a property value for debugging.
 
         Args:
             key: Property key
-            delim: Delimiter for splitting (default: ',')
 
         Returns:
-            List of floats or None
+            Source string: 'cli', 'env', 'file', or None if not found
         """
-        str_list = self.get_list(key, delim)
-        if str_list is None:
-            return None
-
-        result = []
-        for item in str_list:
-            try:
-                result.append(float(item))
-            except (ValueError, TypeError):
-                continue  # Skip invalid floats
-
-        return result if result else None
-
-    def get_values_by_pattern(self, pattern: str) -> List[str]:
-        """
-        Get all property values whose keys match the given regex pattern
-
-        Args:
-            pattern: Regex pattern to match against property keys
-
-        Returns:
-            List of property values for matching keys (empty list if no matches)
-        """
-        with self._properties_lock:
-            try:
-                regex = re.compile(pattern)
-                matching_values = []
-                
-                for key, value in self._properties.items():
-                    if regex.match(key):
-                        matching_values.append(value)
-                
-                return matching_values
-            except re.error as e:
-                print(f"Invalid regex pattern '{pattern}': {e}")
-                return []
-
-    def get_properties_by_pattern(self, pattern: str) -> Dict[str, str]:
-        """
-        Get all properties (key-value pairs) whose keys match the given regex pattern
-
-        Args:
-            pattern: Regex pattern to match against property keys
-
-        Returns:
-            Dictionary of matching properties (empty dict if no matches)
-        """
-        with self._properties_lock:
-            try:
-                regex = re.compile(pattern)
-                matching_properties = {}
-                
-                for key, value in self._properties.items():
-                    if regex.match(key):
-                        matching_properties[key] = value
-                
-                return matching_properties
-            except re.error as e:
-                print(f"Invalid regex pattern '{pattern}': {e}")
-                return {}
-
-    def stop_reload(self):
-        """Stop the auto-reload thread"""
-        self._stop_reload.set()
-        if hasattr(self, '_reload_thread'):
-            self._reload_thread.join(timeout=5)
+        if key in self._cli_properties:
+            return 'cli'
+        if os.environ.get(key) is not None:
+            return 'env'
+        if key in self._properties:
+            return 'file'
+        return None
