@@ -14225,3 +14225,402 @@ AssertionError: write() before start_response
 2025-11-03 14:37:52,604 - DuckDbAggregateTool - INFO - Auto-refresh stopped
 2025-11-03 14:37:53,603 - DuckDbGetStatsTool - INFO - Auto-refresh stopped
 2025-11-03 14:37:54,590 - DuckDbListTablesTool - INFO - Auto-refresh stopped
+2025-11-03 16:25:00,967 - __main__ - INFO - Starting SAJHA MCP Server on 0.0.0.0:5000
+2025-11-03 16:25:00,983 - core.auth_manager - INFO - Loaded 1 users from configuration
+2025-11-03 16:25:00,983 - tools.tools_registry - INFO - Loading tools from config/tools
+2025-11-03 16:25:00,984 - tools.tools_registry - INFO - Tool registered: ecb_get_exchange_rate
+2025-11-03 16:25:00,984 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_exchange_rate
+2025-11-03 16:25:00,984 - tools.tools_registry - INFO - Tool registered: un_get_sdgs
+2025-11-03 16:25:00,984 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdgs
+2025-11-03 16:25:01,053 - DuckDbListTablesTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-03 16:25:01,068 - DuckDbListTablesTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-03 16:25:01,074 - DuckDbListTablesTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-03 16:25:01,079 - DuckDbListTablesTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-03 16:25:01,086 - DuckDbListTablesTool - INFO - Initialization complete: 3 views available
+2025-11-03 16:25:01,086 - DuckDbListTablesTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-03 16:25:01,086 - tools.tools_registry - INFO - Tool registered: duckdb_list_tables
+2025-11-03 16:25:01,086 - tools.tools_registry - INFO - Loaded custom tool: duckdb_list_tables
+2025-11-03 16:25:01,087 - tools.tools_registry - INFO - Tool registered: check_robots_txt
+2025-11-03 16:25:01,087 - tools.tools_registry - INFO - Loaded custom tool: check_robots_txt
+2025-11-03 16:25:01,087 - tools.tools_registry - INFO - Tool registered: boj_get_jgb_yield
+2025-11-03 16:25:01,087 - tools.tools_registry - INFO - Loaded custom tool: boj_get_jgb_yield
+2025-11-03 16:25:01,088 - tools.tools_registry - INFO - Tool registered: imf_compare_countries
+2025-11-03 16:25:01,088 - tools.tools_registry - INFO - Loaded custom tool: imf_compare_countries
+2025-11-03 16:25:01,088 - tools.tools_registry - INFO - Tool registered: ecb_get_bond_yield
+2025-11-03 16:25:01,088 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_bond_yield
+2025-11-03 16:25:01,088 - tools.tools_registry - INFO - Tool registered: imf_get_bop_data
+2025-11-03 16:25:01,088 - tools.tools_registry - INFO - Loaded custom tool: imf_get_bop_data
+2025-11-03 16:25:01,088 - tools.tools_registry - INFO - Tool registered: extract_content
+2025-11-03 16:25:01,088 - tools.tools_registry - INFO - Loaded custom tool: extract_content
+2025-11-03 16:25:01,088 - tools.tools_registry - INFO - Tool registered: boj_get_exchange_rate
+2025-11-03 16:25:01,088 - tools.tools_registry - INFO - Loaded custom tool: boj_get_exchange_rate
+2025-11-03 16:25:01,088 - tools.tools_registry - INFO - Tool registered: ecb_search_series
+2025-11-03 16:25:01,088 - tools.tools_registry - INFO - Loaded custom tool: ecb_search_series
+2025-11-03 16:25:01,089 - tools.tools_registry - INFO - Tool registered: edgar_financial_ratios
+2025-11-03 16:25:01,089 - tools.tools_registry - INFO - Loaded custom tool: edgar_financial_ratios
+2025-11-03 16:25:01,089 - tools.tools_registry - INFO - Tool registered: un_get_trade_data
+2025-11-03 16:25:01,089 - tools.tools_registry - INFO - Loaded custom tool: un_get_trade_data
+2025-11-03 16:25:01,089 - tools.tools_registry - INFO - Tool registered: un_get_sdg_targets
+2025-11-03 16:25:01,089 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_targets
+2025-11-03 16:25:01,090 - tools.tools_registry - INFO - Tool registered: fbi_get_participation_rate
+2025-11-03 16:25:01,090 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_participation_rate
+2025-11-03 16:25:01,090 - tools.tools_registry - INFO - Tool registered: fbi_get_agency_statistics
+2025-11-03 16:25:01,090 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_agency_statistics
+2025-11-03 16:25:01,090 - tools.tools_registry - INFO - Tool registered: edgar_proxy_statements
+2025-11-03 16:25:01,090 - tools.tools_registry - INFO - Loaded custom tool: edgar_proxy_statements
+2025-11-03 16:25:01,097 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-03 16:25:01,097 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-03 16:25:01,097 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-03 16:25:01,097 - SqlSelectCountRowsTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-03 16:25:01,097 - SqlSelectCountRowsTool - INFO - DuckDB connection initialized for sqlselect_count_rows
+2025-11-03 16:25:01,097 - tools.tools_registry - INFO - Tool registered: sqlselect_count_rows
+2025-11-03 16:25:01,097 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_count_rows
+2025-11-03 16:25:01,098 - tools.tools_registry - INFO - Tool registered: fed_get_latest
+2025-11-03 16:25:01,098 - tools.tools_registry - INFO - Loaded custom tool: fed_get_latest
+2025-11-03 16:25:01,099 - tools.tools_registry - INFO - Tool registered: ir_get_all_resources
+2025-11-03 16:25:01,099 - tools.tools_registry - INFO - Loaded custom tool: ir_get_all_resources
+2025-11-03 16:25:01,100 - tools.tools_registry - INFO - Tool registered: extract_links
+2025-11-03 16:25:01,100 - tools.tools_registry - INFO - Loaded custom tool: extract_links
+2025-11-03 16:25:01,100 - tools.tools_registry - INFO - Tool registered: edgar_registration_statements
+2025-11-03 16:25:01,100 - tools.tools_registry - INFO - Loaded custom tool: edgar_registration_statements
+2025-11-03 16:25:01,100 - tools.tools_registry - INFO - Tool registered: bdf_get_oat_yield
+2025-11-03 16:25:01,100 - tools.tools_registry - INFO - Loaded custom tool: bdf_get_oat_yield
+2025-11-03 16:25:01,101 - tools.tools_registry - INFO - Tool registered: msdoc_read_excel_sheet
+2025-11-03 16:25:01,101 - tools.tools_registry - INFO - Loaded custom tool: msdoc_read_excel_sheet
+2025-11-03 16:25:01,101 - tools.tools_registry - INFO - Tool registered: fbi_get_offense_data
+2025-11-03 16:25:01,101 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_offense_data
+2025-11-03 16:25:01,101 - tools.tools_registry - INFO - Tool registered: fbi_compare_states
+2025-11-03 16:25:01,101 - tools.tools_registry - INFO - Loaded custom tool: fbi_compare_states
+2025-11-03 16:25:01,101 - tools.tools_registry - INFO - Tool registered: tavily_news_search
+2025-11-03 16:25:01,101 - tools.tools_registry - INFO - Loaded custom tool: tavily_news_search
+2025-11-03 16:25:01,102 - tools.tools_registry - INFO - Tool registered: rbi_get_policy_rate
+2025-11-03 16:25:01,102 - tools.tools_registry - INFO - Loaded custom tool: rbi_get_policy_rate
+2025-11-03 16:25:01,102 - DuckDbGetStatsTool - INFO - Found 3 data files in data/duckdb
+2025-11-03 16:25:01,110 - DuckDbGetStatsTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-03 16:25:01,119 - DuckDbGetStatsTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-03 16:25:01,124 - DuckDbGetStatsTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-03 16:25:01,126 - DuckDbGetStatsTool - INFO - Initialization complete: 3 views available
+2025-11-03 16:25:01,126 - DuckDbGetStatsTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-03 16:25:01,126 - tools.tools_registry - INFO - Tool registered: duckdb_get_stats
+2025-11-03 16:25:01,126 - tools.tools_registry - INFO - Loaded custom tool: duckdb_get_stats
+2025-11-03 16:25:01,126 - tools.tools_registry - INFO - Tool registered: msdoc_extract_text
+2025-11-03 16:25:01,126 - tools.tools_registry - INFO - Loaded custom tool: msdoc_extract_text
+2025-11-03 16:25:01,127 - tools.tools_registry - INFO - Tool registered: pboc_get_cgb_yield
+2025-11-03 16:25:01,127 - tools.tools_registry - INFO - Loaded custom tool: pboc_get_cgb_yield
+2025-11-03 16:25:01,127 - tools.tools_registry - INFO - Tool registered: extract_metadata
+2025-11-03 16:25:01,127 - tools.tools_registry - INFO - Loaded custom tool: extract_metadata
+2025-11-03 16:25:01,127 - tools.tools_registry - INFO - Tool registered: boc_get_interest_rate
+2025-11-03 16:25:01,127 - tools.tools_registry - INFO - Loaded custom tool: boc_get_interest_rate
+2025-11-03 16:25:01,128 - tools.tools_registry - INFO - Tool registered: imf_get_weo_data
+2025-11-03 16:25:01,128 - tools.tools_registry - INFO - Loaded custom tool: imf_get_weo_data
+2025-11-03 16:25:01,128 - tools.tools_registry - INFO - Tool registered: msdoc_search_word
+2025-11-03 16:25:01,128 - tools.tools_registry - INFO - Loaded custom tool: msdoc_search_word
+2025-11-03 16:25:01,128 - tools.tools_registry - INFO - Tool registered: fbi_search_agencies
+2025-11-03 16:25:01,128 - tools.tools_registry - INFO - Loaded custom tool: fbi_search_agencies
+2025-11-03 16:25:01,128 - tools.tools_registry - INFO - Tool registered: edgar_xbrl_frames_multi_concept
+2025-11-03 16:25:01,128 - tools.tools_registry - INFO - Loaded custom tool: edgar_xbrl_frames_multi_concept
+2025-11-03 16:25:01,128 - tools.tools_registry - INFO - Tool registered: ir_get_documents
+2025-11-03 16:25:01,128 - tools.tools_registry - INFO - Loaded custom tool: ir_get_documents
+2025-11-03 16:25:01,129 - tools.tools_registry - INFO - Tool registered: sec_get_insider_trading
+2025-11-03 16:25:01,129 - tools.tools_registry - INFO - Loaded custom tool: sec_get_insider_trading
+2025-11-03 16:25:01,129 - tools.tools_registry - INFO - Tool registered: fbi_get_national_statistics
+2025-11-03 16:25:01,129 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_national_statistics
+2025-11-03 16:25:01,136 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-03 16:25:01,137 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-03 16:25:01,137 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-03 16:25:01,137 - SqlSelectGetSchemaTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-03 16:25:01,137 - SqlSelectGetSchemaTool - INFO - DuckDB connection initialized for sqlselect_get_schema
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Tool registered: sqlselect_get_schema
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_get_schema
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Tool registered: edgar_amendments
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Loaded custom tool: edgar_amendments
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Tool registered: boj_get_money_stock
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Loaded custom tool: boj_get_money_stock
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Tool registered: msdoc_read_word
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Loaded custom tool: msdoc_read_word
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Tool registered: ecb_get_inflation
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_inflation
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Tool registered: bdf_get_exchange_rate
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Loaded custom tool: bdf_get_exchange_rate
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Tool registered: edgar_company_concept
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Loaded custom tool: edgar_company_concept
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Tool registered: tavily_research_search
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Loaded custom tool: tavily_research_search
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Tool registered: boc_get_latest
+2025-11-03 16:25:01,137 - tools.tools_registry - INFO - Loaded custom tool: boc_get_latest
+2025-11-03 16:25:01,138 - DuckDbAggregateTool - INFO - Found 3 data files in data/duckdb
+2025-11-03 16:25:01,144 - DuckDbAggregateTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-03 16:25:01,149 - DuckDbAggregateTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-03 16:25:01,155 - DuckDbAggregateTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-03 16:25:01,158 - DuckDbAggregateTool - INFO - Initialization complete: 3 views available
+2025-11-03 16:25:01,158 - DuckDbAggregateTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-03 16:25:01,158 - tools.tools_registry - INFO - Tool registered: duckdb_aggregate
+2025-11-03 16:25:01,159 - tools.tools_registry - INFO - Loaded custom tool: duckdb_aggregate
+2025-11-03 16:25:01,159 - tools.tools_registry - INFO - Tool registered: rbi_get_exchange_rate
+2025-11-03 16:25:01,159 - tools.tools_registry - INFO - Loaded custom tool: rbi_get_exchange_rate
+2025-11-03 16:25:01,159 - tools.tools_registry - INFO - Tool registered: edgar_ownership_reports
+2025-11-03 16:25:01,159 - tools.tools_registry - INFO - Loaded custom tool: edgar_ownership_reports
+2025-11-03 16:25:01,159 - tools.tools_registry - INFO - Tool registered: edgar_frame_data
+2025-11-03 16:25:01,159 - tools.tools_registry - INFO - Loaded custom tool: edgar_frame_data
+2025-11-03 16:25:01,159 - tools.tools_registry - INFO - Tool registered: boj_get_policy_rate
+2025-11-03 16:25:01,159 - tools.tools_registry - INFO - Loaded custom tool: boj_get_policy_rate
+2025-11-03 16:25:01,159 - tools.tools_registry - INFO - Tool registered: boc_get_bond_yield
+2025-11-03 16:25:01,159 - tools.tools_registry - INFO - Loaded custom tool: boc_get_bond_yield
+2025-11-03 16:25:01,160 - tools.tools_registry - INFO - Tool registered: wb_search_indicators
+2025-11-03 16:25:01,160 - tools.tools_registry - INFO - Loaded custom tool: wb_search_indicators
+2025-11-03 16:25:01,160 - tools.tools_registry - INFO - Tool registered: wiki_search
+2025-11-03 16:25:01,160 - tools.tools_registry - INFO - Loaded custom tool: wiki_search
+2025-11-03 16:25:01,160 - tools.tools_registry - INFO - Tool registered: wb_get_indicator_data
+2025-11-03 16:25:01,160 - tools.tools_registry - INFO - Loaded custom tool: wb_get_indicator_data
+2025-11-03 16:25:01,160 - tools.tools_registry - INFO - Tool registered: msdoc_list_files
+2025-11-03 16:25:01,160 - tools.tools_registry - INFO - Loaded custom tool: msdoc_list_files
+2025-11-03 16:25:01,160 - tools.tools_registry - INFO - Tool registered: wb_compare_countries
+2025-11-03 16:25:01,160 - tools.tools_registry - INFO - Loaded custom tool: wb_compare_countries
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Tool registered: boc_get_common_indicators
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Loaded custom tool: boc_get_common_indicators
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Tool registered: pboc_get_forex_reserves
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Loaded custom tool: pboc_get_forex_reserves
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Tool registered: tavily_web_search
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Loaded custom tool: tavily_web_search
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Tool registered: un_get_sdg_indicators
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_indicators
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Tool registered: un_get_country_trade
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Loaded custom tool: un_get_country_trade
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Tool registered: edgar_current_reports
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Loaded custom tool: edgar_current_reports
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Tool registered: imf_get_country_profile
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Loaded custom tool: imf_get_country_profile
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Tool registered: bdf_get_eurozone_indicator
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Loaded custom tool: bdf_get_eurozone_indicator
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Tool registered: edgar_company_search
+2025-11-03 16:25:01,161 - tools.tools_registry - INFO - Loaded custom tool: edgar_company_search
+2025-11-03 16:25:01,162 - tools.tools_registry - INFO - Tool registered: un_compare_trade
+2025-11-03 16:25:01,162 - tools.tools_registry - INFO - Loaded custom tool: un_compare_trade
+2025-11-03 16:25:01,162 - tools.tools_registry - INFO - Tool registered: fbi_get_state_statistics
+2025-11-03 16:25:01,162 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_state_statistics
+2025-11-03 16:25:01,162 - tools.tools_registry - INFO - Tool registered: wb_get_countries
+2025-11-03 16:25:01,162 - tools.tools_registry - INFO - Loaded custom tool: wb_get_countries
+2025-11-03 16:25:01,162 - DuckDbQueryTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-03 16:25:01,167 - DuckDbQueryTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-03 16:25:01,178 - DuckDbQueryTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-03 16:25:01,188 - DuckDbQueryTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-03 16:25:01,190 - DuckDbQueryTool - INFO - Initialization complete: 3 views available
+2025-11-03 16:25:01,191 - DuckDbQueryTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-03 16:25:01,191 - tools.tools_registry - INFO - Tool registered: duckdb_query
+2025-11-03 16:25:01,191 - tools.tools_registry - INFO - Loaded custom tool: duckdb_query
+2025-11-03 16:25:01,191 - tools.tools_registry - INFO - Tool registered: ecb_get_latest
+2025-11-03 16:25:01,191 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_latest
+2025-11-03 16:25:01,191 - tools.tools_registry - INFO - Tool registered: yahoo_search_symbols
+2025-11-03 16:25:01,191 - tools.tools_registry - INFO - Loaded custom tool: yahoo_search_symbols
+2025-11-03 16:25:01,191 - tools.tools_registry - INFO - Tool registered: ir_find_page
+2025-11-03 16:25:01,191 - tools.tools_registry - INFO - Loaded custom tool: ir_find_page
+2025-11-03 16:25:01,191 - tools.tools_registry - INFO - Tool registered: crawl_sitemap
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Loaded custom tool: crawl_sitemap
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Tool registered: boc_get_series
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Loaded custom tool: boc_get_series
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Tool registered: wb_get_indicators
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Loaded custom tool: wb_get_indicators
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Tool registered: ir_get_latest_earnings
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Loaded custom tool: ir_get_latest_earnings
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Tool registered: boj_get_price_index
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Loaded custom tool: boj_get_price_index
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Tool registered: imf_get_databases
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Loaded custom tool: imf_get_databases
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Tool registered: fed_get_common_indicators
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Loaded custom tool: fed_get_common_indicators
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Tool registered: edgar_foreign_issuers
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Loaded custom tool: edgar_foreign_issuers
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Tool registered: un_get_trade_balance
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Loaded custom tool: un_get_trade_balance
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Tool registered: msdoc_get_word_metadata
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Loaded custom tool: msdoc_get_word_metadata
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Tool registered: edgar_filings_by_form
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Loaded custom tool: edgar_filings_by_form
+2025-11-03 16:25:01,192 - tools.tools_registry - INFO - Tool registered: msdoc_get_excel_metadata
+2025-11-03 16:25:01,193 - tools.tools_registry - INFO - Loaded custom tool: msdoc_get_excel_metadata
+2025-11-03 16:25:01,193 - tools.tools_registry - INFO - Tool registered: msdoc_read_excel
+2025-11-03 16:25:01,193 - tools.tools_registry - INFO - Loaded custom tool: msdoc_read_excel
+2025-11-03 16:25:01,193 - tools.tools_registry - INFO - Tool registered: bdf_get_ecb_policy_rate
+2025-11-03 16:25:01,193 - tools.tools_registry - INFO - Loaded custom tool: bdf_get_ecb_policy_rate
+2025-11-03 16:25:01,193 - tools.tools_registry - INFO - Tool registered: boc_get_exchange_rate
+2025-11-03 16:25:01,193 - tools.tools_registry - INFO - Loaded custom tool: boc_get_exchange_rate
+2025-11-03 16:25:01,199 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-03 16:25:01,200 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-03 16:25:01,200 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-03 16:25:01,200 - SqlSelectExecuteQueryTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-03 16:25:01,200 - SqlSelectExecuteQueryTool - INFO - DuckDB connection initialized for sqlselect_execute_query
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Tool registered: sqlselect_execute_query
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_execute_query
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Tool registered: bdf_get_french_indicator
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Loaded custom tool: bdf_get_french_indicator
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Tool registered: msdoc_search_excel
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Loaded custom tool: msdoc_search_excel
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Tool registered: ir_list_supported_companies
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Loaded custom tool: ir_list_supported_companies
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Tool registered: pboc_get_money_supply
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Loaded custom tool: pboc_get_money_supply
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Tool registered: wb_get_lending_types
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Loaded custom tool: wb_get_lending_types
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Tool registered: msdoc_get_excel_sheets
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Loaded custom tool: msdoc_get_excel_sheets
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Tool registered: imf_get_dataflows
+2025-11-03 16:25:01,200 - tools.tools_registry - INFO - Loaded custom tool: imf_get_dataflows
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Tool registered: google_search
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Loaded custom tool: google_search
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Tool registered: ir_get_annual_reports
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Loaded custom tool: ir_get_annual_reports
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Tool registered: wb_get_topic_indicators
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Loaded custom tool: wb_get_topic_indicators
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Tool registered: ecb_get_interest_rate
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_interest_rate
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Tool registered: rbi_get_gsec_yield
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Loaded custom tool: rbi_get_gsec_yield
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Tool registered: sec_search_company
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Loaded custom tool: sec_search_company
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Tool registered: edgar_company_tickers_by_exchange
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Loaded custom tool: edgar_company_tickers_by_exchange
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Tool registered: pboc_get_lpr
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Loaded custom tool: pboc_get_lpr
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Tool registered: wb_get_country_data
+2025-11-03 16:25:01,201 - tools.tools_registry - INFO - Loaded custom tool: wb_get_country_data
+2025-11-03 16:25:01,202 - tools.tools_registry - INFO - Tool registered: sec_get_company_facts
+2025-11-03 16:25:01,202 - tools.tools_registry - INFO - Loaded custom tool: sec_get_company_facts
+2025-11-03 16:25:01,202 - tools.tools_registry - INFO - Tool registered: fbi_get_agency_details
+2025-11-03 16:25:01,202 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_agency_details
+2025-11-03 16:25:01,202 - tools.tools_registry - INFO - Tool registered: fed_search_series
+2025-11-03 16:25:01,202 - tools.tools_registry - INFO - Loaded custom tool: fed_search_series
+2025-11-03 16:25:01,209 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-03 16:25:01,209 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-03 16:25:01,209 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-03 16:25:01,209 - SqlSelectDescribeSourceTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-03 16:25:01,209 - SqlSelectDescribeSourceTool - INFO - DuckDB connection initialized for sqlselect_describe_source
+2025-11-03 16:25:01,209 - tools.tools_registry - INFO - Tool registered: sqlselect_describe_source
+2025-11-03 16:25:01,209 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_describe_source
+2025-11-03 16:25:01,209 - tools.tools_registry - INFO - Tool registered: edgar_company_submissions
+2025-11-03 16:25:01,209 - tools.tools_registry - INFO - Loaded custom tool: edgar_company_submissions
+2025-11-03 16:25:01,210 - DuckDbListFilesTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-03 16:25:01,219 - DuckDbListFilesTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-03 16:25:01,229 - DuckDbListFilesTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-03 16:25:01,234 - DuckDbListFilesTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-03 16:25:01,236 - DuckDbListFilesTool - INFO - Initialization complete: 3 views available
+2025-11-03 16:25:01,236 - DuckDbListFilesTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-03 16:25:01,236 - tools.tools_registry - INFO - Tool registered: duckdb_list_files
+2025-11-03 16:25:01,236 - tools.tools_registry - INFO - Loaded custom tool: duckdb_list_files
+2025-11-03 16:25:01,236 - tools.tools_registry - INFO - Tool registered: sec_get_company_info
+2025-11-03 16:25:01,236 - tools.tools_registry - INFO - Loaded custom tool: sec_get_company_info
+2025-11-03 16:25:01,236 - tools.tools_registry - INFO - Tool registered: edgar_companies_by_sic
+2025-11-03 16:25:01,236 - tools.tools_registry - INFO - Loaded custom tool: edgar_companies_by_sic
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Tool registered: boc_search_series
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Loaded custom tool: boc_search_series
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Tool registered: wiki_get_summary
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Loaded custom tool: wiki_get_summary
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Tool registered: imf_get_data
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Loaded custom tool: imf_get_data
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Tool registered: tavily_domain_search
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Loaded custom tool: tavily_domain_search
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Tool registered: un_get_sdg_data
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_data
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Tool registered: get_page_info
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Loaded custom tool: get_page_info
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Tool registered: edgar_insider_transactions
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Loaded custom tool: edgar_insider_transactions
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Tool registered: un_get_sdg_progress
+2025-11-03 16:25:01,237 - tools.tools_registry - INFO - Loaded custom tool: un_get_sdg_progress
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Tool registered: yahoo_get_history
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Loaded custom tool: yahoo_get_history
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Tool registered: rbi_get_forex_reserves
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Loaded custom tool: rbi_get_forex_reserves
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Tool registered: edgar_institutional_holdings
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Loaded custom tool: edgar_institutional_holdings
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Tool registered: ir_get_presentations
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Loaded custom tool: ir_get_presentations
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Tool registered: yahoo_get_quote
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Loaded custom tool: yahoo_get_quote
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Tool registered: fbi_get_crime_trend
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Loaded custom tool: fbi_get_crime_trend
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Tool registered: fed_get_series
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Loaded custom tool: fed_get_series
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Tool registered: imf_get_ifs_data
+2025-11-03 16:25:01,238 - tools.tools_registry - INFO - Loaded custom tool: imf_get_ifs_data
+2025-11-03 16:25:01,239 - tools.tools_registry - INFO - Tool registered: sec_get_mutual_fund_holdings
+2025-11-03 16:25:01,239 - tools.tools_registry - INFO - Loaded custom tool: sec_get_mutual_fund_holdings
+2025-11-03 16:25:01,239 - DuckDbRefreshViewsTool - INFO - Found 3 data files in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2025-11-03 16:25:01,244 - DuckDbRefreshViewsTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-03 16:25:01,250 - DuckDbRefreshViewsTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-03 16:25:01,254 - DuckDbRefreshViewsTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-03 16:25:01,256 - DuckDbRefreshViewsTool - INFO - Initialization complete: 3 views available
+2025-11-03 16:25:01,256 - DuckDbRefreshViewsTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-03 16:25:01,256 - tools.tools_registry - INFO - Tool registered: duckdb_refresh_views
+2025-11-03 16:25:01,256 - tools.tools_registry - INFO - Loaded custom tool: duckdb_refresh_views
+2025-11-03 16:25:01,256 - tools.tools_registry - INFO - Tool registered: sec_get_company_filings
+2025-11-03 16:25:01,256 - tools.tools_registry - INFO - Loaded custom tool: sec_get_company_filings
+2025-11-03 16:25:01,256 - tools.tools_registry - INFO - Tool registered: sec_get_financial_data
+2025-11-03 16:25:01,256 - tools.tools_registry - INFO - Loaded custom tool: sec_get_financial_data
+2025-11-03 16:25:01,256 - tools.tools_registry - INFO - Tool registered: wb_get_regions
+2025-11-03 16:25:01,256 - tools.tools_registry - INFO - Loaded custom tool: wb_get_regions
+2025-11-03 16:25:01,257 - tools.tools_registry - INFO - Tool registered: rbi_get_inflation
+2025-11-03 16:25:01,257 - tools.tools_registry - INFO - Loaded custom tool: rbi_get_inflation
+2025-11-03 16:25:01,257 - DuckDbDescribeTableTool - INFO - Found 3 data files in data/duckdb
+2025-11-03 16:25:01,262 - DuckDbDescribeTableTool - INFO - ✓ Created view 'sample_inventory_data' from sample_inventory_data.csv (10 rows)
+2025-11-03 16:25:01,267 - DuckDbDescribeTableTool - INFO - ✓ Created view 'sample_sales_data' from sample_sales_data.csv (20 rows)
+2025-11-03 16:25:01,272 - DuckDbDescribeTableTool - INFO - ✓ Created view 'sample_customer_data' from sample_customer_data.csv (10 rows)
+2025-11-03 16:25:01,274 - DuckDbDescribeTableTool - INFO - Initialization complete: 3 views available
+2025-11-03 16:25:01,274 - DuckDbDescribeTableTool - INFO - Auto-refresh enabled: checking every 600 seconds
+2025-11-03 16:25:01,274 - tools.tools_registry - INFO - Tool registered: duckdb_describe_table
+2025-11-03 16:25:01,274 - tools.tools_registry - INFO - Loaded custom tool: duckdb_describe_table
+2025-11-03 16:25:01,274 - tools.tools_registry - INFO - Tool registered: wiki_get_page
+2025-11-03 16:25:01,274 - tools.tools_registry - INFO - Loaded custom tool: wiki_get_page
+2025-11-03 16:25:01,274 - tools.tools_registry - INFO - Tool registered: crawl_url
+2025-11-03 16:25:01,274 - tools.tools_registry - INFO - Loaded custom tool: crawl_url
+2025-11-03 16:25:01,275 - tools.tools_registry - INFO - Tool registered: ecb_get_series
+2025-11-03 16:25:01,275 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_series
+2025-11-03 16:25:01,275 - tools.tools_registry - INFO - Tool registered: ecb_get_common_indicators
+2025-11-03 16:25:01,275 - tools.tools_registry - INFO - Loaded custom tool: ecb_get_common_indicators
+2025-11-03 16:25:01,282 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-03 16:25:01,282 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-03 16:25:01,282 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-03 16:25:01,282 - SqlSelectSampleDataTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-03 16:25:01,282 - SqlSelectSampleDataTool - INFO - DuckDB connection initialized for sqlselect_sample_data
+2025-11-03 16:25:01,282 - tools.tools_registry - INFO - Tool registered: sqlselect_sample_data
+2025-11-03 16:25:01,282 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_sample_data
+2025-11-03 16:25:01,282 - tools.tools_registry - INFO - Tool registered: edgar_filing_details
+2025-11-03 16:25:01,282 - tools.tools_registry - INFO - Loaded custom tool: edgar_filing_details
+2025-11-03 16:25:01,289 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/customers.csv
+2025-11-03 16:25:01,289 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/orders.csv
+2025-11-03 16:25:01,290 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/products.csv
+2025-11-03 16:25:01,290 - SqlSelectListSourcesTool - WARNING - Data file not found: data/sqlselect/sales.csv
+2025-11-03 16:25:01,290 - SqlSelectListSourcesTool - INFO - DuckDB connection initialized for sqlselect_list_sources
+2025-11-03 16:25:01,290 - tools.tools_registry - INFO - Tool registered: sqlselect_list_sources
+2025-11-03 16:25:01,290 - tools.tools_registry - INFO - Loaded custom tool: sqlselect_list_sources
+2025-11-03 16:25:01,290 - tools.tools_registry - INFO - Tool registered: pboc_get_exchange_rate
+2025-11-03 16:25:01,290 - tools.tools_registry - INFO - Loaded custom tool: pboc_get_exchange_rate
+2025-11-03 16:25:01,290 - tools.tools_registry - INFO - Tool registered: wb_get_income_levels
+2025-11-03 16:25:01,290 - tools.tools_registry - INFO - Loaded custom tool: wb_get_income_levels
+2025-11-03 16:25:01,290 - tools.tools_registry - INFO - Tool registered: edgar_company_facts
+2025-11-03 16:25:01,290 - tools.tools_registry - INFO - Loaded custom tool: edgar_company_facts
+2025-11-03 16:25:01,290 - tools.tools_registry - INFO - Tool registered: edgar_mutual_fund_holdings
+2025-11-03 16:25:01,290 - tools.tools_registry - INFO - Loaded custom tool: edgar_mutual_fund_holdings
+2025-11-03 16:25:01,290 - tools.tools_registry - INFO - Started file monitoring for tool configurations
+2025-11-03 16:25:01,299 - root - INFO - All routes registered successfully
+2025-11-03 16:25:01,300 - werkzeug - WARNING - Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+2025-11-03 16:25:01,302 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.2.54:5000
+2025-11-03 16:25:01,303 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-11-03 16:25:04,471 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:04] "[32mGET / HTTP/1.1[0m" 302 -
+2025-11-03 16:25:04,476 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:04] "[32mGET /dashboard HTTP/1.1[0m" 302 -
+2025-11-03 16:25:04,493 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:04] "GET /login?next=http://127.0.0.1:5000/dashboard HTTP/1.1" 200 -
+2025-11-03 16:25:04,515 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:04] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-03 16:25:04,518 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:04] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-03 16:25:04,681 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:04] "[32mGET / HTTP/1.1[0m" 302 -
+2025-11-03 16:25:04,685 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:04] "[32mGET /dashboard HTTP/1.1[0m" 302 -
+2025-11-03 16:25:04,689 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:04] "GET /login?next=http://127.0.0.1:5000/dashboard HTTP/1.1" 200 -
+2025-11-03 16:25:04,704 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:04] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-03 16:25:04,709 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:04] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-11-03 16:25:12,595 - core.auth_manager - INFO - Saved 1 users to configuration
+2025-11-03 16:25:12,595 - core.auth_manager - INFO - User authenticated successfully: admin
+2025-11-03 16:25:12,596 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:12] "[32mPOST /login HTTP/1.1[0m" 302 -
+2025-11-03 16:25:12,619 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:12] "GET /dashboard HTTP/1.1" 200 -
+2025-11-03 16:25:12,630 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:12] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-11-03 16:25:12,631 - werkzeug - INFO - 127.0.0.1 - - [03/Nov/2025 16:25:12] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
