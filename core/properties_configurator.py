@@ -2,6 +2,7 @@
 Properties configurator for managing application properties with auto-reload
 Enhanced with command-line args, precedence ordering, and source tracking
 """
+import json
 import os
 import re
 import sys
@@ -551,6 +552,123 @@ class PropertiesConfigurator:
         """
         with self._properties_lock:
             return self._property_sources.copy()
+
+    def resolve_string_content(self, content: str) -> str:
+        """
+        Resolve ${prop_name} patterns in the given string content.
+        Uses the same prioritization logic: commandline > env > file.
+        Supports nested patterns and multiple placeholders.
+        If a pattern cannot be resolved, it is left as-is.
+
+        Args:
+            content: String content with potential ${...} patterns
+
+        Returns:
+            Resolved string with all ${...} patterns replaced by property values
+        """
+        if not content or '${' not in content:
+            return content
+
+        with self._properties_lock:
+            # Use the existing _resolve_value method with current properties
+            # Pass empty visited set for circular reference detection
+            return self._resolve_value(content, self._properties, set())
+
+    def load_and_resolve_file_content(self, filename: Union[str, Path]) -> List[str]:
+        """
+        Load a text file and resolve ${prop_name} patterns in each line.
+        Uses the same prioritization logic: commandline > env > file.
+
+        Args:
+            filename: Path to the text file to load and resolve
+
+        Returns:
+            List of strings representing the resolved file content (one string per line)
+
+        Raises:
+            FileNotFoundError: If the file does not exist
+            IOError: If there's an error reading the file
+        """
+        file_path = Path(filename) if not isinstance(filename, Path) else filename
+
+        if not file_path.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        try:
+            resolved_lines = []
+            with open(file_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    # Don't strip the line to preserve formatting/whitespace
+                    # But remove the trailing newline
+                    line = line.rstrip('\n\r')
+                    resolved_line = self.resolve_string_content(line)
+                    resolved_lines.append(resolved_line)
+
+            return resolved_lines
+
+        except Exception as e:
+            raise IOError(f"Error reading file {file_path}: {e}")
+
+    def resolve_string_json_content(self, content: str) -> Dict[str, Any]:
+        """
+        Resolve ${prop_name} patterns in a JSON string and return as dictionary.
+        Uses the same prioritization logic: commandline > env > file.
+
+        Args:
+            content: JSON string content with potential ${...} patterns
+
+        Returns:
+            Dictionary object parsed from the resolved JSON string
+
+        Raises:
+            json.JSONDecodeError: If the resolved content is not valid JSON
+        """
+        resolved_content = self.resolve_string_content(content)
+
+        try:
+            return json.loads(resolved_content)
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"Error parsing resolved JSON content: {e.msg}",
+                e.doc,
+                e.pos
+            )
+
+    def load_and_resolve_json_file_content(self, filename: Union[str, Path]) -> Dict[str, Any]:
+        """
+        Load a JSON file, resolve ${prop_name} patterns, and return as dictionary.
+        Uses the same prioritization logic: commandline > env > file.
+
+        Args:
+            filename: Path to the JSON file to load and resolve
+
+        Returns:
+            Dictionary object parsed from the resolved JSON file
+
+        Raises:
+            FileNotFoundError: If the file does not exist
+            IOError: If there's an error reading the file
+            json.JSONDecodeError: If the resolved content is not valid JSON
+        """
+        file_path = Path(filename) if not isinstance(filename, Path) else filename
+
+        if not file_path.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            return self.resolve_string_json_content(content)
+
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"Error parsing JSON from file {file_path}: {e.msg}",
+                e.doc,
+                e.pos
+            )
+        except Exception as e:
+            raise IOError(f"Error reading file {file_path}: {e}")
 
     def stop_reload(self):
         """Stop the auto-reload thread"""
