@@ -24,6 +24,7 @@ class ApiRoutes(BaseRoutes):
         """Register API routes"""
 
         # ==================== MCP Protocol Endpoint ====================
+        @app.route('/mcp', methods=['POST'])
         @app.route('/api/mcp', methods=['POST'])
         def mcp_endpoint():
             """MCP protocol endpoint for HTTP requests"""
@@ -123,7 +124,9 @@ class ApiRoutes(BaseRoutes):
             """Get list of all tools"""
             try:
                 tools = self.tools_registry.get_all_tools()
-                return jsonify({'tools': tools})
+                jtools = jsonify({'tools': tools})
+                print(jtools)
+                return jtools
             except Exception as e:
                 logging.error(f"Error getting tools list: {e}")
                 return jsonify({'error': str(e)}), 500
