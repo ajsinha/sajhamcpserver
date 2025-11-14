@@ -1,0 +1,44 @@
+{
+  "description": "Diagnose and troubleshoot software bugs with detailed analysis",
+  "prompt_template": "Diagnose the following bug:\n\n**Bug Description:**\n{bug_description}\n\n**Error Message:**\n```\n{error_message}\n```\n\n**Code Context:**\n```{language}\n{code}\n```\n\n**Environment:**\n- Language/Framework: {language}\n- Version: {version}\n- Platform: {platform}\n\nPlease provide:\n\n1. **Root Cause Analysis**\n   - Identify the root cause\n   - Explain why the bug occurs\n   - Related error patterns\n\n2. **Impact Assessment**\n   - Severity of the bug\n   - Affected functionality\n   - Potential side effects\n\n3. **Solution**\n   - Step-by-step fix\n   - Code corrections\n   - Best practices to prevent recurrence\n\n4. **Testing Recommendations**\n   - Test cases to verify the fix\n   - Edge cases to consider\n   - Regression testing suggestions\n\n5. **Prevention**\n   - Code review recommendations\n   - Design improvements\n   - Automated testing suggestions\n\nProvide clear, actionable solutions with code examples where applicable.",
+  "arguments": [
+    {
+      "name": "bug_description",
+      "description": "Description of the bug and expected vs actual behavior",
+      "required": true
+    },
+    {
+      "name": "error_message",
+      "description": "Error message or stack trace",
+      "required": true
+    },
+    {
+      "name": "code",
+      "description": "Relevant code snippet where the bug occurs",
+      "required": true
+    },
+    {
+      "name": "language",
+      "description": "Programming language or framework",
+      "required": true
+    },
+    {
+      "name": "version",
+      "description": "Language/framework version",
+      "required": false,
+      "default": "latest"
+    },
+    {
+      "name": "platform",
+      "description": "Platform or operating system",
+      "required": false,
+      "default": "cross-platform"
+    }
+  ],
+  "metadata": {
+    "category": "development",
+    "tags": ["bug", "debugging", "troubleshooting", "fix"],
+    "author": "admin",
+    "version": "1.0"
+  }
+}

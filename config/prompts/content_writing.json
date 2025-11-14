@@ -1,0 +1,51 @@
+{
+  "description": "Generate high-quality content for various purposes and audiences",
+  "prompt_template": "Write {content_type} about:\n\n**Topic:** {topic}\n\n**Target Audience:** {audience}\n\n**Tone:** {tone}\n\n**Length:** {length}\n\n**Key Points to Cover:**\n{key_points}\n\n**Additional Context:**\n{context}\n\nCreate engaging, well-structured content that:\n\n1. **Captures Attention**\n   - Compelling introduction\n   - Clear value proposition\n   - Engaging hook\n\n2. **Delivers Value**\n   - Well-organized content\n   - Clear and concise messaging\n   - Actionable information\n\n3. **Engages the Audience**\n   - Appropriate tone and style\n   - Relevant examples\n   - Clear call-to-action\n\n4. **Optimized for Purpose**\n   - SEO-friendly (if applicable)\n   - Platform-appropriate formatting\n   - Scannable structure\n\nDeliver polished, professional content ready for publication.",
+  "arguments": [
+    {
+      "name": "topic",
+      "description": "Main topic or subject of the content",
+      "required": true
+    },
+    {
+      "name": "content_type",
+      "description": "Type of content (blog post, article, social media post, email, whitepaper, etc.)",
+      "required": true
+    },
+    {
+      "name": "audience",
+      "description": "Target audience description",
+      "required": true
+    },
+    {
+      "name": "tone",
+      "description": "Desired tone (professional, casual, technical, friendly, formal, etc.)",
+      "required": false,
+      "default": "professional"
+    },
+    {
+      "name": "length",
+      "description": "Desired length or word count",
+      "required": false,
+      "default": "medium (500-800 words)"
+    },
+    {
+      "name": "key_points",
+      "description": "Key points or messages to include",
+      "required": false,
+      "default": ""
+    },
+    {
+      "name": "context",
+      "description": "Any additional context or requirements",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "metadata": {
+    "category": "content",
+    "tags": ["writing", "content", "marketing", "copywriting"],
+    "author": "admin",
+    "version": "1.0"
+  }
+}

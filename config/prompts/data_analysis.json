@@ -1,0 +1,28 @@
+{
+  "description": "Perform comprehensive data analysis and generate insights",
+  "prompt_template": "Analyze the following dataset and provide insights:\n\n**Dataset Description:**\n{dataset_description}\n\n**Data:**\n{data}\n\n**Analysis Focus:**\n{analysis_focus}\n\nPlease provide:\n\n1. **Data Overview**\n   - Data structure and types\n   - Data quality assessment\n   - Missing values and outliers\n\n2. **Statistical Analysis**\n   - Descriptive statistics\n   - Distribution analysis\n   - Correlation analysis\n\n3. **Key Insights**\n   - Patterns and trends\n   - Anomalies and outliers\n   - Significant findings\n\n4. **Visualizations**\n   - Recommended chart types\n   - Key visualizations to create\n\n5. **Recommendations**\n   - Actionable insights\n   - Next steps for analysis\n   - Data quality improvements\n\nPresent findings in a clear, business-friendly format with supporting statistics.",
+  "arguments": [
+    {
+      "name": "data",
+      "description": "The dataset to analyze (can be CSV, JSON, or text format)",
+      "required": true
+    },
+    {
+      "name": "dataset_description",
+      "description": "Brief description of what the dataset contains",
+      "required": true
+    },
+    {
+      "name": "analysis_focus",
+      "description": "Specific focus areas for the analysis (trends, predictions, correlations, etc.)",
+      "required": false,
+      "default": "comprehensive overview"
+    }
+  ],
+  "metadata": {
+    "category": "analytics",
+    "tags": ["data", "analysis", "statistics", "insights"],
+    "author": "admin",
+    "version": "1.0"
+  }
+}

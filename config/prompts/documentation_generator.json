@@ -1,0 +1,40 @@
+{
+  "description": "Generate comprehensive documentation for code, APIs, or systems",
+  "prompt_template": "Generate {doc_type} documentation for the following:\n\n{content}\n\n**Documentation Requirements:**\n- Target Audience: {audience}\n- Format: {format}\n- Detail Level: {detail_level}\n\nPlease provide:\n\n1. **Overview**\n   - Brief summary\n   - Purpose and scope\n   - Key features\n\n2. **Detailed Documentation**\n   - Component descriptions\n   - Usage examples\n   - Parameters and return values\n\n3. **Best Practices**\n   - Common use cases\n   - Tips and tricks\n   - Common pitfalls to avoid\n\n4. **Additional Resources**\n   - Related documentation\n   - Further reading\n\nUse clear, concise language with practical examples.",
+  "arguments": [
+    {
+      "name": "content",
+      "description": "The content to document (code, API, system, etc.)",
+      "required": true
+    },
+    {
+      "name": "doc_type",
+      "description": "Type of documentation (API, code, system, user guide, etc.)",
+      "required": true
+    },
+    {
+      "name": "audience",
+      "description": "Target audience (developers, end-users, administrators, etc.)",
+      "required": false,
+      "default": "developers"
+    },
+    {
+      "name": "format",
+      "description": "Documentation format (markdown, HTML, plain text, etc.)",
+      "required": false,
+      "default": "markdown"
+    },
+    {
+      "name": "detail_level",
+      "description": "Level of detail (basic, intermediate, comprehensive)",
+      "required": false,
+      "default": "comprehensive"
+    }
+  ],
+  "metadata": {
+    "category": "development",
+    "tags": ["documentation", "technical-writing", "api"],
+    "author": "admin",
+    "version": "1.0"
+  }
+}

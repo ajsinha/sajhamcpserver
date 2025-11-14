@@ -1,0 +1,22 @@
+{
+  "description": "Comprehensive code review assistant that analyzes code quality, security, and performance",
+  "prompt_template": "Review the following {language} code:\n\n```{language}\n{code}\n```\n\nProvide a comprehensive code review covering:\n\n1. **Code Quality Assessment**\n   - Code structure and organization\n   - Naming conventions and readability\n   - Code complexity and maintainability\n\n2. **Security Analysis**\n   - Potential security vulnerabilities\n   - Input validation issues\n   - Authentication/authorization concerns\n\n3. **Performance Optimization**\n   - Performance bottlenecks\n   - Resource usage optimization\n   - Scalability considerations\n\n4. **Best Practices**\n   - Language-specific best practices\n   - Design pattern recommendations\n   - Testing recommendations\n\n5. **Specific Improvements**\n   - Concrete code improvement suggestions\n   - Refactoring opportunities\n\nFormat the response with clear sections and prioritize issues by severity.",
+  "arguments": [
+    {
+      "name": "code",
+      "description": "The code to review",
+      "required": true
+    },
+    {
+      "name": "language",
+      "description": "Programming language of the code (e.g., python, javascript, java)",
+      "required": true
+    }
+  ],
+  "metadata": {
+    "category": "development",
+    "tags": ["code", "review", "quality", "security"],
+    "author": "admin",
+    "version": "1.0"
+  }
+}

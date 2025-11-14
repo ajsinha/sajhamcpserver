@@ -1,0 +1,43 @@
+{
+  "description": "Generate comprehensive business plans and strategic documents",
+  "prompt_template": "Create a {plan_type} for:\n\n**Business/Project Name:** {business_name}\n\n**Industry:** {industry}\n\n**Description:**\n{description}\n\n**Target Market:** {target_market}\n\n**Key Objectives:**\n{objectives}\n\nGenerate a comprehensive {plan_type} including:\n\n1. **Executive Summary**\n   - Business overview\n   - Mission and vision\n   - Key success factors\n\n2. **Market Analysis**\n   - Industry overview\n   - Target market definition\n   - Competitive landscape\n   - Market opportunities\n\n3. **Strategy**\n   - Business model\n   - Go-to-market strategy\n   - Competitive advantages\n   - Growth strategy\n\n4. **Operations Plan**\n   - Key activities\n   - Resource requirements\n   - Technology and infrastructure\n\n5. **Financial Projections**\n   - Revenue model\n   - Cost structure\n   - Key metrics and KPIs\n   - Funding requirements\n\n6. **Risk Analysis**\n   - Key risks and challenges\n   - Mitigation strategies\n   - Contingency plans\n\n7. **Implementation Roadmap**\n   - Milestones and timeline\n   - Success metrics\n   - Next steps\n\nProvide a professional, detailed, and actionable plan.",
+  "arguments": [
+    {
+      "name": "business_name",
+      "description": "Name of the business or project",
+      "required": true
+    },
+    {
+      "name": "description",
+      "description": "Detailed description of the business or project",
+      "required": true
+    },
+    {
+      "name": "industry",
+      "description": "Industry or sector",
+      "required": true
+    },
+    {
+      "name": "target_market",
+      "description": "Target customer segment or market",
+      "required": true
+    },
+    {
+      "name": "objectives",
+      "description": "Key business objectives and goals",
+      "required": true
+    },
+    {
+      "name": "plan_type",
+      "description": "Type of plan (business plan, strategic plan, marketing plan, etc.)",
+      "required": false,
+      "default": "business plan"
+    }
+  ],
+  "metadata": {
+    "category": "business",
+    "tags": ["business", "strategy", "planning", "entrepreneurship"],
+    "author": "admin",
+    "version": "1.0"
+  }
+}

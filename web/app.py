@@ -12,6 +12,7 @@ from datetime import timedelta, datetime
 # Import core modules
 from core.auth_manager import AuthManager
 from core.mcp_handler import MCPHandler
+from core.prompts_registry import PromptsRegistry
 from tools.tools_registry import ToolsRegistry
 
 # Import route modules
@@ -22,7 +23,8 @@ from routes import (
     AdminRoutes,
     MonitoringRoutes,
     ApiRoutes,
-    SocketIOHandlers
+    SocketIOHandlers,
+    PromptsRoutes
 )
 
 # Global instances
@@ -51,7 +53,8 @@ def create_app():
     # Initialize managers
     auth_manager = AuthManager()
     tools_registry = ToolsRegistry()
-    mcp_handler = MCPHandler(tools_registry=tools_registry, auth_manager=auth_manager)
+    prompts_registry = PromptsRegistry()
+    mcp_handler = MCPHandler(tools_registry=tools_registry, auth_manager=auth_manager, prompts_registry=prompts_registry)
     
     # Setup logging
     logging.basicConfig(level=logging.INFO)
@@ -70,7 +73,9 @@ def create_app():
 
 def register_all_routes(app, socketio):
     """Register all route modules"""
-    
+    from core.prompts_registry import PromptsRegistry
+    prompt_registry = PromptsRegistry()
+
     # Initialize route classes
     auth_routes = AuthRoutes(auth_manager)
     dashboard_routes = DashboardRoutes(auth_manager, tools_registry)
@@ -78,6 +83,8 @@ def register_all_routes(app, socketio):
     admin_routes = AdminRoutes(auth_manager, tools_registry)
     monitoring_routes = MonitoringRoutes(auth_manager, tools_registry)
     api_routes = ApiRoutes(auth_manager, tools_registry, mcp_handler)
+    prompt_routes = PromptsRoutes(auth_manager, prompt_registry)
+
     socketio_handlers = SocketIOHandlers(socketio, auth_manager, tools_registry, mcp_handler)
     
     # Register blueprints
@@ -87,6 +94,7 @@ def register_all_routes(app, socketio):
     admin_routes.register_routes(app)
     monitoring_routes.register_routes(app)
     api_routes.register_routes(app)
+    prompt_routes.register_routes(app)
     
     # Register SocketIO handlers
     socketio_handlers.register_handlers()

@@ -24,7 +24,7 @@ class MCPHandler:
     UNAUTHORIZED = -32001
     FORBIDDEN = -32002
     
-    def __init__(self, tools_registry=None, auth_manager=None):
+    def __init__(self, tools_registry=None, auth_manager=None, prompts_registry=None):
         """
         Initialize the MCP handler
         
@@ -35,6 +35,7 @@ class MCPHandler:
         self.tools_registry = tools_registry
         self.auth_manager = auth_manager
         self.logger = logging.getLogger(__name__)
+        self.prompts_registry = prompts_registry
         self.server_info = {
             "protocolVersion": "1.0",
             "serverName": "SAJHA MCP Server",
@@ -93,6 +94,10 @@ class MCPHandler:
                 result = self._handle_tools_call(params, session)
             elif method == 'ping':
                 result = self._handle_ping(params, session)
+            elif method == 'prompts/list':
+                return self.handle_prompts_list()
+            elif method == 'prompts/get':
+                return self.handle_prompts_get(request_data)
             else:
                 return self._create_error_response(
                     request_id,
@@ -121,7 +126,55 @@ class MCPHandler:
                 self.INTERNAL_ERROR,
                 "Internal server error"
             )
-    
+
+    def handle_prompts_list(self):
+        """Handle prompts/list request"""
+        prompts = self.prompts_registry.get_all_prompts()
+        return {
+            "jsonrpc": "2.0",
+            "result": {
+                "prompts": [
+                    {
+                        "name": p["name"],
+                        "description": p["description"],
+                        "arguments": p.get("arguments", [])
+                    }
+                    for p in prompts
+                ]
+            }
+        }
+
+    def handle_prompts_get(self, request_data):
+        """Handle prompts/get request"""
+        params = request_data.get('params', {})
+        name = params.get('name')
+        arguments = params.get('arguments', {})
+
+        try:
+            rendered = self.prompts_registry.render_prompt(name, arguments)
+            return {
+                "jsonrpc": "2.0",
+                "result": {
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": {
+                                "type": "text",
+                                "text": rendered
+                            }
+                        }
+                    ]
+                }
+            }
+        except Exception as e:
+            return {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": -32603,
+                    "message": str(e)
+                }
+            }
+
     def _is_valid_jsonrpc(self, request: Dict) -> bool:
         """Check if request is valid JSON-RPC 2.0"""
         return (
