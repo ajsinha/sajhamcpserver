@@ -81,24 +81,24 @@ class MCPHandler:
                 result = self._handle_initialize(params, session)
             elif method == 'initialized':
                 result = self._handle_initialized(params, session)
-            elif method == 'tools/list':
+            elif method in [ 'tools/list' , 'api/tools/list', '/tools/list' , '/api/tools/list']:
                 result = self._handle_tools_list(params, session)
-            elif method == 'tool/schema':
+            elif method in [ 'tool/schema' ,'api/tool/schema', '/tool/schema' ,'/api/tool/schema']:
                 result = self._handle_tool_schema(params, session)
-            elif method == 'tool/description':
+            elif method in ['tool/description', 'api/tool/description', '/tool/description', '/api/tool/description']:
                 result = self._handle_tool_description(params, session)
-            elif method == 'tool/input_schema':
+            elif method in[ 'tool/input_schema', 'api/tool/input_schema', '/tool/input_schema', '/api/tool/input_schema']:
                 result = self._handle_tool_input_schema(params, session)
-            elif method == 'tool/output_schema':
+            elif method in ['tool/output_schema', 'api/tool/output_schema', '/tool/output_schema', '/api/tool/output_schema']:
                 result = self._handle_tool_output_schema(params, session)
 
-            elif method == 'tools/call':
+            elif method in ['tools/call', 'api/tools/call', '/tools/call', '/api/tools/call']:
                 result = self._handle_tools_call(params, session)
-            elif method == 'ping':
+            elif method in ['ping', 'api/ping', '/ping', '/api/ping']:
                 result = self._handle_ping(params, session)
-            elif method == 'prompts/list':
+            elif method in ['prompts/list', 'api/prompts/list','/prompts/list', '/api/prompts/list']:
                 return self.handle_prompts_list()
-            elif method == 'prompts/get':
+            elif method in ['prompts/get', 'api/prompts/get', '/prompts/get', '/api/prompts/get']:
                 return self.handle_prompts_get(request_data)
             else:
                 return self._create_error_response(
@@ -312,10 +312,10 @@ class MCPHandler:
         tool = self.tools_registry.get_tool(tool_name)
         if not tool:
             raise ValueError(f"Tool not found: {tool_name}")
-        name = tool.name()
-        description = tool.description()
+
+        description = tool.get_description()
         return {
-            "name": name,
+            "name": tool_name,
             "description": description,
         }
 
@@ -331,15 +331,15 @@ class MCPHandler:
         if not tool:
             raise ValueError(f"Tool not found: {tool_name}")
 
-        name = tool.name()
-        description = tool.description()
-        version  =tool.version()
-        enabled = tool.enabled()
-        input_schema =  tool.get_input_schema()
-        output_schema = tool.get_output_schema()
+
+        description = tool.description
+        version  =tool.version
+        enabled = tool.enabled
+        input_schema =  tool.input_schema
+        output_schema = tool.output_schema
 
         return {
-            "name" : name,
+            "name" : tool_name,
             "description" : description,
             "version" : version,
             "enabled" : enabled,
