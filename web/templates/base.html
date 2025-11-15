@@ -40,6 +40,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <i class="bi bi-tools"></i> Tools
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('prompts_list') }}">
+                            <i class="bi bi-chat-square-text"></i> Prompts
+                        </a>
+                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="monitoringDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-graph-up"></i> Monitoring
@@ -59,6 +64,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('admin_tools') }}">Manage Tools</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin_users') }}">Manage Users</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_prompts') }}">Manage Prompts</a></li>
                         </ul>
                     </li>
                     {% endif %}

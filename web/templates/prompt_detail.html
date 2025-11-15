@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}{{ prompt.name }} - SAJHA MCP Server{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('prompts_list') }}">Prompts</a></li>
+            <li class="breadcrumb-item active">{{ prompt.name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="bi bi-chat-square-text"></i> {{ prompt.name }}
+        </h1>
+        <div>
+            <a href="{{ url_for('prompt_test', prompt_name=prompt.name) }}" class="btn btn-success">
+                <i class="bi bi-play-circle"></i> Test Prompt
+            </a>
+            {% if user and user.roles and 'admin' in user.roles %}
+            <button class="btn btn-warning" onclick="toggleEditMode()">
+                <i class="bi bi-pencil"></i> <span id="editButtonText">Edit</span>
+            </button>
+            <button class="btn btn-danger" onclick="deletePrompt()">
+                <i class="bi bi-trash"></i> Delete
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-md-8">
+            <!-- View Mode -->
+            <div id="viewMode">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-info-circle"></i> Prompt Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row">
+                            <dt class="col-sm-3">Name:</dt>
+                            <dd class="col-sm-9"><code>{{ prompt.name }}</code></dd>
+
+                            <dt class="col-sm-3">Description:</dt>
+                            <dd class="col-sm-9">{{ prompt.description }}</dd>
+
+                            <dt class="col-sm-3">Category:</dt>
+                            <dd class="col-sm-9">
+                                <span class="badge bg-secondary">{{ prompt.metadata.category }}</span>
+                            </dd>
+
+                            <dt class="col-sm-3">Tags:</dt>
+                            <dd class="col-sm-9">
+                                {% for tag in prompt.metadata.tags %}
+                                <span class="badge bg-info">{{ tag }}</span>
+                                {% endfor %}
+                            </dd>
+
+                            <dt class="col-sm-3">Author:</dt>
+                            <dd class="col-sm-9">{{ prompt.metadata.author }}</dd>
+
+                            <dt class="col-sm-3">Version:</dt>
+                            <dd class="col-sm-9">{{ prompt.metadata.version }}</dd>
+
+                            <dt class="col-sm-3">Created:</dt>
+                            <dd class="col-sm-9">{{ prompt.metadata.created_at }}</dd>
+
+                            <dt class="col-sm-3">Last Updated:</dt>
+                            <dd class="col-sm-9">{{ prompt.metadata.updated_at }}</dd>
+
+                            <dt class="col-sm-3">Usage Count:</dt>
+                            <dd class="col-sm-9">
+                                <span class="badge bg-success">{{ prompt.metadata.usage_count }} times</span>
+                            </dd>
+
+                            {% if prompt.metadata.last_used %}
+                            <dt class="col-sm-3">Last Used:</dt>
+                            <dd class="col-sm-9">{{ prompt.metadata.last_used }}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+
+                <!-- Template -->
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-file-text"></i> Prompt Template</h5>
+                    </div>
+                    <div class="card-body">
+                        <pre class="bg-light p-3 rounded"><code>{{ prompt.template }}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Arguments -->
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-list-check"></i> Arguments ({{ prompt.arguments|length }})</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if prompt.arguments %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Description</th>
+                                        <th>Required</th>
+                                        <th>Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for arg in prompt.arguments %}
+                                    <tr>
+                                        <td><code>{{ arg.name }}</code></td>
+                                        <td>{{ arg.description if arg.description else '-' }}</td>
+                                        <td>
+                                            {% if arg.required %}
+                                            <span class="badge bg-danger">Required</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">Optional</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ arg.type if arg.type else 'string' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted mb-0">No arguments defined</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Mode (Admin Only) -->
+            {% if user and user.roles and 'admin' in user.roles %}
+            <div id="editMode" style="display: none;">
+                <div class="card">
+                    <div class="card-header bg-warning">
+                        <h5 class="mb-0"><i class="bi bi-pencil"></i> Edit Prompt JSON</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> 
+                            Edit the JSON below. Make sure to maintain valid JSON syntax.
+                        </div>
+                        <textarea id="promptJson" class="form-control font-monospace" rows="25">{{ prompt_json }}</textarea>
+                        <div class="mt-3">
+                            <button class="btn btn-primary" onclick="savePrompt()">
+                                <i class="bi bi-save"></i> Save Changes
+                            </button>
+                            <button class="btn btn-secondary" onclick="cancelEdit()">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </button>
+                            <button class="btn btn-info" onclick="validateJson()">
+                                <i class="bi bi-check-circle"></i> Validate JSON
+                            </button>
+                        </div>
+                        <div id="jsonValidation" class="mt-2"></div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <!-- Quick Stats -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="bi bi-bar-chart"></i> Statistics</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Arguments:</span>
+                        <strong>{{ prompt.arguments|length }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Usage Count:</span>
+                        <strong>{{ prompt.metadata.usage_count }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Category:</span>
+                        <strong>{{ prompt.metadata.category }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Tags:</span>
+                        <strong>{{ prompt.metadata.tags|length }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Full JSON View -->
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h6 class="mb-0"><i class="bi bi-code-square"></i> Full JSON</h6>
+                </div>
+                <div class="card-body">
+                    <pre class="bg-light p-2 rounded" style="max-height: 400px; overflow-y: auto; font-size: 0.75rem;"><code>{{ prompt_json }}</code></pre>
+                    <button class="btn btn-sm btn-outline-secondary w-100" onclick="copyJson()">
+                        <i class="bi bi-clipboard"></i> Copy JSON
+                    </button>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('prompt_test', prompt_name=prompt.name) }}" 
+                           class="btn btn-success">
+                            <i class="bi bi-play-circle"></i> Test Prompt
+                        </a>
+                        <a href="{{ url_for('prompts_by_category', category=prompt.metadata.category) }}" 
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-folder"></i> View Category
+                        </a>
+                        <button class="btn btn-outline-info" onclick="downloadJson()">
+                            <i class="bi bi-download"></i> Download JSON
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let editMode = false;
+const promptName = "{{ prompt.name }}";
+const originalJson = {{ prompt_json|tojson }};
+
+// Check if we should start in edit mode (from URL hash)
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.hash === '#edit') {
+        toggleEditMode();
+    }
+});
+
+function toggleEditMode() {
+    editMode = !editMode;
+    document.getElementById('viewMode').style.display = editMode ? 'none' : 'block';
+    document.getElementById('editMode').style.display = editMode ? 'block' : 'none';
+    document.getElementById('editButtonText').textContent = editMode ? 'Cancel Edit' : 'Edit';
+    
+    if (!editMode) {
+        // Reset JSON to original
+        document.getElementById('promptJson').value = originalJson;
+    }
+}
+
+function cancelEdit() {
+    toggleEditMode();
+}
+
+function validateJson() {
+    const jsonText = document.getElementById('promptJson').value;
+    const validation = document.getElementById('jsonValidation');
+    
+    try {
+        JSON.parse(jsonText);
+        validation.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle"></i> JSON is valid!</div>';
+    } catch (e) {
+        validation.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Invalid JSON: ${e.message}</div>`;
+    }
+}
+
+function savePrompt() {
+    const jsonText = document.getElementById('promptJson').value;
+    
+    try {
+        const promptData = JSON.parse(jsonText);
+        
+        // Confirm save
+        if (!confirm('Are you sure you want to save these changes?')) {
+            return;
+        }
+        
+        // Send update request
+        $.ajax({
+            url: `/api/prompts/${promptName}/update`,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(promptData),
+            success: function(response) {
+                if (response.success) {
+                    alert('Prompt updated successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + response.error);
+                }
+            },
+            error: function(xhr) {
+                alert('Error updating prompt: ' + (xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error'));
+            }
+        });
+    } catch (e) {
+        alert('Invalid JSON: ' + e.message);
+    }
+}
+
+function deletePrompt() {
+    if (!confirm(`Are you sure you want to delete the prompt "${promptName}"? This action cannot be undone.`)) {
+        return;
+    }
+    
+    if (!confirm('This is your last chance. Really delete this prompt?')) {
+        return;
+    }
+    
+    $.ajax({
+        url: `/api/prompts/${promptName}/delete`,
+        method: 'POST',
+        success: function(response) {
+            if (response.success) {
+                alert('Prompt deleted successfully!');
+                window.location.href = "{{ url_for('prompts_list') }}";
+            } else {
+                alert('Error: ' + response.error);
+            }
+        },
+        error: function(xhr) {
+            alert('Error deleting prompt: ' + (xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error'));
+        }
+    });
+}
+
+function copyJson() {
+    const jsonText = document.getElementById('promptJson') ? 
+                     document.getElementById('promptJson').value : 
+                     originalJson;
+    
+    navigator.clipboard.writeText(jsonText).then(function() {
+        alert('JSON copied to clipboard!');
+    }, function() {
+        alert('Failed to copy JSON');
+    });
+}
+
+function downloadJson() {
+    const jsonText = originalJson;
+    const blob = new Blob([jsonText], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${promptName}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

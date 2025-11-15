@@ -10,9 +10,11 @@ from routes.base_routes import BaseRoutes
 class DashboardRoutes(BaseRoutes):
     """Dashboard-related routes"""
 
-    def __init__(self, auth_manager, tools_registry):
+    def __init__(self, auth_manager, tools_registry, prompts_registry):
         """Initialize dashboard routes"""
-        super().__init__(auth_manager, tools_registry)
+        super().__init__(auth_manager)
+        self.tools_registry = tools_registry
+        self.prompts_registry = prompts_registry
 
     def register_routes(self, app):
         """Register dashboard routes"""
@@ -25,25 +27,27 @@ class DashboardRoutes(BaseRoutes):
         @app.route('/dashboard')
         @self.login_required
         def dashboard():
-            """Main dashboard page"""
+            """Dashboard page"""
             user_session = self.get_user_session()
 
-            # Get available tools
-            tools = self.tools_registry.get_all_tools()
+            # Get all tools
+            user_tools = self.tools_registry.get_all_tools()
 
-            # Filter tools based on user permissions
-            if not self.auth_manager.is_admin(user_session):
-                accessible_tools = self.auth_manager.get_user_accessible_tools(user_session)
-                if '*' not in accessible_tools:
-                    tools = [t for t in tools if t['name'] in accessible_tools]
+            # Tool errors - not available in this version
+            tool_errors = None
 
-            # Get tool errors if admin
-            tool_errors = []
-            if self.auth_manager.is_admin(user_session):
-                tool_errors = self.tools_registry.get_tool_errors()
+            # Get prompts count
+            prompts_count = 0
+            if self.prompts_registry:
+                try:
+                    prompts = self.prompts_registry.get_all_prompts()
+                    prompts_count = len(prompts) if prompts else 0
+                except:
+                    prompts_count = 0
 
             return render_template('dashboard.html',
-                                 user=user_session,
-                                 tools=tools,
-                                 tool_errors=tool_errors,
-                                 is_admin=self.auth_manager.is_admin(user_session))
+                                   user=user_session,
+                                   tools=user_tools,
+                                   tool_errors=tool_errors,
+                                   prompts_count=prompts_count,
+                                   is_admin=self.auth_manager.is_admin(user_session))

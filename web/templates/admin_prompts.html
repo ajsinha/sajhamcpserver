@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}Manage Prompts - SAJHA MCP Server{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('prompts_list') }}">Prompts</a></li>
+            <li class="breadcrumb-item active">Admin Management</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="bi bi-gear-fill"></i> Manage Prompts
+        </h1>
+        <div>
+            <a href="{{ url_for('prompt_create_page') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create New Prompt
+            </a>
+            <button class="btn btn-success" onclick="refreshPrompts()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh All
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Total Prompts</h6>
+                    <p class="display-4 mb-0">{{ prompts|length }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Categories</h6>
+                    <p class="display-4 mb-0">{{ metrics.categories if metrics else 0 }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Tags</h6>
+                    <p class="display-4 mb-0">{{ metrics.tags if metrics else 0 }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Total Renders</h6>
+                    <p class="display-4 mb-0">{{ metrics.total_renders if metrics else 0 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prompts Table -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> All Prompts</h5>
+        </div>
+        <div class="card-body">
+            {% if prompts %}
+            <!-- Search and Controls -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="searchPrompts" 
+                               placeholder="Search prompts...">
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <select id="rowsPerPage" class="form-select d-inline-block" style="width: auto;">
+                        <option value="10" selected>10 per page</option>
+                        <option value="25">25 per page</option>
+                        <option value="50">50 per page</option>
+                        <option value="all">Show All</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover" id="promptsTable">
+                    <thead>
+                        <tr>
+                            <th style="cursor: pointer;" onclick="sortTable('name')">
+                                Name <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th>Description</th>
+                            <th style="cursor: pointer;" onclick="sortTable('category')">
+                                Category <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th>Arguments</th>
+                            <th style="cursor: pointer;" onclick="sortTable('usage')">
+                                Usage <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th>Last Used</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prompt in prompts %}
+                        <tr data-name="{{ prompt['name'] }}" data-category="{{ prompt['category'] }}" data-usage="{{ prompt['usage_count'] }}">
+                            <td>
+                                <strong>{{ prompt['name'] }}</strong>
+                            </td>
+                            <td>{{ prompt['description'][:80] }}{% if prompt['description']|length > 80 %}...{% endif %}</td>
+                            <td><span class="badge bg-secondary">{{ prompt['category'] }}</span></td>
+                            <td>
+                                <span class="badge bg-info">{{ prompt['argument_count'] }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-success">{{ prompt['usage_count'] }}</span>
+                            </td>
+                            <td>
+                                {% if prompt['last_used'] %}
+                                <small>{{ prompt.last_used[:19] }}</small>
+                                {% else %}
+                                <small class="text-muted">Never</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('prompt_detail', prompt_name=prompt['name']) }}"
+                                       class="btn btn-sm btn-outline-primary" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('prompt_test', prompt_name=prompt['name']) }}"
+                                       class="btn btn-sm btn-outline-success" title="Test">
+                                        <i class="bi bi-play-circle"></i>
+                                    </a>
+                                    <a href="{{ url_for('prompt_detail', prompt_name=prompt['name']) }}#edit"
+                                       class="btn btn-sm btn-outline-warning" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            onclick="deletePrompt('{{ prompt['name'] }}')" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div id="tableInfo" class="text-muted"></div>
+                </div>
+                <div class="col-md-6">
+                    <nav aria-label="Prompts pagination">
+                        <ul class="pagination justify-content-end mb-0" id="pagination"></ul>
+                    </nav>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No prompts found. Create your first prompt to get started.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Usage Statistics -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-bar-chart"></i> Most Used Prompts</h6>
+                </div>
+                <div class="card-body">
+                    {% if prompts %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Prompt</th>
+                                    <th>Category</th>
+                                    <th>Usage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prompt in top_prompts %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('prompt_detail', prompt_name=prompt['name']) }}">
+                                            {{ prompt['name'] }}
+                                        </a>
+                                    </td>
+                                    <td><span class="badge bg-secondary">{{ prompt['category'] }}</span></td>
+                                    <td><span class="badge bg-success">{{ prompt['usage_count'] }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No usage data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h6 class="mb-0"><i class="bi bi-folder"></i> Prompts by Category</h6>
+                </div>
+                <div class="card-body">
+                    {% if prompts %}
+                    {% set categories_count = {} %}
+                    {% for prompt in prompts %}
+                        {% set _ = categories_count.update({prompt.category: categories_count.get(prompt.category, 0) + 1}) %}
+                    {% endfor %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Count</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category, count in categories_count.items()|sort(attribute='1', reverse=True) %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('prompts_by_category', category=category) }}">
+                                            {{ category|title }}
+                                        </a>
+                                    </td>
+                                    <td><span class="badge bg-secondary">{{ count }}</span></td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar" role="progressbar"
+                                                 style="width: {{ (count / prompts|length * 100)|round }}%">
+                                                {{ (count / prompts|length * 100)|round }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No category data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let promptsData = [];
+let currentPage = 1;
+let rowsPerPage = 10;
+let filteredData = [];
+let sortColumn = 'name';
+let sortAscending = true;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    // Collect data
+    document.querySelectorAll('#promptsTable tbody tr').forEach(row => {
+        promptsData.push({
+            name: row.dataset.name,
+            category: row.dataset.category,
+            usage: parseInt(row.dataset.usage),
+            element: row
+        });
+    });
+
+    filteredData = [...promptsData];
+    renderTable();
+
+    // Search
+    document.getElementById('searchPrompts').addEventListener('input', function(e) {
+        const term = e.target.value.toLowerCase();
+        filteredData = promptsData.filter(p =>
+            p.name.toLowerCase().includes(term) ||
+            p.category.toLowerCase().includes(term)
+        );
+        currentPage = 1;
+        renderTable();
+    });
+
+    // Rows per page
+    document.getElementById('rowsPerPage').addEventListener('change', function(e) {
+        rowsPerPage = e.target.value === 'all' ? filteredData.length : parseInt(e.target.value);
+        currentPage = 1;
+        renderTable();
+    });
+});
+
+function sortTable(column) {
+    if (sortColumn === column) {
+        sortAscending = !sortAscending;
+    } else {
+        sortColumn = column;
+        sortAscending = true;
+    }
+
+    filteredData.sort((a, b) => {
+        let aVal = a[column];
+        let bVal = b[column];
+
+        if (typeof aVal === 'string') {
+            return sortAscending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        } else {
+            return sortAscending ? aVal - bVal : bVal - aVal;
+        }
+    });
+
+    renderTable();
+}
+
+function renderTable() {
+    const total = filteredData.length;
+    const totalPages = Math.ceil(total / rowsPerPage);
+
+    if (currentPage > totalPages) currentPage = totalPages || 1;
+
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = Math.min(start + rowsPerPage, total);
+
+    // Hide all
+    promptsData.forEach(p => p.element.style.display = 'none');
+
+    // Show current page
+    filteredData.slice(start, end).forEach(p => p.element.style.display = '');
+
+    // Update info
+    document.getElementById('tableInfo').textContent =
+        total > 0 ? `Showing ${start + 1} to ${end} of ${total} prompts` : 'No prompts found';
+
+    // Pagination
+    renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+    const pagination = document.getElementById('pagination');
+    pagination.innerHTML = '';
+
+    if (totalPages <= 1) return;
+
+    // Previous
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
+    pagination.appendChild(prevLi);
+
+    // Pages
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+            const li = document.createElement('li');
+            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
+            pagination.appendChild(li);
+        } else if (i === currentPage - 3 || i === currentPage + 3) {
+            const li = document.createElement('li');
+            li.className = 'page-item disabled';
+            li.innerHTML = '<span class="page-link">...</span>';
+            pagination.appendChild(li);
+        }
+    }
+
+    // Next
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
+    pagination.appendChild(nextLi);
+}
+
+function changePage(page) {
+    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+    if (page >= 1 && page <= totalPages) {
+        currentPage = page;
+        renderTable();
+        window.scrollTo(0, 0);
+    }
+}
+
+function deletePrompt(name) {
+    if (!confirm(`Delete prompt "${name}"? This cannot be undone.`)) return;
+    if (!confirm('Final confirmation - really delete?')) return;
+
+    $.ajax({
+        url: `/api/prompts/${name}/delete`,
+        method: 'POST',
+        success: function(response) {
+            if (response.success) {
+                alert('Prompt deleted!');
+                location.reload();
+            } else {
+                alert('Error: ' + response.error);
+            }
+        },
+        error: function(xhr) {
+            alert('Error: ' + (xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error'));
+        }
+    });
+}
+
+function refreshPrompts() {
+    if (confirm('Refresh all prompts from disk?')) {
+        // Call refresh API if available
+        location.reload();
+    }
+}
+</script>
+{% endblock %}

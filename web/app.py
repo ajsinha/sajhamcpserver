@@ -74,16 +74,16 @@ def create_app():
 def register_all_routes(app, socketio):
     """Register all route modules"""
     from core.prompts_registry import PromptsRegistry
-    prompt_registry = PromptsRegistry()
+    prompts_registry = PromptsRegistry()
 
     # Initialize route classes
     auth_routes = AuthRoutes(auth_manager)
-    dashboard_routes = DashboardRoutes(auth_manager, tools_registry)
+    dashboard_routes = DashboardRoutes(auth_manager, tools_registry, prompts_registry)
     tools_routes = ToolsRoutes(auth_manager, tools_registry)
     admin_routes = AdminRoutes(auth_manager, tools_registry)
     monitoring_routes = MonitoringRoutes(auth_manager, tools_registry)
     api_routes = ApiRoutes(auth_manager, tools_registry, mcp_handler)
-    prompt_routes = PromptsRoutes(auth_manager, prompt_registry)
+    prompt_routes = PromptsRoutes(auth_manager, prompts_registry)
 
     socketio_handlers = SocketIOHandlers(socketio, auth_manager, tools_registry, mcp_handler)
     

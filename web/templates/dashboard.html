@@ -158,6 +158,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
+                    <h5 class="card-title">Total Prompts</h5>
+                    <p class="card-text display-4">{{ prompts_count if prompts_count is defined else 0 }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
                     <h5 class="card-title">Your Access Level</h5>
                     <p class="card-text">
                         {% if is_admin %}
@@ -176,14 +184,6 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <p class="card-text">
                         <span class="badge bg-success fs-5">Online</span>
                     </p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title">MCP Version</h5>
-                    <p class="card-text display-4">1.0</p>
                 </div>
             </div>
         </div>
