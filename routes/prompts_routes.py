@@ -16,29 +16,182 @@ class PromptsRoutes(BaseRoutes):
         super().__init__(auth_manager)
         self.prompts_registry = prompts_registry
 
+    """
+    FIXED Category and Tag Extraction Methods
+    Add these to PromptsRoutes class in prompts_routes.py
+    """
+
     def _get_categories_from_prompts(self, prompts):
-        """Extract unique categories from prompts list"""
+        """Extract unique categories from prompts list - FIXED VERSION"""
         categories = set()
+
         for prompt in prompts:
+            category = None
+
             if isinstance(prompt, dict):
-                category = prompt.get('metadata', {}).get('category', 'general')
+                # Try multiple possible locations for category
+                # Option 1: Direct category key
+                category = prompt.get('category')
+
+                # Option 2: In metadata
+                if not category:
+                    category = prompt.get('metadata', {}).get('category')
+
+                # Option 3: Top-level in prompt data
+                if not category and 'prompt' in prompt:
+                    category = prompt.get('prompt', {}).get('category')
+
+                # Option 4: Check if there's a config or settings object
+                if not category:
+                    category = prompt.get('config', {}).get('category')
             else:
-                category = getattr(prompt, 'category', 'general')
-            categories.add(category)
+                # Object with attributes
+                category = getattr(prompt, 'category', None)
+
+                if not category:
+                    # Check metadata attribute
+                    metadata = getattr(prompt, 'metadata', None)
+                    if metadata:
+                        if isinstance(metadata, dict):
+                            category = metadata.get('category')
+                        else:
+                            category = getattr(metadata, 'category', None)
+
+            # Add to set (use 'general' as fallback)
+            if category:
+                categories.add(category)
+            else:
+                categories.add('general')
+
         return sorted(list(categories))
 
     def _get_tags_from_prompts(self, prompts):
-        """Extract unique tags from prompts list"""
+        """Extract unique tags from prompts list - FIXED VERSION"""
         tags = set()
-        for prompt in prompts:
-            if isinstance(prompt, dict):
-                prompt_tags = prompt.get('metadata', {}).get('tags', [])
-            else:
-                prompt_tags = getattr(prompt, 'tags', [])
 
-            if isinstance(prompt_tags, list):
+        for prompt in prompts:
+            prompt_tags = None
+
+            if isinstance(prompt, dict):
+                # Try multiple possible locations for tags
+                # Option 1: Direct tags key
+                prompt_tags = prompt.get('tags')
+
+                # Option 2: In metadata
+                if not prompt_tags:
+                    prompt_tags = prompt.get('metadata', {}).get('tags')
+
+                # Option 3: Top-level in prompt data
+                if not prompt_tags and 'prompt' in prompt:
+                    prompt_tags = prompt.get('prompt', {}).get('tags')
+
+                # Option 4: Check config
+                if not prompt_tags:
+                    prompt_tags = prompt.get('config', {}).get('tags')
+            else:
+                # Object with attributes
+                prompt_tags = getattr(prompt, 'tags', None)
+
+                if not prompt_tags:
+                    # Check metadata attribute
+                    metadata = getattr(prompt, 'metadata', None)
+                    if metadata:
+                        if isinstance(metadata, dict):
+                            prompt_tags = metadata.get('tags')
+                        else:
+                            prompt_tags = getattr(metadata, 'tags', None)
+
+            # Add tags to set
+            if prompt_tags and isinstance(prompt_tags, (list, tuple)):
                 tags.update(prompt_tags)
+
         return sorted(list(tags))
+
+    def _normalize_prompt(self, prompt):
+        """Convert prompt to dictionary format - FIXED VERSION"""
+        if isinstance(prompt, dict):
+            # Extract category from multiple possible locations
+            category = (prompt.get('category') or
+                        prompt.get('metadata', {}).get('category') or
+                        prompt.get('prompt', {}).get('category') or
+                        prompt.get('config', {}).get('category') or
+                        'general')
+
+            # Extract tags from multiple possible locations
+            tags = (prompt.get('tags') or
+                    prompt.get('metadata', {}).get('tags') or
+                    prompt.get('prompt', {}).get('tags') or
+                    prompt.get('config', {}).get('tags') or
+                    [])
+
+            # Extract usage_count
+            usage_count = (prompt.get('usage_count') or
+                           prompt.get('metadata', {}).get('usage_count') or
+                           0)
+
+            # Extract last_used
+            last_used = (prompt.get('last_used') or
+                         prompt.get('metadata', {}).get('last_used') or
+                         None)
+
+            normalized = {
+                'name': prompt.get('name', ''),
+                'description': prompt.get('description', ''),
+                'template': prompt.get('template') or prompt.get('prompt_template', ''),
+                'arguments': prompt.get('arguments', []),
+                'argument_count': len(prompt.get('arguments', [])),
+                'category': category,
+                'tags': tags if isinstance(tags, list) else [],
+                'usage_count': usage_count,
+                'last_used': last_used,
+                'author': (prompt.get('author') or
+                           prompt.get('metadata', {}).get('author') or ''),
+                'version': (prompt.get('version') or
+                            prompt.get('metadata', {}).get('version') or '1.0'),
+                'created_at': (prompt.get('created_at') or
+                               prompt.get('metadata', {}).get('created_at') or ''),
+                'updated_at': (prompt.get('updated_at') or
+                               prompt.get('metadata', {}).get('updated_at') or ''),
+            }
+        else:
+            # Object with attributes
+            # Extract from metadata if it exists
+            metadata = getattr(prompt, 'metadata', None)
+
+            if metadata:
+                if isinstance(metadata, dict):
+                    category = metadata.get('category', 'general')
+                    tags = metadata.get('tags', [])
+                    usage_count = metadata.get('usage_count', 0)
+                    last_used = metadata.get('last_used', None)
+                else:
+                    category = getattr(metadata, 'category', 'general')
+                    tags = getattr(metadata, 'tags', [])
+                    usage_count = getattr(metadata, 'usage_count', 0)
+                    last_used = getattr(metadata, 'last_used', None)
+            else:
+                category = getattr(prompt, 'category', 'general')
+                tags = getattr(prompt, 'tags', [])
+                usage_count = getattr(prompt, 'usage_count', 0)
+                last_used = getattr(prompt, 'last_used', None)
+
+            normalized = {
+                'name': getattr(prompt, 'name', ''),
+                'description': getattr(prompt, 'description', ''),
+                'template': getattr(prompt, 'template', getattr(prompt, 'prompt_template', '')),
+                'arguments': getattr(prompt, 'arguments', []),
+                'argument_count': len(getattr(prompt, 'arguments', [])),
+                'category': category,
+                'tags': tags if isinstance(tags, list) else [],
+                'usage_count': usage_count,
+                'last_used': last_used,
+                'author': getattr(prompt, 'author', ''),
+                'version': getattr(prompt, 'version', '1.0'),
+                'created_at': getattr(prompt, 'created_at', ''),
+                'updated_at': getattr(prompt, 'updated_at', ''),
+            }
+
+        return normalized
 
     def _calculate_metrics(self, prompts):
         """Calculate metrics from prompts list"""
@@ -493,21 +646,45 @@ class PromptsRoutes(BaseRoutes):
             prompts = []
             for prompt in raw_prompts:
                 if isinstance(prompt, dict):
+                    # FIXED: Extract from multiple locations
+                    category = (prompt.get('category') or
+                                prompt.get('metadata', {}).get('category') or
+                                prompt.get('prompt', {}).get('category') or
+                                prompt.get('config', {}).get('category') or
+                                'general')
+
+                    tags = (prompt.get('tags') or
+                            prompt.get('metadata', {}).get('tags') or
+                            prompt.get('prompt', {}).get('tags') or
+                            prompt.get('config', {}).get('tags') or
+                            [])
+
                     normalized = {
                         'name': prompt.get('name', ''),
                         'description': prompt.get('description', ''),
-                        'category': prompt.get('metadata', {}).get('category', 'general'),
-                        'tags': prompt.get('metadata', {}).get('tags', []),
+                        'category': category,  # FIXED
+                        'tags': tags if isinstance(tags, list) else [],  # FIXED
                         'argument_count': len(prompt.get('arguments', [])),
                         'usage_count': prompt.get('metadata', {}).get('usage_count', 0),
                         'last_used': prompt.get('metadata', {}).get('last_used', None),
                     }
                 else:
+                    # Same for objects - extract from metadata
+                    metadata = getattr(prompt, 'metadata', None)
+                    if metadata:
+                        category = (metadata.get('category') if isinstance(metadata, dict)
+                                    else getattr(metadata, 'category', 'general'))
+                        tags = (metadata.get('tags') if isinstance(metadata, dict)
+                                else getattr(metadata, 'tags', []))
+                    else:
+                        category = getattr(prompt, 'category', 'general')
+                        tags = getattr(prompt, 'tags', [])
+
                     normalized = {
                         'name': getattr(prompt, 'name', ''),
                         'description': getattr(prompt, 'description', ''),
-                        'category': getattr(prompt, 'category', 'general'),
-                        'tags': getattr(prompt, 'tags', []),
+                        'category': category,
+                        'tags': tags if isinstance(tags, list) else [],
                         'argument_count': len(getattr(prompt, 'arguments', [])),
                         'usage_count': getattr(prompt, 'usage_count', 0),
                         'last_used': getattr(prompt, 'last_used', None),
