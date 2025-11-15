@@ -85,6 +85,8 @@ class MCPHandler:
                 result = self._handle_tools_list(params, session)
             elif method == 'tool/schema':
                 result = self._handle_tool_schema(params, session)
+            elif method == 'tool/description':
+                result = self._handle_tool_description(params, session)
             elif method == 'tool/input_schema':
                 result = self._handle_tool_input_schema(params, session)
             elif method == 'tool/output_schema':
@@ -299,6 +301,24 @@ class MCPHandler:
         output_schema = tool.get_output_schema()
         return {"content": output_schema}
 
+    def _handle_tool_description(self, params: Dict, session: Optional[Dict]) -> Dict:
+        if not self.tools_registry:
+            raise ValueError("Tools registry not available")
+
+        tool_name = params.get('name')
+        if not tool_name:
+            raise ValueError("Tool name is required")
+
+        tool = self.tools_registry.get_tool(tool_name)
+        if not tool:
+            raise ValueError(f"Tool not found: {tool_name}")
+        name = tool.name()
+        description = tool.description()
+        return {
+            "name": name,
+            "description": description,
+        }
+
     def _handle_tool_schema(self, params: Dict, session: Optional[Dict]) -> Dict:
         if not self.tools_registry:
             raise ValueError("Tools registry not available")
@@ -311,10 +331,21 @@ class MCPHandler:
         if not tool:
             raise ValueError(f"Tool not found: {tool_name}")
 
+        name = tool.name()
+        description = tool.description()
+        version  =tool.version()
+        enabled = tool.enabled()
         input_schema =  tool.get_input_schema()
         output_schema = tool.get_output_schema()
 
-        return {"input_schema": input_schema, "output_schema": output_schema}
+        return {
+            "name" : name,
+            "description" : description,
+            "version" : version,
+            "enabled" : enabled,
+            "input_schema": input_schema,
+            "output_schema": output_schema
+        }
 
     def _handle_tools_call(self, params: Dict, session: Optional[Dict]) -> Dict:
         """
