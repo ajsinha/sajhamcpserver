@@ -118,8 +118,8 @@ class ApiRoutes(BaseRoutes):
                     'error': str(e)
                 }), 500
 
-        @app.route('/api/tools/list', methods=['GET'])
-        @self.login_required
+        @app.route('/api/tools/list', methods=['GET'])  #@self.login_required
+
         def api_tools_list():
             """Get list of all tools"""
             try:
@@ -131,8 +131,8 @@ class ApiRoutes(BaseRoutes):
                 logging.error(f"Error getting tools list: {e}")
                 return jsonify({'error': str(e)}), 500
 
-        @app.route('/api/tools/<tool_name>/schema', methods=['GET'])
-        @self.login_required
+        @app.route('/api/tools/<tool_name>/schema', methods=['GET'])  #@self.login_required
+
         def api_get_tool_schema(tool_name):
             """Get tool input schema"""
             try:
