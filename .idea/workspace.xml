@@ -6,332 +6,194 @@
   <component name="ChangeListManager">
     <list default="true" id="04a8e7bd-1a2d-4b5f-a656-a3f1eed8ce6e" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apiclient/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apiclient/demo.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apiclient/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apiclient/wikipedia_client.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apiclient/yahoo_finance_client.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/apikeys.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/application.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/ir/sp500_companies.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/literature/wikipedia.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/prompts/bug_diagnosis.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/prompts/business_plan.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/prompts/code_review.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/prompts/content_writing.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/prompts/data_analysis.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/prompts/documentation_generator.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/server.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ECB_REFACTORING_SUMMARY.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/bdf_get_ecb_policy_rate.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/bdf_get_eurozone_indicator.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/bdf_get_exchange_rate.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/bdf_get_french_indicator.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/bdf_get_oat_yield.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/boc_get_bond_yield.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/boc_get_common_indicators.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/boc_get_exchange_rate.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/boc_get_interest_rate.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/boc_get_latest.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/boc_get_series.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/boc_search_series.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/boj_get_exchange_rate.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/boj_get_jgb_yield.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/boj_get_money_stock.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/boj_get_policy_rate.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/boj_get_price_index.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/check_robots_txt.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/crawl_sitemap.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/crawl_url.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_aggregate.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_describe_table.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_get_stats.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_list_files.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_list_tables.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_query.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_refresh_views.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ecb_get_bond_yield.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ecb_get_common_indicators.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ecb_get_exchange_rate.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ecb_get_inflation.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ecb_get_interest_rate.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ecb_get_latest.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ecb_get_series.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ecb_search_series.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_amendments.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_companies_by_sic.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_company_concept.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_company_facts.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_company_search.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_company_submissions.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_company_tickers_by_exchange.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_current_reports.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_filing_details.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_filings_by_form.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_financial_ratios.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_foreign_issuers.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_frame_data.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_insider_transactions.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_institutional_holdings.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_mutual_fund_holdings.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_ownership_reports.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_proxy_statements.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_registration_statements.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/edgar_xbrl_frames_multi_concept.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/extract_content.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/extract_links.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/extract_metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/fbi_compare_states.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/fbi_get_agency_details.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/fbi_get_agency_statistics.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/fbi_get_crime_trend.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/fbi_get_national_statistics.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/fbi_get_offense_data.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/fbi_get_participation_rate.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/fbi_get_state_statistics.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/fbi_search_agencies.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/fed_get_common_indicators.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/fed_get_latest.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/fed_get_series.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/fed_search_series.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/get_page_info.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/google_search.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/imf_compare_countries.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/imf_get_bop_data.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/imf_get_country_profile.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/imf_get_data.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/imf_get_databases.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/imf_get_dataflows.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/imf_get_ifs_data.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/imf_get_weo_data.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ir_find_page.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ir_get_all_resources.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ir_get_annual_reports.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ir_get_documents.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ir_get_latest_earnings.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ir_get_presentations.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/ir_list_supported_companies.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_extract_text.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_get_excel_metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_get_excel_sheets.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_get_word_metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_list_files.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_read_excel.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_read_excel_sheet.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_read_word.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_search_excel.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_search_word.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/pboc_get_cgb_yield.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/pboc_get_exchange_rate.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/pboc_get_forex_reserves.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/pboc_get_lpr.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/pboc_get_money_supply.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/rbi_get_exchange_rate.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/rbi_get_forex_reserves.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/rbi_get_gsec_yield.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/rbi_get_inflation.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/rbi_get_policy_rate.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/sec_get_company_facts.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/sec_get_company_filings.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/sec_get_company_info.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/sec_get_financial_data.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/sec_get_insider_trading.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/sec_get_mutual_fund_holdings.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/sec_search_company.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_count_rows.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_describe_source.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_execute_query.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_get_schema.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_list_sources.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_sample_data.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/tavily_domain_search.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/tavily_news_search.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/tavily_research_search.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/tavily_web_search.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/un_compare_trade.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/un_get_country_trade.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/un_get_sdg_data.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/un_get_sdg_indicators.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/un_get_sdg_progress.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/un_get_sdg_targets.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/un_get_sdgs.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/un_get_trade_balance.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/un_get_trade_data.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/wb_compare_countries.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_countries.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_country_data.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_income_levels.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_indicator_data.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_indicators.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_lending_types.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_regions.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_topic_indicators.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/wb_search_indicators.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/wiki_get_page.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/wiki_get_summary.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/wiki_search.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/yahoo_get_history.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/yahoo_get_quote.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/yahoo_search_symbols.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/users.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/apikey_manager.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/auth_manager.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/db/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/db/db_connection_pool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/db/db_connection_pool_manager.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/hot_reload_manager.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/mcp_handler.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/prompts_registry.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/properties_configurator.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/test_properties_configurator.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/tool_groups_manager.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/duckdb/duckdb_analytics.db" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/sqlselect/customer_data.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/sqlselect/inventory_data.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/sqlselect/sales_data.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/requirements/sajhamcpserver_requirements.docx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/API Client README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/Bank_of_Canada_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/CHINA_PEOPLES_BANK_DOCUMENTATION.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/DuckDB_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/Enhanced EDGAR MCP Tools - Reference Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/European_Central_Bank_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/FBI_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/FRANCE_BANQUE_DE_FRANCE_DOCUMENTATION.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/Federal_Reserve_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/Google_Search_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/IMF_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/IMPLEMENTATION_SUMMARY.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/INDIA_RESERVE_BANK_DOCUMENTATION.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/Investor_Relations_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/JAPAN_BANK_OF_JAPAN_DOCUMENTATION.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/MSDOC_Search_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/SAJHA Server Prompts Management Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/SEC_Edgar_Search_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/SQL_Select_Search_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/Tavily_Search_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/United_Nations_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/Web_Crawler_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/Wikipedia_Search_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/World_Bank_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/Yahoo_Finance_MCP_Tool_Reference_Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/FINAL_SUMMARY.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/INTEGRATION_GUIDE.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/Investor Relations Tool - Architecture Diagram.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/Investor Relations Tool - Complete Package Index.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/Investor Relations Tool - Executive Summary.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/Investor Relations Tool - Testing Guide.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/MIGRATION.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/QUICK_START.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/base_ir_webscraper.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/company_database.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/company_ir_scrapers.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/demo.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/enhanced_base_scraper.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/enhanced_factory.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/generic_ir_scraper.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/http_client.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/ir_webscraper_factory.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir/sec_edgar.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/config/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/server.properties" beforeDir="false" afterPath="$PROJECT_DIR$/config/server.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/bdf_get_ecb_policy_rate.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/bdf_get_ecb_policy_rate.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/bdf_get_eurozone_indicator.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/bdf_get_eurozone_indicator.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/bdf_get_exchange_rate.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/bdf_get_exchange_rate.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/bdf_get_french_indicator.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/bdf_get_french_indicator.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/bdf_get_oat_yield.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/bdf_get_oat_yield.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/boc_get_bond_yield.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/boc_get_bond_yield.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/boc_get_common_indicators.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/boc_get_common_indicators.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/boc_get_exchange_rate.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/boc_get_exchange_rate.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/boc_get_interest_rate.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/boc_get_interest_rate.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/boc_get_latest.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/boc_get_latest.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/boc_get_series.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/boc_get_series.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/boc_search_series.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/boc_search_series.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/boj_get_exchange_rate.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/boj_get_exchange_rate.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/boj_get_jgb_yield.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/boj_get_jgb_yield.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/boj_get_money_stock.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/boj_get_money_stock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/boj_get_policy_rate.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/boj_get_policy_rate.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/boj_get_price_index.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/boj_get_price_index.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/check_robots_txt.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/check_robots_txt.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/crawl_sitemap.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/crawl_sitemap.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/crawl_url.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/crawl_url.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_aggregate.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/duckdb_aggregate.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_describe_table.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/duckdb_describe_table.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_get_stats.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/duckdb_get_stats.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_list_files.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/duckdb_list_files.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_list_tables.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/duckdb_list_tables.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_query.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/duckdb_query.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_refresh_views.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/duckdb_refresh_views.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/ecb_get_bond_yield.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/ecb_get_bond_yield.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/ecb_get_common_indicators.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/ecb_get_common_indicators.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/ecb_get_exchange_rate.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/ecb_get_exchange_rate.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/ecb_get_inflation.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/ecb_get_inflation.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/ecb_get_interest_rate.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/ecb_get_interest_rate.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/ecb_get_latest.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/ecb_get_latest.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/ecb_get_series.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/ecb_get_series.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/ecb_search_series.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/ecb_search_series.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/edgar_amendments.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/edgar_amendments.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/edgar_companies_by_sic.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/edgar_companies_by_sic.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/edgar_company_concept.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/edgar_company_concept.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/edgar_company_facts.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/edgar_company_facts.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/edgar_company_search.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/edgar_company_search.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/edgar_company_submissions.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/edgar_company_submissions.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/edgar_company_tickers_by_exchange.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/edgar_company_tickers_by_exchange.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/edgar_filing_details.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/edgar_filing_details.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/edgar_filings_by_form.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/edgar_filings_by_form.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/edgar_financial_ratios.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/edgar_financial_ratios.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/edgar_frame_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/edgar_frame_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/edgar_insider_transactions.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/edgar_insider_transactions.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/edgar_institutional_holdings.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/edgar_institutional_holdings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/edgar_mutual_fund_holdings.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/edgar_mutual_fund_holdings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/edgar_xbrl_frames_multi_concept.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/edgar_xbrl_frames_multi_concept.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/extract_content.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/extract_content.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/extract_links.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/extract_links.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/extract_metadata.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/extract_metadata.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/fbi_compare_states.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/fbi_compare_states.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/fbi_get_agency_details.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/fbi_get_agency_details.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/fbi_get_agency_statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/fbi_get_agency_statistics.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/fbi_get_crime_trend.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/fbi_get_crime_trend.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/fbi_get_national_statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/fbi_get_national_statistics.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/fbi_get_offense_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/fbi_get_offense_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/fbi_get_participation_rate.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/fbi_get_participation_rate.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/fbi_get_state_statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/fbi_get_state_statistics.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/fbi_search_agencies.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/fbi_search_agencies.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/fed_get_common_indicators.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/fed_get_common_indicators.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/fed_get_latest.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/fed_get_latest.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/fed_get_series.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/fed_get_series.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/fed_search_series.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/fed_search_series.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/get_page_info.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/get_page_info.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/google_search.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/google_search.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/imf_compare_countries.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/imf_compare_countries.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/imf_get_bop_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/imf_get_bop_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/imf_get_country_profile.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/imf_get_country_profile.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/imf_get_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/imf_get_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/imf_get_databases.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/imf_get_databases.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/imf_get_dataflows.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/imf_get_dataflows.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/imf_get_ifs_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/imf_get_ifs_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/imf_get_weo_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/imf_get_weo_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/ir_find_page.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/ir_find_page.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/ir_get_all_resources.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/ir_get_all_resources.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/ir_get_annual_reports.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/ir_get_annual_reports.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/ir_get_documents.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/ir_get_documents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/ir_get_latest_earnings.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/ir_get_latest_earnings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/ir_get_presentations.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/ir_get_presentations.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/ir_list_supported_companies.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/ir_list_supported_companies.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_extract_text.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/msdoc_extract_text.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_get_excel_metadata.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/msdoc_get_excel_metadata.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_get_excel_sheets.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/msdoc_get_excel_sheets.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_get_word_metadata.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/msdoc_get_word_metadata.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_list_files.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/msdoc_list_files.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_read_excel.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/msdoc_read_excel.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_read_excel_sheet.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/msdoc_read_excel_sheet.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_read_word.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/msdoc_read_word.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_search_excel.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/msdoc_search_excel.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/msdoc_search_word.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/msdoc_search_word.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/pboc_get_cgb_yield.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/pboc_get_cgb_yield.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/pboc_get_exchange_rate.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/pboc_get_exchange_rate.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/pboc_get_forex_reserves.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/pboc_get_forex_reserves.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/pboc_get_lpr.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/pboc_get_lpr.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/pboc_get_money_supply.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/pboc_get_money_supply.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/rbi_get_exchange_rate.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/rbi_get_exchange_rate.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/rbi_get_forex_reserves.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/rbi_get_forex_reserves.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/rbi_get_gsec_yield.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/rbi_get_gsec_yield.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/rbi_get_inflation.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/rbi_get_inflation.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/rbi_get_policy_rate.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/rbi_get_policy_rate.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sec_get_company_facts.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sec_get_company_facts.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sec_get_company_filings.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sec_get_company_filings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sec_get_company_info.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sec_get_company_info.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sec_get_financial_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sec_get_financial_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sec_get_insider_trading.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sec_get_insider_trading.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sec_get_mutual_fund_holdings.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sec_get_mutual_fund_holdings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sec_search_company.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sec_search_company.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_count_rows.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sqlselect_count_rows.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_describe_source.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sqlselect_describe_source.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_execute_query.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sqlselect_execute_query.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_get_schema.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sqlselect_get_schema.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_list_sources.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sqlselect_list_sources.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_sample_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sqlselect_sample_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/tavily_domain_search.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/tavily_domain_search.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/tavily_news_search.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/tavily_news_search.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/tavily_research_search.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/tavily_research_search.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/tavily_web_search.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/tavily_web_search.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/un_compare_trade.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/un_compare_trade.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/un_get_country_trade.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/un_get_country_trade.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/un_get_sdg_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/un_get_sdg_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/un_get_sdg_indicators.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/un_get_sdg_indicators.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/un_get_sdg_progress.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/un_get_sdg_progress.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/un_get_sdg_targets.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/un_get_sdg_targets.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/un_get_sdgs.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/un_get_sdgs.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/un_get_trade_balance.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/un_get_trade_balance.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/un_get_trade_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/un_get_trade_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/wb_compare_countries.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/wb_compare_countries.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_countries.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/wb_get_countries.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_country_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/wb_get_country_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_income_levels.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/wb_get_income_levels.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_indicator_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/wb_get_indicator_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_indicators.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/wb_get_indicators.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_lending_types.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/wb_get_lending_types.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_regions.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/wb_get_regions.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/wb_get_topic_indicators.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/wb_get_topic_indicators.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/wb_search_indicators.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/wb_search_indicators.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/wiki_get_page.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/wiki_get_page.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/wiki_get_summary.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/wiki_get_summary.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/wiki_search.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/wiki_search.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/yahoo_get_history.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/yahoo_get_history.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/yahoo_get_quote.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/yahoo_get_quote.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/yahoo_search_symbols.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/yahoo_search_symbols.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/users.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/users.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/IMPLEMENTATION_SUMMARY.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/IMPLEMENTATION_SUMMARY.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/SQL_Select_Search_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/SQL_Select_Search_MCP_Tool_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/Tavily_Search_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/Tavily_Search_MCP_Tool_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/United_Nations_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/United_Nations_MCP_Tool_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/World_Bank_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/World_Bank_MCP_Tool_Reference_Guide.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/logs/server.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/server.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/routes/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/routes/admin_routes.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/routes/api_routes.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/routes/apikeys_routes.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/routes/auth_routes.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/routes/base_routes.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/routes/dashboard_routes.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/routes/docs_routes.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/routes/help_routes.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/routes/monitoring_routes.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/routes/prompts_routes.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/routes/socketio_handlers.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/routes/tools_routes.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/run_server.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_bank_of_canada_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_duckdb_mcp_tools.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_european_central_bank_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_fbi_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_federal_reserve_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_google_search_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_imf_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_investor_relations_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_msdoc_relations_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_sec_edgar_relations_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_sql_select_relations_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_tavily_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_united_nations_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_webcrawler_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_wikipedia_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_world_bank_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_yahoo_finance_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/base_mcp_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/duckdb_deep_diagnostics.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/bank_of_canada_tool_refactored.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/china_central_bank.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/duckdb_olap_tools_refactored.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/enhanced_edgar_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/european_central_bank_tool_refactored.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/fbi_tool_refactored.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/fed_reserve_tool_refactored.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/france_central_bank.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/google_search_tool_refactored.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/imf_tool_refactored.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/india_central_bank.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/investor_relations_tool_refactored.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/japan_central_bank.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/msdoc_tools_tool_refactored.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/sec_edgar_tool_refactored.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/sqlselect_tool_refactored.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/tavily_tool_refactored.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/united_nations_tool_refactored.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/webcrawler_tool_refactored.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/wikipedia_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/world_bank_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/impl/yahoo_finance_tool.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/tools_registry.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/verify_installation.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/app.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/sajhamcpserver_web.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/static/css/style.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/static/js/main.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/admin/admin_prompts.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/admin/admin_tools.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/admin/admin_users.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/admin/apikeys_create.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/admin/apikeys_created.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/admin/apikeys_delete.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/admin/apikeys_edit.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/admin/apikeys_list.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/admin/apikeys_view.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/auth/login.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/common/base.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/common/error.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/common/user_config.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/dashboard/dashboard.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/help/about.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/help/docs_list.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/help/docs_view.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/help/help.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/monitoring/monitoring_tools.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/monitoring/monitoring_users.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/prompts/prompt_create.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/prompts/prompt_detail.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/prompts/prompt_test.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/prompts/prompts_list.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/tools/tool_config.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/tools/tool_execute.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/tools/tool_schema.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/templates/tools/tools_list.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/run_server.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_server.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/core/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/core/apikey_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/apikey_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/core/auth_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/auth_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/core/hot_reload_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/hot_reload_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/base_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/base_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/central_banks_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/central_banks_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/document_sql_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/document_sql_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/duckdb_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/duckdb_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/ecb_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/ecb_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/fbi_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/fbi_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/federal_reserve_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/federal_reserve_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/imf_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/imf_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/ir_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/ir_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/search_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/search_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/sec_edgar_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/sec_edgar_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/un_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/un_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/webcrawler_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/webcrawler_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/wikipedia_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/wikipedia_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/world_bank_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/world_bank_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/yahoo_finance_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/yahoo_finance_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/tools/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/tools/tools_registry.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/tools_registry.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/routes/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/routes/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/routes/docs_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/routes/docs_routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/sajhamcpserver_web.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/sajhamcpserver_web.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/common/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/common/base.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/help/about.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/help/about.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/help/help.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/help/help.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

@@ -2,7 +2,7 @@
   "name": "pboc_get_money_supply",
   "implementation": "sajha.tools.impl.china_central_bank.PBoCGetMoneySupplyTool",
   "description": "Retrieve Chinese money supply indicators (M0, M1, M2)",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

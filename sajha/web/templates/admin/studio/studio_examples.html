@@ -1,0 +1,349 @@
+{% extends "common/base.html" %}
+
+{% block title %}MCP Studio Examples - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .example-card {
+        background: #1e1e1e;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .example-header {
+        background: #2d2d2d;
+        padding: 15px 20px;
+        border-bottom: 1px solid #404040;
+    }
+    
+    .example-header h5 {
+        color: #4ec9b0;
+        margin: 0;
+    }
+    
+    .example-description {
+        color: #a0a0a0;
+        font-size: 13px;
+        margin-top: 5px;
+    }
+    
+    .example-code {
+        padding: 15px 20px;
+        background: #1e1e1e;
+    }
+    
+    .example-code pre {
+        background: transparent;
+        color: #d4d4d4;
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+    
+    .example-code .decorator {
+        color: #dcdcaa;
+    }
+    
+    .example-code .keyword {
+        color: #569cd6;
+    }
+    
+    .example-code .string {
+        color: #ce9178;
+    }
+    
+    .example-code .function {
+        color: #dcdcaa;
+    }
+    
+    .example-code .param {
+        color: #9cdcfe;
+    }
+    
+    .example-code .type {
+        color: #4ec9b0;
+    }
+    
+    .example-code .comment {
+        color: #6a9955;
+    }
+    
+    .example-footer {
+        background: #252526;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: flex-end;
+    }
+    
+    .btn-use-example {
+        background: #007acc;
+        border: none;
+        color: white;
+        padding: 6px 16px;
+        border-radius: 4px;
+        font-size: 13px;
+    }
+    
+    .btn-use-example:hover {
+        background: #005a9e;
+        color: white;
+    }
+    
+    .decorator-guide {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 8px;
+        padding: 25px;
+        margin-bottom: 25px;
+    }
+    
+    .decorator-guide h4 {
+        color: #4ec9b0;
+        margin-bottom: 15px;
+    }
+    
+    .decorator-guide code {
+        background: #2d2d2d;
+        padding: 2px 6px;
+        border-radius: 3px;
+        color: #dcdcaa;
+    }
+    
+    .param-table {
+        width: 100%;
+        margin-top: 15px;
+    }
+    
+    .param-table th {
+        background: #2d2d2d;
+        color: #9cdcfe;
+        padding: 10px;
+        text-align: left;
+        font-size: 13px;
+    }
+    
+    .param-table td {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 10px;
+        font-size: 13px;
+        border-bottom: 1px solid #404040;
+    }
+    
+    .param-table code {
+        background: #2d2d2d;
+        padding: 2px 6px;
+        border-radius: 3px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-1">
+                <i class="bi bi-book me-2"></i>MCP Studio Examples
+            </h4>
+            <small class="text-muted">Learn how to create tools with @sajhamcptool</small>
+        </div>
+        <a href="{{ url_for('studio_home') }}" class="btn btn-primary">
+            <i class="bi bi-magic me-1"></i>Open Studio
+        </a>
+    </div>
+    
+    <!-- Decorator Guide -->
+    <div class="decorator-guide">
+        <h4><i class="bi bi-code-square me-2"></i>The @sajhamcptool Decorator</h4>
+        <p class="text-light mb-3">
+            Use the <code>@sajhamcptool</code> decorator to mark Python functions for conversion to MCP tools.
+            The decorator accepts the following parameters:
+        </p>
+        
+        <table class="param-table">
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>description</code></td>
+                    <td>string</td>
+                    <td><span class="badge bg-danger">Yes</span></td>
+                    <td>Description of what the tool does</td>
+                </tr>
+                <tr>
+                    <td><code>category</code></td>
+                    <td>string</td>
+                    <td><span class="badge bg-secondary">No</span></td>
+                    <td>Category for organization (default: "General")</td>
+                </tr>
+                <tr>
+                    <td><code>tags</code></td>
+                    <td>list[str]</td>
+                    <td><span class="badge bg-secondary">No</span></td>
+                    <td>Tags for searchability</td>
+                </tr>
+                <tr>
+                    <td><code>author</code></td>
+                    <td>string</td>
+                    <td><span class="badge bg-secondary">No</span></td>
+                    <td>Tool author name</td>
+                </tr>
+                <tr>
+                    <td><code>rate_limit</code></td>
+                    <td>int</td>
+                    <td><span class="badge bg-secondary">No</span></td>
+                    <td>Requests per minute limit (default: 60)</td>
+                </tr>
+                <tr>
+                    <td><code>cache_ttl</code></td>
+                    <td>int</td>
+                    <td><span class="badge bg-secondary">No</span></td>
+                    <td>Cache time-to-live in seconds (default: 300)</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="mt-4 p-3 bg-dark rounded">
+            <h6 class="text-light"><i class="bi bi-lightbulb me-2"></i>Pro Tips</h6>
+            <ul class="text-light small mb-0">
+                <li>Use <strong>type hints</strong> on parameters - they define the input schema</li>
+                <li>Parameters <strong>without defaults</strong> become required fields</li>
+                <li>Parameters <strong>with defaults</strong> become optional with those defaults</li>
+                <li>Return type should be <code>dict</code> for proper output schema</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Examples -->
+    <h5 class="text-light mb-3"><i class="bi bi-collection me-2"></i>Code Examples</h5>
+    
+    {% for example in examples %}
+    <div class="example-card">
+        <div class="example-header">
+            <h5><i class="bi bi-file-code me-2"></i>{{ example.title }}</h5>
+            <p class="example-description mb-0">{{ example.description }}</p>
+        </div>
+        <div class="example-code">
+            <pre>{{ example.code }}</pre>
+        </div>
+        <div class="example-footer">
+            <button class="btn btn-use-example" onclick="useExample({{ loop.index0 }})">
+                <i class="bi bi-box-arrow-in-right me-1"></i>Use This Example
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+    
+    <!-- Additional Template -->
+    <div class="example-card">
+        <div class="example-header">
+            <h5><i class="bi bi-file-code me-2"></i>Template: API Wrapper</h5>
+            <p class="example-description mb-0">Template for wrapping external APIs</p>
+        </div>
+        <div class="example-code">
+            <pre>@sajhamcptool(
+    description="Fetch data from external API",
+    category="API Integration",
+    tags=["api", "external", "integration"],
+    rate_limit=30,
+    cache_ttl=600
+)
+def fetch_api_data(
+    endpoint: str,
+    api_key: str,
+    params: dict = None
+) -> dict:
+    """Fetch data from an external API."""
+    import urllib.request
+    import json
+    
+    url = f"https://api.example.com/{endpoint}"
+    if params:
+        query = "&".join(f"{k}={v}" for k, v in params.items())
+        url = f"{url}?{query}"
+    
+    headers = {"Authorization": f"Bearer {api_key}"}
+    req = urllib.request.Request(url, headers=headers)
+    
+    try:
+        with urllib.request.urlopen(req, timeout=30) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            return {"success": True, "data": data}
+    except Exception as e:
+        return {"success": False, "error": str(e)}</pre>
+        </div>
+        <div class="example-footer">
+            <button class="btn btn-use-example" onclick="useTemplate()">
+                <i class="bi bi-box-arrow-in-right me-1"></i>Use This Template
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const examples = {{ examples | tojson }};
+
+function useExample(index) {
+    const example = examples[index];
+    sessionStorage.setItem('studioCode', example.code);
+    window.location.href = '{{ url_for("studio_home") }}';
+}
+
+function useTemplate() {
+    const template = `@sajhamcptool(
+    description="Fetch data from external API",
+    category="API Integration",
+    tags=["api", "external", "integration"],
+    rate_limit=30,
+    cache_ttl=600
+)
+def fetch_api_data(
+    endpoint: str,
+    api_key: str,
+    params: dict = None
+) -> dict:
+    """Fetch data from an external API."""
+    import urllib.request
+    import json
+    
+    url = f"https://api.example.com/{endpoint}"
+    if params:
+        query = "&".join(f"{k}={v}" for k, v in params.items())
+        url = f"{url}?{query}"
+    
+    headers = {"Authorization": f"Bearer {api_key}"}
+    req = urllib.request.Request(url, headers=headers)
+    
+    try:
+        with urllib.request.urlopen(req, timeout=30) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            return {"success": True, "data": data}
+    except Exception as e:
+        return {"success": False, "error": str(e)}`;
+    
+    sessionStorage.setItem('studioCode', template);
+    window.location.href = '{{ url_for("studio_home") }}';
+}
+
+// Check for stored code on page load (for studio_home.html)
+document.addEventListener('DOMContentLoaded', function() {
+    const storedCode = sessionStorage.getItem('studioCode');
+    if (storedCode) {
+        const editor = document.getElementById('codeEditor');
+        if (editor) {
+            editor.value = storedCode;
+            sessionStorage.removeItem('studioCode');
+        }
+    }
+});
+</script>
+{% endblock %}

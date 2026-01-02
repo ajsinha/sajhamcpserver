@@ -2,7 +2,7 @@
   "name": "imf_get_weo_data",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetWEODataTool",
   "description": "Retrieve World Economic Outlook (WEO) data including GDP growth, inflation, unemployment, fiscal balance, public debt, and other macroeconomic indicators.",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

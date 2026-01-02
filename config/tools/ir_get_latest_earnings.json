@@ -2,7 +2,7 @@
   "name": "ir_get_latest_earnings",
   "implementation": "sajha.tools.impl.investor_relations_tool_refactored.IRGetLatestEarningsTool",
   "description": "Get the latest earnings report and presentation for a company",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

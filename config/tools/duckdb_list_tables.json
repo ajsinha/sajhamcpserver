@@ -2,7 +2,7 @@
   "name": "duckdb_list_tables",
   "implementation": "sajha.tools.impl.duckdb_olap_tools_refactored.DuckDbListTablesTool",
   "description": "List all available tables and views in the DuckDB database",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "data_directory": "/home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb",
   "inputSchema": {

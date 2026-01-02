@@ -2,7 +2,7 @@
   "name": "msdoc_extract_text",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocExtractTextTool",
   "description": "Extract all plain text content from Word or Excel documents",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

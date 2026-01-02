@@ -1,6 +1,6 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Flask application for SAJHA MCP Server v2.1.0 - Backward Compatibility Wrapper
+Flask application for SAJHA MCP Server v2.2.0 - Backward Compatibility Wrapper
 
 This module provides backward compatibility for code that imports from app.py.
 The actual implementation is now in sajhamcpserver_web.py.

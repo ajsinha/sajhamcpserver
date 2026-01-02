@@ -2,7 +2,7 @@
   "name": "fbi_get_state_statistics",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetStateStatisticsTool",
   "description": "Retrieve crime statistics for a specific US state by offense type and year",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "edgar_company_facts",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARCompanyFactsTool",
   "description": "Retrieve all structured financial facts and XBRL data reported by a company across all filings",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

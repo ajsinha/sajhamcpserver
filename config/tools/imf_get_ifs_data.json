@@ -2,7 +2,7 @@
   "name": "imf_get_ifs_data",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetIFSDataTool",
   "description": "Retrieve International Financial Statistics (IFS) data including exchange rates, interest rates, prices, monetary aggregates, reserves, and more.",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

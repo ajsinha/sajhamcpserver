@@ -2,7 +2,7 @@
   "name": "ecb_get_inflation",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetInflationTool",
   "description": "Retrieve HICP (Harmonised Index of Consumer Prices) inflation measures for the Euro Area including overall, core, and energy inflation.",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

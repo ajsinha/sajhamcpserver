@@ -2,7 +2,7 @@
   "name": "boj_get_price_index",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJGetPriceIndexTool",
   "description": "Retrieve Japanese price indices including CPI and PPI with historical data.",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

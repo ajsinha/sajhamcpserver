@@ -2,7 +2,7 @@
   "name": "yahoo_search_symbols",
   "implementation": "sajha.tools.impl.yahoo_finance_tool.YahooSearchSymbolsTool",
   "description": "Search for stock symbols and companies by name, ticker, or keyword. Returns matching securities with their symbols and basic info.",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

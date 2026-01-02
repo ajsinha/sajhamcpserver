@@ -2,7 +2,7 @@
   "name": "edgar_filing_details",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARFilingDetailsTool",
   "description": "Get detailed information about a specific SEC filing by accession number with direct document URLs",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "ir_get_documents",
   "implementation": "sajha.tools.impl.investor_relations_tool_refactored.IRGetDocumentsTool",
   "description": "Get investor relations documents filtered by type and year",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

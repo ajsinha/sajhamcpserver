@@ -2,7 +2,7 @@
   "name": "edgar_companies_by_sic",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARCompaniesBySICTool",
   "description": "Search companies by Standard Industrial Classification (SIC) code for industry and sector analysis",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

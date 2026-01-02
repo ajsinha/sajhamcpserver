@@ -2,7 +2,7 @@
   "name": "ir_get_annual_reports",
   "implementation": "sajha.tools.impl.investor_relations_tool_refactored.IRGetAnnualReportsTool",
   "description": "Get annual reports (10-K) for a company, with optional year filter",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

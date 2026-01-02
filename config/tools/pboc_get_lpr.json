@@ -2,7 +2,7 @@
   "name": "pboc_get_lpr",
   "implementation": "sajha.tools.impl.china_central_bank.PBoCGetLPRTool",
   "description": "Retrieve China Loan Prime Rate (LPR) for 1-year and 5-year tenors",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

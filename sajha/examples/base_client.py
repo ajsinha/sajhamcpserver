@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server - Base Client v2.1.0
+SAJHA MCP Server - Base Client v2.2.0
 
 Copyright © 2025-2030, All Rights Reserved
 Ashutosh Sinha
@@ -29,7 +29,7 @@ class SajhaClient:
         result = client.execute_tool("wiki_search", {"query": "Python"})
     """
     
-    VERSION = '2.1.0'
+    VERSION = '2.2.0'
     DEFAULT_BASE_URL = 'http://localhost:3002'
     
     def __init__(self, 

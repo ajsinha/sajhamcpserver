@@ -2,7 +2,7 @@
   "name": "rbi_get_exchange_rate",
   "implementation": "sajha.tools.impl.india_central_bank.RBIGetExchangeRateTool",
   "description": "Retrieve Indian Rupee exchange rates against major currencies",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

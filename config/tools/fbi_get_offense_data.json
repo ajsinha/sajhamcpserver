@@ -2,7 +2,7 @@
   "name": "fbi_get_offense_data",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetOffenseDataTool",
   "description": "Retrieve detailed offense breakdown and subcategories for major crime types",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

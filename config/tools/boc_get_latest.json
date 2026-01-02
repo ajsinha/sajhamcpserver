@@ -2,7 +2,7 @@
   "name": "boc_get_latest",
   "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCGetLatestTool",
   "description": "Retrieve the most recent observation for any Bank of Canada data series. Optimized for single-value queries with minimal response payload.",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

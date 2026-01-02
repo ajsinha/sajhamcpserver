@@ -2,7 +2,7 @@
   "name": "yahoo_get_history",
   "implementation": "sajha.tools.impl.yahoo_finance_tool.YahooGetHistoryTool",
   "description": "Retrieve historical price and volume data for a stock over a specified time period with configurable intervals.",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

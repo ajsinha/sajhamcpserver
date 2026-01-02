@@ -2,7 +2,7 @@
   "name": "bdf_get_ecb_policy_rate",
   "implementation": "sajha.tools.impl.france_central_bank.BdFGetECBPolicyRateTool",
   "description": "Retrieve ECB policy rates including main refinancing, deposit, and marginal lending rates",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

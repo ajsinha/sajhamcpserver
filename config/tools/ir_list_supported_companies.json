@@ -2,7 +2,7 @@
   "name": "ir_list_supported_companies",
   "implementation": "sajha.tools.impl.investor_relations_tool_refactored.IRListSupportedCompaniesTool",
   "description": "List all companies with supported investor relations data access",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

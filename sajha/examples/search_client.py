@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SAJHA MCP Server - Search Tools Client v2.1.0
+SAJHA MCP Server - Search Tools Client v2.2.0
 
 Copyright © 2025-2030, All Rights Reserved
 Ashutosh Sinha
@@ -228,7 +228,7 @@ def example_research_workflow():
 
 if __name__ == '__main__':
     print("=" * 60)
-    print(" SAJHA MCP Server - Search Tools Examples v2.1.0")
+    print(" SAJHA MCP Server - Search Tools Examples v2.2.0")
     print("=" * 60)
     
     example_google_search()

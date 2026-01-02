@@ -16,8 +16,15 @@ class DocsRoutes(BaseRoutes):
     def __init__(self, auth_manager):
         """Initialize docs routes"""
         super().__init__(auth_manager)
-        # Get the docs directory path
-        self.docs_dir = Path(__file__).parent.parent / 'docs'
+        # Get the docs directory path - use project root/docs
+        # Path.cwd() gives project root when server runs from project directory
+        self.docs_dir = Path.cwd() / 'docs'
+        
+        # Fallback: if running from different directory, try relative to package
+        if not self.docs_dir.exists():
+            # Try finding docs relative to the sajha package
+            package_root = Path(__file__).parent.parent.parent.parent
+            self.docs_dir = package_root / 'docs'
 
     def register_routes(self, app):
         """Register documentation routes"""

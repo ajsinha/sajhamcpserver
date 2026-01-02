@@ -2,7 +2,7 @@
   "name": "wb_get_lending_types",
   "implementation": "sajha.tools.impl.world_bank_tool.WBGetLendingTypesTool",
   "description": "Retrieve World Bank lending type classifications and metadata. Get information about different lending categories for countries.",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

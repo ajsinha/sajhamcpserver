@@ -2,7 +2,7 @@
   "name": "fed_get_series",
   "implementation": "sajha.tools.impl.fed_reserve_tool_refactored.FedGetSeriesTool",
   "description": "Retrieve time series economic data from Federal Reserve Economic Data (FRED) database. Access thousands of US and international economic indicators including GDP, unemployment, inflation, interest rates, and more.",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

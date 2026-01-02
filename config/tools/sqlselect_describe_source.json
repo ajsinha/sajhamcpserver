@@ -2,7 +2,7 @@
   "name": "sqlselect_describe_source",
   "implementation": "sajha.tools.impl.sqlselect_tool_refactored.SqlSelectDescribeSourceTool",
   "description": "Get detailed information about a specific data source including columns, types, row count, and metadata",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "data_directory": "data/sqlselect",
   "data_sources": {

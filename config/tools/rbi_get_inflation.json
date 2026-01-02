@@ -2,7 +2,7 @@
   "name": "rbi_get_inflation",
   "implementation": "sajha.tools.impl.india_central_bank.RBIGetInflationTool",
   "description": "Retrieve Indian inflation data including CPI and WPI",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

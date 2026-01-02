@@ -2,7 +2,7 @@
   "name": "msdoc_read_excel_sheet",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocReadExcelSheetTool",
   "description": "Read data from a specific worksheet by name or index",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

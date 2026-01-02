@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server Web Application - Main Flask Application Class v2.1.0
+SAJHA MCP Server Web Application - Main Flask Application Class v2.2.0
 
 Copyright © 2025-2030, All Rights Reserved
 Ashutosh Sinha
@@ -43,7 +43,8 @@ from sajha.web.routes import (
     PromptsRoutes,
     HelpRoutes,
     DocsRoutes,
-    APIKeysRoutes
+    APIKeysRoutes,
+    StudioRoutes
 )
 
 # Get logger (logging is configured by run_server.py)
@@ -68,7 +69,7 @@ class SajhaMCPServerWebApp:
         prop_conf: PropertiesConfigurator instance for configuration
     """
     
-    VERSION = '2.1.0'
+    VERSION = '2.2.0'
     
     def __init__(self, secret_key: Optional[str] = None, config_path: Optional[str] = None):
         """
@@ -310,6 +311,7 @@ class SajhaMCPServerWebApp:
             (HelpRoutes, [self.auth_manager]),
             (DocsRoutes, [self.auth_manager]),
             (APIKeysRoutes, [self.auth_manager, self.tools_registry]),
+            (StudioRoutes, [self.auth_manager, self.tools_registry]),
         ]
         
         for route_class, args in route_classes:

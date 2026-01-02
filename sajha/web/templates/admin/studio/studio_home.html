@@ -1,0 +1,726 @@
+{% extends "common/base.html" %}
+
+{% block title %}MCP Studio - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .studio-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        height: calc(100vh - 200px);
+        min-height: 600px;
+    }
+    
+    .code-editor-panel {
+        display: flex;
+        flex-direction: column;
+        background: #1e1e1e;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .panel-header {
+        background: #2d2d2d;
+        padding: 12px 15px;
+        border-bottom: 1px solid #404040;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .panel-header h5 {
+        margin: 0;
+        color: #e0e0e0;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    
+    .code-textarea {
+        flex: 1;
+        width: 100%;
+        border: none;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        padding: 15px;
+        resize: none;
+        outline: none;
+    }
+    
+    .code-textarea:focus {
+        outline: none;
+    }
+    
+    .output-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .output-section {
+        flex: 1;
+        background: #1e1e1e;
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .output-textarea {
+        flex: 1;
+        width: 100%;
+        border: none;
+        background: #1e1e1e;
+        color: #9cdcfe;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 12px;
+        line-height: 1.4;
+        padding: 10px;
+        resize: none;
+        outline: none;
+    }
+    
+    .btn-delete-exists {
+        background: #dc3545;
+        border: 2px solid #ff6b6b;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 600;
+        box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+        animation: pulse-danger 2s infinite;
+    }
+    
+    .btn-delete-exists:hover {
+        background: #c82333;
+        border-color: #ff4757;
+        box-shadow: 0 0 15px rgba(220, 53, 69, 0.7);
+        color: white;
+    }
+    
+    @keyframes pulse-danger {
+        0% { box-shadow: 0 0 5px rgba(220, 53, 69, 0.5); }
+        50% { box-shadow: 0 0 15px rgba(220, 53, 69, 0.8); }
+        100% { box-shadow: 0 0 5px rgba(220, 53, 69, 0.5); }
+    }
+    
+    .delete-warning-icon {
+        margin-right: 5px;
+    }
+    
+    .tool-name-input {
+        background: #2d2d2d;
+        border: 1px solid #404040;
+        color: #e0e0e0;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-family: 'Consolas', monospace;
+    }
+    
+    .tool-name-input:focus {
+        border-color: #007acc;
+        outline: none;
+    }
+    
+    .tool-name-input.is-valid {
+        border-color: #28a745;
+    }
+    
+    .tool-name-input.is-invalid {
+        border-color: #dc3545;
+    }
+    
+    .btn-studio {
+        padding: 8px 16px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-analyze {
+        background: #007acc;
+        border: none;
+        color: white;
+    }
+    
+    .btn-analyze:hover {
+        background: #005a9e;
+    }
+    
+    .btn-deploy {
+        background: #28a745;
+        border: none;
+        color: white;
+    }
+    
+    .btn-deploy:hover {
+        background: #218838;
+    }
+    
+    .btn-deploy:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+    }
+    
+    .btn-clear {
+        background: #6c757d;
+        border: none;
+        color: white;
+    }
+    
+    .btn-clear:hover {
+        background: #5a6268;
+    }
+    
+    .status-bar {
+        background: #007acc;
+        color: white;
+        padding: 6px 15px;
+        font-size: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .status-bar.error {
+        background: #dc3545;
+    }
+    
+    .status-bar.success {
+        background: #28a745;
+    }
+    
+    .analysis-info {
+        background: #2d2d2d;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .analysis-info h6 {
+        color: #e0e0e0;
+        margin-bottom: 10px;
+    }
+    
+    .param-badge {
+        display: inline-block;
+        background: #404040;
+        color: #9cdcfe;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        margin: 2px;
+        font-family: monospace;
+    }
+    
+    .param-badge.required {
+        border-left: 3px solid #f14c4c;
+    }
+    
+    .param-badge.optional {
+        border-left: 3px solid #4ec9b0;
+    }
+    
+    .spinner-border-sm {
+        width: 1rem;
+        height: 1rem;
+    }
+    
+    .studio-intro {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        color: #e0e0e0;
+    }
+    
+    .studio-intro h4 {
+        color: #4ec9b0;
+        margin-bottom: 10px;
+    }
+    
+    .studio-intro code {
+        background: #2d2d2d;
+        padding: 2px 6px;
+        border-radius: 3px;
+        color: #ce9178;
+    }
+    
+    .file-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-family: monospace;
+    }
+    
+    .file-badge.json {
+        background: #c6a827;
+        color: #1e1e1e;
+    }
+    
+    .file-badge.python {
+        background: #3572a5;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="mb-1">
+                <i class="bi bi-magic me-2"></i>MCP Studio
+            </h4>
+            <small class="text-muted">Create MCP Tools from Python Code</small>
+        </div>
+        <div>
+            <a href="{{ url_for('studio_examples') }}" class="btn btn-outline-info btn-sm me-2">
+                <i class="bi bi-book me-1"></i>Examples
+            </a>
+            <a href="{{ url_for('admin_tools') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Back to Tools
+            </a>
+        </div>
+    </div>
+    
+    <!-- Introduction -->
+    <div class="studio-intro">
+        <h4><i class="bi bi-stars me-2"></i>Welcome to MCP Studio</h4>
+        <p class="mb-2">
+            Create MCP tools by writing Python functions with the <code>@sajhamcptool</code> decorator.
+            The system automatically generates the tool configuration and implementation files.
+        </p>
+        <small class="text-muted">
+            <i class="bi bi-info-circle me-1"></i>
+            Your function's type hints define the input/output schemas. Required parameters have no default values.
+        </small>
+    </div>
+    
+    <!-- Tool Name Input -->
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label class="form-label text-light small">Tool Name</label>
+            <div class="d-flex gap-2">
+                <input type="text" id="toolName" class="form-control tool-name-input flex-grow-1" 
+                       placeholder="my_custom_tool" pattern="[a-z][a-z0-9_]*">
+                <button id="deleteExistsBtn" class="btn btn-delete-exists" onclick="deleteIfExists()" title="Delete existing tool files">
+                    <i class="bi bi-trash delete-warning-icon"></i>Delete if Exists
+                </button>
+            </div>
+            <div id="toolNameFeedback" class="invalid-feedback"></div>
+            <small class="text-muted">Lowercase letters, numbers, and underscores only</small>
+        </div>
+        <div class="col-md-8 d-flex align-items-end gap-2">
+            <button id="analyzeBtn" class="btn btn-studio btn-analyze" onclick="analyzeCode()">
+                <i class="bi bi-search me-1"></i>Analyze Code
+            </button>
+            <button id="deployBtn" class="btn btn-studio btn-deploy" onclick="deployTool()" disabled>
+                <i class="bi bi-cloud-upload me-1"></i>Deploy Tool
+            </button>
+            <button class="btn btn-studio btn-clear" onclick="clearAll()">
+                <i class="bi bi-x-circle me-1"></i>Clear
+            </button>
+        </div>
+    </div>
+    
+    <!-- Analysis Info (hidden initially) -->
+    <div id="analysisInfo" class="analysis-info" style="display: none;">
+        <h6><i class="bi bi-info-circle me-2"></i>Analysis Result</h6>
+        <div class="row">
+            <div class="col-md-6">
+                <small class="text-muted">Description:</small>
+                <p id="toolDescription" class="mb-2 text-light"></p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Category:</small>
+                <p id="toolCategory" class="mb-2 text-light"></p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Function:</small>
+                <p id="toolFunction" class="mb-2 text-light font-monospace"></p>
+            </div>
+        </div>
+        <div>
+            <small class="text-muted">Parameters:</small>
+            <div id="toolParams" class="mt-1"></div>
+        </div>
+    </div>
+    
+    <!-- Main Studio Layout -->
+    <div class="studio-container">
+        <!-- Left Panel: Code Editor -->
+        <div class="code-editor-panel">
+            <div class="panel-header">
+                <h5><i class="bi bi-code-slash me-2"></i>Python Code</h5>
+                <span class="badge bg-secondary">Input</span>
+            </div>
+            <textarea id="codeEditor" class="code-textarea" 
+                      placeholder="Paste or type your @sajhamcptool decorated Python function here...">{{ sample_code }}</textarea>
+            <div id="codeStatus" class="status-bar">
+                Ready - Enter your code and click "Analyze Code"
+            </div>
+        </div>
+        
+        <!-- Right Panel: Generated Output -->
+        <div class="output-panel">
+            <!-- JSON Config -->
+            <div class="output-section">
+                <div class="panel-header">
+                    <h5>
+                        <i class="bi bi-filetype-json me-2"></i>Tool Configuration
+                        <span id="jsonFilename" class="file-badge json ms-2" style="display: none;"></span>
+                    </h5>
+                    <span class="badge bg-info">JSON</span>
+                </div>
+                <textarea id="jsonOutput" class="output-textarea" readonly 
+                          placeholder="Generated JSON configuration will appear here..."></textarea>
+            </div>
+            
+            <!-- Python Implementation -->
+            <div class="output-section">
+                <div class="panel-header">
+                    <h5>
+                        <i class="bi bi-filetype-py me-2"></i>Tool Implementation
+                        <span id="pythonFilename" class="file-badge python ms-2" style="display: none;"></span>
+                    </h5>
+                    <span class="badge bg-success">Python</span>
+                </div>
+                <textarea id="pythonOutput" class="output-textarea" readonly 
+                          placeholder="Generated Python implementation will appear here..."></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-success">
+                <h5 class="modal-title text-success">
+                    <i class="bi bi-check-circle me-2"></i>Tool Deployed Successfully!
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-light">Your tool has been created and deployed.</p>
+                <div class="bg-secondary bg-opacity-25 p-3 rounded">
+                    <p class="mb-2"><strong>Tool Name:</strong> <code id="deployedToolName"></code></p>
+                    <p class="mb-2"><strong>JSON Config:</strong> <code id="deployedJsonPath"></code></p>
+                    <p class="mb-0"><strong>Python File:</strong> <code id="deployedPythonPath"></code></p>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="{{ url_for('admin_tools') }}" class="btn btn-primary">
+                    <i class="bi bi-tools me-1"></i>View Tools
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let analysisComplete = false;
+let existingTools = {{ existing_tools | tojson }};
+
+// Validate tool name on input
+document.getElementById('toolName').addEventListener('input', function() {
+    validateToolName(this.value);
+});
+
+function validateToolName(name) {
+    const input = document.getElementById('toolName');
+    const feedback = document.getElementById('toolNameFeedback');
+    
+    if (!name) {
+        input.classList.remove('is-valid', 'is-invalid');
+        return false;
+    }
+    
+    // Client-side validation
+    if (!/^[a-z][a-z0-9_]*$/.test(name)) {
+        input.classList.remove('is-valid');
+        input.classList.add('is-invalid');
+        feedback.textContent = 'Must start with lowercase letter, use only a-z, 0-9, _';
+        return false;
+    }
+    
+    if (name.length < 3) {
+        input.classList.remove('is-valid');
+        input.classList.add('is-invalid');
+        feedback.textContent = 'Must be at least 3 characters';
+        return false;
+    }
+    
+    if (existingTools.includes(name)) {
+        input.classList.remove('is-valid');
+        input.classList.add('is-invalid');
+        feedback.textContent = 'Tool name already exists';
+        return false;
+    }
+    
+    input.classList.remove('is-invalid');
+    input.classList.add('is-valid');
+    return true;
+}
+
+async function analyzeCode() {
+    const code = document.getElementById('codeEditor').value;
+    const toolName = document.getElementById('toolName').value.trim().toLowerCase();
+    const statusBar = document.getElementById('codeStatus');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const deployBtn = document.getElementById('deployBtn');
+    
+    if (!toolName || !validateToolName(toolName)) {
+        statusBar.className = 'status-bar error';
+        statusBar.textContent = 'Please enter a valid tool name';
+        return;
+    }
+    
+    if (!code.trim()) {
+        statusBar.className = 'status-bar error';
+        statusBar.textContent = 'Please enter some code';
+        return;
+    }
+    
+    // Show loading
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analyzing...';
+    statusBar.className = 'status-bar';
+    statusBar.textContent = 'Analyzing code...';
+    
+    try {
+        const response = await fetch('/admin/studio/analyze', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({code: code, tool_name: toolName})
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update outputs
+            document.getElementById('jsonOutput').value = data.json_content;
+            document.getElementById('pythonOutput').value = data.python_content;
+            
+            // Show filenames
+            document.getElementById('jsonFilename').textContent = data.json_filename;
+            document.getElementById('jsonFilename').style.display = 'inline-block';
+            document.getElementById('pythonFilename').textContent = data.python_filename;
+            document.getElementById('pythonFilename').style.display = 'inline-block';
+            
+            // Update analysis info
+            document.getElementById('toolDescription').textContent = data.description;
+            document.getElementById('toolCategory').textContent = data.category;
+            document.getElementById('toolFunction').textContent = data.function_name + '()';
+            
+            // Show parameters
+            const paramsDiv = document.getElementById('toolParams');
+            paramsDiv.innerHTML = data.parameters.map(p => 
+                `<span class="param-badge ${p.required ? 'required' : 'optional'}">
+                    ${p.name}: ${p.type}${p.default !== null ? ' = ' + JSON.stringify(p.default) : ''}
+                </span>`
+            ).join('');
+            
+            document.getElementById('analysisInfo').style.display = 'block';
+            
+            // Enable deploy
+            deployBtn.disabled = false;
+            analysisComplete = true;
+            
+            statusBar.className = 'status-bar success';
+            statusBar.textContent = `Analysis complete - Found function "${data.function_name}" with ${data.parameters.length} parameters`;
+            
+            if (data.warnings && data.warnings.length > 0) {
+                statusBar.textContent += ' (with warnings)';
+            }
+        } else {
+            throw new Error(data.error || 'Analysis failed');
+        }
+    } catch (error) {
+        statusBar.className = 'status-bar error';
+        statusBar.textContent = error.message;
+        deployBtn.disabled = true;
+        analysisComplete = false;
+    } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.innerHTML = '<i class="bi bi-search me-1"></i>Analyze Code';
+    }
+}
+
+async function deployTool() {
+    if (!analysisComplete) {
+        alert('Please analyze the code first');
+        return;
+    }
+    
+    const code = document.getElementById('codeEditor').value;
+    const toolName = document.getElementById('toolName').value.trim().toLowerCase();
+    const deployBtn = document.getElementById('deployBtn');
+    const statusBar = document.getElementById('codeStatus');
+    
+    if (!confirm(`Are you sure you want to deploy the tool "${toolName}"?\n\nThis will create new files in your server.`)) {
+        return;
+    }
+    
+    deployBtn.disabled = true;
+    deployBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deploying...';
+    statusBar.textContent = 'Deploying tool...';
+    
+    try {
+        const response = await fetch('/admin/studio/deploy', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({code: code, tool_name: toolName})
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update existing tools list
+            existingTools.push(toolName);
+            
+            // Show success modal
+            document.getElementById('deployedToolName').textContent = data.tool_name;
+            document.getElementById('deployedJsonPath').textContent = data.json_path;
+            document.getElementById('deployedPythonPath').textContent = data.python_path;
+            
+            const modal = new bootstrap.Modal(document.getElementById('successModal'));
+            modal.show();
+            
+            statusBar.className = 'status-bar success';
+            statusBar.textContent = `Tool "${toolName}" deployed successfully!`;
+            
+            // Reset form
+            analysisComplete = false;
+            deployBtn.disabled = true;
+        } else {
+            throw new Error(data.error || 'Deployment failed');
+        }
+    } catch (error) {
+        statusBar.className = 'status-bar error';
+        statusBar.textContent = error.message;
+    } finally {
+        deployBtn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>Deploy Tool';
+    }
+}
+
+async function deleteIfExists() {
+    const toolName = document.getElementById('toolName').value.trim().toLowerCase();
+    const statusBar = document.getElementById('codeStatus');
+    const deleteBtn = document.getElementById('deleteExistsBtn');
+    
+    if (!toolName) {
+        statusBar.className = 'status-bar error';
+        statusBar.textContent = 'Please enter a tool name first';
+        return;
+    }
+    
+    // Basic format validation
+    if (!/^[a-z][a-z0-9_]*$/.test(toolName) || toolName.length < 3) {
+        statusBar.className = 'status-bar error';
+        statusBar.textContent = 'Invalid tool name format';
+        return;
+    }
+    
+    // Double confirmation for safety
+    const confirmed = confirm(
+        `⚠️ WARNING: This will DELETE the following files if they exist:\n\n` +
+        `• config/tools/${toolName}.json\n` +
+        `• sajha/tools/impl/studio_${toolName}.py\n\n` +
+        `This action CANNOT be undone!\n\n` +
+        `Are you sure you want to proceed?`
+    );
+    
+    if (!confirmed) {
+        return;
+    }
+    
+    // Second confirmation
+    const doubleConfirmed = confirm(
+        `🚨 FINAL CONFIRMATION 🚨\n\n` +
+        `You are about to permanently delete tool "${toolName}".\n\n` +
+        `Click OK to DELETE, or Cancel to abort.`
+    );
+    
+    if (!doubleConfirmed) {
+        return;
+    }
+    
+    deleteBtn.disabled = true;
+    deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting...';
+    statusBar.className = 'status-bar';
+    statusBar.textContent = 'Deleting tool files...';
+    
+    try {
+        const response = await fetch('/admin/studio/delete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({tool_name: toolName})
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Remove from existing tools list if present
+            const index = existingTools.indexOf(toolName);
+            if (index > -1) {
+                existingTools.splice(index, 1);
+            }
+            
+            // Reset validation state
+            const input = document.getElementById('toolName');
+            input.classList.remove('is-invalid');
+            input.classList.add('is-valid');
+            
+            statusBar.className = 'status-bar success';
+            statusBar.textContent = data.message;
+            
+            // Clear outputs if they were showing the deleted tool
+            document.getElementById('jsonOutput').value = '';
+            document.getElementById('pythonOutput').value = '';
+            document.getElementById('jsonFilename').style.display = 'none';
+            document.getElementById('pythonFilename').style.display = 'none';
+            document.getElementById('analysisInfo').style.display = 'none';
+            document.getElementById('deployBtn').disabled = true;
+            analysisComplete = false;
+        } else {
+            throw new Error(data.error || 'Deletion failed');
+        }
+    } catch (error) {
+        statusBar.className = 'status-bar error';
+        statusBar.textContent = error.message;
+    } finally {
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="bi bi-trash delete-warning-icon"></i>Delete if Exists';
+    }
+}
+
+function clearAll() {
+    document.getElementById('codeEditor').value = '';
+    document.getElementById('toolName').value = '';
+    document.getElementById('toolName').classList.remove('is-valid', 'is-invalid');
+    document.getElementById('jsonOutput').value = '';
+    document.getElementById('pythonOutput').value = '';
+    document.getElementById('jsonFilename').style.display = 'none';
+    document.getElementById('pythonFilename').style.display = 'none';
+    document.getElementById('analysisInfo').style.display = 'none';
+    document.getElementById('deployBtn').disabled = true;
+    document.getElementById('codeStatus').className = 'status-bar';
+    document.getElementById('codeStatus').textContent = 'Ready - Enter your code and click "Analyze Code"';
+    analysisComplete = false;
+}
+</script>
+{% endblock %}

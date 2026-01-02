@@ -2,7 +2,7 @@
   "name": "sec_get_company_info",
   "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECGetCompanyInfoTool",
   "description": "Retrieve detailed company information including business address, SIC code, and fiscal year end",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

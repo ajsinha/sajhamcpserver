@@ -2,7 +2,7 @@
   "name": "duckdb_aggregate",
   "implementation": "sajha.tools.impl.duckdb_olap_tools_refactored.DuckDbAggregateTool",
   "description": "Perform aggregation operations on tables with grouping (SUM, AVG, COUNT, MIN, MAX)",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "data_directory": "data/duckdb",
   "inputSchema": {

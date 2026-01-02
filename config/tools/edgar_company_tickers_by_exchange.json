@@ -2,7 +2,7 @@
   "name": "edgar_company_tickers_by_exchange",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARCompanyTickersByExchangeTool",
   "description": "Get all public companies listed on a specific stock exchange (NYSE, NASDAQ, AMEX, etc.)",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

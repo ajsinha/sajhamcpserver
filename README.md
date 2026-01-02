@@ -17,6 +17,9 @@ SAJHA MCP Server is a production-ready Python-based implementation of the Model 
 - ✅ Built-in tools: Wikipedia, Yahoo Finance, Google Search, Federal Reserve
 - ✅ Properties-based configuration with auto-reload
 - ✅ Comprehensive audit logging
+- ✅ **MCP Studio** (v2.2.0): Visual tool creator with @sajhamcptool decorator
+- ✅ API Key Authentication with tool-level permissions
+- ✅ Hot-reload for config changes (zero downtime)
 
 ## Requirements
 
@@ -72,7 +75,7 @@ session.timeout.minutes=60
 
 ```properties
 app.name=SAJHA MCP Server
-app.version=2.1.0
+app.version=2.2.0
 mcp.protocol.version=1.0
 ```
 
@@ -131,6 +134,46 @@ Access economic data from FRED (Federal Reserve Economic Data).
 - `get_common_indicators`: Get common economic indicators
 
 **Note:** Requires FRED API key for production use. Demo mode available.
+
+## MCP Studio (New in v2.2.0)
+
+MCP Studio is a visual tool creator that allows administrators to create custom MCP tools using Python code with the `@sajhamcptool` decorator.
+
+### How It Works
+
+1. Write a Python function with the `@sajhamcptool` decorator
+2. The system analyzes your function's type hints to generate input/output schemas
+3. Preview the generated JSON config and Python implementation
+4. Deploy with one click - files are automatically created
+
+### Example
+
+```python
+from sajha.studio import sajhamcptool
+
+@sajhamcptool(
+    description="Calculate compound interest",
+    category="Finance",
+    tags=["calculator", "interest"]
+)
+def compound_interest(
+    principal: float,
+    rate: float,
+    years: int,
+    frequency: int = 12
+) -> dict:
+    """Calculate compound interest."""
+    amount = principal * (1 + rate / frequency) ** (frequency * years)
+    return {
+        "principal": principal,
+        "final_amount": round(amount, 2),
+        "interest_earned": round(amount - principal, 2)
+    }
+```
+
+### Access MCP Studio
+
+Navigate to **Admin → MCP Studio** in the web interface (admin access required).
 
 ## API Usage
 

@@ -2,7 +2,7 @@
   "name": "un_get_sdg_targets",
   "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNGetSDGTargetsTool",
   "description": "Retrieve all specific targets for a Sustainable Development Goal. Each SDG has multiple measurable targets.",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
