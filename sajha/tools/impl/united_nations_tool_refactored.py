@@ -9,6 +9,7 @@ import urllib.request
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from sajha.tools.base_mcp_tool import BaseMCPTool
+from sajha.tools.http_utils import safe_json_response, ENCODINGS_ALL
 
 
 class UnitedNationsBaseTool(BaseMCPTool):
@@ -79,7 +80,7 @@ class UnitedNationsBaseTool(BaseMCPTool):
             
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req) as response:
-                return json.loads(response.read().decode('utf-8'))
+                return safe_json_response(response, ENCODINGS_ALL)
         except Exception as e:
             self.logger.error(f"Failed to fetch from SDG API: {e}")
             raise
@@ -416,7 +417,7 @@ class UNGetSDGDataTool(UnitedNationsBaseTool):
             
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req) as response:
-                data = json.loads(response.read().decode('utf-8'))
+                data = safe_json_response(response, ENCODINGS_ALL)
                 
                 formatted_data = []
                 for item in data:

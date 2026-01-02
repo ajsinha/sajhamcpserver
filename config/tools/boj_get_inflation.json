@@ -1,17 +1,17 @@
 {
-  "name": "boj_get_money_stock",
-  "implementation": "sajha.tools.impl.japan_central_bank.BoJGetMoneyStockTool",
-  "description": "Retrieve Japanese money stock indicators (M1, M2, M3) with historical data.",
+  "name": "boj_get_inflation",
+  "implementation": "sajha.tools.impl.japan_central_bank.BoJGetInflationTool",
+  "description": "Retrieve Japanese price indices including CPI and PPI with historical data.",
   "version": "2.2.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
-      "aggregate": {
+      "index_type": {
         "type": "string",
-        "description": "Money stock aggregate",
-        "enum": ["m1", "m2", "m3"],
-        "default": "m2"
+        "description": "Type of price index",
+        "enum": ["cpi", "core_cpi", "ppi"],
+        "default": "cpi"
       },
       "start_date": {
         "type": "string",
@@ -29,14 +29,13 @@
         "default": 10
       }
     },
-    "required": ["aggregate"]
+    "required": ["index_type"]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
       "series_code": {"type": "string"},
       "label": {"type": "string"},
-      "unit": {"type": "string"},
       "observation_count": {"type": "integer"},
       "observations": {
         "type": "array",
@@ -52,8 +51,8 @@
   },
   "metadata": {
     "author": "Ashutosh Sinha",
-    "category": "Monetary Data",
-    "tags": ["money supply", "m1", "m2", "m3", "japan", "monetary aggregates"],
+    "category": "Inflation Data",
+    "tags": ["cpi", "ppi", "inflation", "japan", "price index"],
     "rateLimit": 120,
     "cacheTTL": 3600
   }

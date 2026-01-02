@@ -9,6 +9,7 @@ import urllib.request
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from sajha.tools.base_mcp_tool import BaseMCPTool
+from sajha.tools.http_utils import safe_json_response, ENCODINGS_EUROPEAN
 
 
 class EuropeanCentralBankBaseTool(BaseMCPTool):
@@ -194,7 +195,7 @@ class EuropeanCentralBankBaseTool(BaseMCPTool):
             
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=30) as response:
-                data = json.loads(response.read().decode('utf-8'))
+                data = safe_json_response(response, ENCODINGS_EUROPEAN)
                 
                 # Parse ECB JSON structure
                 if 'dataSets' not in data or not data['dataSets']:

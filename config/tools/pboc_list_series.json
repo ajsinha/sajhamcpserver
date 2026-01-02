@@ -1,0 +1,14 @@
+{
+  "name": "pboc_list_series",
+  "implementation": "sajha.tools.impl.china_central_bank.PBoCListSeriesTools",
+  "description": "List available Chinese economic data series from PBoC/FRED",
+  "version": "2.2.0",
+  "enabled": true,
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Central Bank",
+    "tags": ["china", "pboc", "series", "list", "catalog"],
+    "rateLimit": 120,
+    "cacheTTL": 86400
+  }
+}

@@ -28,6 +28,7 @@ import sys
 import os
 sys.path.insert(0, '/mnt/user-data/uploads')
 from sajha.tools.base_mcp_tool import BaseMCPTool
+from sajha.tools.http_utils import safe_decode_response, ENCODINGS_DEFAULT
 
 
 class EDGARBaseTool(BaseMCPTool):
@@ -123,7 +124,7 @@ class EDGARBaseTool(BaseMCPTool):
         try:
             req = urllib.request.Request(url, headers=self.headers)
             with urllib.request.urlopen(req, timeout=30) as response:
-                content = response.read().decode('utf-8')
+                content = safe_decode_response(response, ENCODINGS_DEFAULT)
                 return json.loads(content)
                 
         except urllib.error.HTTPError as e:

@@ -9,6 +9,7 @@ import urllib.request
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from sajha.tools.base_mcp_tool import BaseMCPTool
+from sajha.tools.http_utils import safe_json_response, ENCODINGS_DEFAULT
 
 
 class FedReserveBaseTool(BaseMCPTool):
@@ -81,7 +82,7 @@ class FedReserveBaseTool(BaseMCPTool):
         
         try:
             with urllib.request.urlopen(url) as response:
-                data = json.loads(response.read().decode('utf-8'))
+                data = safe_json_response(response, ENCODINGS_DEFAULT)
                 
                 observations = data.get('observations', [])
                 
@@ -96,7 +97,7 @@ class FedReserveBaseTool(BaseMCPTool):
                 # Get series info
                 info_url = f"{self.api_url}/series?series_id={series_id}&api_key={self.api_key}&file_type=json"
                 with urllib.request.urlopen(info_url) as info_response:
-                    info_data = json.loads(info_response.read().decode('utf-8'))
+                    info_data = safe_json_response(info_response, ENCODINGS_DEFAULT)
                     series_info = info_data.get('seriess', [{}])[0]
                 
                 return {
@@ -475,7 +476,7 @@ class FedSearchSeriesTool(FedReserveBaseTool):
         
         try:
             with urllib.request.urlopen(url) as response:
-                data = json.loads(response.read().decode('utf-8'))
+                data = safe_json_response(response, ENCODINGS_DEFAULT)
                 
                 series = data.get('seriess', [])
                 

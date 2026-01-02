@@ -9,6 +9,7 @@ import urllib.request
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from sajha.tools.base_mcp_tool import BaseMCPTool
+from sajha.tools.http_utils import safe_json_response, ENCODINGS_ALL
 
 
 class YahooFinanceBaseTool(BaseMCPTool):
@@ -39,7 +40,7 @@ class YahooFinanceBaseTool(BaseMCPTool):
         try:
             req = urllib.request.Request(url, headers=self.headers)
             with urllib.request.urlopen(req, timeout=10) as response:
-                data = json.loads(response.read().decode('utf-8'))
+                data = safe_json_response(response, ENCODINGS_ALL)
                 return data
         except urllib.error.HTTPError as e:
             if e.code == 404:

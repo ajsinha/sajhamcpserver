@@ -9,6 +9,7 @@ import urllib.request
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from sajha.tools.base_mcp_tool import BaseMCPTool
+from sajha.tools.http_utils import safe_json_response, ENCODINGS_ALL
 
 
 class IMFBaseTool(BaseMCPTool):
@@ -118,7 +119,7 @@ class IMFBaseTool(BaseMCPTool):
             
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req) as response:
-                data = json.loads(response.read().decode('utf-8'))
+                data = safe_json_response(response, ENCODINGS_ALL)
                 
                 compact_data = data.get('CompactData', {})
                 dataset = compact_data.get('DataSet', {})
@@ -273,7 +274,7 @@ class IMFGetDataflowsTool(IMFBaseTool):
             
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req) as response:
-                data = json.loads(response.read().decode('utf-8'))
+                data = safe_json_response(response, ENCODINGS_ALL)
                 
                 structure = data.get('Structure', {})
                 dataflows = structure.get('Dataflows', {}).get('Dataflow', [])

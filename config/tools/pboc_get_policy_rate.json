@@ -1,7 +1,7 @@
 {
-  "name": "pboc_get_forex_reserves",
-  "implementation": "sajha.tools.impl.china_central_bank.PBoCGetForexReservesTool",
-  "description": "Retrieve China foreign exchange and gold reserves",
+  "name": "pboc_get_policy_rate",
+  "implementation": "sajha.tools.impl.china_central_bank.PBoCGetPolicyRateTool",
+  "description": "Retrieve China Loan Prime Rate (Policy Rate) for 1-year and 5-year tenors",
   "version": "2.2.0",
   "enabled": true,
   "metadata": {
