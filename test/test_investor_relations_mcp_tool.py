@@ -14,7 +14,7 @@ from unittest.mock import Mock, patch, MagicMock
 
 # Import the Investor Relations tools
 try:
-    from tools.impl.investor_relations_tool_refactored import (
+    from sajha.tools.impl.investor_relations_tool_refactored import (
         IRListSupportedCompaniesTool,
         IRFindPageTool,
         IRGetDocumentsTool,

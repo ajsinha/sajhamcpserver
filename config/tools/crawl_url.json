@@ -1,8 +1,8 @@
 {
   "name": "crawl_url",
-  "implementation": "tools.impl.webcrawler_tool_refactored.CrawlURLTool",
+  "implementation": "sajha.tools.impl.webcrawler_tool_refactored.CrawlURLTool",
   "description": "Recursively crawl a website starting from a URL, following links up to a specified depth (max 3 levels). Extract page metadata, links, images, and text content.",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

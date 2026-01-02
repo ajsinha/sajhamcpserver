@@ -1,8 +1,8 @@
 {
   "name": "fbi_get_agency_statistics",
-  "implementation": "tools.impl.fbi_tool_refactored.FBIGetAgencyStatisticsTool",
+  "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetAgencyStatisticsTool",
   "description": "Retrieve crime statistics for a specific law enforcement agency using ORI code",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

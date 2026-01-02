@@ -1,8 +1,8 @@
 {
   "name": "wb_search_indicators",
-  "implementation": "tools.impl.world_bank_tool.WBSearchIndicatorsTool",
+  "implementation": "sajha.tools.impl.world_bank_tool.WBSearchIndicatorsTool",
   "description": "Search World Bank indicators by keyword or topic. Find relevant indicators by searching through names and descriptions.",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

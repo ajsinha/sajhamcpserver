@@ -1,8 +1,8 @@
 {
   "name": "fbi_get_crime_trend",
-  "implementation": "tools.impl.fbi_tool_refactored.FBIGetCrimeTrendTool",
+  "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetCrimeTrendTool",
   "description": "Analyze crime trends over time for specified offense types and jurisdictions",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

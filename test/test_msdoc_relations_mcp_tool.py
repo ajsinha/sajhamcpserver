@@ -18,7 +18,7 @@ from unittest.mock import Mock, patch, MagicMock
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from tools.impl.msdoc_tools_tool_refactored import (
+from sajha.tools.impl.msdoc_tools_tool_refactored import (
     MsDocListFilesTool,
     MsDocReadWordTool,
     MsDocReadExcelTool,

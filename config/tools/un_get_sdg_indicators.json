@@ -1,8 +1,8 @@
 {
   "name": "un_get_sdg_indicators",
-  "implementation": "tools.impl.united_nations_tool_refactored.UNGetSDGIndicatorsTool",
+  "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNGetSDGIndicatorsTool",
   "description": "Retrieve all indicators and metrics for a specific Sustainable Development Goal (1-17)",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

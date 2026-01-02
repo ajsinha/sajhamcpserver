@@ -19,7 +19,7 @@ import csv
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 try:
-    from tools.impl.duckdb_olap_tools_refactored import (
+    from sajha.tools.impl.duckdb_olap_tools_refactored import (
         DUCKDB_TOOLS,
         DuckDbListTablesTool,
         DuckDbDescribeTableTool,

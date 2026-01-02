@@ -1,8 +1,8 @@
 {
   "name": "boc_get_bond_yield",
-  "implementation": "tools.impl.bank_of_canada_tool_refactored.BoCGetBondYieldTool",
+  "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCGetBondYieldTool",
   "description": "Retrieve Government of Canada benchmark bond yields for various maturities (2Y, 5Y, 10Y, 30Y) with historical data.",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

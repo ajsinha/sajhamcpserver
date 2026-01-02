@@ -1,8 +1,8 @@
 {
   "name": "fbi_get_agency_details",
-  "implementation": "tools.impl.fbi_tool_refactored.FBIGetAgencyDetailsTool",
+  "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetAgencyDetailsTool",
   "description": "Retrieve detailed information about a specific law enforcement agency",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

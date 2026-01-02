@@ -2,7 +2,7 @@
 
 **Copyright All rights reserved 2025-2030, Ashutosh Sinha**  
 **Email: ajsinha@gmail.com**  
-**Version: 2.0.1**  
+**Version: 2.1.0**  
 **Last Updated: October 31, 2025**
 
 ---

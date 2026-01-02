@@ -1,8 +1,8 @@
 {
   "name": "ecb_get_exchange_rate",
-  "implementation": "tools.impl.european_central_bank_tool_refactored.ECBGetExchangeRateTool",
+  "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetExchangeRateTool",
   "description": "Retrieve foreign exchange rates for Euro against major currencies. Specialized tool for FX traders and international business.",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

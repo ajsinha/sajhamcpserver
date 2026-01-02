@@ -1,8 +1,8 @@
 {
   "name": "fbi_get_participation_rate",
-  "implementation": "tools.impl.fbi_tool_refactored.FBIGetParticipationRateTool",
+  "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetParticipationRateTool",
   "description": "Retrieve participation rates showing percentage of agencies reporting crime data",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

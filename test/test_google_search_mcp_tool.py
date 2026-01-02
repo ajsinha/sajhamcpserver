@@ -15,7 +15,7 @@ import urllib.error
 
 # Import the Google Search tool
 try:
-    from tools.impl.google_search_tool_refactored import GoogleSearchTool
+    from sajha.tools.impl.google_search_tool_refactored import GoogleSearchTool
 except ImportError:
     print("Error: Unable to import Google Search tool. Ensure the module is in the Python path.")
     sys.exit(1)

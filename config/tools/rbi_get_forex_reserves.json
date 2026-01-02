@@ -1,8 +1,8 @@
 {
   "name": "rbi_get_forex_reserves",
-  "implementation": "tools.impl.india_central_bank.RBIGetForexReservesTool",
+  "implementation": "sajha.tools.impl.india_central_bank.RBIGetForexReservesTool",
   "description": "Retrieve India foreign exchange reserves data",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

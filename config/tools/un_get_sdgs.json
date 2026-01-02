@@ -1,8 +1,8 @@
 {
   "name": "un_get_sdgs",
-  "implementation": "tools.impl.united_nations_tool_refactored.UNGetSDGsTool",
+  "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNGetSDGsTool",
   "description": "Retrieve list of all 17 UN Sustainable Development Goals with their titles, colors, and URIs",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

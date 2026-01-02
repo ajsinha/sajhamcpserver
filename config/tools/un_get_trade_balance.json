@@ -1,8 +1,8 @@
 {
   "name": "un_get_trade_balance",
-  "implementation": "tools.impl.united_nations_tool_refactored.UNGetTradeBalanceTool",
+  "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNGetTradeBalanceTool",
   "description": "Calculate trade balance (exports minus imports) for a country, optionally with a specific trading partner",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

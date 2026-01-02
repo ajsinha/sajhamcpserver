@@ -1,8 +1,8 @@
 {
   "name": "check_robots_txt",
-  "implementation": "tools.impl.webcrawler_tool_refactored.CheckRobotsTxtTool",
+  "implementation": "sajha.tools.impl.webcrawler_tool_refactored.CheckRobotsTxtTool",
   "description": "Check robots.txt file to determine if web crawling is allowed and get crawl delay recommendations",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

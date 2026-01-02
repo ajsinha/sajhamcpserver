@@ -1,8 +1,8 @@
 {
   "name": "boc_get_exchange_rate",
-  "implementation": "tools.impl.bank_of_canada_tool_refactored.BoCGetExchangeRateTool",
+  "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCGetExchangeRateTool",
   "description": "Retrieve foreign exchange rates between Canadian Dollar and other currencies. Supports major currency pairs with historical data.",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

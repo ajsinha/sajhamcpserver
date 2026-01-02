@@ -1,8 +1,8 @@
 {
   "name": "wiki_get_page",
-  "implementation": "tools.impl.wikipedia_tool.WikiGetPageTool",
+  "implementation": "sajha.tools.impl.wikipedia_tool.WikiGetPageTool",
   "description": "Retrieve the complete content of a Wikipedia article by title or page ID. Returns full article text, images, links, and metadata.",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

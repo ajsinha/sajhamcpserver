@@ -72,7 +72,7 @@ session.timeout.minutes=60
 
 ```properties
 app.name=SAJHA MCP Server
-app.version=2.0.0
+app.version=2.1.0
 mcp.protocol.version=1.0
 ```
 
@@ -381,7 +381,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 ## Changelog
 
-### Version 2.0.0 (2026-01)
+### Version 2.1.0 (2026-01)
 - Professional UI redesign with modern theme
 - Reorganized template structure for better maintainability
 - Added comprehensive Help documentation

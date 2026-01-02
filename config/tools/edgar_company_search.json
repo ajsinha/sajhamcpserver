@@ -1,8 +1,8 @@
 {
   "name": "edgar_company_search",
-  "implementation": "tools.impl.enhanced_edgar_tool.EDGARCompanySearchTool",
+  "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARCompanySearchTool",
   "description": "Search for public companies in SEC EDGAR database by company name or ticker symbol to retrieve CIK numbers",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

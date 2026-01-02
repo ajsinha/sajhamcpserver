@@ -1,8 +1,8 @@
 {
   "name": "un_compare_trade",
-  "implementation": "tools.impl.united_nations_tool_refactored.UNCompareCountryTradeTool",
+  "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNCompareCountryTradeTool",
   "description": "Compare trade statistics (exports or imports) across multiple countries for benchmarking and analysis",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

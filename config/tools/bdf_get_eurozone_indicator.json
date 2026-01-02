@@ -1,8 +1,8 @@
 {
   "name": "bdf_get_eurozone_indicator",
-  "implementation": "tools.impl.france_central_bank.BdFGetEurozoneIndicatorTool",
+  "implementation": "sajha.tools.impl.france_central_bank.BdFGetEurozoneIndicatorTool",
   "description": "Retrieve Eurozone economic indicators including CPI, GDP, and M3",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

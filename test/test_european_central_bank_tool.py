@@ -15,7 +15,7 @@ from unittest.mock import Mock, patch, MagicMock
 
 # Import the ECB tools
 try:
-    from tools.impl.european_central_bank_tool_refactored import (
+    from sajha.tools.impl.european_central_bank_tool_refactored import (
         ECBGetSeriesTool,
         ECBGetExchangeRateTool,
         ECBGetInterestRateTool,

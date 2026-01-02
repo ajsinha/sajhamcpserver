@@ -1,8 +1,8 @@
 {
   "name": "imf_compare_countries",
-  "implementation": "tools.impl.imf_tool_refactored.IMFCompareCountriesTool",
+  "implementation": "sajha.tools.impl.imf_tool_refactored.IMFCompareCountriesTool",
   "description": "Compare economic indicators across multiple countries for cross-country analysis. Perfect for benchmarking and comparative studies.",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

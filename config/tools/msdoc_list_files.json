@@ -1,8 +1,8 @@
 {
   "name": "msdoc_list_files",
-  "implementation": "tools.impl.msdoc_tools_tool_refactored.MsDocListFilesTool",
+  "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocListFilesTool",
   "description": "List all Word and Excel documents in the configured docs directory",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "docs_directory": "data/msdocs",
   "inputSchema": {

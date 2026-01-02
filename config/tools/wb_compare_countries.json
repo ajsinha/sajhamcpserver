@@ -1,8 +1,8 @@
 {
   "name": "wb_compare_countries",
-  "implementation": "tools.impl.world_bank_tool.WBCompareCountriesTool",
+  "implementation": "sajha.tools.impl.world_bank_tool.WBCompareCountriesTool",
   "description": "Compare multiple countries side-by-side for a specific indicator. Get comparative analysis across selected countries.",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

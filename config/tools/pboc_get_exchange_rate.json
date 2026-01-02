@@ -1,8 +1,8 @@
 {
   "name": "pboc_get_exchange_rate",
-  "implementation": "tools.impl.china_central_bank.PBoCGetExchangeRateTool",
+  "implementation": "sajha.tools.impl.china_central_bank.PBoCGetExchangeRateTool",
   "description": "Retrieve Chinese Yuan exchange rates against major currencies",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

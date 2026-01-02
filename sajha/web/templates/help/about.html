@@ -1,0 +1,656 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}About - SAJHA MCP Server{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="welcome-banner">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-info-circle-fill me-3" style="font-size: 2.5rem;"></i>
+                    <div>
+                        <h2 class="mb-1">About SAJHA MCP Server</h2>
+                        <p class="mb-0 opacity-75">A Production-Ready Model Context Protocol Implementation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Version & Overview -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 text-center">
+                <div class="card-body py-4">
+                    <i class="bi bi-gear-wide-connected" style="font-size: 3rem; color: var(--sajha-primary);"></i>
+                    <h3 class="mt-3 mb-1">Version 2.1.0</h3>
+                    <p class="text-muted mb-0">Current Release</p>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <span class="badge bg-success">Stable</span>
+                    <span class="badge bg-primary">Production Ready</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header card-header-primary">
+                    <i class="bi bi-journal-text me-2"></i>Overview
+                </div>
+                <div class="card-body">
+                    <p>SAJHA MCP Server is a comprehensive Python-based implementation of the <strong>Model Context Protocol (MCP)</strong> that provides a standardized interface for AI tools and services. Built for production environments, it offers robust security, scalability, and extensibility.</p>
+                    <p class="mb-0">The server supports both HTTP REST APIs and WebSocket connections for real-time bidirectional communication, making it suitable for a wide range of AI integration scenarios.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Core Capabilities -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-success">
+                    <i class="bi bi-lightning-charge me-2"></i>Core Capabilities
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                        <i class="bi bi-check2-all text-primary" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h5>Full MCP Compliance</h5>
+                                    <p class="text-muted small mb-0">Complete implementation of the Model Context Protocol specification with JSON-RPC 2.0 support.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                        <i class="bi bi-arrows-angle-contract text-success" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h5>Dual Transport</h5>
+                                    <p class="text-muted small mb-0">Supports both HTTP REST API and WebSocket connections for flexible integration options.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                        <i class="bi bi-shield-lock text-warning" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h5>Role-Based Access</h5>
+                                    <p class="text-muted small mb-0">Comprehensive RBAC system with fine-grained permissions for tools and resources.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <div class="rounded-circle bg-info bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                        <i class="bi bi-arrow-repeat text-info" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h5>Hot-Reload System</h5>
+                                    <p class="text-muted small mb-0">Zero-restart configuration. Tools, users, API keys, and prompts auto-reload within 5 minutes.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                        <i class="bi bi-display text-danger" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h5>Web Interface</h5>
+                                    <p class="text-muted small mb-0">Professional web UI for tool discovery, testing, and system monitoring.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <div class="rounded-circle bg-secondary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                        <i class="bi bi-graph-up text-secondary" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h5>Real-time Monitoring</h5>
+                                    <p class="text-muted small mb-0">Live dashboards for performance metrics, user activity, and system health.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Built-in Tools -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-info">
+                    <i class="bi bi-tools me-2"></i>Built-in Tools & Integrations
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Tool</th>
+                                    <th>Category</th>
+                                    <th>Description</th>
+                                    <th>API Required</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><i class="bi bi-wikipedia me-2 text-primary"></i>Wikipedia</td>
+                                    <td><span class="badge bg-info">Knowledge</span></td>
+                                    <td>Search and retrieve Wikipedia articles and summaries</td>
+                                    <td><span class="badge bg-success">No</span></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-graph-up-arrow me-2 text-success"></i>Yahoo Finance</td>
+                                    <td><span class="badge bg-warning text-dark">Financial</span></td>
+                                    <td>Real-time stock quotes, historical data, company info</td>
+                                    <td><span class="badge bg-success">No</span></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-search me-2 text-info"></i>Google Search</td>
+                                    <td><span class="badge bg-secondary">Search</span></td>
+                                    <td>Web search with custom filters and site-specific options</td>
+                                    <td><span class="badge bg-danger">Yes</span></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-compass me-2 text-primary"></i>Tavily Search</td>
+                                    <td><span class="badge bg-secondary">Search</span></td>
+                                    <td>AI-optimized search engine for research and analysis</td>
+                                    <td><span class="badge bg-danger">Yes</span></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-bank me-2 text-warning"></i>Federal Reserve</td>
+                                    <td><span class="badge bg-warning text-dark">Financial</span></td>
+                                    <td>Economic data from FRED (Federal Reserve Economic Data)</td>
+                                    <td><span class="badge bg-danger">Yes</span></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-bank2 me-2 text-info"></i>Bank of Canada</td>
+                                    <td><span class="badge bg-warning text-dark">Financial</span></td>
+                                    <td>Canadian economic data and exchange rates</td>
+                                    <td><span class="badge bg-success">No</span></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-currency-euro me-2 text-primary"></i>European Central Bank</td>
+                                    <td><span class="badge bg-warning text-dark">Financial</span></td>
+                                    <td>Euro zone economic data and statistics</td>
+                                    <td><span class="badge bg-success">No</span></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-globe me-2 text-success"></i>World Bank</td>
+                                    <td><span class="badge bg-info">Knowledge</span></td>
+                                    <td>Global development indicators and statistics</td>
+                                    <td><span class="badge bg-success">No</span></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-building me-2 text-secondary"></i>IMF</td>
+                                    <td><span class="badge bg-warning text-dark">Financial</span></td>
+                                    <td>International Monetary Fund economic data</td>
+                                    <td><span class="badge bg-success">No</span></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-flag me-2 text-info"></i>United Nations</td>
+                                    <td><span class="badge bg-info">Knowledge</span></td>
+                                    <td>UN statistical data and sustainable development goals</td>
+                                    <td><span class="badge bg-success">No</span></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-file-earmark-text me-2 text-danger"></i>SEC EDGAR</td>
+                                    <td><span class="badge bg-warning text-dark">Financial</span></td>
+                                    <td>SEC filings and company financial documents</td>
+                                    <td><span class="badge bg-success">No</span></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-briefcase me-2 text-primary"></i>Investor Relations</td>
+                                    <td><span class="badge bg-warning text-dark">Financial</span></td>
+                                    <td>Company IR pages, presentations, and reports</td>
+                                    <td><span class="badge bg-success">No</span></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-database me-2 text-success"></i>DuckDB</td>
+                                    <td><span class="badge bg-secondary">Data</span></td>
+                                    <td>Embedded SQL database for analytics</td>
+                                    <td><span class="badge bg-success">No</span></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-globe2 me-2 text-info"></i>Web Crawler</td>
+                                    <td><span class="badge bg-secondary">Search</span></td>
+                                    <td>Extract content from web pages</td>
+                                    <td><span class="badge bg-success">No</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technical Specifications -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header card-header-secondary">
+                    <i class="bi bi-cpu me-2"></i>Technical Specifications
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <strong>Python 3.9+</strong>
+                            </div>
+                            <small class="text-muted ms-4">Built on modern Python with async support</small>
+                        </li>
+                        <li class="mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <strong>Flask + Socket.IO</strong>
+                            </div>
+                            <small class="text-muted ms-4">Lightweight, production-ready web framework</small>
+                        </li>
+                        <li class="mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <strong>Bootstrap 5 + jQuery</strong>
+                            </div>
+                            <small class="text-muted ms-4">Responsive, modern web interface</small>
+                        </li>
+                        <li class="mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <strong>JSON-RPC 2.0</strong>
+                            </div>
+                            <small class="text-muted ms-4">Standard protocol for MCP communication</small>
+                        </li>
+                        <li class="mb-0">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <strong>Properties-based Config</strong>
+                            </div>
+                            <small class="text-muted ms-4">Flexible configuration with auto-reload</small>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header card-header-warning">
+                    <i class="bi bi-speedometer2 me-2"></i>Performance Metrics
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Concurrent Users</span>
+                            <strong>100+</strong>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar" style="width: 80%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>WebSocket Connections</span>
+                            <strong>200+</strong>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-success" style="width: 85%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Requests per Second</span>
+                            <strong>1000+</strong>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-info" style="width: 90%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Response Time (p95)</span>
+                            <strong>&lt;200ms</strong>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-warning" style="width: 95%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Features -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-danger">
+                    <i class="bi bi-shield-check me-2"></i>Security Features
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 col-6 text-center mb-4">
+                            <i class="bi bi-key-fill text-warning" style="font-size: 2.5rem;"></i>
+                            <h6 class="mt-2 mb-1">Session Auth</h6>
+                            <small class="text-muted">Secure session management</small>
+                        </div>
+                        <div class="col-md-3 col-6 text-center mb-4">
+                            <i class="bi bi-shield-lock-fill text-success" style="font-size: 2.5rem;"></i>
+                            <h6 class="mt-2 mb-1">Bearer Tokens</h6>
+                            <small class="text-muted">JWT API authentication</small>
+                        </div>
+                        <div class="col-md-3 col-6 text-center mb-4">
+                            <i class="bi bi-speedometer text-info" style="font-size: 2.5rem;"></i>
+                            <h6 class="mt-2 mb-1">Rate Limiting</h6>
+                            <small class="text-muted">Protection against abuse</small>
+                        </div>
+                        <div class="col-md-3 col-6 text-center mb-4">
+                            <i class="bi bi-check2-square text-primary" style="font-size: 2.5rem;"></i>
+                            <h6 class="mt-2 mb-1">Input Validation</h6>
+                            <small class="text-muted">Schema-based validation</small>
+                        </div>
+                        <div class="col-md-3 col-6 text-center mb-4">
+                            <i class="bi bi-journal-text text-secondary" style="font-size: 2.5rem;"></i>
+                            <h6 class="mt-2 mb-1">Audit Logging</h6>
+                            <small class="text-muted">Complete activity trail</small>
+                        </div>
+                        <div class="col-md-3 col-6 text-center mb-4">
+                            <i class="bi bi-globe text-danger" style="font-size: 2.5rem;"></i>
+                            <h6 class="mt-2 mb-1">CORS Support</h6>
+                            <small class="text-muted">Cross-origin security</small>
+                        </div>
+                        <div class="col-md-3 col-6 text-center mb-4">
+                            <i class="bi bi-people-fill text-info" style="font-size: 2.5rem;"></i>
+                            <h6 class="mt-2 mb-1">RBAC</h6>
+                            <small class="text-muted">Role-based access control</small>
+                        </div>
+                        <div class="col-md-3 col-6 text-center mb-4">
+                            <i class="bi bi-lock-fill text-warning" style="font-size: 2.5rem;"></i>
+                            <h6 class="mt-2 mb-1">Tool Permissions</h6>
+                            <small class="text-muted">Granular tool access</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hot-Reload System -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-info">
+                    <i class="bi bi-arrow-repeat me-2"></i>Hot-Reload System
+                </div>
+                <div class="card-body">
+                    <p class="mb-4">SAJHA MCP Server features a comprehensive hot-reload system that automatically detects and applies configuration changes without requiring a server restart. This enables zero-downtime updates to tools, users, API keys, and prompts.</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <i class="bi bi-clock-history me-2"></i>What Gets Hot-Reloaded
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Component</th>
+                                                <th>Files</th>
+                                                <th>Interval</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><i class="bi bi-people text-primary me-1"></i> Users</td>
+                                                <td><code>config/users.json</code></td>
+                                                <td>5 min</td>
+                                            </tr>
+                                            <tr>
+                                                <td><i class="bi bi-key text-success me-1"></i> API Keys</td>
+                                                <td><code>config/apikeys.json</code></td>
+                                                <td>5 min</td>
+                                            </tr>
+                                            <tr>
+                                                <td><i class="bi bi-tools text-warning me-1"></i> Tool Configs</td>
+                                                <td><code>config/tools/*.json</code></td>
+                                                <td>5 sec</td>
+                                            </tr>
+                                            <tr>
+                                                <td><i class="bi bi-code-slash text-info me-1"></i> Tool Modules</td>
+                                                <td><code>tools/impl/*.py</code></td>
+                                                <td>5 sec</td>
+                                            </tr>
+                                            <tr>
+                                                <td><i class="bi bi-chat-quote text-danger me-1"></i> Prompts</td>
+                                                <td><code>config/prompts/*.json</code></td>
+                                                <td>5 min</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <i class="bi bi-lightning-charge me-2"></i>How It Works
+                                </div>
+                                <div class="card-body">
+                                    <ol class="mb-3">
+                                        <li><strong>Add a tool:</strong> Create a new JSON config in <code>config/tools/</code> and Python module in <code>tools/impl/</code> - appears within 5 seconds</li>
+                                        <li><strong>Modify a tool:</strong> Edit the JSON or Python file - changes apply within 5 seconds</li>
+                                        <li><strong>Delete a tool:</strong> Remove the JSON file - disappears from system and docs within 5 seconds</li>
+                                        <li><strong>Update users/API keys:</strong> Edit JSON files - changes apply within 5 minutes</li>
+                                    </ol>
+                                    <div class="alert alert-info mb-0">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        <strong>Force Reload:</strong> Use <code>POST /api/admin/hot-reload/force</code> to trigger immediate reload of all configurations.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Competitive Analysis -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-warning">
+                    <i class="bi bi-bar-chart-line me-2"></i>Competitive Analysis
+                </div>
+                <div class="card-body">
+                    <p class="mb-4">SAJHA MCP Server stands out in the MCP ecosystem with its comprehensive feature set. Here's how it compares to other MCP implementations:</p>
+                    
+                    <!-- Comparison Table -->
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Feature</th>
+                                    <th class="text-center"><i class="bi bi-star-fill text-warning"></i> SAJHA MCP</th>
+                                    <th class="text-center">Basic MCP Servers</th>
+                                    <th class="text-center">Claude Desktop</th>
+                                    <th class="text-center">LangChain Tools</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Web UI Dashboard</strong></td>
+                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Full Featured</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> None</td>
+                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> Limited</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> None</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Built-in Tools</strong></td>
+                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> 150+ Tools</td>
+                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> 1-5 Tools</td>
+                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> External Only</td>
+                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> Varies</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Central Bank Data</strong></td>
+                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> 6 Banks (Fed, ECB, BOJ, RBI, PBoC, BdF)</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> None</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> None</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> None</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>SEC EDGAR Integration</strong></td>
+                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> 20+ Endpoints</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> None</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> None</td>
+                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> Basic</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Authentication</strong></td>
+                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Session + API Keys</td>
+                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> Basic/None</td>
+                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> System-level</td>
+                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> Varies</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>RBAC (Role-Based Access)</strong></td>
+                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Yes</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> No</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> No</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> No</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tool-Level Permissions</strong></td>
+                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Regex + Allowlist</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> No</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> No</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> No</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>WebSocket Support</strong></td>
+                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Yes</td>
+                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> Some</td>
+                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Yes</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> No</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Prompts Management</strong></td>
+                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Full CRUD + Templates</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> No</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> No</td>
+                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> Limited</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Real-time Monitoring</strong></td>
+                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Dashboard + Metrics</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> No</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> No</td>
+                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> Logging Only</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Hot-Reload System</strong></td>
+                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Full (Tools, Users, API Keys, Prompts, Python Modules)</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> Restart Required</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> Restart Required</td>
+                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> Restart Required</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Documentation</strong></td>
+                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> 25+ Guides + Live MD Viewer</td>
+                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> README</td>
+                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Anthropic Docs</td>
+                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Good</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Strengths & Considerations -->
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <div class="card border-success h-100">
+                                <div class="card-header bg-success text-white">
+                                    <i class="bi bi-trophy me-2"></i>Key Strengths
+                                </div>
+                                <div class="card-body">
+                                    <ul class="mb-0">
+                                        <li><strong>Financial Data Focus:</strong> Unmatched coverage of central banks, SEC filings, and market data tools</li>
+                                        <li><strong>Enterprise Security:</strong> Multi-layer authentication with API keys, sessions, and granular permissions</li>
+                                        <li><strong>Production Ready:</strong> Web UI, monitoring, logging, and admin features out of the box</li>
+                                        <li><strong>Self-Documenting:</strong> Live markdown viewer with architecture diagrams for all 150+ tools</li>
+                                        <li><strong>Comprehensive Hot-Reload:</strong> Auto-reload within 5 minutes for users.json, apikeys.json, tool configs, Python modules, and prompts - zero downtime changes</li>
+                                        <li><strong>Flexible Access:</strong> Both session tokens and API keys supported with regex-based tool permissions</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card border-warning h-100">
+                                <div class="card-header bg-warning text-dark">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>Considerations
+                                </div>
+                                <div class="card-body">
+                                    <ul class="mb-0">
+                                        <li><strong>Python-Based:</strong> Requires Python 3.9+ environment (not embedded like Claude Desktop)</li>
+                                        <li><strong>Self-Hosted:</strong> You manage the server infrastructure (can be pro or con)</li>
+                                        <li><strong>API Keys Required:</strong> Some external tools (Google, Tavily) need their own API keys</li>
+                                        <li><strong>Learning Curve:</strong> Rich features require some initial setup and configuration</li>
+                                        <li><strong>Resource Usage:</strong> 150+ tools use more memory than minimal implementations</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bottom Line -->
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-lightbulb me-2"></i>
+                        <strong>Bottom Line:</strong> SAJHA MCP Server is ideal for organizations that need a <em>production-ready, enterprise-grade</em> MCP implementation with comprehensive financial data tools, robust security, and a full-featured admin interface. It's particularly well-suited for fintech, research, and enterprise AI integration projects where security and data access control are paramount.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Copyright & Contact -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-primary">
+                    <i class="bi bi-c-circle me-2"></i>Copyright & Contact
+                </div>
+                <div class="card-body text-center py-4">
+                    <h5 class="mb-3">Copyright © 2025-2030 Ashutosh Sinha</h5>
+                    <p class="text-muted mb-4">All rights reserved. SAJHA MCP Server is proprietary software.</p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="mailto:ajsinha@gmail.com" class="btn btn-outline-primary">
+                            <i class="bi bi-envelope me-2"></i>ajsinha@gmail.com
+                        </a>
+                        <a href="https://modelcontextprotocol.io" target="_blank" class="btn btn-outline-secondary">
+                            <i class="bi bi-box-arrow-up-right me-2"></i>MCP Specification
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

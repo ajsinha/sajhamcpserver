@@ -16,7 +16,7 @@ import urllib.error
 
 # Import the IMF tools
 try:
-    from tools.impl.imf_tool_refactored import (
+    from sajha.tools.impl.imf_tool_refactored import (
         IMFGetDatabasesTool,
         IMFGetDataflowsTool,
         IMFGetDataTool,

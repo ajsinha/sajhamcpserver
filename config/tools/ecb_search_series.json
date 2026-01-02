@@ -1,8 +1,8 @@
 {
   "name": "ecb_search_series",
-  "implementation": "tools.impl.european_central_bank_tool_refactored.ECBSearchSeriesTool",
+  "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBSearchSeriesTool",
   "description": "Search and discover available European Central Bank data series organized by category. Helps users find the right data series for their needs.",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

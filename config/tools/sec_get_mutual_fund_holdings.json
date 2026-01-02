@@ -1,8 +1,8 @@
 {
   "name": "sec_get_mutual_fund_holdings",
-  "implementation": "tools.impl.sec_edgar_tool_refactored.SECGetMutualFundHoldingsTool",
+  "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECGetMutualFundHoldingsTool",
   "description": "Retrieve institutional investment manager holdings reports (Form 13F-HR)",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

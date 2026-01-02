@@ -15,7 +15,7 @@ from unittest.mock import Mock, patch, MagicMock
 
 # Import the Federal Reserve tools
 try:
-    from tools.impl.fed_reserve_tool_refactored import (
+    from sajha.tools.impl.fed_reserve_tool_refactored import (
         FedGetSeriesTool,
         FedGetLatestTool,
         FedSearchSeriesTool,

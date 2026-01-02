@@ -1,8 +1,8 @@
 {
   "name": "bdf_get_exchange_rate",
-  "implementation": "tools.impl.france_central_bank.BdFGetExchangeRateTool",
+  "implementation": "sajha.tools.impl.france_central_bank.BdFGetExchangeRateTool",
   "description": "Retrieve Euro exchange rates against major currencies",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

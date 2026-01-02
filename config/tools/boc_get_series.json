@@ -1,8 +1,8 @@
 {
   "name": "boc_get_series",
-  "implementation": "tools.impl.bank_of_canada_tool_refactored.BoCGetSeriesTool",
+  "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCGetSeriesTool",
   "description": "Retrieve time series economic data from Bank of Canada by series name or indicator. Supports date ranges and recent periods.",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

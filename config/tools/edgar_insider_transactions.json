@@ -1,8 +1,8 @@
 {
   "name": "edgar_insider_transactions",
-  "implementation": "tools.impl.enhanced_edgar_tool.EDGARInsiderTransactionsTool",
+  "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARInsiderTransactionsTool",
   "description": "Retrieve insider trading transactions (Form 4 filings) showing buy/sell activities by company officers, directors, and 10% owners",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

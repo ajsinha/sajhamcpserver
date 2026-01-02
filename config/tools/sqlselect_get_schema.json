@@ -1,8 +1,8 @@
 {
   "name": "sqlselect_get_schema",
-  "implementation": "tools.impl.sqlselect_tool_refactored.SqlSelectGetSchemaTool",
+  "implementation": "sajha.tools.impl.sqlselect_tool_refactored.SqlSelectGetSchemaTool",
   "description": "Get detailed schema information for a data source including column names, types, nullability, and constraints",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "data_directory": "data/sqlselect",
   "data_sources": {

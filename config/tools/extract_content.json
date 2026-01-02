@@ -1,8 +1,8 @@
 {
   "name": "extract_content",
-  "implementation": "tools.impl.webcrawler_tool_refactored.ExtractContentTool",
+  "implementation": "sajha.tools.impl.webcrawler_tool_refactored.ExtractContentTool",
   "description": "Extract structured content including text, images, and headings from a web page for content analysis",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -1,8 +1,8 @@
 {
   "name": "sec_get_insider_trading",
-  "implementation": "tools.impl.sec_edgar_tool_refactored.SECGetInsiderTradingTool",
+  "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECGetInsiderTradingTool",
   "description": "Retrieve insider trading reports (Form 4) for company insiders and executives",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -1,8 +1,8 @@
 {
   "name": "ecb_get_series",
-  "implementation": "tools.impl.european_central_bank_tool_refactored.ECBGetSeriesTool",
+  "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetSeriesTool",
   "description": "Retrieve time series economic data from European Central Bank by flow/key or indicator. Supports date ranges and recent periods.",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

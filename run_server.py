@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Main entry point for SAJHA MCP Server v2.0.1
+Main entry point for SAJHA MCP Server v2.1.0
 
 This script initializes and runs the SAJHA MCP Server web application.
 It handles:
@@ -22,8 +22,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.absolute()
 sys.path.insert(0, str(project_root))
 
-from core.properties_configurator import PropertiesConfigurator
-from web.sajhamcpserver_web import SajhaMCPServerWebApp
+from sajha.core.properties_configurator import PropertiesConfigurator
+from sajha.web.sajhamcpserver_web import SajhaMCPServerWebApp
 
 # Global reference for graceful shutdown
 _web_app: SajhaMCPServerWebApp = None
@@ -118,7 +118,7 @@ def main():
     
     logger = logging.getLogger(__name__)
     logger.info("=" * 60)
-    logger.info("SAJHA MCP Server v2.0.1 Starting...")
+    logger.info("SAJHA MCP Server v2.1.0 Starting...")
     logger.info("=" * 60)
     
     # Register signal handlers for graceful shutdown

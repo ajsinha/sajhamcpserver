@@ -1,8 +1,8 @@
 {
   "name": "msdoc_search_excel",
-  "implementation": "tools.impl.msdoc_tools_tool_refactored.MsDocSearchExcelTool",
+  "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocSearchExcelTool",
   "description": "Search for specific text or values within Excel spreadsheets",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

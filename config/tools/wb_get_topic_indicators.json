@@ -1,8 +1,8 @@
 {
   "name": "wb_get_topic_indicators",
-  "implementation": "tools.impl.world_bank_tool.WBGetTopicIndicatorsTool",
+  "implementation": "sajha.tools.impl.world_bank_tool.WBGetTopicIndicatorsTool",
   "description": "Retrieve all indicators related to a specific topic (e.g., Education, Health, Climate Change). Get comprehensive indicator lists by development topic.",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

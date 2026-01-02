@@ -1,8 +1,8 @@
 {
   "name": "tavily_web_search",
-  "implementation": "tools.impl.tavily_tool_refactored.TavilyWebSearchTool",
+  "implementation": "sajha.tools.impl.tavily_tool_refactored.TavilyWebSearchTool",
   "description": "Perform general web search using Tavily AI-powered search engine for finding information across the internet",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "api_key": "",
   "inputSchema": {

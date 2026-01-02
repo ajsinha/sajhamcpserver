@@ -1,8 +1,8 @@
 {
   "name": "pboc_get_cgb_yield",
-  "implementation": "tools.impl.china_central_bank.PBoCGetCGBYieldTool",
+  "implementation": "sajha.tools.impl.china_central_bank.PBoCGetCGBYieldTool",
   "description": "Retrieve China Government Bond yields for various maturities",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

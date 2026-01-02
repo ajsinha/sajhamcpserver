@@ -1,8 +1,8 @@
 {
   "name": "duckdb_describe_table",
-  "implementation": "tools.impl.duckdb_olap_tools_refactored.DuckDbDescribeTableTool",
+  "implementation": "sajha.tools.impl.duckdb_olap_tools_refactored.DuckDbDescribeTableTool",
   "description": "Get detailed schema information for a specific table or view including column types and constraints",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "data_directory": "data/duckdb",
   "inputSchema": {

@@ -1,8 +1,8 @@
 {
   "name": "crawl_sitemap",
-  "implementation": "tools.impl.webcrawler_tool_refactored.CrawlSitemapTool",
+  "implementation": "sajha.tools.impl.webcrawler_tool_refactored.CrawlSitemapTool",
   "description": "Crawl and extract all URLs from a website's sitemap.xml file for complete site structure overview",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
