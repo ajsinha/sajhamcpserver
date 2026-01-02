@@ -6,30 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="04a8e7bd-1a2d-4b5f-a656-a3f1eed8ce6e" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/boj_get_money_stock.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/boj_get_price_index.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/pboc_get_forex_reserves.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/tools/pboc_get_lpr.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/config/users.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/users.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/duckdb/duckdb_analytics.db" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/logs/server.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/server.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/bank_of_canada_tool_refactored.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/bank_of_canada_tool_refactored.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/china_central_bank.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/china_central_bank.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/enhanced_edgar_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/enhanced_edgar_tool.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/european_central_bank_tool_refactored.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/european_central_bank_tool_refactored.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/fbi_tool_refactored.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/fbi_tool_refactored.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/fed_reserve_tool_refactored.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/fed_reserve_tool_refactored.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/france_central_bank.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/france_central_bank.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/google_search_tool_refactored.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/google_search_tool_refactored.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/imf_tool_refactored.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/imf_tool_refactored.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/india_central_bank.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/india_central_bank.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/japan_central_bank.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/japan_central_bank.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/sec_edgar_tool_refactored.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/sec_edgar_tool_refactored.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/tavily_tool_refactored.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/tavily_tool_refactored.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/united_nations_tool_refactored.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/united_nations_tool_refactored.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/wikipedia_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/wikipedia_tool.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/world_bank_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/world_bank_tool.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/yahoo_finance_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/yahoo_finance_tool.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -51,6 +29,7 @@
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.run_server.executor": "Run",
+    "Python.search_client.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
@@ -58,7 +37,7 @@
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
 }]]></component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Python.search_client">
     <configuration name="run_server" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="sajhamcpserver" />
       <option name="ENV_FILES" value="" />
@@ -82,8 +61,32 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="search_client" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="sajhamcpserver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/sajha/examples" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/sajha/examples/search_client.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.search_client" />
         <item itemvalue="Python.run_server" />
       </list>
     </recent_temporary>

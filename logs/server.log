@@ -4013,3 +4013,854 @@ ValueError: Series not found: CGB_1Y
 2026-01-02 16:54:16 | INFO     | __main__                       | Starting server on 0.0.0.0:3002...
 2026-01-02 16:54:24 | INFO     | sajha.core.auth_manager        | Saved 1 users to configuration
 2026-01-02 16:54:24 | INFO     | sajha.core.auth_manager        | User authenticated successfully: admin
+2026-01-02 16:59:16 | INFO     | sajha.core.hot_reload_manager  | Config file changed: users.json (/home/ashutosh/PycharmProjects/sajhamcpserver/config/users.json)
+2026-01-02 16:59:16 | INFO     | sajha.core.hot_reload_manager  | Reloading users configuration (modified)
+2026-01-02 16:59:16 | INFO     | sajha.core.auth_manager        | Loaded 1 users from /home/ashutosh/PycharmProjects/sajhamcpserver/config/users.json
+2026-01-02 16:59:16 | INFO     | sajha.core.tool_groups_manager | Tool groups refreshed: 11 groups, 154 tools in 0.01s
+2026-01-02 17:02:24 | INFO     | sajha.core.auth_manager        | User logged out: admin
+2026-01-02 17:02:51 | INFO     | sajha.core.auth_manager        | Saved 1 users to configuration
+2026-01-02 17:02:51 | INFO     | sajha.core.auth_manager        | User authenticated successfully: admin
+2026-01-02 17:04:16 | INFO     | root                           | Auto-refresh: Reloading prompts...
+2026-01-02 17:04:16 | INFO     | root                           | Loaded 6 prompts, 0 errors
+2026-01-02 17:04:16 | INFO     | root                           | Auto-refresh: Reloaded 6 prompts successfully
+2026-01-02 17:04:16 | INFO     | sajha.core.hot_reload_manager  | Config file changed: users.json (/home/ashutosh/PycharmProjects/sajhamcpserver/config/users.json)
+2026-01-02 17:04:16 | INFO     | sajha.core.hot_reload_manager  | Reloading users configuration (modified)
+2026-01-02 17:04:16 | INFO     | sajha.core.auth_manager        | Loaded 1 users from /home/ashutosh/PycharmProjects/sajhamcpserver/config/users.json
+2026-01-02 17:04:16 | INFO     | sajha.core.tool_groups_manager | Tool groups refreshed: 11 groups, 154 tools in 0.01s
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: yahoo_get_quote.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: yahoo_get_quote
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: duckdb_query.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: duckdb_query
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: un_get_sdg_targets.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: un_get_sdg_targets
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: sec_get_insider_trading.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: sec_get_insider_trading
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: boj_get_jgb_yield.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: boj_get_jgb_yield
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: boj_get_inflation.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: boj_get_inflation
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: boj_list_series.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: boj_list_series
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_filing_details.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_filing_details
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: pboc_list_series.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: pboc_list_series
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: fbi_get_state_statistics.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: fbi_get_state_statistics
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: imf_get_weo_data.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: imf_get_weo_data
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: imf_get_databases.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: imf_get_databases
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: boj_get_economic_indicator.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: boj_get_economic_indicator
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: rbi_get_gsec_yield.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: rbi_get_gsec_yield
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: ecb_get_inflation.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: ecb_get_inflation
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: fed_get_common_indicators.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: fed_get_common_indicators
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: fbi_get_agency_statistics.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: fbi_get_agency_statistics
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: ir_find_page.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: ir_find_page
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: msdoc_read_word.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: msdoc_read_word
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_company_concept.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_company_concept
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_registration_statements.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_registration_statements
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: duckdb_get_stats.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: duckdb_get_stats
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_filings_by_form.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_filings_by_form
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: sqlselect_list_sources.json
+2026-01-02 17:07:37 | INFO     | SqlSelectListSourcesTool       | DuckDB connection closed for sqlselect_list_sources
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: sqlselect_list_sources
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: msdoc_search_word.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: msdoc_search_word
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: ir_get_documents.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: ir_get_documents
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: ecb_get_common_indicators.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: ecb_get_common_indicators
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: wiki_search.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: wiki_search
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: boc_get_bond_yield.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: boc_get_bond_yield
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: wb_get_indicator_data.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: wb_get_indicator_data
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: sqlselect_sample_data.json
+2026-01-02 17:07:37 | INFO     | SqlSelectSampleDataTool        | DuckDB connection closed for sqlselect_sample_data
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: sqlselect_sample_data
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: duckdb_describe_table.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: duckdb_describe_table
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: msdoc_extract_text.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: msdoc_extract_text
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: boc_search_series.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: boc_search_series
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: imf_get_bop_data.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: imf_get_bop_data
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: pboc_get_money_supply.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: pboc_get_money_supply
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_company_tickers_by_exchange.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_company_tickers_by_exchange
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: extract_metadata.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: extract_metadata
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_current_reports.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_current_reports
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: ir_get_latest_earnings.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: ir_get_latest_earnings
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: rbi_get_exchange_rate.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: rbi_get_exchange_rate
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: rbi_get_policy_rate.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: rbi_get_policy_rate
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: google_search.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: google_search
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: wb_search_indicators.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: wb_search_indicators
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_institutional_holdings.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_institutional_holdings
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: un_get_sdg_indicators.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: un_get_sdg_indicators
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: pboc_get_inflation.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: pboc_get_inflation
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: fed_search_series.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: fed_search_series
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_financial_ratios.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_financial_ratios
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: tavily_news_search.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: tavily_news_search
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: sec_search_company.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: sec_search_company
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: bdf_get_exchange_rate.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: bdf_get_exchange_rate
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: un_get_trade_data.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: un_get_trade_data
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: duckdb_list_tables.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: duckdb_list_tables
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: imf_get_ifs_data.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: imf_get_ifs_data
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: wb_get_indicators.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: wb_get_indicators
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_mutual_fund_holdings.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_mutual_fund_holdings
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: boc_get_exchange_rate.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: boc_get_exchange_rate
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: check_robots_txt.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: check_robots_txt
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: crawl_url.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: crawl_url
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: sqlselect_count_rows.json
+2026-01-02 17:07:37 | INFO     | SqlSelectCountRowsTool         | DuckDB connection closed for sqlselect_count_rows
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: sqlselect_count_rows
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: imf_get_data.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: imf_get_data
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: wb_get_income_levels.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: wb_get_income_levels
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_company_submissions.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_company_submissions
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: bdf_get_ecb_policy_rate.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: bdf_get_ecb_policy_rate
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: ecb_get_bond_yield.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: ecb_get_bond_yield
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: fbi_get_offense_data.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: fbi_get_offense_data
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: fed_get_series.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: fed_get_series
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: fbi_compare_states.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: fbi_compare_states
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: extract_content.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: extract_content
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: bdf_get_oat_yield.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: bdf_get_oat_yield
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: msdoc_read_excel_sheet.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: msdoc_read_excel_sheet
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: msdoc_list_files.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: msdoc_list_files
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: wb_get_regions.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: wb_get_regions
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: pboc_get_exchange_rate.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: pboc_get_exchange_rate
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: pboc_get_policy_rate.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: pboc_get_policy_rate
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: un_get_trade_balance.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: un_get_trade_balance
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: ir_list_supported_companies.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: ir_list_supported_companies
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: sqlselect_execute_query.json
+2026-01-02 17:07:37 | INFO     | SqlSelectExecuteQueryTool      | DuckDB connection closed for sqlselect_execute_query
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: sqlselect_execute_query
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: bdf_get_eurozone_indicator.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: bdf_get_eurozone_indicator
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_xbrl_frames_multi_concept.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_xbrl_frames_multi_concept
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: duckdb_refresh_views.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: duckdb_refresh_views
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: wiki_get_summary.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: wiki_get_summary
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: sqlselect_get_schema.json
+2026-01-02 17:07:37 | INFO     | SqlSelectGetSchemaTool         | DuckDB connection closed for sqlselect_get_schema
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: sqlselect_get_schema
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: msdoc_get_excel_metadata.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: msdoc_get_excel_metadata
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: fbi_search_agencies.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: fbi_search_agencies
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: wb_compare_countries.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: wb_compare_countries
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: fbi_get_agency_details.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: fbi_get_agency_details
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: wb_get_country_data.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: wb_get_country_data
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: fbi_get_crime_trend.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: fbi_get_crime_trend
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: ecb_get_interest_rate.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: ecb_get_interest_rate
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: msdoc_read_excel.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: msdoc_read_excel
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: sqlselect_describe_source.json
+2026-01-02 17:07:37 | INFO     | SqlSelectDescribeSourceTool    | DuckDB connection closed for sqlselect_describe_source
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: sqlselect_describe_source
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: un_get_country_trade.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: un_get_country_trade
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: pboc_get_cgb_yield.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: pboc_get_cgb_yield
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: rbi_get_forex_reserves.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: rbi_get_forex_reserves
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: sec_get_company_filings.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: sec_get_company_filings
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: wb_get_lending_types.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: wb_get_lending_types
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: tavily_research_search.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: tavily_research_search
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: fed_get_latest.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: fed_get_latest
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_insider_transactions.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_insider_transactions
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: rbi_get_inflation.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: rbi_get_inflation
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: bdf_get_french_indicator.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: bdf_get_french_indicator
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_proxy_statements.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_proxy_statements
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: msdoc_get_word_metadata.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: msdoc_get_word_metadata
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: ecb_search_series.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: ecb_search_series
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_company_search.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_company_search
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_foreign_issuers.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_foreign_issuers
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: ir_get_annual_reports.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: ir_get_annual_reports
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: wb_get_topic_indicators.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: wb_get_topic_indicators
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: ecb_get_latest.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: ecb_get_latest
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_frame_data.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_frame_data
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: crawl_sitemap.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: crawl_sitemap
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: duckdb_aggregate.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: duckdb_aggregate
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: ecb_get_exchange_rate.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: ecb_get_exchange_rate
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: ir_get_all_resources.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: ir_get_all_resources
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: un_compare_trade.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: un_compare_trade
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: sec_get_financial_data.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: sec_get_financial_data
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: yahoo_get_history.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: yahoo_get_history
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: boj_get_policy_rate.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: boj_get_policy_rate
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_ownership_reports.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_ownership_reports
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: yahoo_search_symbols.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: yahoo_search_symbols
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: boj_get_exchange_rate.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: boj_get_exchange_rate
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: ir_get_presentations.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: ir_get_presentations
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: duckdb_list_files.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: duckdb_list_files
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: msdoc_get_excel_sheets.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: msdoc_get_excel_sheets
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_company_facts.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_company_facts
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: tavily_web_search.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: tavily_web_search
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: extract_links.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: extract_links
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: sec_get_mutual_fund_holdings.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: sec_get_mutual_fund_holdings
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: un_get_sdg_data.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: un_get_sdg_data
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_companies_by_sic.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_companies_by_sic
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: boc_get_interest_rate.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: boc_get_interest_rate
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: wb_get_countries.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: wb_get_countries
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: boc_get_series.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: boc_get_series
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: boj_get_money_supply.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: boj_get_money_supply
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: sec_get_company_info.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: sec_get_company_info
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: imf_get_dataflows.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: imf_get_dataflows
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: imf_compare_countries.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: imf_compare_countries
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: msdoc_search_excel.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: msdoc_search_excel
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: wiki_get_page.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: wiki_get_page
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: boc_get_common_indicators.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: boc_get_common_indicators
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: ecb_get_series.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: ecb_get_series
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: sec_get_company_facts.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: sec_get_company_facts
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: get_page_info.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: get_page_info
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: un_get_sdgs.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: un_get_sdgs
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: fbi_get_national_statistics.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: fbi_get_national_statistics
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: imf_get_country_profile.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: imf_get_country_profile
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: un_get_sdg_progress.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: un_get_sdg_progress
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: fbi_get_participation_rate.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: fbi_get_participation_rate
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: boc_get_latest.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: boc_get_latest
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: edgar_amendments.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: edgar_amendments
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: pboc_get_economic_indicator.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: pboc_get_economic_indicator
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool configuration deleted: tavily_domain_search.json
+2026-01-02 17:07:37 | INFO     | sajha.tools.tools_registry     | Tool unregistered: tavily_domain_search
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: ecb_get_exchange_rate.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_exchange_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_exchange_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: un_get_sdgs.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_sdgs
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_sdgs
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: duckdb_list_tables.json
+2026-01-02 17:08:02 | INFO     | DuckDbListTablesTool           | No data files found in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2026-01-02 17:08:02 | INFO     | DuckDbListTablesTool           | Auto-refresh enabled: checking every 600 seconds
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_list_tables
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_list_tables
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: check_robots_txt.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: check_robots_txt
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: check_robots_txt
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: boj_get_jgb_yield.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_jgb_yield
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_jgb_yield
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: imf_compare_countries.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_compare_countries
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_compare_countries
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: ecb_get_bond_yield.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_bond_yield
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_bond_yield
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: imf_get_bop_data.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_bop_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_bop_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: extract_content.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: extract_content
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: extract_content
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: boj_get_exchange_rate.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_exchange_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_exchange_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: ecb_search_series.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_search_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_search_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_financial_ratios.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_financial_ratios
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_financial_ratios
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: un_get_trade_data.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_trade_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_trade_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: un_get_sdg_targets.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_sdg_targets
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_sdg_targets
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: boj_get_economic_indicator.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_economic_indicator
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_economic_indicator
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: fbi_get_participation_rate.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_participation_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_participation_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: fbi_get_agency_statistics.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_agency_statistics
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_agency_statistics
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_proxy_statements.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_proxy_statements
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_proxy_statements
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: sqlselect_count_rows.json
+2026-01-02 17:08:02 | WARNING  | SqlSelectCountRowsTool         | Data file not found: data/sqlselect/customers.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectCountRowsTool         | Data file not found: data/sqlselect/orders.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectCountRowsTool         | Data file not found: data/sqlselect/products.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectCountRowsTool         | Data file not found: data/sqlselect/sales.csv
+2026-01-02 17:08:02 | INFO     | SqlSelectCountRowsTool         | DuckDB connection initialized for sqlselect_count_rows
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_count_rows
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_count_rows
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: fed_get_latest.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: fed_get_latest
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fed_get_latest
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: ir_get_all_resources.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_get_all_resources
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_get_all_resources
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: extract_links.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: extract_links
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: extract_links
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_registration_statements.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_registration_statements
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_registration_statements
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: bdf_get_oat_yield.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: bdf_get_oat_yield
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: bdf_get_oat_yield
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: msdoc_read_excel_sheet.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_read_excel_sheet
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_read_excel_sheet
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: fbi_get_offense_data.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_offense_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_offense_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: fbi_compare_states.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_compare_states
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_compare_states
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: tavily_news_search.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: tavily_news_search
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: tavily_news_search
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: rbi_get_policy_rate.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: rbi_get_policy_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: rbi_get_policy_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: duckdb_get_stats.json
+2026-01-02 17:08:02 | INFO     | DuckDbGetStatsTool             | No data files found in data/duckdb
+2026-01-02 17:08:02 | INFO     | DuckDbGetStatsTool             | Auto-refresh enabled: checking every 600 seconds
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_get_stats
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_get_stats
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: msdoc_extract_text.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_extract_text
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_extract_text
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: pboc_get_cgb_yield.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_cgb_yield
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_cgb_yield
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: extract_metadata.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: extract_metadata
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: extract_metadata
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: boc_get_interest_rate.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_interest_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_interest_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: imf_get_weo_data.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_weo_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_weo_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: msdoc_search_word.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_search_word
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_search_word
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: fbi_search_agencies.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_search_agencies
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_search_agencies
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_xbrl_frames_multi_concept.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_xbrl_frames_multi_concept
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_xbrl_frames_multi_concept
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: ir_get_documents.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_get_documents
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_get_documents
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: sec_get_insider_trading.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_insider_trading
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_insider_trading
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: fbi_get_national_statistics.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_national_statistics
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_national_statistics
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: sqlselect_get_schema.json
+2026-01-02 17:08:02 | WARNING  | SqlSelectGetSchemaTool         | Data file not found: data/sqlselect/customers.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectGetSchemaTool         | Data file not found: data/sqlselect/orders.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectGetSchemaTool         | Data file not found: data/sqlselect/products.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectGetSchemaTool         | Data file not found: data/sqlselect/sales.csv
+2026-01-02 17:08:02 | INFO     | SqlSelectGetSchemaTool         | DuckDB connection initialized for sqlselect_get_schema
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_get_schema
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_get_schema
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_amendments.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_amendments
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_amendments
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: pboc_list_series.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_list_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_list_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: msdoc_read_word.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_read_word
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_read_word
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: ecb_get_inflation.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_inflation
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_inflation
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: bdf_get_exchange_rate.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: bdf_get_exchange_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: bdf_get_exchange_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_company_concept.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_company_concept
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_company_concept
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: tavily_research_search.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: tavily_research_search
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: tavily_research_search
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: boc_get_latest.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_latest
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_latest
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: duckdb_aggregate.json
+2026-01-02 17:08:02 | INFO     | DuckDbAggregateTool            | No data files found in data/duckdb
+2026-01-02 17:08:02 | INFO     | DuckDbAggregateTool            | Auto-refresh enabled: checking every 600 seconds
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_aggregate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_aggregate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: rbi_get_exchange_rate.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: rbi_get_exchange_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: rbi_get_exchange_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_ownership_reports.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_ownership_reports
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_ownership_reports
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_frame_data.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_frame_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_frame_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: boj_get_policy_rate.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_policy_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_policy_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: boc_get_bond_yield.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_bond_yield
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_bond_yield
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: wb_search_indicators.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_search_indicators
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_search_indicators
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: wiki_search.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: wiki_search
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wiki_search
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: wb_get_indicator_data.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_indicator_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_indicator_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: msdoc_list_files.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_list_files
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_list_files
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: wb_compare_countries.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_compare_countries
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_compare_countries
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: boc_get_common_indicators.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_common_indicators
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_common_indicators
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: tavily_web_search.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: tavily_web_search
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: tavily_web_search
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: un_get_sdg_indicators.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_sdg_indicators
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_sdg_indicators
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: un_get_country_trade.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_country_trade
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_country_trade
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_current_reports.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_current_reports
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_current_reports
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: imf_get_country_profile.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_country_profile
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_country_profile
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: bdf_get_eurozone_indicator.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: bdf_get_eurozone_indicator
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: bdf_get_eurozone_indicator
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_company_search.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_company_search
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_company_search
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: un_compare_trade.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: un_compare_trade
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_compare_trade
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: fbi_get_state_statistics.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_state_statistics
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_state_statistics
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: wb_get_countries.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_countries
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_countries
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: duckdb_query.json
+2026-01-02 17:08:02 | INFO     | DuckDbQueryTool                | No data files found in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2026-01-02 17:08:02 | INFO     | DuckDbQueryTool                | Auto-refresh enabled: checking every 600 seconds
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_query
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_query
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: ecb_get_latest.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_latest
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_latest
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: yahoo_search_symbols.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: yahoo_search_symbols
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: yahoo_search_symbols
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: ir_find_page.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_find_page
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_find_page
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: crawl_sitemap.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: crawl_sitemap
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: crawl_sitemap
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: boc_get_series.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: wb_get_indicators.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_indicators
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_indicators
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: ir_get_latest_earnings.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_get_latest_earnings
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_get_latest_earnings
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: imf_get_databases.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_databases
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_databases
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: fed_get_common_indicators.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: fed_get_common_indicators
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fed_get_common_indicators
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_foreign_issuers.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_foreign_issuers
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_foreign_issuers
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: un_get_trade_balance.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_trade_balance
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_trade_balance
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: msdoc_get_word_metadata.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_get_word_metadata
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_get_word_metadata
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_filings_by_form.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_filings_by_form
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_filings_by_form
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: msdoc_get_excel_metadata.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_get_excel_metadata
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_get_excel_metadata
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: boj_list_series.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_list_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_list_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: boj_get_inflation.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_inflation
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_inflation
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: msdoc_read_excel.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_read_excel
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_read_excel
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: bdf_get_ecb_policy_rate.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: bdf_get_ecb_policy_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: bdf_get_ecb_policy_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: boc_get_exchange_rate.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_exchange_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_exchange_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: sqlselect_execute_query.json
+2026-01-02 17:08:02 | WARNING  | SqlSelectExecuteQueryTool      | Data file not found: data/sqlselect/customers.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectExecuteQueryTool      | Data file not found: data/sqlselect/orders.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectExecuteQueryTool      | Data file not found: data/sqlselect/products.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectExecuteQueryTool      | Data file not found: data/sqlselect/sales.csv
+2026-01-02 17:08:02 | INFO     | SqlSelectExecuteQueryTool      | DuckDB connection initialized for sqlselect_execute_query
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_execute_query
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_execute_query
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: pboc_get_economic_indicator.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_economic_indicator
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_economic_indicator
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: bdf_get_french_indicator.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: bdf_get_french_indicator
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: bdf_get_french_indicator
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: msdoc_search_excel.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_search_excel
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_search_excel
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: ir_list_supported_companies.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_list_supported_companies
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_list_supported_companies
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: pboc_get_money_supply.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_money_supply
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_money_supply
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: wb_get_lending_types.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_lending_types
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_lending_types
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: msdoc_get_excel_sheets.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_get_excel_sheets
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_get_excel_sheets
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: imf_get_dataflows.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_dataflows
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_dataflows
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: google_search.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: google_search
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: google_search
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: ir_get_annual_reports.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_get_annual_reports
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_get_annual_reports
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: boj_get_money_supply.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_money_supply
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_money_supply
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: wb_get_topic_indicators.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_topic_indicators
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_topic_indicators
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: ecb_get_interest_rate.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_interest_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_interest_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: rbi_get_gsec_yield.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: rbi_get_gsec_yield
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: rbi_get_gsec_yield
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: sec_search_company.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_search_company
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_search_company
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_company_tickers_by_exchange.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_company_tickers_by_exchange
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_company_tickers_by_exchange
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: wb_get_country_data.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_country_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_country_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: sec_get_company_facts.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_company_facts
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_company_facts
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: fbi_get_agency_details.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_agency_details
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_agency_details
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: fed_search_series.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: fed_search_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fed_search_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: sqlselect_describe_source.json
+2026-01-02 17:08:02 | WARNING  | SqlSelectDescribeSourceTool    | Data file not found: data/sqlselect/customers.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectDescribeSourceTool    | Data file not found: data/sqlselect/orders.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectDescribeSourceTool    | Data file not found: data/sqlselect/products.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectDescribeSourceTool    | Data file not found: data/sqlselect/sales.csv
+2026-01-02 17:08:02 | INFO     | SqlSelectDescribeSourceTool    | DuckDB connection initialized for sqlselect_describe_source
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_describe_source
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_describe_source
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: pboc_get_inflation.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_inflation
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_inflation
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_company_submissions.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_company_submissions
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_company_submissions
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: duckdb_list_files.json
+2026-01-02 17:08:02 | INFO     | DuckDbListFilesTool            | No data files found in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2026-01-02 17:08:02 | INFO     | DuckDbListFilesTool            | Auto-refresh enabled: checking every 600 seconds
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_list_files
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_list_files
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: sec_get_company_info.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_company_info
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_company_info
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_companies_by_sic.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_companies_by_sic
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_companies_by_sic
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: boc_search_series.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_search_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_search_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: wiki_get_summary.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: wiki_get_summary
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wiki_get_summary
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: imf_get_data.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: tavily_domain_search.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: tavily_domain_search
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: tavily_domain_search
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: un_get_sdg_data.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_sdg_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_sdg_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: get_page_info.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: get_page_info
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: get_page_info
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_insider_transactions.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_insider_transactions
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_insider_transactions
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: un_get_sdg_progress.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_sdg_progress
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_sdg_progress
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: yahoo_get_history.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: yahoo_get_history
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: yahoo_get_history
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: rbi_get_forex_reserves.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: rbi_get_forex_reserves
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: rbi_get_forex_reserves
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_institutional_holdings.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_institutional_holdings
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_institutional_holdings
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: pboc_get_policy_rate.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_policy_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_policy_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: ir_get_presentations.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_get_presentations
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_get_presentations
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: yahoo_get_quote.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: yahoo_get_quote
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: yahoo_get_quote
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: fbi_get_crime_trend.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_crime_trend
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_crime_trend
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: fed_get_series.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: fed_get_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fed_get_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: imf_get_ifs_data.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_ifs_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_ifs_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: sec_get_mutual_fund_holdings.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_mutual_fund_holdings
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_mutual_fund_holdings
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: duckdb_refresh_views.json
+2026-01-02 17:08:02 | INFO     | DuckDbRefreshViewsTool         | No data files found in /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2026-01-02 17:08:02 | INFO     | DuckDbRefreshViewsTool         | Auto-refresh enabled: checking every 600 seconds
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_refresh_views
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_refresh_views
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: sec_get_company_filings.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_company_filings
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_company_filings
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: sec_get_financial_data.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_financial_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_financial_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: wb_get_regions.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_regions
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_regions
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: rbi_get_inflation.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: rbi_get_inflation
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: rbi_get_inflation
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: duckdb_describe_table.json
+2026-01-02 17:08:02 | INFO     | DuckDbDescribeTableTool        | No data files found in data/duckdb
+2026-01-02 17:08:02 | INFO     | DuckDbDescribeTableTool        | Auto-refresh enabled: checking every 600 seconds
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_describe_table
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_describe_table
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: wiki_get_page.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: wiki_get_page
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wiki_get_page
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: crawl_url.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: crawl_url
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: crawl_url
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: ecb_get_series.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_series
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: ecb_get_common_indicators.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_common_indicators
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_common_indicators
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: sqlselect_sample_data.json
+2026-01-02 17:08:02 | WARNING  | SqlSelectSampleDataTool        | Data file not found: data/sqlselect/customers.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectSampleDataTool        | Data file not found: data/sqlselect/orders.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectSampleDataTool        | Data file not found: data/sqlselect/products.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectSampleDataTool        | Data file not found: data/sqlselect/sales.csv
+2026-01-02 17:08:02 | INFO     | SqlSelectSampleDataTool        | DuckDB connection initialized for sqlselect_sample_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_sample_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_sample_data
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_filing_details.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_filing_details
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_filing_details
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: sqlselect_list_sources.json
+2026-01-02 17:08:02 | WARNING  | SqlSelectListSourcesTool       | Data file not found: data/sqlselect/customers.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectListSourcesTool       | Data file not found: data/sqlselect/orders.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectListSourcesTool       | Data file not found: data/sqlselect/products.csv
+2026-01-02 17:08:02 | WARNING  | SqlSelectListSourcesTool       | Data file not found: data/sqlselect/sales.csv
+2026-01-02 17:08:02 | INFO     | SqlSelectListSourcesTool       | DuckDB connection initialized for sqlselect_list_sources
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_list_sources
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_list_sources
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: pboc_get_exchange_rate.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_exchange_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_exchange_rate
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: wb_get_income_levels.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_income_levels
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_income_levels
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_company_facts.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_company_facts
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_company_facts
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | New tool configuration detected: edgar_mutual_fund_holdings.json
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_mutual_fund_holdings
+2026-01-02 17:08:02 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_mutual_fund_holdings
+2026-01-02 17:08:12 | INFO     | __main__                       | Received SIGINT, initiating graceful shutdown...
+2026-01-02 17:08:12 | INFO     | sajha.web.sajhamcpserver_web   | Shutting down SAJHA MCP Server...
+2026-01-02 17:08:12 | INFO     | sajha.core.hot_reload_manager  | Hot-reload monitoring stopped
+2026-01-02 17:08:12 | INFO     | sajha.web.sajhamcpserver_web   | Hot-reload manager stopped
+2026-01-02 17:08:12 | INFO     | sajha.tools.tools_registry     | Stopped file monitoring
+2026-01-02 17:08:12 | INFO     | sajha.web.sajhamcpserver_web   | Tools monitoring stopped
+2026-01-02 17:08:12 | INFO     | root                           | Stopping auto-refresh thread...
+2026-01-02 17:08:12 | INFO     | root                           | Auto-refresh worker stopped
+2026-01-02 17:08:12 | INFO     | root                           | Auto-refresh thread stopped
+2026-01-02 17:08:12 | INFO     | sajha.web.sajhamcpserver_web   | Prompts auto-refresh stopped
+2026-01-02 17:08:12 | INFO     | sajha.web.sajhamcpserver_web   | SAJHA MCP Server shutdown complete
+2026-01-02 17:08:12 | INFO     | __main__                       | SAJHA MCP Server stopped
+2026-01-02 17:08:13 | INFO     | DuckDbDescribeTableTool        | Auto-refresh stopped
+2026-01-02 17:08:14 | INFO     | DuckDbRefreshViewsTool         | Auto-refresh stopped
+2026-01-02 17:08:15 | INFO     | DuckDbListFilesTool            | Auto-refresh stopped
+2026-01-02 17:08:16 | INFO     | DuckDbQueryTool                | Auto-refresh stopped
+2026-01-02 17:08:17 | INFO     | DuckDbAggregateTool            | Auto-refresh stopped

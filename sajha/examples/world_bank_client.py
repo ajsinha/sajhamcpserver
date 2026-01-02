@@ -19,7 +19,7 @@ Usage:
     python -m sajha.examples.world_bank_client
 """
 
-from .base_client import SajhaClient, SajhaAPIError, pretty_print, run_example
+from base_client import SajhaClient, SajhaAPIError, pretty_print, run_example
 
 
 class WorldBankClient(SajhaClient):

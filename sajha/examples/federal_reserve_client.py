@@ -17,7 +17,7 @@ Usage:
     python -m sajha.examples.federal_reserve_client
 """
 
-from .base_client import SajhaClient, SajhaAPIError, pretty_print, run_example
+from base_client import SajhaClient, SajhaAPIError, pretty_print, run_example
 
 
 class FederalReserveClient(SajhaClient):
