@@ -2,7 +2,7 @@
   "name": "tavily_research_search",
   "implementation": "tools.impl.tavily_tool_refactored.TavilyResearchSearchTool",
   "description": "Perform comprehensive research search with advanced depth, analysis, and higher result counts for academic and professional research",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "api_key": "",
   "inputSchema": {

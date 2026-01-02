@@ -2,7 +2,7 @@
   "name": "wiki_get_summary",
   "implementation": "tools.impl.wikipedia_tool.WikiGetSummaryTool",
   "description": "Retrieve a concise summary of a Wikipedia article. Returns the lead section/introduction without the full article content. Ideal for quick overviews.",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "boj_get_jgb_yield",
   "implementation": "tools.impl.japan_central_bank.BoJGetJGBYieldTool",
   "description": "Retrieve Japanese Government Bond (JGB) yields for various maturities (2Y, 5Y, 10Y, 30Y) with historical data.",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

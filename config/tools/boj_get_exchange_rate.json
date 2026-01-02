@@ -2,7 +2,7 @@
   "name": "boj_get_exchange_rate",
   "implementation": "tools.impl.japan_central_bank.BoJGetExchangeRateTool",
   "description": "Retrieve Japanese Yen exchange rates against major currencies (USD, EUR, GBP, CNY).",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

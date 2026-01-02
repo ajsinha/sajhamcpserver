@@ -2,7 +2,7 @@
   "name": "imf_get_dataflows",
   "implementation": "tools.impl.imf_tool_refactored.IMFGetDataflowsTool",
   "description": "Get available dataflows and indicators for a specific IMF database. Discover what indicators are available in databases like IFS or WEO.",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

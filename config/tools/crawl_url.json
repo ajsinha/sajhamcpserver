@@ -2,7 +2,7 @@
   "name": "crawl_url",
   "implementation": "tools.impl.webcrawler_tool_refactored.CrawlURLTool",
   "description": "Recursively crawl a website starting from a URL, following links up to a specified depth (max 3 levels). Extract page metadata, links, images, and text content.",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

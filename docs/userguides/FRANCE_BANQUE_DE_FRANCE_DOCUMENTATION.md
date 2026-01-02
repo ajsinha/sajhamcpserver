@@ -7,13 +7,14 @@
 
 ## Table of Contents
 1. [Overview](#overview)
-2. [Quick Start](#quick-start)
-3. [Available Tools](#available-tools)
-4. [Detailed Tool Reference](#detailed-tool-reference)
-5. [Code Examples](#code-examples)
-6. [API Reference](#api-reference)
-7. [Common Use Cases](#common-use-cases)
-8. [Troubleshooting](#troubleshooting)
+2. [Architecture](#architecture)
+3. [Quick Start](#quick-start)
+4. [Available Tools](#available-tools)
+5. [Detailed Tool Reference](#detailed-tool-reference)
+6. [Code Examples](#code-examples)
+7. [API Reference](#api-reference)
+8. [Common Use Cases](#common-use-cases)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -42,6 +43,64 @@ The Banque de France / ECB MCP Tools provide comprehensive access to French and 
 - French-specific economic data
 - Eurozone aggregate statistics
 - French government bond (OAT) yields
+
+---
+
+
+## Architecture
+
+### System Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   MCP Client Application                 │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ MCP Protocol
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│              MCP Tool Layer (5 Tools)                    │
+├──────────────────────────────────────────────────────────┤
+│  • bdf_get_ecb_policy_rate   (ECB Interest Rates)        │
+│  • bdf_get_oat_yield         (OAT Bond Yields)           │
+│  • bdf_get_exchange_rate     (EUR Exchange Rates)        │
+│  • bdf_get_french_indicator  (French Economic Data)      │
+│  • bdf_get_eurozone_indicator (Eurozone Statistics)      │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ HTTP/HTTPS
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│          BDFBaseTool (Shared Functionality)              │
+├──────────────────────────────────────────────────────────┤
+│  • Banque de France API Integration                      │
+│  • ECB Data Warehouse Connection                         │
+│  • Data Transformation & Parsing                         │
+│  • Response Normalization                                │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ REST API Calls
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│           Banque de France / ECB Data Portal             │
+│    https://www.banque-france.fr/ | https://sdw.ecb.eu/   │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+
+```
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│   Request    │───▶│  Tool Layer  │───▶│  BdF/ECB API │
+│  (indicator) │    │  (validate)  │    │   (fetch)    │
+└──────────────┘    └──────────────┘    └──────────────┘
+                           │                    │
+                           ▼                    │
+                    ┌──────────────┐            │
+                    │   Response   │◀───────────┘
+                    │  (normalize) │
+                    └──────────────┘
+```
 
 ---
 

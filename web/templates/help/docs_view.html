@@ -1,0 +1,453 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}{{ doc_title }} - Documentation - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Markdown Content Styling */
+.markdown-body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    word-wrap: break-word;
+    padding: 2rem;
+}
+
+.markdown-body h1 {
+    font-size: 2em;
+    border-bottom: 2px solid var(--sajha-primary);
+    padding-bottom: 0.5em;
+    margin-bottom: 1em;
+    color: var(--sajha-primary-dark);
+}
+
+.markdown-body h2 {
+    font-size: 1.5em;
+    border-bottom: 1px solid var(--sajha-gray-300);
+    padding-bottom: 0.3em;
+    margin-top: 1.5em;
+    margin-bottom: 0.75em;
+    color: var(--sajha-primary-dark);
+}
+
+.markdown-body h3 {
+    font-size: 1.25em;
+    margin-top: 1.25em;
+    margin-bottom: 0.5em;
+    color: var(--sajha-gray-700);
+}
+
+.markdown-body h4, .markdown-body h5, .markdown-body h6 {
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    color: var(--sajha-gray-700);
+}
+
+.markdown-body p {
+    margin-bottom: 1em;
+}
+
+.markdown-body code {
+    background-color: var(--sajha-gray-100);
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 85%;
+    color: var(--sajha-primary-dark);
+}
+
+.markdown-body pre {
+    background-color: var(--sajha-gray-800);
+    color: #f8f8f2;
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1em 0;
+}
+
+.markdown-body pre code {
+    background-color: transparent;
+    color: inherit;
+    padding: 0;
+    font-size: 90%;
+}
+
+.markdown-body blockquote {
+    border-left: 4px solid var(--sajha-primary);
+    padding: 0.5em 1em;
+    margin: 1em 0;
+    background-color: var(--sajha-accent-light);
+    color: var(--sajha-gray-700);
+}
+
+.markdown-body blockquote p {
+    margin-bottom: 0;
+}
+
+.markdown-body ul, .markdown-body ol {
+    padding-left: 2em;
+    margin-bottom: 1em;
+}
+
+.markdown-body li {
+    margin-bottom: 0.25em;
+}
+
+.markdown-body table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+
+.markdown-body table th,
+.markdown-body table td {
+    border: 1px solid var(--sajha-gray-300);
+    padding: 0.75em;
+    text-align: left;
+}
+
+.markdown-body table th {
+    background-color: var(--sajha-primary);
+    color: white;
+    font-weight: 600;
+}
+
+.markdown-body table tr:nth-child(even) {
+    background-color: var(--sajha-gray-100);
+}
+
+.markdown-body table tr:hover {
+    background-color: var(--sajha-accent-light);
+}
+
+.markdown-body a {
+    color: var(--sajha-primary);
+    text-decoration: none;
+}
+
+.markdown-body a:hover {
+    text-decoration: underline;
+}
+
+.markdown-body img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 1em 0;
+}
+
+.markdown-body hr {
+    border: none;
+    border-top: 2px solid var(--sajha-gray-200);
+    margin: 2em 0;
+}
+
+/* Table of Contents */
+.toc-sidebar {
+    position: sticky;
+    top: 80px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+}
+
+.toc-sidebar .nav-link {
+    color: var(--sajha-gray-600);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border-left: 2px solid transparent;
+}
+
+.toc-sidebar .nav-link:hover {
+    color: var(--sajha-primary);
+    border-left-color: var(--sajha-primary-light);
+}
+
+.toc-sidebar .nav-link.active {
+    color: var(--sajha-primary);
+    border-left-color: var(--sajha-primary);
+    font-weight: 600;
+}
+
+.toc-sidebar .nav-link.h3-link {
+    padding-left: 1.5rem;
+    font-size: 0.8rem;
+}
+
+/* Loading State */
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+}
+
+/* Print Styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .markdown-body {
+        padding: 0;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <div class="row mb-3 no-print">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ url_for('help_page') }}">Help</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('docs_list') }}">Documentation</a></li>
+                    {% for part in breadcrumb[:-1] %}
+                    <li class="breadcrumb-item">{{ part }}</li>
+                    {% endfor %}
+                    <li class="breadcrumb-item active">{{ breadcrumb[-1] if breadcrumb else doc_title }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Table of Contents Sidebar -->
+        <div class="col-lg-3 d-none d-lg-block no-print">
+            <div class="card toc-sidebar">
+                <div class="card-header card-header-secondary">
+                    <i class="bi bi-list-ul me-2"></i>Table of Contents
+                </div>
+                <div class="card-body p-2">
+                    <nav id="toc-nav" class="nav flex-column">
+                        <!-- Will be populated by JavaScript -->
+                        <div class="text-center text-muted py-3">
+                            <small>Loading...</small>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-9">
+            <!-- Document Header -->
+            <div class="card mb-4 no-print">
+                <div class="card-header card-header-primary d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-file-earmark-text me-2"></i>
+                        <span>{{ doc_title }}</span>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-light" onclick="window.print()">
+                            <i class="bi bi-printer me-1"></i>Print
+                        </button>
+                        <a href="{{ url_for('docs_list') }}" class="btn btn-sm btn-outline-light">
+                            <i class="bi bi-arrow-left me-1"></i>Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Markdown Content -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <div id="markdown-content" class="markdown-body">
+                        <div class="loading-spinner">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Raw markdown content (hidden, base64 encoded to avoid HTML entity issues) -->
+<script type="text/template" id="raw-markdown-b64">{{ content_b64 }}</script>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Marked.js for markdown parsing -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<!-- Highlight.js - use full bundle with common languages included -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+<script>
+// Utility function to decode base64 to UTF-8 string (handles unicode properly)
+function b64DecodeUnicode(str) {
+    try {
+        // Going backwards: from bytestream, to percent-encoding, to original string.
+        return decodeURIComponent(atob(str).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+    } catch (e) {
+        console.warn('Base64 decode with unicode failed, trying simple decode:', e);
+        try {
+            return atob(str);
+        } catch (e2) {
+            console.error('Base64 decode failed completely:', e2);
+            return '';
+        }
+    }
+}
+
+$(document).ready(function() {
+    try {
+        // Configure marked with highlight.js
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    try {
+                        return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
+                    } catch (e) {
+                        console.warn('Highlight error for lang ' + lang + ':', e);
+                    }
+                }
+                // Fallback to auto-detection
+                try {
+                    return hljs.highlightAuto(code).value;
+                } catch (e) {
+                    console.warn('Auto highlight error:', e);
+                    return code;
+                }
+            },
+            breaks: true,
+            gfm: true
+        });
+
+        // Get raw markdown content (base64 decoded)
+        var b64Content = document.getElementById('raw-markdown-b64').textContent.trim();
+        var rawMarkdown = b64DecodeUnicode(b64Content);
+        
+        if (!rawMarkdown) {
+            throw new Error('Failed to decode markdown content');
+        }
+        
+        // Parse and render markdown
+        var htmlContent = marked.parse(rawMarkdown);
+        $('#markdown-content').html(htmlContent);
+        
+        // Apply syntax highlighting to any code blocks that weren't highlighted
+        document.querySelectorAll('pre code').forEach(function(block) {
+            // Only highlight if not already highlighted
+            if (!block.classList.contains('hljs')) {
+                try {
+                    hljs.highlightElement(block);
+                } catch (e) {
+                    console.warn('Code highlight error:', e);
+                }
+            }
+        });
+
+        // Generate Table of Contents
+        generateTOC();
+        
+        // Smooth scroll for TOC links
+        $('#toc-nav').on('click', 'a', function(e) {
+            e.preventDefault();
+            var target = $($(this).attr('href'));
+            if (target.length) {
+                $('html, body').animate({
+                    scrollTop: target.offset().top - 80
+                }, 500);
+            }
+        });
+        
+        // Highlight current section in TOC on scroll
+        $(window).on('scroll', function() {
+            highlightCurrentSection();
+        });
+        
+        // Initial highlight
+        setTimeout(highlightCurrentSection, 100);
+        
+    } catch (e) {
+        console.error('Markdown rendering error:', e);
+        $('#markdown-content').html('<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>Error rendering document: ' + e.message + '</div>');
+        $('#toc-nav').html('<div class="text-center text-muted py-3"><small>Unable to generate TOC</small></div>');
+    }
+});
+
+function generateTOC() {
+    var toc = $('#toc-nav');
+    toc.empty();
+    
+    var headings = $('#markdown-content').find('h1, h2, h3');
+    
+    if (headings.length === 0) {
+        toc.html('<div class="text-center text-muted py-3"><small>No headings found</small></div>');
+        return;
+    }
+    
+    var tocItems = [];
+    
+    headings.each(function(index) {
+        var $this = $(this);
+        var text = $this.text().trim();
+        var level = this.tagName.toLowerCase();
+        
+        // Skip empty headings
+        if (!text) return;
+        
+        // Create ID for heading if it doesn't have one
+        var id = $this.attr('id');
+        if (!id) {
+            // Create a slug from the text
+            id = 'heading-' + index + '-' + text.toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-|-$/g, '')
+                .substring(0, 50);
+            $this.attr('id', id);
+        }
+        
+        var linkClass = 'nav-link';
+        if (level === 'h3') {
+            linkClass += ' h3-link';
+        }
+        
+        var link = $('<a>')
+            .addClass(linkClass)
+            .attr('href', '#' + id)
+            .attr('title', text)
+            .text(text.length > 40 ? text.substring(0, 40) + '...' : text);
+        
+        toc.append(link);
+    });
+    
+    console.log('TOC generated with', headings.length, 'headings');
+}
+
+function highlightCurrentSection() {
+    var scrollPos = $(window).scrollTop() + 100;
+    var lastActive = null;
+    
+    $('#markdown-content').find('h1, h2, h3').each(function() {
+        var $this = $(this);
+        var id = $this.attr('id');
+        if (!id) return;
+        
+        var offset = $this.offset().top;
+        
+        if (offset <= scrollPos) {
+            lastActive = id;
+        }
+    });
+    
+    // Update active state
+    $('#toc-nav .nav-link').removeClass('active');
+    if (lastActive) {
+        $('#toc-nav .nav-link[href="#' + lastActive + '"]').addClass('active');
+    } else {
+        // Highlight first item if at top
+        $('#toc-nav .nav-link').first().addClass('active');
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,265 @@
+{% extends "common/base.html" %}
+
+{% block title %}Edit API Key: {{ apikey.name }} - SAJHA MCP Server{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-pencil me-2"></i>Edit API Key</h2>
+            <p class="text-muted mb-0">{{ apikey.name }}</p>
+        </div>
+        <a href="{{ url_for('admin_apikeys_view', key=apikey.key) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to View
+        </a>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
+    </div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('admin_apikeys_edit', key=apikey.key) }}">
+        <div class="row">
+            <!-- Main Form -->
+            <div class="col-md-8">
+                <!-- Basic Information -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <i class="bi bi-info-circle me-2"></i>Basic Information
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">API Key</label>
+                            <input type="text" class="form-control bg-light" value="{{ apikey.key }}" readonly disabled>
+                            <small class="text-muted">API keys cannot be changed after creation</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Key Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" required
+                                   value="{{ apikey.name }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="2">{{ apikey.description or '' }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="enabled" name="enabled"
+                                       {% if apikey.enabled %}checked{% endif %}>
+                                <label class="form-check-label" for="enabled">
+                                    <strong>Enabled</strong> - Key is active and can be used
+                                </label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="owner" class="form-label">Owner</label>
+                                    <input type="text" class="form-control" id="owner" name="owner"
+                                           value="{{ apikey.metadata.owner if apikey.metadata else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="contact" class="form-label">Contact Email</label>
+                                    <input type="email" class="form-control" id="contact" name="contact"
+                                           value="{{ apikey.metadata.contact if apikey.metadata else '' }}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="purpose" class="form-label">Purpose</label>
+                            <input type="text" class="form-control" id="purpose" name="purpose"
+                                   value="{{ apikey.metadata.purpose if apikey.metadata else '' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="expires_at" class="form-label">Expiration Date</label>
+                            <input type="date" class="form-control" id="expires_at" name="expires_at"
+                                   value="{{ apikey.expires_at[:10] if apikey.expires_at else '' }}">
+                            <small class="text-muted">Leave empty for no expiration</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tool Access Control -->
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <i class="bi bi-shield-lock me-2"></i>Tool Access Control
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Access Mode</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tool_access_mode" id="mode_all" value="all"
+                                       {% if apikey.tool_access.mode == 'all' %}checked{% endif %}
+                                       onchange="updateAccessUI()">
+                                <label class="form-check-label" for="mode_all">
+                                    <strong>All Tools</strong> - Access to all available tools
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tool_access_mode" id="mode_allowlist" value="allowlist"
+                                       {% if apikey.tool_access.mode == 'allowlist' %}checked{% endif %}
+                                       onchange="updateAccessUI()">
+                                <label class="form-check-label" for="mode_allowlist">
+                                    <strong>Allowlist</strong> - Only specified tools
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tool_access_mode" id="mode_denylist" value="denylist"
+                                       {% if apikey.tool_access.mode == 'denylist' %}checked{% endif %}
+                                       onchange="updateAccessUI()">
+                                <label class="form-check-label" for="mode_denylist">
+                                    <strong>Denylist</strong> - All except specified tools
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tool_access_mode" id="mode_regex" value="regex"
+                                       {% if apikey.tool_access.mode == 'regex' %}checked{% endif %}
+                                       onchange="updateAccessUI()">
+                                <label class="form-check-label" for="mode_regex">
+                                    <strong>Regex Patterns</strong> - Match by regex
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Tool Selection (for allowlist/denylist) -->
+                        <div id="toolsSelection" class="mb-3" style="display: none;">
+                            <label class="form-label">Select Tools</label>
+                            <select name="tools" id="tools" class="form-select" multiple size="10">
+                                {% for tool in tools_list %}
+                                <option value="{{ tool }}" {% if tool in apikey.tool_access.tools %}selected{% endif %}>{{ tool }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Hold Ctrl/Cmd to select multiple tools</small>
+                        </div>
+
+                        <!-- Regex Patterns (for regex mode) -->
+                        <div id="regexPatterns" class="mb-3" style="display: none;">
+                            <label class="form-label">Regex Patterns (one per line)</label>
+                            <textarea class="form-control font-monospace" id="regex_patterns" name="regex_patterns" rows="5">{% for p in apikey.tool_access.regex_patterns %}{{ p }}
+{% endfor %}</textarea>
+                            <small class="text-muted">Each pattern is tested against tool names. Example: ^fed_.* matches all Federal Reserve tools</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rate Limits -->
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <i class="bi bi-speedometer me-2"></i>Rate Limits
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="rate_limit_rpm" class="form-label">Requests per Minute</label>
+                                    <input type="number" class="form-control" id="rate_limit_rpm" name="rate_limit_rpm"
+                                           value="{{ apikey.rate_limit.requests_per_minute }}"
+                                           min="1" max="1000">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="rate_limit_rph" class="form-label">Requests per Hour</label>
+                                    <input type="number" class="form-control" id="rate_limit_rph" name="rate_limit_rph"
+                                           value="{{ apikey.rate_limit.requests_per_hour }}"
+                                           min="1" max="100000">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-md-4">
+                <!-- Actions -->
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <i class="bi bi-lightning me-2"></i>Actions
+                    </div>
+                    <div class="card-body">
+                        <button type="submit" class="btn btn-success w-100 mb-2">
+                            <i class="bi bi-save me-1"></i> Save Changes
+                        </button>
+                        <a href="{{ url_for('admin_apikeys_view', key=apikey.key) }}" class="btn btn-outline-secondary w-100 mb-2">
+                            <i class="bi bi-x-circle me-1"></i> Cancel
+                        </a>
+                        <hr>
+                        <a href="{{ url_for('admin_apikeys_delete', key=apikey.key) }}" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-trash me-1"></i> Delete Key
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Current Status -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <i class="bi bi-info-circle me-2"></i>Current Status
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0 small">
+                            <dt class="col-sm-6">Status</dt>
+                            <dd class="col-sm-6">
+                                {% if apikey.enabled %}
+                                <span class="badge bg-success">Enabled</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Disabled</span>
+                                {% endif %}
+                            </dd>
+                            
+                            <dt class="col-sm-6">Total Requests</dt>
+                            <dd class="col-sm-6">{{ apikey.usage_stats.total_requests }}</dd>
+                            
+                            <dt class="col-sm-6">Created</dt>
+                            <dd class="col-sm-6">{{ apikey.created_at[:10] if apikey.created_at else '-' }}</dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <!-- Help -->
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <i class="bi bi-question-circle me-2"></i>Help
+                    </div>
+                    <div class="card-body small">
+                        <h6>Access Modes</h6>
+                        <ul class="ps-3">
+                            <li><strong>All Tools</strong>: Full access</li>
+                            <li><strong>Allowlist</strong>: Only selected tools</li>
+                            <li><strong>Denylist</strong>: All except selected</li>
+                            <li><strong>Regex</strong>: Match by pattern</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function updateAccessUI() {
+    const mode = document.querySelector('input[name="tool_access_mode"]:checked').value;
+    const toolsDiv = document.getElementById('toolsSelection');
+    const regexDiv = document.getElementById('regexPatterns');
+    
+    if (mode === 'allowlist' || mode === 'denylist') {
+        toolsDiv.style.display = 'block';
+        regexDiv.style.display = 'none';
+    } else if (mode === 'regex') {
+        toolsDiv.style.display = 'none';
+        regexDiv.style.display = 'block';
+    } else {
+        toolsDiv.style.display = 'none';
+        regexDiv.style.display = 'none';
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', updateAccessUI);
+</script>
+{% endblock %}

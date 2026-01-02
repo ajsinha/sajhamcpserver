@@ -45,7 +45,7 @@ class DashboardRoutes(BaseRoutes):
                 except:
                     prompts_count = 0
 
-            return render_template('dashboard.html',
+            return render_template('dashboard/dashboard.html',
                                    user=user_session,
                                    tools=user_tools,
                                    tool_errors=tool_errors,

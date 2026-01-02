@@ -9,6 +9,7 @@ Comprehensive Python clients for accessing Wikipedia and Yahoo Finance tools via
 
 ## Table of Contents
 - [Quick Start](#quick-start)
+- [Architecture](#architecture)
 - [Installation](#installation)
 - [Files Included](#files-included)
 - [Prerequisites](#prerequisites)
@@ -22,6 +23,72 @@ Comprehensive Python clients for accessing Wikipedia and Yahoo Finance tools via
 - [Configuration](#configuration)
 - [Tips and Best Practices](#tips-and-best-practices)
 - [Support](#support)
+
+---
+
+
+## Architecture
+
+### Client-Server Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                  Python Client Application               │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│   ┌─────────────────┐      ┌─────────────────┐          │
+│   │ WikipediaClient │      │ YahooFinanceClient│         │
+│   ├─────────────────┤      ├─────────────────┤          │
+│   │ • search()      │      │ • get_quote()   │          │
+│   │ • get_page()    │      │ • get_history() │          │
+│   │ • get_summary() │      │ • search_symbols│          │
+│   └────────┬────────┘      └────────┬────────┘          │
+│            │                        │                    │
+│            └──────────┬─────────────┘                    │
+│                       │                                  │
+│            ┌──────────▼──────────┐                       │
+│            │   Base HTTP Client  │                       │
+│            │ • Authentication    │                       │
+│            │ • Session Mgmt      │                       │
+│            │ • Error Handling    │                       │
+│            └──────────┬──────────┘                       │
+│                       │                                  │
+└───────────────────────┼──────────────────────────────────┘
+                        │
+                        │ HTTP/HTTPS (REST API)
+                        │
+┌───────────────────────▼──────────────────────────────────┐
+│                  SAJHA MCP Server                         │
+├──────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│  │ Auth Routes  │  │ API Routes   │  │ Tool Routes  │    │
+│  └──────────────┘  └──────────────┘  └──────────────┘    │
+│                          │                               │
+│            ┌─────────────▼─────────────┐                 │
+│            │      Tools Registry       │                 │
+│            ├───────────────────────────┤                 │
+│            │ • Wikipedia Tool          │                 │
+│            │ • Yahoo Finance Tool      │                 │
+│            │ • Google Search Tool      │                 │
+│            │ • Fed Reserve Tool        │                 │
+│            │ • ... (100+ more tools)   │                 │
+│            └───────────────────────────┘                 │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Request Flow
+
+```
+┌────────────┐   ┌────────────┐   ┌────────────┐   ┌────────────┐
+│   Client   │──▶│   Login    │──▶│  Get Token │──▶│   Store    │
+│   Start    │   │  Request   │   │  Response  │   │   Token    │
+└────────────┘   └────────────┘   └────────────┘   └────────────┘
+                                                          │
+┌────────────┐   ┌────────────┐   ┌────────────┐         │
+│  Process   │◀──│   Tool     │◀──│   API      │◀────────┘
+│  Response  │   │  Response  │   │  Request   │
+└────────────┘   └────────────┘   └────────────┘
+```
 
 ---
 

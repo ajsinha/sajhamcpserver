@@ -2,7 +2,7 @@
   "name": "edgar_frame_data",
   "implementation": "tools.impl.enhanced_edgar_tool.EDGARFrameDataTool",
   "description": "Retrieve aggregated XBRL frame data across ALL companies for a specific financial concept and time period - useful for market-wide analysis and benchmarking",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

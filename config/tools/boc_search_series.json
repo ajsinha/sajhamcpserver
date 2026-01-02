@@ -2,7 +2,7 @@
   "name": "boc_search_series",
   "implementation": "tools.impl.bank_of_canada_tool_refactored.BoCSearchSeriesTool",
   "description": "Search and discover available Bank of Canada economic data series organized by category. Helps users find the right data series for their needs.",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "edgar_mutual_fund_holdings",
   "implementation": "tools.impl.enhanced_edgar_tool.EDGARMutualFundHoldingsTool",
   "description": "Retrieve mutual fund portfolio holdings (Form N-PORT) showing monthly investment positions",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

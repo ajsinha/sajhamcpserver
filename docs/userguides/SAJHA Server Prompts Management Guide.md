@@ -185,6 +185,47 @@ sajhamcpserver/
 
 ## Architecture
 
+### System Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Web Interface / API                    │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ HTTP/WebSocket
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│                Prompts Routes Layer                      │
+├──────────────────────────────────────────────────────────┤
+│  • /prompts           (List all prompts)                 │
+│  • /prompts/<name>    (View prompt details)              │
+│  • /prompts/create    (Create new prompt)                │
+│  • /prompts/test      (Test prompt rendering)            │
+│  • /api/prompts/*     (RESTful API endpoints)            │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│               Prompts Registry (Singleton)               │
+├──────────────────────────────────────────────────────────┤
+│  • Auto-discovery of JSON prompt files                   │
+│  • Template rendering with Jinja2                        │
+│  • Hot-reload on file changes                            │
+│  • Usage statistics tracking                             │
+│  • Access control & permissions                          │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ File I/O
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│              config/prompts/*.json                       │
+├──────────────────────────────────────────────────────────┤
+│  • code_reviewer.json    • data_analyst.json             │
+│  • email_writer.json     • sql_generator.json            │
+│  • summarizer.json       • translator.json               │
+└──────────────────────────────────────────────────────────┘
+```
+
 ### Design Principles
 
 The prompts system follows these key design principles:

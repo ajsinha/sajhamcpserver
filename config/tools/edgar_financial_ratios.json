@@ -2,7 +2,7 @@
   "name": "edgar_financial_ratios",
   "implementation": "tools.impl.enhanced_edgar_tool.EDGARFinancialRatiosTool",
   "description": "Calculate common financial ratios (profitability, liquidity, solvency) from XBRL data automatically",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

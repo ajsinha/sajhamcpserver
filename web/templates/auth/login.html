@@ -1,0 +1,62 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}Login - SAJHA MCP Server{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-lock"></i> Login</h4>
+            </div>
+            <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill"></i> {{ error }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endif %}
+                
+                <form method="POST" action="{{ url_for('login') }}">
+                    <div class="mb-3">
+                        <label for="user_id" class="form-label">User ID</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <input type="text" class="form-control" id="user_id" name="user_id" required autofocus>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-key"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right"></i> Sign In
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Help & About Links -->
+                <div class="mt-4 pt-3 border-top text-center">
+                    <a href="{{ url_for('help_page') }}" class="btn btn-outline-secondary btn-sm me-2">
+                        <i class="bi bi-question-circle me-1"></i>Help
+                    </a>
+                    <a href="{{ url_for('about_page') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-info-circle me-1"></i>About
+                    </a>
+                </div>
+            </div>
+            <div class="card-footer text-muted text-center">
+                <small>SAJHA MCP Server v2.0</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

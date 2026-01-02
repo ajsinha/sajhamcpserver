@@ -1,0 +1,171 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}Project Documentation - SAJHA MCP Server{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="welcome-banner">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-book me-3" style="font-size: 2.5rem;"></i>
+                        <div>
+                            <h2 class="mb-1">Project Documentation</h2>
+                            <p class="mb-0 opacity-75">Browse and read all project documentation</p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('help_page') }}" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left me-2"></i>Back to Help
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="docSearch" placeholder="Search documentation...">
+                        <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documentation List -->
+    {% if docs %}
+    {% for folder, files in docs.items() %}
+    <div class="row mb-4 doc-folder" data-folder="{{ folder }}">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-primary d-flex align-items-center">
+                    <i class="bi bi-folder-fill me-2"></i>
+                    <span class="folder-name">{{ folder if folder != 'Root' else 'General Documentation' }}</span>
+                    <span class="badge bg-light text-primary ms-auto">{{ files|length }} file{% if files|length != 1 %}s{% endif %}</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for doc in files %}
+                        <a href="{{ url_for('docs_view', doc_path=doc.path) }}" 
+                           class="list-group-item list-group-item-action doc-item"
+                           data-name="{{ doc.name|lower }}"
+                           data-filename="{{ doc.filename|lower }}">
+                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-file-earmark-text text-primary me-3" style="font-size: 1.5rem;"></i>
+                                    <div>
+                                        <h6 class="mb-1">{{ doc.name }}</h6>
+                                        <small class="text-muted">{{ doc.filename }}</small>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-secondary">{{ doc.size }}</span>
+                                    <i class="bi bi-chevron-right ms-2 text-muted"></i>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-folder-x text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="mt-3 text-muted">No Documentation Found</h4>
+                    <p class="text-muted">The docs folder is empty or doesn't exist.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- No Results Message (hidden by default) -->
+    <div class="row mb-4 d-none" id="noResults">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3 text-muted">No matching documents found</h5>
+                    <p class="text-muted mb-0">Try a different search term</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Search functionality
+    $('#docSearch').on('input', function() {
+        var searchTerm = $(this).val().toLowerCase().trim();
+        var hasResults = false;
+        
+        if (searchTerm === '') {
+            // Show all
+            $('.doc-folder').removeClass('d-none');
+            $('.doc-item').removeClass('d-none');
+            $('#noResults').addClass('d-none');
+            return;
+        }
+        
+        // Filter documents
+        $('.doc-folder').each(function() {
+            var folder = $(this);
+            var folderName = folder.data('folder').toLowerCase();
+            var visibleItems = 0;
+            
+            folder.find('.doc-item').each(function() {
+                var item = $(this);
+                var name = item.data('name');
+                var filename = item.data('filename');
+                
+                if (name.includes(searchTerm) || filename.includes(searchTerm) || folderName.includes(searchTerm)) {
+                    item.removeClass('d-none');
+                    visibleItems++;
+                } else {
+                    item.addClass('d-none');
+                }
+            });
+            
+            if (visibleItems > 0) {
+                folder.removeClass('d-none');
+                hasResults = true;
+            } else {
+                folder.addClass('d-none');
+            }
+        });
+        
+        // Show/hide no results message
+        if (hasResults) {
+            $('#noResults').addClass('d-none');
+        } else {
+            $('#noResults').removeClass('d-none');
+        }
+    });
+    
+    // Clear search
+    $('#clearSearch').on('click', function() {
+        $('#docSearch').val('').trigger('input');
+    });
+});
+</script>
+{% endblock %}

@@ -28,6 +28,97 @@
 
 ---
 
+## Architecture
+
+### System Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   MCP Client Application                 │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ MCP Protocol
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│           Enhanced EDGAR MCP Tool Suite (20 Tools)       │
+├──────────────────────────────────────────────────────────┤
+│  Company Research:                                       │
+│  • edgar_company_search    • edgar_company_submissions   │
+│  • edgar_company_facts     • edgar_company_concept       │
+│                                                          │
+│  Filings & Documents:                                    │
+│  • edgar_filing_details    • edgar_filings_by_form       │
+│  • edgar_current_reports   • edgar_proxy_statements      │
+│  • edgar_registration_statements                         │
+│                                                          │
+│  Financial Data:                                         │
+│  • edgar_financial_ratios  • edgar_frame_data            │
+│  • edgar_xbrl_frames_multi_concept                       │
+│                                                          │
+│  Ownership & Trading:                                    │
+│  • edgar_insider_transactions                            │
+│  • edgar_institutional_holdings                          │
+│  • edgar_ownership_reports • edgar_mutual_fund_holdings  │
+│                                                          │
+│  Classification:                                         │
+│  • edgar_companies_by_sic  • edgar_foreign_issuers       │
+│  • edgar_company_tickers_by_exchange                     │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ HTTP/HTTPS
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│          EDGARBaseTool (Shared Functionality)            │
+├──────────────────────────────────────────────────────────┤
+│  • SEC EDGAR API Integration                             │
+│  • CIK Lookup & Validation                               │
+│  • Rate Limiting (10 req/sec)                            │
+│  • XBRL/JSON Parsing                                     │
+│  • Caching Layer                                         │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ REST API Calls
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│              SEC EDGAR Data Portal                       │
+│          https://data.sec.gov/                           │
+│          https://www.sec.gov/cgi-bin/browse-edgar        │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Data Access Patterns
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Query by Company                      │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│   Company Name/Ticker ──▶ CIK Lookup ──▶ Filings        │
+│          │                                    │          │
+│          │              ┌─────────────────────┤          │
+│          │              │                     │          │
+│          ▼              ▼                     ▼          │
+│   ┌──────────┐   ┌──────────┐         ┌──────────┐      │
+│   │ Company  │   │  10-K/   │         │  Insider │      │
+│   │  Facts   │   │  10-Q    │         │ Trading  │      │
+│   └──────────┘   └──────────┘         └──────────┘      │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│                  Query by Concept                        │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│   XBRL Concept ──▶ Frame Query ──▶ Cross-Company Data   │
+│                                                          │
+│   Example: "Assets" across all S&P 500 companies         │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+
 ## 1. Introduction
 
 ### 1.1 What is Enhanced EDGAR MCP Tools?

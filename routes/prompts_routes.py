@@ -251,7 +251,7 @@ class PromptsRoutes(BaseRoutes):
             else:
                 tags = self._get_tags_from_prompts(prompts)
 
-            return render_template('prompts_list.html',
+            return render_template('prompts/prompts_list.html',
                                  user=user_session,
                                  prompts=prompts,
                                  categories=categories,
@@ -266,7 +266,7 @@ class PromptsRoutes(BaseRoutes):
             # Get prompt
             prompt = self.prompts_registry.get_prompt(prompt_name)
             if not prompt:
-                return render_template('error.html',
+                return render_template('common/error.html',
                                      user=user_session,
                                      error="Prompt Not Found",
                                      message=f"Prompt '{prompt_name}' not found"), 404
@@ -277,7 +277,7 @@ class PromptsRoutes(BaseRoutes):
             # Get JSON representation
             prompt_json = json.dumps(prompt_data, indent=2)
 
-            return render_template('prompt_detail.html',
+            return render_template('prompts/prompt_detail.html',
                                  user=user_session,
                                  prompt=prompt_data,
                                  prompt_json=prompt_json)
@@ -291,12 +291,12 @@ class PromptsRoutes(BaseRoutes):
             # Get prompt
             prompt = self.prompts_registry.get_prompt(prompt_name)
             if not prompt:
-                return render_template('error.html',
+                return render_template('common/error.html',
                                      user=user_session,
                                      error="Prompt Not Found",
                                      message=f"Prompt '{prompt_name}' not found"), 404
 
-            return render_template('prompt_test.html',
+            return render_template('prompts/prompt_test.html',
                                  user=user_session,
                                  prompt=prompt.to_dict())
 
@@ -306,7 +306,7 @@ class PromptsRoutes(BaseRoutes):
             """Prompt creation page"""
             user_session = self.get_user_session()
 
-            return render_template('prompt_create.html',
+            return render_template('prompts/prompt_create.html',
                                  user=user_session)
 
         @app.route('/prompts/category/<category>')
@@ -330,7 +330,7 @@ class PromptsRoutes(BaseRoutes):
             categories = self._get_categories_from_prompts(all_prompts)
             tags = self._get_tags_from_prompts(all_prompts)
 
-            return render_template('prompts_list.html',
+            return render_template('prompts/prompts_list.html',
                                  user=user_session,
                                  prompts=prompts,
                                  categories=categories,
@@ -364,7 +364,7 @@ class PromptsRoutes(BaseRoutes):
             categories = self._get_categories_from_prompts(all_prompts)
             tags = self._get_tags_from_prompts(all_prompts)
 
-            return render_template('prompts_list.html',
+            return render_template('prompts/prompts_list.html',
                                  user=user_session,
                                  prompts=prompts,
                                  categories=categories,
@@ -698,7 +698,7 @@ class PromptsRoutes(BaseRoutes):
             sorted_prompts = sorted(prompts, key=lambda p: p['usage_count'], reverse=True)
             top_prompts = sorted_prompts[:5]
 
-            return render_template('admin_prompts.html',
+            return render_template('admin/admin_prompts.html',
                                    user=user_session,
                                    prompts=prompts,
                                    top_prompts=top_prompts,

@@ -2,7 +2,7 @@
   "name": "duckdb_get_stats",
   "implementation": "tools.impl.duckdb_olap_tools_refactored.DuckDbGetStatsTool",
   "description": "Get statistical summary for numeric columns in a table (count, mean, std, min, max, percentiles)",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "data_directory": "data/duckdb",
   "inputSchema": {

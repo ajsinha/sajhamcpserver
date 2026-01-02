@@ -2,7 +2,7 @@
   "name": "tavily_domain_search",
   "implementation": "tools.impl.tavily_tool_refactored.TavilyDomainSearchTool",
   "description": "Search within specific domains or exclude domains using Tavily for targeted information retrieval from trusted or preferred sources",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "api_key": "",
   "inputSchema": {

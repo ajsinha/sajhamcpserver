@@ -1,0 +1,506 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}Admin - Manage Tools - SAJHA MCP Server{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4">
+        <i class="bi bi-gear-fill"></i> Tools Management
+    </h1>
+    
+    <!-- Tool Errors -->
+    {% if tool_errors %}
+    <div class="card border-danger mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Tool Loading Errors</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Tool</th>
+                            <th>Error</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tool_name, error in tool_errors.items() %}
+                        <tr>
+                            <td>{{ tool_name }}</td>
+                            <td class="text-danger">{{ error }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning" onclick="reloadTools()">
+                                    <i class="bi bi-arrow-clockwise"></i> Reload All
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Tools Metrics -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-graph-up"></i> Tool Metrics & Management (Total: {{ tools_metrics|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if tools_metrics %}
+            <!-- Search and Controls -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="searchMetrics" placeholder="Search by tool name...">
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <label for="rowsPerPage" class="me-2">Show:</label>
+                    <select id="rowsPerPage" class="form-select d-inline-block" style="width: auto;">
+                        <option value="5" selected>5</option>
+                        <option value="10">10</option>
+                        <option value="50">50</option>
+                        <option value="all">All</option>
+                    </select>
+                    <span class="ms-2">entries</span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover" id="toolsMetricsTable">
+                    <thead>
+                        <tr>
+                            <th style="cursor: pointer;" id="sortToolName">
+                                Tool Name <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th style="cursor: pointer;" id="sortVersion">
+                                Version <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th style="cursor: pointer;" id="sortStatus">
+                                Status <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th style="cursor: pointer;" id="sortExecutions">
+                                Executions <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th style="cursor: pointer;" id="sortAvgTime">
+                                Avg Time (s) <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th style="cursor: pointer;" id="sortLastExecution">
+                                Last Executed <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for metric in tools_metrics %}
+                        <tr>
+                            <td><strong>{{ metric.name }}</strong></td>
+                            <td>{{ metric.version }}</td>
+                            <td>
+                                {% if metric.enabled %}
+                                <span class="badge bg-success">Enabled</span>
+                                {% else %}
+                                <span class="badge bg-danger">Disabled</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ metric.execution_count }}</td>
+                            <td>{{ "%.2f"|format(metric.average_execution_time) }}</td>
+                            <td>
+                                {% if metric.last_execution %}
+                                {{ metric.last_execution }}
+                                {% else %}
+                                <span class="text-muted">Never</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if metric.enabled %}
+                                <button class="btn btn-sm btn-warning"
+                                        onclick="toggleTool('{{ metric.name }}', false)">
+                                    <i class="bi bi-pause-circle"></i> Disable
+                                </button>
+                                {% else %}
+                                <button class="btn btn-sm btn-success"
+                                        onclick="toggleTool('{{ metric.name }}', true)">
+                                    <i class="bi bi-play-circle"></i> Enable
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-info"
+                                        onclick="viewConfig('{{ metric.name }}')">
+                                    <i class="bi bi-file-code"></i> Config
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div id="tableInfo" class="text-muted"></div>
+                </div>
+                <div class="col-md-6">
+                    <nav aria-label="Tools pagination">
+                        <ul class="pagination justify-content-end mb-0" id="pagination"></ul>
+                    </nav>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i> No tool metrics available.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card mt-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+        </div>
+        <div class="card-body">
+            <button class="btn btn-primary" onclick="reloadTools()">
+                <i class="bi bi-arrow-clockwise"></i> Reload All Tools
+            </button>
+            <button class="btn btn-success" onclick="enableAllTools()">
+                <i class="bi bi-check-circle"></i> Enable All Tools
+            </button>
+            <button class="btn btn-warning" onclick="disableAllTools()">
+                <i class="bi bi-x-circle"></i> Disable All Tools
+            </button>
+            <button class="btn btn-info" onclick="exportMetrics()">
+                <i class="bi bi-download"></i> Export Metrics
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Store original metrics data
+const metricsData = [
+    {% for metric in tools_metrics %}
+    {
+        name: "{{ metric.name }}",
+        version: "{{ metric.version }}",
+        enabled: {{ 'true' if metric.enabled else 'false' }},
+        status: "{{ 'Enabled' if metric.enabled else 'Disabled' }}",
+        executionCount: {{ metric.execution_count }},
+        avgTime: {{ metric.average_execution_time }},
+        lastExecution: "{{ metric.last_execution if metric.last_execution else '' }}"
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+let currentPage = 1;
+let rowsPerPage = 5;
+let filteredData = [...metricsData];
+let sortAscending = true;
+let currentSortColumn = 'name';
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    renderTable();
+
+    // Search functionality
+    document.getElementById('searchMetrics').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        filteredData = metricsData.filter(metric =>
+            metric.name.toLowerCase().includes(searchTerm)
+        );
+        currentPage = 1;
+        renderTable();
+    });
+
+    // Rows per page change
+    document.getElementById('rowsPerPage').addEventListener('change', function(e) {
+        rowsPerPage = e.target.value === 'all' ? filteredData.length : parseInt(e.target.value);
+        currentPage = 1;
+        renderTable();
+    });
+
+    // Sort functionality
+    document.getElementById('sortToolName').addEventListener('click', function() {
+        sortTable('name');
+    });
+
+    document.getElementById('sortVersion').addEventListener('click', function() {
+        sortTable('version');
+    });
+
+    document.getElementById('sortStatus').addEventListener('click', function() {
+        sortTable('status');
+    });
+
+    document.getElementById('sortExecutions').addEventListener('click', function() {
+        sortTable('executionCount');
+    });
+
+    document.getElementById('sortAvgTime').addEventListener('click', function() {
+        sortTable('avgTime');
+    });
+
+    document.getElementById('sortLastExecution').addEventListener('click', function() {
+        sortTable('lastExecution');
+    });
+});
+
+function sortTable(column) {
+    if (currentSortColumn === column) {
+        sortAscending = !sortAscending;
+    } else {
+        currentSortColumn = column;
+        sortAscending = true;
+    }
+
+    filteredData.sort((a, b) => {
+        let aVal = a[column];
+        let bVal = b[column];
+
+        // Handle empty values
+        if (!aVal || aVal === '') aVal = sortAscending ? 'zzzzz' : '';
+        if (!bVal || bVal === '') bVal = sortAscending ? 'zzzzz' : '';
+
+        if (typeof aVal === 'string') {
+            return sortAscending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        } else {
+            return sortAscending ? aVal - bVal : bVal - aVal;
+        }
+    });
+
+    updateSortIcons();
+    renderTable();
+}
+
+function updateSortIcons() {
+    // Reset all icons
+    document.querySelectorAll('th[style*="cursor: pointer"] i').forEach(icon => {
+        icon.className = 'bi bi-arrow-down-up';
+    });
+
+    // Update active sort icon
+    let columnId = '';
+    switch(currentSortColumn) {
+        case 'name':
+            columnId = 'sortToolName';
+            break;
+        case 'version':
+            columnId = 'sortVersion';
+            break;
+        case 'status':
+            columnId = 'sortStatus';
+            break;
+        case 'executionCount':
+            columnId = 'sortExecutions';
+            break;
+        case 'avgTime':
+            columnId = 'sortAvgTime';
+            break;
+        case 'lastExecution':
+            columnId = 'sortLastExecution';
+            break;
+    }
+
+    if (columnId) {
+        const icon = document.querySelector(`#${columnId} i`);
+        icon.className = sortAscending ? 'bi bi-arrow-up' : 'bi bi-arrow-down';
+    }
+}
+
+function renderTable() {
+    const tbody = document.querySelector('#toolsMetricsTable tbody');
+    const totalRows = filteredData.length;
+    const totalPages = Math.ceil(totalRows / rowsPerPage);
+
+    // Adjust current page if needed
+    if (currentPage > totalPages) {
+        currentPage = totalPages || 1;
+    }
+
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = Math.min(start + rowsPerPage, totalRows);
+    const pageData = filteredData.slice(start, end);
+
+    // Clear tbody
+    tbody.innerHTML = '';
+
+    // Render rows
+    pageData.forEach(metric => {
+        const row = document.createElement('tr');
+
+        const statusBadge = metric.enabled
+            ? '<span class="badge bg-success">Enabled</span>'
+            : '<span class="badge bg-danger">Disabled</span>';
+
+        const lastExecutionText = metric.lastExecution
+            ? metric.lastExecution
+            : '<span class="text-muted">Never</span>';
+
+        const toggleButton = metric.enabled
+            ? `<button class="btn btn-sm btn-warning" onclick="toggleTool('${metric.name}', false)">
+                <i class="bi bi-pause-circle"></i> Disable
+               </button>`
+            : `<button class="btn btn-sm btn-success" onclick="toggleTool('${metric.name}', true)">
+                <i class="bi bi-play-circle"></i> Enable
+               </button>`;
+
+        row.innerHTML = `
+            <td><strong>${metric.name}</strong></td>
+            <td>${metric.version}</td>
+            <td>${statusBadge}</td>
+            <td>${metric.executionCount}</td>
+            <td>${metric.avgTime.toFixed(2)}</td>
+            <td>${lastExecutionText}</td>
+            <td>
+                ${toggleButton}
+                <button class="btn btn-sm btn-info" onclick="viewConfig('${metric.name}')">
+                    <i class="bi bi-file-code"></i> Config
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // Update info
+    if (totalRows > 0) {
+        document.getElementById('tableInfo').textContent =
+            `Showing ${start + 1} to ${end} of ${totalRows} entries`;
+    } else {
+        document.getElementById('tableInfo').textContent = 'No entries found';
+    }
+
+    // Render pagination
+    renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+    const pagination = document.getElementById('pagination');
+    pagination.innerHTML = '';
+
+    if (totalPages <= 1) return;
+
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
+    pagination.appendChild(prevLi);
+
+    // Page numbers
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    // Adjust start if we're near the end
+    if (endPage - startPage < maxVisiblePages - 1) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    // First page
+    if (startPage > 1) {
+        const li = document.createElement('li');
+        li.className = 'page-item';
+        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(1); return false;">1</a>`;
+        pagination.appendChild(li);
+
+        if (startPage > 2) {
+            const dots = document.createElement('li');
+            dots.className = 'page-item disabled';
+            dots.innerHTML = `<span class="page-link">...</span>`;
+            pagination.appendChild(dots);
+        }
+    }
+
+    // Page numbers
+    for (let i = startPage; i <= endPage; i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
+        pagination.appendChild(li);
+    }
+
+    // Last page
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            const dots = document.createElement('li');
+            dots.className = 'page-item disabled';
+            dots.innerHTML = `<span class="page-link">...</span>`;
+            pagination.appendChild(dots);
+        }
+
+        const li = document.createElement('li');
+        li.className = 'page-item';
+        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages}); return false;">${totalPages}</a>`;
+        pagination.appendChild(li);
+    }
+
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
+    pagination.appendChild(nextLi);
+}
+
+function changePage(page) {
+    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+    if (page >= 1 && page <= totalPages) {
+        currentPage = page;
+        renderTable();
+    }
+}
+
+function toggleTool(toolName, enable) {
+    const action = enable ? 'enable' : 'disable';
+    const url = `/api/admin/tools/${toolName}/${action}`;
+
+    $.post(url)
+        .done(function() {
+            location.reload();
+        })
+        .fail(function() {
+            alert(`Failed to ${action} tool: ${toolName}`);
+        });
+}
+
+function reloadTools() {
+    if (confirm('Reload all tools? This may take a moment.')) {
+        $.post('/api/admin/tools/reload')
+            .done(function() {
+                location.reload();
+            })
+            .fail(function() {
+                alert('Failed to reload tools');
+            });
+    }
+}
+
+function enableAllTools() {
+    if (confirm('Enable all tools?')) {
+        // This would need to be implemented in the backend
+        alert('Feature coming soon');
+    }
+}
+
+function disableAllTools() {
+    if (confirm('Disable all tools? This will prevent all tool executions.')) {
+        // This would need to be implemented in the backend
+        alert('Feature coming soon');
+    }
+}
+
+function viewConfig(toolName) {
+    window.location.href = `/admin/tools/${toolName}/config`;
+}
+
+function exportMetrics() {
+    window.location.href = '/api/admin/tools/metrics/export';
+}
+</script>
+{% endblock %}

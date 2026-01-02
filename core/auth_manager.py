@@ -8,14 +8,21 @@ import secrets
 import logging
 import hashlib
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
 import threading
+
+from core.apikey_manager import get_api_key_manager
+
 
 class AuthManager:
     """
     Manages authentication and authorization for the MCP server
+    Supports both session-based authentication and API key authentication
     """
+    
+    # Username field aliases accepted in API requests
+    USERNAME_ALIASES = ['uid', 'username', 'user_name', 'user_id', 'userid']
     
     def __init__(self, users_config_path: str = 'config/users.json'):
         """
@@ -30,6 +37,9 @@ class AuthManager:
         self.failed_attempts: Dict[str, List[datetime]] = {}
         self._lock = threading.RLock()
         self.logger = logging.getLogger(__name__)
+        
+        # Initialize API Key Manager
+        self.apikey_manager = get_api_key_manager()
         
         # Load users configuration
         self.load_users()
@@ -507,3 +517,189 @@ class AuthManager:
             True if successful
         """
         return self.create_user(user_data)
+
+    # =========================================================================
+    # API Key Authentication Methods
+    # =========================================================================
+
+    def extract_username_from_request(self, data: Dict) -> Optional[str]:
+        """
+        Extract username from request data using various field aliases.
+        
+        Args:
+            data: Request data dictionary
+            
+        Returns:
+            Username if found, None otherwise
+        """
+        for alias in self.USERNAME_ALIASES:
+            if alias in data:
+                return data[alias]
+        return None
+
+    def authenticate_basic(self, data: Dict) -> Tuple[bool, Optional[str], str]:
+        """
+        Authenticate using basic credentials (username/password).
+        Returns a session token for subsequent requests.
+        
+        Args:
+            data: Dictionary containing username (various aliases) and password
+            
+        Returns:
+            Tuple of (success, token, message)
+        """
+        # Extract username using aliases
+        user_id = self.extract_username_from_request(data)
+        password = data.get('password')
+        
+        if not user_id:
+            return False, None, "Username not provided. Use one of: uid, username, user_name, user_id"
+        
+        if not password:
+            return False, None, "Password not provided"
+        
+        # Use existing authenticate method
+        token = self.authenticate(user_id, password)
+        
+        if token:
+            return True, token, "Authentication successful"
+        else:
+            if self.is_user_locked_out(user_id):
+                return False, None, "Account locked due to too many failed attempts"
+            return False, None, "Invalid credentials"
+
+    def validate_api_key(self, api_key: str) -> Tuple[bool, Optional[Dict], str]:
+        """
+        Validate an API key.
+        
+        Args:
+            api_key: The API key to validate
+            
+        Returns:
+            Tuple of (is_valid, key_data, message)
+        """
+        return self.apikey_manager.validate_key(api_key)
+
+    def check_api_key_tool_access(self, api_key: str, tool_name: str) -> Tuple[bool, str]:
+        """
+        Check if an API key has access to a specific tool.
+        
+        Args:
+            api_key: The API key
+            tool_name: Name of the tool
+            
+        Returns:
+            Tuple of (has_access, message)
+        """
+        return self.apikey_manager.check_tool_access(api_key, tool_name)
+
+    def authenticate_request(self, headers: Dict, data: Dict = None) -> Tuple[bool, Optional[Dict], str]:
+        """
+        Authenticate an API request using either Bearer token or API key.
+        
+        Args:
+            headers: Request headers
+            data: Request body data (for basic auth)
+            
+        Returns:
+            Tuple of (is_authenticated, auth_context, message)
+            auth_context contains: type ('session' or 'apikey'), data (session or key data)
+        """
+        # Check for Authorization header
+        auth_header = headers.get('Authorization', headers.get('authorization', ''))
+        
+        # Check for API key in header
+        api_key = headers.get('X-API-Key', headers.get('x-api-key', ''))
+        
+        # Option 1: Bearer token authentication
+        if auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+            session = self.validate_session(token)
+            if session:
+                return True, {'type': 'session', 'data': session}, "Session valid"
+            else:
+                return False, None, "Invalid or expired session token"
+        
+        # Option 2: API key in X-API-Key header
+        if api_key:
+            is_valid, key_data, msg = self.validate_api_key(api_key)
+            if is_valid:
+                self.apikey_manager.record_usage(api_key)
+                return True, {'type': 'apikey', 'data': key_data, 'key': api_key}, msg
+            else:
+                return False, None, msg
+        
+        # Option 3: API key in Authorization header (without Bearer prefix)
+        if auth_header and auth_header.startswith('sja_'):
+            is_valid, key_data, msg = self.validate_api_key(auth_header)
+            if is_valid:
+                self.apikey_manager.record_usage(auth_header)
+                return True, {'type': 'apikey', 'data': key_data, 'key': auth_header}, msg
+            else:
+                return False, None, msg
+        
+        return False, None, "No valid authentication provided"
+
+    def check_tool_access_for_auth_context(self, auth_context: Dict, tool_name: str) -> Tuple[bool, str]:
+        """
+        Check if an authentication context has access to a specific tool.
+        
+        Args:
+            auth_context: Authentication context from authenticate_request
+            tool_name: Name of the tool
+            
+        Returns:
+            Tuple of (has_access, message)
+        """
+        if not auth_context:
+            return False, "Not authenticated"
+        
+        auth_type = auth_context.get('type')
+        
+        if auth_type == 'session':
+            session = auth_context.get('data', {})
+            if self.has_tool_access(session, tool_name):
+                return True, "Access granted"
+            return False, f"User does not have access to tool '{tool_name}'"
+        
+        elif auth_type == 'apikey':
+            api_key = auth_context.get('key')
+            return self.check_api_key_tool_access(api_key, tool_name)
+        
+        return False, "Unknown authentication type"
+
+    # =========================================================================
+    # API Key Management (Admin Operations)
+    # =========================================================================
+
+    def create_api_key(self, **kwargs) -> Tuple[bool, str, Optional[Dict]]:
+        """Create a new API key (wrapper for admin operations)"""
+        return self.apikey_manager.create_key(**kwargs)
+
+    def update_api_key(self, key: str, updates: Dict) -> Tuple[bool, str]:
+        """Update an API key"""
+        return self.apikey_manager.update_key(key, updates)
+
+    def delete_api_key(self, key: str) -> Tuple[bool, str]:
+        """Delete an API key"""
+        return self.apikey_manager.delete_key(key)
+
+    def list_api_keys(self, include_key: bool = False) -> List[Dict]:
+        """List all API keys"""
+        return self.apikey_manager.list_keys(include_key)
+
+    def get_api_key(self, key: str, include_full_key: bool = False) -> Optional[Dict]:
+        """Get a specific API key's data"""
+        return self.apikey_manager.get_key(key, include_full_key)
+
+    def enable_api_key(self, key: str) -> Tuple[bool, str]:
+        """Enable an API key"""
+        return self.apikey_manager.enable_key(key)
+
+    def disable_api_key(self, key: str) -> Tuple[bool, str]:
+        """Disable an API key"""
+        return self.apikey_manager.disable_key(key)
+
+    def get_api_key_statistics(self) -> Dict:
+        """Get API key statistics"""
+        return self.apikey_manager.get_statistics()

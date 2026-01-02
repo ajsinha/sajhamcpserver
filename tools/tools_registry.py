@@ -305,11 +305,15 @@ class ToolsRegistry:
     
     def _monitor_files(self):
         """Monitor configuration files for changes"""
+        # Also track Python module timestamps
+        if not hasattr(self, '_module_timestamps'):
+            self._module_timestamps = {}
+        
         while not self._stop_monitor.wait(5):  # Check every 5 seconds
             try:
                 config_path = Path(self.tools_config_dir)
                 
-                # Check for new or modified files
+                # Check for new or modified JSON config files
                 for config_file in config_path.glob('*.json'):
                     file_path = str(config_file)
                     current_mtime = config_file.stat().st_mtime
@@ -330,7 +334,7 @@ class ToolsRegistry:
                         # Reload tool
                         self.load_tool_from_config(config_file)
                 
-                # Check for deleted files
+                # Check for deleted JSON files
                 tracked_files = set(self._file_timestamps.keys())
                 existing_files = {str(f) for f in config_path.glob('*.json')}
                 
@@ -351,9 +355,76 @@ class ToolsRegistry:
                     
                     # Mark as error
                     self.tool_errors[tool_name] = "Configuration file deleted"
+                
+                # Check for Python module changes (every iteration)
+                self._check_python_modules()
                     
             except Exception as e:
                 self.logger.error(f"Error in file monitoring: {e}")
+    
+    def _check_python_modules(self):
+        """Check for changes in tool Python modules and reload if needed"""
+        try:
+            impl_path = Path(__file__).parent / 'impl'
+            if not impl_path.exists():
+                return
+            
+            for py_file in impl_path.glob('*.py'):
+                if py_file.stem == '__init__':
+                    continue
+                
+                file_path = str(py_file)
+                current_mtime = py_file.stat().st_mtime
+                
+                if file_path in self._module_timestamps:
+                    if current_mtime > self._module_timestamps[file_path]:
+                        self.logger.info(f"Tool module changed: {py_file.name}")
+                        self._module_timestamps[file_path] = current_mtime
+                        
+                        # Reload the module and affected tools
+                        module_name = f'tools.impl.{py_file.stem}'
+                        self._reload_module_and_tools(module_name)
+                else:
+                    # First time seeing this file
+                    self._module_timestamps[file_path] = current_mtime
+                    
+        except Exception as e:
+            self.logger.error(f"Error checking Python modules: {e}")
+    
+    def _reload_module_and_tools(self, module_name: str):
+        """Reload a Python module and all tools that depend on it"""
+        import sys
+        
+        try:
+            # Reload the module
+            if module_name in sys.modules:
+                module = sys.modules[module_name]
+                importlib.reload(module)
+                self.logger.info(f"Reloaded module: {module_name}")
+            
+            # Find and reload all tools using this module
+            tools_to_reload = []
+            for tool_name, config in list(self.tool_configs.items()):
+                impl = config.get('implementation', '')
+                if module_name in impl:
+                    tools_to_reload.append((tool_name, config))
+            
+            # Reload affected tools
+            for tool_name, config in tools_to_reload:
+                self.logger.info(f"Re-registering tool {tool_name} due to module change")
+                
+                # Unregister existing
+                if tool_name in self.tools:
+                    self.unregister_tool(tool_name)
+                
+                # Find config file and reload
+                config_path = Path(self.tools_config_dir)
+                config_file = config_path / f'{tool_name}.json'
+                if config_file.exists():
+                    self.load_tool_from_config(config_file)
+                    
+        except Exception as e:
+            self.logger.error(f"Error reloading module {module_name}: {e}")
     
     def reload_all_tools(self):
         """Reload all tools from configuration"""

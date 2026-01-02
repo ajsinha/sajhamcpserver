@@ -2,7 +2,7 @@
   "name": "boc_get_common_indicators",
   "implementation": "tools.impl.bank_of_canada_tool_refactored.BoCGetCommonIndicatorsTool",
   "description": "Retrieve a dashboard of key Canadian economic indicators with their latest values in a single API call. Optimized for economic overview displays.",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

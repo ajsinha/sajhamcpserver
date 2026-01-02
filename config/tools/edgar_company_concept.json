@@ -2,7 +2,7 @@
   "name": "edgar_company_concept",
   "implementation": "tools.impl.enhanced_edgar_tool.EDGARCompanyConceptTool",
   "description": "Retrieve historical data for a specific financial concept/metric (e.g., Revenue, Assets, EPS) across all company filings",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

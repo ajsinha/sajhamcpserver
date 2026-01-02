@@ -2,7 +2,7 @@
   "name": "google_search",
   "implementation": "tools.impl.google_search_tool_refactored.GoogleSearchTool",
   "description": "Search the web using Google Custom Search API. Find web pages, images, and information across the internet with Google's powerful search technology.",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "extract_links",
   "implementation": "tools.impl.webcrawler_tool_refactored.ExtractLinksTool",
   "description": "Extract all hyperlinks from a web page with options to normalize URLs and filter by internal/external",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

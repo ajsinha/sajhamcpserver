@@ -2,7 +2,7 @@
   "name": "fed_get_common_indicators",
   "implementation": "tools.impl.fed_reserve_tool_refactored.FedGetCommonIndicatorsTool",
   "description": "Retrieve a dashboard of key US economic indicators with their latest values. Get a comprehensive snapshot of the US economy in a single call.",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

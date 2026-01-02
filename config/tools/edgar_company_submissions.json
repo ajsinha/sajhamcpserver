@@ -2,7 +2,7 @@
   "name": "edgar_company_submissions",
   "implementation": "tools.impl.enhanced_edgar_tool.EDGARCompanySubmissionsTool",
   "description": "Retrieve comprehensive company information and all SEC filing submissions for a company",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

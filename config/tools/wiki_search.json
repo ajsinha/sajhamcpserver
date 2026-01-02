@@ -2,7 +2,7 @@
   "name": "wiki_search",
   "implementation": "tools.impl.wikipedia_tool.WikiSearchTool",
   "description": "Search Wikipedia articles by keyword or phrase. Returns a list of matching article titles with brief descriptions.",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -1,0 +1,190 @@
+{% extends "common/base.html" %}
+
+{% block title %}API Keys Management - SAJHA MCP Server{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-key me-2"></i>API Keys Management</h2>
+            <p class="text-muted mb-0">Manage API keys for programmatic access to SAJHA MCP Server</p>
+        </div>
+        <a href="{{ url_for('admin_apikeys_create') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-1"></i> Create New API Key
+        </a>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h3 class="text-primary mb-0">{{ stats.total_keys }}</h3>
+                    <small class="text-muted">Total Keys</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h3 class="text-success mb-0">{{ stats.enabled_keys }}</h3>
+                    <small class="text-muted">Enabled</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-secondary">
+                <div class="card-body text-center">
+                    <h3 class="text-secondary mb-0">{{ stats.disabled_keys }}</h3>
+                    <small class="text-muted">Disabled</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h3 class="text-info mb-0">{{ stats.total_requests }}</h3>
+                    <small class="text-muted">Total Requests</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Keys Table -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <i class="bi bi-list me-2"></i>API Keys
+        </div>
+        <div class="card-body">
+            {% if apikeys %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Key</th>
+                            <th>Access Mode</th>
+                            <th>Status</th>
+                            <th>Requests</th>
+                            <th>Last Used</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key in apikeys %}
+                        <tr>
+                            <td>
+                                <strong>{{ key.name }}</strong>
+                                {% if key.description %}
+                                <br><small class="text-muted">{{ key.description[:50] }}{% if key.description|length > 50 %}...{% endif %}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <code class="bg-light px-2 py-1 rounded">{{ key.key }}</code>
+                            </td>
+                            <td>
+                                {% if key.tool_access.mode == 'all' %}
+                                <span class="badge bg-success">All Tools</span>
+                                {% elif key.tool_access.mode == 'allowlist' %}
+                                <span class="badge bg-info">Allowlist ({{ key.tool_access.tools|length }})</span>
+                                {% elif key.tool_access.mode == 'denylist' %}
+                                <span class="badge bg-warning text-dark">Denylist ({{ key.tool_access.tools|length }})</span>
+                                {% elif key.tool_access.mode == 'regex' %}
+                                <span class="badge bg-secondary">Regex ({{ key.tool_access.regex_patterns|length }})</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if key.enabled %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Enabled</span>
+                                {% else %}
+                                <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Disabled</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ key.usage_stats.total_requests }}</td>
+                            <td>
+                                {% if key.usage_stats.last_used %}
+                                <small>{{ key.usage_stats.last_used[:10] }}</small>
+                                {% else %}
+                                <small class="text-muted">Never</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('admin_apikeys_view', key=key.key) }}" class="btn btn-outline-primary" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('admin_apikeys_edit', key=key.key) }}" class="btn btn-outline-secondary" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form action="{{ url_for('admin_apikeys_toggle', key=key.key) }}" method="POST" style="display: inline;">
+                                        {% if key.enabled %}
+                                        <button type="submit" class="btn btn-outline-warning" title="Disable">
+                                            <i class="bi bi-pause-circle"></i>
+                                        </button>
+                                        {% else %}
+                                        <button type="submit" class="btn btn-outline-success" title="Enable">
+                                            <i class="bi bi-play-circle"></i>
+                                        </button>
+                                        {% endif %}
+                                    </form>
+                                    <a href="{{ url_for('admin_apikeys_delete', key=key.key) }}" class="btn btn-outline-danger" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-key" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">No API Keys</h4>
+                <p>Create your first API key to enable programmatic access.</p>
+                <a href="{{ url_for('admin_apikeys_create') }}" class="btn btn-success">
+                    <i class="bi bi-plus-circle me-1"></i> Create API Key
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Usage Instructions -->
+    <div class="card mt-4">
+        <div class="card-header bg-light">
+            <i class="bi bi-info-circle me-2"></i>How to Use API Keys
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6><i class="bi bi-1-circle me-2"></i>Option A: Basic Auth → Bearer Token</h6>
+                    <pre class="bg-dark text-light p-3 rounded"><code>POST /api/auth/token
+Content-Type: application/json
+
+{"uid": "username", "password": "password"}
+
+Response:
+{"token": "abc...", "token_type": "Bearer"}
+
+# Then use in subsequent requests:
+Authorization: Bearer &lt;token&gt;</code></pre>
+                </div>
+                <div class="col-md-6">
+                    <h6><i class="bi bi-2-circle me-2"></i>Option B: Direct API Key</h6>
+                    <pre class="bg-dark text-light p-3 rounded"><code># Header method (recommended):
+X-API-Key: sja_your_key_here
+
+# Or Authorization header:
+Authorization: sja_your_key_here
+
+# Example curl:
+curl -H "X-API-Key: sja_xxx" \
+     http://localhost:3002/api/tools</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -2,7 +2,7 @@
   "name": "bdf_get_oat_yield",
   "implementation": "tools.impl.france_central_bank.BdFGetOATYieldTool",
   "description": "Retrieve French Government Bond (OAT) yields for various maturities",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

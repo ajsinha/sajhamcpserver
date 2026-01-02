@@ -2,7 +2,7 @@
   "name": "duckdb_query",
   "implementation": "tools.impl.duckdb_olap_tools_refactored.DuckDbQueryTool",
   "description": "Execute SQL queries on CSV, Parquet, and JSON files using DuckDB analytics engine",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "data_directory": "/home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb",
   "inputSchema": {

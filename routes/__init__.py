@@ -12,6 +12,9 @@ from routes.monitoring_routes import MonitoringRoutes
 from routes.api_routes import ApiRoutes
 from routes.socketio_handlers import SocketIOHandlers
 from routes.prompts_routes import PromptsRoutes
+from routes.help_routes import HelpRoutes
+from routes.docs_routes import DocsRoutes
+from routes.apikeys_routes import APIKeysRoutes
 
 __all__ = [
     'BaseRoutes',
@@ -22,5 +25,8 @@ __all__ = [
     'MonitoringRoutes',
     'ApiRoutes',
     'SocketIOHandlers',
-    'PromptsRoutes'
+    'PromptsRoutes',
+    'HelpRoutes',
+    'DocsRoutes',
+    'APIKeysRoutes'
 ]

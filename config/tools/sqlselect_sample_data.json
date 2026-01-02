@@ -2,7 +2,7 @@
   "name": "sqlselect_sample_data",
   "implementation": "tools.impl.sqlselect_tool_refactored.SqlSelectSampleDataTool",
   "description": "Retrieve sample rows from a data source for quick preview and data exploration",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "data_directory": "data/sqlselect",
   "data_sources": {

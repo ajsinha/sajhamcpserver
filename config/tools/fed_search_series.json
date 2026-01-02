@@ -2,7 +2,7 @@
   "name": "fed_search_series",
   "implementation": "tools.impl.fed_reserve_tool_refactored.FedSearchSeriesTool",
   "description": "Search for economic data series in the FRED database. Find the right data series using keywords and discover available economic indicators.",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

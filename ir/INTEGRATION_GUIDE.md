@@ -92,7 +92,7 @@ Update `investor_relations.json`:
   "name": "investor_relations",
   "implementation": "tools.impl.investor_relations_tool.InvestorRelationsTool",
   "description": "Find investor relations documents and links for public companies with SEC EDGAR fallback. Supports 500+ companies.",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "config": {
     "company_config_file": "config/sp500_companies.json",
@@ -202,7 +202,7 @@ __all__ = [
     'EnhancedIRScraperFactory',
 ]
 
-__version__ = '2.0.0'
+__version__ = '2.0.1'
 ```
 
 ## 🧪 Testing the Integration

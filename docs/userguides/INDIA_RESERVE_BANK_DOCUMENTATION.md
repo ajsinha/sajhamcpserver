@@ -7,13 +7,14 @@
 
 ## Table of Contents
 1. [Overview](#overview)
-2. [Quick Start](#quick-start)
-3. [Available Tools](#available-tools)
-4. [Detailed Tool Reference](#detailed-tool-reference)
-5. [Code Examples](#code-examples)
-6. [API Reference](#api-reference)
-7. [Common Use Cases](#common-use-cases)
-8. [Troubleshooting](#troubleshooting)
+2. [Architecture](#architecture)
+3. [Quick Start](#quick-start)
+4. [Available Tools](#available-tools)
+5. [Detailed Tool Reference](#detailed-tool-reference)
+6. [Code Examples](#code-examples)
+7. [API Reference](#api-reference)
+8. [Common Use Cases](#common-use-cases)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -34,6 +35,64 @@ The Reserve Bank of India (RBI) MCP Tools provide comprehensive access to Indian
 ✅ **Comprehensive Coverage**: Wide range of economic data
 ✅ **Historical Analysis**: Retrieve data with customizable date ranges
 ✅ **Standardized Format**: Consistent JSON output across all tools
+
+---
+
+
+## Architecture
+
+### System Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   MCP Client Application                 │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ MCP Protocol
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│              MCP Tool Layer (5 Tools)                    │
+├──────────────────────────────────────────────────────────┤
+│  • rbi_get_policy_rate    (Repo/Reverse Repo Rates)      │
+│  • rbi_get_inflation      (CPI/WPI Data)                 │
+│  • rbi_get_exchange_rate  (INR Exchange Rates)           │
+│  • rbi_get_gsec_yield     (G-Sec Bond Yields)            │
+│  • rbi_get_forex_reserves (Foreign Exchange Reserves)    │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ HTTP/HTTPS
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│          RBIBaseTool (Shared Functionality)              │
+├──────────────────────────────────────────────────────────┤
+│  • RBI Database Integration                              │
+│  • Data Transformation & Parsing                         │
+│  • Error Handling & Logging                              │
+│  • Response Normalization                                │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ REST API Calls
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│          Reserve Bank of India Data Portal               │
+│           https://www.rbi.org.in/                        │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+
+```
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│   Request    │───▶│  Tool Layer  │───▶│   RBI API    │
+│  (indicator) │    │  (validate)  │    │   (fetch)    │
+└──────────────┘    └──────────────┘    └──────────────┘
+                           │                    │
+                           ▼                    │
+                    ┌──────────────┐            │
+                    │   Response   │◀───────────┘
+                    │  (normalize) │
+                    └──────────────┘
+```
 
 ---
 

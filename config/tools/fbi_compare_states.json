@@ -2,7 +2,7 @@
   "name": "fbi_compare_states",
   "implementation": "tools.impl.fbi_tool_refactored.FBICompareStatesTool",
   "description": "Compare crime statistics across multiple US states for analysis and ranking",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

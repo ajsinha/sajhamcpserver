@@ -27,7 +27,7 @@ class AdminRoutes(BaseRoutes):
             tools_metrics = self.tools_registry.get_tool_metrics()
             tool_errors = self.tools_registry.get_tool_errors()
 
-            return render_template('admin_tools.html',
+            return render_template('admin/admin_tools.html',
                                  user=user_session,
                                  tools_metrics=tools_metrics,
                                  tool_errors=tool_errors)
@@ -41,12 +41,12 @@ class AdminRoutes(BaseRoutes):
             # Verify tool exists
             tool = self.tools_registry.get_tool(tool_name)
             if not tool and tool_name not in self.tools_registry.tool_configs:
-                return render_template('error.html',
+                return render_template('common/error.html',
                                      user=user_session,
                                      error="Tool Not Found",
                                      message=f"Tool '{tool_name}' does not exist"), 404
 
-            return render_template('tool_config.html',
+            return render_template('tools/tool_config.html',
                                  user=user_session,
                                  tool_name=tool_name)
 
@@ -59,7 +59,7 @@ class AdminRoutes(BaseRoutes):
             # Get all users
             users = self.auth_manager.get_all_users()
 
-            return render_template('admin_users.html',
+            return render_template('admin/admin_users.html',
                                  user=user_session,
                                  users=users)
 
@@ -72,11 +72,11 @@ class AdminRoutes(BaseRoutes):
             # Verify user exists
             user_data = self.auth_manager.get_user(user_id)
             if not user_data:
-                return render_template('error.html',
+                return render_template('common/error.html',
                                      user=user_session,
                                      error="User Not Found",
                                      message=f"User '{user_id}' does not exist"), 404
 
-            return render_template('user_config.html',
+            return render_template('common/user_config.html',
                                  user=user_session,
                                  user_id=user_id)

@@ -27,15 +27,33 @@ class ApiRoutes(BaseRoutes):
         @app.route('/mcp', methods=['POST'])
         @app.route('/api/mcp', methods=['POST'])
         def mcp_endpoint():
-            """MCP protocol endpoint for HTTP requests"""
-            # Get authorization header
-            auth_header = request.headers.get('Authorization', '')
-
-            # Validate token
+            """
+            MCP protocol endpoint for HTTP requests.
+            Supports authentication via:
+            - Bearer token: Authorization: Bearer <token>
+            - API Key header: X-API-Key: sja_xxx
+            - API Key in Authorization: Authorization: sja_xxx
+            """
+            # Authenticate request (supports both session tokens and API keys)
+            headers = dict(request.headers)
+            is_auth, auth_context, auth_msg = self.auth_manager.authenticate_request(headers)
+            
+            # Convert auth_context to session-like dict for MCP handler
             session_data = None
-            if auth_header.startswith('Bearer '):
-                token = auth_header[7:]
-                session_data = self.auth_manager.validate_session(token)
+            if is_auth and auth_context:
+                if auth_context.get('type') == 'session':
+                    session_data = auth_context.get('data')
+                elif auth_context.get('type') == 'apikey':
+                    # Create session-like data from API key
+                    key_data = auth_context.get('data', {})
+                    session_data = {
+                        'user_id': f"apikey:{key_data.get('name', 'unknown')}",
+                        'user_name': key_data.get('name', 'API Key User'),
+                        'roles': ['api'],
+                        'tools': ['*'] if key_data.get('tool_access', {}).get('mode') == 'all' else [],
+                        '_apikey': auth_context.get('key'),
+                        '_apikey_data': key_data
+                    }
 
             # Get request data
             try:
@@ -81,25 +99,32 @@ class ApiRoutes(BaseRoutes):
         # ==================== Tools Execution Endpoints ====================
         @app.route('/api/tools/execute', methods=['POST'])
         def api_tool_execute():
-            """API endpoint for tool execution"""
-            # Get authorization
-            auth_header = request.headers.get('Authorization', '')
-            if not auth_header.startswith('Bearer '):
-                return jsonify({'error': 'Unauthorized'}), 401
-
-            token = auth_header[7:]
-            session_data = self.auth_manager.validate_session(token)
-            if not session_data:
-                return jsonify({'error': 'Invalid token'}), 401
+            """
+            API endpoint for tool execution.
+            Supports authentication via:
+            - Bearer token: Authorization: Bearer <token>
+            - API Key header: X-API-Key: sja_xxx
+            - API Key in Authorization: Authorization: sja_xxx
+            """
+            # Authenticate request
+            headers = dict(request.headers)
+            is_auth, auth_context, auth_msg = self.auth_manager.authenticate_request(headers)
+            
+            if not is_auth:
+                return jsonify({'error': auth_msg or 'Unauthorized'}), 401
 
             # Get request data
             data = request.get_json()
             tool_name = data.get('tool')
             arguments = data.get('arguments', {})
 
-            # Check access
-            if not self.auth_manager.has_tool_access(session_data, tool_name):
-                return jsonify({'error': 'Access denied'}), 403
+            if not tool_name:
+                return jsonify({'error': 'Tool name required'}), 400
+
+            # Check tool access based on auth type
+            has_access, access_msg = self.auth_manager.check_tool_access_for_auth_context(auth_context, tool_name)
+            if not has_access:
+                return jsonify({'error': access_msg or 'Access denied'}), 403
 
             # Execute tool
             try:

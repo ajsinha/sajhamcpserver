@@ -2,7 +2,7 @@
   "name": "wb_get_countries",
   "implementation": "tools.impl.world_bank_tool.WBGetCountriesTool",
   "description": "Retrieve list of all countries and regions with their metadata including income levels, regions, and lending types from the World Bank API.",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

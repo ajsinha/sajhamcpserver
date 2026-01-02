@@ -2,7 +2,7 @@
   "name": "edgar_filings_by_form",
   "implementation": "tools.impl.enhanced_edgar_tool.EDGARFilingsByFormTool",
   "description": "Search and filter company filings by specific form type (10-K, 10-Q, 8-K, DEF 14A, etc.) with optional date range filtering",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

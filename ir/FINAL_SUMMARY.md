@@ -77,7 +77,7 @@ class EnhancedInvestorRelationsTool(BaseMCPTool):  # ← Inherits BaseMCPTool
         default_config = {
             'name': 'investor_relations',
             'description': 'Find investor relations documents...',
-            'version': '2.0.0',
+            'version': '2.0.1',
             'enabled': True
         }
         if config:
@@ -144,7 +144,7 @@ Update `investor_relations.json`:
 {
   "name": "investor_relations",
   "implementation": "tools.impl.investor_relations_tool.InvestorRelationsTool",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "config": {
     "company_config_file": "config/sp500_companies.json",
     "use_sec_fallback": true

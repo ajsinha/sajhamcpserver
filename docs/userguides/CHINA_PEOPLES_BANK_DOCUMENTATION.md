@@ -6,13 +6,14 @@
 
 ## Table of Contents
 1. [Overview](#overview)
-2. [Quick Start](#quick-start)
-3. [Available Tools](#available-tools)
-4. [Detailed Tool Reference](#detailed-tool-reference)
-5. [Code Examples](#code-examples)
-6. [API Reference](#api-reference)
-7. [Common Use Cases](#common-use-cases)
-8. [Troubleshooting](#troubleshooting)
+2. [Architecture](#architecture)
+3. [Quick Start](#quick-start)
+4. [Available Tools](#available-tools)
+5. [Detailed Tool Reference](#detailed-tool-reference)
+6. [Code Examples](#code-examples)
+7. [API Reference](#api-reference)
+8. [Common Use Cases](#common-use-cases)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -33,6 +34,64 @@ The People's Bank of China (PBoC) MCP Tools provide comprehensive access to Chin
 ✅ **Comprehensive Coverage**: Wide range of monetary indicators
 ✅ **Historical Analysis**: Retrieve data with customizable date ranges
 ✅ **Global Impact**: Access data from world's second-largest economy
+
+---
+
+
+## Architecture
+
+### System Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   MCP Client Application                 │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ MCP Protocol
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│              MCP Tool Layer (5 Tools)                    │
+├──────────────────────────────────────────────────────────┤
+│  • pboc_get_cgb_yield     (Government Bond Yields)       │
+│  • pboc_get_lpr           (Loan Prime Rate)              │
+│  • pboc_get_exchange_rate (CNY Exchange Rates)           │
+│  • pboc_get_money_supply  (M0, M1, M2 Aggregates)        │
+│  • pboc_get_forex_reserves (Forex/Gold Reserves)         │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ HTTP/HTTPS
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│        PBOCBaseTool (Shared Functionality)               │
+├──────────────────────────────────────────────────────────┤
+│  • API Configuration & Endpoints                         │
+│  • Data Transformation & Parsing                         │
+│  • Error Handling & Logging                              │
+│  • Response Normalization                                │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ REST API Calls
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│         People's Bank of China Data Portal               │
+│              http://www.pbc.gov.cn/                      │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+
+```
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│   Request    │───▶│  Tool Layer  │───▶│   PBoC API   │
+│  (bond_term) │    │  (validate)  │    │   (fetch)    │
+└──────────────┘    └──────────────┘    └──────────────┘
+                           │                    │
+                           ▼                    │
+                    ┌──────────────┐            │
+                    │   Response   │◀───────────┘
+                    │  (normalize) │
+                    └──────────────┘
+```
 
 ---
 

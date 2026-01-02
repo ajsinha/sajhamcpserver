@@ -1,138 +1,80 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Flask application for SAJHA MCP Server - Refactored with modular routes
+Flask application for SAJHA MCP Server - Backward Compatibility Wrapper
+
+This module provides backward compatibility for code that imports from app.py.
+The actual implementation is now in sajhamcpserver_web.py.
 """
 
 import logging
-from flask import Flask, render_template, jsonify
-from flask_socketio import SocketIO
-from flask_cors import CORS
-from datetime import timedelta, datetime
 
-# Import core modules
-from core.auth_manager import AuthManager
-from core.mcp_handler import MCPHandler
-from core.prompts_registry import PromptsRegistry
-from tools.tools_registry import ToolsRegistry
+# Get logger (logging is configured by run_server.py)
+logger = logging.getLogger(__name__)
 
-# Import route modules
-from routes import (
-    AuthRoutes,
-    DashboardRoutes,
-    ToolsRoutes,
-    AdminRoutes,
-    MonitoringRoutes,
-    ApiRoutes,
-    SocketIOHandlers,
-    PromptsRoutes
-)
-
-# Global instances
+# Global instances for backward compatibility
 app = None
 socketio = None
 auth_manager = None
 mcp_handler = None
 tools_registry = None
+config_reloader = None
+
+# Reference to the web app instance
+_web_app_instance = None
 
 
 def create_app():
-    """Create and configure Flask application"""
-    global app, socketio, auth_manager, mcp_handler, tools_registry
+    """
+    Create and configure Flask application.
     
-    app = Flask(__name__)
-    app.config['SECRET_KEY'] = 'sajha-mcp-server-secret-key-2025'
-    app.config['SESSION_TYPE'] = 'filesystem'
-    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
+    This is the main factory function that creates a fully configured
+    SAJHA MCP Server application.
     
-    # Enable CORS
-    CORS(app)
+    Returns:
+        Tuple of (Flask app, SocketIO instance)
+    """
+    global app, socketio, auth_manager, mcp_handler, tools_registry, config_reloader, _web_app_instance
     
-    # Initialize SocketIO
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+    # Import here to avoid circular imports
+    from web.sajhamcpserver_web import SajhaMCPServerWebApp
     
-    # Initialize managers
-    auth_manager = AuthManager()
-    tools_registry = ToolsRegistry()
-    prompts_registry = PromptsRegistry()
-    mcp_handler = MCPHandler(tools_registry=tools_registry, auth_manager=auth_manager, prompts_registry=prompts_registry)
+    # Create the web app
+    _web_app_instance = SajhaMCPServerWebApp()
+    _web_app_instance.prepare()
     
-    # Setup logging
-    logging.basicConfig(level=logging.INFO)
-    
-    # Register routes
-    register_all_routes(app, socketio)
-    
-    # Register error handlers
-    register_error_handlers(app)
-    
-    # Register health check
-    register_health_check(app)
+    # Set global references for backward compatibility
+    app = _web_app_instance.get_app()
+    socketio = _web_app_instance.get_socketio()
+    auth_manager = _web_app_instance.auth_manager
+    mcp_handler = _web_app_instance.mcp_handler
+    tools_registry = _web_app_instance.tools_registry
+    config_reloader = _web_app_instance.config_reloader
     
     return app, socketio
 
 
-def register_all_routes(app, socketio):
-    """Register all route modules"""
-    from core.prompts_registry import PromptsRegistry
-    prompts_registry = PromptsRegistry()
-
-    # Initialize route classes
-    auth_routes = AuthRoutes(auth_manager)
-    dashboard_routes = DashboardRoutes(auth_manager, tools_registry, prompts_registry)
-    tools_routes = ToolsRoutes(auth_manager, tools_registry)
-    admin_routes = AdminRoutes(auth_manager, tools_registry)
-    monitoring_routes = MonitoringRoutes(auth_manager, tools_registry)
-    api_routes = ApiRoutes(auth_manager, tools_registry, mcp_handler)
-    prompt_routes = PromptsRoutes(auth_manager, prompts_registry)
-
-    socketio_handlers = SocketIOHandlers(socketio, auth_manager, tools_registry, mcp_handler)
-    
-    # Register blueprints
-    auth_routes.register_routes(app)
-    dashboard_routes.register_routes(app)
-    tools_routes.register_routes(app)
-    admin_routes.register_routes(app)
-    monitoring_routes.register_routes(app)
-    api_routes.register_routes(app)
-    prompt_routes.register_routes(app)
-    
-    # Register SocketIO handlers
-    socketio_handlers.register_handlers()
-    
-    logging.info("All routes registered successfully")
+# Legacy function aliases for backward compatibility
+def register_all_routes(app, socketio, prompts_registry=None):
+    """Legacy function - routes are now registered in SajhaMCPServerWebApp.prepare()"""
+    logger.warning("register_all_routes() is deprecated. Routes are auto-registered in prepare().")
+    pass
 
 
 def register_error_handlers(app):
-    """Register error handlers"""
-    
-    @app.errorhandler(404)
-    def not_found(error):
-        """404 error handler"""
-        return render_template('error.html',
-                             error="Page Not Found",
-                             message="The requested page does not exist"), 404
-    
-    @app.errorhandler(500)
-    def internal_error(error):
-        """500 error handler"""
-        return render_template('error.html',
-                             error="Internal Server Error",
-                             message="An unexpected error occurred"), 500
+    """Legacy function - error handlers are now registered in SajhaMCPServerWebApp.prepare()"""
+    logger.warning("register_error_handlers() is deprecated. Handlers are auto-registered in prepare().")
+    pass
 
 
 def register_health_check(app):
-    """Register health check endpoint"""
-    
-    @app.route('/health')
-    def health():
-        """Health check endpoint"""
-        return jsonify({
-            'status': 'healthy',
-            'timestamp': datetime.now().isoformat(),
-            'version': '1.0.0'
-        })
+    """Legacy function - health check is now registered in SajhaMCPServerWebApp.prepare()"""
+    logger.warning("register_health_check() is deprecated. Endpoints are auto-registered in prepare().")
+    pass
 
 
 if __name__ == '__main__':
-    app, socketio = create_app()
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    from web.sajhamcpserver_web import SajhaMCPServerWebApp
+    
+    web_app = SajhaMCPServerWebApp()
+    web_app.prepare()
+    web_app.run(host='0.0.0.0', port=5000, debug=True)

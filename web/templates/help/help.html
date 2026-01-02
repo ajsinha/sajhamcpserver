@@ -1,0 +1,630 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}Help - SAJHA MCP Server{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="welcome-banner">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-3" style="font-size: 2.5rem;"></i>
+                    <div>
+                        <h2 class="mb-1">Help Center</h2>
+                        <p class="mb-0 opacity-75">Comprehensive guide to using SAJHA MCP Server</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Navigation -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-primary">
+                    <i class="bi bi-compass me-2"></i>Quick Navigation
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-2 col-6">
+                            <a href="#getting-started" class="btn btn-outline-primary w-100 h-100 py-3">
+                                <i class="bi bi-rocket-takeoff d-block mb-1" style="font-size: 1.5rem;"></i>
+                                Getting Started
+                            </a>
+                        </div>
+                        <div class="col-md-2 col-6">
+                            <a href="#tools" class="btn btn-outline-info w-100 h-100 py-3">
+                                <i class="bi bi-tools d-block mb-1" style="font-size: 1.5rem;"></i>
+                                Using Tools
+                            </a>
+                        </div>
+                        <div class="col-md-2 col-6">
+                            <a href="#prompts" class="btn btn-outline-success w-100 h-100 py-3">
+                                <i class="bi bi-chat-square-text d-block mb-1" style="font-size: 1.5rem;"></i>
+                                Managing Prompts
+                            </a>
+                        </div>
+                        <div class="col-md-2 col-6">
+                            <a href="#api" class="btn btn-outline-secondary w-100 h-100 py-3">
+                                <i class="bi bi-code-slash d-block mb-1" style="font-size: 1.5rem;"></i>
+                                API Reference
+                            </a>
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <a href="{{ url_for('docs_list') }}" class="btn btn-outline-warning w-100 h-100 py-3">
+                                <i class="bi bi-book d-block mb-1" style="font-size: 1.5rem;"></i>
+                                <strong>Project Documentation</strong>
+                                <small class="d-block mt-1">Browse all markdown docs</small>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Documentation Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 text-center mb-3 mb-md-0">
+                            <i class="bi bi-book-half text-warning" style="font-size: 4rem;"></i>
+                        </div>
+                        <div class="col-md-7 mb-3 mb-md-0">
+                            <h4 class="mb-2"><i class="bi bi-file-earmark-text me-2"></i>Project Documentation</h4>
+                            <p class="mb-2 text-muted">Access comprehensive documentation including tool reference guides, API documentation, implementation guides, and user manuals. All documentation is rendered from markdown files for easy reading.</p>
+                            <div class="d-flex flex-wrap gap-2">
+                                <span class="badge bg-primary">Tool Guides</span>
+                                <span class="badge bg-success">API Reference</span>
+                                <span class="badge bg-info">User Manuals</span>
+                                <span class="badge bg-secondary">Implementation Notes</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center text-md-end">
+                            <a href="{{ url_for('docs_list') }}" class="btn btn-warning btn-lg">
+                                <i class="bi bi-arrow-right-circle me-2"></i>Browse Documentation
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Getting Started Section -->
+    <div class="row mb-4" id="getting-started">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-success">
+                    <i class="bi bi-rocket-takeoff me-2"></i>Getting Started
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="bi bi-1-circle me-2 text-primary"></i>Login to the System</h5>
+                            <p>Use your assigned credentials to log in. The default administrator account uses:</p>
+                            <ul>
+                                <li><strong>Username:</strong> admin</li>
+                                <li><strong>Password:</strong> admin123 (change immediately after first login)</li>
+                            </ul>
+                            
+                            <h5 class="mt-4"><i class="bi bi-2-circle me-2 text-primary"></i>Navigate the Dashboard</h5>
+                            <p>After logging in, you'll see the main dashboard with:</p>
+                            <ul>
+                                <li>Quick statistics on available tools and prompts</li>
+                                <li>Recent activity overview</li>
+                                <li>System status indicators</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="bi bi-3-circle me-2 text-primary"></i>Explore Available Tools</h5>
+                            <p>Navigate to the <strong>Tools</strong> section to see all available MCP tools. Each tool has:</p>
+                            <ul>
+                                <li>Detailed description of capabilities</li>
+                                <li>Input schema documentation</li>
+                                <li>Execute interface for testing</li>
+                            </ul>
+                            
+                            <h5 class="mt-4"><i class="bi bi-4-circle me-2 text-primary"></i>Create and Manage Prompts</h5>
+                            <p>Use the <strong>Prompts</strong> section to:</p>
+                            <ul>
+                                <li>Create reusable prompt templates</li>
+                                <li>Organize prompts by category</li>
+                                <li>Test prompts with sample data</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Using Tools Section -->
+    <div class="row mb-4" id="tools">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-info d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-tools me-2"></i>Available Tool Groups</span>
+                    <span class="badge bg-light text-dark">
+                        <i class="bi bi-gear me-1"></i>{{ tool_stats.total_tools }} tools in {{ tool_stats.total_groups }} groups
+                        <small class="ms-2 text-muted">(Auto-refreshes every 5 min)</small>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <!-- Tool Search -->
+                    <div class="row mb-4">
+                        <div class="col-md-6 mx-auto">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" id="toolSearch" placeholder="Search tools...">
+                                <button class="btn btn-outline-secondary" type="button" id="clearToolSearch">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tool Search Results (hidden by default) -->
+                    <div id="toolSearchResults" class="d-none mb-4">
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white">
+                                <i class="bi bi-search me-2"></i>Search Results
+                            </div>
+                            <div class="card-body" id="toolSearchResultsBody">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dynamic Tool Group Cards -->
+                    <div class="row" id="toolGroupsContainer">
+                        {% for group in tool_groups %}
+                        <div class="col-lg-4 col-md-6 mb-4 tool-group-card" data-group="{{ group.name }}">
+                            <div class="card h-100 border-{{ group.color }}">
+                                <div class="card-header bg-{{ group.color }} text-white d-flex justify-content-between align-items-center">
+                                    <span><i class="bi {{ group.icon }} me-2"></i>{{ group.name }}</span>
+                                    <span class="badge bg-light text-{{ group.color }}">{{ group.tool_count }} tools</span>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">{{ group.description }}</p>
+                                    <div class="mb-3">
+                                        {% for category in group.categories[:3] %}
+                                        <span class="badge bg-{{ group.color }} bg-opacity-10 text-{{ group.color }} me-1 mb-1">{{ category }}</span>
+                                        {% endfor %}
+                                        {% if group.categories|length > 3 %}
+                                        <span class="badge bg-secondary">+{{ group.categories|length - 3 }} more</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">
+                                            <i class="bi bi-check-circle text-success me-1"></i>{{ group.enabled_count }} enabled
+                                        </small>
+                                        <button class="btn btn-sm btn-outline-{{ group.color }} view-group-tools" 
+                                                data-group="{{ group.name }}"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#toolGroupModal">
+                                            <i class="bi bi-eye me-1"></i>View Tools
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- No Results Message -->
+                    <div id="noToolGroupResults" class="d-none text-center py-4">
+                        <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3 text-muted">No matching tool groups found</h5>
+                        <p class="text-muted mb-0">Try a different search term</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tool Group Modal -->
+    <div class="modal fade" id="toolGroupModal" tabindex="-1" aria-labelledby="toolGroupModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="toolGroupModalLabel">
+                        <i class="bi bi-tools me-2"></i>Tools in Group
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="toolGroupModalBody">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Managing Prompts Section -->
+    <div class="row mb-4" id="prompts">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-success">
+                    <i class="bi bi-chat-square-text me-2"></i>Managing Prompts
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="bi bi-plus-circle me-2 text-success"></i>Creating Prompts</h5>
+                            <p>Create reusable prompt templates with:</p>
+                            <ol>
+                                <li>Navigate to <strong>Prompts</strong> → <strong>Create New</strong></li>
+                                <li>Enter a unique prompt name and description</li>
+                                <li>Write your prompt template using variables like <code>{{variable_name}}</code></li>
+                                <li>Define arguments schema for input validation</li>
+                                <li>Save and test your prompt</li>
+                            </ol>
+                            
+                            <div class="alert alert-info">
+                                <i class="bi bi-lightbulb me-2"></i>
+                                <strong>Tip:</strong> Use descriptive variable names and include default values where appropriate.
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="bi bi-folder me-2 text-primary"></i>Organizing Prompts</h5>
+                            <p>Best practices for prompt organization:</p>
+                            <ul>
+                                <li>Use clear, descriptive names</li>
+                                <li>Add detailed descriptions for each prompt</li>
+                                <li>Group related prompts by category</li>
+                                <li>Include usage examples in descriptions</li>
+                            </ul>
+                            
+                            <h5 class="mt-4"><i class="bi bi-play-circle me-2 text-info"></i>Testing Prompts</h5>
+                            <p>Before deploying prompts:</p>
+                            <ul>
+                                <li>Use the built-in test interface</li>
+                                <li>Try various input combinations</li>
+                                <li>Verify output formatting</li>
+                                <li>Check for edge cases</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Reference Section -->
+    <div class="row mb-4" id="api">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-secondary">
+                    <i class="bi bi-code-slash me-2"></i>API Reference
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="bi bi-key me-2 text-warning"></i>Authentication</h5>
+                            <pre class="bg-dark text-light p-3 rounded"><code>POST /api/auth/login
+Content-Type: application/json
+
+{
+  "user_id": "admin",
+  "password": "your_password"
+}</code></pre>
+                            <p class="mt-2">Returns a JWT token for subsequent requests.</p>
+                            
+                            <h5 class="mt-4"><i class="bi bi-list-task me-2 text-primary"></i>List Tools</h5>
+                            <pre class="bg-dark text-light p-3 rounded"><code>POST /api/mcp
+Authorization: Bearer YOUR_TOKEN
+
+{
+  "jsonrpc": "2.0",
+  "id": "1",
+  "method": "tools/list",
+  "params": {}
+}</code></pre>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="bi bi-play me-2 text-success"></i>Execute Tool</h5>
+                            <pre class="bg-dark text-light p-3 rounded"><code>POST /api/tools/execute
+Authorization: Bearer YOUR_TOKEN
+
+{
+  "tool": "wikipedia",
+  "arguments": {
+    "action": "search",
+    "query": "Python programming",
+    "limit": 5
+  }
+}</code></pre>
+                            
+                            <h5 class="mt-4"><i class="bi bi-broadcast me-2 text-info"></i>WebSocket Connection</h5>
+                            <pre class="bg-dark text-light p-3 rounded"><code>// Connect
+const socket = io('ws://localhost:8000');
+
+// Authenticate
+socket.emit('authenticate', { 
+  token: 'YOUR_TOKEN' 
+});
+
+// Execute tool
+socket.emit('tool_execute', {
+  tool: 'wikipedia',
+  arguments: {...}
+});</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Troubleshooting Section -->
+    <div class="row mb-4" id="troubleshooting">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-danger">
+                    <i class="bi bi-wrench me-2"></i>Troubleshooting
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="troubleshootingAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#issue1">
+                                    <i class="bi bi-exclamation-triangle me-2 text-warning"></i>
+                                    Cannot log in with correct credentials
+                                </button>
+                            </h2>
+                            <div id="issue1" class="accordion-collapse collapse show" data-bs-parent="#troubleshootingAccordion">
+                                <div class="accordion-body">
+                                    <ol>
+                                        <li>Verify the user exists in <code>config/users.json</code></li>
+                                        <li>Check that the user account is enabled (<code>"enabled": true</code>)</li>
+                                        <li>Clear browser cookies and try again</li>
+                                        <li>Check server logs at <code>logs/server.log</code> for authentication errors</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#issue2">
+                                    <i class="bi bi-exclamation-triangle me-2 text-warning"></i>
+                                    Tool execution returns errors
+                                </button>
+                            </h2>
+                            <div id="issue2" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                                <div class="accordion-body">
+                                    <ol>
+                                        <li>Verify required API keys are configured in <code>config/application.properties</code></li>
+                                        <li>Check the tool configuration in <code>config/tools/</code></li>
+                                        <li>Ensure the tool is enabled and accessible to your user role</li>
+                                        <li>Review the tool's input schema for correct parameter format</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#issue3">
+                                    <i class="bi bi-exclamation-triangle me-2 text-warning"></i>
+                                    WebSocket connection fails
+                                </button>
+                            </h2>
+                            <div id="issue3" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                                <div class="accordion-body">
+                                    <ol>
+                                        <li>Ensure <code>features.websocket.enabled=true</code> in application.properties</li>
+                                        <li>Check that no firewall is blocking WebSocket connections</li>
+                                        <li>Verify the authentication token is valid</li>
+                                        <li>Try refreshing the page to establish a new connection</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Support -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-primary">
+                    <i class="bi bi-envelope me-2"></i>Need More Help?
+                </div>
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-headset" style="font-size: 3rem; color: var(--sajha-primary);"></i>
+                    <h5 class="mt-3">Contact Support</h5>
+                    <p class="text-muted">For additional assistance, please contact the system administrator.</p>
+                    <a href="mailto:ajsinha@gmail.com" class="btn btn-primary">
+                        <i class="bi bi-envelope me-2"></i>Email Support
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Tool search functionality
+    var searchTimeout;
+    
+    $('#toolSearch').on('input', function() {
+        var query = $(this).val().trim();
+        
+        // Clear previous timeout
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        if (query.length === 0) {
+            // Show all groups, hide search results
+            $('.tool-group-card').removeClass('d-none');
+            $('#toolSearchResults').addClass('d-none');
+            $('#noToolGroupResults').addClass('d-none');
+            return;
+        }
+        
+        if (query.length < 2) {
+            return;
+        }
+        
+        // Debounce search
+        searchTimeout = setTimeout(function() {
+            searchTools(query);
+        }, 300);
+    });
+    
+    $('#clearToolSearch').on('click', function() {
+        $('#toolSearch').val('').trigger('input');
+    });
+    
+    function searchTools(query) {
+        $.ajax({
+            url: '/api/tool-groups/search?q=' + encodeURIComponent(query),
+            method: 'GET',
+            success: function(data) {
+                if (data.results && data.results.length > 0) {
+                    // Show search results
+                    var html = '<div class="table-responsive"><table class="table table-hover">';
+                    html += '<thead><tr><th>Tool Name</th><th>Group</th><th>Description</th><th>Status</th></tr></thead><tbody>';
+                    
+                    data.results.forEach(function(tool) {
+                        var statusBadge = tool.enabled 
+                            ? '<span class="badge bg-success">Enabled</span>' 
+                            : '<span class="badge bg-secondary">Disabled</span>';
+                        html += '<tr>';
+                        html += '<td><i class="bi ' + tool.group_icon + ' text-' + tool.group_color + ' me-2"></i><code>' + tool.name + '</code></td>';
+                        html += '<td><span class="badge bg-' + tool.group_color + '">' + tool.group + '</span></td>';
+                        html += '<td>' + tool.description.substring(0, 100) + '...</td>';
+                        html += '<td>' + statusBadge + '</td>';
+                        html += '</tr>';
+                    });
+                    
+                    html += '</tbody></table></div>';
+                    html += '<p class="text-muted mt-2"><small>Found ' + data.count + ' tool(s) matching "' + data.query + '"</small></p>';
+                    
+                    $('#toolSearchResultsBody').html(html);
+                    $('#toolSearchResults').removeClass('d-none');
+                    
+                    // Filter group cards based on results
+                    var matchedGroups = [...new Set(data.results.map(t => t.group))];
+                    $('.tool-group-card').each(function() {
+                        var groupName = $(this).data('group');
+                        if (matchedGroups.includes(groupName)) {
+                            $(this).removeClass('d-none');
+                        } else {
+                            $(this).addClass('d-none');
+                        }
+                    });
+                    
+                    $('#noToolGroupResults').addClass('d-none');
+                } else {
+                    // No results
+                    $('#toolSearchResults').addClass('d-none');
+                    $('.tool-group-card').addClass('d-none');
+                    $('#noToolGroupResults').removeClass('d-none');
+                }
+            },
+            error: function() {
+                // Fallback to client-side filtering
+                var queryLower = query.toLowerCase();
+                var hasResults = false;
+                
+                $('.tool-group-card').each(function() {
+                    var groupName = $(this).data('group').toLowerCase();
+                    var cardText = $(this).text().toLowerCase();
+                    
+                    if (groupName.includes(queryLower) || cardText.includes(queryLower)) {
+                        $(this).removeClass('d-none');
+                        hasResults = true;
+                    } else {
+                        $(this).addClass('d-none');
+                    }
+                });
+                
+                if (hasResults) {
+                    $('#noToolGroupResults').addClass('d-none');
+                } else {
+                    $('#noToolGroupResults').removeClass('d-none');
+                }
+                
+                $('#toolSearchResults').addClass('d-none');
+            }
+        });
+    }
+    
+    // View group tools modal
+    $('.view-group-tools').on('click', function() {
+        var groupName = $(this).data('group');
+        
+        $('#toolGroupModalLabel').html('<i class="bi bi-tools me-2"></i>' + groupName);
+        $('#toolGroupModalBody').html('<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+        
+        $.ajax({
+            url: '/api/tool-groups/' + encodeURIComponent(groupName),
+            method: 'GET',
+            success: function(data) {
+                var html = '<div class="mb-3">';
+                html += '<p class="text-muted">' + data.group.description + '</p>';
+                html += '<div class="mb-2">';
+                data.group.categories.forEach(function(cat) {
+                    html += '<span class="badge bg-' + data.group.color + ' me-1">' + cat + '</span>';
+                });
+                html += '</div></div>';
+                
+                html += '<div class="table-responsive"><table class="table table-sm table-hover">';
+                html += '<thead class="table-light"><tr><th>Tool Name</th><th>Category</th><th>Description</th><th>Status</th></tr></thead><tbody>';
+                
+                data.tools.forEach(function(tool) {
+                    var statusBadge = tool.enabled 
+                        ? '<span class="badge bg-success"><i class="bi bi-check-circle"></i></span>' 
+                        : '<span class="badge bg-secondary"><i class="bi bi-x-circle"></i></span>';
+                    html += '<tr>';
+                    html += '<td><code>' + tool.name + '</code></td>';
+                    html += '<td><small class="text-muted">' + tool.category + '</small></td>';
+                    html += '<td><small>' + tool.description.substring(0, 80) + '...</small></td>';
+                    html += '<td class="text-center">' + statusBadge + '</td>';
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table></div>';
+                html += '<p class="text-muted mt-2"><small><i class="bi bi-info-circle me-1"></i>Showing ' + data.tools.length + ' tool(s) in this group</small></p>';
+                
+                $('#toolGroupModalBody').html(html);
+            },
+            error: function() {
+                $('#toolGroupModalBody').html('<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>Failed to load tools</div>');
+            }
+        });
+    });
+    
+    // Smooth scroll for anchor links
+    $('a[href^="#"]').on('click', function(e) {
+        var target = $($(this).attr('href'));
+        if (target.length) {
+            e.preventDefault();
+            $('html, body').animate({
+                scrollTop: target.offset().top - 80
+            }, 500);
+        }
+    });
+});
+</script>
+{% endblock %}

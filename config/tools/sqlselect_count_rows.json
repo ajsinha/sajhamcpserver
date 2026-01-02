@@ -2,7 +2,7 @@
   "name": "sqlselect_count_rows",
   "implementation": "tools.impl.sqlselect_tool_refactored.SqlSelectCountRowsTool",
   "description": "Count rows in a data source with optional WHERE clause filtering for data profiling and validation",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "data_directory": "data/sqlselect",
   "data_sources": {

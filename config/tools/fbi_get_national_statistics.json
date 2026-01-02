@@ -2,7 +2,7 @@
   "name": "fbi_get_national_statistics",
   "implementation": "tools.impl.fbi_tool_refactored.FBIGetNationalStatisticsTool",
   "description": "Retrieve nationwide US crime statistics for specified offense types and years",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

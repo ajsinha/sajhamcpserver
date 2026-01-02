@@ -7,13 +7,14 @@
 
 ## Table of Contents
 1. [Overview](#overview)
-2. [Quick Start](#quick-start)
-3. [Available Tools](#available-tools)
-4. [Detailed Tool Reference](#detailed-tool-reference)
-5. [Code Examples](#code-examples)
-6. [API Reference](#api-reference)
-7. [Common Use Cases](#common-use-cases)
-8. [Troubleshooting](#troubleshooting)
+2. [Architecture](#architecture)
+3. [Quick Start](#quick-start)
+4. [Available Tools](#available-tools)
+5. [Detailed Tool Reference](#detailed-tool-reference)
+6. [Code Examples](#code-examples)
+7. [API Reference](#api-reference)
+8. [Common Use Cases](#common-use-cases)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -34,6 +35,64 @@ The Bank of Japan (BoJ) MCP Tools provide comprehensive access to Japanese econo
 ✅ **Flexible Queries**: Query by specific periods or recent observations
 ✅ **Standardized Format**: Consistent JSON output across all tools
 ✅ **High Reliability**: Built on official BoJ APIs
+
+---
+
+
+## Architecture
+
+### System Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   MCP Client Application                 │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ MCP Protocol
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│              MCP Tool Layer (5 Tools)                    │
+├──────────────────────────────────────────────────────────┤
+│  • boj_get_policy_rate   (Policy Balance Rate)           │
+│  • boj_get_jgb_yield     (JGB Yields)                    │
+│  • boj_get_exchange_rate (JPY Exchange Rates)            │
+│  • boj_get_money_stock   (Money Stock M1/M2/M3)          │
+│  • boj_get_price_index   (CPI/CGPI Data)                 │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ HTTP/HTTPS
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│          BOJBaseTool (Shared Functionality)              │
+├──────────────────────────────────────────────────────────┤
+│  • BOJ Time-Series API Integration                       │
+│  • Data Transformation & Parsing                         │
+│  • Error Handling & Logging                              │
+│  • Response Normalization                                │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ REST API Calls
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│             Bank of Japan Statistics                     │
+│         https://www.stat-search.boj.or.jp/               │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+
+```
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│   Request    │───▶│  Tool Layer  │───▶│   BOJ API    │
+│  (series)    │    │  (validate)  │    │   (fetch)    │
+└──────────────┘    └──────────────┘    └──────────────┘
+                           │                    │
+                           ▼                    │
+                    ┌──────────────┐            │
+                    │   Response   │◀───────────┘
+                    │  (normalize) │
+                    └──────────────┘
+```
 
 ---
 

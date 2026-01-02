@@ -26,7 +26,7 @@ class MonitoringRoutes(BaseRoutes):
             # Get tool metrics
             metrics = self.tools_registry.get_tool_metrics()
 
-            return render_template('monitoring_tools.html',
+            return render_template('monitoring/monitoring_tools.html',
                                  user=user_session,
                                  metrics=metrics)
 
@@ -39,6 +39,6 @@ class MonitoringRoutes(BaseRoutes):
             # Get user activity (simplified for now)
             users = self.auth_manager.get_all_users()
 
-            return render_template('monitoring_users.html',
+            return render_template('monitoring/monitoring_users.html',
                                  user=user_session,
                                  users=users)

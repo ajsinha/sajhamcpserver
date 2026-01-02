@@ -32,7 +32,7 @@ class ToolsRoutes(BaseRoutes):
             if '*' not in accessible_tools:
                 tools = [t for t in tools if t['name'] in accessible_tools]
 
-            return render_template('tools_list.html',
+            return render_template('tools/tools_list.html',
                                  user=user_session,
                                  tools=tools)
 
@@ -44,14 +44,14 @@ class ToolsRoutes(BaseRoutes):
 
             # Check if user has access to this tool
             if not self.auth_manager.has_tool_access(user_session, tool_name):
-                return render_template('error.html',
+                return render_template('common/error.html',
                                      error="Access Denied",
                                      message=f"You don't have permission to view {tool_name}"), 403
 
             # Get tool details
             tool = self.tools_registry.get_tool(tool_name)
             if not tool:
-                return render_template('error.html',
+                return render_template('common/error.html',
                                      error="Tool Not Found",
                                      message=f"Tool {tool_name} not found"), 404
 
@@ -87,7 +87,7 @@ class ToolsRoutes(BaseRoutes):
             except Exception as e:
                 literature_content = ""
 
-            return render_template('tool_schema.html',
+            return render_template('tools/tool_schema.html',
                                  user=user_session,
                                  tool=tool_data,
                                  schema_json=schema_json,
@@ -311,17 +311,17 @@ class ToolsRoutes(BaseRoutes):
 
             # Check if user has access to this tool
             if not self.auth_manager.has_tool_access(user_session, tool_name):
-                return render_template('error.html',
+                return render_template('common/error.html',
                                      error="Access Denied",
                                      message=f"You don't have permission to use {tool_name}"), 403
 
             # Get tool details
             tool = self.tools_registry.get_tool(tool_name)
             if not tool:
-                return render_template('error.html',
+                return render_template('common/error.html',
                                      error="Tool Not Found",
                                      message=f"Tool {tool_name} not found"), 404
 
-            return render_template('tool_execute.html',
+            return render_template('tools/tool_execute.html',
                                  user=user_session,
                                  tool=tool.to_mcp_format())

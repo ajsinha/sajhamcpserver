@@ -1,0 +1,121 @@
+{
+  "apikeys": [
+    {
+      "key": "sja_demo_key_12345",
+      "name": "Demo API Key",
+      "description": "Demo key for testing API access",
+      "created_by": "admin",
+      "created_at": "2025-01-01T00:00:00Z",
+      "expires_at": null,
+      "enabled": true,
+      "tool_access": {
+        "mode": "allowlist",
+        "tools": ["wiki_search", "wiki_get_summary", "wiki_get_page"],
+        "regex_patterns": []
+      },
+      "rate_limit": {
+        "requests_per_minute": 60,
+        "requests_per_hour": 1000
+      },
+      "metadata": {
+        "owner": "Demo User",
+        "contact": "demo@example.com",
+        "purpose": "Testing and demonstration"
+      },
+      "usage_stats": {
+        "total_requests": 0,
+        "last_used": null
+      }
+    },
+    {
+      "key": "sja_full_access_admin",
+      "name": "Full Access Key",
+      "description": "Full access to all tools - admin use only",
+      "created_by": "admin",
+      "created_at": "2025-01-01T00:00:00Z",
+      "expires_at": null,
+      "enabled": true,
+      "tool_access": {
+        "mode": "all",
+        "tools": [],
+        "regex_patterns": []
+      },
+      "rate_limit": {
+        "requests_per_minute": 120,
+        "requests_per_hour": 5000
+      },
+      "metadata": {
+        "owner": "System Admin",
+        "contact": "admin@example.com",
+        "purpose": "Administrative access"
+      },
+      "usage_stats": {
+        "total_requests": 0,
+        "last_used": null
+      }
+    },
+    {
+      "key": "sja_financial_tools_key",
+      "name": "Financial Data Key",
+      "description": "Access to financial and economic data tools",
+      "created_by": "admin",
+      "created_at": "2025-01-01T00:00:00Z",
+      "expires_at": null,
+      "enabled": true,
+      "tool_access": {
+        "mode": "regex",
+        "tools": [],
+        "regex_patterns": ["^fed_.*", "^yahoo_.*", "^ecb_.*", "^boc_.*", "^sec_.*", "^edgar_.*"]
+      },
+      "rate_limit": {
+        "requests_per_minute": 60,
+        "requests_per_hour": 2000
+      },
+      "metadata": {
+        "owner": "Financial Team",
+        "contact": "finance@example.com",
+        "purpose": "Financial data analysis"
+      },
+      "usage_stats": {
+        "total_requests": 0,
+        "last_used": null
+      }
+    },
+    {
+      "key": "sja_ashutosh_master_key_2025_x7k9m",
+      "name": "Ashutosh Master Key",
+      "description": "Full administrative access to all SAJHA MCP Server tools and resources",
+      "created_by": "system",
+      "created_at": "2025-01-02T00:00:00Z",
+      "expires_at": null,
+      "enabled": true,
+      "tool_access": {
+        "mode": "all",
+        "tools": [],
+        "regex_patterns": []
+      },
+      "rate_limit": {
+        "requests_per_minute": 1000,
+        "requests_per_hour": 50000
+      },
+      "metadata": {
+        "owner": "Ashutosh Sinha",
+        "contact": "ajsinha@gmail.com",
+        "purpose": "Master administrative access - all tools and resources"
+      },
+      "usage_stats": {
+        "total_requests": 0,
+        "last_used": null
+      }
+    }
+  ],
+  "settings": {
+    "key_prefix": "sja_",
+    "key_length": 32,
+    "default_rate_limit": {
+      "requests_per_minute": 60,
+      "requests_per_hour": 1000
+    },
+    "max_keys_per_user": 10
+  }
+}

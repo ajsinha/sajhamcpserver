@@ -1,0 +1,228 @@
+{% extends "common/base.html" %}
+
+{% block title %}View API Key: {{ apikey.name }} - SAJHA MCP Server{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-key me-2"></i>{{ apikey.name }}</h2>
+            <p class="text-muted mb-0">API Key Details</p>
+        </div>
+        <div>
+            <a href="{{ url_for('admin_apikeys_edit', key=apikey.key) }}" class="btn btn-primary me-2">
+                <i class="bi bi-pencil me-1"></i> Edit
+            </a>
+            <a href="{{ url_for('admin_apikeys') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to List
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-md-8">
+            <!-- Basic Information -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Name</dt>
+                        <dd class="col-sm-9">{{ apikey.name }}</dd>
+                        
+                        <dt class="col-sm-3">Key</dt>
+                        <dd class="col-sm-9"><code class="bg-light px-2 py-1 rounded">{{ apikey.key }}</code></dd>
+                        
+                        <dt class="col-sm-3">Description</dt>
+                        <dd class="col-sm-9">{{ apikey.description or '-' }}</dd>
+                        
+                        <dt class="col-sm-3">Status</dt>
+                        <dd class="col-sm-9">
+                            {% if apikey.enabled %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Enabled</span>
+                            {% else %}
+                            <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Disabled</span>
+                            {% endif %}
+                        </dd>
+                        
+                        <dt class="col-sm-3">Created By</dt>
+                        <dd class="col-sm-9">{{ apikey.created_by }}</dd>
+                        
+                        <dt class="col-sm-3">Created At</dt>
+                        <dd class="col-sm-9">{{ apikey.created_at[:19] if apikey.created_at else '-' }}</dd>
+                        
+                        <dt class="col-sm-3">Expires At</dt>
+                        <dd class="col-sm-9">
+                            {% if apikey.expires_at %}
+                            {{ apikey.expires_at[:10] }}
+                            {% else %}
+                            <span class="text-muted">Never</span>
+                            {% endif %}
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Tool Access -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <i class="bi bi-shield-lock me-2"></i>Tool Access Control
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Access Mode</dt>
+                        <dd class="col-sm-9">
+                            {% if apikey.tool_access.mode == 'all' %}
+                            <span class="badge bg-success">All Tools</span>
+                            <p class="small text-muted mt-1 mb-0">This key has access to all available tools.</p>
+                            {% elif apikey.tool_access.mode == 'allowlist' %}
+                            <span class="badge bg-info">Allowlist</span>
+                            <p class="small text-muted mt-1 mb-0">Only the specified tools are accessible.</p>
+                            {% elif apikey.tool_access.mode == 'denylist' %}
+                            <span class="badge bg-warning text-dark">Denylist</span>
+                            <p class="small text-muted mt-1 mb-0">All tools except the specified ones.</p>
+                            {% elif apikey.tool_access.mode == 'regex' %}
+                            <span class="badge bg-secondary">Regex Patterns</span>
+                            <p class="small text-muted mt-1 mb-0">Access determined by regex pattern matching.</p>
+                            {% endif %}
+                        </dd>
+                        
+                        {% if apikey.tool_access.mode in ['allowlist', 'denylist'] and apikey.tool_access.tools %}
+                        <dt class="col-sm-3">Tools ({{ apikey.tool_access.tools|length }})</dt>
+                        <dd class="col-sm-9">
+                            {% for tool in apikey.tool_access.tools %}
+                            <span class="badge bg-light text-dark me-1 mb-1">{{ tool }}</span>
+                            {% endfor %}
+                        </dd>
+                        {% endif %}
+                        
+                        {% if apikey.tool_access.mode == 'regex' and apikey.tool_access.regex_patterns %}
+                        <dt class="col-sm-3">Regex Patterns</dt>
+                        <dd class="col-sm-9">
+                            <ul class="list-unstyled mb-0">
+                            {% for pattern in apikey.tool_access.regex_patterns %}
+                            <li><code>{{ pattern }}</code></li>
+                            {% endfor %}
+                            </ul>
+                        </dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Rate Limits -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <i class="bi bi-speedometer me-2"></i>Rate Limits
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="text-center">
+                                <h3 class="mb-0">{{ apikey.rate_limit.requests_per_minute }}</h3>
+                                <small class="text-muted">Requests per Minute</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-center">
+                                <h3 class="mb-0">{{ apikey.rate_limit.requests_per_hour }}</h3>
+                                <small class="text-muted">Requests per Hour</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metadata -->
+            {% if apikey.metadata %}
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <i class="bi bi-person me-2"></i>Metadata
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Owner</dt>
+                        <dd class="col-sm-9">{{ apikey.metadata.owner or '-' }}</dd>
+                        
+                        <dt class="col-sm-3">Contact</dt>
+                        <dd class="col-sm-9">{{ apikey.metadata.contact or '-' }}</dd>
+                        
+                        <dt class="col-sm-3">Purpose</dt>
+                        <dd class="col-sm-9">{{ apikey.metadata.purpose or '-' }}</dd>
+                    </dl>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <!-- Usage Statistics -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <i class="bi bi-bar-chart me-2"></i>Usage Statistics
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-6">Total Requests</dt>
+                        <dd class="col-sm-6 text-end">
+                            <span class="badge bg-primary fs-6">{{ apikey.usage_stats.total_requests }}</span>
+                        </dd>
+                        
+                        <dt class="col-sm-6">Last Used</dt>
+                        <dd class="col-sm-6 text-end">
+                            {% if apikey.usage_stats.last_used %}
+                            {{ apikey.usage_stats.last_used[:10] }}
+                            {% else %}
+                            <span class="text-muted">Never</span>
+                            {% endif %}
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <i class="bi bi-lightning me-2"></i>Quick Actions
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('admin_apikeys_edit', key=apikey.key) }}" class="btn btn-primary w-100 mb-2">
+                        <i class="bi bi-pencil me-1"></i> Edit Key
+                    </a>
+                    
+                    <form action="{{ url_for('admin_apikeys_toggle', key=apikey.key) }}" method="POST" class="mb-2">
+                        {% if apikey.enabled %}
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="bi bi-pause-circle me-1"></i> Disable Key
+                        </button>
+                        {% else %}
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-play-circle me-1"></i> Enable Key
+                        </button>
+                        {% endif %}
+                    </form>
+                    
+                    <a href="{{ url_for('admin_apikeys_delete', key=apikey.key) }}" class="btn btn-outline-danger w-100">
+                        <i class="bi bi-trash me-1"></i> Delete Key
+                    </a>
+                </div>
+            </div>
+
+            <!-- Usage Example -->
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <i class="bi bi-code me-2"></i>Quick Test
+                </div>
+                <div class="card-body">
+                    <pre class="bg-dark text-light p-2 rounded small mb-0" style="font-size: 0.75rem;"><code>curl -H "X-API-Key: {{ apikey.key }}" \
+  http://localhost:3002/api/tools</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

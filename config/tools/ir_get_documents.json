@@ -2,7 +2,7 @@
   "name": "ir_get_documents",
   "implementation": "tools.impl.investor_relations_tool_refactored.IRGetDocumentsTool",
   "description": "Get investor relations documents filtered by type and year",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

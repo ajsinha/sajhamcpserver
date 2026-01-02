@@ -2,7 +2,7 @@
   "name": "un_get_country_trade",
   "implementation": "tools.impl.united_nations_tool_refactored.UNGetCountryTradeTool",
   "description": "Retrieve comprehensive trade summary (both imports and exports) for a specific country in a given year",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

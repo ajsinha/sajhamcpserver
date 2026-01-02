@@ -2,7 +2,7 @@
   "name": "imf_compare_countries",
   "implementation": "tools.impl.imf_tool_refactored.IMFCompareCountriesTool",
   "description": "Compare economic indicators across multiple countries for cross-country analysis. Perfect for benchmarking and comparative studies.",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

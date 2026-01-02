@@ -35,9 +35,9 @@ class AuthRoutes(BaseRoutes):
                     next_page = request.args.get('next', url_for('dashboard'))
                     return redirect(next_page)
                 else:
-                    return render_template('login.html', error="Invalid credentials")
+                    return render_template('auth/login.html', error="Invalid credentials")
 
-            return render_template('login.html')
+            return render_template('auth/login.html')
 
         @app.route('/logout')
         def logout():

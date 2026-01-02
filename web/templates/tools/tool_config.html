@@ -1,0 +1,606 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}Tool Configuration - {{ tool_name }} - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<!-- JSONEditor CSS -->
+<link href="https://cdn.jsdelivr.net/npm/jsoneditor@9.10.4/dist/jsoneditor.min.css" rel="stylesheet">
+<style>
+    .config-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .json-editor-container {
+        height: 600px;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+    }
+
+    .description-editor {
+        min-height: 120px;
+    }
+
+    .view-mode-buttons {
+        margin-bottom: 1rem;
+    }
+
+    .save-status {
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        z-index: 1050;
+        max-width: 400px;
+    }
+
+    .metadata-badge {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+        margin: 0.2rem;
+    }
+
+    .tool-info-card {
+        background: #f8f9fa;
+        border-left: 4px solid #667eea;
+    }
+
+    .raw-json-view {
+        display: none;
+        background: #2d2d2d;
+        color: #f8f8f2;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        max-height: 600px;
+        overflow: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Save Status Alert -->
+    <div id="saveStatus" class="save-status"></div>
+
+    <!-- Header -->
+    <div class="config-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 mb-2">
+                    <i class="bi bi-file-code-fill"></i> Tool Configuration
+                </h1>
+                <h3 class="h5 mb-0 opacity-75">{{ tool_name }}</h3>
+            </div>
+            <div>
+                <a href="{{ url_for('admin_tools') }}" class="btn btn-light">
+                    <i class="bi bi-arrow-left"></i> Back to Tools
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tool Information -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card tool-info-card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-info-circle-fill"></i> Tool Information
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Name:</strong> <span id="toolNameDisplay">{{ tool_name }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Version:</strong> <span id="toolVersionDisplay">-</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Status:</strong>
+                            <span id="toolStatusDisplay" class="badge bg-secondary">-</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Type:</strong> <span id="toolTypeDisplay">-</span>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-12">
+                            <strong>Tags:</strong> <span id="toolTagsDisplay">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Description Editor -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-card-text"></i> Description
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <textarea class="form-control description-editor" id="toolDescription"
+                              placeholder="Enter tool description..."></textarea>
+                    <small class="form-text text-muted mt-2">
+                        Provide a clear description of what this tool does and how to use it.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JSON Configuration Editor -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-braces"></i> JSON Configuration
+                    </h5>
+                    <div class="view-mode-buttons">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-sm btn-light active" id="treeViewBtn">
+                                <i class="bi bi-diagram-3"></i> Tree View
+                            </button>
+                            <button type="button" class="btn btn-sm btn-light" id="rawViewBtn">
+                                <i class="bi bi-code-square"></i> Raw JSON
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <!-- JSON Tree Editor -->
+                    <div id="jsoneditor" class="json-editor-container"></div>
+
+                    <!-- Raw JSON View -->
+                    <pre id="rawJsonView" class="raw-json-view"><code id="rawJsonCode"></code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <button type="button" class="btn btn-primary btn-lg" id="saveConfigBtn">
+                                <i class="bi bi-save"></i> Save Configuration
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-lg" id="resetConfigBtn">
+                                <i class="bi bi-arrow-clockwise"></i> Reset Changes
+                            </button>
+                            <button type="button" class="btn btn-info" id="validateConfigBtn">
+                                <i class="bi bi-check-circle"></i> Validate
+                            </button>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-warning" id="downloadConfigBtn">
+                                <i class="bi bi-download"></i> Download JSON
+                            </button>
+                            <button type="button" class="btn btn-danger" id="deleteConfigBtn">
+                                <i class="bi bi-trash"></i> Delete Tool
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Documentation -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-book"></i> Configuration Guide
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6>Required Fields:</h6>
+                    <ul>
+                        <li><strong>name:</strong> Unique identifier for the tool</li>
+                        <li><strong>description:</strong> Clear description of tool functionality</li>
+                        <li><strong>version:</strong> Tool version (semantic versioning recommended)</li>
+                        <li><strong>enabled:</strong> Boolean flag to enable/disable the tool</li>
+                        <li><strong>inputSchema:</strong> JSON Schema defining the tool's input parameters</li>
+                    </ul>
+
+                    <h6 class="mt-3">Optional Fields:</h6>
+                    <ul>
+                        <li><strong>type:</strong> For built-in tools (wikipedia, yahoo_finance, google_search, fed_reserve, tavily, etc.)</li>
+                        <li><strong>implementation:</strong> Python class path for custom tools</li>
+                        <li><strong>metadata:</strong> Additional metadata (author, category, tags, rateLimit, etc.)</li>
+                    </ul>
+
+                    <h6 class="mt-3">Built-in Tool Types:</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-primary metadata-badge">wikipedia</span>
+                        <span class="badge bg-primary metadata-badge">yahoo_finance</span>
+                        <span class="badge bg-primary metadata-badge">google_search</span>
+                        <span class="badge bg-primary metadata-badge">fed_reserve</span>
+                        <span class="badge bg-primary metadata-badge">tavily</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- JSONEditor JS -->
+<script src="https://cdn.jsdelivr.net/npm/jsoneditor@9.10.4/dist/jsoneditor.min.js"></script>
+
+<script>
+const toolName = "{{ tool_name }}";
+let editor = null;
+let originalConfig = null;
+let currentConfig = null;
+
+// Initialize JSONEditor
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize JSON Editor
+    const container = document.getElementById('jsoneditor');
+    const options = {
+        mode: 'tree',
+        modes: ['tree', 'code', 'form', 'text', 'view'],
+        search: true,
+        history: true,
+        onChangeText: function(jsonString) {
+            try {
+                currentConfig = JSON.parse(jsonString);
+            } catch(e) {
+                console.error('Invalid JSON:', e);
+            }
+        }
+    };
+
+    editor = new JSONEditor(container, options);
+
+    // Load tool configuration
+    loadToolConfig();
+
+    // Setup event listeners
+    setupEventListeners();
+});
+
+function loadToolConfig() {
+    showLoading();
+
+    $.ajax({
+        url: `/api/admin/tools/${toolName}/config`,
+        method: 'GET',
+        success: function(data) {
+            originalConfig = JSON.parse(JSON.stringify(data)); // Deep clone
+            currentConfig = data;
+
+            // Update display
+            updateToolInfo(data);
+
+            // Set description
+            $('#toolDescription').val(data.description || '');
+
+            // Set JSON editor content
+            editor.set(data);
+
+            // Update raw JSON view
+            updateRawJsonView();
+
+            hideLoading();
+            showStatus('Configuration loaded successfully', 'success');
+        },
+        error: function(xhr, status, error) {
+            hideLoading();
+            showStatus('Failed to load configuration: ' + error, 'danger');
+        }
+    });
+}
+
+function updateToolInfo(config) {
+    $('#toolNameDisplay').text(config.name || toolName);
+    $('#toolVersionDisplay').text(config.version || 'N/A');
+
+    const enabled = config.enabled !== false;
+    const statusBadge = enabled ?
+        '<span class="badge bg-success">Enabled</span>' :
+        '<span class="badge bg-danger">Disabled</span>';
+    $('#toolStatusDisplay').html(statusBadge);
+
+    $('#toolTypeDisplay').text(config.type || config.implementation || 'Custom');
+
+    // Display tags
+    if (config.metadata && config.metadata.tags) {
+        const tags = config.metadata.tags.map(tag =>
+            `<span class="badge bg-secondary metadata-badge">${tag}</span>`
+        ).join(' ');
+        $('#toolTagsDisplay').html(tags);
+    } else {
+        $('#toolTagsDisplay').text('None');
+    }
+}
+
+function setupEventListeners() {
+    // Save button
+    $('#saveConfigBtn').click(function() {
+        saveConfiguration();
+    });
+
+    // Reset button
+    $('#resetConfigBtn').click(function() {
+        if (confirm('Are you sure you want to reset all changes?')) {
+            currentConfig = JSON.parse(JSON.stringify(originalConfig));
+            editor.set(currentConfig);
+            $('#toolDescription').val(originalConfig.description || '');
+            updateRawJsonView();
+            showStatus('Changes reset successfully', 'info');
+        }
+    });
+
+    // Validate button
+    $('#validateConfigBtn').click(function() {
+        validateConfiguration();
+    });
+
+    // Download button
+    $('#downloadConfigBtn').click(function() {
+        downloadConfiguration();
+    });
+
+    // Delete button
+    $('#deleteConfigBtn').click(function() {
+        deleteTool();
+    });
+
+    // View mode toggle
+    $('#treeViewBtn').click(function() {
+        switchToTreeView();
+    });
+
+    $('#rawViewBtn').click(function() {
+        switchToRawView();
+    });
+
+    // Description change
+    $('#toolDescription').on('input', function() {
+        const description = $(this).val();
+        try {
+            const config = editor.get();
+            config.description = description;
+            editor.set(config);
+            currentConfig = config;
+        } catch(e) {
+            console.error('Error updating description:', e);
+        }
+    });
+}
+
+function switchToTreeView() {
+    $('#jsoneditor').show();
+    $('#rawJsonView').hide();
+    $('#treeViewBtn').addClass('active');
+    $('#rawViewBtn').removeClass('active');
+}
+
+function switchToRawView() {
+    updateRawJsonView();
+    $('#jsoneditor').hide();
+    $('#rawJsonView').show();
+    $('#treeViewBtn').removeClass('active');
+    $('#rawViewBtn').addClass('active');
+}
+
+function updateRawJsonView() {
+    try {
+        const config = editor.get();
+        const jsonString = JSON.stringify(config, null, 2);
+        $('#rawJsonCode').text(jsonString);
+    } catch(e) {
+        $('#rawJsonCode').text('Invalid JSON');
+    }
+}
+
+function saveConfiguration() {
+    try {
+        // Get current config from editor
+        const config = editor.get();
+
+        // Update description
+        config.description = $('#toolDescription').val();
+
+        // Validate required fields
+        if (!config.name) {
+            showStatus('Tool name is required', 'danger');
+            return;
+        }
+
+        if (!config.inputSchema) {
+            showStatus('Input schema is required', 'danger');
+            return;
+        }
+
+        // Show loading
+        showLoading();
+        $('#saveConfigBtn').prop('disabled', true);
+
+        // Save configuration
+        $.ajax({
+            url: `/api/admin/tools/${toolName}/config`,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(config),
+            success: function(response) {
+                hideLoading();
+                $('#saveConfigBtn').prop('disabled', false);
+
+                // Update original config
+                originalConfig = JSON.parse(JSON.stringify(config));
+                currentConfig = config;
+
+                showStatus('Configuration saved successfully!', 'success');
+
+                // Update display
+                updateToolInfo(config);
+            },
+            error: function(xhr, status, error) {
+                hideLoading();
+                $('#saveConfigBtn').prop('disabled', false);
+
+                let errorMsg = 'Failed to save configuration';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMsg += ': ' + xhr.responseJSON.error;
+                }
+                showStatus(errorMsg, 'danger');
+            }
+        });
+
+    } catch(e) {
+        showStatus('Invalid JSON configuration: ' + e.message, 'danger');
+        $('#saveConfigBtn').prop('disabled', false);
+    }
+}
+
+function validateConfiguration() {
+    try {
+        const config = editor.get();
+
+        // Basic validation
+        const errors = [];
+
+        if (!config.name) errors.push('Missing required field: name');
+        if (!config.description) errors.push('Missing required field: description');
+        if (!config.version) errors.push('Missing required field: version');
+        if (config.enabled === undefined) errors.push('Missing required field: enabled');
+        if (!config.inputSchema) errors.push('Missing required field: inputSchema');
+
+        if (!config.type && !config.implementation) {
+            errors.push('Either "type" (for built-in tools) or "implementation" (for custom tools) is required');
+        }
+
+        if (errors.length > 0) {
+            showStatus('Validation failed:\n' + errors.join('\n'), 'danger');
+        } else {
+            showStatus('Configuration is valid!', 'success');
+        }
+
+    } catch(e) {
+        showStatus('Invalid JSON: ' + e.message, 'danger');
+    }
+}
+
+function downloadConfiguration() {
+    try {
+        const config = editor.get();
+        const jsonString = JSON.stringify(config, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${toolName}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showStatus('Configuration downloaded', 'success');
+    } catch(e) {
+        showStatus('Failed to download: ' + e.message, 'danger');
+    }
+}
+
+function deleteTool() {
+    if (!confirm(`Are you sure you want to delete the tool "${toolName}"? This action cannot be undone.`)) {
+        return;
+    }
+
+    if (!confirm('This will permanently delete the tool configuration file. Are you absolutely sure?')) {
+        return;
+    }
+
+    showLoading();
+
+    $.ajax({
+        url: `/api/admin/tools/${toolName}/delete`,
+        method: 'DELETE',
+        success: function(response) {
+            hideLoading();
+            showStatus('Tool deleted successfully. Redirecting...', 'success');
+            setTimeout(function() {
+                window.location.href = '/admin/tools';
+            }, 2000);
+        },
+        error: function(xhr, status, error) {
+            hideLoading();
+            let errorMsg = 'Failed to delete tool';
+            if (xhr.responseJSON && xhr.responseJSON.error) {
+                errorMsg += ': ' + xhr.responseJSON.error;
+            }
+            showStatus(errorMsg, 'danger');
+        }
+    });
+}
+
+function showStatus(message, type) {
+    const alertClass = `alert-${type}`;
+    const iconClass = type === 'success' ? 'check-circle-fill' :
+                     type === 'danger' ? 'exclamation-triangle-fill' :
+                     'info-circle-fill';
+
+    const alert = $(`
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            <i class="bi bi-${iconClass}"></i> ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `);
+
+    $('#saveStatus').html(alert);
+
+    // Auto-dismiss after 5 seconds
+    setTimeout(function() {
+        alert.fadeOut(500, function() {
+            $(this).remove();
+        });
+    }, 5000);
+}
+
+function showLoading() {
+    if (!$('#loadingOverlay').length) {
+        $('body').append(`
+            <div id="loadingOverlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+            ">
+                <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        `);
+    }
+}
+
+function hideLoading() {
+    $('#loadingOverlay').remove();
+}
+</script>
+{% endblock %}

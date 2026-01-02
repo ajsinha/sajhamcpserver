@@ -2,7 +2,7 @@
   "name": "get_page_info",
   "implementation": "tools.impl.webcrawler_tool_refactored.GetPageInfoTool",
   "description": "Get comprehensive information and statistics about a web page including metadata, structure, link/image counts, and content metrics",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",

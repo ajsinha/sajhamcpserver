@@ -332,6 +332,15 @@ class PromptsRegistry:
         with PromptsRegistry._lock:
             self._load_all_prompts_internal()
     
+    def reload(self):
+        """
+        Reload all prompts from configuration directory.
+        Alias for load_all_prompts() for consistency with other managers.
+        """
+        logging.info("Reloading all prompts...")
+        self.load_all_prompts()
+        logging.info(f"Prompts reload complete. Loaded {len(self.prompts)} prompts.")
+    
     def _load_all_prompts_internal(self):
         """
         Internal method to load prompts without locking.

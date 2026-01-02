@@ -2,7 +2,7 @@
   "name": "sqlselect_execute_query",
   "implementation": "tools.impl.sqlselect_tool_refactored.SqlSelectExecuteQueryTool",
   "description": "Execute SQL SELECT queries on configured data sources with built-in safety checks and result limiting",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "data_directory": "data/sqlselect",
   "data_sources": {

@@ -50,7 +50,7 @@ class BaseRoutes:
 
             session_data = self.auth_manager.validate_session(session['token'])
             if not session_data or not self.auth_manager.is_admin(session_data):
-                return render_template('error.html',
+                return render_template('common/error.html',
                                      error="Access Denied",
                                      message="Admin privileges required"), 403
 

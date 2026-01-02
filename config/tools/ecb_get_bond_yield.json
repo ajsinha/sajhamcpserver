@@ -2,7 +2,7 @@
   "name": "ecb_get_bond_yield",
   "implementation": "tools.impl.european_central_bank_tool_refactored.ECBGetBondYieldTool",
   "description": "Retrieve Euro Area government bond yields for various maturities (2Y, 5Y, 10Y) with historical data.",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "enabled": true,
   "inputSchema": {
     "type": "object",
