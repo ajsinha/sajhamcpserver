@@ -679,3 +679,25 @@ The author and contributors:
 - SEC filings are the authoritative source
 - This toolkit is a convenience tool, not a substitute for due diligence
 
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **Bank of Japan (BoJ)**: Japan's central bank, responsible for monetary policy and currency issuance.
+
+- **JGB (Japanese Government Bond)**: Debt securities issued by the Japanese government. SAJHA provides JGB yield data.
+
+- **JPY (Japanese Yen)**: The official currency of Japan.
+
+- **FRED API**: Federal Reserve Economic Data API. SAJHA's BoJ tools use FRED for Japanese economic data.
+
+- **Policy Rate**: The BoJ's target interest rate, historically near zero or negative as part of monetary easing.
+
+- **Quantitative Easing**: BoJ's policy of purchasing assets to increase money supply and stimulate the economy.
+
+- **Yield Curve Control**: BoJ's policy of targeting specific yields for government bonds.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

@@ -1603,3 +1603,27 @@ This tool uses UN data services:
 ---
 
 *End of Reference Guide*
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **United Nations (UN)**: An international organization promoting peace, security, and cooperation among nations.
+
+- **UN Data**: The United Nations Statistics Division's data portal providing access to statistical databases.
+
+- **SDG (Sustainable Development Goals)**: The UN's 17 global goals for sustainable development by 2030.
+
+- **UNSD (United Nations Statistics Division)**: The UN body responsible for compiling and disseminating global statistics.
+
+- **Country Code**: ISO standard codes for countries. Required for UN data queries.
+
+- **Indicator**: A specific measurable value tracked over time (e.g., literacy rate, life expectancy).
+
+- **Treaty**: A formal agreement between nations. UN maintains databases of international treaties.
+
+- **Human Development Index (HDI)**: A composite index measuring average achievement in health, education, and income.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

@@ -1,0 +1,470 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}Create New User - SAJHA MCP Server{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin_users') }}">User Management</a></li>
+            <li class="breadcrumb-item active">Create New User</li>
+        </ol>
+    </nav>
+
+    <h1 class="h3 mb-4">
+        <i class="bi bi-person-plus-fill"></i> Create New User
+    </h1>
+
+    <div class="row">
+        <!-- Main Form -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i>User Details</h5>
+                </div>
+                <div class="card-body">
+                    <form id="createUserForm">
+                        <!-- Basic Information -->
+                        <h6 class="text-muted mb-3">Basic Information</h6>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="userId" class="form-label">User ID <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="userId" name="user_id" required
+                                       pattern="[a-zA-Z0-9_-]+" 
+                                       placeholder="e.g., john_doe">
+                                <div class="form-text">Unique identifier for login. Use only letters, numbers, underscores, and hyphens.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="userName" class="form-label">Display Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="userName" name="user_name" required
+                                       placeholder="e.g., John Doe">
+                                <div class="form-text">Full name displayed in the interface.</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="userEmail" class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="userEmail" name="email"
+                                       placeholder="e.g., john.doe@example.com">
+                                <div class="form-text">Optional. Used for notifications and password recovery.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="userPassword" class="form-label">Password <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="userPassword" name="password" required
+                                           minlength="6" placeholder="Minimum 6 characters">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                                        <i class="bi bi-eye" id="passwordToggleIcon"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">Minimum 6 characters. Will be hashed using SHA-256.</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="confirmPassword" required
+                                   placeholder="Re-enter password">
+                            <div class="invalid-feedback" id="passwordMismatch" style="display: none;">
+                                Passwords do not match.
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Role & Permissions -->
+                        <h6 class="text-muted mb-3">Role & Permissions</h6>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">User Role <span class="text-danger">*</span></label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="role" id="roleUser" value="user" checked>
+                                    <label class="form-check-label" for="roleUser">
+                                        <i class="bi bi-person text-primary"></i> <strong>User</strong>
+                                        <small class="text-muted d-block">Standard access to tools and prompts</small>
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="role" id="roleDeveloper" value="developer">
+                                    <label class="form-check-label" for="roleDeveloper">
+                                        <i class="bi bi-code-slash text-info"></i> <strong>Developer</strong>
+                                        <small class="text-muted d-block">Can create and modify tools</small>
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="role" id="roleAdmin" value="admin">
+                                    <label class="form-check-label" for="roleAdmin">
+                                        <i class="bi bi-shield-check text-warning"></i> <strong>Admin</strong>
+                                        <small class="text-muted d-block">Full system access including user management</small>
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="role" id="roleViewer" value="viewer">
+                                    <label class="form-check-label" for="roleViewer">
+                                        <i class="bi bi-eye text-secondary"></i> <strong>Viewer</strong>
+                                        <small class="text-muted d-block">Read-only access to dashboards</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tool Access</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="toolAccess" id="toolAccessAll" value="all" checked>
+                                    <label class="form-check-label" for="toolAccessAll">
+                                        <strong>All Tools</strong> - Access to all available tools
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="toolAccess" id="toolAccessRestricted" value="restricted">
+                                    <label class="form-check-label" for="toolAccessRestricted">
+                                        <strong>Restricted</strong> - Limited tool access (configure later)
+                                    </label>
+                                </div>
+                                <div class="form-text mt-2">
+                                    <i class="bi bi-info-circle"></i> Tool access can be fine-tuned after user creation.
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Account Status -->
+                        <h6 class="text-muted mb-3">Account Status</h6>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="userEnabled" checked>
+                            <label class="form-check-label" for="userEnabled">
+                                <strong>Enable Account</strong>
+                                <small class="text-muted d-block">User can log in immediately after creation</small>
+                            </label>
+                        </div>
+
+                        <!-- Error Display -->
+                        <div class="alert alert-danger d-none" id="errorAlert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <span id="errorMessage"></span>
+                        </div>
+
+                        <!-- Success Display -->
+                        <div class="alert alert-success d-none" id="successAlert">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <span id="successMessage"></span>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Cancel
+                            </a>
+                            <div>
+                                <button type="button" class="btn btn-outline-primary me-2" onclick="resetForm()">
+                                    <i class="bi bi-arrow-clockwise me-1"></i> Reset
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-person-plus me-1"></i> Create User
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Sidebar -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Quick Tips</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            <strong>User ID</strong> must be unique and cannot be changed later
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            <strong>Passwords</strong> are securely hashed before storage
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            <strong>Admin role</strong> grants full system access
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            <strong>Tool access</strong> can be customized per user
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-warning">
+                    <h6 class="mb-0"><i class="bi bi-shield-exclamation me-2"></i>Security Notes</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0 small">
+                        <li class="mb-2">
+                            <i class="bi bi-dot"></i> Use strong, unique passwords
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-dot"></i> Assign minimum required permissions
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-dot"></i> Review user access regularly
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-dot"></i> Disable accounts when not in use
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="bi bi-people me-2"></i>Role Comparison</h6>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Permission</th>
+                                <th class="text-center">Viewer</th>
+                                <th class="text-center">User</th>
+                                <th class="text-center">Dev</th>
+                                <th class="text-center">Admin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>View Dashboard</td>
+                                <td class="text-center text-success">✓</td>
+                                <td class="text-center text-success">✓</td>
+                                <td class="text-center text-success">✓</td>
+                                <td class="text-center text-success">✓</td>
+                            </tr>
+                            <tr>
+                                <td>Execute Tools</td>
+                                <td class="text-center text-danger">✗</td>
+                                <td class="text-center text-success">✓</td>
+                                <td class="text-center text-success">✓</td>
+                                <td class="text-center text-success">✓</td>
+                            </tr>
+                            <tr>
+                                <td>Use Prompts</td>
+                                <td class="text-center text-danger">✗</td>
+                                <td class="text-center text-success">✓</td>
+                                <td class="text-center text-success">✓</td>
+                                <td class="text-center text-success">✓</td>
+                            </tr>
+                            <tr>
+                                <td>Create Tools</td>
+                                <td class="text-center text-danger">✗</td>
+                                <td class="text-center text-danger">✗</td>
+                                <td class="text-center text-success">✓</td>
+                                <td class="text-center text-success">✓</td>
+                            </tr>
+                            <tr>
+                                <td>Manage Users</td>
+                                <td class="text-center text-danger">✗</td>
+                                <td class="text-center text-danger">✗</td>
+                                <td class="text-center text-danger">✗</td>
+                                <td class="text-center text-success">✓</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_glossary %}
+<div class="container-fluid mt-4">
+    <div class="card border-secondary">
+        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
+            <i class="bi bi-book me-2"></i>Page Glossary
+            <i class="bi bi-chevron-down float-end"></i>
+        </div>
+        <div class="collapse" id="pageGlossary">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>User ID:</strong> A unique identifier used for authentication. Cannot be changed after creation.</p>
+                        <p><strong>RBAC (Role-Based Access Control):</strong> Authorization approach where permissions are assigned to roles.</p>
+                        <p><strong>Password Hash:</strong> Encrypted representation of password using SHA-256 algorithm.</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Role:</strong> A named set of permissions (admin, developer, user, viewer).</p>
+                        <p><strong>Tool Access:</strong> Which MCP tools a user is authorized to execute.</p>
+                        <p><strong>Account Status:</strong> Whether a user account is enabled or disabled for login.</p>
+                    </div>
+                </div>
+                <div class="text-end mt-2">
+                    <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-book me-1"></i>View Full Glossary
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Check for existing users to validate uniqueness
+const existingUserIds = [
+    {% for u in users %}"{{ u.user_id }}"{% if not loop.last %},{% endif %}{% endfor %}
+];
+
+// Toggle password visibility
+function togglePassword() {
+    const passwordField = document.getElementById('userPassword');
+    const confirmField = document.getElementById('confirmPassword');
+    const icon = document.getElementById('passwordToggleIcon');
+    
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        confirmField.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        passwordField.type = 'password';
+        confirmField.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+}
+
+// Reset form
+function resetForm() {
+    document.getElementById('createUserForm').reset();
+    hideAlerts();
+}
+
+// Hide alerts
+function hideAlerts() {
+    document.getElementById('errorAlert').classList.add('d-none');
+    document.getElementById('successAlert').classList.add('d-none');
+}
+
+// Show error
+function showError(message) {
+    const alert = document.getElementById('errorAlert');
+    document.getElementById('errorMessage').textContent = message;
+    alert.classList.remove('d-none');
+    document.getElementById('successAlert').classList.add('d-none');
+}
+
+// Show success
+function showSuccess(message) {
+    const alert = document.getElementById('successAlert');
+    document.getElementById('successMessage').textContent = message;
+    alert.classList.remove('d-none');
+    document.getElementById('errorAlert').classList.add('d-none');
+}
+
+// Validate user ID uniqueness
+document.getElementById('userId').addEventListener('blur', function() {
+    const userId = this.value.trim().toLowerCase();
+    if (existingUserIds.includes(userId)) {
+        this.classList.add('is-invalid');
+        showError('User ID "' + userId + '" already exists. Please choose a different ID.');
+    } else {
+        this.classList.remove('is-invalid');
+        hideAlerts();
+    }
+});
+
+// Validate password match
+document.getElementById('confirmPassword').addEventListener('input', function() {
+    const password = document.getElementById('userPassword').value;
+    const confirmPassword = this.value;
+    const mismatchDiv = document.getElementById('passwordMismatch');
+    
+    if (password !== confirmPassword && confirmPassword.length > 0) {
+        this.classList.add('is-invalid');
+        mismatchDiv.style.display = 'block';
+    } else {
+        this.classList.remove('is-invalid');
+        mismatchDiv.style.display = 'none';
+    }
+});
+
+// Form submission
+document.getElementById('createUserForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    hideAlerts();
+    
+    // Get form values
+    const userId = document.getElementById('userId').value.trim();
+    const userName = document.getElementById('userName').value.trim();
+    const email = document.getElementById('userEmail').value.trim();
+    const password = document.getElementById('userPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const role = document.querySelector('input[name="role"]:checked').value;
+    const toolAccess = document.querySelector('input[name="toolAccess"]:checked').value;
+    const enabled = document.getElementById('userEnabled').checked;
+    
+    // Validation
+    if (!userId || !userName || !password) {
+        showError('User ID, Display Name, and Password are required.');
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        showError('Passwords do not match.');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showError('Password must be at least 6 characters.');
+        return;
+    }
+    
+    if (existingUserIds.includes(userId.toLowerCase())) {
+        showError('User ID "' + userId + '" already exists.');
+        return;
+    }
+    
+    // Prepare user data
+    const userData = {
+        user_id: userId,
+        user_name: userName,
+        email: email || null,
+        password: password,
+        roles: [role],
+        tools: toolAccess === 'all' ? ['*'] : [],
+        enabled: enabled,
+        created_at: new Date().toISOString()
+    };
+    
+    // Submit
+    $.ajax({
+        url: '/api/admin/users/create',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(userData),
+        success: function(response) {
+            showSuccess('User "' + userId + '" created successfully! Redirecting...');
+            setTimeout(function() {
+                window.location.href = '{{ url_for("admin_users") }}';
+            }, 1500);
+        },
+        error: function(xhr) {
+            const errorMsg = xhr.responseJSON?.error || 'Unknown error occurred';
+            showError('Failed to create user: ' + errorMsg);
+        }
+    });
+});
+</script>
+{% endblock %}

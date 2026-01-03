@@ -1769,3 +1769,27 @@ Sitemap: https://example.com/sitemap.xml
 ---
 
 **End of Document**
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **Web Crawler**: Software that systematically browses websites to collect information. Also known as a spider or bot.
+
+- **HTML (HyperText Markup Language)**: The standard markup language for web pages. Crawlers parse HTML to extract content.
+
+- **DOM (Document Object Model)**: The programming interface for HTML. Crawlers navigate DOM to find elements.
+
+- **CSS Selector**: A pattern for selecting HTML elements. Used to target specific content for extraction.
+
+- **XPath**: A query language for selecting nodes in XML/HTML documents. Alternative to CSS selectors.
+
+- **robots.txt**: A file telling crawlers which pages they should or shouldn't request. SAJHA respects robots.txt.
+
+- **Rate Limiting**: Controlling request frequency to avoid overloading servers. Essential for polite crawling.
+
+- **User Agent**: A string identifying the client making requests. Crawlers should identify themselves appropriately.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

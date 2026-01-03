@@ -1689,3 +1689,27 @@ For issues, questions, or contributions, please contact the author.
 **Document Version:** 1.0.0  
 **Last Updated:** October 31, 2025  
 **Status:** Production Ready
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **SEC (Securities and Exchange Commission)**: The U.S. federal agency responsible for enforcing securities laws and regulating the securities industry.
+
+- **EDGAR (Electronic Data Gathering, Analysis, and Retrieval)**: The SEC's electronic system for companies to submit required filings. SAJHA tools provide comprehensive EDGAR access.
+
+- **10-K**: An annual report filed by public companies containing comprehensive business and financial information.
+
+- **10-Q**: A quarterly report filed by public companies with unaudited financial statements.
+
+- **8-K**: A current report filed to announce major events that shareholders should know about.
+
+- **CIK (Central Index Key)**: A unique identifier assigned by the SEC to companies and individuals filing documents.
+
+- **Full-Text Search**: Searching through all text in documents. SAJHA's EDGAR tools support full-text search across SEC filings.
+
+- **Insider Trading**: Buying or selling securities based on material non-public information. SEC Form 4 filings track insider transactions.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

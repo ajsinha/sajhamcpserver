@@ -1099,3 +1099,25 @@ For issues, questions, or feature requests, please contact the author directly.
 ---
 
 *End of European Central Bank MCP Tool Reference Guide*
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **ECB (European Central Bank)**: The central bank of the Eurozone, responsible for monetary policy for the euro.
+
+- **Eurozone**: The group of European Union countries that have adopted the euro as their currency.
+
+- **Main Refinancing Rate**: The ECB's primary policy rate for providing liquidity to the banking system.
+
+- **HICP (Harmonised Index of Consumer Prices)**: The inflation measure used by the ECB for monetary policy.
+
+- **TARGET2**: The real-time gross settlement system owned and operated by the Eurosystem.
+
+- **Deposit Facility Rate**: The interest rate banks receive for depositing money with the ECB overnight.
+
+- **Quantitative Easing (QE)**: A monetary policy where a central bank purchases securities to increase money supply.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

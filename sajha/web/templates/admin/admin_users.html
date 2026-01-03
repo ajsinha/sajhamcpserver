@@ -65,9 +65,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="card-header bg-primary text-white">
             <div class="d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-list-ul"></i> Users List</h5>
-                <button class="btn btn-success" onclick="createNewUser()">
+                <a href="{{ url_for('admin_user_create') }}" class="btn btn-success">
                     <i class="bi bi-plus-circle"></i> Create New User
-                </button>
+                </a>
             </div>
         </div>
         <div class="card-body">
@@ -205,51 +205,34 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     </div>
 </div>
 
-<!-- Create New User Modal -->
-<div class="modal fade" id="newUserModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">
-                    <i class="bi bi-person-plus"></i> Create New User
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="newUserForm">
-                    <div class="mb-3">
-                        <label for="newUserId" class="form-label">User ID *</label>
-                        <input type="text" class="form-control" id="newUserId" required>
-                        <small class="form-text text-muted">Unique identifier for login</small>
+{% endblock %}
+
+{% block page_glossary %}
+<div class="container-fluid mt-4">
+    <div class="card border-secondary">
+        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
+            <i class="bi bi-book me-2"></i>Page Glossary
+            <i class="bi bi-chevron-down float-end"></i>
+        </div>
+        <div class="collapse" id="pageGlossary">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>User Management:</strong> Administrative functions for creating, editing, and deleting user accounts.</p>
+                        <p><strong>RBAC (Role-Based Access Control):</strong> Authorization approach where permissions are assigned to roles (admin, user, readonly).</p>
+                        <p><strong>User ID:</strong> Unique identifier for each user in the system.</p>
                     </div>
-                    <div class="mb-3">
-                        <label for="newUserName" class="form-label">Display Name *</label>
-                        <input type="text" class="form-control" id="newUserName" required>
+                    <div class="col-md-6">
+                        <p><strong>Role:</strong> A named set of permissions (e.g., admin has full access, readonly has view-only access).</p>
+                        <p><strong>Password Hash:</strong> Encrypted representation of user password using SHA-256.</p>
+                        <p><strong>Session Token:</strong> Temporary credential issued after successful login.</p>
                     </div>
-                    <div class="mb-3">
-                        <label for="newUserEmail" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="newUserEmail">
-                    </div>
-                    <div class="mb-3">
-                        <label for="newUserPassword" class="form-label">Password *</label>
-                        <input type="password" class="form-control" id="newUserPassword" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Default Role</label>
-                        <select class="form-select" id="newUserRole">
-                            <option value="user">User</option>
-                            <option value="developer">Developer</option>
-                            <option value="admin">Admin</option>
-                            <option value="viewer">Viewer</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitNewUser()">
-                    <i class="bi bi-save"></i> Create User
-                </button>
+                </div>
+                <div class="text-end mt-2">
+                    <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-book me-1"></i>View Full Glossary
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -360,48 +343,6 @@ function deleteUser(userId) {
         },
         error: function() {
             alert(`Failed to delete user: ${userId}`);
-        }
-    });
-}
-
-function createNewUser() {
-    $('#newUserModal').modal('show');
-}
-
-function submitNewUser() {
-    const userId = $('#newUserId').val();
-    const userName = $('#newUserName').val();
-    const email = $('#newUserEmail').val();
-    const password = $('#newUserPassword').val();
-    const role = $('#newUserRole').val();
-
-    if (!userId || !userName || !password) {
-        alert('User ID, Name, and Password are required');
-        return;
-    }
-
-    const newUser = {
-        user_id: userId,
-        user_name: userName,
-        email: email,
-        password: password,
-        roles: [role],
-        tools: ['*'],
-        enabled: true,
-        created_at: new Date().toISOString()
-    };
-
-    $.ajax({
-        url: '/api/admin/users/create',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(newUser),
-        success: function() {
-            $('#newUserModal').modal('hide');
-            location.reload();
-        },
-        error: function(xhr) {
-            alert('Failed to create user: ' + (xhr.responseJSON?.error || 'Unknown error'));
         }
     });
 }

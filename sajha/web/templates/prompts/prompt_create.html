@@ -255,6 +255,38 @@ Provide feedback on:
 
 {% endblock %}
 
+{% block page_glossary %}
+<div class="container-fluid mt-4">
+    <div class="card border-secondary">
+        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
+            <i class="bi bi-book me-2"></i>Page Glossary
+            <i class="bi bi-chevron-down float-end"></i>
+        </div>
+        <div class="collapse" id="pageGlossary">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Prompt Template:</strong> A reusable text with variable placeholders for AI instructions.</p>
+                        <p><strong>Variable Substitution:</strong> Replacing {{variable}} placeholders with actual values.</p>
+                        <p><strong>Arguments:</strong> The parameters/variables that can be passed to a prompt.</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Category:</strong> A grouping for organizing related prompts.</p>
+                        <p><strong>Description:</strong> Human-readable explanation of the prompt's purpose.</p>
+                        <p><strong>Jinja2:</strong> Template engine supporting advanced variable substitution.</p>
+                    </div>
+                </div>
+                <div class="text-end mt-2">
+                    <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-book me-1"></i>View Full Glossary
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
 {% block extra_js %}
 <script>
 let argumentCount = 0;

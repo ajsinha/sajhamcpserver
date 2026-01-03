@@ -1403,3 +1403,27 @@ For issues, questions, or feature requests, please contact the author directly.
 ---
 
 *End of Investor Relations MCP Tool Reference Guide*
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **Investor Relations (IR)**: The corporate function managing communication between a company and its investors.
+
+- **IR Page**: A company's web page providing information for investors (financial reports, presentations, SEC filings).
+
+- **10-K Filing**: Annual report filed with the SEC containing comprehensive business and financial information.
+
+- **Earnings Call**: A conference call where company management discusses financial results with analysts and investors.
+
+- **Press Release**: Official statement issued by a company announcing news or developments.
+
+- **Shareholder Letter**: Communication from company leadership to shareholders, often included in annual reports.
+
+- **Web Scraping**: Automated extraction of data from websites. SAJHA's IR module uses scraping to gather IR content.
+
+- **SEC Filings**: Documents submitted to the Securities and Exchange Commission by public companies.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

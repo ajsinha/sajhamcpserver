@@ -1142,3 +1142,23 @@ Email: ajsinha@gmail.com
 ---
 
 *End of Document*
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **Wikipedia API**: The MediaWiki API that provides programmatic access to Wikipedia content. SAJHA's Wikipedia tool uses this API.
+
+- **Full-Text Search**: Searching through article content for keywords. The Wikipedia tool supports content search across articles.
+
+- **Article Summary**: A brief extract from a Wikipedia article. The tool can return summaries for quick information retrieval.
+
+- **Disambiguation**: Wikipedia pages that list multiple articles with similar titles. The tool handles disambiguation automatically.
+
+- **Multi-Language Support**: Ability to access content in different languages. Wikipedia tool supports language parameter for international content.
+
+- **Rate Limiting**: Restricting request frequency to prevent API overload. Wikipedia API has rate limits that SAJHA respects.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

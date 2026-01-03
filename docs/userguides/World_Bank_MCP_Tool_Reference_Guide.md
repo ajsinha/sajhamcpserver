@@ -1948,3 +1948,25 @@ This tool uses World Bank Open Data API:
 ---
 
 *End of Reference Guide*
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **World Bank**: An international financial institution providing loans and grants for development. SAJHA provides World Bank data tools.
+
+- **World Development Indicators (WDI)**: The World Bank's primary database of development indicators covering economics, health, education, and more.
+
+- **Country Code**: ISO standard codes identifying countries (e.g., USA, CHN, IND). Required for World Bank API queries.
+
+- **Indicator Code**: Unique identifiers for specific data series (e.g., NY.GDP.MKTP.CD for GDP).
+
+- **Time Series**: Sequential data points indexed by time. World Bank provides annual time series for most indicators.
+
+- **GDP (Gross Domestic Product)**: Total value of goods and services produced by a country. A key indicator in World Bank data.
+
+- **Poverty Rate**: Percentage of population living below the poverty line. Available at various thresholds ($1.90, $3.20, $5.50/day).
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

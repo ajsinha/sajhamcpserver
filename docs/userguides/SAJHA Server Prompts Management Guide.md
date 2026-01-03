@@ -3630,3 +3630,27 @@ For questions, issues, or enhancements, refer to the troubleshooting section or 
 ---
 
 *End of SAJHA Server Prompts Management Guide*
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **Prompt**: A text instruction or query given to an AI system. SAJHA manages reusable prompt templates.
+
+- **Prompt Template**: A prompt with placeholders for variable substitution. Enables reusable, parameterized prompts.
+
+- **Variable Substitution**: Replacing placeholders in templates with actual values at runtime.
+
+- **Prompt Registry**: SAJHA's singleton component managing all prompt definitions and rendering.
+
+- **Jinja2**: The templating engine used for prompt variable substitution. Supports conditionals and loops.
+
+- **JSON Schema**: Used to define valid arguments for prompt templates.
+
+- **Hot-Reload**: Runtime update of prompts without server restart. Changes to prompt files are auto-detected.
+
+- **Category**: A grouping mechanism for organizing related prompts.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

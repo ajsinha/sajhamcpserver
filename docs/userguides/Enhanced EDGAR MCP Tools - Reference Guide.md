@@ -3498,3 +3498,27 @@ For feedback and use case identification
 *This documentation was last updated: November 2025*  
 *Total pages: 150+ (equivalent)*  
 *Word count: 25,000+ words*
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **EDGAR (Electronic Data Gathering, Analysis, and Retrieval)**: SEC's electronic filing system. Enhanced EDGAR tools provide advanced access.
+
+- **Full-Text Search**: Searching through complete document content. Enhanced EDGAR supports searching within filings.
+
+- **XBRL (eXtensible Business Reporting Language)**: A standard for electronic business reporting. SEC filings include XBRL data.
+
+- **Form Type**: Category of SEC filing (10-K, 10-Q, 8-K, DEF 14A, etc.). Each serves a different purpose.
+
+- **Exhibit**: A document attached to an SEC filing (contracts, bylaws, certifications).
+
+- **Filing Date**: The date a document was submitted to the SEC.
+
+- **Accession Number**: A unique identifier assigned by the SEC to each filing.
+
+- **SIC Code**: Standard Industrial Classification code categorizing companies by industry.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

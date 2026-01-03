@@ -664,3 +664,27 @@ For issues or questions about:
 **Email: ajsinha@gmail.com**
 
 All rights reserved. This software and associated documentation files are provided for use with the SAJHA MCP Server.
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **API Client**: Software that communicates with an API to send requests and receive responses.
+
+- **REST (Representational State Transfer)**: An architectural style for web services using HTTP methods.
+
+- **HTTP Methods**: Standard request types (GET, POST, PUT, DELETE) for REST APIs.
+
+- **Request Headers**: Metadata sent with HTTP requests (Authorization, Content-Type, etc.).
+
+- **Response Status Code**: Numeric codes indicating request outcome (200 OK, 404 Not Found, etc.).
+
+- **JSON (JavaScript Object Notation)**: Lightweight data format used for API request/response bodies.
+
+- **Bearer Token**: Authentication method using tokens in the Authorization header.
+
+- **Timeout**: Maximum time to wait for an API response before giving up.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

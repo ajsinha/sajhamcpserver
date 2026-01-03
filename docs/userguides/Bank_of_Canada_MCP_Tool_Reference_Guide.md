@@ -862,3 +862,25 @@ RATE LIMIT: 120 req/min
 
 **End of Reference Guide**
 
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **Bank of Canada (BoC)**: Canada's central bank, responsible for monetary policy, currency issuance, and financial system stability.
+
+- **Policy Interest Rate**: The target for the overnight rate set by the Bank of Canada. A key monetary policy tool.
+
+- **CAD (Canadian Dollar)**: The official currency of Canada. Exchange rates available via BoC tools.
+
+- **Overnight Rate**: The interest rate at which major financial institutions borrow and lend overnight funds.
+
+- **Inflation Target**: The Bank of Canada's target inflation rate of 2% (midpoint of 1-3% range).
+
+- **Government of Canada Bonds**: Debt securities issued by the Canadian federal government. Yields available via tools.
+
+- **CEER (Canadian-dollar Effective Exchange Rate)**: A weighted average of bilateral exchange rates for the Canadian dollar.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

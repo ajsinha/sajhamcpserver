@@ -29,3 +29,30 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     </div>
 </div>
 {% endblock %}
+
+{% block page_glossary %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-secondary">
+                <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
+                    <i class="bi bi-book me-2"></i>Page Glossary
+                    <i class="bi bi-chevron-down float-end"></i>
+                </div>
+                <div class="collapse" id="pageGlossary">
+                    <div class="card-body">
+                        <p><strong>Error:</strong> An unexpected condition preventing normal operation.</p>
+                        <p><strong>HTTP Status Code:</strong> Numeric code indicating request outcome (404, 500, etc.).</p>
+                        <p><strong>Exception:</strong> A runtime error in the application code.</p>
+                        <div class="text-end mt-2">
+                            <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-book me-1"></i>View Full Glossary
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

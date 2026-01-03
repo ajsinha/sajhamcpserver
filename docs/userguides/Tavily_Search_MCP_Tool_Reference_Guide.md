@@ -1574,3 +1574,27 @@ This tool uses the Tavily API service:
 ---
 
 *End of Reference Guide*
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **Tavily**: An AI-optimized search API designed for LLM applications. Provides clean, structured search results.
+
+- **Search API**: An interface for programmatic web searching. Tavily's API is optimized for AI consumption.
+
+- **Search Depth**: Level of detail in search results (basic vs comprehensive). Affects response quality and latency.
+
+- **Include Domains**: A filter to restrict search results to specific websites.
+
+- **Exclude Domains**: A filter to remove specific websites from search results.
+
+- **Answer Generation**: Tavily's feature to synthesize a direct answer from search results.
+
+- **Rate Limiting**: Restricting API request frequency. Tavily has tier-based rate limits.
+
+- **API Key**: Authentication credential required for Tavily API access.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

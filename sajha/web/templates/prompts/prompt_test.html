@@ -146,6 +146,38 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 {% endblock %}
 
+{% block page_glossary %}
+<div class="container-fluid mt-4">
+    <div class="card border-secondary">
+        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
+            <i class="bi bi-book me-2"></i>Page Glossary
+            <i class="bi bi-chevron-down float-end"></i>
+        </div>
+        <div class="collapse" id="pageGlossary">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Test:</strong> Trying a prompt with sample arguments to see the rendered output.</p>
+                        <p><strong>Render:</strong> Processing the template with provided arguments.</p>
+                        <p><strong>Variable Substitution:</strong> Replacing placeholders with actual values.</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Arguments:</strong> The values provided to fill template placeholders.</p>
+                        <p><strong>Output:</strong> The final rendered text after substitution.</p>
+                        <p><strong>Copy:</strong> Copying rendered output to clipboard for use elsewhere.</p>
+                    </div>
+                </div>
+                <div class="text-end mt-2">
+                    <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-book me-1"></i>View Full Glossary
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
 {% block extra_js %}
 <script>
 const promptName = "{{ prompt.name }}";

@@ -1502,3 +1502,25 @@ For issues, questions, or contributions, please contact the author.
 **Document Version:** 1.0.0  
 **Last Updated:** October 31, 2025  
 **Status:** Production Ready
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **MSDOC**: Microsoft Document format (.doc, .docx). SAJHA's MSDOC tool searches and extracts content.
+
+- **DOCX**: Microsoft Word's XML-based document format introduced in Office 2007.
+
+- **Full-Text Search**: Searching through document content for keywords or phrases.
+
+- **Document Metadata**: Information about a document (author, creation date, title) stored within the file.
+
+- **Text Extraction**: The process of pulling plain text content from formatted documents.
+
+- **python-docx**: Python library for creating and manipulating Word documents. Used by MSDOC tool.
+
+- **Document Index**: A searchable catalog of document contents for faster retrieval.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

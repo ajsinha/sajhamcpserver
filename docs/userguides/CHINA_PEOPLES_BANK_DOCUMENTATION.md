@@ -676,3 +676,25 @@ The author and contributors:
 
 
 
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **PBoC (People's Bank of China)**: China's central bank, responsible for monetary policy and financial regulation.
+
+- **CNY/RMB (Chinese Yuan/Renminbi)**: China's official currency.
+
+- **LPR (Loan Prime Rate)**: China's benchmark lending rate for banks, replaced the previous lending rate system.
+
+- **CGB (Chinese Government Bond)**: Debt securities issued by the Chinese government.
+
+- **Reserve Requirement Ratio (RRR)**: The percentage of deposits banks must hold in reserve. A PBoC policy tool.
+
+- **M2 Money Supply**: A measure of money supply including cash, checking deposits, and easily convertible near-money.
+
+- **FRED API**: Federal Reserve Economic Data API used by SAJHA for Chinese economic data.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

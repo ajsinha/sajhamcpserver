@@ -1521,3 +1521,25 @@ For issues, questions, or feature requests, please contact the author directly.
 ---
 
 *End of IMF MCP Tool Reference Guide*
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **IMF (International Monetary Fund)**: An international organization promoting global monetary cooperation and financial stability.
+
+- **Balance of Payments**: A record of all economic transactions between residents of a country and the rest of the world.
+
+- **Exchange Rate**: The price of one currency in terms of another. IMF provides official exchange rate data.
+
+- **Special Drawing Rights (SDR)**: An international reserve asset created by the IMF to supplement member countries' official reserves.
+
+- **World Economic Outlook (WEO)**: IMF's flagship publication with analysis and projections of the global economy.
+
+- **Financial Soundness Indicators**: Statistics measuring the health of financial institutions and markets in a country.
+
+- **Current Account**: Part of balance of payments recording trade in goods, services, income, and current transfers.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

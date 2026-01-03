@@ -406,3 +406,25 @@ After deployment, files are saved to:
 ---
 
 *Last Updated: January 2026*
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **MCP Studio**: A visual interface within SAJHA for creating MCP tools without manual coding. Uses the @sajhamcptool decorator for tool definition.
+
+- **@sajhamcptool Decorator**: A Python decorator that marks a function as an MCP tool, enabling automatic extraction of metadata, type hints, and schema generation.
+
+- **AST (Abstract Syntax Tree)**: A tree representation of source code structure. MCP Studio's CodeAnalyzer parses Python code into AST to extract function metadata.
+
+- **JSON Schema**: A vocabulary for describing JSON document structure. MCP Studio automatically generates JSON Schema for tool inputs from Python type hints.
+
+- **Type Hints**: Python annotations (e.g., `param: str`) indicating expected data types. MCP Studio uses type hints to generate input schemas automatically.
+
+- **Hot-Reload**: Runtime configuration update without restart. Tools created via MCP Studio are immediately available without server restart.
+
+- **Code Generation**: The process of automatically producing source code. MCP Studio generates both Python tool classes and JSON configuration files.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

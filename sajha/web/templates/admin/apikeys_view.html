@@ -226,3 +226,35 @@
     </div>
 </div>
 {% endblock %}
+
+{% block page_glossary %}
+<div class="container-fluid mt-4">
+    <div class="card border-secondary">
+        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
+            <i class="bi bi-book me-2"></i>Page Glossary
+            <i class="bi bi-chevron-down float-end"></i>
+        </div>
+        <div class="collapse" id="pageGlossary">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>API Key:</strong> A unique identifier for authenticating programmatic API requests.</p>
+                        <p><strong>X-API-Key Header:</strong> HTTP header used to pass API key in requests.</p>
+                        <p><strong>Tool Access:</strong> Which tools an API key is authorized to use.</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>curl:</strong> Command-line tool for making HTTP requests.</p>
+                        <p><strong>Expiration:</strong> Date when an API key becomes invalid.</p>
+                        <p><strong>Created At:</strong> Timestamp when the API key was generated.</p>
+                    </div>
+                </div>
+                <div class="text-end mt-2">
+                    <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-book me-1"></i>View Full Glossary
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

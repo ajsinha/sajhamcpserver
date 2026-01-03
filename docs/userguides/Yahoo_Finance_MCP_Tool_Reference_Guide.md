@@ -1449,3 +1449,27 @@ Email: ajsinha@gmail.com
 ---
 
 *End of Document*
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **Stock Quote**: Current price and trading information for a security. Yahoo Finance tool provides real-time and delayed quotes.
+
+- **Historical Data**: Past price and volume information for securities. Available in daily, weekly, and monthly intervals.
+
+- **Market Capitalization**: Total market value of a company's outstanding shares. Calculated as share price times shares outstanding.
+
+- **P/E Ratio (Price-to-Earnings)**: Stock price divided by earnings per share. A common valuation metric.
+
+- **Dividend Yield**: Annual dividend payment divided by stock price. Expressed as a percentage.
+
+- **Options Chain**: List of all available options for a security. Includes calls and puts at various strikes and expirations.
+
+- **Ticker Symbol**: A unique abbreviation identifying a publicly traded security (e.g., AAPL for Apple Inc.).
+
+- **ETF (Exchange-Traded Fund)**: A fund traded on exchanges like stocks. Yahoo Finance tool supports ETF data retrieval.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

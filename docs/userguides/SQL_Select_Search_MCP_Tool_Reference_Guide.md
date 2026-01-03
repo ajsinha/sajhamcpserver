@@ -1067,3 +1067,27 @@ This software and documentation are proprietary and confidential. Unauthorized c
 ---
 
 *End of Reference Guide*
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **SQL (Structured Query Language)**: Standard language for querying and managing relational databases.
+
+- **CSV (Comma-Separated Values)**: A plain text file format storing tabular data. SQL Select tool queries CSV files.
+
+- **SELECT Statement**: SQL command for retrieving data from tables.
+
+- **WHERE Clause**: SQL clause filtering rows based on conditions.
+
+- **JOIN**: SQL operation combining rows from multiple tables based on related columns.
+
+- **Aggregate Function**: Functions computing single values from multiple rows (SUM, AVG, COUNT, MAX, MIN).
+
+- **ORDER BY**: SQL clause sorting query results by specified columns.
+
+- **GROUP BY**: SQL clause grouping rows sharing common values for aggregate calculations.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

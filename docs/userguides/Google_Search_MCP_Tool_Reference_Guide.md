@@ -1250,3 +1250,27 @@ For issues, questions, or feature requests, please contact the author directly.
 ---
 
 *End of Google Search MCP Tool Reference Guide*
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **Google Custom Search API**: Google's programmable search engine API. Requires API key and Search Engine ID.
+
+- **Search Engine ID (CX)**: A unique identifier for a configured Google Custom Search engine.
+
+- **API Key**: Google API credential for authenticating Custom Search requests.
+
+- **Search Query**: The text string submitted to find matching results.
+
+- **Safe Search**: Filter to exclude explicit content from results. Can be set to off, medium, or strict.
+
+- **Site Restrict**: Limiting search to specific websites using site: operator.
+
+- **Pagination**: Retrieving results in pages. Google Custom Search supports start parameter for pagination.
+
+- **Search Result**: A single item returned by the search including title, snippet, and URL.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

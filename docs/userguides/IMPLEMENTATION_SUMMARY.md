@@ -350,3 +350,27 @@ This will verify:
 ✅ **Ready to Run** - Just install dependencies and start
 
 The server is production-ready with proper error handling, logging, authentication, and a complete web interface for tool discovery and execution!
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **Implementation**: The concrete realization of a design or specification in code.
+
+- **Architecture**: The high-level structure and organization of a software system.
+
+- **Module**: A self-contained unit of code with a specific purpose.
+
+- **Refactoring**: Restructuring existing code without changing its external behavior.
+
+- **Singleton Pattern**: Design pattern ensuring only one instance of a class exists.
+
+- **Hot-Reload**: Updating system components at runtime without restart.
+
+- **Plugin Architecture**: System design allowing functionality extension through add-on components.
+
+- **Dependency Injection**: Design pattern where dependencies are provided rather than created internally.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

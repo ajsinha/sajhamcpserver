@@ -1358,3 +1358,27 @@ For issues, questions, or feature requests, please contact the author directly.
 ---
 
 *End of FBI Crime Data Explorer MCP Tool Reference Guide*
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **FBI (Federal Bureau of Investigation)**: The U.S. federal law enforcement and intelligence agency.
+
+- **UCR (Uniform Crime Reporting)**: The FBI's program for collecting crime statistics from law enforcement agencies nationwide.
+
+- **Crime Statistics**: Quantitative data on criminal offenses. FBI provides national, state, and local crime data.
+
+- **NIBRS (National Incident-Based Reporting System)**: A detailed crime data collection system replacing summary UCR reporting.
+
+- **Violent Crime**: Offenses involving force or threat of force (murder, assault, robbery, rape).
+
+- **Property Crime**: Offenses involving taking property without force (burglary, theft, motor vehicle theft, arson).
+
+- **Crime Rate**: Number of crimes per 100,000 population. Allows comparison across areas of different sizes.
+
+- **ORI (Originating Agency Identifier)**: A unique code identifying law enforcement agencies in FBI databases.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

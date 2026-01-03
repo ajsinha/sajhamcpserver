@@ -1426,3 +1426,27 @@ This software is proprietary and confidential. Unauthorized copying, distributio
 ---
 
 **End of Reference Guide**
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **DuckDB**: An in-process analytical database designed for OLAP workloads. SAJHA integrates DuckDB for SQL analytics.
+
+- **OLAP (Online Analytical Processing)**: Software category for rapid, multidimensional data analysis. DuckDB provides OLAP capabilities.
+
+- **SQL (Structured Query Language)**: Standard language for managing and querying relational databases.
+
+- **Columnar Storage**: Database storage format where data is organized by columns. Optimizes analytical queries.
+
+- **Parquet**: A columnar storage file format. DuckDB can directly query Parquet files.
+
+- **Connection Pool**: A cache of database connections for reuse. SAJHA implements pooling for DuckDB connections.
+
+- **Aggregate Function**: SQL functions that compute a single result from multiple rows (SUM, AVG, COUNT, etc.).
+
+- **Window Function**: SQL functions that perform calculations across a set of rows related to the current row.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

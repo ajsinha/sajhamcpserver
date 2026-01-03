@@ -620,3 +620,25 @@ The author and contributors:
 - SEC filings are the authoritative source
 - This toolkit is a convenience tool, not a substitute for due diligence
 
+
+---
+
+## Page Glossary
+
+**Key terms referenced in this document:**
+
+- **RBI (Reserve Bank of India)**: India's central bank, responsible for monetary policy and banking regulation.
+
+- **INR (Indian Rupee)**: The official currency of India.
+
+- **Repo Rate**: The rate at which RBI lends to commercial banks. A key policy interest rate.
+
+- **Reverse Repo Rate**: The rate at which RBI borrows from commercial banks.
+
+- **CRR (Cash Reserve Ratio)**: Percentage of deposits banks must maintain with RBI.
+
+- **SLR (Statutory Liquidity Ratio)**: Percentage of deposits banks must maintain in liquid assets.
+
+- **G-Sec (Government Securities)**: Debt instruments issued by the Indian government.
+
+*For complete definitions, see the [Glossary](../architecture/Glossary.md).*

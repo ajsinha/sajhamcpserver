@@ -81,20 +81,28 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         <div class="col-md-2 text-center mb-3 mb-md-0">
                             <i class="bi bi-book-half text-warning" style="font-size: 4rem;"></i>
                         </div>
-                        <div class="col-md-7 mb-3 mb-md-0">
+                        <div class="col-md-6 mb-3 mb-md-0">
                             <h4 class="mb-2"><i class="bi bi-file-earmark-text me-2"></i>Project Documentation</h4>
-                            <p class="mb-2 text-muted">Access comprehensive documentation including tool reference guides, API documentation, implementation guides, and user manuals. All documentation is rendered from markdown files for easy reading.</p>
+                            <p class="mb-2 text-muted">Access comprehensive documentation including system architecture, glossary, tool reference guides, and user manuals. All documentation is rendered from markdown files for easy reading.</p>
                             <div class="d-flex flex-wrap gap-2">
+                                <span class="badge bg-danger">Architecture</span>
+                                <span class="badge bg-secondary">Glossary</span>
                                 <span class="badge bg-primary">Tool Guides</span>
                                 <span class="badge bg-success">API Reference</span>
-                                <span class="badge bg-info">User Manuals</span>
-                                <span class="badge bg-secondary">Implementation Notes</span>
                             </div>
                         </div>
-                        <div class="col-md-3 text-center text-md-end">
-                            <a href="{{ url_for('docs_list') }}" class="btn btn-warning btn-lg">
-                                <i class="bi bi-arrow-right-circle me-2"></i>Browse Documentation
-                            </a>
+                        <div class="col-md-4 text-center text-md-end">
+                            <div class="btn-group-vertical btn-group-lg w-100" style="max-width: 280px;">
+                                <a href="{{ url_for('docs_view', doc_path='architecture/SAJHA_MCP_Server_Architecture.md') }}" class="btn btn-danger mb-2">
+                                    <i class="bi bi-diagram-3 me-2"></i>System Architecture
+                                </a>
+                                <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-secondary mb-2">
+                                    <i class="bi bi-card-text me-2"></i>Glossary of Terms
+                                </a>
+                                <a href="{{ url_for('docs_list') }}" class="btn btn-warning">
+                                    <i class="bi bi-folder2-open me-2"></i>Browse All Documentation
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1147,6 +1155,38 @@ def compound_interest(
                     <p class="text-muted">For additional assistance, please contact the system administrator.</p>
                     <a href="mailto:ajsinha@gmail.com" class="btn btn-primary">
                         <i class="bi bi-envelope me-2"></i>Email Support
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_glossary %}
+<div class="container-fluid mt-4">
+    <div class="card border-secondary">
+        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
+            <i class="bi bi-book me-2"></i>Page Glossary
+            <i class="bi bi-chevron-down float-end"></i>
+        </div>
+        <div class="collapse" id="pageGlossary">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>MCP (Model Context Protocol):</strong> A standardized protocol enabling AI systems to interact with external tools and data sources.</p>
+                        <p><strong>JSON-RPC 2.0:</strong> The remote procedure call protocol used by MCP for request/response communication.</p>
+                        <p><strong>API Key:</strong> A unique identifier used to authenticate requests to external services.</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Hot-Reload:</strong> Runtime configuration update without server restart.</p>
+                        <p><strong>WebSocket:</strong> A communication protocol for real-time bidirectional data exchange.</p>
+                        <p><strong>REST API:</strong> An architectural style for web services using HTTP methods.</p>
+                    </div>
+                </div>
+                <div class="text-end mt-2">
+                    <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-book me-1"></i>View Full Glossary
                     </a>
                 </div>
             </div>

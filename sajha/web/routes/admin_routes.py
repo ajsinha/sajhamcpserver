@@ -63,6 +63,19 @@ class AdminRoutes(BaseRoutes):
                                  user=user_session,
                                  users=users)
 
+        @app.route('/admin/users/create')
+        @self.admin_required
+        def admin_user_create():
+            """Create new user page"""
+            user_session = self.get_user_session()
+
+            # Get all users for validation
+            users = self.auth_manager.get_all_users()
+
+            return render_template('admin/admin_user_create.html',
+                                 user=user_session,
+                                 users=users)
+
         @app.route('/admin/users/<user_id>/config')
         @self.admin_required
         def user_config_page(user_id):
