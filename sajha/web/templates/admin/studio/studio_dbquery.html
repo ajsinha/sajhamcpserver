@@ -1,0 +1,1008 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}DB Query Tool Creator - MCP Studio - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dbquery-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .creator-header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+        color: #e0e0e0;
+    }
+    
+    .creator-header h3 {
+        color: #ffc107;
+        margin-bottom: 8px;
+    }
+    
+    .creator-header .subtitle {
+        color: #9cdcfe;
+        font-size: 0.95rem;
+    }
+    
+    .form-section {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+        color: #212529;
+        padding: 15px 20px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-header.primary {
+        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+        color: white;
+    }
+    
+    .section-header.success {
+        background: linear-gradient(135deg, #198754 0%, #157347 100%);
+        color: white;
+    }
+    
+    .section-header.info {
+        background: linear-gradient(135deg, #0dcaf0 0%, #0aa8c7 100%);
+        color: #212529;
+    }
+    
+    .section-header.secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+        color: white;
+    }
+    
+    .section-body {
+        padding: 20px;
+    }
+    
+    .query-editor {
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 13px;
+        min-height: 200px;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        border: 1px solid #404040;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .query-editor:focus {
+        outline: none;
+        border-color: #ffc107;
+        box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.25);
+    }
+    
+    .literature-editor {
+        font-family: inherit;
+        min-height: 120px;
+        border-radius: 8px;
+    }
+    
+    .param-row {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .param-row:hover {
+        border-color: #ffc107;
+    }
+    
+    .db-type-select {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .db-type-btn {
+        padding: 12px 24px;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 100px;
+    }
+    
+    .db-type-btn:hover {
+        border-color: #ffc107;
+    }
+    
+    .db-type-btn.active {
+        border-color: #ffc107;
+        background: #ffc107;
+        color: #212529;
+    }
+    
+    .db-type-btn i {
+        font-size: 1.5rem;
+        margin-bottom: 5px;
+    }
+    
+    .preview-panel {
+        background: #1e1e1e;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .preview-header {
+        background: #2d2d2d;
+        padding: 12px 15px;
+        border-bottom: 1px solid #404040;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .preview-header h6 {
+        margin: 0;
+        color: #e0e0e0;
+        font-size: 14px;
+    }
+    
+    .preview-content {
+        padding: 15px;
+        max-height: 400px;
+        overflow-y: auto;
+        color: #9cdcfe;
+        font-family: monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+    }
+    
+    .example-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .example-card:hover {
+        border-color: #ffc107;
+        box-shadow: 0 2px 8px rgba(255, 193, 7, 0.15);
+    }
+    
+    .example-card h6 {
+        color: #ffc107;
+        margin-bottom: 5px;
+    }
+    
+    .example-card p {
+        color: #6c757d;
+        font-size: 0.85rem;
+        margin-bottom: 5px;
+    }
+    
+    .db-badge {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+    
+    .btn-action {
+        padding: 12px 30px;
+        font-weight: 600;
+        border-radius: 8px;
+        font-size: 1rem;
+    }
+    
+    .status-message {
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+    }
+    
+    .status-message.show {
+        display: block;
+    }
+    
+    .status-message.success {
+        background: #d1e7dd;
+        color: #0f5132;
+        border: 1px solid #badbcc;
+    }
+    
+    .status-message.error {
+        background: #f8d7da;
+        color: #842029;
+        border: 1px solid #f5c2c7;
+    }
+    
+    .collapse-toggle {
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .collapse-toggle i {
+        transition: transform 0.2s;
+    }
+    
+    .collapse-toggle.collapsed i {
+        transform: rotate(-90deg);
+    }
+    
+    .param-type-select {
+        min-width: 120px;
+    }
+    
+    .schema-preview {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        font-family: monospace;
+        font-size: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3 dbquery-container">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('studio_home') }}">MCP Studio</a></li>
+            <li class="breadcrumb-item active">DB Query Tool Creator</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="creator-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3>
+                    <i class="bi bi-database me-2"></i>DB Query Tool Creator
+                    <span class="badge bg-light text-dark ms-2" style="font-size: 0.5em;">v2.4.0</span>
+                </h3>
+                <p class="subtitle mb-0">
+                    Create MCP tools from database queries. Define parameters, write your SQL query with placeholders,
+                    and deploy instantly. Supports DuckDB, SQLite, PostgreSQL, and MySQL databases.
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('help_page') }}#mcp-studio-dbquery" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-question-circle me-1"></i>Help
+                </a>
+                <a href="{{ url_for('studio_home') }}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Studio
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Message -->
+    <div id="statusMessage" class="status-message"></div>
+
+    <div class="row">
+        <!-- Main Form -->
+        <div class="col-lg-8">
+            <!-- Basic Information -->
+            <div class="form-section">
+                <div class="section-header">
+                    <i class="bi bi-info-circle"></i>
+                    Basic Information
+                </div>
+                <div class="section-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Tool Name <span class="text-danger">*</span></label>
+                            <input type="text" id="toolName" class="form-control" 
+                                   placeholder="get_sales_by_region" pattern="[a-z][a-z0-9_]*">
+                            <div class="form-text">Lowercase letters, numbers, and underscores only (min 3 chars)</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Category</label>
+                            <input type="text" id="toolCategory" class="form-control" 
+                                   value="Database" placeholder="e.g., Analytics, Reports, Data">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                        <textarea id="toolDescription" class="form-control" rows="2" 
+                                  placeholder="Describe what this query does and what data it returns..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Literature / Context (for AI)</label>
+                        <textarea id="toolLiterature" class="form-control literature-editor" rows="4" 
+                                  placeholder="Provide additional context, business rules, data dictionary information, or usage examples that will help AI understand how to use this tool effectively..."></textarea>
+                        <div class="form-text">This context helps AI clients understand when and how to use this tool</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Connection -->
+            <div class="form-section">
+                <div class="section-header success">
+                    <i class="bi bi-plug"></i>
+                    Database Connection
+                </div>
+                <div class="section-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Database Type <span class="text-danger">*</span></label>
+                        <div class="db-type-select">
+                            <button type="button" class="db-type-btn active" data-db="duckdb">
+                                <i class="bi bi-hdd-stack"></i>
+                                DuckDB
+                            </button>
+                            <button type="button" class="db-type-btn" data-db="sqlite">
+                                <i class="bi bi-file-earmark-binary"></i>
+                                SQLite
+                            </button>
+                            <button type="button" class="db-type-btn" data-db="postgresql">
+                                <i class="bi bi-server"></i>
+                                PostgreSQL
+                            </button>
+                            <button type="button" class="db-type-btn" data-db="mysql">
+                                <i class="bi bi-database-fill"></i>
+                                MySQL
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Connection String <span class="text-danger">*</span></label>
+                        <input type="text" id="connectionString" class="form-control" 
+                               placeholder="data/mydata.db or :memory:">
+                        <div class="form-text" id="connectionHelp">
+                            For DuckDB/SQLite: file path or <code>:memory:</code><br>
+                            For PostgreSQL: <code>host=localhost dbname=mydb user=postgres password=secret</code><br>
+                            For MySQL: <code>host=localhost;database=mydb;user=root;password=secret</code>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Timeout (seconds)</label>
+                            <input type="number" id="timeout" class="form-control" value="30" min="1" max="300">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Max Rows</label>
+                            <input type="number" id="maxRows" class="form-control" value="1000" min="1" max="100000">
+                            <div class="form-text">Maximum number of rows to return</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Query Parameters -->
+            <div class="form-section">
+                <div class="section-header info">
+                    <i class="bi bi-sliders"></i>
+                    Query Parameters
+                </div>
+                <div class="section-body">
+                    <p class="text-muted small mb-3">
+                        Define input parameters that will be substituted into your query. 
+                        Use <code>{{param_name}}</code> syntax in your query below.
+                    </p>
+                    <div id="parametersList">
+                        <!-- Parameters will be added here -->
+                    </div>
+                    <button type="button" class="btn btn-outline-primary" onclick="addParameter()">
+                        <i class="bi bi-plus me-1"></i>Add Parameter
+                    </button>
+                </div>
+            </div>
+
+            <!-- SQL Query -->
+            <div class="form-section">
+                <div class="section-header primary">
+                    <i class="bi bi-code-square"></i>
+                    SQL Query Template
+                </div>
+                <div class="section-body">
+                    <p class="text-muted small mb-2">
+                        Write your SQL query using <code>{{param_name}}</code> placeholders for parameters.
+                        String values will be automatically quoted and escaped.
+                    </p>
+                    <textarea id="queryTemplate" class="form-control query-editor" rows="10" 
+                              placeholder="SELECT * FROM sales
+WHERE region = {{region}}
+  AND sale_date >= {{start_date}}
+  AND sale_date <= {{end_date}}
+ORDER BY sale_date DESC"></textarea>
+                    <div class="mt-2 d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="bi bi-shield-check text-success me-1"></i>
+                            Parameters are safely escaped to prevent SQL injection
+                        </small>
+                        <small id="placeholderCount" class="text-info"></small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex gap-3 mb-4">
+                <button type="button" id="previewBtn" class="btn btn-warning btn-action" onclick="previewTool()">
+                    <i class="bi bi-eye me-2"></i>Preview Tool
+                </button>
+                <button type="button" id="deployBtn" class="btn btn-success btn-action" onclick="deployTool()" disabled>
+                    <i class="bi bi-cloud-upload me-2"></i>Deploy Tool
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-action" onclick="clearForm()">
+                    <i class="bi bi-x-circle me-2"></i>Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Examples -->
+            <div class="form-section">
+                <div class="section-header">
+                    <i class="bi bi-lightbulb"></i>
+                    Quick Examples - Click to Load
+                </div>
+                <div class="section-body">
+                    <div class="example-card" onclick="loadExample('sales')">
+                        <h6><i class="bi bi-graph-up me-1"></i>Sales by Region</h6>
+                        <p>Query sales data filtered by region and date range</p>
+                        <span class="db-badge bg-warning text-dark">DuckDB</span>
+                    </div>
+                    <div class="example-card" onclick="loadExample('users')">
+                        <h6><i class="bi bi-people me-1"></i>User Search</h6>
+                        <p>Search users by name with pagination</p>
+                        <span class="db-badge bg-info text-dark">SQLite</span>
+                    </div>
+                    <div class="example-card" onclick="loadExample('inventory')">
+                        <h6><i class="bi bi-box-seam me-1"></i>Inventory Status</h6>
+                        <p>Check inventory levels by category</p>
+                        <span class="db-badge bg-primary text-white">PostgreSQL</span>
+                    </div>
+                    <div class="example-card" onclick="loadExample('aggregation')">
+                        <h6><i class="bi bi-calculator me-1"></i>Sales Aggregation</h6>
+                        <p>Aggregate sales with grouping</p>
+                        <span class="db-badge bg-warning text-dark">DuckDB</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview Panel -->
+            <div class="preview-panel" id="previewPanel" style="display: none;">
+                <div class="preview-header">
+                    <h6><i class="bi bi-code-slash me-2"></i>Generated Code Preview</h6>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-light btn-sm active" onclick="showPreviewTab('json')">JSON</button>
+                        <button class="btn btn-outline-light btn-sm" onclick="showPreviewTab('python')">Python</button>
+                        <button class="btn btn-outline-light btn-sm" onclick="showPreviewTab('schema')">Schema</button>
+                    </div>
+                </div>
+                <div class="preview-content" id="previewContent">
+                    <!-- Preview content will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Schema Preview -->
+            <div class="form-section mt-3" id="schemaPreviewSection" style="display: none;">
+                <div class="section-header secondary">
+                    <i class="bi bi-diagram-3"></i>
+                    Generated Schemas
+                </div>
+                <div class="section-body">
+                    <h6 class="small text-muted mb-2">Input Schema:</h6>
+                    <div class="schema-preview mb-3" id="inputSchemaPreview"></div>
+                    <h6 class="small text-muted mb-2">Output Schema:</h6>
+                    <div class="schema-preview" id="outputSchemaPreview"></div>
+                </div>
+            </div>
+
+            <!-- Help -->
+            <div class="form-section mt-3">
+                <div class="section-header secondary">
+                    <i class="bi bi-question-circle"></i>
+                    Quick Help
+                </div>
+                <div class="section-body">
+                    <ul class="small mb-0">
+                        <li class="mb-2">
+                            <strong>Placeholders:</strong> Use <code>{{param_name}}</code> in your query
+                        </li>
+                        <li class="mb-2">
+                            <strong>String params:</strong> Automatically quoted and escaped
+                        </li>
+                        <li class="mb-2">
+                            <strong>Numeric params:</strong> Inserted directly without quotes
+                        </li>
+                        <li class="mb-2">
+                            <strong>Literature:</strong> Add context to help AI use the tool correctly
+                        </li>
+                        <li class="mb-2">
+                            <strong>Security:</strong> Only SELECT queries recommended
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Security Note -->
+            <div class="alert alert-warning mt-3 small">
+                <i class="bi bi-shield-exclamation me-2"></i>
+                <strong>Security:</strong> Connection credentials are stored in the generated tool file. 
+                Use environment variables or secure vault for production deployments.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-check-circle me-2"></i>Tool Deployed Successfully!
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Your DB Query tool has been created and loaded!</p>
+                <div class="bg-light p-3 rounded">
+                    <p class="mb-1"><strong>Tool:</strong> <code id="deployedToolName"></code></p>
+                    <p class="mb-1"><strong>Config:</strong> <code id="deployedJsonPath"></code></p>
+                    <p class="mb-0"><strong>Implementation:</strong> <code id="deployedPythonPath"></code></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="{{ url_for('tools_list') }}" class="btn btn-primary">
+                    <i class="bi bi-tools me-1"></i>View Tools
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_glossary %}
+<div class="container-fluid mt-4">
+    <div class="card border-secondary">
+        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
+            <i class="bi bi-book me-2"></i>Page Glossary
+            <i class="bi bi-chevron-down float-end"></i>
+        </div>
+        <div class="collapse" id="pageGlossary">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>DuckDB:</strong> In-process analytical database optimized for OLAP queries on local files.</p>
+                        <p><strong>SQLite:</strong> Lightweight file-based relational database, widely used for local storage.</p>
+                        <p><strong>Query Template:</strong> SQL query with parameter placeholders for dynamic value substitution.</p>
+                        <p><strong>Parameter Escaping:</strong> Automatic quoting and escaping to prevent SQL injection.</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>PostgreSQL:</strong> Advanced open-source relational database for production workloads.</p>
+                        <p><strong>MySQL:</strong> Popular open-source relational database management system.</p>
+                        <p><strong>Connection String:</strong> Database connection details including host, credentials, and database name.</p>
+                        <p><strong>Literature:</strong> Contextual documentation that helps AI understand tool usage.</p>
+                    </div>
+                </div>
+                <div class="text-end mt-2">
+                    <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-book me-1"></i>View Full Glossary
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Store existing tool names for validation
+const existingTools = {{ existing_tools | tojson }};
+let selectedDbType = 'duckdb';
+let parameters = [];
+let previewData = null;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    setupDbTypeButtons();
+    setupQueryEditor();
+});
+
+function setupDbTypeButtons() {
+    document.querySelectorAll('.db-type-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.db-type-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            selectedDbType = this.dataset.db;
+            updateConnectionHelp();
+        });
+    });
+}
+
+function updateConnectionHelp() {
+    const help = document.getElementById('connectionHelp');
+    const hints = {
+        'duckdb': 'File path (e.g., <code>data/analytics.db</code>) or <code>:memory:</code> for in-memory database',
+        'sqlite': 'File path (e.g., <code>data/app.db</code>) or <code>:memory:</code> for in-memory database',
+        'postgresql': '<code>host=localhost dbname=mydb user=postgres password=secret port=5432</code>',
+        'mysql': '<code>host=localhost;database=mydb;user=root;password=secret;port=3306</code>'
+    };
+    help.innerHTML = hints[selectedDbType] || '';
+}
+
+function setupQueryEditor() {
+    const editor = document.getElementById('queryTemplate');
+    editor.addEventListener('input', function() {
+        updatePlaceholderCount();
+    });
+}
+
+function updatePlaceholderCount() {
+    const query = document.getElementById('queryTemplate').value;
+    const placeholders = query.match(/\{\{(\w+)\}\}/g) || [];
+    const unique = [...new Set(placeholders)];
+    const countEl = document.getElementById('placeholderCount');
+    
+    if (unique.length > 0) {
+        countEl.textContent = `Found ${unique.length} placeholder(s): ${unique.join(', ')}`;
+    } else {
+        countEl.textContent = '';
+    }
+}
+
+function addParameter() {
+    const id = Date.now();
+    const paramHtml = `
+        <div class="param-row" id="param-${id}">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="form-label small">Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control param-name" placeholder="param_name" 
+                           pattern="[a-z][a-z0-9_]*">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Type</label>
+                    <select class="form-select param-type-select param-type">
+                        <option value="string">String</option>
+                        <option value="integer">Integer</option>
+                        <option value="float">Float</option>
+                        <option value="boolean">Boolean</option>
+                        <option value="date">Date</option>
+                        <option value="datetime">DateTime</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">Description</label>
+                    <input type="text" class="form-control param-description" placeholder="What this parameter does">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Default</label>
+                    <input type="text" class="form-control param-default" placeholder="Optional">
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="removeParameter(${id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="row g-2 mt-2">
+                <div class="col-md-2">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input param-required" id="req-${id}" checked>
+                        <label class="form-check-label small" for="req-${id}">Required</label>
+                    </div>
+                </div>
+                <div class="col-md-10">
+                    <input type="text" class="form-control form-control-sm param-enum" 
+                           placeholder="Enum values (comma-separated, optional): value1, value2, value3">
+                </div>
+            </div>
+        </div>
+    `;
+    document.getElementById('parametersList').insertAdjacentHTML('beforeend', paramHtml);
+}
+
+function removeParameter(id) {
+    document.getElementById(`param-${id}`).remove();
+}
+
+function getParameters() {
+    const params = [];
+    document.querySelectorAll('.param-row').forEach(row => {
+        const name = row.querySelector('.param-name').value.trim();
+        if (name) {
+            const enumStr = row.querySelector('.param-enum').value.trim();
+            const enumVals = enumStr ? enumStr.split(',').map(v => v.trim()).filter(v => v) : null;
+            
+            params.push({
+                name: name,
+                param_type: row.querySelector('.param-type').value,
+                description: row.querySelector('.param-description').value.trim() || `Parameter: ${name}`,
+                required: row.querySelector('.param-required').checked,
+                default: row.querySelector('.param-default').value.trim() || null,
+                enum: enumVals
+            });
+        }
+    });
+    return params;
+}
+
+function getFormData() {
+    return {
+        name: document.getElementById('toolName').value.trim().toLowerCase(),
+        description: document.getElementById('toolDescription').value.trim(),
+        db_type: selectedDbType,
+        connection_string: document.getElementById('connectionString').value.trim(),
+        query_template: document.getElementById('queryTemplate').value.trim(),
+        parameters: getParameters(),
+        category: document.getElementById('toolCategory').value.trim() || 'Database',
+        literature: document.getElementById('toolLiterature').value.trim(),
+        timeout: parseInt(document.getElementById('timeout').value) || 30,
+        max_rows: parseInt(document.getElementById('maxRows').value) || 1000
+    };
+}
+
+function showStatus(message, type) {
+    const el = document.getElementById('statusMessage');
+    el.textContent = message;
+    el.className = `status-message show ${type}`;
+    setTimeout(() => el.classList.remove('show'), 5000);
+}
+
+async function previewTool() {
+    const btn = document.getElementById('previewBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+    
+    try {
+        const data = getFormData();
+        
+        // Basic validation
+        if (!data.name || data.name.length < 3) {
+            throw new Error('Tool name must be at least 3 characters');
+        }
+        if (!data.description) {
+            throw new Error('Description is required');
+        }
+        if (!data.connection_string) {
+            throw new Error('Connection string is required');
+        }
+        if (!data.query_template) {
+            throw new Error('SQL query template is required');
+        }
+        
+        const response = await fetch('/admin/studio/dbquery/preview', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            previewData = result;
+            
+            // Show preview
+            document.getElementById('previewPanel').style.display = 'block';
+            showPreviewTab('json');
+            
+            // Show schema preview
+            document.getElementById('schemaPreviewSection').style.display = 'block';
+            document.getElementById('inputSchemaPreview').textContent = 
+                JSON.stringify(result.input_schema, null, 2);
+            document.getElementById('outputSchemaPreview').textContent = 
+                JSON.stringify(result.output_schema, null, 2);
+            
+            // Enable deploy
+            document.getElementById('deployBtn').disabled = false;
+            showStatus('Preview generated successfully!', 'success');
+        } else {
+            throw new Error(result.error || result.errors?.join(', ') || 'Preview failed');
+        }
+    } catch (error) {
+        showStatus(error.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-eye me-2"></i>Preview Tool';
+    }
+}
+
+function showPreviewTab(tab) {
+    if (!previewData) return;
+    
+    const content = document.getElementById('previewContent');
+    document.querySelectorAll('.preview-header .btn').forEach(b => b.classList.remove('active'));
+    
+    if (tab === 'json') {
+        content.textContent = previewData.json_content;
+    } else if (tab === 'python') {
+        content.textContent = previewData.python_content?.substring(0, 2000) + '...';
+    } else if (tab === 'schema') {
+        content.textContent = 'Input Schema:\n' + JSON.stringify(previewData.input_schema, null, 2) + 
+                             '\n\nOutput Schema:\n' + JSON.stringify(previewData.output_schema, null, 2);
+    }
+}
+
+async function deployTool() {
+    if (!confirm('Are you sure you want to deploy this DB Query tool?')) return;
+    
+    const btn = document.getElementById('deployBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deploying...';
+    
+    try {
+        const data = getFormData();
+        
+        const response = await fetch('/admin/studio/dbquery/deploy', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            document.getElementById('deployedToolName').textContent = result.tool_name;
+            document.getElementById('deployedJsonPath').textContent = result.json_path;
+            document.getElementById('deployedPythonPath').textContent = result.python_path;
+            
+            const modal = new bootstrap.Modal(document.getElementById('successModal'));
+            modal.show();
+            
+            showStatus('Tool deployed successfully!', 'success');
+        } else {
+            throw new Error(result.error || 'Deployment failed');
+        }
+    } catch (error) {
+        showStatus(error.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-cloud-upload me-2"></i>Deploy Tool';
+    }
+}
+
+function clearForm() {
+    document.getElementById('toolName').value = '';
+    document.getElementById('toolDescription').value = '';
+    document.getElementById('toolCategory').value = 'Database';
+    document.getElementById('toolLiterature').value = '';
+    document.getElementById('connectionString').value = '';
+    document.getElementById('queryTemplate').value = '';
+    document.getElementById('parametersList').innerHTML = '';
+    document.querySelectorAll('.db-type-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.db-type-btn[data-db="duckdb"]').classList.add('active');
+    selectedDbType = 'duckdb';
+    document.getElementById('previewPanel').style.display = 'none';
+    document.getElementById('schemaPreviewSection').style.display = 'none';
+    document.getElementById('deployBtn').disabled = true;
+    previewData = null;
+}
+
+function loadExample(type) {
+    const examples = {
+        sales: {
+            name: 'get_sales_by_region',
+            description: 'Query sales data filtered by region and date range. Returns sales transactions with product details.',
+            db_type: 'duckdb',
+            connection_string: 'data/sqlselect/sales_data.csv',
+            category: 'Analytics',
+            literature: 'This tool queries sales transaction data. The sales table contains: transaction_id, product_name, quantity, unit_price, total_amount, region, sale_date. Regions include: North, South, East, West. Use this for sales reporting and regional analysis.',
+            query_template: `SELECT * FROM read_csv_auto('{{connection}}')
+WHERE region = {{region}}
+  AND sale_date >= {{start_date}}
+  AND sale_date <= {{end_date}}
+ORDER BY sale_date DESC
+LIMIT {{limit}}`,
+            parameters: [
+                { name: 'region', param_type: 'string', description: 'Sales region', required: true, default: null, enum: ['North', 'South', 'East', 'West'] },
+                { name: 'start_date', param_type: 'date', description: 'Start date for filter', required: true, default: null, enum: null },
+                { name: 'end_date', param_type: 'date', description: 'End date for filter', required: true, default: null, enum: null },
+                { name: 'limit', param_type: 'integer', description: 'Maximum rows to return', required: false, default: '100', enum: null }
+            ]
+        },
+        users: {
+            name: 'search_users',
+            description: 'Search users by name with pagination support',
+            db_type: 'sqlite',
+            connection_string: 'data/users.db',
+            category: 'Users',
+            literature: 'User search tool with name filtering. Returns user records including id, name, email, created_at. Supports partial name matching and pagination.',
+            query_template: `SELECT id, name, email, created_at
+FROM users
+WHERE name LIKE '%' || {{search_term}} || '%'
+ORDER BY name
+LIMIT {{limit}} OFFSET {{offset}}`,
+            parameters: [
+                { name: 'search_term', param_type: 'string', description: 'Name to search for', required: true, default: null, enum: null },
+                { name: 'limit', param_type: 'integer', description: 'Results per page', required: false, default: '20', enum: null },
+                { name: 'offset', param_type: 'integer', description: 'Pagination offset', required: false, default: '0', enum: null }
+            ]
+        },
+        inventory: {
+            name: 'check_inventory',
+            description: 'Check inventory levels by category and optionally filter by low stock',
+            db_type: 'postgresql',
+            connection_string: 'host=localhost dbname=inventory user=app password=secret',
+            category: 'Inventory',
+            literature: 'Inventory monitoring tool. Products table: product_id, name, category, quantity, reorder_level. Categories: Electronics, Furniture, Clothing, Food. Low stock = quantity below reorder_level.',
+            query_template: `SELECT product_id, name, category, quantity, reorder_level,
+       CASE WHEN quantity < reorder_level THEN 'LOW' ELSE 'OK' END as stock_status
+FROM products
+WHERE category = {{category}}
+  AND ({{low_stock_only}} = FALSE OR quantity < reorder_level)
+ORDER BY quantity ASC`,
+            parameters: [
+                { name: 'category', param_type: 'string', description: 'Product category', required: true, default: null, enum: ['Electronics', 'Furniture', 'Clothing', 'Food'] },
+                { name: 'low_stock_only', param_type: 'boolean', description: 'Show only low stock items', required: false, default: 'false', enum: null }
+            ]
+        },
+        aggregation: {
+            name: 'aggregate_sales',
+            description: 'Aggregate sales by product or region with sum and count',
+            db_type: 'duckdb',
+            connection_string: 'data/sqlselect/sales_data.csv',
+            category: 'Analytics',
+            literature: 'Sales aggregation for reporting. Groups by specified dimension (product or region). Returns total_quantity, total_amount, transaction_count. Useful for dashboards and summary reports.',
+            query_template: `SELECT {{group_by}} as dimension,
+       SUM(quantity) as total_quantity,
+       SUM(total_amount) as total_amount,
+       COUNT(*) as transaction_count
+FROM read_csv_auto('data/sqlselect/sales_data.csv')
+GROUP BY {{group_by}}
+ORDER BY total_amount DESC`,
+            parameters: [
+                { name: 'group_by', param_type: 'string', description: 'Column to group by', required: true, default: null, enum: ['product_name', 'region'] }
+            ]
+        }
+    };
+    
+    const ex = examples[type];
+    if (!ex) return;
+    
+    document.getElementById('toolName').value = ex.name;
+    document.getElementById('toolDescription').value = ex.description;
+    document.getElementById('toolCategory').value = ex.category;
+    document.getElementById('toolLiterature').value = ex.literature;
+    document.getElementById('connectionString').value = ex.connection_string;
+    document.getElementById('queryTemplate').value = ex.query_template;
+    
+    // Set DB type
+    document.querySelectorAll('.db-type-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.db-type-btn[data-db="${ex.db_type}"]`).classList.add('active');
+    selectedDbType = ex.db_type;
+    
+    // Clear and add parameters
+    document.getElementById('parametersList').innerHTML = '';
+    ex.parameters.forEach(p => {
+        addParameter();
+        const lastRow = document.querySelector('.param-row:last-child');
+        lastRow.querySelector('.param-name').value = p.name;
+        lastRow.querySelector('.param-type').value = p.param_type;
+        lastRow.querySelector('.param-description').value = p.description;
+        lastRow.querySelector('.param-required').checked = p.required;
+        if (p.default) lastRow.querySelector('.param-default').value = p.default;
+        if (p.enum) lastRow.querySelector('.param-enum').value = p.enum.join(', ');
+    });
+    
+    updatePlaceholderCount();
+    showStatus(`Loaded "${type}" example`, 'success');
+}
+</script>
+{% endblock %}

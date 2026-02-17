@@ -1,6 +1,6 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-API Key Manager for SAJHA MCP Server v2.2.0
+API Key Manager for SAJHA MCP Server v2.3.0
 Handles creation, validation, and management of API keys
 """
 

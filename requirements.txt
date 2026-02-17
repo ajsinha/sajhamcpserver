@@ -35,8 +35,7 @@ urllib3>=2.6.0
 
 #databases
 duckdb==1.4.1
-psycopg2==2.9.11
-PyMySQL==1.1.2
-SQLAlchemy==3.0.1
+psycopg2-binary>=2.9.9
+PyMySQL>=1.1.0
 
 

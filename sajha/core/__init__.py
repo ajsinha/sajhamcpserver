@@ -1,6 +1,6 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Core module for SAJHA MCP Server v2.2.0
+Core module for SAJHA MCP Server v2.3.0
 """
 
 from .properties_configurator import PropertiesConfigurator

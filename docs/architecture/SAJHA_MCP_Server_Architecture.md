@@ -1,7 +1,7 @@
 # SAJHA MCP Server - System Architecture Document
 
-**Version:** 2.2.0  
-**Last Updated:** January 2026  
+**Version:** 2.4.0  
+**Last Updated:** February 2026  
 **Classification:** Technical Reference
 
 ---
@@ -530,7 +530,7 @@ Each tool is configured via a JSON file:
   "name": "wikipedia_search",
   "implementation": "sajha.tools.impl.wikipedia_tool.WikipediaTool",
   "description": "Search Wikipedia for information on any topic",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",
@@ -710,7 +710,7 @@ class SocketIOHandlers:
 
 ### 8.1 Overview
 
-MCP Studio (`sajha/studio/`) provides a visual interface for creating MCP tools without manual coding.
+MCP Studio (`sajha/studio/`) provides a visual interface for creating MCP tools without manual coding. Version 2.4.0 introduces comprehensive dark theme support with 3,200+ lines of CSS for accessibility across all pages, plus Database Query Tool Creator and enhanced REST Service Tool Creator with CSV response support.
 
 **Components:**
 
@@ -719,8 +719,47 @@ MCP Studio (`sajha/studio/`) provides a visual interface for creating MCP tools 
 | **Decorator** | `decorator.py` | `@sajhamcptool` decorator definition |
 | **CodeAnalyzer** | `code_analyzer.py` | AST-based code analysis |
 | **CodeGenerator** | `code_generator.py` | Tool class generation |
+| **RESTToolGenerator** | `rest_tool_generator.py` | REST API tool generation (v2.4.0) |
+| **DBQueryToolGenerator** | `dbquery_tool_generator.py` | Database query tool generation (v2.4.0) |
 
-### 8.2 The @sajhamcptool Decorator
+### 8.2 Tool Creation Methods
+
+MCP Studio supports three methods for creating tools:
+
+```
+                        MCP Studio
+                            │
+            ┌───────────────┼───────────────┐
+            │               │               │
+    ┌───────▼───────┐ ┌─────▼─────┐ ┌───────▼───────┐
+    │ Python Code   │ │ REST      │ │ DB Query      │
+    │ Tool Creator  │ │ Service   │ │ Tool Creator  │
+    └───────┬───────┘ └─────┬─────┘ └───────┬───────┘
+            │               │               │
+    ┌───────▼───────┐ ┌─────▼─────┐ ┌───────▼───────┐
+    │ @sajhamcptool │ │ REST      │ │ DBQuery       │
+    │ Decorator     │ │ Definition│ │ Definition    │
+    └───────┬───────┘ └─────┬─────┘ └───────┬───────┘
+            │               │               │
+    ┌───────▼───────┐ ┌─────▼─────┐ ┌───────▼───────┐
+    │ CodeAnalyzer  │ │ REST Tool │ │ DBQuery Tool  │
+    │ (AST Parsing) │ │ Generator │ │ Generator     │
+    └───────┬───────┘ └─────┬─────┘ └───────┬───────┘
+            │               │               │
+            └───────────────┼───────────────┘
+                            │
+                    ┌───────▼───────┐
+                    │ Tool Files    │
+                    │ JSON + Python │
+                    └───────┬───────┘
+                            │
+                    ┌───────▼───────┐
+                    │ Hot-Reload    │
+                    │ & Register    │
+                    └───────────────┘
+```
+
+### 8.3 The @sajhamcptool Decorator
 
 ```python
 from sajha.studio import sajhamcptool
@@ -741,7 +780,109 @@ def convert_temperature(
     return {"result": converted_value}
 ```
 
-### 8.3 Code Analysis Pipeline
+### 8.4 REST Service Tool Creator (v2.3.0)
+
+The REST Service Tool Creator allows wrapping any REST API as an MCP tool through a visual interface.
+
+**RESTToolDefinition Data Class:**
+
+```python
+@dataclass
+class RESTToolDefinition:
+    name: str                    # Tool name (lowercase_snake_case)
+    endpoint: str               # REST API URL
+    method: str                 # GET, POST, PUT, DELETE, PATCH
+    description: str            # Tool description
+    request_schema: Dict        # JSON Schema for request body
+    response_schema: Dict       # JSON Schema for response
+    category: str = "REST API"  # Tool category
+    tags: List[str] = []        # Tags for categorization
+    api_key: str = None         # Optional API key
+    api_key_header: str = "X-API-Key"  # API key header name
+    basic_auth_username: str = None    # Basic auth username
+    basic_auth_password: str = None    # Basic auth password
+    headers: Dict[str, str] = {}       # Custom HTTP headers
+    timeout: int = 30           # Request timeout in seconds
+    content_type: str = "application/json"  # Content-Type header
+```
+
+**REST Tool Generation Flow:**
+
+```
+REST Tool Creator UI
+        │
+        ▼
+┌───────────────────┐
+│ Collect Inputs    │ ──── name, endpoint, method, schemas
+└─────────┬─────────┘
+          │
+          ▼
+┌───────────────────┐
+│ Create Definition │ ──── RESTToolDefinition dataclass
+└─────────┬─────────┘
+          │
+          ▼
+┌───────────────────┐
+│ Validate          │ ──── URL, method, schema syntax
+└─────────┬─────────┘
+          │
+          ▼
+┌───────────────────┐
+│ Generate JSON     │ ──── Tool configuration
+└─────────┬─────────┘
+          │
+          ▼
+┌───────────────────┐
+│ Generate Python   │ ──── Tool implementation class
+└─────────┬─────────┘
+          │
+          ▼
+┌───────────────────┐
+│ Save & Register   │ ──── Write files, reload registry
+└─────────────────────┘
+```
+
+**Generated REST Tool Features:**
+
+- HTTP method support (GET, POST, PUT, DELETE, PATCH)
+- Path parameter substitution (`/users/{user_id}`)
+- Query parameter handling for GET requests
+- Request body serialization for POST/PUT/PATCH
+- Response parsing with encoding fallback
+- Error handling with descriptive messages
+- Configurable timeout
+- Authentication (API Key or Basic Auth)
+- Custom HTTP headers
+
+**Example REST Tool Definition:**
+
+```python
+definition = RESTToolDefinition(
+    name="get_github_user",
+    endpoint="https://api.github.com/users/{username}",
+    method="GET",
+    description="Get public information about a GitHub user",
+    request_schema={
+        "type": "object",
+        "properties": {
+            "username": {"type": "string", "description": "GitHub username"}
+        },
+        "required": ["username"]
+    },
+    response_schema={
+        "type": "object",
+        "properties": {
+            "login": {"type": "string"},
+            "name": {"type": "string"},
+            "public_repos": {"type": "integer"}
+        }
+    },
+    category="Developer Tools",
+    tags=["github", "users", "api"]
+)
+```
+
+### 8.5 Code Analysis Pipeline
 
 ```
 Decorated Function
@@ -772,7 +913,7 @@ Decorated Function
 └─────────────────────┘
 ```
 
-### 8.4 Code Generation
+### 8.6 Code Generation
 
 The CodeGenerator creates:
 
@@ -807,6 +948,26 @@ class TemperatureConverterTool(BaseMCPTool):
         # Calls the original decorated function
         return convert_temperature(**arguments)
 ```
+
+### 8.7 Web Interface
+
+MCP Studio provides a rich web interface:
+
+**Python Code Tool Creator:**
+- Split-pane editor with syntax highlighting
+- Real-time code analysis
+- Preview generated JSON and Python
+- One-click deployment
+- Tool name validation
+
+**REST Service Tool Creator:**
+- Form-based input collection
+- HTTP method selection with visual buttons
+- JSON Schema editors for request/response
+- Authentication configuration (API Key, Basic Auth)
+- Custom headers management
+- Quick examples (Weather, JSONPlaceholder, GitHub)
+- Preview before deployment
 
 ---
 
@@ -1429,6 +1590,8 @@ Extend `AuthManager` to add:
 | 2.0.0 | 2025-06 | MCP Studio, Refactored tools |
 | 2.1.0 | 2025-09 | Central bank tools, IR module |
 | 2.2.0 | 2026-01 | Multi-encoding support, FRED API integration |
+| 2.4.0 | 2026-02 | Comprehensive Dark Theme, navbar user context fix |
+| 2.3.2 | 2026-02 | DB Query Tool Creator, REST CSV support |
 
 ### 19.4 References
 

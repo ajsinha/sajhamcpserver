@@ -1,7 +1,7 @@
 # SAJHA MCP Server - Glossary of Terms
 
-**Version:** 2.2.0  
-**Last Updated:** January 2026  
+**Version:** 2.4.0  
+**Last Updated:** February 2026  
 **Classification:** Reference Document
 
 ---
@@ -300,6 +300,33 @@ A lightweight markup language for formatting text. SAJHA documentation is writte
 ### MCP (Model Context Protocol)
 A protocol for AI systems to interact with external tools and data sources. The core protocol SAJHA implements.
 
+### MCP Studio
+A visual tool creation platform within SAJHA that allows administrators to create MCP tools without manual coding. Includes three creation methods: Python Code Tool Creator (using @sajhamcptool decorator), REST Service Tool Creator (for wrapping external APIs), and Database Query Tool Creator (for SQL-based tools).
+
+### MCP Studio - Python Code Creator
+A component of MCP Studio that analyzes Python functions decorated with @sajhamcptool and automatically generates tool configuration (JSON) and implementation (Python class) files.
+
+### MCP Studio - REST Service Tool Creator
+A form-based component of MCP Studio (v2.4.0) that allows creating MCP tools from REST API endpoints. Supports GET, POST, PUT, DELETE, PATCH methods, API Key and Basic Auth, custom headers, JSON Schema validation, path parameters, and multiple response formats (JSON, CSV, XML, text). CSV responses support configurable delimiter, header detection, and row skipping. Includes 6 built-in examples including FRED CSV data. Full dark theme support.
+
+### MCP Studio - Database Query Tool Creator
+A form-based component of MCP Studio (v2.4.0) that allows creating MCP tools from SQL queries. Supports DuckDB, SQLite, PostgreSQL, and MySQL databases. Features parameterized queries with auto-generated input/output schemas, multiple parameter types (string, integer, number, boolean, date, enum), tool literature for AI context, and configurable row limits. Full dark theme support.
+
+### MCP Studio - RESTToolDefinition
+A Python dataclass (`sajha.studio.rest_tool_generator.RESTToolDefinition`) that defines the configuration for REST-based tools. Includes fields for name, endpoint, method, description, request/response schemas, authentication, headers, timeout, content type, response format (json/csv/xml/text), and CSV parsing options (delimiter, has_header, skip_rows).
+
+### MCP Studio - RESTToolGenerator
+The generator class (`sajha.studio.rest_tool_generator.RESTToolGenerator`) that creates Python tool implementations and JSON configurations from RESTToolDefinition objects. Handles validation, code generation, response format handling, and file saving.
+
+### MCP Studio - DBQueryToolDefinition
+A Python dataclass (`sajha.studio.dbquery_tool_generator.DBQueryToolDefinition`) that defines the configuration for database query tools. Includes fields for name, description, db_type, connection_string, query_template, parameters list, category, tags, literature, timeout, and max_rows.
+
+### MCP Studio - DBQueryParameter
+A Python dataclass (`sajha.studio.dbquery_tool_generator.DBQueryParameter`) that defines a single parameter for a database query tool. Includes fields for name, param_type (string, integer, number, boolean, date), description, required flag, default value, and optional enum values.
+
+### MCP Studio - DBQueryToolGenerator
+The generator class (`sajha.studio.dbquery_tool_generator.DBQueryToolGenerator`) that creates Python tool implementations and JSON configurations from DBQueryToolDefinition objects. Handles query validation, parameter schema generation, and file saving.
+
 ### Metadata
 Data that describes other data. SAJHA tools include metadata for categorization and configuration.
 
@@ -516,6 +543,9 @@ A sequence of characters. Python strings are used throughout SAJHA.
 
 ### Template
 A file with placeholders for dynamic content. Jinja2 templates generate SAJHA's HTML.
+
+### Theme Switcher
+A UI component (v2.4.0) that allows users to toggle between light and dark themes. The preference is persisted in browser localStorage and applied instantly without page reload. Located in the navbar next to the About link. Version 2.4.0 includes comprehensive dark theme support with 3,200+ lines of CSS ensuring text visibility across all pages including Dashboard, Help, About, MCP Studio, Tools, and Documentation pages.
 
 ### Thread
 A unit of execution within a process. SAJHA uses threads for concurrent operations.

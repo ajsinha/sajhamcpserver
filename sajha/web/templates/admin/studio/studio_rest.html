@@ -1,0 +1,1334 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}REST Service Tool Creator - MCP Studio - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rest-creator-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .creator-header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+        color: #e0e0e0;
+    }
+    
+    .creator-header h3 {
+        color: #4ec9b0;
+        margin-bottom: 8px;
+    }
+    
+    .creator-header .subtitle {
+        color: #9cdcfe;
+        font-size: 0.95rem;
+    }
+    
+    .form-section {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+        color: white;
+        padding: 15px 20px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-header.secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    }
+    
+    .section-header.success {
+        background: linear-gradient(135deg, #198754 0%, #157347 100%);
+    }
+    
+    .section-header.warning {
+        background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+        color: #212529;
+    }
+    
+    .section-header.info {
+        background: linear-gradient(135deg, #0dcaf0 0%, #0aa8c7 100%);
+        color: #212529;
+    }
+    
+    .section-body {
+        padding: 20px;
+    }
+    
+    .method-select {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .method-btn {
+        padding: 10px 20px;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    
+    .method-btn:hover {
+        border-color: #0d6efd;
+    }
+    
+    .method-btn.active {
+        border-color: #0d6efd;
+        background: #0d6efd;
+        color: white;
+    }
+    
+    .method-btn.get { color: #198754; }
+    .method-btn.get.active { background: #198754; border-color: #198754; color: white; }
+    
+    .method-btn.post { color: #0d6efd; }
+    .method-btn.post.active { background: #0d6efd; border-color: #0d6efd; color: white; }
+    
+    .method-btn.put { color: #fd7e14; }
+    .method-btn.put.active { background: #fd7e14; border-color: #fd7e14; color: white; }
+    
+    .method-btn.delete { color: #dc3545; }
+    .method-btn.delete.active { background: #dc3545; border-color: #dc3545; color: white; }
+    
+    .method-btn.patch { color: #6f42c1; }
+    .method-btn.patch.active { background: #6f42c1; border-color: #6f42c1; color: white; }
+    
+    .schema-editor {
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 13px;
+        min-height: 200px;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        border: 1px solid #404040;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .schema-editor:focus {
+        outline: none;
+        border-color: #007acc;
+        box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.25);
+    }
+    
+    .preview-panel {
+        background: #1e1e1e;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .preview-header {
+        background: #2d2d2d;
+        padding: 12px 15px;
+        border-bottom: 1px solid #404040;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .preview-header h6 {
+        margin: 0;
+        color: #e0e0e0;
+        font-size: 14px;
+    }
+    
+    .preview-content {
+        padding: 15px;
+        max-height: 300px;
+        overflow-y: auto;
+        color: #9cdcfe;
+        font-family: monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+    }
+    
+    .example-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .example-card:hover {
+        border-color: #0d6efd;
+        box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+    }
+    
+    .example-card h6 {
+        color: #0d6efd;
+        margin-bottom: 5px;
+    }
+    
+    .example-card p {
+        color: #6c757d;
+        font-size: 0.85rem;
+        margin-bottom: 5px;
+    }
+    
+    .example-card .method-badge {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+    
+    .auth-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 10px;
+    }
+    
+    .auth-toggle {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .auth-toggle .form-check {
+        padding: 10px 20px;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+    }
+    
+    .headers-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .headers-list li {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        align-items: center;
+    }
+    
+    .btn-action {
+        padding: 12px 30px;
+        font-weight: 600;
+        border-radius: 8px;
+        font-size: 1rem;
+    }
+    
+    .status-message {
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+    }
+    
+    .status-message.show {
+        display: block;
+    }
+    
+    .status-message.success {
+        background: #d1e7dd;
+        color: #0f5132;
+        border: 1px solid #badbcc;
+    }
+    
+    .status-message.error {
+        background: #f8d7da;
+        color: #842029;
+        border: 1px solid #f5c2c7;
+    }
+    
+    .collapse-toggle {
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .collapse-toggle i {
+        transition: transform 0.2s;
+    }
+    
+    .collapse-toggle.collapsed i {
+        transform: rotate(-90deg);
+    }
+    
+    .tag-input-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        padding: 8px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        background: white;
+        min-height: 44px;
+    }
+    
+    .tag {
+        background: #0d6efd;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .tag .remove-tag {
+        cursor: pointer;
+        opacity: 0.8;
+    }
+    
+    .tag .remove-tag:hover {
+        opacity: 1;
+    }
+    
+    .tag-input {
+        border: none;
+        outline: none;
+        flex: 1;
+        min-width: 100px;
+        padding: 4px;
+    }
+    
+    /* Response Format Buttons */
+    .format-btn {
+        padding: 8px 16px;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s;
+        font-size: 0.9rem;
+    }
+    
+    .format-btn:hover {
+        border-color: #6f42c1;
+        background: #f8f5ff;
+    }
+    
+    .format-btn.active {
+        border-color: #6f42c1;
+        background: #6f42c1;
+        color: white;
+    }
+    
+    .format-btn[data-format="json"] { color: #198754; }
+    .format-btn[data-format="json"].active { background: #198754; border-color: #198754; }
+    
+    .format-btn[data-format="csv"] { color: #0d6efd; }
+    .format-btn[data-format="csv"].active { background: #0d6efd; border-color: #0d6efd; }
+    
+    .format-btn[data-format="xml"] { color: #fd7e14; }
+    .format-btn[data-format="xml"].active { background: #fd7e14; border-color: #fd7e14; }
+    
+    .format-btn[data-format="text"] { color: #6c757d; }
+    .format-btn[data-format="text"].active { background: #6c757d; border-color: #6c757d; }
+    
+    .csv-options-panel {
+        background: #f0f8ff;
+        border: 1px solid #b8daff;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3 rest-creator-container">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('studio_home') }}">MCP Studio</a></li>
+            <li class="breadcrumb-item active">REST Service Tool Creator</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="creator-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3>
+                    <i class="bi bi-cloud-arrow-up me-2"></i>REST Service Tool Creator
+                    <span class="badge bg-light text-dark ms-2" style="font-size: 0.5em;">v2.4.0</span>
+                </h3>
+                <p class="subtitle mb-0">
+                    Transform any REST API endpoint into an MCP-compliant tool. Define the endpoint, authentication, 
+                    request/response schemas, and deploy instantly. Generated tools support hot-reload and multi-encoding.
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('help_page') }}#mcp-studio-rest" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-question-circle me-1"></i>Help
+                </a>
+                <a href="{{ url_for('studio_home') }}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Studio
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Message -->
+    <div id="statusMessage" class="status-message"></div>
+
+    <div class="row">
+        <!-- Main Form -->
+        <div class="col-lg-8">
+            <!-- Basic Information -->
+            <div class="form-section">
+                <div class="section-header">
+                    <i class="bi bi-info-circle"></i>
+                    Basic Information
+                </div>
+                <div class="section-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Tool Name <span class="text-danger">*</span></label>
+                            <input type="text" id="toolName" class="form-control" 
+                                   placeholder="my_api_tool" pattern="[a-z][a-z0-9_]*">
+                            <div class="form-text">Lowercase letters, numbers, and underscores only (min 3 chars)</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Category</label>
+                            <input type="text" id="toolCategory" class="form-control" 
+                                   value="REST API" placeholder="e.g., Finance, Weather, Data">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                        <textarea id="toolDescription" class="form-control" rows="2" 
+                                  placeholder="Describe what this tool does..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tags</label>
+                        <div class="tag-input-container" id="tagsContainer">
+                            <input type="text" class="tag-input" id="tagInput" 
+                                   placeholder="Type tag and press Enter">
+                        </div>
+                        <div class="form-text">Press Enter to add tags</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Endpoint Configuration -->
+            <div class="form-section">
+                <div class="section-header success">
+                    <i class="bi bi-globe"></i>
+                    Endpoint Configuration
+                </div>
+                <div class="section-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">HTTP Method <span class="text-danger">*</span></label>
+                        <div class="method-select">
+                            <button type="button" class="method-btn get active" data-method="GET">GET</button>
+                            <button type="button" class="method-btn post" data-method="POST">POST</button>
+                            <button type="button" class="method-btn put" data-method="PUT">PUT</button>
+                            <button type="button" class="method-btn delete" data-method="DELETE">DELETE</button>
+                            <button type="button" class="method-btn patch" data-method="PATCH">PATCH</button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">REST Endpoint URL <span class="text-danger">*</span></label>
+                        <input type="url" id="endpointUrl" class="form-control form-control-lg" 
+                               placeholder="https://api.example.com/v1/data">
+                        <div class="form-text">
+                            Use <code>{param_name}</code> for path parameters (e.g., <code>https://api.example.com/users/{user_id}</code>)
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Content Type</label>
+                            <select id="contentType" class="form-select">
+                                <option value="application/json" selected>application/json</option>
+                                <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
+                                <option value="multipart/form-data">multipart/form-data</option>
+                                <option value="text/plain">text/plain</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Timeout (seconds)</label>
+                            <input type="number" id="timeout" class="form-control" value="30" min="1" max="300">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Authentication -->
+            <div class="form-section">
+                <div class="section-header warning">
+                    <i class="bi bi-shield-lock"></i>
+                    Authentication (Optional)
+                </div>
+                <div class="section-body">
+                    <div class="auth-toggle">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="authType" id="authNone" value="none" checked>
+                            <label class="form-check-label" for="authNone">
+                                <i class="bi bi-unlock me-1"></i>No Auth
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="authType" id="authApiKey" value="apikey">
+                            <label class="form-check-label" for="authApiKey">
+                                <i class="bi bi-key me-1"></i>API Key
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="authType" id="authBasic" value="basic">
+                            <label class="form-check-label" for="authBasic">
+                                <i class="bi bi-person-lock me-1"></i>Basic Auth
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- API Key Fields -->
+                    <div id="apiKeyFields" class="auth-section" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">API Key Header Name</label>
+                                <input type="text" id="apiKeyHeader" class="form-control" value="X-API-Key">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">API Key Value</label>
+                                <input type="password" id="apiKeyValue" class="form-control" placeholder="Your API key">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Basic Auth Fields -->
+                    <div id="basicAuthFields" class="auth-section" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Username</label>
+                                <input type="text" id="basicAuthUsername" class="form-control" placeholder="Username">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Password</label>
+                                <input type="password" id="basicAuthPassword" class="form-control" placeholder="Password">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Headers -->
+            <div class="form-section">
+                <div class="section-header secondary collapse-toggle" data-bs-toggle="collapse" data-bs-target="#headersCollapse">
+                    <i class="bi bi-list-ul"></i>
+                    Custom HTTP Headers (Optional)
+                    <i class="bi bi-chevron-down ms-auto"></i>
+                </div>
+                <div class="collapse" id="headersCollapse">
+                    <div class="section-body">
+                        <div id="headersList">
+                            <div class="header-row d-flex gap-2 mb-2">
+                                <input type="text" class="form-control header-name" placeholder="Header Name">
+                                <input type="text" class="form-control header-value" placeholder="Header Value">
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeHeader(this)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addHeader()">
+                            <i class="bi bi-plus me-1"></i>Add Header
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Request Schema -->
+            <div class="form-section" id="requestSchemaSection">
+                <div class="section-header info">
+                    <i class="bi bi-send"></i>
+                    Request Schema (JSON Schema)
+                </div>
+                <div class="section-body">
+                    <p class="text-muted small mb-2">
+                        Define the input parameters as JSON Schema. This will be used for input validation.
+                    </p>
+                    <textarea id="requestSchema" class="form-control schema-editor" rows="10">{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Search query"
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Maximum results",
+      "default": 10
+    }
+  },
+  "required": ["query"]
+}</textarea>
+                </div>
+            </div>
+
+            <!-- Response Format Configuration -->
+            <div class="form-section">
+                <div class="section-header" style="background: linear-gradient(135deg, #6f42c1 0%, #563d7c 100%); color: white;">
+                    <i class="bi bi-file-earmark-text"></i>
+                    Response Format
+                </div>
+                <div class="section-body">
+                    <p class="text-muted small mb-3">
+                        Select the format of the API response. The tool will automatically parse the response accordingly.
+                    </p>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Response Content Type</label>
+                            <div class="format-select d-flex flex-wrap gap-2">
+                                <button type="button" class="format-btn active" data-format="json">
+                                    <i class="bi bi-braces me-1"></i>JSON
+                                </button>
+                                <button type="button" class="format-btn" data-format="csv">
+                                    <i class="bi bi-file-earmark-spreadsheet me-1"></i>CSV
+                                </button>
+                                <button type="button" class="format-btn" data-format="xml">
+                                    <i class="bi bi-file-earmark-code me-1"></i>XML
+                                </button>
+                                <button type="button" class="format-btn" data-format="text">
+                                    <i class="bi bi-file-text me-1"></i>Text
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- CSV Options (hidden by default) -->
+                    <div id="csvOptions" class="csv-options-panel" style="display: none;">
+                        <div class="alert alert-info py-2 mb-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>CSV Parsing:</strong> The response will be parsed into structured rows and columns.
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Delimiter</label>
+                                <select id="csvDelimiter" class="form-select form-select-sm">
+                                    <option value="," selected>Comma (,)</option>
+                                    <option value=";">Semicolon (;)</option>
+                                    <option value="&#9;">Tab</option>
+                                    <option value="|">Pipe (|)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Header Row</label>
+                                <select id="csvHasHeader" class="form-select form-select-sm">
+                                    <option value="true" selected>First row is header</option>
+                                    <option value="false">No header row</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Skip Rows</label>
+                                <input type="number" id="csvSkipRows" class="form-control form-control-sm" value="0" min="0" max="100">
+                                <div class="form-text">Rows to skip before header/data</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Response Schema -->
+            <div class="form-section">
+                <div class="section-header info collapse-toggle" data-bs-toggle="collapse" data-bs-target="#responseCollapse">
+                    <i class="bi bi-download"></i>
+                    Response Schema (Optional - for JSON/XML)
+                    <i class="bi bi-chevron-down ms-auto"></i>
+                </div>
+                <div class="collapse" id="responseCollapse">
+                    <div class="section-body">
+                        <p class="text-muted small mb-2">
+                            Define the expected response format as JSON Schema. For CSV responses, schema is auto-generated.
+                        </p>
+                        <textarea id="responseSchema" class="form-control schema-editor" rows="8">{
+  "type": "object",
+  "properties": {
+    "success": {"type": "boolean"},
+    "data": {"type": "object"}
+  }
+}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex gap-3 mb-4">
+                <button type="button" id="previewBtn" class="btn btn-primary btn-action" onclick="previewTool()">
+                    <i class="bi bi-eye me-2"></i>Preview Tool
+                </button>
+                <button type="button" id="deployBtn" class="btn btn-success btn-action" onclick="deployTool()" disabled>
+                    <i class="bi bi-cloud-upload me-2"></i>Deploy Tool
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-action" onclick="clearForm()">
+                    <i class="bi bi-x-circle me-2"></i>Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Examples -->
+            <div class="form-section">
+                <div class="section-header">
+                    <i class="bi bi-lightbulb"></i>
+                    Quick Examples - Click to Load
+                </div>
+                <div class="section-body">
+                    <div class="example-card" onclick="loadExample('weather')">
+                        <h6><i class="bi bi-cloud-sun me-1"></i>Open-Meteo Weather</h6>
+                        <p>Free weather API - no auth required</p>
+                        <span class="method-badge bg-success text-white">GET</span>
+                    </div>
+                    <div class="example-card" onclick="loadExample('jsonplaceholder')">
+                        <h6><i class="bi bi-file-post me-1"></i>JSONPlaceholder Posts</h6>
+                        <p>Demo REST API - Create posts</p>
+                        <span class="method-badge bg-primary text-white">POST</span>
+                    </div>
+                    <div class="example-card" onclick="loadExample('github')">
+                        <h6><i class="bi bi-github me-1"></i>GitHub User Info</h6>
+                        <p>Path parameter example: /users/{username}</p>
+                        <span class="method-badge bg-success text-white">GET</span>
+                    </div>
+                    <div class="example-card" onclick="loadExample('coinbase')">
+                        <h6><i class="bi bi-currency-bitcoin me-1"></i>Coinbase Prices</h6>
+                        <p>Cryptocurrency spot prices</p>
+                        <span class="method-badge bg-success text-white">GET</span>
+                    </div>
+                    <div class="example-card" onclick="loadExample('catfact')">
+                        <h6><i class="bi bi-emoji-smile me-1"></i>Random Cat Facts</h6>
+                        <p>Simple no-parameter API</p>
+                        <span class="method-badge bg-success text-white">GET</span>
+                    </div>
+                    <div class="example-card" onclick="loadExample('fred_csv')" style="border-left: 3px solid #0d6efd;">
+                        <h6><i class="bi bi-file-earmark-spreadsheet me-1 text-primary"></i>FRED Economic Data</h6>
+                        <p>CSV response example - economic data</p>
+                        <span class="method-badge bg-success text-white">GET</span>
+                        <span class="method-badge bg-primary text-white ms-1">CSV</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview Panel -->
+            <div class="preview-panel" id="previewPanel" style="display: none;">
+                <div class="preview-header">
+                    <h6><i class="bi bi-code-slash me-2"></i>Generated Code Preview</h6>
+                </div>
+                <div class="preview-content" id="previewContent">
+                    <!-- Preview content will be inserted here -->
+                </div>
+            </div>
+
+            <!-- JSON Schema Help -->
+            <div class="form-section mt-3">
+                <div class="section-header info collapse-toggle" data-bs-toggle="collapse" data-bs-target="#schemaHelp">
+                    <i class="bi bi-code-square"></i>
+                    JSON Schema Quick Reference
+                    <i class="bi bi-chevron-down ms-auto"></i>
+                </div>
+                <div class="collapse" id="schemaHelp">
+                    <div class="section-body">
+                        <div class="small">
+                            <p class="mb-2"><strong>Supported Types:</strong></p>
+                            <code class="d-block mb-2 p-2 bg-light">string, integer, number, boolean, array, object</code>
+                            
+                            <p class="mb-2"><strong>Example with constraints:</strong></p>
+<pre class="p-2 bg-light small mb-2" style="font-size: 11px;">{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "age": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 150
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    }
+  },
+  "required": ["name", "email"]
+}</pre>
+                            <a href="https://json-schema.org/understanding-json-schema/" target="_blank" class="btn btn-sm btn-outline-info w-100">
+                                <i class="bi bi-box-arrow-up-right me-1"></i>JSON Schema Docs
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help -->
+            <div class="form-section mt-3">
+                <div class="section-header secondary">
+                    <i class="bi bi-question-circle"></i>
+                    Quick Help
+                </div>
+                <div class="section-body">
+                    <ul class="small mb-0">
+                        <li class="mb-2">
+                            <strong>Tool Name:</strong> Use lowercase with underscores (e.g., <code>get_weather</code>)
+                        </li>
+                        <li class="mb-2">
+                            <strong>Path Parameters:</strong> Use <code>{param}</code> in URL (e.g., <code>/users/{id}</code>)
+                        </li>
+                        <li class="mb-2">
+                            <strong>Request Schema:</strong> Define inputs as JSON Schema for automatic validation
+                        </li>
+                        <li class="mb-2">
+                            <strong>Authentication:</strong> Credentials stored securely in generated tool config
+                        </li>
+                        <li class="mb-2">
+                            <strong>Multi-Encoding:</strong> Generated tools support UTF-8, Latin-1, and Asian encodings
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Tool Registry Info -->
+            <div class="alert alert-secondary mt-3 small">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>After Deploy:</strong> Your tool will be immediately available in the Tools Registry 
+                and can be called via MCP protocol. Hot-reload will automatically detect new tools.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-check-circle me-2"></i>Tool Deployed Successfully!
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Your REST tool has been created and loaded!</p>
+                <div class="bg-light p-3 rounded">
+                    <p class="mb-1"><strong>Tool:</strong> <code id="deployedToolName"></code></p>
+                    <p class="mb-1"><strong>Config:</strong> <code id="deployedJsonPath"></code></p>
+                    <p class="mb-0"><strong>Implementation:</strong> <code id="deployedPythonPath"></code></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="{{ url_for('tools_list') }}" class="btn btn-primary">
+                    <i class="bi bi-tools me-1"></i>View Tools
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_glossary %}
+<div class="container-fluid mt-4">
+    <div class="card border-secondary">
+        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
+            <i class="bi bi-book me-2"></i>Page Glossary
+            <i class="bi bi-chevron-down float-end"></i>
+        </div>
+        <div class="collapse" id="pageGlossary">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>REST (Representational State Transfer):</strong> Architectural style for distributed systems using HTTP methods.</p>
+                        <p><strong>JSON Schema:</strong> Vocabulary for validating and documenting JSON data structure.</p>
+                        <p><strong>HTTP Method:</strong> Action type: GET (retrieve), POST (create), PUT (update), DELETE (remove).</p>
+                        <p><strong>API Key:</strong> Token passed in header for authentication.</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Basic Authentication:</strong> HTTP authentication using username and password.</p>
+                        <p><strong>Endpoint:</strong> URL where the REST API receives requests.</p>
+                        <p><strong>Path Parameter:</strong> Variable in URL path (e.g., /users/{id}).</p>
+                        <p><strong>Content-Type:</strong> HTTP header specifying request body format.</p>
+                    </div>
+                </div>
+                <div class="text-end mt-2">
+                    <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-book me-1"></i>View Full Glossary
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Store existing tool names for validation
+const existingTools = {{ existing_tools | tojson }};
+let selectedMethod = 'GET';
+let selectedResponseFormat = 'json';
+let tags = [];
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    setupMethodButtons();
+    setupAuthToggle();
+    setupTagInput();
+    setupFormatButtons();
+    updateRequestSchemaVisibility();
+});
+
+function setupMethodButtons() {
+    document.querySelectorAll('.method-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            selectedMethod = this.dataset.method;
+            updateRequestSchemaVisibility();
+        });
+    });
+}
+
+function setupFormatButtons() {
+    document.querySelectorAll('.format-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            selectedResponseFormat = this.dataset.format;
+            
+            // Show/hide CSV options
+            const csvOptions = document.getElementById('csvOptions');
+            if (selectedResponseFormat === 'csv') {
+                csvOptions.style.display = 'block';
+            } else {
+                csvOptions.style.display = 'none';
+            }
+        });
+    });
+}
+
+function updateRequestSchemaVisibility() {
+    const section = document.getElementById('requestSchemaSection');
+    if (selectedMethod === 'GET' || selectedMethod === 'DELETE') {
+        section.querySelector('.section-header').innerHTML = `
+            <i class="bi bi-send"></i>
+            Query Parameters Schema (JSON Schema)
+        `;
+    } else {
+        section.querySelector('.section-header').innerHTML = `
+            <i class="bi bi-send"></i>
+            Request Body Schema (JSON Schema)
+        `;
+    }
+}
+
+function setupAuthToggle() {
+    document.querySelectorAll('input[name="authType"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.getElementById('apiKeyFields').style.display = 
+                this.value === 'apikey' ? 'block' : 'none';
+            document.getElementById('basicAuthFields').style.display = 
+                this.value === 'basic' ? 'block' : 'none';
+        });
+    });
+}
+
+function setupTagInput() {
+    const input = document.getElementById('tagInput');
+    input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const tag = this.value.trim().toLowerCase();
+            if (tag && !tags.includes(tag)) {
+                tags.push(tag);
+                renderTags();
+            }
+            this.value = '';
+        }
+    });
+}
+
+function renderTags() {
+    const container = document.getElementById('tagsContainer');
+    const input = document.getElementById('tagInput');
+    container.innerHTML = '';
+    tags.forEach((tag, idx) => {
+        const tagEl = document.createElement('span');
+        tagEl.className = 'tag';
+        tagEl.innerHTML = `${tag}<span class="remove-tag" onclick="removeTag(${idx})">&times;</span>`;
+        container.appendChild(tagEl);
+    });
+    container.appendChild(input);
+}
+
+function removeTag(idx) {
+    tags.splice(idx, 1);
+    renderTags();
+}
+
+function addHeader() {
+    const list = document.getElementById('headersList');
+    const row = document.createElement('div');
+    row.className = 'header-row d-flex gap-2 mb-2';
+    row.innerHTML = `
+        <input type="text" class="form-control header-name" placeholder="Header Name">
+        <input type="text" class="form-control header-value" placeholder="Header Value">
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeHeader(this)">
+            <i class="bi bi-trash"></i>
+        </button>
+    `;
+    list.appendChild(row);
+}
+
+function removeHeader(btn) {
+    btn.closest('.header-row').remove();
+}
+
+function getFormData() {
+    // Get custom headers
+    const headers = {};
+    document.querySelectorAll('.header-row').forEach(row => {
+        const name = row.querySelector('.header-name').value.trim();
+        const value = row.querySelector('.header-value').value.trim();
+        if (name && value) headers[name] = value;
+    });
+    
+    // Parse schemas
+    let requestSchema = {};
+    let responseSchema = {};
+    try {
+        requestSchema = JSON.parse(document.getElementById('requestSchema').value);
+    } catch (e) {
+        throw new Error('Invalid request schema JSON');
+    }
+    try {
+        responseSchema = JSON.parse(document.getElementById('responseSchema').value);
+    } catch (e) {
+        // Response schema is optional
+    }
+    
+    // Auth
+    const authType = document.querySelector('input[name="authType"]:checked').value;
+    
+    // Get CSV options (only relevant if format is csv)
+    const csvDelimiter = document.getElementById('csvDelimiter').value;
+    const csvHasHeader = document.getElementById('csvHasHeader').value === 'true';
+    const csvSkipRows = parseInt(document.getElementById('csvSkipRows').value) || 0;
+    
+    return {
+        name: document.getElementById('toolName').value.trim().toLowerCase(),
+        endpoint: document.getElementById('endpointUrl').value.trim(),
+        method: selectedMethod,
+        description: document.getElementById('toolDescription').value.trim(),
+        category: document.getElementById('toolCategory').value.trim() || 'REST API',
+        tags: tags.length > 0 ? tags : ['rest', 'api'],
+        content_type: document.getElementById('contentType').value,
+        timeout: parseInt(document.getElementById('timeout').value) || 30,
+        request_schema: requestSchema,
+        response_schema: responseSchema,
+        response_format: selectedResponseFormat,
+        csv_delimiter: csvDelimiter,
+        csv_has_header: csvHasHeader,
+        csv_skip_rows: csvSkipRows,
+        api_key: authType === 'apikey' ? document.getElementById('apiKeyValue').value : null,
+        api_key_header: authType === 'apikey' ? document.getElementById('apiKeyHeader').value : 'X-API-Key',
+        basic_auth_username: authType === 'basic' ? document.getElementById('basicAuthUsername').value : null,
+        basic_auth_password: authType === 'basic' ? document.getElementById('basicAuthPassword').value : null,
+        headers: headers
+    };
+}
+
+function showStatus(message, type) {
+    const el = document.getElementById('statusMessage');
+    el.textContent = message;
+    el.className = `status-message show ${type}`;
+    setTimeout(() => el.classList.remove('show'), 5000);
+}
+
+async function previewTool() {
+    const btn = document.getElementById('previewBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+    
+    try {
+        const data = getFormData();
+        
+        // Basic validation
+        if (!data.name || data.name.length < 3) {
+            throw new Error('Tool name must be at least 3 characters');
+        }
+        if (!data.endpoint) {
+            throw new Error('Endpoint URL is required');
+        }
+        if (!data.description) {
+            throw new Error('Description is required');
+        }
+        
+        const response = await fetch('/admin/studio/rest/preview', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show preview
+            document.getElementById('previewPanel').style.display = 'block';
+            document.getElementById('previewContent').textContent = 
+                `// ${result.json_filename}\n${result.json_content}\n\n` +
+                `// ${result.python_filename}\n${result.python_content.substring(0, 1500)}...`;
+            
+            // Enable deploy
+            document.getElementById('deployBtn').disabled = false;
+            showStatus('Preview generated successfully!', 'success');
+        } else {
+            throw new Error(result.error || 'Preview failed');
+        }
+    } catch (error) {
+        showStatus(error.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-eye me-2"></i>Preview Tool';
+    }
+}
+
+async function deployTool() {
+    if (!confirm('Are you sure you want to deploy this REST tool?')) return;
+    
+    const btn = document.getElementById('deployBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deploying...';
+    
+    try {
+        const data = getFormData();
+        
+        const response = await fetch('/admin/studio/rest/deploy', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            document.getElementById('deployedToolName').textContent = result.tool_name;
+            document.getElementById('deployedJsonPath').textContent = result.json_path;
+            document.getElementById('deployedPythonPath').textContent = result.python_path;
+            
+            const modal = new bootstrap.Modal(document.getElementById('successModal'));
+            modal.show();
+            
+            showStatus('Tool deployed successfully!', 'success');
+        } else {
+            throw new Error(result.error || 'Deployment failed');
+        }
+    } catch (error) {
+        showStatus(error.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-cloud-upload me-2"></i>Deploy Tool';
+    }
+}
+
+function clearForm() {
+    document.getElementById('toolName').value = '';
+    document.getElementById('toolDescription').value = '';
+    document.getElementById('toolCategory').value = 'REST API';
+    document.getElementById('endpointUrl').value = '';
+    tags = [];
+    renderTags();
+    document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.method-btn.get').classList.add('active');
+    selectedMethod = 'GET';
+    document.getElementById('previewPanel').style.display = 'none';
+    document.getElementById('deployBtn').disabled = true;
+}
+
+function loadExample(type) {
+    const examples = {
+        weather: {
+            name: 'get_weather',
+            endpoint: 'https://api.open-meteo.com/v1/forecast',
+            method: 'GET',
+            description: 'Get current weather forecast for a location using Open-Meteo free API',
+            category: 'Weather',
+            tags: ['weather', 'forecast', 'api'],
+            requestSchema: {
+                type: 'object',
+                properties: {
+                    latitude: { type: 'number', description: 'Latitude coordinate' },
+                    longitude: { type: 'number', description: 'Longitude coordinate' },
+                    current_weather: { type: 'boolean', default: true }
+                },
+                required: ['latitude', 'longitude']
+            }
+        },
+        jsonplaceholder: {
+            name: 'create_post',
+            endpoint: 'https://jsonplaceholder.typicode.com/posts',
+            method: 'POST',
+            description: 'Create a new blog post using JSONPlaceholder demo API',
+            category: 'Demo',
+            tags: ['demo', 'posts', 'create'],
+            requestSchema: {
+                type: 'object',
+                properties: {
+                    title: { type: 'string', description: 'Post title' },
+                    body: { type: 'string', description: 'Post content' },
+                    userId: { type: 'integer', description: 'Author user ID' }
+                },
+                required: ['title', 'body', 'userId']
+            }
+        },
+        github: {
+            name: 'get_github_user',
+            endpoint: 'https://api.github.com/users/{username}',
+            method: 'GET',
+            description: 'Get public information about a GitHub user using path parameter',
+            category: 'Developer Tools',
+            tags: ['github', 'users', 'api'],
+            requestSchema: {
+                type: 'object',
+                properties: {
+                    username: { type: 'string', description: 'GitHub username' }
+                },
+                required: ['username']
+            }
+        },
+        coinbase: {
+            name: 'get_crypto_price',
+            endpoint: 'https://api.coinbase.com/v2/prices/{currency_pair}/spot',
+            method: 'GET',
+            description: 'Get current spot price for a cryptocurrency pair from Coinbase',
+            category: 'Finance',
+            tags: ['crypto', 'bitcoin', 'price', 'coinbase'],
+            requestSchema: {
+                type: 'object',
+                properties: {
+                    currency_pair: { 
+                        type: 'string', 
+                        description: 'Currency pair (e.g., BTC-USD, ETH-EUR)',
+                        default: 'BTC-USD'
+                    }
+                },
+                required: ['currency_pair']
+            }
+        },
+        catfact: {
+            name: 'get_cat_fact',
+            endpoint: 'https://catfact.ninja/fact',
+            method: 'GET',
+            description: 'Get a random cat fact - simple API with no parameters',
+            category: 'Fun',
+            tags: ['cats', 'facts', 'random', 'fun'],
+            responseFormat: 'json',
+            requestSchema: {
+                type: 'object',
+                properties: {},
+                required: []
+            }
+        },
+        fred_csv: {
+            name: 'get_fred_csv_data',
+            endpoint: 'https://fred.stlouisfed.org/graph/fredgraph.csv',
+            method: 'GET',
+            description: 'Get Federal Reserve economic data in CSV format (e.g., GDP, unemployment)',
+            category: 'Finance',
+            tags: ['fred', 'economics', 'csv', 'data'],
+            responseFormat: 'csv',
+            csvDelimiter: ',',
+            csvHasHeader: true,
+            csvSkipRows: 0,
+            requestSchema: {
+                type: 'object',
+                properties: {
+                    id: { 
+                        type: 'string', 
+                        description: 'FRED series ID (e.g., GDP, UNRATE, CPIAUCSL)',
+                        default: 'UNRATE'
+                    }
+                },
+                required: ['id']
+            }
+        },
+        worldbank_csv: {
+            name: 'get_worldbank_csv',
+            endpoint: 'https://api.worldbank.org/v2/country/all/indicator/{indicator}',
+            method: 'GET',
+            description: 'Get World Bank indicator data - can return CSV format',
+            category: 'Economics',
+            tags: ['worldbank', 'indicators', 'economics'],
+            responseFormat: 'json',
+            requestSchema: {
+                type: 'object',
+                properties: {
+                    indicator: { 
+                        type: 'string', 
+                        description: 'World Bank indicator code (e.g., NY.GDP.MKTP.CD for GDP)',
+                        default: 'NY.GDP.MKTP.CD'
+                    },
+                    format: { 
+                        type: 'string', 
+                        description: 'Response format',
+                        default: 'json'
+                    }
+                },
+                required: ['indicator']
+            }
+        }
+    };
+    
+    const ex = examples[type];
+    if (!ex) return;
+    
+    document.getElementById('toolName').value = ex.name;
+    document.getElementById('toolDescription').value = ex.description;
+    document.getElementById('toolCategory').value = ex.category;
+    document.getElementById('endpointUrl').value = ex.endpoint;
+    document.getElementById('requestSchema').value = JSON.stringify(ex.requestSchema, null, 2);
+    
+    tags = ex.tags;
+    renderTags();
+    
+    // Set method
+    document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.method-btn[data-method="${ex.method}"]`).classList.add('active');
+    selectedMethod = ex.method;
+    updateRequestSchemaVisibility();
+    
+    // Set response format
+    const responseFormat = ex.responseFormat || 'json';
+    document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.format-btn[data-format="${responseFormat}"]`).classList.add('active');
+    selectedResponseFormat = responseFormat;
+    
+    // Show/hide CSV options
+    const csvOptions = document.getElementById('csvOptions');
+    if (responseFormat === 'csv') {
+        csvOptions.style.display = 'block';
+        document.getElementById('csvDelimiter').value = ex.csvDelimiter || ',';
+        document.getElementById('csvHasHeader').value = ex.csvHasHeader !== false ? 'true' : 'false';
+        document.getElementById('csvSkipRows').value = ex.csvSkipRows || 0;
+    } else {
+        csvOptions.style.display = 'none';
+    }
+    
+    showStatus(`Loaded "${type}" example`, 'success');
+}
+</script>
+{% endblock %}

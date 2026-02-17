@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server - Example Clients Module v2.2.0
+SAJHA MCP Server - Example Clients Module v2.3.0
 
 Copyright © 2025-2030, All Rights Reserved
 Ashutosh Sinha
@@ -24,7 +24,7 @@ Usage:
        etc.
 """
 
-__version__ = '2.2.0'
+__version__ = '2.3.0'
 __author__ = 'Ashutosh Sinha'
 __email__ = 'ajsinha@gmail.com'
 

@@ -1,6 +1,6 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Routes Module for SAJHA MCP Server v2.2.0
+Routes Module for SAJHA MCP Server v2.3.0
 """
 
 from .base_routes import BaseRoutes

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SAJHA MCP Server - Web Crawler Tools Client v2.2.0
+SAJHA MCP Server - Web Crawler Tools Client v2.3.0
 
 Copyright © 2025-2030, All Rights Reserved
 Ashutosh Sinha
@@ -207,7 +207,7 @@ def example_website_analysis():
 
 if __name__ == '__main__':
     print("=" * 60)
-    print(" SAJHA MCP Server - Web Crawler Tools Examples v2.2.0")
+    print(" SAJHA MCP Server - Web Crawler Tools Examples v2.3.0")
     print("=" * 60)
     
     example_extract_metadata()

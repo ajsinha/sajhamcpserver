@@ -1,11 +1,12 @@
 """
-SAJHA MCP Server - MCP Studio Routes v2.2.0
+SAJHA MCP Server - MCP Studio Routes v2.4.0
 
 Copyright © 2025-2030, All Rights Reserved
 Ashutosh Sinha
 Email: ajsinha@gmail.com
 
 Routes for the MCP Studio feature - admin-only tool creation interface.
+Supports Python code-based, REST service-based, and DB Query-based tool creation.
 """
 
 import json
@@ -14,6 +15,8 @@ from flask import request, render_template, jsonify, flash, redirect, url_for
 from .base_routes import BaseRoutes
 
 from sajha.studio import CodeAnalyzer, ToolCodeGenerator, ToolDefinition
+from sajha.studio import RESTToolGenerator, RESTToolDefinition
+from sajha.studio import DBQueryToolGenerator, DBQueryToolDefinition, DBQueryParameter
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +35,8 @@ class StudioRoutes(BaseRoutes):
         super().__init__(auth_manager, tools_registry, None)
         self.analyzer = CodeAnalyzer()
         self.generator = ToolCodeGenerator()
+        self.rest_generator = RESTToolGenerator()
+        self.dbquery_generator = DBQueryToolGenerator()
     
     def register_routes(self, app):
         """Register MCP Studio routes."""
@@ -40,12 +45,324 @@ class StudioRoutes(BaseRoutes):
         @self.admin_required
         def studio_home():
             """MCP Studio main page."""
+            user_session = self.get_user_session()
             # Get list of existing tools for conflict detection
             existing_tools = list(self.tools_registry.tools.keys())
             
             return render_template('admin/studio/studio_home.html',
+                                 user=user_session,
                                  existing_tools=existing_tools,
                                  sample_code=self._get_sample_code())
+        
+        @app.route('/admin/studio/rest')
+        @self.admin_required
+        def studio_rest():
+            """REST Service Tool Creator page."""
+            user_session = self.get_user_session()
+            existing_tools = list(self.tools_registry.tools.keys())
+            
+            return render_template('admin/studio/studio_rest.html',
+                                 user=user_session,
+                                 existing_tools=existing_tools)
+        
+        @app.route('/admin/studio/rest/preview', methods=['POST'])
+        @self.admin_required
+        def studio_rest_preview():
+            """Preview REST tool generation."""
+            try:
+                data = request.get_json()
+                
+                # Create definition from request data
+                definition = RESTToolDefinition(
+                    name=data.get('name', '').strip().lower(),
+                    endpoint=data.get('endpoint', ''),
+                    method=data.get('method', 'GET'),
+                    description=data.get('description', ''),
+                    request_schema=data.get('request_schema', {}),
+                    response_schema=data.get('response_schema', {}),
+                    category=data.get('category', 'REST API'),
+                    tags=data.get('tags', []),
+                    api_key=data.get('api_key'),
+                    api_key_header=data.get('api_key_header', 'X-API-Key'),
+                    basic_auth_username=data.get('basic_auth_username'),
+                    basic_auth_password=data.get('basic_auth_password'),
+                    headers=data.get('headers', {}),
+                    timeout=data.get('timeout', 30),
+                    content_type=data.get('content_type', 'application/json'),
+                    response_format=data.get('response_format', 'json'),
+                    csv_delimiter=data.get('csv_delimiter', ','),
+                    csv_has_header=data.get('csv_has_header', True),
+                    csv_skip_rows=data.get('csv_skip_rows', 0)
+                )
+                
+                # Check for name conflicts
+                existing_tools = list(self.tools_registry.tools.keys())
+                if definition.name in existing_tools:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Tool "{definition.name}" already exists'
+                    }), 400
+                
+                # Generate preview
+                preview = self.rest_generator.preview_tool(definition)
+                
+                if not preview.get('success'):
+                    return jsonify({
+                        'success': False,
+                        'error': 'Validation errors: ' + ', '.join(preview.get('errors', []))
+                    }), 400
+                
+                return jsonify({
+                    'success': True,
+                    'json_content': preview['json_content'],
+                    'python_content': preview['python_content'],
+                    'json_filename': preview['json_filename'],
+                    'python_filename': preview['python_filename']
+                })
+                
+            except Exception as e:
+                logger.error(f"Error previewing REST tool: {e}", exc_info=True)
+                return jsonify({
+                    'success': False,
+                    'error': f'Preview error: {str(e)}'
+                }), 500
+        
+        @app.route('/admin/studio/rest/deploy', methods=['POST'])
+        @self.admin_required
+        def studio_rest_deploy():
+            """Deploy REST tool."""
+            try:
+                data = request.get_json()
+                
+                # Create definition from request data
+                definition = RESTToolDefinition(
+                    name=data.get('name', '').strip().lower(),
+                    endpoint=data.get('endpoint', ''),
+                    method=data.get('method', 'GET'),
+                    description=data.get('description', ''),
+                    request_schema=data.get('request_schema', {}),
+                    response_schema=data.get('response_schema', {}),
+                    category=data.get('category', 'REST API'),
+                    tags=data.get('tags', []),
+                    api_key=data.get('api_key'),
+                    api_key_header=data.get('api_key_header', 'X-API-Key'),
+                    basic_auth_username=data.get('basic_auth_username'),
+                    basic_auth_password=data.get('basic_auth_password'),
+                    headers=data.get('headers', {}),
+                    timeout=data.get('timeout', 30),
+                    content_type=data.get('content_type', 'application/json'),
+                    response_format=data.get('response_format', 'json'),
+                    csv_delimiter=data.get('csv_delimiter', ','),
+                    csv_has_header=data.get('csv_has_header', True),
+                    csv_skip_rows=data.get('csv_skip_rows', 0)
+                )
+                
+                # Check for name conflicts
+                existing_tools = list(self.tools_registry.tools.keys())
+                if definition.name in existing_tools:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Tool "{definition.name}" already exists'
+                    }), 400
+                
+                # Save the tool
+                success, message, json_path, python_path = self.rest_generator.save_tool(
+                    definition, 
+                    overwrite=False
+                )
+                
+                if not success:
+                    return jsonify({
+                        'success': False,
+                        'error': message
+                    }), 400
+                
+                # Reload tools registry
+                try:
+                    self.tools_registry.reload_all_tools()
+                    logger.info(f"Tools reloaded. Total tools: {len(self.tools_registry.tools)}")
+                except Exception as reload_error:
+                    logger.warning(f"Could not reload tools: {reload_error}")
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'REST Tool "{definition.name}" deployed successfully!',
+                    'json_path': json_path,
+                    'python_path': python_path,
+                    'tool_name': definition.name
+                })
+                
+            except Exception as e:
+                logger.error(f"Error deploying REST tool: {e}", exc_info=True)
+                return jsonify({
+                    'success': False,
+                    'error': f'Deployment error: {str(e)}'
+                }), 500
+        
+        # ============================================================
+        # DB Query Tool Creator Routes
+        # ============================================================
+        
+        @app.route('/admin/studio/dbquery')
+        @self.admin_required
+        def studio_dbquery():
+            """DB Query Tool Creator page."""
+            user_session = self.get_user_session()
+            existing_tools = list(self.tools_registry.tools.keys())
+            
+            return render_template('admin/studio/studio_dbquery.html',
+                                 user=user_session,
+                                 existing_tools=existing_tools)
+        
+        @app.route('/admin/studio/dbquery/preview', methods=['POST'])
+        @self.admin_required
+        def studio_dbquery_preview():
+            """Preview DB Query tool generation."""
+            try:
+                data = request.get_json()
+                
+                # Parse parameters
+                params = []
+                for p in data.get('parameters', []):
+                    param = DBQueryParameter(
+                        name=p.get('name', '').strip(),
+                        param_type=p.get('param_type', 'string'),
+                        description=p.get('description', ''),
+                        required=p.get('required', True),
+                        default=p.get('default') if p.get('default') else None,
+                        enum=p.get('enum') if p.get('enum') else None
+                    )
+                    params.append(param)
+                
+                # Create definition from request data
+                definition = DBQueryToolDefinition(
+                    name=data.get('name', '').strip().lower(),
+                    description=data.get('description', ''),
+                    db_type=data.get('db_type', 'duckdb'),
+                    connection_string=data.get('connection_string', ''),
+                    query_template=data.get('query_template', ''),
+                    parameters=params,
+                    category=data.get('category', 'Database'),
+                    tags=data.get('tags', ['database', 'query', 'sql']),
+                    literature=data.get('literature', ''),
+                    timeout=data.get('timeout', 30),
+                    max_rows=data.get('max_rows', 1000)
+                )
+                
+                # Check for name conflicts
+                existing_tools = list(self.tools_registry.tools.keys())
+                if definition.name in existing_tools:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Tool "{definition.name}" already exists'
+                    }), 400
+                
+                # Generate preview
+                preview = self.dbquery_generator.preview_tool(definition)
+                
+                if not preview.get('success'):
+                    return jsonify({
+                        'success': False,
+                        'error': 'Validation errors: ' + ', '.join(preview.get('errors', []))
+                    }), 400
+                
+                return jsonify({
+                    'success': True,
+                    'json_content': preview['json_content'],
+                    'python_content': preview['python_content'],
+                    'json_filename': preview['json_filename'],
+                    'python_filename': preview['python_filename'],
+                    'input_schema': preview['input_schema'],
+                    'output_schema': preview['output_schema']
+                })
+                
+            except Exception as e:
+                logger.error(f"Error previewing DB Query tool: {e}", exc_info=True)
+                return jsonify({
+                    'success': False,
+                    'error': f'Preview error: {str(e)}'
+                }), 500
+        
+        @app.route('/admin/studio/dbquery/deploy', methods=['POST'])
+        @self.admin_required
+        def studio_dbquery_deploy():
+            """Deploy DB Query tool."""
+            try:
+                data = request.get_json()
+                
+                # Parse parameters
+                params = []
+                for p in data.get('parameters', []):
+                    param = DBQueryParameter(
+                        name=p.get('name', '').strip(),
+                        param_type=p.get('param_type', 'string'),
+                        description=p.get('description', ''),
+                        required=p.get('required', True),
+                        default=p.get('default') if p.get('default') else None,
+                        enum=p.get('enum') if p.get('enum') else None
+                    )
+                    params.append(param)
+                
+                # Create definition from request data
+                definition = DBQueryToolDefinition(
+                    name=data.get('name', '').strip().lower(),
+                    description=data.get('description', ''),
+                    db_type=data.get('db_type', 'duckdb'),
+                    connection_string=data.get('connection_string', ''),
+                    query_template=data.get('query_template', ''),
+                    parameters=params,
+                    category=data.get('category', 'Database'),
+                    tags=data.get('tags', ['database', 'query', 'sql']),
+                    literature=data.get('literature', ''),
+                    timeout=data.get('timeout', 30),
+                    max_rows=data.get('max_rows', 1000)
+                )
+                
+                # Check for name conflicts
+                existing_tools = list(self.tools_registry.tools.keys())
+                if definition.name in existing_tools:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Tool "{definition.name}" already exists'
+                    }), 400
+                
+                # Save the tool
+                success, message, json_path, python_path = self.dbquery_generator.save_tool(
+                    definition, 
+                    overwrite=False
+                )
+                
+                if not success:
+                    return jsonify({
+                        'success': False,
+                        'error': message
+                    }), 400
+                
+                # Reload tools registry
+                try:
+                    self.tools_registry.reload_all_tools()
+                    logger.info(f"Tools reloaded. Total tools: {len(self.tools_registry.tools)}")
+                except Exception as reload_error:
+                    logger.warning(f"Could not reload tools: {reload_error}")
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'DB Query Tool "{definition.name}" deployed successfully!',
+                    'json_path': json_path,
+                    'python_path': python_path,
+                    'tool_name': definition.name
+                })
+                
+            except Exception as e:
+                logger.error(f"Error deploying DB Query tool: {e}", exc_info=True)
+                return jsonify({
+                    'success': False,
+                    'error': f'Deployment error: {str(e)}'
+                }), 500
+        
+        # ============================================================
+        # Python Code Tool Creator Routes
+        # ============================================================
         
         @app.route('/admin/studio/analyze', methods=['POST'])
         @self.admin_required
@@ -301,8 +618,10 @@ class StudioRoutes(BaseRoutes):
         @self.admin_required
         def studio_examples():
             """Show example code snippets."""
+            user_session = self.get_user_session()
             examples = self._get_code_examples()
             return render_template('admin/studio/studio_examples.html',
+                                 user=user_session,
                                  examples=examples)
     
     def _get_sample_code(self) -> str:

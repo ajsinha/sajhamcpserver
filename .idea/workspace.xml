@@ -6,8 +6,60 @@
   <component name="ChangeListManager">
     <list default="true" id="04a8e7bd-1a2d-4b5f-a656-a3f1eed8ce6e" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/config/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/server.properties" beforeDir="false" afterPath="$PROJECT_DIR$/config/server.properties" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config/users.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/users.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/architecture/Glossary.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/architecture/Glossary.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/architecture/SAJHA_MCP_Server_Architecture.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/architecture/SAJHA_MCP_Server_Architecture.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/IMPLEMENTATION_SUMMARY.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/IMPLEMENTATION_SUMMARY.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/MCP_Studio_User_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/MCP_Studio_User_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/SQL_Select_Search_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/SQL_Select_Search_MCP_Tool_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/Tavily_Search_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/Tavily_Search_MCP_Tool_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/United_Nations_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/United_Nations_MCP_Tool_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/World_Bank_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/World_Bank_MCP_Tool_Reference_Guide.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/logs/server.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/server.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/run_server.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_server.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/core/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/core/apikey_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/apikey_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/core/auth_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/auth_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/core/hot_reload_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/hot_reload_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/base_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/base_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/central_banks_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/central_banks_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/document_sql_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/document_sql_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/duckdb_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/duckdb_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/ecb_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/ecb_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/fbi_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/fbi_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/federal_reserve_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/federal_reserve_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/imf_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/imf_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/ir_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/ir_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/search_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/search_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/sec_edgar_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/sec_edgar_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/un_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/un_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/webcrawler_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/webcrawler_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/wikipedia_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/wikipedia_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/world_bank_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/world_bank_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/examples/yahoo_finance_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/examples/yahoo_finance_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/studio/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/studio/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/studio/code_analyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/studio/code_analyzer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/studio/code_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/studio/code_generator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/studio/decorator.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/studio/decorator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/tools/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/tools/http_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/http_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/tools/tools_registry.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/tools_registry.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/routes/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/routes/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/routes/studio_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/routes/studio_routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/sajhamcpserver_web.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/sajhamcpserver_web.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/static/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/static/css/style.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_home.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_home.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/common/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/common/base.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/help/about.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/help/about.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/help/help.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/help/help.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -17,9 +69,13 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 0
-}]]></component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
   <component name="ProjectId" id="37hn0mzAzzROKjwylSBvbK6ydSw" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -30,14 +86,16 @@
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.run_server.executor": "Run",
     "Python.search_client.executor": "Run",
+    "RunOnceActivity.MCP Project settings loaded": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/ashutosh/PycharmProjects/sajhamcpserver",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
 }]]></component>
-  <component name="RunManager" selected="Python.search_client">
+  <component name="RunManager" selected="Python.run_server">
     <configuration name="run_server" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="sajhamcpserver" />
       <option name="ENV_FILES" value="" />
@@ -86,15 +144,15 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.search_client" />
         <item itemvalue="Python.run_server" />
+        <item itemvalue="Python.search_client" />
       </list>
     </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-f2b7a9f6281b-6e1f45a539f7-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.29346.142" />
+        <option value="bundled-python-sdk-4762d8aabb82-6d6dccd035ac-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.30387.173" />
       </set>
     </attachedChunks>
   </component>

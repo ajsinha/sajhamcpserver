@@ -995,59 +995,179 @@ socket.on('tool_result', (result) => {
         <div class="col-12">
             <div class="card border-purple" style="border-color: #8a2be2 !important;">
                 <div class="card-header text-white" style="background: linear-gradient(135deg, #8a2be2 0%, #9b59b6 100%);">
-                    <i class="bi bi-magic me-2"></i>MCP Studio <span class="badge bg-light text-dark ms-2">New in v2.2.0</span>
+                    <i class="bi bi-magic me-2"></i>MCP Studio - Visual Tool Creation Platform <span class="badge bg-light text-dark ms-2">v2.3.1</span>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
+                    <div class="row mb-4">
+                        <div class="col-12">
                             <h5><i class="bi bi-stars me-2 text-warning"></i>What is MCP Studio?</h5>
-                            <p>MCP Studio is a visual tool creation feature that allows administrators to create custom MCP tools by writing Python functions with the <code>@sajhamcptool</code> decorator. The system automatically generates:</p>
-                            <ul>
-                                <li><strong>Tool JSON Configuration</strong> - with name, description, and metadata</li>
-                                <li><strong>Python Implementation</strong> - a complete class extending BaseMCPTool</li>
-                                <li><strong>Input/Output Schemas</strong> - derived from your function's type hints</li>
-                            </ul>
-                            
-                            <h5 class="mt-4"><i class="bi bi-lightbulb me-2 text-info"></i>Key Benefits</h5>
-                            <ul>
-                                <li>No manual JSON configuration required</li>
-                                <li>No boilerplate class code to write</li>
-                                <li>Type hints automatically become JSON schemas</li>
-                                <li>Instant deployment with hot-reload</li>
-                                <li>Built-in syntax validation before deployment</li>
-                            </ul>
+                            <p>MCP Studio is a comprehensive visual tool creation platform that allows administrators to create custom MCP tools without manual coding. It offers <strong>two creation methods</strong>:</p>
                         </div>
-                        <div class="col-md-6">
-                            <h5><i class="bi bi-code-slash me-2 text-success"></i>Example Code</h5>
-                            <pre class="bg-dark text-light p-3 rounded" style="font-size: 12px;"><code>from sajha.studio import sajhamcptool
-
-@sajhamcptool(
-    description="Calculate compound interest",
-    category="Finance",
-    tags=["calculator", "interest"]
+                    </div>
+                    
+                    <!-- Two Creation Methods -->
+                    <div class="row mb-4">
+                        <!-- Python Code Creator -->
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100 border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <i class="bi bi-code-slash me-2"></i>Python Code Tool Creator
+                                </div>
+                                <div class="card-body">
+                                    <p>Write Python functions with the <code>@sajhamcptool</code> decorator. The system automatically generates:</p>
+                                    <ul class="small">
+                                        <li><strong>Tool JSON Configuration</strong> - name, description, metadata</li>
+                                        <li><strong>Python Implementation</strong> - complete BaseMCPTool class</li>
+                                        <li><strong>Input/Output Schemas</strong> - from type hints</li>
+                                    </ul>
+                                    <pre class="bg-dark text-light p-2 rounded" style="font-size: 11px;"><code>@sajhamcptool(
+    description="Calculate interest",
+    category="Finance"
 )
 def compound_interest(
     principal: float,
     rate: float,
-    years: int,
-    frequency: int = 12
+    years: int
 ) -> dict:
-    """Calculate compound interest."""
-    amount = principal * (1 + rate/frequency) ** (frequency * years)
-    return {
-        "principal": principal,
-        "final_amount": round(amount, 2),
-        "interest": round(amount - principal, 2)
-    }</code></pre>
-                            
-                            <h5 class="mt-4"><i class="bi bi-gear me-2 text-secondary"></i>How to Use</h5>
-                            <ol>
+    amount = principal * (1 + rate/12) ** (12 * years)
+    return {"result": amount}</code></pre>
+                                    <p class="small text-muted mt-2 mb-0"><strong>Best for:</strong> Custom logic, complex calculations, multi-step processes</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- REST Service Creator -->
+                        <div class="col-md-6 mb-3" id="mcp-studio-rest">
+                            <div class="card h-100 border-success">
+                                <div class="card-header bg-success text-white">
+                                    <i class="bi bi-cloud-arrow-up me-2"></i>REST Service Tool Creator
+                                </div>
+                                <div class="card-body">
+                                    <p>Wrap any REST API endpoint as an MCP tool through a visual interface:</p>
+                                    <ul class="small">
+                                        <li><strong>HTTP Methods</strong> - GET, POST, PUT, DELETE, PATCH</li>
+                                        <li><strong>Authentication</strong> - API Key or Basic Auth</li>
+                                        <li><strong>JSON Schemas</strong> - Request and response validation</li>
+                                        <li><strong>Custom Headers</strong> - Any HTTP headers</li>
+                                        <li><strong>Path Parameters</strong> - Use <code>{param}</code> syntax in URLs</li>
+                                    </ul>
+                                    <div class="bg-light p-2 rounded small mb-2">
+                                        <strong>Built-in Examples:</strong><br>
+                                        <code class="text-success">Open-Meteo Weather</code>,
+                                        <code class="text-primary">JSONPlaceholder</code>,
+                                        <code class="text-dark">GitHub API</code>,
+                                        <code class="text-warning">Coinbase Prices</code>
+                                    </div>
+                                    <p class="small text-muted mb-0"><strong>Best for:</strong> External APIs, third-party services, data integrations</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Key Benefits -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-lightbulb me-2 text-info"></i>Key Benefits</h6>
+                            <ul class="small">
+                                <li>No manual JSON configuration required</li>
+                                <li>No boilerplate class code to write</li>
+                                <li>Type hints become JSON schemas automatically</li>
+                                <li>Instant deployment with hot-reload</li>
+                                <li>Built-in validation before deployment</li>
+                                <li>Multi-encoding support for international APIs</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-gear me-2 text-secondary"></i>How to Access</h6>
+                            <ol class="small">
                                 <li>Navigate to <strong>Admin → MCP Studio</strong></li>
-                                <li>Enter a unique tool name (lowercase, underscores)</li>
-                                <li>Paste your <code>@sajhamcptool</code> decorated function</li>
-                                <li>Click <strong>Analyze Code</strong> to preview generated files</li>
-                                <li>Click <strong>Deploy Tool</strong> to create the tool</li>
+                                <li>Choose creation method:
+                                    <ul>
+                                        <li><strong>Python Code:</strong> Use the code editor on main page</li>
+                                        <li><strong>REST Service:</strong> Click "Open REST Creator"</li>
+                                        <li><strong>DB Query:</strong> Click "Open DB Query Creator"</li>
+                                    </ul>
+                                </li>
+                                <li>Fill in tool details and schemas</li>
+                                <li>Preview generated files</li>
+                                <li>Click <strong>Deploy</strong> - tool available immediately!</li>
                             </ol>
+                        </div>
+                    </div>
+                    
+                    <!-- REST Creator Features -->
+                    <div class="card border-info mb-3" id="mcp-studio-rest">
+                        <div class="card-header bg-info text-dark">
+                            <i class="bi bi-cloud me-2"></i>REST Service Tool Creator Features (v2.4.0)
+                        </div>
+                        <div class="card-body small">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>Endpoint Configuration:</strong>
+                                    <ul class="mb-0">
+                                        <li>Full URL with path parameters</li>
+                                        <li>HTTP method selection</li>
+                                        <li>Content-Type configuration</li>
+                                        <li>Timeout settings</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Response Formats:</strong>
+                                    <ul class="mb-0">
+                                        <li>JSON (default)</li>
+                                        <li>CSV (with delimiter, header, skip rows)</li>
+                                        <li>XML</li>
+                                        <li>Plain text</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Authentication Options:</strong>
+                                    <ul class="mb-0">
+                                        <li>None (public APIs)</li>
+                                        <li>API Key (custom header)</li>
+                                        <li>Basic Auth</li>
+                                        <li>6 quick examples included</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- DB Query Creator Features -->
+                    <div class="card border-warning mb-3" id="mcp-studio-dbquery">
+                        <div class="card-header bg-warning text-dark">
+                            <i class="bi bi-database me-2"></i>Database Query Tool Creator Features (v2.4.0)
+                        </div>
+                        <div class="card-body small">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>Supported Databases:</strong>
+                                    <ul class="mb-0">
+                                        <li>DuckDB (embedded analytics)</li>
+                                        <li>SQLite</li>
+                                        <li>PostgreSQL</li>
+                                        <li>MySQL</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Query Features:</strong>
+                                    <ul class="mb-0">
+                                        <li>Parameterized SQL templates</li>
+                                        <li>Multiple parameter types</li>
+                                        <li>Auto-generated input schemas</li>
+                                        <li>Row limit protection</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Parameter Types:</strong>
+                                    <ul class="mb-0">
+                                        <li>string, integer, number</li>
+                                        <li>boolean, date</li>
+                                        <li>Enum (dropdown options)</li>
+                                        <li>Optional with defaults</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -1055,13 +1175,21 @@ def compound_interest(
                         <div class="row align-items-center">
                             <div class="col-md-8">
                                 <i class="bi bi-info-circle me-2"></i>
-                                <strong>Pro Tip:</strong> Parameters without default values become required fields. Use type hints like <code>str</code>, <code>int</code>, <code>float</code>, <code>bool</code>, <code>list</code>, <code>dict</code> for accurate schema generation.
+                                <strong>Pro Tip:</strong> Use path parameters with <code>{param_name}</code> syntax in REST URLs, and <code>{{param_name}}</code> in SQL queries. Parameters are substituted automatically.
                             </div>
                             <div class="col-md-4 text-md-end mt-2 mt-md-0">
                                 {% if user and user.roles and 'admin' in user.roles %}
-                                <a href="{{ url_for('studio_home') }}" class="btn btn-primary">
-                                    <i class="bi bi-magic me-1"></i>Open MCP Studio
-                                </a>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('studio_home') }}" class="btn btn-primary">
+                                        <i class="bi bi-magic me-1"></i>MCP Studio
+                                    </a>
+                                    <a href="{{ url_for('studio_rest') }}" class="btn btn-success">
+                                        <i class="bi bi-cloud-arrow-up me-1"></i>REST Creator
+                                    </a>
+                                    <a href="{{ url_for('studio_dbquery') }}" class="btn btn-warning text-dark">
+                                        <i class="bi bi-database me-1"></i>DB Query
+                                    </a>
+                                </div>
                                 {% else %}
                                 <span class="badge bg-secondary"><i class="bi bi-lock me-1"></i>Admin Only</span>
                                 {% endif %}

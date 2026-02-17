@@ -2,11 +2,19 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}SAJHA MCP Server{% endblock %}</title>
+    
+    <!-- Theme initialization (prevent flash) -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('sajha-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -57,16 +65,45 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         </ul>
                     </li>
                     {% if user and user.roles and 'admin' in user.roles %}
+                    <!-- MCP Studio - Top Level Menu -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="studioDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-magic"></i> MCP Studio
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('studio_home') }}">
+                                    <i class="bi bi-house me-2"></i>Studio Home
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('studio_home') }}#python-creator">
+                                    <i class="bi bi-code-slash me-2 text-primary"></i>Python Code Tool
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('studio_rest') }}">
+                                    <i class="bi bi-cloud-arrow-up me-2 text-success"></i>REST Service Tool
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('studio_dbquery') }}">
+                                    <i class="bi bi-database me-2 text-warning"></i>DB Query Tool
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <!-- Admin Menu -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-gear-fill"></i> Admin
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('admin_tools') }}">Manage Tools</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin_users') }}">Manage Users</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin_prompts') }}">Manage Prompts</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_tools') }}"><i class="bi bi-tools me-2"></i>Manage Tools</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_users') }}"><i class="bi bi-people me-2"></i>Manage Users</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_prompts') }}"><i class="bi bi-chat-square-text me-2"></i>Manage Prompts</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('studio_home') }}"><i class="bi bi-magic me-2"></i>MCP Studio <span class="badge bg-info">New</span></a></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin_apikeys') }}"><i class="bi bi-key me-2"></i>API Keys</a></li>
                         </ul>
                     </li>
@@ -83,6 +120,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         <a class="nav-link" href="{{ url_for('about_page') }}">
                             <i class="bi bi-info-circle"></i> About
                         </a>
+                    </li>
+                    <!-- Theme Toggle Button -->
+                    <li class="nav-item d-flex align-items-center">
+                        <button class="theme-toggle" id="themeToggle" title="Toggle light/dark theme" aria-label="Toggle theme">
+                            <i class="bi bi-moon-fill"></i>
+                            <i class="bi bi-sun-fill"></i>
+                        </button>
                     </li>
                     {% if session.token and user %}
                     <li class="nav-item dropdown">
@@ -118,7 +162,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     {% block page_glossary %}{% endblock %}
     
     <!-- Footer -->
-    <footer class="footer mt-auto py-3 bg-light">
+    <footer class="footer mt-auto py-3">
         <div class="container text-center">
             <span class="text-muted">© 2025-2030 SAJHA MCP Server | Ashutosh Sinha</span>
         </div>
@@ -132,6 +176,40 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Theme Toggle Script -->
+    <script>
+        (function() {
+            const themeToggle = document.getElementById('themeToggle');
+            const htmlElement = document.documentElement;
+            
+            // Get current theme
+            function getCurrentTheme() {
+                return localStorage.getItem('sajha-theme') || 'light';
+            }
+            
+            // Set theme
+            function setTheme(theme) {
+                htmlElement.setAttribute('data-theme', theme);
+                localStorage.setItem('sajha-theme', theme);
+            }
+            
+            // Toggle theme
+            function toggleTheme() {
+                const currentTheme = getCurrentTheme();
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                setTheme(newTheme);
+            }
+            
+            // Add click handler
+            if (themeToggle) {
+                themeToggle.addEventListener('click', toggleTheme);
+            }
+            
+            // Ensure theme is applied on page load
+            setTheme(getCurrentTheme());
+        })();
+    </script>
     
     {% block extra_js %}{% endblock %}
 </body>

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SAJHA MCP Server - SEC EDGAR Tools Client v2.2.0
+SAJHA MCP Server - SEC EDGAR Tools Client v2.3.0
 
 Copyright © 2025-2030, All Rights Reserved
 Ashutosh Sinha
@@ -240,7 +240,7 @@ def example_company_deep_dive():
 
 if __name__ == '__main__':
     print("=" * 60)
-    print(" SAJHA MCP Server - SEC EDGAR Tools Examples v2.2.0")
+    print(" SAJHA MCP Server - SEC EDGAR Tools Examples v2.3.0")
     print("=" * 60)
     
     example_search_company()

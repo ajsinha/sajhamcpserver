@@ -1,6 +1,6 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Hot Reload Manager for SAJHA MCP Server v2.2.0
+Hot Reload Manager for SAJHA MCP Server v2.3.0
 Handles automatic reloading of:
 - users.json (user configuration)
 - apikeys.json (API key configuration)

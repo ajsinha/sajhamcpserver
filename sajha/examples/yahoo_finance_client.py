@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SAJHA MCP Server - Yahoo Finance Tools Client v2.2.0
+SAJHA MCP Server - Yahoo Finance Tools Client v2.3.0
 
 Copyright © 2025-2030, All Rights Reserved
 Ashutosh Sinha
@@ -127,7 +127,7 @@ def example_portfolio_analysis():
 
 if __name__ == '__main__':
     print("=" * 60)
-    print(" SAJHA MCP Server - Yahoo Finance Tools Examples v2.2.0")
+    print(" SAJHA MCP Server - Yahoo Finance Tools Examples v2.3.0")
     print("=" * 60)
     
     example_get_quote()

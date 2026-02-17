@@ -1,18 +1,25 @@
 # MCP Studio User Guide
 
-**Version: 2.2.0**  
+**Version: 2.4.0**  
 **Copyright © 2025-2030 Ashutosh Sinha, All Rights Reserved**
 
 ---
 
 ## Overview
 
-MCP Studio is an innovative visual tool creation feature that allows administrators to create custom MCP tools using Python code with the `@sajhamcptool` decorator. Instead of manually writing JSON configuration files and Python class boilerplate, you simply write a decorated function and the system generates everything automatically.
+MCP Studio is a comprehensive visual tool creation platform that allows administrators to create custom MCP tools without manual coding. Version 2.4.0 introduces **three creation methods** with full dark theme support:
+
+1. **Python Code Tool Creator** - Write Python functions with the `@sajhamcptool` decorator
+2. **REST Service Tool Creator** - Wrap any REST API endpoint as an MCP tool
+3. **Database Query Tool Creator** - Create tools from SQL queries (NEW in v2.4.0)
+
+All MCP Studio pages support both light and dark themes with the navbar theme toggle.
 
 ---
 
 ## Key Features
 
+### Python Code Tool Creator
 - **Visual Code Editor** - Write and edit Python code directly in the browser
 - **Automatic Schema Generation** - Type hints become JSON schemas automatically
 - **Real-time Preview** - See generated JSON and Python files before deployment
@@ -20,7 +27,26 @@ MCP Studio is an innovative visual tool creation feature that allows administrat
 - **One-Click Deployment** - Deploy tools instantly with hot-reload
 - **Safe Deletion** - Delete existing tools with double confirmation
 
+### REST Service Tool Creator
+- **Visual Form Interface** - Fill in endpoint details without coding
+- **HTTP Method Support** - GET, POST, PUT, DELETE, PATCH
+- **Authentication Options** - API Key or Basic Auth
+- **Custom Headers** - Add any HTTP headers
+- **JSON Schema Editors** - Define request and response schemas
+- **Quick Examples** - Weather API, JSONPlaceholder, GitHub API, FRED templates
+- **Path Parameters** - Support for URL path variables like `/users/{user_id}`
+- **CSV Response Support** - Parse CSV/TSV data from REST endpoints
+
+### Database Query Tool Creator (NEW in v2.4.0)
+- **Multiple Database Support** - DuckDB, SQLite, PostgreSQL, MySQL
+- **Parameterized Queries** - Define input parameters with types and defaults
+- **Auto Schema Generation** - Input/output schemas generated from query
+- **Tool Literature** - Add context for AI understanding
+- **Connection Templates** - Quick setup for each database type
+
 ---
+
+## Part 1: Python Code Tool Creator
 
 ## The @sajhamcptool Decorator
 
@@ -170,7 +196,7 @@ def calculate_factorial(n: int) -> dict:
   "name": "your_tool",
   "implementation": "sajha.tools.impl.studio_your_tool.YourToolTool",
   "description": "Your tool description",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "enabled": true,
   "metadata": {
     "author": "MCP Studio User",
@@ -405,7 +431,165 @@ After deployment, files are saved to:
 
 ---
 
-*Last Updated: January 2026*
+*Last Updated: February 2026*
+
+---
+
+## Part 2: REST Service Tool Creator
+
+The REST Service Tool Creator allows you to wrap any REST API endpoint as an MCP tool through a visual form interface - no coding required!
+
+### When to Use REST Service Tool Creator
+
+Use this method when you want to:
+- Wrap an external REST API (weather, data services, third-party APIs)
+- Create tools that fetch data from HTTP endpoints
+- Integrate with services that have API documentation
+- Quickly prototype API integrations
+
+### Accessing the REST Creator
+
+1. Navigate to **Admin → MCP Studio**
+2. Click on **"Open REST Creator"** button in the REST Service Tool Creator card
+
+### Form Fields
+
+#### Basic Information
+| Field | Required | Description |
+|-------|----------|-------------|
+| Tool Name | Yes | Unique identifier (lowercase, underscores, min 3 chars) |
+| Category | No | Tool category for organization (default: "REST API") |
+| Description | Yes | What the tool does |
+| Tags | No | Keywords for searchability |
+
+#### Endpoint Configuration
+| Field | Required | Description |
+|-------|----------|-------------|
+| HTTP Method | Yes | GET, POST, PUT, DELETE, or PATCH |
+| Endpoint URL | Yes | Full URL (supports path parameters like `{user_id}`) |
+| Content-Type | No | Request content type (default: application/json) |
+| Timeout | No | Request timeout in seconds (default: 30) |
+
+#### Authentication (Optional)
+| Option | Fields |
+|--------|--------|
+| None | No authentication required |
+| API Key | Header name (e.g., X-API-Key) and API key value |
+| Basic Auth | Username and password |
+
+#### Custom Headers (Optional)
+Add any custom HTTP headers as key-value pairs.
+
+#### Request Schema
+JSON Schema defining the input parameters:
+```json
+{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Search query"
+    },
+    "limit": {
+      "type": "integer",
+      "default": 10
+    }
+  },
+  "required": ["query"]
+}
+```
+
+#### Response Schema (Optional)
+JSON Schema defining the expected response format.
+
+### Path Parameters
+
+Use curly braces to define path parameters in the URL:
+
+```
+https://api.example.com/users/{user_id}/posts/{post_id}
+```
+
+Parameters `user_id` and `post_id` will be extracted from the request arguments and substituted into the URL.
+
+### Quick Examples
+
+The REST Creator includes three quick examples:
+
+1. **Weather API** (GET)
+   - Endpoint: `https://api.open-meteo.com/v1/forecast`
+   - Parameters: latitude, longitude
+   - Returns: Weather forecast data
+
+2. **Create Post** (POST)
+   - Endpoint: `https://jsonplaceholder.typicode.com/posts`
+   - Parameters: title, body, userId
+   - Returns: Created post object
+
+3. **GitHub User** (GET)
+   - Endpoint: `https://api.github.com/users/{username}`
+   - Parameters: username (path parameter)
+   - Returns: User profile information
+
+### Generated Files
+
+After deployment, REST tools are saved to:
+
+| File Type | Location | Naming |
+|-----------|----------|--------|
+| JSON Config | `config/tools/{tool_name}.json` | Standard tool config |
+| Python Code | `sajha/tools/impl/rest_{tool_name}.py` | Note: `rest_` prefix |
+
+### Example: Creating a Weather Tool
+
+1. Click "Open REST Creator"
+2. Enter:
+   - **Tool Name**: `get_weather_forecast`
+   - **Description**: "Get weather forecast for a location"
+   - **Category**: "Weather"
+3. Configure endpoint:
+   - **Method**: GET
+   - **URL**: `https://api.open-meteo.com/v1/forecast`
+4. Define request schema:
+   ```json
+   {
+     "type": "object",
+     "properties": {
+       "latitude": {"type": "number", "description": "Latitude"},
+       "longitude": {"type": "number", "description": "Longitude"},
+       "current_weather": {"type": "boolean", "default": true}
+     },
+     "required": ["latitude", "longitude"]
+   }
+   ```
+5. Click **Preview Tool** to see generated code
+6. Click **Deploy Tool** to create the tool
+
+The tool is immediately available for use!
+
+---
+
+## File Locations Summary
+
+| Creator | File Type | Location |
+|---------|-----------|----------|
+| Python Code | JSON Config | `config/tools/{tool_name}.json` |
+| Python Code | Python Code | `sajha/tools/impl/studio_{tool_name}.py` |
+| REST Service | JSON Config | `config/tools/{tool_name}.json` |
+| REST Service | Python Code | `sajha/tools/impl/rest_{tool_name}.py` |
+
+---
+
+## Related Documentation
+
+- [Tool Development Guide](Tool_Development_Guide.md)
+- [API Reference](API_Reference.md)
+- [Configuration Guide](Configuration_Guide.md)
+- [System Architecture](../architecture/SAJHA_MCP_Server_Architecture.md)
+
+---
+
+*Last Updated: February 2026*
 
 ---
 
@@ -413,15 +597,21 @@ After deployment, files are saved to:
 
 **Key terms referenced in this document:**
 
-- **MCP Studio**: A visual interface within SAJHA for creating MCP tools without manual coding. Uses the @sajhamcptool decorator for tool definition.
+- **MCP Studio**: A visual tool creation platform within SAJHA for creating MCP tools. Supports Python Code and REST Service creation methods.
 
 - **@sajhamcptool Decorator**: A Python decorator that marks a function as an MCP tool, enabling automatic extraction of metadata, type hints, and schema generation.
 
+- **REST Service Tool Creator**: A form-based interface for creating MCP tools from REST API endpoints without writing code.
+
+- **RESTToolDefinition**: A data class that holds all configuration for a REST-based MCP tool including endpoint, authentication, and schemas.
+
 - **AST (Abstract Syntax Tree)**: A tree representation of source code structure. MCP Studio's CodeAnalyzer parses Python code into AST to extract function metadata.
 
-- **JSON Schema**: A vocabulary for describing JSON document structure. MCP Studio automatically generates JSON Schema for tool inputs from Python type hints.
+- **JSON Schema**: A vocabulary for describing JSON document structure. Both creators generate JSON Schema for tool inputs.
 
-- **Type Hints**: Python annotations (e.g., `param: str`) indicating expected data types. MCP Studio uses type hints to generate input schemas automatically.
+- **Path Parameters**: URL variables enclosed in curly braces (e.g., `{user_id}`) that are replaced with actual values at runtime.
+
+- **Type Hints**: Python annotations (e.g., `param: str`) indicating expected data types. The Python Code Creator uses type hints to generate input schemas.
 
 - **Hot-Reload**: Runtime configuration update without restart. Tools created via MCP Studio are immediately available without server restart.
 

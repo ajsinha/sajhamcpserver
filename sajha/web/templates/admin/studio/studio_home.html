@@ -274,17 +274,29 @@
 
 {% block content %}
 <div class="container-fluid py-3">
-    <!-- Header -->
+    <!-- Header with Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-2">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin_tools') }}">Tools Management</a></li>
+            <li class="breadcrumb-item active">MCP Studio</li>
+        </ol>
+    </nav>
+    
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h4 class="mb-1">
                 <i class="bi bi-magic me-2"></i>MCP Studio
+                <span class="badge bg-gradient text-white ms-2" style="font-size: 0.6rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">v2.4.0</span>
             </h4>
-            <small class="text-muted">Create MCP Tools from Python Code</small>
+            <small class="text-muted">Enterprise Visual Tool Creation Platform</small>
         </div>
         <div>
             <a href="{{ url_for('studio_examples') }}" class="btn btn-outline-info btn-sm me-2">
                 <i class="bi bi-book me-1"></i>Examples
+            </a>
+            <a href="{{ url_for('help_page') }}#mcp-studio" class="btn btn-outline-warning btn-sm me-2">
+                <i class="bi bi-question-circle me-1"></i>Help
             </a>
             <a href="{{ url_for('admin_tools') }}" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-arrow-left me-1"></i>Back to Tools
@@ -292,9 +304,164 @@
         </div>
     </div>
     
+    <!-- MCP Studio Overview Banner -->
+    <div class="alert alert-info d-flex align-items-center mb-4" role="alert" style="background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%); border: none;">
+        <i class="bi bi-lightbulb-fill me-3 fs-4 text-info"></i>
+        <div>
+            <strong>MCP Studio</strong> enables you to create MCP-compliant tools in three ways: 
+            write Python code with our decorator, wrap any REST API endpoint, or create database query tools. 
+            All methods generate production-ready tools that are immediately available to AI clients.
+        </div>
+    </div>
+    
+    <!-- Tool Creation Methods - Enhanced Cards -->
+    <div class="row mb-4">
+        <!-- Python Code Creator Card -->
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card h-100 border-primary shadow-sm tool-method-card" style="border-width: 2px;">
+                <div class="card-header bg-primary text-white d-flex align-items-center">
+                    <i class="bi bi-code-slash fs-4 me-2"></i>
+                    <div>
+                        <h5 class="mb-0">Python Code Tool</h5>
+                        <small class="opacity-75">@sajhamcptool decorator</small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Write Python functions with our decorator. The system uses AST analysis to 
+                        automatically generate tool configuration and implementation.
+                    </p>
+                    <div class="feature-list mb-3">
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Type hints → JSON Schema</small>
+                        </div>
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Docstrings → Descriptions</small>
+                        </div>
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Full control over logic</small>
+                        </div>
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Hot-reload enabled</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <span class="badge bg-primary w-100 py-2">
+                        <i class="bi bi-arrow-down me-1"></i>Currently Active Below
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- REST Service Creator Card -->
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card h-100 border-success shadow-sm tool-method-card">
+                <div class="card-header bg-success text-white d-flex align-items-center">
+                    <i class="bi bi-cloud-arrow-up fs-4 me-2"></i>
+                    <div>
+                        <h5 class="mb-0">REST Service Tool</h5>
+                        <small class="opacity-75">Wrap any REST API</small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Transform any REST API endpoint into an MCP tool. Define the endpoint,
+                        authentication, and schemas through a visual form.
+                    </p>
+                    <div class="feature-list mb-3">
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>GET, POST, PUT, DELETE, PATCH</small>
+                        </div>
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>API Key &amp; Basic Auth</small>
+                        </div>
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Custom headers &amp; timeout</small>
+                        </div>
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Path parameter support</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <a href="{{ url_for('studio_rest') }}" class="btn btn-success w-100">
+                        <i class="bi bi-arrow-right me-1"></i>Open REST Creator
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- DB Query Tool Creator Card -->
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card h-100 border-warning shadow-sm tool-method-card">
+                <div class="card-header bg-warning text-dark d-flex align-items-center">
+                    <i class="bi bi-database fs-4 me-2"></i>
+                    <div>
+                        <h5 class="mb-0">Database Query Tool</h5>
+                        <small class="opacity-75">SQL-based MCP tools</small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Create MCP tools that execute SQL queries against databases. 
+                        Define parameters, query templates, and connection details.
+                    </p>
+                    <div class="feature-list mb-3">
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>DuckDB, SQLite, PostgreSQL, MySQL</small>
+                        </div>
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Parameterized queries</small>
+                        </div>
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Auto-generated schemas</small>
+                        </div>
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Tool literature support</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <a href="{{ url_for('studio_dbquery') }}" class="btn btn-warning w-100 text-dark">
+                        <i class="bi bi-arrow-right me-1"></i>Open DB Query Creator
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Coming Soon Row -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-secondary d-flex align-items-center" role="alert">
+                <i class="bi bi-lightbulb me-3 fs-4"></i>
+                <div>
+                    <strong>Coming Soon:</strong> GraphQL API Wrapper, OpenAPI/Swagger Import, CLI Command Wrapper
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Separator -->
+    <hr class="my-4">
+    <h5 class="mb-3 text-muted"><i class="bi bi-code-slash me-2"></i>Python Code Tool Creator</h5>
+    
     <!-- Introduction -->
     <div class="studio-intro">
-        <h4><i class="bi bi-stars me-2"></i>Welcome to MCP Studio</h4>
+        <h4><i class="bi bi-stars me-2"></i>Python Code Tool Creator</h4>
         <p class="mb-2">
             Create MCP tools by writing Python functions with the <code>@sajhamcptool</code> decorator.
             The system automatically generates the tool configuration and implementation files.
