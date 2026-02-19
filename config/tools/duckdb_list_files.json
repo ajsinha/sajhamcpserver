@@ -4,7 +4,7 @@
   "description": "List available data files (CSV, Parquet, JSON) in the data directory for loading into DuckDB",
   "version": "2.2.0",
   "enabled": true,
-  "data_directory": "/home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb",
+  "data_directory": "${data.duckdb.dir}",
   "inputSchema": {
     "type": "object",
     "properties": {

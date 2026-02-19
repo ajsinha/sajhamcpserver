@@ -1,5 +1,142 @@
 {
     "datasets": {
+        "customer_olap": {
+            "name": "customer_olap",
+            "display_name": "Customer OLAP Analytics",
+            "description": "Comprehensive customer analytics with orders, products, revenue, and behavior analysis. Supports multi-dimensional queries on customer segments, regions, products, and time periods.",
+            "source_table": "read_csv_auto('${data.duckdb.dir}/customers.csv')",
+            "joins": [
+                {
+                    "table": "read_csv_auto('${data.duckdb.dir}/orders.csv')",
+                    "type": "LEFT",
+                    "on": "customers.customer_id = orders.customer_id",
+                    "alias": "orders"
+                },
+                {
+                    "table": "read_csv_auto('${data.duckdb.dir}/products.csv')",
+                    "type": "LEFT",
+                    "on": "orders.product_name = products.product_name",
+                    "alias": "products"
+                }
+            ],
+            "dimensions": [
+                {
+                    "name": "customer_segment",
+                    "column": "customers.customer_segment",
+                    "description": "Customer business segment (Consumer, Enterprise, Small Business, Government)"
+                },
+                {
+                    "name": "customer_tier",
+                    "column": "customers.customer_tier",
+                    "description": "Customer loyalty tier (Bronze, Silver, Gold, Platinum)"
+                },
+                {
+                    "name": "region",
+                    "column": "customers.region",
+                    "description": "Geographic region (North, South, East, West, Central)"
+                },
+                {
+                    "name": "country",
+                    "column": "customers.country",
+                    "description": "Customer country"
+                },
+                {
+                    "name": "acquisition_channel",
+                    "column": "customers.acquisition_channel",
+                    "description": "How customer was acquired (Organic, Paid Ads, Referral, Social Media)"
+                },
+                {
+                    "name": "age_group",
+                    "column": "customers.age_group",
+                    "description": "Customer age group"
+                },
+                {
+                    "name": "product_category",
+                    "column": "orders.product_category",
+                    "description": "Product category (Electronics, Furniture, Clothing, Food, Office Supplies)"
+                },
+                {
+                    "name": "product_name",
+                    "column": "orders.product_name",
+                    "description": "Specific product name"
+                },
+                {
+                    "name": "order_date",
+                    "column": "orders.order_date",
+                    "type": "time",
+                    "description": "Order date for time-based analysis"
+                },
+                {
+                    "name": "payment_method",
+                    "column": "orders.payment_method",
+                    "description": "Payment method used"
+                },
+                {
+                    "name": "sales_rep",
+                    "column": "orders.sales_rep",
+                    "description": "Sales representative"
+                },
+                {
+                    "name": "signup_date",
+                    "column": "customers.signup_date",
+                    "type": "time",
+                    "description": "Customer signup date for cohort analysis"
+                }
+            ],
+            "measures": [
+                {
+                    "name": "order_count",
+                    "expression": "COUNT(DISTINCT orders.order_id)",
+                    "description": "Total number of orders"
+                },
+                {
+                    "name": "customer_count",
+                    "expression": "COUNT(DISTINCT customers.customer_id)",
+                    "description": "Total number of unique customers"
+                },
+                {
+                    "name": "total_revenue",
+                    "expression": "SUM(orders.quantity * orders.unit_price * (1 - orders.discount_pct/100.0))",
+                    "description": "Total revenue after discounts"
+                },
+                {
+                    "name": "total_quantity",
+                    "expression": "SUM(orders.quantity)",
+                    "description": "Total quantity sold"
+                },
+                {
+                    "name": "avg_order_value",
+                    "expression": "AVG(orders.quantity * orders.unit_price * (1 - orders.discount_pct/100.0))",
+                    "description": "Average order value"
+                },
+                {
+                    "name": "total_discount",
+                    "expression": "SUM(orders.quantity * orders.unit_price * orders.discount_pct/100.0)",
+                    "description": "Total discount amount"
+                },
+                {
+                    "name": "total_shipping",
+                    "expression": "SUM(orders.shipping_cost)",
+                    "description": "Total shipping costs"
+                },
+                {
+                    "name": "avg_discount_pct",
+                    "expression": "AVG(orders.discount_pct)",
+                    "description": "Average discount percentage"
+                },
+                {
+                    "name": "gross_profit",
+                    "expression": "SUM((orders.unit_price - products.unit_cost) * orders.quantity * (1 - orders.discount_pct/100.0))",
+                    "description": "Gross profit (revenue - cost)"
+                },
+                {
+                    "name": "profit_margin",
+                    "expression": "AVG((orders.unit_price - products.unit_cost) / orders.unit_price * 100)",
+                    "description": "Average profit margin percentage"
+                }
+            ],
+            "default_time_dimension": "order_date"
+        },
         "sales_analysis": {
             "name": "sales_analysis",
             "display_name": "Sales Analysis",

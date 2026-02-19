@@ -614,7 +614,7 @@ async function deployDataset() {
     if (!validateDataset()) return;
     const config = buildConfig();
     try {
-        const response = await fetch('/api/admin/studio/olap/deploy', {
+        const response = await fetch('/admin/studio/olap/deploy', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(config)

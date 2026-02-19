@@ -4,7 +4,7 @@
   "description": "Count rows in a data source with optional WHERE clause filtering for data profiling and validation",
   "version": "2.2.0",
   "enabled": true,
-  "data_directory": "data/sqlselect",
+  "data_directory": "${data.sqlselect.dir}",
   "data_sources": {
     "customers": {
       "file": "customers.csv",

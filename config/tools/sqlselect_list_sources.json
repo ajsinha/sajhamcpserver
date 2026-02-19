@@ -4,7 +4,7 @@
   "description": "List all available data sources with their metadata and file information",
   "version": "2.2.0",
   "enabled": true,
-  "data_directory": "data/sqlselect",
+  "data_directory": "${data.sqlselect.dir}",
   "data_sources": {
     "customers": {
       "file": "customers.csv",

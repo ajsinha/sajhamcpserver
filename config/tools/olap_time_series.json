@@ -2,12 +2,9 @@
     "name": "olap_time_series",
     "description": "Analyze time series data with flexible granularity, gap filling, and period-over-period comparisons",
     "category": "OLAP Analytics",
-    "version": "2.8.0",
-    "implementation": {
-        "type": "class",
-        "module": "sajha.olap.olap_tool",
-        "class": "DuckDBOLAPTool"
-    },
+    "version": "2.9.6",
+    "enabled": true,
+    "implementation": "sajha.tools.impl.duckdb_olap_advanced.DuckDBOLAPAdvancedTool",
     "parameters": {
         "dataset": {
             "type": "string",

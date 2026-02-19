@@ -4,7 +4,7 @@
   "description": "Perform aggregation operations on tables with grouping (SUM, AVG, COUNT, MIN, MAX)",
   "version": "2.2.0",
   "enabled": true,
-  "data_directory": "data/duckdb",
+  "data_directory": "${data.duckdb.dir}",
   "inputSchema": {
     "type": "object",
     "properties": {

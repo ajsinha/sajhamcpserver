@@ -1,0 +1,107 @@
+{
+    "name": "customer_olap_pivot",
+    "description": "Create pivot tables for customer analytics - analyze customer segments, regions, products, and revenue with multi-dimensional grouping",
+    "category": "OLAP Analytics",
+    "version": "2.9.6",
+    "enabled": true,
+    "implementation": "sajha.tools.impl.duckdb_olap_advanced.CustomerOLAPTool",
+    "data_directory": "${data.duckdb.dir}",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "rows": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Dimensions for row grouping. Available: customer_segment, customer_tier, region, country, acquisition_channel, age_group, product_category, product_name, payment_method, sales_rep",
+                "examples": [["customer_segment", "region"], ["product_category"]]
+            },
+            "columns": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Dimensions for column pivoting (optional). Typically time-based like order_date",
+                "examples": [["order_date"]]
+            },
+            "measures": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Measures to aggregate. Available: order_count, customer_count, total_revenue, total_quantity, avg_order_value, total_discount, total_shipping, avg_discount_pct, gross_profit, profit_margin",
+                "examples": [["total_revenue", "order_count"], ["customer_count", "avg_order_value"]]
+            },
+            "filters": {
+                "type": "object",
+                "description": "Filter conditions as key-value pairs",
+                "examples": [{"region": "North"}, {"customer_tier": ["Gold", "Platinum"]}]
+            },
+            "order_by": {
+                "type": "string",
+                "description": "Column to sort by (prefix with - for descending)",
+                "examples": ["total_revenue", "-order_count"]
+            },
+            "limit": {
+                "type": "integer",
+                "default": 100,
+                "minimum": 1,
+                "maximum": 1000,
+                "description": "Maximum rows to return"
+            }
+        },
+        "required": ["rows", "measures"]
+    },
+    "outputSchema": {
+        "type": "object",
+        "properties": {
+            "columns": {"type": "array", "items": {"type": "string"}},
+            "data": {"type": "array", "items": {"type": "object"}},
+            "row_count": {"type": "integer"},
+            "query": {"type": "string"},
+            "execution_time_ms": {"type": "number"}
+        }
+    },
+    "metadata": {
+        "author": "Ashutosh Sinha",
+        "tags": ["olap", "pivot", "customer", "analytics", "revenue"],
+        "examples": [
+            {
+                "description": "Revenue by customer segment and region",
+                "input": {
+                    "rows": ["customer_segment", "region"],
+                    "measures": ["total_revenue", "order_count", "customer_count"]
+                }
+            },
+            {
+                "description": "Product category sales with Gold/Platinum customers",
+                "input": {
+                    "rows": ["product_category"],
+                    "measures": ["total_revenue", "total_quantity", "avg_order_value"],
+                    "filters": {"customer_tier": ["Gold", "Platinum"]},
+                    "order_by": "-total_revenue"
+                }
+            },
+            {
+                "description": "Sales rep performance analysis",
+                "input": {
+                    "rows": ["sales_rep"],
+                    "measures": ["total_revenue", "order_count", "avg_order_value", "gross_profit"],
+                    "order_by": "-total_revenue",
+                    "limit": 10
+                }
+            },
+            {
+                "description": "Customer acquisition channel effectiveness",
+                "input": {
+                    "rows": ["acquisition_channel"],
+                    "measures": ["customer_count", "total_revenue", "avg_order_value"],
+                    "order_by": "-total_revenue"
+                }
+            }
+        ],
+        "useCases": [
+            "Customer segmentation analysis",
+            "Regional sales performance",
+            "Product category revenue breakdown",
+            "Sales rep performance tracking",
+            "Customer acquisition channel analysis",
+            "Customer tier value analysis"
+        ]
+    }
+}

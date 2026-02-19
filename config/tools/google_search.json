@@ -2,8 +2,10 @@
   "name": "google_search",
   "implementation": "sajha.tools.impl.google_search_tool_refactored.GoogleSearchTool",
   "description": "Search the web using Google Custom Search API. Find web pages, images, and information across the internet with Google's powerful search technology.",
-  "version": "2.2.0",
+  "version": "2.9.5",
   "enabled": true,
+  "api_key": "${google.api.key}",
+  "search_engine_id": "${google.search.engine.id}",
   "inputSchema": {
     "type": "object",
     "properties": {

@@ -4,7 +4,7 @@
   "description": "Get detailed schema information for a data source including column names, types, nullability, and constraints",
   "version": "2.2.0",
   "enabled": true,
-  "data_directory": "data/sqlselect",
+  "data_directory": "${data.sqlselect.dir}",
   "data_sources": {
     "customers": {
       "file": "customers.csv",

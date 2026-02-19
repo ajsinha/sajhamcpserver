@@ -1,6 +1,6 @@
 """
 SAJHA MCP Server - Advanced OLAP Tools
-Version: 2.9.0
+Version: 2.9.6
 
 MCP tools for advanced OLAP analytics including pivot tables, rollups,
 window functions, time series analysis, statistical calculations,
@@ -9,6 +9,7 @@ cohort analysis, and sample data generation.
 
 import json
 import logging
+import os
 import duckdb
 from typing import Dict, Any, List, Optional
 from pathlib import Path
@@ -40,14 +41,27 @@ class DuckDBOLAPAdvancedTool(BaseMCPTool):
     - Sample data generation for demos
     """
     
-    def __init__(self, config_path: str = None):
+    def __init__(self, config=None):
         """
         Initialize the OLAP tool.
         
         Args:
-            config_path: Path to configuration directory
+            config: Configuration dict or path string to configuration directory
         """
-        self.config_path = config_path or self._default_config_path()
+        # Handle both dict config (from tools_registry) and string path
+        if isinstance(config, dict):
+            self.config = config
+            self.config_path = config.get('config_path') or self._default_config_path()
+        elif isinstance(config, str):
+            self.config = {}
+            self.config_path = config
+        else:
+            self.config = {}
+            self.config_path = self._default_config_path()
+        
+        # Initialize parent
+        super().__init__(self.config)
+        
         self.semantic = SemanticLayer(self.config_path)
         self.conn = None
         self._init_connection()
@@ -1073,6 +1087,478 @@ ORDER BY {self._safe_alias(measure)} DESC
                 "success": {"type": "boolean"},
                 "data": {"type": "array"},
                 "error": {"type": "string"}
+            }
+        }
+
+
+class CustomerOLAPTool(BaseMCPTool):
+    """
+    Customer OLAP Analytics Tool.
+    
+    Provides pivot table analysis for the customer_olap dataset with
+    pre-configured dimensions and measures for customer analytics.
+    """
+    
+    # Define available dimensions and their SQL expressions
+    DIMENSIONS = {
+        "customer_segment": "customers.customer_segment",
+        "customer_tier": "customers.customer_tier",
+        "region": "customers.region",
+        "country": "customers.country",
+        "acquisition_channel": "customers.acquisition_channel",
+        "age_group": "customers.age_group",
+        "product_category": "orders.product_category",
+        "product_name": "orders.product_name",
+        "payment_method": "orders.payment_method",
+        "sales_rep": "orders.sales_rep",
+        "order_date": "orders.order_date",
+        "signup_date": "customers.signup_date",
+        "order_year": "EXTRACT(YEAR FROM orders.order_date::DATE)",
+        "order_month": "EXTRACT(MONTH FROM orders.order_date::DATE)",
+        "order_quarter": "CONCAT('Q', EXTRACT(QUARTER FROM orders.order_date::DATE))"
+    }
+    
+    # Define available measures with their SQL expressions
+    MEASURES = {
+        "order_count": "COUNT(DISTINCT orders.order_id)",
+        "customer_count": "COUNT(DISTINCT customers.customer_id)",
+        "total_revenue": "COALESCE(SUM(orders.quantity * orders.unit_price * (1 - orders.discount_pct/100.0)), 0)",
+        "total_quantity": "COALESCE(SUM(orders.quantity), 0)",
+        "avg_order_value": "COALESCE(AVG(orders.quantity * orders.unit_price * (1 - orders.discount_pct/100.0)), 0)",
+        "total_discount": "COALESCE(SUM(orders.quantity * orders.unit_price * orders.discount_pct/100.0), 0)",
+        "total_shipping": "COALESCE(SUM(orders.shipping_cost), 0)",
+        "avg_discount_pct": "COALESCE(AVG(orders.discount_pct), 0)",
+        "gross_profit": "COALESCE(SUM((orders.unit_price - COALESCE(products.unit_cost, 0)) * orders.quantity * (1 - orders.discount_pct/100.0)), 0)",
+        "profit_margin": "COALESCE(AVG((orders.unit_price - COALESCE(products.unit_cost, 0)) / NULLIF(orders.unit_price, 0) * 100), 0)"
+    }
+    
+    def __init__(self, config: Dict = None):
+        """Initialize the Customer OLAP tool."""
+        super().__init__(config)
+        self.config = config or {}
+        self.conn = None
+        self._init_connection()
+    
+    def _init_connection(self):
+        """Initialize DuckDB connection."""
+        try:
+            self.conn = duckdb.connect(":memory:")
+            logger.info("CustomerOLAPTool: DuckDB connection initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize DuckDB: {e}")
+            raise
+    
+    def _get_data_path(self) -> str:
+        """Get the data directory path from config or dynamically."""
+        # Try to get from config first (supports ${variable} substitution)
+        if self.config and 'data_directory' in self.config:
+            data_dir = self.config['data_directory']
+            # If it's a relative path, make it absolute from project root
+            if data_dir and not os.path.isabs(data_dir):
+                module_dir = os.path.dirname(os.path.abspath(__file__))
+                project_root = os.path.dirname(os.path.dirname(os.path.dirname(module_dir)))
+                data_dir = os.path.join(project_root, data_dir.lstrip('./'))
+            return data_dir
+        
+        # Fall back to relative path from module location
+        module_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(module_dir)))
+        return os.path.join(project_root, 'data', 'duckdb')
+    
+    def _get_base_query(self) -> str:
+        """Get the base FROM/JOIN clause for customer OLAP queries."""
+        base_path = self._get_data_path()
+        
+        return f"""
+        FROM read_csv_auto('{base_path}/customers.csv') AS customers
+        LEFT JOIN read_csv_auto('{base_path}/orders.csv') AS orders
+            ON customers.customer_id = orders.customer_id
+        LEFT JOIN read_csv_auto('{base_path}/products.csv') AS products
+            ON orders.product_name = products.product_name
+        """
+    
+    def _build_filter_clause(self, filters: Dict) -> str:
+        """Build WHERE clause from filters."""
+        if not filters:
+            return ""
+        
+        conditions = []
+        for key, value in filters.items():
+            if key in self.DIMENSIONS:
+                col = self.DIMENSIONS[key]
+                if isinstance(value, list):
+                    # IN clause for multiple values
+                    values_str = ", ".join([f"'{v}'" if isinstance(v, str) else str(v) for v in value])
+                    conditions.append(f"{col} IN ({values_str})")
+                elif isinstance(value, str):
+                    conditions.append(f"{col} = '{value}'")
+                else:
+                    conditions.append(f"{col} = {value}")
+        
+        return "WHERE " + " AND ".join(conditions) if conditions else ""
+    
+    def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute customer OLAP pivot query.
+        
+        Args:
+            arguments: Query parameters including rows, columns, measures, filters
+            
+        Returns:
+            Query results with columns, data, and metadata
+        """
+        import time
+        start_time = time.time()
+        
+        try:
+            # Debug: log incoming arguments
+            logger.debug(f"CustomerOLAPTool received arguments: {arguments}")
+            
+            # Get parameters
+            rows = arguments.get('rows', [])
+            columns = arguments.get('columns', [])
+            measures = arguments.get('measures', ['total_revenue'])
+            filters = arguments.get('filters', {})
+            order_by = arguments.get('order_by')
+            limit = arguments.get('limit', 100)
+            
+            # Helper function to normalize array inputs
+            def normalize_list(value, default=None):
+                """Convert string or comma-separated string to list."""
+                if value is None:
+                    return default or []
+                if isinstance(value, list):
+                    # Handle list of single comma-separated string like ["a, b, c"]
+                    if len(value) == 1 and isinstance(value[0], str) and ',' in value[0]:
+                        return [item.strip() for item in value[0].split(',')]
+                    return value
+                if isinstance(value, str):
+                    # Handle comma-separated string like "a, b, c"
+                    if ',' in value:
+                        return [item.strip() for item in value.split(',')]
+                    return [value.strip()] if value.strip() else default or []
+                return default or []
+            
+            # Normalize all list inputs
+            rows = normalize_list(rows, [])
+            columns = normalize_list(columns, [])
+            measures = normalize_list(measures, ['total_revenue'])
+            
+            if filters is None:
+                filters = {}
+            
+            logger.debug(f"Normalized - rows: {rows}, columns: {columns}, measures: {measures}")
+            
+            # Validate we have at least one row dimension
+            if not rows:
+                return {
+                    "success": False,
+                    "error": "At least one row dimension is required. Available: " + ", ".join(self.DIMENSIONS.keys())
+                }
+            
+            # Validate dimensions
+            all_dims = list(rows) + list(columns)
+            for dim in all_dims:
+                if dim not in self.DIMENSIONS:
+                    return {
+                        "success": False,
+                        "error": f"Unknown dimension: {dim}. Available: {list(self.DIMENSIONS.keys())}"
+                    }
+            
+            # Validate measures
+            for measure in measures:
+                if measure not in self.MEASURES:
+                    return {
+                        "success": False,
+                        "error": f"Unknown measure: {measure}. Available: {list(self.MEASURES.keys())}"
+                    }
+            
+            # Build SELECT clause
+            select_parts = []
+            
+            # Add dimension columns
+            for dim in all_dims:
+                col_expr = self.DIMENSIONS[dim]
+                select_parts.append(f"{col_expr} AS {dim}")
+            
+            # Add measure columns
+            for measure in measures:
+                measure_expr = self.MEASURES[measure]
+                select_parts.append(f"{measure_expr} AS {measure}")
+            
+            # Build GROUP BY clause
+            group_by_parts = [self.DIMENSIONS[dim] for dim in all_dims]
+            
+            # Build query
+            select_clause = ", ".join(select_parts)
+            base_query = self._get_base_query()
+            filter_clause = self._build_filter_clause(filters)
+            group_by_clause = f"GROUP BY {', '.join(group_by_parts)}" if group_by_parts else ""
+            
+            # Build ORDER BY clause
+            order_clause = ""
+            if order_by:
+                if order_by.startswith('-'):
+                    order_clause = f"ORDER BY {order_by[1:]} DESC"
+                else:
+                    order_clause = f"ORDER BY {order_by} ASC"
+            elif measures:
+                order_clause = f"ORDER BY {measures[0]} DESC"
+            
+            # Build complete query
+            query = f"""
+            SELECT {select_clause}
+            {base_query}
+            {filter_clause}
+            {group_by_clause}
+            {order_clause}
+            LIMIT {limit}
+            """
+            
+            # Execute query
+            result = self.conn.execute(query)
+            
+            # Get column names
+            result_columns = [desc[0] for desc in result.description]
+            
+            # Fetch all rows
+            rows_data = result.fetchall()
+            
+            # Convert to list of dicts
+            data = []
+            for row in rows_data:
+                row_dict = {}
+                for i, col in enumerate(result_columns):
+                    val = row[i]
+                    # Format numeric values
+                    if isinstance(val, float):
+                        row_dict[col] = round(val, 2)
+                    else:
+                        row_dict[col] = val
+                data.append(row_dict)
+            
+            execution_time = (time.time() - start_time) * 1000
+            
+            return {
+                "success": True,
+                "columns": result_columns,
+                "data": data,
+                "row_count": len(data),
+                "query": query.strip(),
+                "execution_time_ms": round(execution_time, 2),
+                "available_dimensions": list(self.DIMENSIONS.keys()),
+                "available_measures": list(self.MEASURES.keys())
+            }
+            
+        except Exception as e:
+            logger.error(f"CustomerOLAPTool execution error: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def get_input_schema(self) -> Dict:
+        """Get input schema for the tool."""
+        return {
+            "type": "object",
+            "properties": {
+                "rows": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": f"Row dimensions. Available: {list(self.DIMENSIONS.keys())}"
+                },
+                "columns": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Column dimensions (for pivoting)"
+                },
+                "measures": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": f"Measures to aggregate. Available: {list(self.MEASURES.keys())}"
+                },
+                "filters": {"type": "object"},
+                "order_by": {"type": "string"},
+                "limit": {"type": "integer", "default": 100}
+            },
+            "required": ["rows", "measures"]
+        }
+    
+    def get_output_schema(self) -> Dict:
+        """Get output schema for the tool."""
+        return {
+            "type": "object",
+            "properties": {
+                "success": {"type": "boolean"},
+                "columns": {"type": "array"},
+                "data": {"type": "array"},
+                "row_count": {"type": "integer"},
+                "query": {"type": "string"},
+                "execution_time_ms": {"type": "number"}
+            }
+        }
+
+
+class DuckDBSQLTool(BaseMCPTool):
+    """
+    Direct SQL Query Tool for DuckDB.
+    
+    Executes arbitrary SQL queries against the customer/orders/products
+    CSV data files using DuckDB.
+    """
+    
+    def __init__(self, config: Dict = None):
+        """Initialize the SQL tool."""
+        super().__init__(config)
+        self.config = config or {}
+        self.conn = None
+        self.data_dir = self._get_data_path()
+        self._init_connection()
+    
+    def _get_data_path(self) -> str:
+        """Get the data directory path from config or dynamically."""
+        # Try to get from config first (supports ${variable} substitution)
+        if self.config and 'data_directory' in self.config:
+            data_dir = self.config['data_directory']
+            # If it's a relative path, make it absolute from project root
+            if data_dir and not os.path.isabs(data_dir):
+                module_dir = os.path.dirname(os.path.abspath(__file__))
+                project_root = os.path.dirname(os.path.dirname(os.path.dirname(module_dir)))
+                data_dir = os.path.join(project_root, data_dir.lstrip('./'))
+            return data_dir
+        
+        # Fall back to relative path from module location
+        module_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(module_dir)))
+        return os.path.join(project_root, 'data', 'duckdb')
+    
+    def _init_connection(self):
+        """Initialize DuckDB connection and create views for CSV files."""
+        try:
+            self.conn = duckdb.connect(":memory:")
+            
+            # Create views for each CSV file
+            csv_files = ['customers', 'orders', 'products']
+            for table_name in csv_files:
+                file_path = f"{self.data_dir}/{table_name}.csv"
+                create_view = f"""
+                    CREATE OR REPLACE VIEW {table_name} AS 
+                    SELECT * FROM read_csv_auto('{file_path}')
+                """
+                self.conn.execute(create_view)
+            
+            logger.info(f"DuckDBSQLTool: Initialized with tables from {self.data_dir}")
+        except Exception as e:
+            logger.error(f"Failed to initialize DuckDB: {e}")
+            raise
+    
+    def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute SQL query.
+        
+        Args:
+            arguments: Contains 'sql' query and optional 'limit'
+            
+        Returns:
+            Query results with columns, data, and metadata
+        """
+        import time
+        start_time = time.time()
+        
+        try:
+            sql = arguments.get('sql', '')
+            limit = arguments.get('limit', 100)
+            
+            if not sql:
+                return {
+                    "success": False,
+                    "error": "SQL query is required"
+                }
+            
+            # Check for dangerous operations
+            sql_upper = sql.upper()
+            forbidden = ['DROP', 'DELETE', 'TRUNCATE', 'ALTER', 'INSERT', 'UPDATE', 'CREATE TABLE']
+            for keyword in forbidden:
+                if keyword in sql_upper:
+                    return {
+                        "success": False,
+                        "error": f"Operation not allowed: {keyword}. Only SELECT queries are permitted."
+                    }
+            
+            # Add LIMIT if not present
+            if 'LIMIT' not in sql_upper:
+                sql = f"{sql.rstrip(';')} LIMIT {limit}"
+            
+            # Execute query
+            result = self.conn.execute(sql)
+            
+            # Get column names
+            columns = [desc[0] for desc in result.description]
+            
+            # Fetch all rows
+            rows = result.fetchall()
+            
+            # Convert to list of dicts
+            data = []
+            for row in rows:
+                row_dict = {}
+                for i, col in enumerate(columns):
+                    val = row[i]
+                    if isinstance(val, float):
+                        row_dict[col] = round(val, 2)
+                    else:
+                        row_dict[col] = val
+                data.append(row_dict)
+            
+            execution_time = (time.time() - start_time) * 1000
+            
+            return {
+                "success": True,
+                "columns": columns,
+                "data": data,
+                "row_count": len(data),
+                "sql": sql,
+                "execution_time_ms": round(execution_time, 2),
+                "tables_available": ["customers", "orders", "products"]
+            }
+            
+        except Exception as e:
+            logger.error(f"DuckDBSQLTool execution error: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "sql": arguments.get('sql', '')
+            }
+    
+    def get_input_schema(self) -> Dict:
+        """Get input schema for the tool."""
+        return {
+            "type": "object",
+            "properties": {
+                "sql": {
+                    "type": "string",
+                    "description": "SQL query to execute. Tables: customers, orders, products"
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 100,
+                    "description": "Maximum rows to return"
+                }
+            },
+            "required": ["sql"]
+        }
+    
+    def get_output_schema(self) -> Dict:
+        """Get output schema for the tool."""
+        return {
+            "type": "object",
+            "properties": {
+                "success": {"type": "boolean"},
+                "columns": {"type": "array"},
+                "data": {"type": "array"},
+                "row_count": {"type": "integer"},
+                "sql": {"type": "string"},
+                "execution_time_ms": {"type": "number"}
             }
         }
 

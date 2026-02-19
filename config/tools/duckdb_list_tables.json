@@ -4,7 +4,7 @@
   "description": "List all available tables and views in the DuckDB database",
   "version": "2.2.0",
   "enabled": true,
-  "data_directory": "/home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb",
+  "data_directory": "${data.duckdb.dir}",
   "inputSchema": {
     "type": "object",
     "properties": {

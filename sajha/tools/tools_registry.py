@@ -1,12 +1,13 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Tools Registry - Singleton pattern for managing MCP tools v2.3.0
+Tools Registry - Singleton pattern for managing MCP tools v2.9.5
 """
 
 import json
 import logging
 import importlib
 import os
+import re
 import threading
 from typing import Dict, List, Optional, Any
 from pathlib import Path
@@ -58,6 +59,10 @@ class ToolsRegistry:
         self._tools_lock = threading.RLock()
         self.logger = logging.getLogger(__name__)
         
+        # Initialize properties configurator reference
+        self._properties_configurator = None
+        self._init_properties_configurator()
+        
         self.logger.info(f"ToolsRegistry initializing with config dir: {self.tools_config_dir}")
         
         # File monitoring
@@ -81,6 +86,68 @@ class ToolsRegistry:
         
         # Start file monitoring
         self.start_monitoring()
+    
+    def _init_properties_configurator(self):
+        """Initialize reference to PropertiesConfigurator for variable substitution"""
+        try:
+            from sajha.core.properties_configurator import PropertiesConfigurator
+            self._properties_configurator = PropertiesConfigurator()
+            self.logger.debug("PropertiesConfigurator initialized for variable substitution")
+        except Exception as e:
+            self.logger.warning(f"Could not initialize PropertiesConfigurator: {e}")
+            self._properties_configurator = None
+    
+    def _substitute_variables(self, obj: Any) -> Any:
+        """
+        Recursively substitute ${key} patterns in config values with values from PropertiesConfigurator.
+        
+        Args:
+            obj: The object to process (dict, list, or string)
+            
+        Returns:
+            Object with all ${key} patterns substituted
+        """
+        if obj is None:
+            return None
+            
+        if isinstance(obj, str):
+            # Pattern to match ${key} or ${key:default}
+            pattern = r'\$\{([^}:]+)(?::([^}]*))?\}'
+            
+            def replace_var(match):
+                key = match.group(1)
+                default = match.group(2)
+                
+                # Try to get value from PropertiesConfigurator
+                value = None
+                if self._properties_configurator:
+                    try:
+                        value = self._properties_configurator.get(key)
+                    except:
+                        pass
+                
+                # If not found, try environment variable
+                if value is None:
+                    value = os.environ.get(key)
+                
+                # If still not found, use default or keep original
+                if value is None:
+                    if default is not None:
+                        return default
+                    return match.group(0)  # Keep original ${key}
+                
+                return str(value)
+            
+            return re.sub(pattern, replace_var, obj)
+        
+        elif isinstance(obj, dict):
+            return {k: self._substitute_variables(v) for k, v in obj.items()}
+        
+        elif isinstance(obj, list):
+            return [self._substitute_variables(item) for item in obj]
+        
+        else:
+            return obj
     
     def load_all_tools(self):
         """Load all tools from configuration directory"""
@@ -112,6 +179,9 @@ class ToolsRegistry:
                 # Load configuration
                 with open(config_file, 'r') as f:
                     config = json.load(f)
+                
+                # Substitute ${key} variables with values from PropertiesConfigurator
+                config = self._substitute_variables(config)
                 
                 tool_name = config.get('name')
                 if not tool_name:

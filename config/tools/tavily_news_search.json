@@ -4,7 +4,7 @@
   "description": "Search for recent news articles using Tavily with news-optimized results and recency prioritization",
   "version": "2.2.0",
   "enabled": true,
-  "api_key": "",
+  "api_key": "${tavily.api.key}",
   "inputSchema": {
     "type": "object",
     "properties": {

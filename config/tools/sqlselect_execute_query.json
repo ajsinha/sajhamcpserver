@@ -4,7 +4,7 @@
   "description": "Execute SQL SELECT queries on configured data sources with built-in safety checks and result limiting",
   "version": "2.2.0",
   "enabled": true,
-  "data_directory": "data/sqlselect",
+  "data_directory": "${data.sqlselect.dir}",
   "data_sources": {
     "customers": {
       "file": "customers.csv",

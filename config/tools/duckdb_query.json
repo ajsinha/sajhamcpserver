@@ -1,16 +1,18 @@
 {
   "name": "duckdb_query",
   "implementation": "sajha.tools.impl.duckdb_olap_tools_refactored.DuckDbQueryTool",
-  "description": "Execute SQL queries on CSV, Parquet, and JSON files using DuckDB analytics engine",
-  "version": "2.2.0",
+  "description": "Execute SQL queries on CSV, Parquet, and JSON files using DuckDB analytics engine. Query the customers, orders, and products tables directly with SQL.",
+  "version": "2.9.1",
   "enabled": true,
-  "data_directory": "/home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb",
+  "data_directory": "${data.duckdb.dir}",
+  "auto_refresh_enabled": true,
+  "auto_refresh_interval": 300,
   "inputSchema": {
     "type": "object",
     "properties": {
       "sql_query": {
         "type": "string",
-        "description": "SQL query to execute (SELECT, WITH, etc. - read-only queries)",
+        "description": "SQL query to execute. Tables available: customers, orders, products (auto-created from CSV files in data directory)",
         "minLength": 1
       },
       "limit": {
@@ -69,37 +71,49 @@
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Data Analytics",
-    "tags": ["duckdb", "sql", "query", "analytics"],
+    "tags": ["duckdb", "sql", "query", "analytics", "customers", "orders"],
     "rateLimit": 60,
     "cacheTTL": 60,
-    "note": "Execute analytical SQL queries with DuckDB. Supports complex queries, joins, window functions, and aggregations.",
+    "note": "Execute analytical SQL queries with DuckDB. Tables are auto-created from CSV files: customers, orders, products.",
     "examples": [
       {
-        "description": "Simple SELECT query",
+        "description": "List all tables",
         "input": {
-          "sql_query": "SELECT * FROM sales WHERE amount > 1000",
+          "sql_query": "SHOW TABLES",
           "limit": 50
         }
       },
       {
-        "description": "Aggregation with GROUP BY",
+        "description": "Get customer summary",
         "input": {
-          "sql_query": "SELECT region, SUM(revenue) as total_revenue FROM sales GROUP BY region ORDER BY total_revenue DESC"
+          "sql_query": "SELECT customer_segment, COUNT(*) as count, customer_tier FROM customers GROUP BY customer_segment, customer_tier ORDER BY count DESC"
         }
       },
       {
-        "description": "Complex query with JOIN",
+        "description": "Revenue by region",
         "input": {
-          "sql_query": "SELECT c.name, COUNT(o.id) as order_count FROM customers c LEFT JOIN orders o ON c.id = o.customer_id GROUP BY c.name"
+          "sql_query": "SELECT region, SUM(quantity * unit_price) as total_revenue FROM orders GROUP BY region ORDER BY total_revenue DESC"
+        }
+      },
+      {
+        "description": "Top customers by order value",
+        "input": {
+          "sql_query": "SELECT c.customer_name, c.customer_tier, SUM(o.quantity * o.unit_price) as total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.customer_name, c.customer_tier ORDER BY total_spent DESC LIMIT 10"
+        }
+      },
+      {
+        "description": "Monthly sales trend",
+        "input": {
+          "sql_query": "SELECT strftime(order_date::DATE, '%Y-%m') as month, SUM(quantity * unit_price) as revenue, COUNT(*) as order_count FROM orders GROUP BY month ORDER BY month"
         }
       }
     ],
     "useCases": [
       "Ad-hoc data analysis",
-      "Complex aggregations and reporting",
-      "Multi-table joins and analysis",
-      "Data exploration and discovery",
-      "Business intelligence queries"
+      "Customer segmentation queries",
+      "Sales and revenue reporting",
+      "Order analysis",
+      "Product performance queries"
     ]
   }
 }

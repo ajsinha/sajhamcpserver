@@ -1,0 +1,81 @@
+order_id,customer_id,order_date,product_category,product_name,quantity,unit_price,discount_pct,shipping_cost,payment_method,order_status,region,sales_rep
+ORD001,C001,2023-01-20,Electronics,Laptop,1,899.99,5,25.00,Credit Card,Completed,North,Alice Wang
+ORD002,C001,2023-02-15,Electronics,Mouse,2,49.99,0,8.00,Credit Card,Completed,North,Alice Wang
+ORD003,C002,2023-02-01,Furniture,Office Chair,1,299.99,10,35.00,PayPal,Completed,South,Bob Miller
+ORD004,C003,2023-02-10,Electronics,Monitor,3,349.99,15,45.00,Bank Transfer,Completed,East,Carol Jones
+ORD005,C004,2023-03-05,Office Supplies,Paper Box (5000),5,49.99,0,20.00,Credit Card,Completed,West,David Chen
+ORD006,C005,2023-03-15,Clothing,Business Suit,1,399.99,0,15.00,Credit Card,Completed,North,Eric Brown
+ORD007,C006,2023-03-25,Electronics,Smartphone,10,699.99,20,50.00,Bank Transfer,Completed,Central,Alice Wang
+ORD008,C007,2023-04-02,Food,Coffee Beans 1kg,20,24.99,5,30.00,PayPal,Completed,South,Bob Miller
+ORD009,C008,2023-04-15,Electronics,Headphones,2,199.99,0,12.00,Credit Card,Cancelled,North,Carol Jones
+ORD010,C009,2023-04-28,Furniture,Office Desk,2,499.99,10,60.00,Bank Transfer,Completed,East,David Chen
+ORD011,C010,2023-05-10,Electronics,Tablet,5,499.99,15,35.00,Credit Card,Completed,West,Eric Brown
+ORD012,C011,2023-05-22,Clothing,Dress Shirt,10,59.99,10,25.00,PayPal,Completed,South,Alice Wang
+ORD013,C012,2023-06-05,Office Supplies,Whiteboard,3,89.99,0,40.00,Credit Card,Completed,Central,Bob Miller
+ORD014,C013,2023-06-18,Electronics,Keyboard,5,79.99,5,15.00,Credit Card,Completed,North,Carol Jones
+ORD015,C014,2023-07-01,Furniture,Conference Table,1,899.99,10,100.00,Bank Transfer,Completed,West,David Chen
+ORD016,C015,2023-07-15,Electronics,Webcam,10,89.99,0,20.00,Credit Card,Completed,East,Eric Brown
+ORD017,C016,2023-07-28,Food,Snack Box,50,34.99,15,45.00,PayPal,Completed,South,Alice Wang
+ORD018,C017,2023-08-10,Clothing,Polo Shirt,20,39.99,10,30.00,Credit Card,Refunded,West,Bob Miller
+ORD019,C018,2023-08-25,Electronics,Laptop,2,899.99,5,40.00,Bank Transfer,Completed,Central,Carol Jones
+ORD020,C019,2023-09-08,Furniture,Bookshelf,4,199.99,0,80.00,Credit Card,Completed,North,David Chen
+ORD021,C020,2023-09-20,Electronics,Smartphone,3,699.99,10,25.00,PayPal,Completed,North,Eric Brown
+ORD022,C021,2023-10-05,Office Supplies,Pen Set,100,14.99,20,15.00,Credit Card,Completed,South,Alice Wang
+ORD023,C022,2023-10-18,Electronics,Monitor,5,349.99,10,50.00,Bank Transfer,Completed,East,Bob Miller
+ORD024,C023,2023-11-02,Food,Beverage Pack,30,29.99,5,35.00,Credit Card,Completed,West,Carol Jones
+ORD025,C024,2023-11-15,Furniture,Filing Cabinet,10,149.99,15,90.00,Bank Transfer,Completed,Central,David Chen
+ORD026,C025,2023-11-28,Clothing,Casual Jacket,5,129.99,0,20.00,PayPal,Cancelled,North,Eric Brown
+ORD027,C026,2023-12-10,Electronics,Tablet,2,499.99,10,25.00,Credit Card,Completed,South,Alice Wang
+ORD028,C027,2023-12-22,Office Supplies,Notebook Pack,50,19.99,5,25.00,Credit Card,Completed,East,Bob Miller
+ORD029,C028,2024-01-05,Electronics,Laptop,3,899.99,15,45.00,Bank Transfer,Completed,West,Carol Jones
+ORD030,C029,2024-01-18,Furniture,Office Chair,5,299.99,10,50.00,Credit Card,Completed,Central,David Chen
+ORD031,C030,2024-02-01,Food,Tea Variety Pack,40,19.99,0,30.00,PayPal,Completed,North,Eric Brown
+ORD032,C031,2024-02-15,Electronics,Headphones,8,199.99,5,20.00,Credit Card,Completed,South,Alice Wang
+ORD033,C032,2024-03-01,Clothing,Dress Shoes,6,149.99,10,25.00,Bank Transfer,Completed,East,Bob Miller
+ORD034,C033,2024-03-15,Electronics,Smartphone,15,699.99,20,60.00,Credit Card,Completed,West,Carol Jones
+ORD035,C034,2024-03-28,Office Supplies,Stapler Set,30,24.99,5,20.00,PayPal,Completed,Central,David Chen
+ORD036,C035,2024-04-10,Furniture,Office Desk,3,499.99,10,70.00,Bank Transfer,Completed,North,Eric Brown
+ORD037,C036,2024-04-25,Electronics,Monitor,4,349.99,5,40.00,Credit Card,Completed,South,Alice Wang
+ORD038,C037,2024-05-08,Food,Coffee Beans 1kg,25,24.99,10,35.00,Credit Card,Completed,West,Bob Miller
+ORD039,C038,2024-05-22,Electronics,Tablet,8,499.99,15,50.00,Bank Transfer,Completed,East,Carol Jones
+ORD040,C039,2024-06-05,Clothing,Business Suit,3,399.99,5,25.00,PayPal,Completed,South,David Chen
+ORD041,C040,2024-06-18,Office Supplies,Paper Box (5000),10,49.99,10,40.00,Credit Card,Completed,Central,Eric Brown
+ORD042,C041,2024-07-01,Electronics,Keyboard,15,79.99,5,25.00,Credit Card,Refunded,North,Alice Wang
+ORD043,C042,2024-07-15,Furniture,Bookshelf,2,199.99,0,45.00,Bank Transfer,Completed,West,Bob Miller
+ORD044,C043,2024-07-28,Electronics,Webcam,20,89.99,10,30.00,Credit Card,Completed,South,Carol Jones
+ORD045,C044,2024-08-12,Food,Snack Box,60,34.99,15,50.00,PayPal,Completed,East,David Chen
+ORD046,C045,2024-08-25,Clothing,Polo Shirt,25,39.99,10,35.00,Credit Card,Completed,Central,Eric Brown
+ORD047,C046,2024-09-08,Electronics,Laptop,1,899.99,0,25.00,Bank Transfer,Completed,North,Alice Wang
+ORD048,C047,2024-09-22,Furniture,Conference Table,2,899.99,15,120.00,Credit Card,Completed,West,Bob Miller
+ORD049,C048,2024-10-05,Electronics,Smartphone,5,699.99,10,35.00,PayPal,Completed,South,Carol Jones
+ORD050,C049,2024-10-18,Office Supplies,Whiteboard,5,89.99,5,45.00,Bank Transfer,Completed,East,David Chen
+ORD051,C050,2024-11-01,Electronics,Mouse,30,49.99,10,25.00,Credit Card,Completed,West,Eric Brown
+ORD052,C001,2024-01-10,Furniture,Office Chair,1,299.99,5,30.00,Credit Card,Completed,North,Alice Wang
+ORD053,C003,2024-02-20,Electronics,Tablet,2,499.99,10,30.00,Bank Transfer,Completed,East,Carol Jones
+ORD054,C006,2024-03-15,Office Supplies,Paper Box (5000),20,49.99,15,50.00,Bank Transfer,Completed,Central,Alice Wang
+ORD055,C010,2024-04-01,Electronics,Laptop,4,899.99,20,55.00,Credit Card,Completed,West,Eric Brown
+ORD056,C014,2024-05-10,Furniture,Office Desk,2,499.99,10,65.00,Bank Transfer,Completed,West,David Chen
+ORD057,C019,2024-06-20,Electronics,Monitor,6,349.99,15,55.00,Credit Card,Completed,North,David Chen
+ORD058,C024,2024-07-05,Clothing,Dress Shirt,15,59.99,10,30.00,Bank Transfer,Completed,Central,David Chen
+ORD059,C028,2024-08-15,Electronics,Smartphone,8,699.99,15,45.00,Credit Card,Completed,West,Carol Jones
+ORD060,C033,2024-09-01,Food,Coffee Beans 1kg,30,24.99,10,40.00,Credit Card,Completed,West,Carol Jones
+ORD061,C038,2024-10-10,Electronics,Headphones,12,199.99,10,30.00,Bank Transfer,Completed,East,Carol Jones
+ORD062,C043,2024-11-05,Furniture,Filing Cabinet,8,149.99,15,80.00,Credit Card,Completed,South,Carol Jones
+ORD063,C002,2023-05-15,Electronics,Keyboard,3,79.99,0,12.00,PayPal,Completed,South,Bob Miller
+ORD064,C007,2023-08-20,Clothing,Casual Jacket,4,129.99,5,18.00,PayPal,Completed,South,Bob Miller
+ORD065,C012,2023-10-25,Food,Tea Variety Pack,15,19.99,0,20.00,Credit Card,Completed,Central,Bob Miller
+ORD066,C016,2024-01-30,Office Supplies,Notebook Pack,25,19.99,5,18.00,PayPal,Completed,South,Alice Wang
+ORD067,C020,2024-04-15,Electronics,Webcam,6,89.99,0,15.00,PayPal,Completed,North,Eric Brown
+ORD068,C026,2024-06-10,Furniture,Bookshelf,3,199.99,10,55.00,Credit Card,Completed,South,Alice Wang
+ORD069,C031,2024-08-05,Electronics,Mouse,12,49.99,5,18.00,Credit Card,Completed,South,Alice Wang
+ORD070,C035,2024-09-20,Food,Beverage Pack,20,29.99,0,28.00,Bank Transfer,Completed,North,Eric Brown
+ORD071,C040,2024-10-25,Clothing,Business Suit,2,399.99,10,20.00,Credit Card,Completed,Central,Eric Brown
+ORD072,C044,2024-11-10,Electronics,Tablet,3,499.99,5,30.00,PayPal,Completed,East,David Chen
+ORD073,C004,2023-06-15,Food,Snack Box,10,34.99,0,18.00,Credit Card,Completed,West,David Chen
+ORD074,C009,2023-09-10,Clothing,Polo Shirt,8,39.99,5,15.00,Bank Transfer,Completed,East,David Chen
+ORD075,C015,2024-02-05,Electronics,Headphones,4,199.99,10,18.00,Credit Card,Completed,East,Eric Brown
+ORD076,C022,2024-04-20,Furniture,Office Chair,3,299.99,5,45.00,Bank Transfer,Completed,East,Bob Miller
+ORD077,C029,2024-07-15,Office Supplies,Pen Set,50,14.99,10,15.00,Credit Card,Completed,Central,David Chen
+ORD078,C036,2024-09-05,Electronics,Laptop,2,899.99,10,40.00,Credit Card,Completed,South,Alice Wang
+ORD079,C042,2024-10-20,Food,Coffee Beans 1kg,15,24.99,5,25.00,Bank Transfer,Completed,West,Bob Miller
+ORD080,C047,2024-11-15,Clothing,Dress Shoes,4,149.99,0,22.00,Credit Card,Completed,West,Bob Miller

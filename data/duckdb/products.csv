@@ -1,0 +1,28 @@
+product_id,product_name,product_category,unit_cost,unit_price,supplier,stock_quantity,reorder_point
+P001,Laptop,Electronics,650.00,899.99,TechCorp,150,25
+P002,Smartphone,Electronics,450.00,699.99,TechCorp,200,50
+P003,Tablet,Electronics,320.00,499.99,TechCorp,120,30
+P004,Monitor,Electronics,220.00,349.99,DisplayPro,180,40
+P005,Headphones,Electronics,120.00,199.99,AudioMax,250,60
+P006,Keyboard,Electronics,45.00,79.99,TechCorp,300,80
+P007,Mouse,Electronics,25.00,49.99,TechCorp,400,100
+P008,Webcam,Electronics,55.00,89.99,TechCorp,200,50
+P009,Office Desk,Furniture,280.00,499.99,FurniWorld,50,10
+P010,Office Chair,Furniture,150.00,299.99,FurniWorld,80,20
+P011,Bookshelf,Furniture,100.00,199.99,FurniWorld,60,15
+P012,Filing Cabinet,Furniture,80.00,149.99,FurniWorld,70,20
+P013,Conference Table,Furniture,500.00,899.99,FurniWorld,20,5
+P014,Business Suit,Clothing,180.00,399.99,FashionPro,100,25
+P015,Dress Shirt,Clothing,25.00,59.99,FashionPro,300,75
+P016,Polo Shirt,Clothing,15.00,39.99,FashionPro,400,100
+P017,Dress Shoes,Clothing,70.00,149.99,FashionPro,150,40
+P018,Casual Jacket,Clothing,55.00,129.99,FashionPro,120,30
+P019,Coffee Beans 1kg,Food,12.00,24.99,FoodSupply,500,100
+P020,Tea Variety Pack,Food,8.00,19.99,FoodSupply,400,80
+P021,Snack Box,Food,18.00,34.99,FoodSupply,300,60
+P022,Beverage Pack,Food,15.00,29.99,FoodSupply,350,70
+P023,Paper Box (5000),Office Supplies,28.00,49.99,OfficeMax,200,50
+P024,Pen Set,Office Supplies,5.00,14.99,OfficeMax,600,150
+P025,Notebook Pack,Office Supplies,8.00,19.99,OfficeMax,400,100
+P026,Stapler Set,Office Supplies,10.00,24.99,OfficeMax,250,60
+P027,Whiteboard,Office Supplies,45.00,89.99,OfficeMax,100,25

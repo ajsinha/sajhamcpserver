@@ -6,26 +6,38 @@
   <component name="ChangeListManager">
     <list default="true" id="04a8e7bd-1a2d-4b5f-a656-a3f1eed8ce6e" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/config/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/olap/datasets.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/olap/datasets.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_aggregate.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/duckdb_aggregate.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_describe_table.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/duckdb_describe_table.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_get_stats.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/duckdb_get_stats.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_list_files.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/duckdb_list_files.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_list_tables.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/duckdb_list_tables.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_query.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/duckdb_query.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/duckdb_refresh_views.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/duckdb_refresh_views.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/google_search.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/google_search.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/olap_pivot_table.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/olap_pivot_table.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/olap_time_series.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/olap_time_series.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_count_rows.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sqlselect_count_rows.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_describe_source.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sqlselect_describe_source.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_execute_query.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sqlselect_execute_query.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_get_schema.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sqlselect_get_schema.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_list_sources.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sqlselect_list_sources.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/sqlselect_sample_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/sqlselect_sample_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/tavily_domain_search.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/tavily_domain_search.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/tavily_news_search.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/tavily_news_search.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/tavily_research_search.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/tavily_research_search.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/tools/tavily_web_search.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/tools/tavily_web_search.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config/users.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/users.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/duckdb/duckdb_analytics.db" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/architecture/Glossary.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/architecture/Glossary.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/architecture/SAJHA_MCP_Server_Architecture.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/architecture/SAJHA_MCP_Server_Architecture.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/MCP_Studio_User_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/MCP_Studio_User_Guide.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/server.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/server.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/run_server.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_server.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logs/server.log" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/sajha/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/studio/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/studio/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/studio/dbquery_tool_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/studio/dbquery_tool_generator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/studio/rest_tool_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/studio/rest_tool_generator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/duckdb_olap_advanced.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/duckdb_olap_advanced.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/duckdb_olap_tools_refactored.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/duckdb_olap_tools_refactored.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/tools/tools_registry.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/tools_registry.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sajha/web/routes/studio_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/routes/studio_routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/web/static/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/static/css/style.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_dbquery.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_dbquery.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_home.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_home.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_rest.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_rest.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/web/templates/common/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/common/base.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/web/templates/help/about.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/help/about.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/web/templates/help/help.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/help/help.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_olap.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_olap.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/.gitkeep" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

@@ -4,7 +4,7 @@
   "description": "Perform general web search using Tavily AI-powered search engine for finding information across the internet",
   "version": "2.2.0",
   "enabled": true,
-  "api_key": "",
+  "api_key": "${tavily.api.key}",
   "inputSchema": {
     "type": "object",
     "properties": {

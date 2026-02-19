@@ -4,7 +4,7 @@
   "description": "Perform comprehensive research search with advanced depth, analysis, and higher result counts for academic and professional research",
   "version": "2.2.0",
   "enabled": true,
-  "api_key": "",
+  "api_key": "${tavily.api.key}",
   "inputSchema": {
     "type": "object",
     "properties": {

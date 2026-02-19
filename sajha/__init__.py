@@ -13,7 +13,7 @@ This package contains all core modules for the SAJHA MCP Server:
 - ir: Investor relations scrapers
 """
 
-__version__ = '2.9.0'
+__version__ = '2.9.6'
 __author__ = 'Ashutosh Sinha'
 __email__ = 'ajsinha@gmail.com'
 

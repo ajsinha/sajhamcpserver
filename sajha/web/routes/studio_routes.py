@@ -1084,7 +1084,11 @@ class StudioRoutes(BaseRoutes):
         @self.admin_required
         def studio_olap():
             """OLAP Dataset Creator page."""
-            return render_template('admin/studio/studio_olap.html')
+            user_session = self.get_user_session()
+            existing_tools = list(self.tools_registry.tools.keys())
+            return render_template('admin/studio/studio_olap.html', 
+                                 user=user_session,
+                                 existing_tools=existing_tools)
         
         @app.route('/admin/studio/olap/deploy', methods=['POST'])
         @self.admin_required

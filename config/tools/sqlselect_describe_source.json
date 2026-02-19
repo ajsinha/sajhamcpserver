@@ -4,7 +4,7 @@
   "description": "Get detailed information about a specific data source including columns, types, row count, and metadata",
   "version": "2.2.0",
   "enabled": true,
-  "data_directory": "data/sqlselect",
+  "data_directory": "${data.sqlselect.dir}",
   "data_sources": {
     "customers": {
       "file": "customers.csv",

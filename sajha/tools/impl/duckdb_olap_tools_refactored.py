@@ -29,7 +29,7 @@ class DuckDbBaseTool(BaseMCPTool):
         super().__init__(config)
 
         # Data directory for CSV, Parquet, JSON files
-        self.data_directory = self.config.get('data_directory', '/home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb')
+        self.data_directory = self.config.get('data_directory', '/home/claude/sajha/sajhamcpserver/data/duckdb')
 
         # Auto-refresh configuration
         self.auto_refresh_enabled = self.config.get('auto_refresh_enabled', True)
