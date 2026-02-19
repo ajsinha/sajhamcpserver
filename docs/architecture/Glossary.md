@@ -1,6 +1,6 @@
 # SAJHA MCP Server - Glossary of Terms
 
-**Version:** 2.4.0  
+**Version:** 2.9.0  
 **Last Updated:** February 2026  
 **Classification:** Reference Document
 
@@ -85,6 +85,9 @@ Software that accesses services from a server. In MCP context, the AI system (Cl
 
 ### Configuration
 Settings that control application behavior. SAJHA uses properties files and JSON for configuration.
+
+### Cohort Analysis
+A type of analytics that groups users by a shared characteristic (e.g., signup date) and tracks their behavior over time. Used for understanding retention, engagement, and revenue patterns. SAJHA provides cohort analysis through the `olap_cohort_analysis` and `olap_retention_analysis` tools.
 
 ### Connection Pool
 A cache of database connections maintained for reuse. SAJHA implements connection pooling for DuckDB.
@@ -301,16 +304,52 @@ A lightweight markup language for formatting text. SAJHA documentation is writte
 A protocol for AI systems to interact with external tools and data sources. The core protocol SAJHA implements.
 
 ### MCP Studio
-A visual tool creation platform within SAJHA that allows administrators to create MCP tools without manual coding. Includes three creation methods: Python Code Tool Creator (using @sajhamcptool decorator), REST Service Tool Creator (for wrapping external APIs), and Database Query Tool Creator (for SQL-based tools).
+A visual tool creation platform within SAJHA that allows administrators to create MCP tools without manual coding. Includes seven creation methods: Python Code Tool Creator (using @sajhamcptool decorator), REST Service Tool Creator (for wrapping external APIs), Database Query Tool Creator (for SQL-based tools), Script Tool Creator (for shell/Python scripts), PowerBI Report Tool Creator (for PDF/PPTX/PNG export), PowerBI DAX Query Tool Creator (for executing DAX queries), and IBM LiveLink Document Tool Creator (for ECM document retrieval).
 
 ### MCP Studio - Python Code Creator
 A component of MCP Studio that analyzes Python functions decorated with @sajhamcptool and automatically generates tool configuration (JSON) and implementation (Python class) files.
 
 ### MCP Studio - REST Service Tool Creator
-A form-based component of MCP Studio (v2.4.0) that allows creating MCP tools from REST API endpoints. Supports GET, POST, PUT, DELETE, PATCH methods, API Key and Basic Auth, custom headers, JSON Schema validation, path parameters, and multiple response formats (JSON, CSV, XML, text). CSV responses support configurable delimiter, header detection, and row skipping. Includes 6 built-in examples including FRED CSV data. Full dark theme support.
+A form-based component of MCP Studio (v2.7.0) that allows creating MCP tools from REST API endpoints. Supports GET, POST, PUT, DELETE, PATCH methods, API Key and Basic Auth, custom headers, JSON Schema validation, path parameters, and multiple response formats (JSON, CSV, XML, text). CSV responses support configurable delimiter, header detection, and row skipping. Includes 6 built-in examples including FRED CSV data. Full dark theme support.
 
 ### MCP Studio - Database Query Tool Creator
-A form-based component of MCP Studio (v2.4.0) that allows creating MCP tools from SQL queries. Supports DuckDB, SQLite, PostgreSQL, and MySQL databases. Features parameterized queries with auto-generated input/output schemas, multiple parameter types (string, integer, number, boolean, date, enum), tool literature for AI context, and configurable row limits. Full dark theme support.
+A form-based component of MCP Studio (v2.7.0) that allows creating MCP tools from SQL queries. Supports DuckDB, SQLite, PostgreSQL, and MySQL databases. Features parameterized queries with auto-generated input/output schemas, multiple parameter types (string, integer, number, boolean, date, enum), tool literature for AI context, and configurable row limits. Full dark theme support.
+
+### MCP Studio - Script Tool Creator
+A form-based component of MCP Studio (v2.7.0) that allows creating MCP tools from shell scripts, Python scripts, and other executable scripts. Scripts receive an array of string arguments as input and return STDOUT, STDERR, exit code, and execution time as output. Supports Bash, Sh, Zsh, Python, Node.js, Ruby, and Perl interpreters. Includes security validation to detect dangerous patterns, configurable timeout, working directory, and environment variables. Scripts can be uploaded or pasted directly in the editor. Full dark theme support.
+
+### MCP Studio - PowerBI Report Tool Creator
+A form-based component of MCP Studio (v2.7.0) that allows creating MCP tools to retrieve PowerBI reports as PDF, PPTX, or PNG in base64 encoded format. Requires Azure AD authentication with Service Principal. Features configurable workspace and report IDs, optional page selection, multiple export formats, timeout handling, and environment variable-based credential management. The caller receives base64-encoded data which can be decoded to the actual file. Full dark theme support.
+
+### MCP Studio - PowerBIToolConfig
+A Python dataclass (`sajha.studio.powerbi_tool_generator.PowerBIToolConfig`) that defines the configuration for PowerBI report tools. Includes fields for tool_name, description, report_name, workspace_id, report_id, tenant_id, client_id, client_secret_env, page_name, export_format (PDF/PPTX/PNG), timeout_seconds, author, and tags.
+
+### MCP Studio - PowerBIToolGenerator
+The generator class (`sajha.studio.powerbi_tool_generator.PowerBIToolGenerator`) that creates Python tool implementations and JSON configurations from PowerBIToolConfig objects. Handles GUID validation, Azure AD authentication setup, and file generation.
+
+### MCP Studio - PowerBI DAX Query Tool Creator
+A form-based component of MCP Studio (v2.7.0) that allows creating MCP tools to execute DAX queries against PowerBI datasets. Features parameterized queries with @parameter substitution, Azure AD Service Principal authentication, configurable timeout and max rows, and auto-generated input/output schemas. Returns structured JSON with columns and row data. Full dark theme support.
+
+### MCP Studio - PowerBIDAXToolConfig
+A Python dataclass (`sajha.studio.powerbidax_tool_generator.PowerBIDAXToolConfig`) that defines the configuration for PowerBI DAX query tools. Includes fields for tool_name, description, dataset_name, workspace_id, dataset_id, dax_query, tenant_id, client_id, client_secret_env, parameters, timeout_seconds, max_rows, author, and tags.
+
+### MCP Studio - PowerBIDAXToolGenerator
+The generator class (`sajha.studio.powerbidax_tool_generator.PowerBIDAXToolGenerator`) that creates Python tool implementations and JSON configurations from PowerBIDAXToolConfig objects. Handles DAX query validation, parameter substitution, and Azure AD authentication setup.
+
+### MCP Studio - IBM LiveLink Document Tool Creator
+A form-based component of MCP Studio (v2.7.0) that allows creating MCP tools to query and download documents from IBM LiveLink (OpenText Content Server). Supports search, list, get metadata, and download operations. Documents are returned as base64 encoded data. Multiple authentication types: Basic Auth, OAuth, and OTDS (OpenText Directory Services). Supports REST API v1 and v2. Full dark theme support.
+
+### MCP Studio - LiveLinkToolConfig
+A Python dataclass (`sajha.studio.livelink_tool_generator.LiveLinkToolConfig`) that defines the configuration for IBM LiveLink document tools. Includes fields for tool_name, description, server_url, auth_type, username_env, password_env, oauth_token_env, default_parent_id, document_types, timeout_seconds, max_file_size_mb, api_version, author, and tags.
+
+### MCP Studio - LiveLinkToolGenerator
+The generator class (`sajha.studio.livelink_tool_generator.LiveLinkToolGenerator`) that creates Python tool implementations and JSON configurations from LiveLinkToolConfig objects. Handles server URL validation, authentication setup, and file generation.
+
+### MCP Studio - ScriptToolConfig
+A Python dataclass (`sajha.studio.script_tool_generator.ScriptToolConfig`) that defines the configuration for script-based tools. Includes fields for tool_name, description, script_type, script_content, version, author, tags, timeout_seconds, working_directory, environment_vars, max_args, arg_descriptions, and security settings.
+
+### MCP Studio - ScriptToolGenerator
+The generator class (`sajha.studio.script_tool_generator.ScriptToolGenerator`) that creates Python tool implementations, JSON configurations, and script files from ScriptToolConfig objects. Handles validation, security checks, code generation, and file saving.
 
 ### MCP Studio - RESTToolDefinition
 A Python dataclass (`sajha.studio.rest_tool_generator.RESTToolDefinition`) that defines the configuration for REST-based tools. Includes fields for name, endpoint, method, description, request/response schemas, authentication, headers, timeout, content type, response format (json/csv/xml/text), and CSV parsing options (delimiter, has_header, skip_rows).
@@ -470,6 +509,9 @@ A message sent to request an action or data. SAJHA handles HTTP and WebSocket re
 ### Response
 A message sent in reply to a request. SAJHA formats responses per JSON-RPC specification.
 
+### Retention Analysis
+A subset of cohort analysis focused specifically on measuring what percentage of users from each cohort remain active over time. Produces retention matrices showing period-over-period user engagement. See `olap_retention_analysis` tool.
+
 ### REST (Representational State Transfer)
 An architectural style for web services. SAJHA provides REST APIs.
 
@@ -545,7 +587,7 @@ A sequence of characters. Python strings are used throughout SAJHA.
 A file with placeholders for dynamic content. Jinja2 templates generate SAJHA's HTML.
 
 ### Theme Switcher
-A UI component (v2.4.0) that allows users to toggle between light and dark themes. The preference is persisted in browser localStorage and applied instantly without page reload. Located in the navbar next to the About link. Version 2.4.0 includes comprehensive dark theme support with 3,200+ lines of CSS ensuring text visibility across all pages including Dashboard, Help, About, MCP Studio, Tools, and Documentation pages.
+A UI component (v2.7.0) that allows users to toggle between light and dark themes. The preference is persisted in browser localStorage and applied instantly without page reload. Located in the navbar next to the About link. Version 2.7.0 includes comprehensive dark theme support with 3,400+ lines of CSS ensuring text visibility across all pages including Dashboard, Help, About, MCP Studio, Tools, and Documentation pages.
 
 ### Thread
 A unit of execution within a process. SAJHA uses threads for concurrent operations.

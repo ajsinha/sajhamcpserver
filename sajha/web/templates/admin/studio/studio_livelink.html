@@ -1,0 +1,649 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}IBM LiveLink Document Tool Creator - MCP Studio - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .livelink-creator-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .creator-header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+        color: #e0e0e0;
+    }
+    
+    .creator-header h3 {
+        color: #0077b6;
+        margin-bottom: 8px;
+    }
+    
+    .form-section {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #0077b6 0%, #023e8a 100%);
+        color: white;
+        padding: 15px 20px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-header.primary {
+        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+    }
+    
+    .section-header.success {
+        background: linear-gradient(135deg, #198754 0%, #157347 100%);
+    }
+    
+    .section-header.secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    }
+    
+    .section-body {
+        padding: 20px;
+    }
+    
+    .auth-type-select {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .auth-type-btn {
+        padding: 12px 24px;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 120px;
+    }
+    
+    .auth-type-btn:hover {
+        border-color: #0077b6;
+    }
+    
+    .auth-type-btn.active {
+        border-color: #0077b6;
+        background: #0077b6;
+        color: white;
+    }
+    
+    .auth-type-btn i {
+        font-size: 1.5rem;
+        margin-bottom: 5px;
+    }
+    
+    .preview-panel {
+        background: #1e1e1e;
+        border-radius: 12px;
+        overflow: hidden;
+        position: sticky;
+        top: 20px;
+    }
+    
+    .preview-header {
+        background: #333;
+        color: #0077b6;
+        padding: 12px 20px;
+        font-weight: 600;
+    }
+    
+    .preview-content {
+        padding: 15px;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .preview-content pre {
+        margin: 0;
+        white-space: pre-wrap;
+        font-size: 0.85rem;
+        color: #d4d4d4;
+    }
+    
+    .status-message {
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+    }
+    
+    .status-message.show { display: block; }
+    .status-message.success { background: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+    .status-message.error { background: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+    
+    .btn-deploy {
+        background: linear-gradient(135deg, #0077b6 0%, #023e8a 100%);
+        border: none;
+        color: white;
+        font-weight: 600;
+        padding: 12px 30px;
+    }
+    
+    .btn-deploy:hover {
+        background: linear-gradient(135deg, #023e8a 0%, #012a5e 100%);
+        color: white;
+    }
+    
+    .help-text {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+    
+    .info-box {
+        background: #e3f2fd;
+        border: 1px solid #90caf9;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .info-box h6 {
+        color: #1565c0;
+    }
+    
+    .info-box p,
+    .info-box small {
+        color: #333;
+    }
+    
+    .info-box code {
+        background: rgba(0, 0, 0, 0.1);
+        color: #1565c0;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+    
+    .quick-tips {
+        background: #fff3e0;
+        border: 1px solid #ffcc80;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .quick-tips h6 {
+        color: #e65100;
+    }
+    
+    .quick-tips li,
+    .quick-tips ul {
+        color: #333;
+    }
+    
+    /* ===== DARK THEME OVERRIDES ===== */
+    html[data-theme="dark"] .info-box,
+    [data-theme="dark"] .info-box {
+        background: rgba(13, 110, 253, 0.15) !important;
+        border-color: #3d7fcc !important;
+    }
+    
+    html[data-theme="dark"] .info-box h6,
+    [data-theme="dark"] .info-box h6 {
+        color: #6ea8fe !important;
+    }
+    
+    html[data-theme="dark"] .info-box p,
+    html[data-theme="dark"] .info-box small,
+    html[data-theme="dark"] .info-box span,
+    [data-theme="dark"] .info-box p,
+    [data-theme="dark"] .info-box small,
+    [data-theme="dark"] .info-box span {
+        color: #c0c0c0 !important;
+    }
+    
+    html[data-theme="dark"] .info-box code,
+    [data-theme="dark"] .info-box code {
+        background: rgba(0, 0, 0, 0.4) !important;
+        color: #ffc107 !important;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+    
+    html[data-theme="dark"] .quick-tips,
+    [data-theme="dark"] .quick-tips {
+        background: rgba(255, 152, 0, 0.15) !important;
+        border-color: #bf7d00 !important;
+    }
+    
+    html[data-theme="dark"] .quick-tips h6,
+    [data-theme="dark"] .quick-tips h6 {
+        color: #ffb74d !important;
+    }
+    
+    html[data-theme="dark"] .quick-tips li,
+    html[data-theme="dark"] .quick-tips ul,
+    html[data-theme="dark"] .quick-tips strong,
+    [data-theme="dark"] .quick-tips li,
+    [data-theme="dark"] .quick-tips ul,
+    [data-theme="dark"] .quick-tips strong {
+        color: #c0c0c0 !important;
+    }
+    
+    html[data-theme="dark"] .help-text,
+    [data-theme="dark"] .help-text {
+        color: #a0a0a0 !important;
+    }
+    
+    html[data-theme="dark"] .form-section,
+    [data-theme="dark"] .form-section {
+        background: #2d2d2d !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+    }
+    
+    html[data-theme="dark"] .section-body,
+    [data-theme="dark"] .section-body {
+        background: #2d2d2d !important;
+        color: #e0e0e0 !important;
+    }
+    
+    html[data-theme="dark"] .section-body label,
+    html[data-theme="dark"] .section-body p,
+    html[data-theme="dark"] .section-body span,
+    html[data-theme="dark"] .section-body div,
+    [data-theme="dark"] .section-body label,
+    [data-theme="dark"] .section-body p,
+    [data-theme="dark"] .section-body span,
+    [data-theme="dark"] .section-body div {
+        color: #e0e0e0 !important;
+    }
+    
+    html[data-theme="dark"] .section-body small,
+    [data-theme="dark"] .section-body small {
+        color: #a0a0a0 !important;
+    }
+    
+    html[data-theme="dark"] .form-control,
+    html[data-theme="dark"] .form-select,
+    [data-theme="dark"] .form-control,
+    [data-theme="dark"] .form-select {
+        background: #1e1e1e !important;
+        color: #e0e0e0 !important;
+        border-color: #444 !important;
+    }
+    
+    html[data-theme="dark"] .form-control::placeholder {
+        color: #888 !important;
+    }
+    
+    html[data-theme="dark"] .auth-type-btn,
+    [data-theme="dark"] .auth-type-btn {
+        background: #2d2d2d !important;
+        border-color: #444 !important;
+        color: #e0e0e0 !important;
+    }
+    
+    html[data-theme="dark"] .auth-type-btn:hover,
+    [data-theme="dark"] .auth-type-btn:hover {
+        border-color: #0077b6 !important;
+    }
+    
+    html[data-theme="dark"] .auth-type-btn.active,
+    [data-theme="dark"] .auth-type-btn.active {
+        background: #0077b6 !important;
+        color: white !important;
+    }
+    
+    html[data-theme="dark"] .auth-type-btn small,
+    [data-theme="dark"] .auth-type-btn small {
+        color: #888 !important;
+    }
+    
+    html[data-theme="dark"] .auth-type-btn.active small,
+    [data-theme="dark"] .auth-type-btn.active small {
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+    
+    html[data-theme="dark"] .status-message.success {
+        background: rgba(25, 135, 84, 0.2) !important;
+        color: #75b798 !important;
+        border: 1px solid #3d8b5e !important;
+    }
+    
+    html[data-theme="dark"] .status-message.error {
+        background: rgba(220, 53, 69, 0.2) !important;
+        color: #ea868f !important;
+        border: 1px solid #8c3a42 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="livelink-creator-container py-4">
+    <!-- Header -->
+    <div class="creator-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" 
+                 style="width: 50px; height: 50px; background: #0077b6;">
+                <i class="bi bi-folder2-open fs-4 text-white"></i>
+            </div>
+            <div>
+                <h3 class="mb-0">
+                    <i class="bi bi-file-earmark-binary me-2"></i>IBM LiveLink Document Tool Creator
+                    <span class="badge bg-light text-dark ms-2" style="font-size: 0.5em;">v2.9.0</span>
+                </h3>
+                <p class="subtitle mb-0 text-light opacity-75">
+                    Create MCP tools to query and download documents from OpenText Content Server
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Status Message -->
+    <div id="statusMessage" class="status-message"></div>
+    
+    <div class="row">
+        <!-- Form Column -->
+        <div class="col-lg-7">
+            <!-- Tool Information -->
+            <div class="form-section">
+                <div class="section-header primary">
+                    <i class="bi bi-info-circle"></i>
+                    Tool Information
+                </div>
+                <div class="section-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tool Name <span class="text-danger">*</span></label>
+                        <input type="text" id="toolName" class="form-control" placeholder="e.g., company_docs">
+                        <div class="help-text">Lowercase letters, numbers, underscores only.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                        <textarea id="description" class="form-control" rows="2" 
+                                  placeholder="e.g., Query and download documents from company LiveLink server"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Tags</label>
+                            <input type="text" id="tags" class="form-control" placeholder="livelink, documents, ecm">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Author</label>
+                            <input type="text" id="author" class="form-control" placeholder="Optional">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Server Configuration -->
+            <div class="form-section">
+                <div class="section-header">
+                    <i class="bi bi-server"></i>
+                    Server Configuration
+                </div>
+                <div class="section-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Server URL <span class="text-danger">*</span></label>
+                        <input type="text" id="serverUrl" class="form-control" 
+                               placeholder="https://livelink.company.com/otcs/cs.exe">
+                        <div class="help-text">LiveLink/Content Server base URL</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">API Version</label>
+                            <select id="apiVersion" class="form-select">
+                                <option value="v2" selected>v2 (Recommended)</option>
+                                <option value="v1">v1 (Legacy)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Default Parent Folder ID</label>
+                            <input type="text" id="defaultParentId" class="form-control" placeholder="Optional">
+                            <div class="help-text">Default folder for list operations</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Authentication -->
+            <div class="form-section">
+                <div class="section-header success">
+                    <i class="bi bi-shield-lock"></i>
+                    Authentication
+                </div>
+                <div class="section-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Authentication Type</label>
+                        <div class="auth-type-select">
+                            <button type="button" class="auth-type-btn active" data-auth="basic">
+                                <i class="bi bi-key"></i>
+                                Basic Auth
+                                <small>Username/Password</small>
+                            </button>
+                            <button type="button" class="auth-type-btn" data-auth="otds">
+                                <i class="bi bi-shield-check"></i>
+                                OTDS
+                                <small>OpenText Directory</small>
+                            </button>
+                            <button type="button" class="auth-type-btn" data-auth="oauth">
+                                <i class="bi bi-cloud-check"></i>
+                                OAuth
+                                <small>Token-based</small>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="basicAuthFields">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Username Env Variable</label>
+                                <input type="text" id="usernameEnv" class="form-control" value="LIVELINK_USERNAME">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Password Env Variable</label>
+                                <input type="text" id="passwordEnv" class="form-control" value="LIVELINK_PASSWORD">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="oauthFields" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">OAuth Token Env Variable</label>
+                            <input type="text" id="oauthTokenEnv" class="form-control" value="LIVELINK_OAUTH_TOKEN">
+                        </div>
+                    </div>
+                    
+                    <div class="info-box mt-3">
+                        <h6 class="text-primary mb-2"><i class="bi bi-info-circle me-2"></i>Security Note</h6>
+                        <p class="mb-0 small">Credentials are stored in environment variables, never in code. 
+                        Set <code>LIVELINK_USERNAME</code> and <code>LIVELINK_PASSWORD</code> before running.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Advanced Options -->
+            <div class="form-section">
+                <div class="section-header secondary">
+                    <i class="bi bi-gear"></i>
+                    Advanced Options
+                </div>
+                <div class="section-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Timeout (seconds)</label>
+                            <input type="number" id="timeout" class="form-control" value="60" min="10" max="300">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Max File Size (MB)</label>
+                            <input type="number" id="maxFileSize" class="form-control" value="50" min="1" max="500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="d-flex gap-3 mb-4">
+                <button type="button" class="btn btn-secondary" onclick="previewTool()">
+                    <i class="bi bi-eye me-2"></i>Preview
+                </button>
+                <button type="button" class="btn btn-deploy" onclick="deployTool()">
+                    <i class="bi bi-rocket-takeoff me-2"></i>Deploy Tool
+                </button>
+                <a href="{{ url_for('studio_home') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Studio
+                </a>
+            </div>
+        </div>
+        
+        <!-- Preview Column -->
+        <div class="col-lg-5">
+            <div class="preview-panel">
+                <div class="preview-header">
+                    <i class="bi bi-code-slash me-2"></i>Live Preview
+                </div>
+                <div class="preview-content">
+                    <pre id="previewCode">{
+  "name": "your_tool_name",
+  "metadata": {
+    "source": "livelink",
+    "auth_type": "basic"
+  }
+}</pre>
+                </div>
+            </div>
+            
+            <div class="quick-tips mt-3">
+                <h6><i class="bi bi-lightbulb me-2"></i>Supported Operations</h6>
+                <ul class="mb-0 small">
+                    <li><strong>search</strong> - Find documents by query</li>
+                    <li><strong>list</strong> - List folder contents</li>
+                    <li><strong>get</strong> - Get document metadata</li>
+                    <li><strong>download</strong> - Download as base64</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auth type selection
+    document.querySelectorAll('.auth-type-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.auth-type-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            const authType = this.dataset.auth;
+            document.getElementById('basicAuthFields').style.display = 
+                (authType === 'basic' || authType === 'otds') ? 'block' : 'none';
+            document.getElementById('oauthFields').style.display = 
+                authType === 'oauth' ? 'block' : 'none';
+            
+            updatePreview();
+        });
+    });
+    
+    function getFormData() {
+        return {
+            tool_name: document.getElementById('toolName').value.trim(),
+            description: document.getElementById('description').value.trim(),
+            server_url: document.getElementById('serverUrl').value.trim(),
+            auth_type: document.querySelector('.auth-type-btn.active').dataset.auth,
+            username_env: document.getElementById('usernameEnv').value.trim(),
+            password_env: document.getElementById('passwordEnv').value.trim(),
+            oauth_token_env: document.getElementById('oauthTokenEnv').value.trim(),
+            default_parent_id: document.getElementById('defaultParentId').value.trim(),
+            api_version: document.getElementById('apiVersion').value,
+            timeout_seconds: parseInt(document.getElementById('timeout').value) || 60,
+            max_file_size_mb: parseInt(document.getElementById('maxFileSize').value) || 50,
+            tags: document.getElementById('tags').value.split(',').map(t => t.trim()).filter(t => t),
+            author: document.getElementById('author').value.trim()
+        };
+    }
+    
+    function updatePreview() {
+        const data = getFormData();
+        const preview = {
+            name: data.tool_name || 'your_tool_name',
+            description: data.description || 'Your description',
+            version: '2.9.0',
+            metadata: {
+                source: 'livelink',
+                auth_type: data.auth_type,
+                api_version: data.api_version,
+                tags: data.tags.length ? data.tags : ['livelink', 'document']
+            }
+        };
+        document.getElementById('previewCode').textContent = JSON.stringify(preview, null, 2);
+    }
+    
+    function showStatus(message, type) {
+        const el = document.getElementById('statusMessage');
+        el.textContent = message;
+        el.className = 'status-message show ' + type;
+        if (type === 'success') setTimeout(() => el.classList.remove('show'), 5000);
+    }
+    
+    async function previewTool() {
+        const data = getFormData();
+        try {
+            const response = await fetch('/admin/studio/livelink/preview', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (result.success) {
+                document.getElementById('previewCode').textContent = JSON.stringify(result.config, null, 2);
+                showStatus('Preview generated!', 'success');
+            } else {
+                showStatus('Error: ' + result.error, 'error');
+            }
+        } catch (error) {
+            showStatus('Request failed: ' + error.message, 'error');
+        }
+    }
+    
+    async function deployTool() {
+        const data = getFormData();
+        if (!confirm(`Deploy LiveLink tool "${data.tool_name}"?`)) return;
+        
+        try {
+            const response = await fetch('/admin/studio/livelink/deploy', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (result.success) {
+                showStatus('✓ Tool deployed successfully!', 'success');
+                if (result.config) {
+                    document.getElementById('previewCode').textContent = JSON.stringify(result.config, null, 2);
+                }
+            } else {
+                showStatus('Deployment failed: ' + result.error, 'error');
+            }
+        } catch (error) {
+            showStatus('Request failed: ' + error.message, 'error');
+        }
+    }
+    
+    // Live preview updates
+    ['toolName', 'description', 'serverUrl', 'apiVersion', 'tags'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', updatePreview);
+    });
+    
+    updatePreview();
+</script>
+{% endblock %}

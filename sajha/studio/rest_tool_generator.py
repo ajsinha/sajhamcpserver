@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server - REST Tool Generator v2.4.0
+SAJHA MCP Server - REST Tool Generator v2.8.0
 
 Copyright © 2025-2030, All Rights Reserved
 Ashutosh Sinha
@@ -41,7 +41,7 @@ class RESTToolDefinition:
     csv_delimiter: str = ","
     csv_has_header: bool = True
     csv_skip_rows: int = 0  # Number of rows to skip before header/data
-    version: str = "2.4.0"
+    version: str = "2.8.0"
 
 
 class RESTToolGenerator:

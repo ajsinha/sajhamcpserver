@@ -1,0 +1,1116 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}Script Tool Creator - MCP Studio - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .script-creator-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .creator-header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+        color: #e0e0e0;
+    }
+    
+    .creator-header h3 {
+        color: #ff6b6b;
+        margin-bottom: 8px;
+    }
+    
+    .creator-header .subtitle {
+        color: #9cdcfe;
+        font-size: 0.95rem;
+    }
+    
+    .form-section {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5253 100%);
+        color: white;
+        padding: 15px 20px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-header.primary {
+        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+    }
+    
+    .section-header.success {
+        background: linear-gradient(135deg, #198754 0%, #157347 100%);
+    }
+    
+    .section-header.info {
+        background: linear-gradient(135deg, #0dcaf0 0%, #0aa8c7 100%);
+        color: #212529;
+    }
+    
+    .section-header.secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    }
+    
+    .section-body {
+        padding: 20px;
+    }
+    
+    .script-type-select {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .script-type-btn {
+        padding: 12px 24px;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 100px;
+    }
+    
+    .script-type-btn:hover {
+        border-color: #ff6b6b;
+    }
+    
+    .script-type-btn.active {
+        border-color: #ff6b6b;
+        background: #ff6b6b;
+        color: white;
+    }
+    
+    .script-type-btn i {
+        font-size: 1.5rem;
+        margin-bottom: 5px;
+    }
+    
+    .script-editor {
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 13px;
+        min-height: 300px;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        border: 1px solid #404040;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .script-editor:focus {
+        outline: none;
+        border-color: #ff6b6b;
+        box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.25);
+    }
+    
+    .preview-panel {
+        background: #1e1e1e;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .preview-header {
+        background: #2d2d2d;
+        padding: 12px 15px;
+        border-bottom: 1px solid #404040;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .preview-header h6 {
+        margin: 0;
+        color: #e0e0e0;
+        font-size: 14px;
+    }
+    
+    .preview-content {
+        padding: 15px;
+        max-height: 300px;
+        overflow-y: auto;
+        color: #9cdcfe;
+        font-family: monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+    }
+    
+    .example-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .example-card:hover {
+        border-color: #ff6b6b;
+        box-shadow: 0 2px 8px rgba(255, 107, 107, 0.15);
+    }
+    
+    .example-card h6 {
+        color: #ff6b6b;
+        margin-bottom: 5px;
+    }
+    
+    .example-card p {
+        color: #6c757d;
+        font-size: 0.85rem;
+        margin-bottom: 5px;
+    }
+    
+    .btn-action {
+        padding: 12px 30px;
+        font-weight: 600;
+        border-radius: 8px;
+        font-size: 1rem;
+    }
+    
+    .status-message {
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+    }
+    
+    .status-message.show {
+        display: block;
+    }
+    
+    .status-message.success {
+        background: #d1e7dd;
+        color: #0f5132;
+        border: 1px solid #badbcc;
+    }
+    
+    .status-message.error {
+        background: #f8d7da;
+        color: #842029;
+        border: 1px solid #f5c2c7;
+    }
+    
+    .collapse-toggle {
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .collapse-toggle i {
+        transition: transform 0.2s;
+    }
+    
+    .collapse-toggle.collapsed i {
+        transform: rotate(-90deg);
+    }
+    
+    .tag-input-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        padding: 8px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        background: white;
+        min-height: 44px;
+    }
+    
+    .tag {
+        background: #ff6b6b;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .tag .remove-tag {
+        cursor: pointer;
+        font-weight: bold;
+    }
+    
+    .tag-input {
+        border: none;
+        outline: none;
+        flex: 1;
+        min-width: 100px;
+        padding: 4px;
+    }
+    
+    .file-upload-area {
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: #f8f9fa;
+    }
+    
+    .file-upload-area:hover {
+        border-color: #ff6b6b;
+        background: #fff5f5;
+    }
+    
+    .file-upload-area.dragover {
+        border-color: #ff6b6b;
+        background: #fff5f5;
+    }
+    
+    .file-upload-area i {
+        font-size: 2rem;
+        color: #6c757d;
+        margin-bottom: 10px;
+    }
+    
+    .env-var-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        align-items: center;
+    }
+    
+    /* ===== DARK THEME OVERRIDES ===== */
+    html[data-theme="dark"] .form-section,
+    [data-theme="dark"] .form-section {
+        background: #2d2d2d !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+    }
+    
+    html[data-theme="dark"] .section-body,
+    [data-theme="dark"] .section-body {
+        background: #2d2d2d !important;
+        color: #e0e0e0 !important;
+    }
+    
+    html[data-theme="dark"] .section-body label,
+    html[data-theme="dark"] .section-body p,
+    html[data-theme="dark"] .section-body span,
+    html[data-theme="dark"] .section-body div {
+        color: #e0e0e0 !important;
+    }
+    
+    html[data-theme="dark"] .section-body small,
+    html[data-theme="dark"] .help-text {
+        color: #a0a0a0 !important;
+    }
+    
+    html[data-theme="dark"] .form-control,
+    html[data-theme="dark"] .form-select {
+        background: #1e1e1e !important;
+        color: #e0e0e0 !important;
+        border-color: #444 !important;
+    }
+    
+    html[data-theme="dark"] .form-control::placeholder {
+        color: #888 !important;
+    }
+    
+    html[data-theme="dark"] .script-type-btn {
+        background: #2d2d2d !important;
+        border-color: #444 !important;
+        color: #e0e0e0 !important;
+    }
+    
+    html[data-theme="dark"] .script-type-btn:hover {
+        border-color: #dc3545 !important;
+    }
+    
+    html[data-theme="dark"] .script-type-btn.active {
+        background: #dc3545 !important;
+        color: white !important;
+    }
+    
+    html[data-theme="dark"] .script-type-btn small {
+        color: #888 !important;
+    }
+    
+    html[data-theme="dark"] .script-type-btn.active small {
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+    
+    html[data-theme="dark"] .script-editor {
+        background: #1e1e1e !important;
+        color: #d4d4d4 !important;
+        border-color: #444 !important;
+    }
+    
+    html[data-theme="dark"] .file-upload-area {
+        background: #1e1e1e !important;
+        border-color: #555 !important;
+    }
+    
+    html[data-theme="dark"] .file-upload-area i {
+        color: #888 !important;
+    }
+    
+    html[data-theme="dark"] .file-upload-area p {
+        color: #a0a0a0 !important;
+    }
+    
+    html[data-theme="dark"] .env-var-row input {
+        background: #1e1e1e !important;
+        color: #e0e0e0 !important;
+        border-color: #444 !important;
+    }
+    
+    html[data-theme="dark"] .status-message.success {
+        background: rgba(25, 135, 84, 0.2) !important;
+        color: #75b798 !important;
+        border: 1px solid #3d8b5e !important;
+    }
+    
+    html[data-theme="dark"] .status-message.error {
+        background: rgba(220, 53, 69, 0.2) !important;
+        color: #ea868f !important;
+        border: 1px solid #8c3a42 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 script-creator-container">
+    <!-- Header -->
+    <div class="creator-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3>
+                    <i class="bi bi-terminal me-2"></i>Script Tool Creator
+                    <span class="badge bg-light text-dark ms-2" style="font-size: 0.5em;">v2.9.0</span>
+                </h3>
+                <p class="subtitle mb-0">
+                    Create MCP tools from shell scripts, Python scripts, and more. 
+                    Upload or paste your script, configure execution settings, and deploy as an MCP tool.
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_for('studio_home') }}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Studio
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Status Message -->
+    <div id="statusMessage" class="status-message"></div>
+    
+    <div class="row">
+        <!-- Left Column: Configuration -->
+        <div class="col-lg-7">
+            <!-- Basic Information -->
+            <div class="form-section">
+                <div class="section-header">
+                    <i class="bi bi-info-circle"></i>
+                    Basic Information
+                </div>
+                <div class="section-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Tool Name *</label>
+                            <input type="text" id="toolName" class="form-control" 
+                                   placeholder="e.g., system_health_check"
+                                   pattern="[a-z][a-z0-9_]*">
+                            <div class="form-text">Lowercase letters, numbers, underscores. Must start with a letter.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Category</label>
+                            <input type="text" id="category" class="form-control" 
+                                   value="Script" placeholder="e.g., System, Automation">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description *</label>
+                        <textarea id="description" class="form-control" rows="2"
+                                  placeholder="Describe what this script tool does..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tags</label>
+                        <div class="tag-input-container" id="tagContainer">
+                            <input type="text" class="tag-input" id="tagInput" 
+                                   placeholder="Type and press Enter to add tags...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Script Type -->
+            <div class="form-section">
+                <div class="section-header primary">
+                    <i class="bi bi-code-slash"></i>
+                    Script Type
+                </div>
+                <div class="section-body">
+                    <div class="script-type-select">
+                        <div class="script-type-btn active" data-type="bash">
+                            <i class="bi bi-terminal"></i>
+                            <span>Bash</span>
+                        </div>
+                        <div class="script-type-btn" data-type="shell">
+                            <i class="bi bi-terminal-fill"></i>
+                            <span>Shell</span>
+                        </div>
+                        <div class="script-type-btn" data-type="python">
+                            <i class="bi bi-filetype-py"></i>
+                            <span>Python</span>
+                        </div>
+                        <div class="script-type-btn" data-type="node">
+                            <i class="bi bi-filetype-js"></i>
+                            <span>Node.js</span>
+                        </div>
+                        <div class="script-type-btn" data-type="perl">
+                            <i class="bi bi-file-code"></i>
+                            <span>Perl</span>
+                        </div>
+                        <div class="script-type-btn" data-type="ruby">
+                            <i class="bi bi-gem"></i>
+                            <span>Ruby</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Script Content -->
+            <div class="form-section">
+                <div class="section-header success">
+                    <i class="bi bi-file-earmark-code"></i>
+                    Script Content
+                </div>
+                <div class="section-body">
+                    <!-- File Upload -->
+                    <div class="file-upload-area mb-3" id="fileUploadArea">
+                        <i class="bi bi-cloud-arrow-up d-block"></i>
+                        <p class="mb-1 fw-bold">Drag & drop a script file here</p>
+                        <p class="mb-0 text-muted small">or click to browse (.sh, .py, .js, .pl, .rb)</p>
+                        <input type="file" id="fileInput" class="d-none" 
+                               accept=".sh,.bash,.py,.js,.pl,.rb,.ps1">
+                    </div>
+                    
+                    <div class="mb-2 d-flex justify-content-between align-items-center">
+                        <label class="form-label fw-bold mb-0">Script Code *</label>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearScript()">
+                            <i class="bi bi-trash me-1"></i>Clear
+                        </button>
+                    </div>
+                    <textarea id="scriptContent" class="script-editor" 
+                              placeholder="#!/bin/bash
+# Your script here...
+echo &quot;Hello from SAJHA MCP Server!&quot;
+
+# Arguments are passed as $1, $2, etc.
+# Example: echo &quot;First argument: $1&quot;
+"></textarea>
+                    <div class="form-text">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Arguments passed to the script will be available as command-line arguments ($1, $2, ... for shell; sys.argv for Python).
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Execution Settings -->
+            <div class="form-section">
+                <div class="section-header secondary collapse-toggle" data-bs-toggle="collapse" data-bs-target="#executionCollapse">
+                    <i class="bi bi-gear"></i>
+                    Execution Settings
+                    <i class="bi bi-chevron-down ms-auto"></i>
+                </div>
+                <div id="executionCollapse" class="collapse show">
+                    <div class="section-body">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Timeout (seconds)</label>
+                                <input type="number" id="timeout" class="form-control" 
+                                       value="30" min="1" max="300">
+                                <div class="form-text">1-300 seconds</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Max Arguments</label>
+                                <input type="number" id="maxArgs" class="form-control" 
+                                       value="10" min="0" max="100">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Working Directory</label>
+                                <input type="text" id="workingDir" class="form-control" 
+                                       placeholder="(Default: script directory)">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Environment Variables</label>
+                            <div id="envVarsContainer">
+                                <!-- Environment variable rows will be added here -->
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addEnvVar()">
+                                <i class="bi bi-plus me-1"></i>Add Environment Variable
+                            </button>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="captureStderr" checked>
+                                    <label class="form-check-label" for="captureStderr">
+                                        Capture STDERR
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tool Literature -->
+            <div class="form-section">
+                <div class="section-header info collapse-toggle" data-bs-toggle="collapse" data-bs-target="#literatureCollapse">
+                    <i class="bi bi-book"></i>
+                    Tool Literature (AI Context)
+                    <i class="bi bi-chevron-down ms-auto"></i>
+                </div>
+                <div id="literatureCollapse" class="collapse">
+                    <div class="section-body">
+                        <textarea id="literature" class="form-control" rows="4"
+                                  placeholder="Additional context for AI to understand when and how to use this tool..."></textarea>
+                        <div class="form-text">
+                            This text helps AI assistants understand when and how to use this tool effectively.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="d-flex gap-3 mb-4">
+                <button type="button" class="btn btn-primary btn-action" onclick="previewTool()">
+                    <i class="bi bi-eye me-2"></i>Preview Tool
+                </button>
+                <button type="button" class="btn btn-success btn-action" onclick="deployTool()">
+                    <i class="bi bi-rocket me-2"></i>Deploy Tool
+                </button>
+            </div>
+        </div>
+        
+        <!-- Right Column: Preview & Examples -->
+        <div class="col-lg-5">
+            <!-- Preview Panel -->
+            <div class="preview-panel mb-4">
+                <div class="preview-header">
+                    <h6><i class="bi bi-code-square me-2"></i>Generated Config Preview</h6>
+                    <button class="btn btn-sm btn-outline-light" onclick="copyPreview('jsonPreview')">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
+                <div id="jsonPreview" class="preview-content">
+                    <span class="text-muted">// Configure your script tool and click "Preview Tool" to see generated config</span>
+                </div>
+            </div>
+            
+            <div class="preview-panel mb-4">
+                <div class="preview-header">
+                    <h6><i class="bi bi-filetype-py me-2"></i>Generated Python Wrapper</h6>
+                    <button class="btn btn-sm btn-outline-light" onclick="copyPreview('pythonPreview')">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
+                <div id="pythonPreview" class="preview-content">
+                    <span class="text-muted"># Python wrapper code will appear here</span>
+                </div>
+            </div>
+            
+            <!-- Quick Examples -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <i class="bi bi-lightning me-2"></i>Quick Examples
+                </div>
+                <div class="card-body">
+                    <div class="example-card" onclick="loadExample('system_info')">
+                        <h6><i class="bi bi-pc-display me-2"></i>System Information</h6>
+                        <p>Bash script to collect system information (CPU, memory, disk)</p>
+                        <span class="badge bg-secondary">Bash</span>
+                    </div>
+                    <div class="example-card" onclick="loadExample('file_search')">
+                        <h6><i class="bi bi-search me-2"></i>File Search</h6>
+                        <p>Search for files by pattern in a directory</p>
+                        <span class="badge bg-secondary">Bash</span>
+                    </div>
+                    <div class="example-card" onclick="loadExample('json_processor')">
+                        <h6><i class="bi bi-braces me-2"></i>JSON Processor</h6>
+                        <p>Python script to process and transform JSON data</p>
+                        <span class="badge bg-info">Python</span>
+                    </div>
+                    <div class="example-card" onclick="loadExample('log_analyzer')">
+                        <h6><i class="bi bi-file-text me-2"></i>Log Analyzer</h6>
+                        <p>Analyze log files and extract patterns</p>
+                        <span class="badge bg-info">Python</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Tags management
+    const tagContainer = document.getElementById('tagContainer');
+    const tagInput = document.getElementById('tagInput');
+    let tags = [];
+    
+    tagInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && this.value.trim()) {
+            e.preventDefault();
+            addTag(this.value.trim());
+            this.value = '';
+        }
+    });
+    
+    function addTag(tag) {
+        if (!tags.includes(tag)) {
+            tags.push(tag);
+            renderTags();
+        }
+    }
+    
+    function removeTag(tag) {
+        tags = tags.filter(t => t !== tag);
+        renderTags();
+    }
+    
+    function renderTags() {
+        const tagsHtml = tags.map(tag => `
+            <span class="tag">
+                ${tag}
+                <span class="remove-tag" onclick="removeTag('${tag}')">&times;</span>
+            </span>
+        `).join('');
+        tagContainer.innerHTML = tagsHtml + `<input type="text" class="tag-input" id="tagInput" placeholder="Type and press Enter...">`;
+        document.getElementById('tagInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && this.value.trim()) {
+                e.preventDefault();
+                addTag(this.value.trim());
+                this.value = '';
+            }
+        });
+    }
+    
+    // Script type selection
+    document.querySelectorAll('.script-type-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.script-type-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+    
+    // File upload
+    const fileUploadArea = document.getElementById('fileUploadArea');
+    const fileInput = document.getElementById('fileInput');
+    
+    fileUploadArea.addEventListener('click', () => fileInput.click());
+    
+    fileUploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.add('dragover');
+    });
+    
+    fileUploadArea.addEventListener('dragleave', () => {
+        fileUploadArea.classList.remove('dragover');
+    });
+    
+    fileUploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file) loadFile(file);
+    });
+    
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) loadFile(e.target.files[0]);
+    });
+    
+    function loadFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('scriptContent').value = e.target.result;
+            
+            // Auto-detect script type from extension
+            const ext = file.name.split('.').pop().toLowerCase();
+            const typeMap = {
+                'sh': 'bash', 'bash': 'bash',
+                'py': 'python',
+                'js': 'node',
+                'pl': 'perl',
+                'rb': 'ruby',
+                'ps1': 'powershell'
+            };
+            if (typeMap[ext]) {
+                document.querySelectorAll('.script-type-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.type === typeMap[ext]);
+                });
+            }
+            
+            // Use filename as tool name suggestion
+            if (!document.getElementById('toolName').value) {
+                const baseName = file.name.replace(/\.[^/.]+$/, '').toLowerCase().replace(/[^a-z0-9]/g, '_');
+                document.getElementById('toolName').value = baseName;
+            }
+        };
+        reader.readAsText(file);
+    }
+    
+    function clearScript() {
+        document.getElementById('scriptContent').value = '';
+    }
+    
+    // Environment variables
+    function addEnvVar() {
+        const container = document.getElementById('envVarsContainer');
+        const row = document.createElement('div');
+        row.className = 'env-var-row';
+        row.innerHTML = `
+            <input type="text" class="form-control" placeholder="Variable name" style="flex: 1;">
+            <input type="text" class="form-control" placeholder="Value" style="flex: 2;">
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.parentElement.remove()">
+                <i class="bi bi-trash"></i>
+            </button>
+        `;
+        container.appendChild(row);
+    }
+    
+    // Collect form data
+    function collectFormData() {
+        const envVars = {};
+        document.querySelectorAll('#envVarsContainer .env-var-row').forEach(row => {
+            const inputs = row.querySelectorAll('input');
+            if (inputs[0].value && inputs[1].value) {
+                envVars[inputs[0].value] = inputs[1].value;
+            }
+        });
+        
+        return {
+            tool_name: document.getElementById('toolName').value.trim().toLowerCase(),
+            description: document.getElementById('description').value.trim(),
+            script_type: document.querySelector('.script-type-btn.active')?.dataset.type || 'bash',
+            script_content: document.getElementById('scriptContent').value,
+            category: document.getElementById('category').value || 'Script',
+            tags: tags,
+            timeout_seconds: parseInt(document.getElementById('timeout').value) || 30,
+            max_args: parseInt(document.getElementById('maxArgs').value) || 10,
+            working_directory: document.getElementById('workingDir').value || '',
+            environment_vars: envVars,
+            capture_stderr: document.getElementById('captureStderr').checked,
+            literature: document.getElementById('literature').value || ''
+        };
+    }
+    
+    // Preview tool
+    async function previewTool() {
+        const data = collectFormData();
+        
+        // Validate required fields
+        if (!data.tool_name) {
+            showStatus('Tool name is required', 'error');
+            return;
+        }
+        if (!data.description) {
+            showStatus('Description is required', 'error');
+            return;
+        }
+        if (!data.script_content) {
+            showStatus('Script content is required', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/admin/studio/script/preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                document.getElementById('jsonPreview').textContent = result.json_content;
+                document.getElementById('pythonPreview').textContent = result.python_content;
+                showStatus('Preview generated successfully!', 'success');
+            } else {
+                showStatus(result.error || 'Preview failed', 'error');
+            }
+        } catch (error) {
+            showStatus('Error generating preview: ' + error.message, 'error');
+        }
+    }
+    
+    // Deploy tool
+    async function deployTool() {
+        const data = collectFormData();
+        
+        // Validate required fields
+        if (!data.tool_name) {
+            showStatus('Tool name is required', 'error');
+            return;
+        }
+        if (!data.description) {
+            showStatus('Description is required', 'error');
+            return;
+        }
+        if (!data.script_content) {
+            showStatus('Script content is required', 'error');
+            return;
+        }
+        
+        // Confirm deployment
+        if (!confirm(`Deploy script tool "${data.tool_name}"?\n\nThis will create the tool and make it available via MCP.`)) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/admin/studio/script/deploy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showStatus(result.message || 'Tool deployed successfully!', 'success');
+            } else {
+                showStatus(result.error || 'Deployment failed', 'error');
+            }
+        } catch (error) {
+            showStatus('Error deploying tool: ' + error.message, 'error');
+        }
+    }
+    
+    function showStatus(message, type) {
+        const statusEl = document.getElementById('statusMessage');
+        statusEl.textContent = message;
+        statusEl.className = `status-message show ${type}`;
+        
+        setTimeout(() => {
+            statusEl.classList.remove('show');
+        }, 5000);
+    }
+    
+    function copyPreview(elementId) {
+        const content = document.getElementById(elementId).textContent;
+        navigator.clipboard.writeText(content).then(() => {
+            showStatus('Copied to clipboard!', 'success');
+        });
+    }
+    
+    // Example scripts
+    const examples = {
+        system_info: {
+            name: 'system_info',
+            description: 'Collect system information including CPU, memory, and disk usage',
+            script_type: 'bash',
+            script: `#!/bin/bash
+# System Information Script
+# Collects CPU, memory, and disk information
+
+echo "=== System Information ==="
+echo "Hostname: $(hostname)"
+echo "Date: $(date)"
+echo ""
+
+echo "=== CPU Info ==="
+if [ -f /proc/cpuinfo ]; then
+    grep "model name" /proc/cpuinfo | head -1
+    echo "CPU Cores: $(nproc)"
+fi
+
+echo ""
+echo "=== Memory Info ==="
+free -h
+
+echo ""
+echo "=== Disk Usage ==="
+df -h | head -5
+
+echo ""
+echo "=== Uptime ==="
+uptime
+`,
+            tags: ['system', 'monitoring', 'info']
+        },
+        file_search: {
+            name: 'file_search',
+            description: 'Search for files matching a pattern in a directory',
+            script_type: 'bash',
+            script: `#!/bin/bash
+# File Search Script
+# Usage: Provide search pattern as first argument, directory as second (optional)
+
+PATTERN="\${1:-*}"
+DIRECTORY="\${2:-.}"
+
+echo "Searching for files matching '$PATTERN' in '$DIRECTORY'..."
+echo ""
+
+find "$DIRECTORY" -name "$PATTERN" -type f 2>/dev/null | while read -r file; do
+    echo "Found: $file"
+    ls -lh "$file" 2>/dev/null | awk '{print "  Size:", $5, " Modified:", $6, $7, $8}'
+done
+
+echo ""
+echo "Search complete."
+`,
+            tags: ['file', 'search', 'find']
+        },
+        json_processor: {
+            name: 'json_processor',
+            description: 'Process and transform JSON data using Python',
+            script_type: 'python',
+            script: `#!/usr/bin/env python3
+# JSON Processor Script
+# Reads JSON from stdin or file argument and processes it
+
+import sys
+import json
+
+def process_json(data):
+    """Process JSON data and return summary."""
+    result = {
+        "type": type(data).__name__,
+        "summary": {}
+    }
+    
+    if isinstance(data, dict):
+        result["summary"]["keys"] = list(data.keys())
+        result["summary"]["key_count"] = len(data)
+    elif isinstance(data, list):
+        result["summary"]["length"] = len(data)
+        if data:
+            result["summary"]["first_item_type"] = type(data[0]).__name__
+    
+    return result
+
+def main():
+    try:
+        # Read from file argument or stdin
+        if len(sys.argv) > 1:
+            with open(sys.argv[1], 'r') as f:
+                data = json.load(f)
+        else:
+            data = json.load(sys.stdin)
+        
+        result = process_json(data)
+        print(json.dumps(result, indent=2))
+        
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON - {e}", file=sys.stderr)
+        sys.exit(1)
+    except FileNotFoundError as e:
+        print(f"Error: File not found - {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+`,
+            tags: ['json', 'data', 'transform']
+        },
+        log_analyzer: {
+            name: 'log_analyzer',
+            description: 'Analyze log files and extract patterns or errors',
+            script_type: 'python',
+            script: `#!/usr/bin/env python3
+# Log Analyzer Script
+# Analyzes log files for patterns, errors, and statistics
+
+import sys
+import re
+from collections import Counter
+from datetime import datetime
+
+def analyze_log(filepath):
+    """Analyze a log file and return statistics."""
+    stats = {
+        "total_lines": 0,
+        "error_count": 0,
+        "warning_count": 0,
+        "info_count": 0,
+        "patterns": Counter(),
+        "errors": []
+    }
+    
+    error_pattern = re.compile(r'(ERROR|CRITICAL|FATAL)', re.IGNORECASE)
+    warning_pattern = re.compile(r'WARNING', re.IGNORECASE)
+    info_pattern = re.compile(r'INFO', re.IGNORECASE)
+    
+    try:
+        with open(filepath, 'r', errors='ignore') as f:
+            for line in f:
+                stats["total_lines"] += 1
+                
+                if error_pattern.search(line):
+                    stats["error_count"] += 1
+                    if len(stats["errors"]) < 10:
+                        stats["errors"].append(line.strip()[:200])
+                elif warning_pattern.search(line):
+                    stats["warning_count"] += 1
+                elif info_pattern.search(line):
+                    stats["info_count"] += 1
+    
+    except Exception as e:
+        return {"error": str(e)}
+    
+    stats["patterns"] = dict(stats["patterns"].most_common(10))
+    return stats
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: log_analyzer.py <logfile>")
+        sys.exit(1)
+    
+    import json
+    result = analyze_log(sys.argv[1])
+    print(json.dumps(result, indent=2))
+
+if __name__ == "__main__":
+    main()
+`,
+            tags: ['log', 'analysis', 'monitoring']
+        }
+    };
+    
+    function loadExample(name) {
+        const example = examples[name];
+        if (!example) return;
+        
+        document.getElementById('toolName').value = example.name;
+        document.getElementById('description').value = example.description;
+        document.getElementById('scriptContent').value = example.script;
+        
+        // Set script type
+        document.querySelectorAll('.script-type-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.type === example.script_type);
+        });
+        
+        // Set tags
+        tags = [...example.tags];
+        renderTags();
+        
+        showStatus(`Loaded example: ${example.name}`, 'success');
+    }
+</script>
+{% endblock %}

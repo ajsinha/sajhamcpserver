@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Main entry point for SAJHA MCP Server v2.4.0
+Main entry point for SAJHA MCP Server v2.9.0
 
 This script initializes and runs the SAJHA MCP Server web application.
 It handles:

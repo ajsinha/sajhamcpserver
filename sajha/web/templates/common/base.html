@@ -8,6 +8,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}SAJHA MCP Server{% endblock %}</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    
     <!-- Theme initialization (prevent flash) -->
     <script>
         (function() {
@@ -90,6 +94,33 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <li>
                                 <a class="dropdown-item" href="{{ url_for('studio_dbquery') }}">
                                     <i class="bi bi-database me-2 text-warning"></i>DB Query Tool
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('studio_script') }}">
+                                    <i class="bi bi-terminal me-2 text-danger"></i>Script Tool
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('studio_powerbi') }}">
+                                    <i class="bi bi-bar-chart-fill me-2" style="color: #f2c811;"></i>PowerBI Report
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('studio_powerbidax') }}">
+                                    <i class="bi bi-braces me-2" style="color: #00d4aa;"></i>PowerBI DAX Query
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('studio_livelink') }}">
+                                    <i class="bi bi-folder2-open me-2" style="color: #0077b6;"></i>IBM LiveLink
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('studio_olap') }}">
+                                    <i class="bi bi-graph-up-arrow me-2" style="color: #00d4aa;"></i>OLAP Dataset
                                 </a>
                             </li>
                         </ul>

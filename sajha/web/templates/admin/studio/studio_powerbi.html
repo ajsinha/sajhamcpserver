@@ -1,0 +1,852 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}PowerBI Report Tool Creator - MCP Studio - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .powerbi-creator-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .creator-header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+        color: #e0e0e0;
+    }
+    
+    .creator-header h3 {
+        color: #f2c811;
+        margin-bottom: 8px;
+    }
+    
+    .creator-header .subtitle {
+        color: #9cdcfe;
+        font-size: 0.95rem;
+    }
+    
+    .form-section {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #f2c811 0%, #e6b800 100%);
+        color: #212529;
+        padding: 15px 20px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-header.primary {
+        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+        color: white;
+    }
+    
+    .section-header.success {
+        background: linear-gradient(135deg, #198754 0%, #157347 100%);
+        color: white;
+    }
+    
+    .section-header.info {
+        background: linear-gradient(135deg, #0dcaf0 0%, #0aa8c7 100%);
+        color: #212529;
+    }
+    
+    .section-header.secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+        color: white;
+    }
+    
+    .section-body {
+        padding: 20px;
+    }
+    
+    .format-select {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .format-btn {
+        padding: 12px 24px;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 100px;
+    }
+    
+    .format-btn:hover {
+        border-color: #f2c811;
+    }
+    
+    .format-btn.active {
+        border-color: #f2c811;
+        background: #f2c811;
+        color: #212529;
+    }
+    
+    .format-btn i {
+        font-size: 1.5rem;
+        margin-bottom: 5px;
+    }
+    
+    .format-btn small {
+        font-size: 0.75rem;
+        font-weight: normal;
+        opacity: 0.8;
+    }
+    
+    .preview-panel {
+        background: #1e1e1e;
+        border-radius: 12px;
+        overflow: hidden;
+        position: sticky;
+        top: 20px;
+    }
+    
+    .preview-header {
+        background: #333;
+        color: #f2c811;
+        padding: 12px 20px;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .preview-content {
+        padding: 15px;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .preview-content pre {
+        margin: 0;
+        white-space: pre-wrap;
+        font-size: 0.85rem;
+        color: #d4d4d4;
+    }
+    
+    .status-message {
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+    }
+    
+    .status-message.show {
+        display: block;
+    }
+    
+    .status-message.success {
+        background: #d1e7dd;
+        color: #0f5132;
+        border: 1px solid #badbcc;
+    }
+    
+    .status-message.error {
+        background: #f8d7da;
+        color: #842029;
+        border: 1px solid #f5c2c7;
+    }
+    
+    .btn-deploy {
+        background: linear-gradient(135deg, #f2c811 0%, #e6b800 100%);
+        border: none;
+        color: #212529;
+        font-weight: 600;
+        padding: 12px 30px;
+    }
+    
+    .btn-deploy:hover {
+        background: linear-gradient(135deg, #e6b800 0%, #d4a800 100%);
+        color: #212529;
+    }
+    
+    .btn-preview {
+        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+        border: none;
+        color: white;
+    }
+    
+    .guid-input {
+        font-family: 'Consolas', 'Monaco', monospace;
+        letter-spacing: 0.5px;
+    }
+    
+    .help-text {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+    
+    .azure-info {
+        background: #e7f3ff;
+        border: 1px solid #b6d4fe;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .azure-info h6 {
+        color: #0d6efd;
+        margin-bottom: 10px;
+    }
+    
+    .azure-info p,
+    .azure-info small {
+        color: #333;
+    }
+    
+    .azure-info code {
+        background: rgba(0, 0, 0, 0.1);
+        color: #0d6efd;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+    
+    /* Dark theme overrides for azure-info */
+    html[data-theme="dark"] .azure-info,
+    [data-theme="dark"] .azure-info {
+        background: rgba(13, 110, 253, 0.15) !important;
+        border-color: #3d7fcc !important;
+    }
+    
+    html[data-theme="dark"] .azure-info h6,
+    [data-theme="dark"] .azure-info h6 {
+        color: #6ea8fe !important;
+    }
+    
+    html[data-theme="dark"] .azure-info p,
+    html[data-theme="dark"] .azure-info small,
+    html[data-theme="dark"] .azure-info span,
+    [data-theme="dark"] .azure-info p,
+    [data-theme="dark"] .azure-info small,
+    [data-theme="dark"] .azure-info span {
+        color: #c0c0c0 !important;
+    }
+    
+    html[data-theme="dark"] .azure-info code,
+    [data-theme="dark"] .azure-info code {
+        background: rgba(0, 0, 0, 0.4) !important;
+        color: #ffc107 !important;
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+    
+    html[data-theme="dark"] .azure-info strong,
+    [data-theme="dark"] .azure-info strong {
+        color: #6ea8fe !important;
+    }
+    
+    .powerbi-logo {
+        width: 40px;
+        height: 40px;
+        background: #f2c811;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+    }
+    
+    .powerbi-logo i {
+        font-size: 1.5rem;
+        color: #212529;
+    }
+    
+    .quick-tips {
+        background: #fff3cd;
+        border: 1px solid #ffecb5;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .quick-tips h6 {
+        color: #856404;
+        margin-bottom: 10px;
+    }
+    
+    .quick-tips ul {
+        margin-bottom: 0;
+        padding-left: 20px;
+    }
+    
+    .quick-tips li {
+        color: #333;
+    }
+    
+    /* Dark theme overrides for quick-tips */
+    html[data-theme="dark"] .quick-tips,
+    [data-theme="dark"] .quick-tips {
+        background: rgba(255, 193, 7, 0.15) !important;
+        border-color: #997404 !important;
+    }
+    
+    html[data-theme="dark"] .quick-tips h6,
+    [data-theme="dark"] .quick-tips h6 {
+        color: #ffda6a !important;
+    }
+    
+    html[data-theme="dark"] .quick-tips li,
+    html[data-theme="dark"] .quick-tips ul,
+    html[data-theme="dark"] .quick-tips p,
+    [data-theme="dark"] .quick-tips li,
+    [data-theme="dark"] .quick-tips ul,
+    [data-theme="dark"] .quick-tips p {
+        color: #c0c0c0 !important;
+    }
+    
+    html[data-theme="dark"] .quick-tips strong,
+    [data-theme="dark"] .quick-tips strong {
+        color: #ffda6a !important;
+    }
+    
+    /* Dark theme for help-text */
+    html[data-theme="dark"] .help-text,
+    [data-theme="dark"] .help-text {
+        color: #a0a0a0 !important;
+    }
+    
+    /* Dark theme for form sections */
+    html[data-theme="dark"] .form-section,
+    [data-theme="dark"] .form-section {
+        background: #2d2d2d !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+    }
+    
+    html[data-theme="dark"] .section-body,
+    [data-theme="dark"] .section-body {
+        background: #2d2d2d !important;
+        color: #e0e0e0 !important;
+    }
+    
+    html[data-theme="dark"] .section-body label,
+    html[data-theme="dark"] .section-body p,
+    html[data-theme="dark"] .section-body span,
+    html[data-theme="dark"] .section-body div,
+    [data-theme="dark"] .section-body label,
+    [data-theme="dark"] .section-body p,
+    [data-theme="dark"] .section-body span,
+    [data-theme="dark"] .section-body div {
+        color: #e0e0e0 !important;
+    }
+    
+    html[data-theme="dark"] .section-body small,
+    html[data-theme="dark"] .section-body .small,
+    [data-theme="dark"] .section-body small,
+    [data-theme="dark"] .section-body .small {
+        color: #a0a0a0 !important;
+    }
+    
+    html[data-theme="dark"] .form-control,
+    html[data-theme="dark"] .form-select,
+    [data-theme="dark"] .form-control,
+    [data-theme="dark"] .form-select {
+        background: #1e1e1e !important;
+        color: #e0e0e0 !important;
+        border-color: #444 !important;
+    }
+    
+    html[data-theme="dark"] .form-control::placeholder {
+        color: #888 !important;
+    }
+    
+    html[data-theme="dark"] .format-btn,
+    [data-theme="dark"] .format-btn {
+        background: #2d2d2d !important;
+        border-color: #444 !important;
+        color: #e0e0e0 !important;
+    }
+    
+    html[data-theme="dark"] .format-btn:hover,
+    [data-theme="dark"] .format-btn:hover {
+        border-color: #f2c811 !important;
+    }
+    
+    html[data-theme="dark"] .format-btn.active,
+    [data-theme="dark"] .format-btn.active {
+        background: #f2c811 !important;
+        color: #212529 !important;
+    }
+    
+    html[data-theme="dark"] .format-btn small,
+    [data-theme="dark"] .format-btn small {
+        color: #888 !important;
+    }
+    
+    html[data-theme="dark"] .format-btn.active small,
+    [data-theme="dark"] .format-btn.active small {
+        color: #444 !important;
+    }
+    
+    html[data-theme="dark"] .status-message.success {
+        background: rgba(25, 135, 84, 0.2) !important;
+        color: #75b798 !important;
+        border: 1px solid #3d8b5e !important;
+    }
+    
+    html[data-theme="dark"] .status-message.error {
+        background: rgba(220, 53, 69, 0.2) !important;
+        color: #ea868f !important;
+        border: 1px solid #8c3a42 !important;
+    }
+    
+    .status-message {
+        margin-bottom: 5px;
+        color: #664d03;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="powerbi-creator-container py-4">
+    <!-- Header -->
+    <div class="creator-header">
+        <div class="d-flex align-items-center">
+            <div class="powerbi-logo">
+                <i class="bi bi-bar-chart-fill"></i>
+            </div>
+            <div>
+                <h3 class="mb-0">
+                    <i class="bi bi-file-earmark-pdf me-2"></i>PowerBI PDF Report Tool Creator
+                    <span class="badge bg-light text-dark ms-2" style="font-size: 0.5em;">v2.9.0</span>
+                </h3>
+                <p class="subtitle mb-0">
+                    Create MCP tools to retrieve PowerBI reports as PDF (base64 encoded)
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Status Message -->
+    <div id="statusMessage" class="status-message"></div>
+    
+    <div class="row">
+        <!-- Form Column -->
+        <div class="col-lg-7">
+            <!-- Tool Information -->
+            <div class="form-section">
+                <div class="section-header primary">
+                    <i class="bi bi-info-circle"></i>
+                    Tool Information
+                </div>
+                <div class="section-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tool Name <span class="text-danger">*</span></label>
+                        <input type="text" id="toolName" class="form-control" 
+                               placeholder="e.g., sales_report_pdf" 
+                               pattern="[a-z][a-z0-9_]*">
+                        <div class="help-text">Lowercase letters, numbers, underscores only. Must start with a letter.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                        <textarea id="description" class="form-control" rows="2"
+                                  placeholder="e.g., Retrieve the monthly sales report as PDF"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Report Display Name <span class="text-danger">*</span></label>
+                        <input type="text" id="reportName" class="form-control" 
+                               placeholder="e.g., Monthly Sales Report">
+                        <div class="help-text">Human-readable name for the report (for documentation and logging)</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Category</label>
+                            <input type="text" id="category" class="form-control" value="PowerBI Reports">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Tags</label>
+                            <input type="text" id="tags" class="form-control" 
+                                   placeholder="powerbi, report, pdf, sales">
+                            <div class="help-text">Comma-separated tags</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- PowerBI Configuration -->
+            <div class="form-section">
+                <div class="section-header">
+                    <i class="bi bi-bar-chart-fill"></i>
+                    PowerBI Configuration
+                </div>
+                <div class="section-body">
+                    <div class="azure-info">
+                        <h6><i class="bi bi-info-circle me-2"></i>Where to Find These IDs</h6>
+                        <p class="mb-2 small">
+                            Open your report in PowerBI Service. The URL contains both IDs:
+                        </p>
+                        <code class="small">
+                            https://app.powerbi.com/groups/<strong>{workspace_id}</strong>/reports/<strong>{report_id}</strong>/...
+                        </code>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Workspace ID (Group ID) <span class="text-danger">*</span></label>
+                        <input type="text" id="workspaceId" class="form-control guid-input" 
+                               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        <div class="help-text">PowerBI Workspace GUID from the URL</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Report ID <span class="text-danger">*</span></label>
+                        <input type="text" id="reportId" class="form-control guid-input" 
+                               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        <div class="help-text">PowerBI Report GUID from the URL</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Page Name (Optional)</label>
+                        <input type="text" id="pageName" class="form-control" 
+                               placeholder="Leave empty to export all pages">
+                        <div class="help-text">Specific page to export (e.g., "ReportSection1"). Leave empty for full report.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Export Format</label>
+                        <div class="format-select">
+                            <button type="button" class="format-btn active" data-format="PDF">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                                PDF
+                                <small>Most common</small>
+                            </button>
+                            <button type="button" class="format-btn" data-format="PPTX">
+                                <i class="bi bi-file-earmark-ppt"></i>
+                                PPTX
+                                <small>PowerPoint</small>
+                            </button>
+                            <button type="button" class="format-btn" data-format="PNG">
+                                <i class="bi bi-file-earmark-image"></i>
+                                PNG
+                                <small>Image</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Azure AD Authentication -->
+            <div class="form-section">
+                <div class="section-header success">
+                    <i class="bi bi-shield-lock"></i>
+                    Azure AD Authentication
+                </div>
+                <div class="section-body">
+                    <div class="alert alert-info py-2 mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Service Principal Required:</strong> Create an Azure AD App Registration with PowerBI API permissions.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tenant ID <span class="text-danger">*</span></label>
+                        <input type="text" id="tenantId" class="form-control guid-input" 
+                               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        <div class="help-text">Azure AD Tenant ID (Directory ID)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Client ID (Application ID) <span class="text-danger">*</span></label>
+                        <input type="text" id="clientId" class="form-control guid-input" 
+                               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        <div class="help-text">Azure AD Application (Client) ID</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Client Secret Environment Variable</label>
+                        <input type="text" id="clientSecretEnv" class="form-control" 
+                               value="POWERBI_CLIENT_SECRET">
+                        <div class="help-text">Name of environment variable containing the client secret (never stored in code)</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Advanced Options -->
+            <div class="form-section">
+                <div class="section-header secondary">
+                    <i class="bi bi-gear"></i>
+                    Advanced Options
+                </div>
+                <div class="section-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Timeout (seconds)</label>
+                            <input type="number" id="timeout" class="form-control" 
+                                   value="120" min="30" max="600">
+                            <div class="help-text">Export timeout (30-600 seconds)</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Author</label>
+                            <input type="text" id="author" class="form-control" 
+                                   placeholder="Optional author name">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="d-flex gap-3 mb-4">
+                <button type="button" class="btn btn-preview" onclick="previewTool()">
+                    <i class="bi bi-eye me-2"></i>Preview Configuration
+                </button>
+                <button type="button" class="btn btn-deploy" onclick="deployTool()">
+                    <i class="bi bi-rocket-takeoff me-2"></i>Deploy Tool
+                </button>
+                <a href="{{ url_for('studio_home') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Studio
+                </a>
+            </div>
+        </div>
+        
+        <!-- Preview Column -->
+        <div class="col-lg-5">
+            <div class="preview-panel">
+                <div class="preview-header">
+                    <span><i class="bi bi-code-slash me-2"></i>Live Preview</span>
+                    <span class="badge bg-warning text-dark">JSON Config</span>
+                </div>
+                <div class="preview-content">
+                    <pre id="previewCode">{
+  "name": "your_tool_name",
+  "description": "Your tool description",
+  "metadata": {
+    "source": "powerbi",
+    "report_name": "Report Name",
+    "export_format": "PDF"
+  }
+}</pre>
+                </div>
+            </div>
+            
+            <div class="quick-tips mt-3">
+                <h6><i class="bi bi-lightbulb me-2"></i>Quick Tips</h6>
+                <ul>
+                    <li>The report will be returned as <strong>base64 encoded</strong> data</li>
+                    <li>Caller decodes base64 to get the actual PDF/PPTX/PNG file</li>
+                    <li>Set <code>POWERBI_CLIENT_SECRET</code> environment variable before running</li>
+                    <li>Ensure Service Principal has <strong>Report.Read.All</strong> permission</li>
+                    <li>Add Service Principal to the PowerBI Workspace as <strong>Member</strong></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Format button selection
+    document.querySelectorAll('.format-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            updatePreview();
+        });
+    });
+    
+    // Live preview update
+    ['toolName', 'description', 'reportName', 'workspaceId', 'reportId', 
+     'tenantId', 'clientId', 'clientSecretEnv', 'pageName', 'timeout', 
+     'category', 'tags', 'author'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', updatePreview);
+        }
+    });
+    
+    function getFormData() {
+        const tags = document.getElementById('tags').value
+            .split(',')
+            .map(t => t.trim())
+            .filter(t => t);
+        
+        return {
+            tool_name: document.getElementById('toolName').value.trim(),
+            description: document.getElementById('description').value.trim(),
+            report_name: document.getElementById('reportName').value.trim(),
+            workspace_id: document.getElementById('workspaceId').value.trim(),
+            report_id: document.getElementById('reportId').value.trim(),
+            tenant_id: document.getElementById('tenantId').value.trim(),
+            client_id: document.getElementById('clientId').value.trim(),
+            client_secret_env: document.getElementById('clientSecretEnv').value.trim() || 'POWERBI_CLIENT_SECRET',
+            page_name: document.getElementById('pageName').value.trim(),
+            export_format: document.querySelector('.format-btn.active').dataset.format,
+            timeout_seconds: parseInt(document.getElementById('timeout').value) || 120,
+            category: document.getElementById('category').value.trim() || 'PowerBI Reports',
+            tags: tags.length ? tags : ['powerbi', 'report', 'pdf'],
+            author: document.getElementById('author').value.trim()
+        };
+    }
+    
+    function updatePreview() {
+        const data = getFormData();
+        
+        const preview = {
+            name: data.tool_name || 'your_tool_name',
+            implementation: `sajha.tools.impl.powerbi_${data.tool_name || 'your_tool'}.PowerBI...Tool`,
+            description: data.description || 'Your tool description',
+            version: '2.9.0',
+            enabled: true,
+            metadata: {
+                author: data.author || 'MCP Studio - PowerBI Generator',
+                category: data.category,
+                tags: data.tags,
+                source: 'powerbi',
+                report_name: data.report_name || 'Report Name',
+                export_format: data.export_format,
+                workspace_id: data.workspace_id || 'workspace-guid',
+                report_id: data.report_id || 'report-guid'
+            }
+        };
+        
+        document.getElementById('previewCode').textContent = JSON.stringify(preview, null, 2);
+    }
+    
+    function showStatus(message, type) {
+        const statusEl = document.getElementById('statusMessage');
+        statusEl.textContent = message;
+        statusEl.className = 'status-message show ' + type;
+        
+        if (type === 'success') {
+            setTimeout(() => {
+                statusEl.classList.remove('show');
+            }, 5000);
+        }
+    }
+    
+    function validateForm() {
+        const data = getFormData();
+        const errors = [];
+        
+        if (!data.tool_name) {
+            errors.push('Tool name is required');
+        } else if (!/^[a-z][a-z0-9_]*$/.test(data.tool_name)) {
+            errors.push('Tool name must start with lowercase letter and contain only letters, numbers, underscores');
+        }
+        
+        if (!data.description) {
+            errors.push('Description is required');
+        }
+        
+        if (!data.report_name) {
+            errors.push('Report display name is required');
+        }
+        
+        const guidPattern = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+        
+        if (!data.workspace_id) {
+            errors.push('Workspace ID is required');
+        } else if (!guidPattern.test(data.workspace_id)) {
+            errors.push('Workspace ID must be a valid GUID');
+        }
+        
+        if (!data.report_id) {
+            errors.push('Report ID is required');
+        } else if (!guidPattern.test(data.report_id)) {
+            errors.push('Report ID must be a valid GUID');
+        }
+        
+        if (!data.tenant_id) {
+            errors.push('Tenant ID is required');
+        } else if (!guidPattern.test(data.tenant_id)) {
+            errors.push('Tenant ID must be a valid GUID');
+        }
+        
+        if (!data.client_id) {
+            errors.push('Client ID is required');
+        } else if (!guidPattern.test(data.client_id)) {
+            errors.push('Client ID must be a valid GUID');
+        }
+        
+        return errors;
+    }
+    
+    async function previewTool() {
+        const errors = validateForm();
+        if (errors.length > 0) {
+            showStatus('Validation errors: ' + errors.join('; '), 'error');
+            return;
+        }
+        
+        const data = getFormData();
+        
+        try {
+            const response = await fetch('/admin/studio/powerbi/preview', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                document.getElementById('previewCode').textContent = JSON.stringify(result.config, null, 2);
+                showStatus('Preview generated successfully!', 'success');
+            } else {
+                showStatus('Preview error: ' + result.error, 'error');
+            }
+        } catch (error) {
+            showStatus('Request failed: ' + error.message, 'error');
+        }
+    }
+    
+    async function deployTool() {
+        const errors = validateForm();
+        if (errors.length > 0) {
+            showStatus('Validation errors: ' + errors.join('; '), 'error');
+            return;
+        }
+        
+        const data = getFormData();
+        
+        if (!confirm(`Deploy PowerBI tool "${data.tool_name}"?\n\nThis will create the tool configuration and implementation files.`)) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/admin/studio/powerbi/deploy', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showStatus('✓ Tool deployed successfully! ' + result.message, 'success');
+                
+                // Update preview with final config
+                if (result.config) {
+                    document.getElementById('previewCode').textContent = JSON.stringify(result.config, null, 2);
+                }
+            } else {
+                showStatus('Deployment failed: ' + result.error, 'error');
+            }
+        } catch (error) {
+            showStatus('Request failed: ' + error.message, 'error');
+        }
+    }
+    
+    // Initial preview
+    updatePreview();
+</script>
+{% endblock %}

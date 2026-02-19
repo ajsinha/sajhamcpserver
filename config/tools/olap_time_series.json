@@ -1,0 +1,79 @@
+{
+    "name": "olap_time_series",
+    "description": "Analyze time series data with flexible granularity, gap filling, and period-over-period comparisons",
+    "category": "OLAP Analytics",
+    "version": "2.8.0",
+    "implementation": {
+        "type": "class",
+        "module": "sajha.olap.olap_tool",
+        "class": "DuckDBOLAPTool"
+    },
+    "parameters": {
+        "dataset": {
+            "type": "string",
+            "required": true,
+            "description": "Dataset to analyze"
+        },
+        "time_dimension": {
+            "type": "string",
+            "required": true,
+            "description": "The time/date dimension (e.g., 'order_date', 'signup_date')"
+        },
+        "time_grain": {
+            "type": "string",
+            "required": true,
+            "enum": ["year", "quarter", "month", "week", "day", "hour"],
+            "description": "Time granularity for aggregation"
+        },
+        "measures": {
+            "type": "array",
+            "required": true,
+            "items": "string",
+            "description": "Measures to analyze over time"
+        },
+        "comparison": {
+            "type": "object",
+            "required": false,
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": ["yoy", "qoq", "mom", "wow", "dod"]
+                }
+            },
+            "description": "Period comparison: yoy=Year-over-Year, mom=Month-over-Month"
+        },
+        "fill_gaps": {
+            "type": "boolean",
+            "default": true,
+            "description": "Fill missing time periods with zeros"
+        },
+        "date_range": {
+            "type": "object",
+            "required": false,
+            "description": "Date range filter with start and end dates"
+        }
+    },
+    "examples": [
+        {
+            "description": "Monthly revenue trend",
+            "input": {
+                "dataset": "sales_analysis",
+                "time_dimension": "date",
+                "time_grain": "month",
+                "measures": ["revenue", "quantity"],
+                "fill_gaps": true
+            }
+        },
+        {
+            "description": "Year-over-year comparison",
+            "input": {
+                "dataset": "sales_analysis",
+                "time_dimension": "date",
+                "time_grain": "month",
+                "measures": ["revenue"],
+                "comparison": {"type": "yoy"}
+            }
+        }
+    ],
+    "tags": ["olap", "timeseries", "trend", "comparison", "yoy", "temporal"]
+}

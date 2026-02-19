@@ -1,0 +1,115 @@
+{
+    "datasets": {
+        "sales_analysis": {
+            "name": "sales_analysis",
+            "display_name": "Sales Analysis",
+            "description": "Comprehensive sales data for multi-dimensional analysis including revenue, quantity, profit, and customer metrics",
+            "source_table": "sales_data",
+            "joins": [
+                {
+                    "table": "customer_data",
+                    "type": "LEFT",
+                    "on": "sales_data.customer_id = customer_data.id",
+                    "alias": "customers"
+                },
+                {
+                    "table": "inventory_data",
+                    "type": "LEFT",
+                    "on": "sales_data.product_id = inventory_data.product_id",
+                    "alias": "products"
+                }
+            ],
+            "dimensions": [
+                "order_date",
+                "region",
+                "customer_segment",
+                "product_category",
+                "product_name",
+                "sales_rep"
+            ],
+            "measures": [
+                "revenue",
+                "quantity",
+                "profit",
+                "discount",
+                "cost",
+                "order_count",
+                "avg_order_value",
+                "profit_margin"
+            ],
+            "default_time_dimension": "order_date"
+        },
+        "customer_analytics": {
+            "name": "customer_analytics",
+            "display_name": "Customer Analytics",
+            "description": "Customer behavior and segmentation analysis with purchase history and lifetime value metrics",
+            "source_table": "customer_data",
+            "joins": [
+                {
+                    "table": "sales_data",
+                    "type": "LEFT",
+                    "on": "customer_data.id = sales_data.customer_id",
+                    "alias": "sales"
+                }
+            ],
+            "dimensions": [
+                "customer_segment",
+                "region",
+                "city",
+                "signup_date",
+                "customer_tier"
+            ],
+            "measures": [
+                "customer_count",
+                "total_revenue",
+                "avg_customer_value",
+                "order_count",
+                "avg_orders_per_customer"
+            ],
+            "default_time_dimension": "signup_date"
+        },
+        "inventory_analysis": {
+            "name": "inventory_analysis",
+            "display_name": "Inventory Analysis",
+            "description": "Product inventory levels, turnover rates, and stock analysis",
+            "source_table": "inventory_data",
+            "joins": [],
+            "dimensions": [
+                "product_category",
+                "product_name",
+                "warehouse",
+                "supplier"
+            ],
+            "measures": [
+                "stock_quantity",
+                "unit_cost",
+                "total_value",
+                "reorder_point",
+                "days_of_supply"
+            ],
+            "default_time_dimension": null
+        },
+        "financial_metrics": {
+            "name": "financial_metrics",
+            "display_name": "Financial Metrics",
+            "description": "Financial performance metrics including revenue, costs, and profitability analysis",
+            "source_table": "sales_data",
+            "joins": [],
+            "dimensions": [
+                "order_date",
+                "region",
+                "product_category",
+                "cost_center"
+            ],
+            "measures": [
+                "revenue",
+                "cost",
+                "profit",
+                "gross_margin",
+                "operating_margin",
+                "contribution_margin"
+            ],
+            "default_time_dimension": "order_date"
+        }
+    }
+}

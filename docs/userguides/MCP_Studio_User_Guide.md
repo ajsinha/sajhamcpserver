@@ -1,17 +1,28 @@
 # MCP Studio User Guide
 
-**Version: 2.4.0**  
+**Version: 2.9.0**  
 **Copyright © 2025-2030 Ashutosh Sinha, All Rights Reserved**
 
 ---
 
 ## Overview
 
-MCP Studio is a comprehensive visual tool creation platform that allows administrators to create custom MCP tools without manual coding. Version 2.4.0 introduces **three creation methods** with full dark theme support:
+MCP Studio is a comprehensive visual tool creation platform that allows administrators to create custom MCP tools without manual coding. Version 2.9.0 introduces **eight creation methods** with full dark theme support and enhanced OLAP capabilities:
 
 1. **Python Code Tool Creator** - Write Python functions with the `@sajhamcptool` decorator
 2. **REST Service Tool Creator** - Wrap any REST API endpoint as an MCP tool
-3. **Database Query Tool Creator** - Create tools from SQL queries (NEW in v2.4.0)
+3. **Database Query Tool Creator** - Create tools from SQL queries
+4. **Script Tool Creator** - Execute shell/Python scripts as MCP tools
+5. **PowerBI Report Tool Creator** - Export reports as PDF/PPTX/PNG
+6. **PowerBI DAX Query Tool Creator** - Execute DAX queries against datasets
+7. **IBM LiveLink Document Tool Creator** - Query and download ECM documents
+8. **OLAP Dataset Creator** - Define semantic datasets for advanced analytics
+
+### New in Version 2.9.0
+
+- **Cohort Analysis** - Track user groups over time with retention matrices
+- **Sample Data Generator** - Generate demo datasets for testing and demonstrations
+- **Enhanced OLAP Tools** - 16 OLAP tools for comprehensive analytics
 
 All MCP Studio pages support both light and dark themes with the navbar theme toggle.
 
@@ -37,12 +48,58 @@ All MCP Studio pages support both light and dark themes with the navbar theme to
 - **Path Parameters** - Support for URL path variables like `/users/{user_id}`
 - **CSV Response Support** - Parse CSV/TSV data from REST endpoints
 
-### Database Query Tool Creator (NEW in v2.4.0)
+### Database Query Tool Creator
 - **Multiple Database Support** - DuckDB, SQLite, PostgreSQL, MySQL
 - **Parameterized Queries** - Define input parameters with types and defaults
 - **Auto Schema Generation** - Input/output schemas generated from query
 - **Tool Literature** - Add context for AI understanding
 - **Connection Templates** - Quick setup for each database type
+
+### Script Tool Creator
+- **Multiple Script Types** - Bash, Sh, Zsh, Python, Node.js, Ruby, Perl
+- **Simple Input/Output** - Array of string arguments in, STDOUT/STDERR out
+- **File Upload or Paste** - Upload script files or paste code directly
+- **Security Validation** - Detects dangerous patterns (fork bombs, rm -rf, etc.)
+- **Timeout Handling** - Configurable execution timeout (1-3600 seconds)
+- **Environment Variables** - Optional custom environment variables
+- **Working Directory** - Optional script execution directory
+
+### PowerBI Report Tool Creator
+- **Multiple Export Formats** - PDF, PPTX, or PNG output
+- **Base64 Encoded Output** - Caller decodes to get actual file
+- **Azure AD Authentication** - Service Principal with client credentials
+- **Workspace & Report IDs** - Configure via GUID from PowerBI URL
+- **Page Selection** - Export specific pages or entire report
+- **Timeout Configuration** - Handle long-running exports (30-600 seconds)
+- **Environment Variable Credentials** - Client secret stored securely
+
+### PowerBI DAX Query Tool Creator (NEW in v2.7.0)
+- **DAX Query Execution** - Execute EVALUATE statements against datasets
+- **Parameterized Queries** - Use @parameter_name for dynamic values
+- **Auto-Generated Schemas** - Input schema from defined parameters
+- **JSON Result Format** - Columns and row data in structured response
+- **Azure AD Authentication** - Service Principal with client credentials
+- **Configurable Limits** - Timeout and max rows settings
+- **Query Metrics** - Execution time in response
+
+### IBM LiveLink Document Tool Creator (NEW in v2.7.0)
+- **Multiple Operations** - Search, list, get metadata, download
+- **Base64 Document Output** - All file types returned as base64
+- **Multiple Auth Types** - Basic Auth, OAuth, OTDS
+- **REST API Support** - Version 1 and Version 2 APIs
+- **Folder Navigation** - Default parent folder configuration
+- **Size Limits** - Configurable max file size (1-500 MB)
+- **Timeout Handling** - Configurable request timeout
+
+### OLAP Dataset Creator (NEW in v2.8.0)
+- **Semantic Layer Configuration** - Define business-friendly abstractions
+- **Dimension Definition** - Configure categorical attributes for grouping
+- **Measure Definition** - Define numeric aggregations with expressions
+- **Table Joins** - Visual join configuration for related tables
+- **Time Dimensions** - Configure time hierarchies for time series analysis
+- **Hierarchy Support** - Define drill-down paths (Year → Quarter → Month → Day)
+- **Live Preview** - See generated JSON configuration before deployment
+- **One-Click Deployment** - Deploy datasets instantly
 
 ---
 

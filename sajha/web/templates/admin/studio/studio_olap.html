@@ -1,0 +1,655 @@
+{% extends "common/base.html" %}
+{% block title %}OLAP Dataset Creator - MCP Studio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .olap-creator-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .creator-header {
+        background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+    }
+    
+    .creator-header h3 {
+        margin-bottom: 5px;
+    }
+    
+    .creator-header .subtitle {
+        opacity: 0.9;
+        margin-bottom: 0;
+    }
+    
+    .form-section {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+        color: white;
+        padding: 15px 20px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-header.primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .section-header.success {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+    
+    .section-header.info {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .section-header.warning {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    .section-body {
+        padding: 20px;
+    }
+    
+    .help-text {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+    
+    .dimension-row, .measure-row, .join-row {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .dimension-row:hover, .measure-row:hover, .join-row:hover {
+        border-color: #4ecdc4;
+    }
+    
+    .remove-btn {
+        color: #dc3545;
+        cursor: pointer;
+        opacity: 0.7;
+    }
+    
+    .remove-btn:hover {
+        opacity: 1;
+    }
+    
+    .olap-info {
+        background: #e8f5e9;
+        border: 1px solid #c8e6c9;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .olap-info h6 {
+        color: #2e7d32;
+        margin-bottom: 10px;
+    }
+    
+    .olap-info ul {
+        margin-bottom: 0;
+        padding-left: 20px;
+    }
+    
+    .olap-info li {
+        color: #333;
+        margin-bottom: 5px;
+    }
+    
+    .quick-tips {
+        background: #fff3e0;
+        border: 1px solid #ffcc80;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .quick-tips h6 {
+        color: #e65100;
+        margin-bottom: 10px;
+    }
+    
+    .code-preview {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        border-radius: 8px;
+        padding: 15px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .status-message {
+        padding: 10px 15px;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        display: none;
+    }
+    
+    .status-message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .status-message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    /* Dark theme overrides */
+    html[data-theme="dark"] .form-section,
+    [data-theme="dark"] .form-section {
+        background: #2d2d2d !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+    }
+    
+    html[data-theme="dark"] .section-body,
+    [data-theme="dark"] .section-body {
+        background: #2d2d2d !important;
+        color: #e0e0e0 !important;
+    }
+    
+    html[data-theme="dark"] .section-body label,
+    html[data-theme="dark"] .section-body p,
+    html[data-theme="dark"] .section-body span,
+    [data-theme="dark"] .section-body label,
+    [data-theme="dark"] .section-body p,
+    [data-theme="dark"] .section-body span {
+        color: #e0e0e0 !important;
+    }
+    
+    html[data-theme="dark"] .help-text,
+    [data-theme="dark"] .help-text {
+        color: #a0a0a0 !important;
+    }
+    
+    html[data-theme="dark"] .dimension-row,
+    html[data-theme="dark"] .measure-row,
+    html[data-theme="dark"] .join-row,
+    [data-theme="dark"] .dimension-row,
+    [data-theme="dark"] .measure-row,
+    [data-theme="dark"] .join-row {
+        background: #1e1e1e !important;
+        border-color: #444 !important;
+    }
+    
+    html[data-theme="dark"] .form-control,
+    html[data-theme="dark"] .form-select,
+    [data-theme="dark"] .form-control,
+    [data-theme="dark"] .form-select {
+        background: #1e1e1e !important;
+        color: #e0e0e0 !important;
+        border-color: #444 !important;
+    }
+    
+    html[data-theme="dark"] .olap-info,
+    [data-theme="dark"] .olap-info {
+        background: rgba(25, 135, 84, 0.15) !important;
+        border-color: #3d8b5e !important;
+    }
+    
+    html[data-theme="dark"] .olap-info h6,
+    [data-theme="dark"] .olap-info h6 {
+        color: #75b798 !important;
+    }
+    
+    html[data-theme="dark"] .olap-info li,
+    [data-theme="dark"] .olap-info li {
+        color: #c0c0c0 !important;
+    }
+    
+    html[data-theme="dark"] .quick-tips,
+    [data-theme="dark"] .quick-tips {
+        background: rgba(255, 152, 0, 0.15) !important;
+        border-color: #bf7d00 !important;
+    }
+    
+    html[data-theme="dark"] .quick-tips h6,
+    [data-theme="dark"] .quick-tips h6 {
+        color: #ffb74d !important;
+    }
+    
+    html[data-theme="dark"] .quick-tips li,
+    [data-theme="dark"] .quick-tips li {
+        color: #c0c0c0 !important;
+    }
+    
+    html[data-theme="dark"] .status-message.success,
+    [data-theme="dark"] .status-message.success {
+        background: rgba(25, 135, 84, 0.2) !important;
+        color: #75b798 !important;
+        border-color: #3d8b5e !important;
+    }
+    
+    html[data-theme="dark"] .status-message.error,
+    [data-theme="dark"] .status-message.error {
+        background: rgba(220, 53, 69, 0.2) !important;
+        color: #ea868f !important;
+        border-color: #8c3a42 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="olap-creator-container py-4">
+    <!-- Header -->
+    <div class="creator-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" 
+                 style="width: 50px; height: 50px; background: rgba(255,255,255,0.2);">
+                <i class="bi bi-graph-up-arrow fs-4"></i>
+            </div>
+            <div>
+                <h3 class="mb-0">
+                    <i class="bi bi-boxes me-2"></i>OLAP Dataset Creator
+                </h3>
+                <p class="subtitle">Define semantic datasets for advanced analytics with pivot tables, time series, and statistical analysis</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Info Panel -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="olap-info">
+                <h6><i class="bi bi-lightbulb me-2"></i>What is an OLAP Dataset?</h6>
+                <ul>
+                    <li><strong>Semantic Layer:</strong> Business-friendly abstraction over raw database tables</li>
+                    <li><strong>Dimensions:</strong> Categories for grouping and filtering (e.g., Region, Date, Product)</li>
+                    <li><strong>Measures:</strong> Numeric values to aggregate (e.g., Revenue, Quantity, Profit)</li>
+                    <li><strong>Hierarchies:</strong> Drill-down paths (e.g., Year → Quarter → Month → Day)</li>
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="quick-tips">
+                <h6><i class="bi bi-stars me-2"></i>Quick Tips</h6>
+                <ul>
+                    <li>Start with a source table</li>
+                    <li>Add joins for related data</li>
+                    <li>Define meaningful measures</li>
+                    <li>Create hierarchies for drill-down</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Status Message -->
+    <div id="statusMessage" class="status-message"></div>
+    
+    <!-- Dataset Info Section -->
+    <div class="form-section">
+        <div class="section-header">
+            <i class="bi bi-database"></i> Dataset Information
+        </div>
+        <div class="section-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Dataset Name <span class="text-danger">*</span></label>
+                        <input type="text" id="datasetName" class="form-control" 
+                               placeholder="e.g., sales_analysis" pattern="[a-z_]+" required>
+                        <div class="help-text">Lowercase letters and underscores only. This is the technical name.</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Display Name</label>
+                        <input type="text" id="displayName" class="form-control" 
+                               placeholder="e.g., Sales Analysis">
+                        <div class="help-text">Human-readable name shown in the UI</div>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Description</label>
+                <textarea id="datasetDescription" class="form-control" rows="2"
+                          placeholder="Describe what this dataset contains and its intended use..."></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Source Table <span class="text-danger">*</span></label>
+                <input type="text" id="sourceTable" class="form-control" 
+                       placeholder="e.g., sales_data" required>
+                <div class="help-text">The primary database table for this dataset</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Joins Section -->
+    <div class="form-section">
+        <div class="section-header info">
+            <i class="bi bi-link-45deg"></i> Table Joins (Optional)
+        </div>
+        <div class="section-body">
+            <div id="joinsContainer"></div>
+            <button class="btn btn-outline-info" onclick="addJoin()">
+                <i class="bi bi-plus-lg me-2"></i>Add Join
+            </button>
+        </div>
+    </div>
+    
+    <!-- Dimensions Section -->
+    <div class="form-section">
+        <div class="section-header primary">
+            <i class="bi bi-diagram-3"></i> Dimensions
+        </div>
+        <div class="section-body">
+            <p class="mb-3">Define the dimensions (categorical attributes) for grouping and filtering data.</p>
+            <div id="dimensionsContainer"></div>
+            <button class="btn btn-outline-primary" onclick="addDimension()">
+                <i class="bi bi-plus-lg me-2"></i>Add Dimension
+            </button>
+        </div>
+    </div>
+    
+    <!-- Measures Section -->
+    <div class="form-section">
+        <div class="section-header success">
+            <i class="bi bi-calculator"></i> Measures
+        </div>
+        <div class="section-body">
+            <p class="mb-3">Define the measures (numeric values) to aggregate in analyses.</p>
+            <div id="measuresContainer"></div>
+            <button class="btn btn-outline-success" onclick="addMeasure()">
+                <i class="bi bi-plus-lg me-2"></i>Add Measure
+            </button>
+        </div>
+    </div>
+    
+    <!-- Time Dimension Section -->
+    <div class="form-section">
+        <div class="section-header warning">
+            <i class="bi bi-calendar3"></i> Time Configuration
+        </div>
+        <div class="section-body">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Default Time Dimension</label>
+                <select id="defaultTimeDimension" class="form-select">
+                    <option value="">None</option>
+                </select>
+                <div class="help-text">The primary date/time dimension for time series analysis</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Preview Section -->
+    <div class="form-section">
+        <div class="section-header" style="background: linear-gradient(135deg, #434343 0%, #000000 100%);">
+            <i class="bi bi-code-square"></i> Configuration Preview
+        </div>
+        <div class="section-body">
+            <div class="code-preview" id="configPreview">{"name": "your_dataset", "source_table": "your_table", "dimensions": [], "measures": []}</div>
+        </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="d-flex gap-2 justify-content-end mt-4">
+        <button class="btn btn-outline-secondary" onclick="resetForm()">
+            <i class="bi bi-arrow-counterclockwise me-2"></i>Reset
+        </button>
+        <button class="btn btn-primary" onclick="validateDataset()">
+            <i class="bi bi-check-circle me-2"></i>Validate
+        </button>
+        <button class="btn btn-success" onclick="deployDataset()">
+            <i class="bi bi-rocket me-2"></i>Deploy Dataset
+        </button>
+    </div>
+</div>
+
+<script>
+let dimensionCount = 0;
+let measureCount = 0;
+let joinCount = 0;
+
+function addDimension() {
+    dimensionCount++;
+    const container = document.getElementById('dimensionsContainer');
+    const html = `
+        <div class="dimension-row" id="dimension_${dimensionCount}">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <strong>Dimension ${dimensionCount}</strong>
+                <span class="remove-btn" onclick="removeDimension(${dimensionCount})"><i class="bi bi-trash"></i></span>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <input type="text" class="form-control dim-name" placeholder="Name (e.g., region)">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control dim-column" placeholder="Column (e.g., region)">
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select dim-type">
+                        <option value="standard">Standard</option>
+                        <option value="time">Time/Date</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', html);
+    updatePreview();
+    updateTimeDimensionOptions();
+}
+
+function removeDimension(id) {
+    document.getElementById(`dimension_${id}`).remove();
+    updatePreview();
+    updateTimeDimensionOptions();
+}
+
+function addMeasure() {
+    measureCount++;
+    const container = document.getElementById('measuresContainer');
+    const html = `
+        <div class="measure-row" id="measure_${measureCount}">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <strong>Measure ${measureCount}</strong>
+                <span class="remove-btn" onclick="removeMeasure(${measureCount})"><i class="bi bi-trash"></i></span>
+            </div>
+            <div class="row">
+                <div class="col-md-3">
+                    <input type="text" class="form-control measure-name" placeholder="Name (e.g., revenue)">
+                </div>
+                <div class="col-md-5">
+                    <input type="text" class="form-control measure-expr" placeholder="Expression (e.g., SUM(amount))">
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select measure-format">
+                        <option value="number">Number</option>
+                        <option value="currency">Currency</option>
+                        <option value="percentage">Percentage</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" class="form-control measure-desc" placeholder="Description">
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', html);
+    updatePreview();
+}
+
+function removeMeasure(id) {
+    document.getElementById(`measure_${id}`).remove();
+    updatePreview();
+}
+
+function addJoin() {
+    joinCount++;
+    const container = document.getElementById('joinsContainer');
+    const html = `
+        <div class="join-row" id="join_${joinCount}">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <strong>Join ${joinCount}</strong>
+                <span class="remove-btn" onclick="removeJoin(${joinCount})"><i class="bi bi-trash"></i></span>
+            </div>
+            <div class="row">
+                <div class="col-md-3">
+                    <input type="text" class="form-control join-table" placeholder="Table name">
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select join-type">
+                        <option value="LEFT">LEFT</option>
+                        <option value="INNER">INNER</option>
+                        <option value="RIGHT">RIGHT</option>
+                        <option value="FULL">FULL</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <input type="text" class="form-control join-on" placeholder="ON clause (e.g., table1.id = table2.id)">
+                </div>
+                <div class="col-md-2">
+                    <input type="text" class="form-control join-alias" placeholder="Alias">
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', html);
+    updatePreview();
+}
+
+function removeJoin(id) {
+    document.getElementById(`join_${id}`).remove();
+    updatePreview();
+}
+
+function updateTimeDimensionOptions() {
+    const select = document.getElementById('defaultTimeDimension');
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">None</option>';
+    document.querySelectorAll('.dimension-row').forEach(row => {
+        const name = row.querySelector('.dim-name').value;
+        const type = row.querySelector('.dim-type').value;
+        if (name && type === 'time') {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            select.appendChild(option);
+        }
+    });
+    if (currentValue) select.value = currentValue;
+}
+
+function updatePreview() {
+    const config = buildConfig();
+    document.getElementById('configPreview').textContent = JSON.stringify(config, null, 2);
+}
+
+function buildConfig() {
+    const dimensions = [];
+    document.querySelectorAll('.dimension-row').forEach(row => {
+        const name = row.querySelector('.dim-name').value;
+        if (name) dimensions.push(name);
+    });
+    const measures = [];
+    document.querySelectorAll('.measure-row').forEach(row => {
+        const name = row.querySelector('.measure-name').value;
+        if (name) measures.push(name);
+    });
+    const joins = [];
+    document.querySelectorAll('.join-row').forEach(row => {
+        const table = row.querySelector('.join-table').value;
+        const type = row.querySelector('.join-type').value;
+        const on = row.querySelector('.join-on').value;
+        const alias = row.querySelector('.join-alias').value;
+        if (table && on) joins.push({ table, type, on, alias: alias || null });
+    });
+    return {
+        name: document.getElementById('datasetName').value || 'your_dataset',
+        display_name: document.getElementById('displayName').value || '',
+        description: document.getElementById('datasetDescription').value || '',
+        source_table: document.getElementById('sourceTable').value || 'your_table',
+        joins: joins,
+        dimensions: dimensions,
+        measures: measures,
+        default_time_dimension: document.getElementById('defaultTimeDimension').value || null
+    };
+}
+
+function showStatus(message, type) {
+    const statusEl = document.getElementById('statusMessage');
+    statusEl.textContent = message;
+    statusEl.className = `status-message ${type}`;
+    statusEl.style.display = 'block';
+    if (type === 'success') setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
+}
+
+function validateDataset() {
+    const config = buildConfig();
+    const errors = [];
+    if (!config.name || config.name === 'your_dataset') errors.push('Dataset name is required');
+    if (!config.source_table || config.source_table === 'your_table') errors.push('Source table is required');
+    if (config.dimensions.length === 0) errors.push('At least one dimension is required');
+    if (config.measures.length === 0) errors.push('At least one measure is required');
+    if (errors.length > 0) {
+        showStatus('Validation errors: ' + errors.join(', '), 'error');
+        return false;
+    }
+    showStatus('Dataset configuration is valid!', 'success');
+    return true;
+}
+
+async function deployDataset() {
+    if (!validateDataset()) return;
+    const config = buildConfig();
+    try {
+        const response = await fetch('/api/admin/studio/olap/deploy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        const result = await response.json();
+        if (result.success) {
+            showStatus('Dataset deployed successfully! You can now use it in OLAP tools.', 'success');
+        } else {
+            showStatus('Deployment failed: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showStatus('Deployment error: ' + error.message, 'error');
+    }
+}
+
+function resetForm() {
+    document.getElementById('datasetName').value = '';
+    document.getElementById('displayName').value = '';
+    document.getElementById('datasetDescription').value = '';
+    document.getElementById('sourceTable').value = '';
+    document.getElementById('defaultTimeDimension').value = '';
+    document.getElementById('dimensionsContainer').innerHTML = '';
+    document.getElementById('measuresContainer').innerHTML = '';
+    document.getElementById('joinsContainer').innerHTML = '';
+    dimensionCount = 0; measureCount = 0; joinCount = 0;
+    updatePreview();
+}
+
+document.addEventListener('input', updatePreview);
+document.addEventListener('change', function(e) {
+    updatePreview();
+    if (e.target.classList.contains('dim-type')) updateTimeDimensionOptions();
+});
+
+addDimension();
+addMeasure();
+</script>
+{% endblock %}

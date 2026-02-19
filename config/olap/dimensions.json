@@ -1,0 +1,121 @@
+{
+    "dimensions": {
+        "order_date": {
+            "name": "Order Date",
+            "column": "order_date",
+            "type": "time",
+            "description": "Date when the order was placed",
+            "hierarchies": {
+                "calendar": {
+                    "levels": [
+                        {"name": "Year", "expression": "EXTRACT(YEAR FROM order_date)", "column": null},
+                        {"name": "Quarter", "expression": "CONCAT('Q', EXTRACT(QUARTER FROM order_date))", "column": null},
+                        {"name": "Month", "expression": "STRFTIME(order_date, '%Y-%m')", "column": null},
+                        {"name": "Week", "expression": "STRFTIME(order_date, '%Y-W%W')", "column": null},
+                        {"name": "Day", "expression": "order_date", "column": "order_date"}
+                    ]
+                },
+                "fiscal": {
+                    "levels": [
+                        {"name": "Fiscal Year", "expression": "CASE WHEN EXTRACT(MONTH FROM order_date) >= 4 THEN EXTRACT(YEAR FROM order_date) ELSE EXTRACT(YEAR FROM order_date) - 1 END", "column": null},
+                        {"name": "Fiscal Quarter", "expression": "CASE WHEN EXTRACT(MONTH FROM order_date) BETWEEN 4 AND 6 THEN 'Q1' WHEN EXTRACT(MONTH FROM order_date) BETWEEN 7 AND 9 THEN 'Q2' WHEN EXTRACT(MONTH FROM order_date) BETWEEN 10 AND 12 THEN 'Q3' ELSE 'Q4' END", "column": null}
+                    ]
+                }
+            }
+        },
+        "signup_date": {
+            "name": "Signup Date",
+            "column": "signup_date",
+            "type": "time",
+            "description": "Date when the customer signed up",
+            "hierarchies": {
+                "calendar": {
+                    "levels": [
+                        {"name": "Year", "expression": "EXTRACT(YEAR FROM signup_date)", "column": null},
+                        {"name": "Month", "expression": "STRFTIME(signup_date, '%Y-%m')", "column": null},
+                        {"name": "Day", "expression": "signup_date", "column": "signup_date"}
+                    ]
+                }
+            }
+        },
+        "region": {
+            "name": "Region",
+            "column": "region",
+            "type": "standard",
+            "description": "Geographic region",
+            "hierarchies": {
+                "geography": {
+                    "levels": [
+                        {"name": "Region", "expression": "region", "column": "region"},
+                        {"name": "State", "expression": "state", "column": "state"},
+                        {"name": "City", "expression": "city", "column": "city"}
+                    ]
+                }
+            }
+        },
+        "city": {
+            "name": "City",
+            "column": "city",
+            "type": "standard",
+            "description": "City name"
+        },
+        "customer_segment": {
+            "name": "Customer Segment",
+            "column": "segment",
+            "type": "standard",
+            "description": "Customer segmentation category (e.g., Consumer, Corporate, Home Office)"
+        },
+        "customer_tier": {
+            "name": "Customer Tier",
+            "column": "tier",
+            "type": "standard",
+            "description": "Customer tier based on lifetime value (Gold, Silver, Bronze)"
+        },
+        "product_category": {
+            "name": "Product Category",
+            "column": "category",
+            "type": "standard",
+            "description": "Product category classification",
+            "hierarchies": {
+                "product_hierarchy": {
+                    "levels": [
+                        {"name": "Department", "expression": "department", "column": "department"},
+                        {"name": "Category", "expression": "category", "column": "category"},
+                        {"name": "Sub-Category", "expression": "sub_category", "column": "sub_category"},
+                        {"name": "Product", "expression": "product_name", "column": "product_name"}
+                    ]
+                }
+            }
+        },
+        "product_name": {
+            "name": "Product Name",
+            "column": "product_name",
+            "type": "standard",
+            "description": "Name of the product"
+        },
+        "sales_rep": {
+            "name": "Sales Representative",
+            "column": "sales_rep",
+            "type": "standard",
+            "description": "Sales representative who made the sale"
+        },
+        "warehouse": {
+            "name": "Warehouse",
+            "column": "warehouse",
+            "type": "standard",
+            "description": "Warehouse location"
+        },
+        "supplier": {
+            "name": "Supplier",
+            "column": "supplier",
+            "type": "standard",
+            "description": "Product supplier"
+        },
+        "cost_center": {
+            "name": "Cost Center",
+            "column": "cost_center",
+            "type": "standard",
+            "description": "Accounting cost center"
+        }
+    }
+}

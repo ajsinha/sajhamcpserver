@@ -1,12 +1,13 @@
 """
-SAJHA MCP Server - MCP Studio Routes v2.4.0
+SAJHA MCP Server - MCP Studio Routes v2.8.0
 
 Copyright © 2025-2030, All Rights Reserved
 Ashutosh Sinha
 Email: ajsinha@gmail.com
 
 Routes for the MCP Studio feature - admin-only tool creation interface.
-Supports Python code-based, REST service-based, and DB Query-based tool creation.
+Supports Python code-based, REST service-based, DB Query-based, Script-based,
+PowerBI report, PowerBI DAX query, and IBM LiveLink document tool creation.
 """
 
 import json
@@ -17,6 +18,10 @@ from .base_routes import BaseRoutes
 from sajha.studio import CodeAnalyzer, ToolCodeGenerator, ToolDefinition
 from sajha.studio import RESTToolGenerator, RESTToolDefinition
 from sajha.studio import DBQueryToolGenerator, DBQueryToolDefinition, DBQueryParameter
+from sajha.studio import ScriptToolGenerator, ScriptToolConfig
+from sajha.studio import PowerBIToolGenerator, PowerBIToolConfig
+from sajha.studio import PowerBIDAXToolGenerator, PowerBIDAXToolConfig
+from sajha.studio import LiveLinkToolGenerator, LiveLinkToolConfig
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +42,33 @@ class StudioRoutes(BaseRoutes):
         self.generator = ToolCodeGenerator()
         self.rest_generator = RESTToolGenerator()
         self.dbquery_generator = DBQueryToolGenerator()
+        
+        # Initialize script generator with proper paths
+        import os
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        self.script_generator = ScriptToolGenerator(
+            config_dir=os.path.join(base_dir, 'config', 'tools'),
+            scripts_dir=os.path.join(base_dir, 'config', 'scripts'),
+            impl_dir=os.path.join(base_dir, 'sajha', 'tools', 'impl')
+        )
+        
+        # Initialize PowerBI generator with proper paths
+        self.powerbi_generator = PowerBIToolGenerator(
+            config_dir=os.path.join(base_dir, 'config', 'tools'),
+            impl_dir=os.path.join(base_dir, 'sajha', 'tools', 'impl')
+        )
+        
+        # Initialize PowerBI DAX generator with proper paths
+        self.powerbidax_generator = PowerBIDAXToolGenerator(
+            config_dir=os.path.join(base_dir, 'config', 'tools'),
+            impl_dir=os.path.join(base_dir, 'sajha', 'tools', 'impl')
+        )
+        
+        # Initialize LiveLink generator with proper paths
+        self.livelink_generator = LiveLinkToolGenerator(
+            config_dir=os.path.join(base_dir, 'config', 'tools'),
+            impl_dir=os.path.join(base_dir, 'sajha', 'tools', 'impl')
+        )
     
     def register_routes(self, app):
         """Register MCP Studio routes."""
@@ -614,6 +646,147 @@ class StudioRoutes(BaseRoutes):
                     'error': f'Deletion error: {str(e)}'
                 }), 500
         
+        # ============================================================
+        # Script Tool Creator Routes
+        # ============================================================
+        
+        @app.route('/admin/studio/script')
+        @self.admin_required
+        def studio_script():
+            """Script Tool Creator page."""
+            user_session = self.get_user_session()
+            existing_tools = list(self.tools_registry.tools.keys())
+            
+            return render_template('admin/studio/studio_script.html',
+                                 user=user_session,
+                                 existing_tools=existing_tools)
+        
+        @app.route('/admin/studio/script/preview', methods=['POST'])
+        @self.admin_required
+        def studio_script_preview():
+            """Preview script tool generation."""
+            try:
+                data = request.get_json()
+                
+                # Create config from request data
+                config = ScriptToolConfig(
+                    tool_name=data.get('tool_name', '').strip().lower(),
+                    description=data.get('description', ''),
+                    script_type=data.get('script_type', 'bash'),
+                    script_content=data.get('script_content', ''),
+                    version='2.8.0',
+                    author=data.get('author', ''),
+                    tags=data.get('tags', []),
+                    timeout_seconds=data.get('timeout_seconds', 30),
+                    working_directory=data.get('working_directory', ''),
+                    environment_vars=data.get('environment_vars', {}),
+                    max_args=data.get('max_args', 10),
+                    arg_descriptions=data.get('arg_descriptions', []),
+                    allow_stdin=data.get('allow_stdin', False),
+                    capture_stderr=data.get('capture_stderr', True),
+                    literature=data.get('literature', '')
+                )
+                
+                # Check for name conflicts
+                existing_tools = list(self.tools_registry.tools.keys())
+                if config.tool_name in existing_tools:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Tool "{config.tool_name}" already exists'
+                    }), 400
+                
+                # Validate configuration
+                errors = self.script_generator.validate_config(config)
+                if errors:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Validation errors: ' + ', '.join(errors)
+                    }), 400
+                
+                # Generate preview
+                tool_config = self.script_generator.generate_tool_config(config)
+                wrapper_code = self.script_generator.generate_python_wrapper(config)
+                
+                return jsonify({
+                    'success': True,
+                    'json_content': json.dumps(tool_config, indent=2),
+                    'python_content': wrapper_code,
+                    'script_type': config.script_type
+                })
+                
+            except Exception as e:
+                logger.error(f"Error previewing script tool: {e}", exc_info=True)
+                return jsonify({
+                    'success': False,
+                    'error': f'Preview error: {str(e)}'
+                }), 500
+        
+        @app.route('/admin/studio/script/deploy', methods=['POST'])
+        @self.admin_required
+        def studio_script_deploy():
+            """Deploy script tool."""
+            try:
+                data = request.get_json()
+                
+                # Create config from request data
+                config = ScriptToolConfig(
+                    tool_name=data.get('tool_name', '').strip().lower(),
+                    description=data.get('description', ''),
+                    script_type=data.get('script_type', 'bash'),
+                    script_content=data.get('script_content', ''),
+                    version='2.8.0',
+                    author=data.get('author', ''),
+                    tags=data.get('tags', []),
+                    timeout_seconds=data.get('timeout_seconds', 30),
+                    working_directory=data.get('working_directory', ''),
+                    environment_vars=data.get('environment_vars', {}),
+                    max_args=data.get('max_args', 10),
+                    arg_descriptions=data.get('arg_descriptions', []),
+                    allow_stdin=data.get('allow_stdin', False),
+                    capture_stderr=data.get('capture_stderr', True),
+                    literature=data.get('literature', '')
+                )
+                
+                # Check for name conflicts
+                existing_tools = list(self.tools_registry.tools.keys())
+                if config.tool_name in existing_tools:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Tool "{config.tool_name}" already exists'
+                    }), 400
+                
+                # Generate and save the tool
+                result = self.script_generator.generate_tool(config)
+                
+                if not result.get('success'):
+                    return jsonify({
+                        'success': False,
+                        'error': 'Errors: ' + ', '.join(result.get('errors', ['Unknown error']))
+                    }), 400
+                
+                # Reload tools registry
+                try:
+                    self.tools_registry.reload_all_tools()
+                    logger.info(f"Tools reloaded. Total tools: {len(self.tools_registry.tools)}")
+                except Exception as reload_error:
+                    logger.warning(f"Could not reload tools: {reload_error}")
+                
+                return jsonify({
+                    'success': True,
+                    'message': result.get('message', f'Script Tool "{config.tool_name}" deployed successfully!'),
+                    'tool_name': config.tool_name,
+                    'config_path': result.get('config_path'),
+                    'script_path': result.get('script_path'),
+                    'wrapper_path': result.get('wrapper_path')
+                })
+                
+            except Exception as e:
+                logger.error(f"Error deploying script tool: {e}", exc_info=True)
+                return jsonify({
+                    'success': False,
+                    'error': f'Deployment error: {str(e)}'
+                }), 500
+        
         @app.route('/admin/studio/examples')
         @self.admin_required
         def studio_examples():
@@ -623,6 +796,358 @@ class StudioRoutes(BaseRoutes):
             return render_template('admin/studio/studio_examples.html',
                                  user=user_session,
                                  examples=examples)
+        
+        # ============================================
+        # PowerBI Report Tool Creator Routes
+        # ============================================
+        
+        @app.route('/admin/studio/powerbi')
+        @self.admin_required
+        def studio_powerbi():
+            """PowerBI Report Tool Creator page."""
+            user_session = self.get_user_session()
+            return render_template('admin/studio/studio_powerbi.html',
+                                   user=user_session)
+        
+        @app.route('/admin/studio/powerbi/preview', methods=['POST'])
+        @self.admin_required
+        def studio_powerbi_preview():
+            """Preview PowerBI tool generation."""
+            try:
+                data = request.get_json()
+                
+                config = PowerBIToolConfig(
+                    tool_name=data.get('tool_name', ''),
+                    description=data.get('description', ''),
+                    report_name=data.get('report_name', ''),
+                    workspace_id=data.get('workspace_id', ''),
+                    report_id=data.get('report_id', ''),
+                    tenant_id=data.get('tenant_id', ''),
+                    client_id=data.get('client_id', ''),
+                    client_secret_env=data.get('client_secret_env', 'POWERBI_CLIENT_SECRET'),
+                    version='2.8.0',
+                    author=data.get('author', ''),
+                    tags=data.get('tags', []),
+                    page_name=data.get('page_name', ''),
+                    export_format=data.get('export_format', 'PDF'),
+                    timeout_seconds=data.get('timeout_seconds', 120)
+                )
+                
+                errors = self.powerbi_generator.validate_config(config)
+                if errors:
+                    return jsonify({
+                        'success': False,
+                        'error': '; '.join(errors)
+                    })
+                
+                tool_config = self.powerbi_generator.generate_tool_config(config)
+                
+                return jsonify({
+                    'success': True,
+                    'config': tool_config
+                })
+                
+            except Exception as e:
+                logger.error(f"Error previewing PowerBI tool: {e}", exc_info=True)
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                })
+        
+        @app.route('/admin/studio/powerbi/deploy', methods=['POST'])
+        @self.admin_required
+        def studio_powerbi_deploy():
+            """Deploy PowerBI tool."""
+            try:
+                data = request.get_json()
+                
+                config = PowerBIToolConfig(
+                    tool_name=data.get('tool_name', ''),
+                    description=data.get('description', ''),
+                    report_name=data.get('report_name', ''),
+                    workspace_id=data.get('workspace_id', ''),
+                    report_id=data.get('report_id', ''),
+                    tenant_id=data.get('tenant_id', ''),
+                    client_id=data.get('client_id', ''),
+                    client_secret_env=data.get('client_secret_env', 'POWERBI_CLIENT_SECRET'),
+                    version='2.8.0',
+                    author=data.get('author', ''),
+                    tags=data.get('tags', []),
+                    page_name=data.get('page_name', ''),
+                    export_format=data.get('export_format', 'PDF'),
+                    timeout_seconds=data.get('timeout_seconds', 120)
+                )
+                
+                result = self.powerbi_generator.generate_tool(config)
+                
+                if result['success']:
+                    return jsonify({
+                        'success': True,
+                        'message': result['message'],
+                        'files': result['files'],
+                        'config': self.powerbi_generator.generate_tool_config(config)
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': result['message']
+                    })
+                
+            except Exception as e:
+                logger.error(f"Error deploying PowerBI tool: {e}", exc_info=True)
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                })
+        
+        # ============================================
+        # PowerBI DAX Query Tool Creator Routes
+        # ============================================
+        
+        @app.route('/admin/studio/powerbidax')
+        @self.admin_required
+        def studio_powerbidax():
+            """PowerBI DAX Query Tool Creator page."""
+            user_session = self.get_user_session()
+            return render_template('admin/studio/studio_powerbidax.html',
+                                   user=user_session)
+        
+        @app.route('/admin/studio/powerbidax/preview', methods=['POST'])
+        @self.admin_required
+        def studio_powerbidax_preview():
+            """Preview PowerBI DAX tool generation."""
+            try:
+                data = request.get_json()
+                
+                config = PowerBIDAXToolConfig(
+                    tool_name=data.get('tool_name', ''),
+                    description=data.get('description', ''),
+                    dataset_name=data.get('dataset_name', ''),
+                    workspace_id=data.get('workspace_id', ''),
+                    dataset_id=data.get('dataset_id', ''),
+                    dax_query=data.get('dax_query', ''),
+                    tenant_id=data.get('tenant_id', ''),
+                    client_id=data.get('client_id', ''),
+                    client_secret_env=data.get('client_secret_env', 'POWERBI_CLIENT_SECRET'),
+                    version='2.8.0',
+                    author=data.get('author', ''),
+                    tags=data.get('tags', []),
+                    timeout_seconds=data.get('timeout_seconds', 60),
+                    max_rows=data.get('max_rows', 10000),
+                    parameters=data.get('parameters', [])
+                )
+                
+                errors = self.powerbidax_generator.validate_config(config)
+                if errors:
+                    return jsonify({'success': False, 'error': '; '.join(errors)})
+                
+                tool_config = self.powerbidax_generator.generate_tool_config(config)
+                return jsonify({'success': True, 'config': tool_config})
+                
+            except Exception as e:
+                logger.error(f"Error previewing PowerBI DAX tool: {e}", exc_info=True)
+                return jsonify({'success': False, 'error': str(e)})
+        
+        @app.route('/admin/studio/powerbidax/deploy', methods=['POST'])
+        @self.admin_required
+        def studio_powerbidax_deploy():
+            """Deploy PowerBI DAX tool."""
+            try:
+                data = request.get_json()
+                
+                config = PowerBIDAXToolConfig(
+                    tool_name=data.get('tool_name', ''),
+                    description=data.get('description', ''),
+                    dataset_name=data.get('dataset_name', ''),
+                    workspace_id=data.get('workspace_id', ''),
+                    dataset_id=data.get('dataset_id', ''),
+                    dax_query=data.get('dax_query', ''),
+                    tenant_id=data.get('tenant_id', ''),
+                    client_id=data.get('client_id', ''),
+                    client_secret_env=data.get('client_secret_env', 'POWERBI_CLIENT_SECRET'),
+                    version='2.8.0',
+                    author=data.get('author', ''),
+                    tags=data.get('tags', []),
+                    timeout_seconds=data.get('timeout_seconds', 60),
+                    max_rows=data.get('max_rows', 10000),
+                    parameters=data.get('parameters', [])
+                )
+                
+                result = self.powerbidax_generator.generate_tool(config)
+                
+                if result['success']:
+                    return jsonify({
+                        'success': True,
+                        'message': result['message'],
+                        'files': result['files'],
+                        'config': self.powerbidax_generator.generate_tool_config(config)
+                    })
+                else:
+                    return jsonify({'success': False, 'error': result['message']})
+                
+            except Exception as e:
+                logger.error(f"Error deploying PowerBI DAX tool: {e}", exc_info=True)
+                return jsonify({'success': False, 'error': str(e)})
+        
+        # ============================================
+        # IBM LiveLink Document Tool Creator Routes
+        # ============================================
+        
+        @app.route('/admin/studio/livelink')
+        @self.admin_required
+        def studio_livelink():
+            """IBM LiveLink Document Tool Creator page."""
+            user_session = self.get_user_session()
+            return render_template('admin/studio/studio_livelink.html',
+                                   user=user_session)
+        
+        @app.route('/admin/studio/livelink/preview', methods=['POST'])
+        @self.admin_required
+        def studio_livelink_preview():
+            """Preview LiveLink tool generation."""
+            try:
+                data = request.get_json()
+                
+                config = LiveLinkToolConfig(
+                    tool_name=data.get('tool_name', ''),
+                    description=data.get('description', ''),
+                    server_url=data.get('server_url', ''),
+                    auth_type=data.get('auth_type', 'basic'),
+                    username_env=data.get('username_env', 'LIVELINK_USERNAME'),
+                    password_env=data.get('password_env', 'LIVELINK_PASSWORD'),
+                    oauth_token_env=data.get('oauth_token_env', 'LIVELINK_OAUTH_TOKEN'),
+                    default_parent_id=data.get('default_parent_id', ''),
+                    document_types=data.get('document_types', []),
+                    version='2.8.0',
+                    author=data.get('author', ''),
+                    tags=data.get('tags', []),
+                    timeout_seconds=data.get('timeout_seconds', 60),
+                    max_file_size_mb=data.get('max_file_size_mb', 50),
+                    api_version=data.get('api_version', 'v2')
+                )
+                
+                errors = self.livelink_generator.validate_config(config)
+                if errors:
+                    return jsonify({'success': False, 'error': '; '.join(errors)})
+                
+                tool_config = self.livelink_generator.generate_tool_config(config)
+                return jsonify({'success': True, 'config': tool_config})
+                
+            except Exception as e:
+                logger.error(f"Error previewing LiveLink tool: {e}", exc_info=True)
+                return jsonify({'success': False, 'error': str(e)})
+        
+        @app.route('/admin/studio/livelink/deploy', methods=['POST'])
+        @self.admin_required
+        def studio_livelink_deploy():
+            """Deploy LiveLink tool."""
+            try:
+                data = request.get_json()
+                
+                config = LiveLinkToolConfig(
+                    tool_name=data.get('tool_name', ''),
+                    description=data.get('description', ''),
+                    server_url=data.get('server_url', ''),
+                    auth_type=data.get('auth_type', 'basic'),
+                    username_env=data.get('username_env', 'LIVELINK_USERNAME'),
+                    password_env=data.get('password_env', 'LIVELINK_PASSWORD'),
+                    oauth_token_env=data.get('oauth_token_env', 'LIVELINK_OAUTH_TOKEN'),
+                    default_parent_id=data.get('default_parent_id', ''),
+                    document_types=data.get('document_types', []),
+                    version='2.8.0',
+                    author=data.get('author', ''),
+                    tags=data.get('tags', []),
+                    timeout_seconds=data.get('timeout_seconds', 60),
+                    max_file_size_mb=data.get('max_file_size_mb', 50),
+                    api_version=data.get('api_version', 'v2')
+                )
+                
+                result = self.livelink_generator.generate_tool(config)
+                
+                if result['success']:
+                    return jsonify({
+                        'success': True,
+                        'message': result['message'],
+                        'files': result['files'],
+                        'config': self.livelink_generator.generate_tool_config(config)
+                    })
+                else:
+                    return jsonify({'success': False, 'error': result['message']})
+                
+            except Exception as e:
+                logger.error(f"Error deploying LiveLink tool: {e}", exc_info=True)
+                return jsonify({'success': False, 'error': str(e)})
+        
+        # ========== OLAP Dataset Creator Routes ==========
+        
+        @app.route('/admin/studio/olap')
+        @self.admin_required
+        def studio_olap():
+            """OLAP Dataset Creator page."""
+            return render_template('admin/studio/studio_olap.html')
+        
+        @app.route('/admin/studio/olap/deploy', methods=['POST'])
+        @self.admin_required
+        def studio_olap_deploy():
+            """Deploy OLAP dataset configuration."""
+            try:
+                data = request.get_json()
+                
+                # Validate required fields
+                if not data.get('name'):
+                    return jsonify({'success': False, 'error': 'Dataset name is required'})
+                if not data.get('source_table'):
+                    return jsonify({'success': False, 'error': 'Source table is required'})
+                if not data.get('dimensions'):
+                    return jsonify({'success': False, 'error': 'At least one dimension is required'})
+                if not data.get('measures'):
+                    return jsonify({'success': False, 'error': 'At least one measure is required'})
+                
+                # Load existing datasets config
+                import json
+                from pathlib import Path
+                
+                config_path = Path(__file__).parent.parent.parent.parent / 'config' / 'olap' / 'datasets.json'
+                
+                if config_path.exists():
+                    with open(config_path, 'r') as f:
+                        config = json.load(f)
+                else:
+                    config = {
+                        'version': '2.8.0',
+                        'description': 'OLAP Dataset Definitions for Semantic Layer',
+                        'datasets': {}
+                    }
+                
+                # Add new dataset
+                dataset_name = data['name']
+                config['datasets'][dataset_name] = {
+                    'name': data.get('display_name', dataset_name),
+                    'description': data.get('description', ''),
+                    'source_table': data['source_table'],
+                    'joins': data.get('joins', []),
+                    'dimensions': data['dimensions'],
+                    'measures': data['measures'],
+                    'default_time_dimension': data.get('default_time_dimension'),
+                    'default_grain': data.get('default_grain', 'month'),
+                    'cache_ttl_seconds': 300,
+                    'tags': []
+                }
+                
+                # Save config
+                config_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(config_path, 'w') as f:
+                    json.dump(config, f, indent=4)
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'Dataset "{dataset_name}" deployed successfully!',
+                    'dataset': dataset_name
+                })
+                
+            except Exception as e:
+                logger.error(f"Error deploying OLAP dataset: {e}", exc_info=True)
+                return jsonify({'success': False, 'error': str(e)})
     
     def _get_sample_code(self) -> str:
         """Get sample code for the studio editor."""

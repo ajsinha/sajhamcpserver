@@ -1,0 +1,138 @@
+{
+    "measures": {
+        "revenue": {
+            "name": "Revenue",
+            "expression": "SUM(amount)",
+            "format": "currency",
+            "description": "Total sales revenue"
+        },
+        "quantity": {
+            "name": "Quantity Sold",
+            "expression": "SUM(qty)",
+            "format": "number",
+            "description": "Total quantity of items sold"
+        },
+        "profit": {
+            "name": "Profit",
+            "expression": "SUM(amount - cost)",
+            "format": "currency",
+            "description": "Total profit (revenue minus cost)"
+        },
+        "cost": {
+            "name": "Total Cost",
+            "expression": "SUM(cost)",
+            "format": "currency",
+            "description": "Total cost of goods sold"
+        },
+        "discount": {
+            "name": "Total Discount",
+            "expression": "SUM(discount_amount)",
+            "format": "currency",
+            "description": "Total discounts applied"
+        },
+        "order_count": {
+            "name": "Order Count",
+            "expression": "COUNT(DISTINCT order_id)",
+            "format": "number",
+            "description": "Number of unique orders"
+        },
+        "avg_order_value": {
+            "name": "Average Order Value",
+            "expression": "AVG(amount)",
+            "format": "currency",
+            "description": "Average value per order"
+        },
+        "profit_margin": {
+            "name": "Profit Margin %",
+            "expression": "ROUND(100.0 * SUM(amount - cost) / NULLIF(SUM(amount), 0), 2)",
+            "format": "percentage",
+            "description": "Profit as percentage of revenue"
+        },
+        "gross_margin": {
+            "name": "Gross Margin %",
+            "expression": "ROUND(100.0 * (SUM(amount) - SUM(cost)) / NULLIF(SUM(amount), 0), 2)",
+            "format": "percentage",
+            "description": "Gross margin percentage"
+        },
+        "customer_count": {
+            "name": "Customer Count",
+            "expression": "COUNT(DISTINCT customer_id)",
+            "format": "number",
+            "description": "Number of unique customers"
+        },
+        "total_revenue": {
+            "name": "Total Revenue",
+            "expression": "SUM(amount)",
+            "format": "currency",
+            "description": "Total revenue from sales"
+        },
+        "avg_customer_value": {
+            "name": "Average Customer Value",
+            "expression": "SUM(amount) / NULLIF(COUNT(DISTINCT customer_id), 0)",
+            "format": "currency",
+            "description": "Average revenue per customer"
+        },
+        "avg_orders_per_customer": {
+            "name": "Avg Orders per Customer",
+            "expression": "COUNT(DISTINCT order_id) * 1.0 / NULLIF(COUNT(DISTINCT customer_id), 0)",
+            "format": "number",
+            "description": "Average number of orders per customer"
+        },
+        "stock_quantity": {
+            "name": "Stock Quantity",
+            "expression": "SUM(stock_qty)",
+            "format": "number",
+            "description": "Total quantity in stock"
+        },
+        "unit_cost": {
+            "name": "Unit Cost",
+            "expression": "AVG(unit_cost)",
+            "format": "currency",
+            "description": "Average unit cost"
+        },
+        "total_value": {
+            "name": "Total Inventory Value",
+            "expression": "SUM(stock_qty * unit_cost)",
+            "format": "currency",
+            "description": "Total value of inventory"
+        },
+        "reorder_point": {
+            "name": "Reorder Point",
+            "expression": "AVG(reorder_point)",
+            "format": "number",
+            "description": "Average reorder point"
+        },
+        "days_of_supply": {
+            "name": "Days of Supply",
+            "expression": "AVG(days_of_supply)",
+            "format": "number",
+            "description": "Average days of supply remaining"
+        },
+        "operating_margin": {
+            "name": "Operating Margin %",
+            "expression": "ROUND(100.0 * SUM(operating_income) / NULLIF(SUM(amount), 0), 2)",
+            "format": "percentage",
+            "description": "Operating income as percentage of revenue"
+        },
+        "contribution_margin": {
+            "name": "Contribution Margin %",
+            "expression": "ROUND(100.0 * (SUM(amount) - SUM(variable_cost)) / NULLIF(SUM(amount), 0), 2)",
+            "format": "percentage",
+            "description": "Contribution margin percentage"
+        },
+        "yoy_growth": {
+            "name": "Year-over-Year Growth",
+            "expression": "ROUND(100.0 * (SUM(amount) - LAG(SUM(amount)) OVER (ORDER BY EXTRACT(YEAR FROM order_date))) / NULLIF(LAG(SUM(amount)) OVER (ORDER BY EXTRACT(YEAR FROM order_date)), 0), 2)",
+            "format": "percentage",
+            "description": "Year-over-year growth rate",
+            "requires_window": true
+        },
+        "mom_growth": {
+            "name": "Month-over-Month Growth",
+            "expression": "ROUND(100.0 * (SUM(amount) - LAG(SUM(amount)) OVER (ORDER BY DATE_TRUNC('month', order_date))) / NULLIF(LAG(SUM(amount)) OVER (ORDER BY DATE_TRUNC('month', order_date)), 0), 2)",
+            "format": "percentage",
+            "description": "Month-over-month growth rate",
+            "requires_window": true
+        }
+    }
+}

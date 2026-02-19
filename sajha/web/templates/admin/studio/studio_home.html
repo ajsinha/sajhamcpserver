@@ -287,7 +287,7 @@
         <div>
             <h4 class="mb-1">
                 <i class="bi bi-magic me-2"></i>MCP Studio
-                <span class="badge bg-gradient text-white ms-2" style="font-size: 0.6rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">v2.4.0</span>
+                <span class="badge bg-gradient text-white ms-2" style="font-size: 0.6rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">v2.9.0</span>
             </h4>
             <small class="text-muted">Enterprise Visual Tool Creation Platform</small>
         </div>
@@ -437,6 +437,215 @@
                 <div class="card-footer bg-transparent border-0 pb-3">
                     <a href="{{ url_for('studio_dbquery') }}" class="btn btn-warning w-100 text-dark">
                         <i class="bi bi-arrow-right me-1"></i>Open DB Query Creator
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Script Tool Creator Card -->
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card h-100 border-danger shadow-sm tool-method-card">
+                <div class="card-header bg-danger text-white d-flex align-items-center">
+                    <i class="bi bi-terminal fs-4 me-2"></i>
+                    <div>
+                        <h5 class="mb-0">Script Tool</h5>
+                        <small class="opacity-75">Shell & Python scripts</small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Create MCP tools from shell scripts, Python scripts, or other executables.
+                        Pass arguments and capture STDOUT/STDERR output.
+                    </p>
+                    <div class="feature-list mb-3">
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Bash, Shell, Python, Node.js, Perl, Ruby</small>
+                        </div>
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>File upload or paste code</small>
+                        </div>
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Configurable timeout & env vars</small>
+                        </div>
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Auto-detects script type</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <a href="{{ url_for('studio_script') }}" class="btn btn-danger w-100">
+                        <i class="bi bi-arrow-right me-1"></i>Open Script Creator
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PowerBI Report Tool Creator Card -->
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card h-100 shadow-sm tool-method-card" style="border: 2px solid #f2c811;">
+                <div class="card-header d-flex align-items-center" style="background: linear-gradient(135deg, #f2c811 0%, #e6b800 100%); color: #212529;">
+                    <i class="bi bi-bar-chart-fill fs-4 me-2"></i>
+                    <div>
+                        <h5 class="mb-0">PowerBI Report</h5>
+                        <small class="opacity-75">PDF/PPTX/PNG export</small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Create MCP tools that retrieve PowerBI reports as PDF, PPTX, or PNG 
+                        in base64 encoded format.
+                    </p>
+                    <div class="feature-list mb-3">
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Export to PDF, PPTX, or PNG</small>
+                        </div>
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Azure AD authentication</small>
+                        </div>
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Base64 encoded output</small>
+                        </div>
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Optional page selection</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <a href="{{ url_for('studio_powerbi') }}" class="btn w-100" style="background: #f2c811; color: #212529; font-weight: 600;">
+                        <i class="bi bi-arrow-right me-1"></i>Open PowerBI Creator
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PowerBI DAX Query Tool Creator Card -->
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card h-100 shadow-sm tool-method-card" style="border: 2px solid #00d4aa;">
+                <div class="card-header d-flex align-items-center" style="background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%); color: #212529;">
+                    <i class="bi bi-braces fs-4 me-2"></i>
+                    <div>
+                        <h5 class="mb-0">PowerBI DAX</h5>
+                        <small class="opacity-75">DAX query execution</small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Create MCP tools that execute DAX queries against PowerBI datasets
+                        and return structured JSON results.
+                    </p>
+                    <div class="feature-list mb-3">
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Execute DAX queries</small>
+                        </div>
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Parameterized queries</small>
+                        </div>
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>JSON result format</small>
+                        </div>
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Azure AD authentication</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <a href="{{ url_for('studio_powerbidax') }}" class="btn w-100" style="background: #00d4aa; color: #212529; font-weight: 600;">
+                        <i class="bi bi-arrow-right me-1"></i>Open DAX Creator
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- IBM LiveLink Document Tool Creator Card -->
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card h-100 shadow-sm tool-method-card" style="border: 2px solid #0077b6;">
+                <div class="card-header d-flex align-items-center" style="background: linear-gradient(135deg, #0077b6 0%, #023e8a 100%); color: white;">
+                    <i class="bi bi-folder2-open fs-4 me-2"></i>
+                    <div>
+                        <h5 class="mb-0">IBM LiveLink</h5>
+                        <small class="opacity-75">Document retrieval</small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Create MCP tools to query and download documents from IBM LiveLink
+                        (OpenText Content Server) as base64.
+                    </p>
+                    <div class="feature-list mb-3">
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Search & list documents</small>
+                        </div>
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Download as base64</small>
+                        </div>
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Basic, OAuth, OTDS auth</small>
+                        </div>
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>REST API v1 & v2</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <a href="{{ url_for('studio_livelink') }}" class="btn w-100" style="background: #0077b6; color: white; font-weight: 600;">
+                        <i class="bi bi-arrow-right me-1"></i>Open LiveLink Creator
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- OLAP Dataset Creator Card -->
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm tool-card" style="border-left: 4px solid #4ecdc4 !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="mb-0">OLAP Analytics</h5>
+                            <small class="opacity-75">Advanced Analytics</small>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                             style="width: 50px; height: 50px; background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);">
+                            <i class="bi bi-graph-up-arrow text-white fs-5"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-3">
+                        Create semantic datasets for advanced OLAP analytics including pivot tables,
+                        rollups, time series analysis, and statistical calculations.
+                    </p>
+                    <div class="d-flex flex-column gap-2 small mb-3">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Pivot Tables & Cross-tabs</small>
+                        </div>
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Time Series & Period Comparisons</small>
+                        </div>
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                            <small>Window Functions & Statistics</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <a href="{{ url_for('studio_olap') }}" class="btn w-100" style="background: #4ecdc4; color: white; font-weight: 600;">
+                        <i class="bi bi-arrow-right me-1"></i>Open OLAP Creator
                     </a>
                 </div>
             </div>

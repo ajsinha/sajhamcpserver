@@ -1,0 +1,87 @@
+{
+    "name": "olap_pivot_table",
+    "description": "Create interactive pivot tables for multi-dimensional analysis with rows, columns, values, and automatic totals",
+    "category": "OLAP Analytics",
+    "version": "2.8.0",
+    "implementation": {
+        "type": "class",
+        "module": "sajha.olap.olap_tool",
+        "class": "DuckDBOLAPTool"
+    },
+    "parameters": {
+        "dataset": {
+            "type": "string",
+            "required": true,
+            "description": "Dataset to query (use olap_list_datasets to see available datasets)"
+        },
+        "rows": {
+            "type": "array",
+            "required": true,
+            "items": "string",
+            "description": "Dimensions to use as row headers (e.g., ['region', 'category'])"
+        },
+        "columns": {
+            "type": "array",
+            "required": false,
+            "items": "string",
+            "description": "Dimensions to pivot as column headers (e.g., ['quarter'])"
+        },
+        "values": {
+            "type": "array",
+            "required": true,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "measure": "string",
+                    "aggregation": "string"
+                }
+            },
+            "description": "Measures to aggregate (e.g., [{measure: 'revenue', aggregation: 'SUM'}])"
+        },
+        "filters": {
+            "type": "array",
+            "required": false,
+            "description": "Filters to apply (e.g., [{dimension: 'year', operator: '=', value: 2024}])"
+        },
+        "include_totals": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include grand totals row"
+        },
+        "include_subtotals": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include subtotals for each dimension level"
+        }
+    },
+    "examples": [
+        {
+            "description": "Sales by region with quarterly pivot",
+            "input": {
+                "dataset": "sales_analysis",
+                "rows": ["region"],
+                "columns": ["quarter"],
+                "values": [
+                    {"measure": "revenue", "aggregation": "SUM"},
+                    {"measure": "quantity", "aggregation": "SUM"}
+                ],
+                "include_totals": true
+            }
+        },
+        {
+            "description": "Product category analysis with filters",
+            "input": {
+                "dataset": "sales_analysis",
+                "rows": ["product_category", "region"],
+                "values": [
+                    {"measure": "profit_margin", "aggregation": "AVG"}
+                ],
+                "filters": [
+                    {"dimension": "date", "operator": ">=", "value": "2024-01-01"}
+                ],
+                "include_subtotals": true
+            }
+        }
+    ],
+    "tags": ["olap", "pivot", "analysis", "aggregation", "multidimensional"]
+}

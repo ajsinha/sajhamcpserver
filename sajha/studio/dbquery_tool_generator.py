@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server - DB Query Tool Generator v2.4.0
+SAJHA MCP Server - DB Query Tool Generator v2.8.0
 
 Copyright © 2025-2030, All Rights Reserved
 Ashutosh Sinha
@@ -44,7 +44,7 @@ class DBQueryToolDefinition:
     literature: str = ""  # Context/documentation for AI
     timeout: int = 30
     max_rows: int = 1000
-    version: str = "2.4.0"
+    version: str = "2.8.0"
 
 
 class DBQueryToolGenerator:

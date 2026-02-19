@@ -3404,3 +3404,367 @@ canvas {
 [data-theme="dark"] td .btn-info {
     color: #000000 !important;
 }
+
+/* =============================================
+   MCP Studio Template Dark Theme Overrides
+   v2.7.0 - Comprehensive visibility fixes
+   ============================================= */
+
+/* Help text - visible in dark theme */
+[data-theme="dark"] .help-text {
+    color: #a0a0a0 !important;
+}
+
+/* Azure info box - PowerBI templates */
+[data-theme="dark"] .azure-info {
+    background: rgba(13, 110, 253, 0.15) !important;
+    border-color: #3d7fcc !important;
+    color: var(--theme-text) !important;
+}
+
+[data-theme="dark"] .azure-info h6 {
+    color: #6ea8fe !important;
+}
+
+[data-theme="dark"] .azure-info p,
+[data-theme="dark"] .azure-info small {
+    color: #b0b0b0 !important;
+}
+
+[data-theme="dark"] .azure-info code {
+    background: rgba(0, 0, 0, 0.3) !important;
+    color: #ffc107 !important;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+[data-theme="dark"] .azure-info strong {
+    color: #6ea8fe !important;
+}
+
+/* DAX help box - PowerBI DAX template */
+[data-theme="dark"] .dax-help {
+    background: rgba(25, 135, 84, 0.15) !important;
+    border-color: #3d8b5e !important;
+    color: var(--theme-text) !important;
+}
+
+[data-theme="dark"] .dax-help h6 {
+    color: #75b798 !important;
+}
+
+[data-theme="dark"] .dax-help ul,
+[data-theme="dark"] .dax-help li {
+    color: #b0b0b0 !important;
+}
+
+[data-theme="dark"] .dax-help code {
+    background: rgba(0, 0, 0, 0.3) !important;
+    color: #ffc107 !important;
+}
+
+/* Quick tips box - LiveLink template */
+[data-theme="dark"] .quick-tips h6 {
+    color: #fd7e14 !important;
+}
+
+[data-theme="dark"] .quick-tips ul,
+[data-theme="dark"] .quick-tips li,
+[data-theme="dark"] .quick-tips strong {
+    color: var(--theme-text) !important;
+}
+
+/* Info box - LiveLink template */
+[data-theme="dark"] .info-box h6 {
+    color: #6ea8fe !important;
+}
+
+[data-theme="dark"] .info-box p,
+[data-theme="dark"] .info-box code {
+    color: #b0b0b0 !important;
+}
+
+[data-theme="dark"] .info-box code {
+    background: rgba(0, 0, 0, 0.3) !important;
+    color: #ffc107 !important;
+}
+
+/* Code elements in section body */
+[data-theme="dark"] .section-body code {
+    background: rgba(0, 0, 0, 0.3) !important;
+    color: #ffc107 !important;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* GUID input fields */
+[data-theme="dark"] .guid-input {
+    background: var(--theme-input-bg) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-card-border) !important;
+}
+
+[data-theme="dark"] .guid-input::placeholder {
+    color: #6c757d !important;
+}
+
+/* Format buttons - PowerBI templates */
+[data-theme="dark"] .format-btn {
+    background: var(--theme-card-bg) !important;
+    border-color: var(--theme-card-border) !important;
+    color: var(--theme-text) !important;
+}
+
+[data-theme="dark"] .format-btn:hover {
+    border-color: #f2c811 !important;
+}
+
+[data-theme="dark"] .format-btn.active {
+    background: #f2c811 !important;
+    color: #212529 !important;
+}
+
+[data-theme="dark"] .format-btn small {
+    color: #888 !important;
+}
+
+[data-theme="dark"] .format-btn.active small {
+    color: #444 !important;
+}
+
+/* Auth type buttons - LiveLink template */
+[data-theme="dark"] .auth-type-btn {
+    background: var(--theme-card-bg) !important;
+    border-color: var(--theme-card-border) !important;
+    color: var(--theme-text) !important;
+}
+
+[data-theme="dark"] .auth-type-btn:hover {
+    border-color: #0077b6 !important;
+}
+
+[data-theme="dark"] .auth-type-btn.active {
+    background: #0077b6 !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .auth-type-btn small {
+    color: #888 !important;
+}
+
+[data-theme="dark"] .auth-type-btn.active small {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Parameter rows - DAX template */
+[data-theme="dark"] .param-row {
+    background: var(--sajha-gray-200) !important;
+    border: 1px solid var(--theme-card-border);
+}
+
+[data-theme="dark"] .param-row input,
+[data-theme="dark"] .param-row select {
+    background: var(--theme-input-bg) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-card-border) !important;
+}
+
+/* DAX editor textarea */
+[data-theme="dark"] .dax-editor {
+    background: #1e1e1e !important;
+    color: #d4d4d4 !important;
+    border-color: #444 !important;
+}
+
+/* Script type buttons - Script template */
+[data-theme="dark"] .script-type-btn {
+    background: var(--theme-card-bg) !important;
+    border-color: var(--theme-card-border) !important;
+    color: var(--theme-text) !important;
+}
+
+[data-theme="dark"] .script-type-btn:hover {
+    border-color: var(--sajha-primary) !important;
+}
+
+[data-theme="dark"] .script-type-btn.active {
+    background: var(--sajha-primary) !important;
+    color: white !important;
+}
+
+/* Feature list items */
+[data-theme="dark"] .feature-list small {
+    color: #b0b0b0 !important;
+}
+
+/* Tool method cards */
+[data-theme="dark"] .tool-method-card {
+    background: var(--theme-card-bg) !important;
+}
+
+[data-theme="dark"] .tool-method-card .card-body {
+    color: var(--theme-text) !important;
+}
+
+[data-theme="dark"] .tool-method-card .card-text {
+    color: #b0b0b0 !important;
+}
+
+/* Script help and tips boxes */
+[data-theme="dark"] .script-tips,
+[data-theme="dark"] .script-help {
+    background: rgba(220, 53, 69, 0.15) !important;
+    border-color: #8c3a42 !important;
+    color: var(--theme-text) !important;
+}
+
+[data-theme="dark"] .script-tips h6,
+[data-theme="dark"] .script-help h6 {
+    color: #ea868f !important;
+}
+
+/* PowerBI creator container */
+[data-theme="dark"] .powerbi-creator-container,
+[data-theme="dark"] .dax-creator-container,
+[data-theme="dark"] .livelink-creator-container,
+[data-theme="dark"] .script-creator-container {
+    color: var(--theme-text) !important;
+}
+
+/* Ensure all form labels are visible */
+[data-theme="dark"] .form-section .form-label,
+[data-theme="dark"] .section-body .form-label {
+    color: var(--theme-text) !important;
+}
+
+/* Required asterisk */
+[data-theme="dark"] .form-section .text-danger,
+[data-theme="dark"] .section-body .text-danger {
+    color: #ff6b6b !important;
+}
+
+/* All small text in section body */
+[data-theme="dark"] .section-body .small,
+[data-theme="dark"] .section-body small {
+    color: #a0a0a0 !important;
+}
+
+/* Status messages in MCP Studio */
+[data-theme="dark"] .status-message {
+    border-radius: 8px;
+}
+
+[data-theme="dark"] .status-message.success {
+    background: rgba(25, 135, 84, 0.2) !important;
+    color: #75b798 !important;
+    border: 1px solid #3d8b5e !important;
+}
+
+[data-theme="dark"] .status-message.error {
+    background: rgba(220, 53, 69, 0.2) !important;
+    color: #ea868f !important;
+    border: 1px solid #8c3a42 !important;
+}
+
+/* CSV options panel - REST template */
+[data-theme="dark"] .csv-options {
+    background: rgba(102, 51, 153, 0.15) !important;
+    border-color: #6f42c1 !important;
+    color: var(--theme-text) !important;
+}
+
+[data-theme="dark"] .csv-options label {
+    color: var(--theme-text) !important;
+}
+
+/* Schema editor panels */
+[data-theme="dark"] .schema-panel,
+[data-theme="dark"] .json-editor-container {
+    background: var(--theme-card-bg) !important;
+    border-color: var(--theme-card-border) !important;
+}
+
+/* Hint boxes in templates */
+[data-theme="dark"] .hint-box,
+[data-theme="dark"] .alert-light {
+    background: rgba(108, 117, 125, 0.2) !important;
+    border-color: var(--theme-card-border) !important;
+    color: var(--theme-text) !important;
+}
+
+/* REST Service response format buttons */
+[data-theme="dark"] .format-btn[data-format="csv"],
+[data-theme="dark"] .format-btn[data-format="xml"],
+[data-theme="dark"] .format-btn[data-format="text"] {
+    background: var(--theme-card-bg) !important;
+    color: var(--theme-text) !important;
+}
+
+/* Warning/Caution boxes */
+[data-theme="dark"] .caution-box,
+[data-theme="dark"] [style*="background: #fff3cd"] {
+    background: rgba(255, 193, 7, 0.15) !important;
+    border-color: #997404 !important;
+    color: #ffda6a !important;
+}
+
+/* Env variable hints */
+[data-theme="dark"] .env-hint,
+[data-theme="dark"] [style*="background: #f0f8ff"] {
+    background: rgba(13, 110, 253, 0.1) !important;
+    border-color: var(--theme-card-border) !important;
+    color: var(--theme-text) !important;
+}
+
+/* Script editor */
+[data-theme="dark"] .script-editor,
+[data-theme="dark"] .code-editor {
+    background: #1e1e1e !important;
+    color: #d4d4d4 !important;
+    border-color: #444 !important;
+}
+
+/* Example code blocks */
+[data-theme="dark"] .example-code,
+[data-theme="dark"] .code-example {
+    background: #1e1e1e !important;
+    color: #d4d4d4 !important;
+}
+
+/* All inline code in info/help sections */
+[data-theme="dark"] .azure-info code,
+[data-theme="dark"] .dax-help code,
+[data-theme="dark"] .info-box code,
+[data-theme="dark"] .quick-tips code,
+[data-theme="dark"] .help-text code {
+    background: rgba(0, 0, 0, 0.4) !important;
+    color: #ffc107 !important;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+/* Ensure form controls in dark theme */
+[data-theme="dark"] .section-body .form-control,
+[data-theme="dark"] .section-body .form-select {
+    background: var(--theme-input-bg) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-card-border) !important;
+}
+
+[data-theme="dark"] .section-body .form-control:focus,
+[data-theme="dark"] .section-body .form-select:focus {
+    border-color: var(--sajha-primary) !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 163, 224, 0.25) !important;
+}
+
+[data-theme="dark"] .section-body .form-control::placeholder {
+    color: #6c757d !important;
+}
+
+/* Text areas with specific classes */
+[data-theme="dark"] .section-body textarea {
+    background: var(--theme-input-bg) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-card-border) !important;
+}

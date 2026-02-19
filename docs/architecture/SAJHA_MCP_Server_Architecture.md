@@ -1,6 +1,6 @@
 # SAJHA MCP Server - System Architecture Document
 
-**Version:** 2.4.0  
+**Version:** 2.9.0  
 **Last Updated:** February 2026  
 **Classification:** Technical Reference
 
@@ -26,17 +26,18 @@ This document and the associated software architecture are proprietary and confi
 6. [Tools Framework](#6-tools-framework)
 7. [Web Application Layer](#7-web-application-layer)
 8. [MCP Studio](#8-mcp-studio)
-9. [Investor Relations Module](#9-investor-relations-module)
-10. [Configuration System](#10-configuration-system)
-11. [Security Architecture](#11-security-architecture)
-12. [Data Flow Diagrams](#12-data-flow-diagrams)
-13. [API Architecture](#13-api-architecture)
-14. [Database Layer](#14-database-layer)
-15. [Hot-Reload System](#15-hot-reload-system)
-16. [Deployment Architecture](#16-deployment-architecture)
-17. [Extension Points](#17-extension-points)
-18. [Performance Considerations](#18-performance-considerations)
-19. [Appendices](#19-appendices)
+9. [OLAP Analytics Module](#9-olap-analytics-module)
+10. [Investor Relations Module](#10-investor-relations-module)
+11. [Configuration System](#11-configuration-system)
+12. [Security Architecture](#12-security-architecture)
+13. [Data Flow Diagrams](#13-data-flow-diagrams)
+14. [API Architecture](#14-api-architecture)
+15. [Database Layer](#15-database-layer)
+16. [Hot-Reload System](#16-hot-reload-system)
+17. [Deployment Architecture](#17-deployment-architecture)
+18. [Extension Points](#18-extension-points)
+19. [Performance Considerations](#19-performance-considerations)
+20. [Appendices](#20-appendices)
 
 ---
 
@@ -710,7 +711,7 @@ class SocketIOHandlers:
 
 ### 8.1 Overview
 
-MCP Studio (`sajha/studio/`) provides a visual interface for creating MCP tools without manual coding. Version 2.4.0 introduces comprehensive dark theme support with 3,200+ lines of CSS for accessibility across all pages, plus Database Query Tool Creator and enhanced REST Service Tool Creator with CSV response support.
+MCP Studio (`sajha/studio/`) provides a visual interface for creating MCP tools without manual coding. Version 2.7.0 introduces PowerBI DAX Query Tool Creator for executing DAX queries against datasets, and IBM LiveLink Document Tool Creator for querying and downloading ECM documents. Also includes PowerBI Report Tool Creator for PDF/PPTX/PNG export, Script Tool Creator for shell/Python script execution, comprehensive dark theme support with 3,400+ lines of CSS for accessibility across all pages, Database Query Tool Creator and enhanced REST Service Tool Creator with CSV response support.
 
 **Components:**
 
@@ -719,8 +720,12 @@ MCP Studio (`sajha/studio/`) provides a visual interface for creating MCP tools 
 | **Decorator** | `decorator.py` | `@sajhamcptool` decorator definition |
 | **CodeAnalyzer** | `code_analyzer.py` | AST-based code analysis |
 | **CodeGenerator** | `code_generator.py` | Tool class generation |
-| **RESTToolGenerator** | `rest_tool_generator.py` | REST API tool generation (v2.4.0) |
-| **DBQueryToolGenerator** | `dbquery_tool_generator.py` | Database query tool generation (v2.4.0) |
+| **RESTToolGenerator** | `rest_tool_generator.py` | REST API tool generation (v2.7.0) |
+| **DBQueryToolGenerator** | `dbquery_tool_generator.py` | Database query tool generation (v2.7.0) |
+| **ScriptToolGenerator** | `script_tool_generator.py` | Script tool generation (v2.7.0) |
+| **PowerBIToolGenerator** | `powerbi_tool_generator.py` | PowerBI report tool generation (v2.7.0) |
+| **PowerBIDAXToolGenerator** | `powerbidax_tool_generator.py` | PowerBI DAX query tool generation (v2.7.0) |
+| **LiveLinkToolGenerator** | `livelink_tool_generator.py` | IBM LiveLink document tool generation (v2.7.0) |
 
 ### 8.2 Tool Creation Methods
 
@@ -971,9 +976,149 @@ MCP Studio provides a rich web interface:
 
 ---
 
-## 9. Investor Relations Module
+## 9. OLAP Analytics Module
 
 ### 9.1 Overview
+
+The OLAP Analytics module (`sajha/olap/`) provides advanced multi-dimensional data analysis capabilities built on DuckDB. It offers a semantic layer that abstracts raw data into business-friendly concepts.
+
+**Core Components:**
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| **SemanticLayer** | `semantic_layer.py` | Business abstraction over raw data |
+| **PivotEngine** | `pivot_engine.py` | Multi-dimensional pivot tables |
+| **RollupEngine** | `rollup_engine.py` | ROLLUP/CUBE hierarchical summaries |
+| **WindowEngine** | `window_engine.py` | Window function calculations |
+| **TimeSeriesEngine** | `timeseries_engine.py` | Temporal analysis |
+| **StatsEngine** | `stats_engine.py` | Statistical analysis |
+| **DuckDBOLAPTool** | `olap_tool.py` | MCP tool integration |
+
+### 9.2 Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                       OLAP Analytics Layer                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │                     Semantic Layer                          │ │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │ │
+│  │  │  Datasets   │  │  Measures   │  │ Dimensions  │        │ │
+│  │  │  Registry   │  │ Definitions │  │ Hierarchies │        │ │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘        │ │
+│  │                                                             │ │
+│  │  config/olap/datasets.json                                  │ │
+│  │  config/olap/measures.json                                  │ │
+│  │  config/olap/dimensions.json                                │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                              │                                   │
+│  ┌───────────────────────────▼────────────────────────────────┐ │
+│  │                     Query Engines                           │ │
+│  │                                                             │ │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │ │
+│  │  │  Pivot   │  │  Rollup  │  │  Window  │  │   Time   │   │ │
+│  │  │  Engine  │  │  Engine  │  │  Engine  │  │  Series  │   │ │
+│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │ │
+│  │                                                             │ │
+│  │  ┌──────────┐  ┌──────────┐                                │ │
+│  │  │  Stats   │  │  Top-N   │                                │ │
+│  │  │  Engine  │  │ Analysis │                                │ │
+│  │  └──────────┘  └──────────┘                                │ │
+│  └─────────────────────────────────────────────────────────────┘ │
+│                              │                                   │
+│  ┌───────────────────────────▼────────────────────────────────┐ │
+│  │                    DuckDB Execution                         │ │
+│  │           (Columnar Storage, Vectorized Queries)            │ │
+│  └─────────────────────────────────────────────────────────────┘ │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 9.3 Semantic Layer
+
+The Semantic Layer provides business-friendly abstractions:
+
+**Datasets** - Logical views combining tables:
+```json
+{
+  "sales_analysis": {
+    "source_table": "sales_data",
+    "joins": [{"table": "customer_data", "type": "LEFT", "on": "..."}],
+    "dimensions": ["region", "date", "product_category"],
+    "measures": ["revenue", "quantity", "profit_margin"]
+  }
+}
+```
+
+**Measures** - Reusable aggregation formulas:
+```json
+{
+  "revenue": {
+    "expression": "SUM(amount)",
+    "format": "currency"
+  },
+  "profit_margin": {
+    "expression": "ROUND(100.0 * SUM(profit) / NULLIF(SUM(amount), 0), 2)",
+    "format": "percentage"
+  }
+}
+```
+
+**Dimensions** - Grouping attributes with hierarchies:
+```json
+{
+  "date": {
+    "type": "time",
+    "column": "order_date",
+    "hierarchies": {
+      "calendar": {
+        "levels": ["Year", "Quarter", "Month", "Day"]
+      }
+    }
+  }
+}
+```
+
+### 9.4 Query Engines
+
+| Engine | Capabilities |
+|--------|--------------|
+| **PivotEngine** | Row/column pivoting, totals, subtotals |
+| **RollupEngine** | ROLLUP, CUBE, GROUPING SETS |
+| **WindowEngine** | Running totals, ranks, moving averages, LAG/LEAD |
+| **TimeSeriesEngine** | Time grains, gap filling, YoY/MoM comparison |
+| **StatsEngine** | Summary stats, percentiles, correlation, histogram |
+
+### 9.5 Available OLAP Tools
+
+| Tool | Description |
+|------|-------------|
+| `olap_list_datasets` | List available datasets |
+| `olap_describe_dataset` | Get dataset schema details |
+| `olap_pivot_table` | Create pivot tables |
+| `olap_hierarchical_summary` | ROLLUP/CUBE summaries |
+| `olap_time_series` | Time series analysis |
+| `olap_window_analysis` | Window function calculations |
+| `olap_statistics` | Statistical analysis |
+| `olap_histogram` | Distribution histograms |
+| `olap_top_n` | Top N / Bottom N analysis |
+| `olap_contribution` | Pareto/ABC analysis |
+
+### 9.6 MCP Studio Integration
+
+The OLAP Dataset Creator in MCP Studio provides:
+- Visual dataset definition
+- Dimension and measure configuration
+- Join builder
+- Live preview
+- One-click deployment
+
+---
+
+## 10. Investor Relations Module
+
+### 10.1 Overview
 
 The IR module (`sajha/ir/`) provides specialized web scraping for company investor relations pages.
 
@@ -1590,6 +1735,9 @@ Extend `AuthManager` to add:
 | 2.0.0 | 2025-06 | MCP Studio, Refactored tools |
 | 2.1.0 | 2025-09 | Central bank tools, IR module |
 | 2.2.0 | 2026-01 | Multi-encoding support, FRED API integration |
+| 2.7.0 | 2026-02 | PowerBI DAX Query Tool Creator, IBM LiveLink Document Tool Creator |
+| 2.6.0 | 2026-02 | PowerBI Report Tool Creator for PDF/PPTX/PNG export |
+| 2.5.0 | 2026-02 | Script Tool Creator, SAJHA meaning section |
 | 2.4.0 | 2026-02 | Comprehensive Dark Theme, navbar user context fix |
 | 2.3.2 | 2026-02 | DB Query Tool Creator, REST CSV support |
 

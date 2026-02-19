@@ -17,7 +17,7 @@ SAJHA MCP Server is a production-ready Python-based implementation of the Model 
 - ✅ 40+ Built-in tools: Financial, Search, Government APIs, Analytics
 - ✅ Properties-based configuration with auto-reload
 - ✅ Comprehensive audit logging
-- ✅ **MCP Studio** (v2.4.0): Visual Tool Creation Platform
+- ✅ **MCP Studio** (v2.9.0): Visual Tool Creation Platform
   - Python Code Tool Creator with @sajhamcptool decorator
   - **REST Service Tool Creator** - Wrap any REST API as MCP tool
     - Supports JSON, CSV, XML, and plain text response formats
@@ -25,14 +25,81 @@ SAJHA MCP Server is a production-ready Python-based implementation of the Model 
   - **Database Query Tool Creator** - Create SQL-based MCP tools
     - Supports DuckDB, SQLite, PostgreSQL, MySQL
     - Parameterized queries with auto-generated schemas
+  - **Script Tool Creator** - Execute scripts as MCP tools
+    - Shell scripts (Bash, Sh, Zsh)
+    - Python scripts
+    - Node.js, Ruby, Perl scripts
+    - Array of string arguments as input, STDOUT/STDERR as output
+  - **PowerBI Report Tool Creator** - Export reports as PDF
+    - Retrieve PowerBI reports as PDF, PPTX, or PNG
+    - Base64 encoded output for easy file handling
+    - Azure AD authentication with Service Principal
+    - Optional page selection and timeout configuration
+  - **PowerBI DAX Query Tool Creator** - Execute DAX queries
+    - Query PowerBI datasets using DAX
+    - Parameterized queries with auto-generated input schemas
+    - JSON result format with row/column data
+    - Azure AD Service Principal authentication
+  - **IBM LiveLink Document Tool Creator** - ECM documents
+    - Query and download documents from OpenText Content Server
+    - Search, list, get metadata, download operations
+    - Base64 encoded document output
+    - Basic Auth, OAuth, OTDS authentication
+    - REST API v1 and v2 support
+  - **OLAP Dataset Creator** - Define semantic datasets
+    - Configure dimensions, measures, and hierarchies
+    - Automatic join configuration
+    - Time dimension support for time series analysis
   - JSON Schema guided form interface
   - Multiple authentication options (API Key, Basic Auth)
+- ✅ **OLAP Analytics Engine** (v2.9.0): Advanced Multi-Dimensional Analysis
+  - **Semantic Layer** - Business-friendly abstraction over raw data
+    - Reusable dimension and measure definitions
+    - Hierarchies for drill-down analysis
+    - Automatic join management
+  - **Pivot Tables** - Multi-dimensional aggregation
+    - Row and column pivoting
+    - Automatic grand totals and subtotals
+    - Multiple measures with different aggregations
+  - **ROLLUP & CUBE** - Hierarchical summaries
+    - ROLLUP for hierarchical subtotals
+    - CUBE for all dimension combinations
+    - GROUPING SETS for custom groupings
+  - **Time Series Analysis** - Temporal analytics
+    - Flexible time grains (year, quarter, month, week, day, hour)
+    - Gap filling with date spine generation
+    - Period comparisons (YoY, MoM, QoQ, WoW, DoD)
+    - Trend and seasonality detection
+  - **Window Functions** - Advanced calculations
+    - Running totals and averages
+    - Moving averages with configurable windows
+    - Rankings (RANK, DENSE_RANK, ROW_NUMBER, NTILE)
+    - Percent of total, percent change, LAG/LEAD
+  - **Statistical Analysis** - Comprehensive statistics
+    - Summary statistics (count, sum, mean, median, stddev, variance)
+    - Percentiles and IQR
+    - Correlation matrix
+    - Distribution analysis (skewness, kurtosis)
+    - Histograms with frequency distribution
+  - **Contribution Analysis** - Pareto/ABC analysis
+    - Top N / Bottom N analysis
+    - Cumulative contribution percentages
+    - Automatic A/B/C classification
+  - **NEW: Cohort Analysis** (v2.9.0) - Track groups over time
+    - Customer cohort tracking
+    - Retention analysis with percentage matrices
+    - Multi-period comparison
+    - Cohort-based revenue tracking
+  - **NEW: Sample Data Generator** (v2.9.0) - Demo data creation
+    - Generate realistic sales, customer, and product data
+    - Configurable date ranges and volumes
+    - Automatic OLAP configuration file generation
   - Live preview and one-click deployment
 - ✅ API Key Authentication with tool-level permissions
 - ✅ Hot-reload for config changes (zero downtime)
 - ✅ Multi-encoding support for international APIs (Japanese, Chinese, European)
-- ✅ **Dark Theme Support** (v2.4.0): Comprehensive light/dark mode toggle
-  - 3,200+ lines of CSS for complete accessibility
+- ✅ **Dark Theme Support** (v2.7.0): Comprehensive light/dark mode toggle
+  - 3,400+ lines of CSS for complete accessibility
   - Full text visibility across all pages
   - Persistent preference via localStorage
 
@@ -441,6 +508,88 @@ For issues, questions, or contributions:
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 ## Changelog
+
+### Version 2.8.0 (February 2026)
+- **OLAP Analytics Engine**: Advanced multi-dimensional analysis capabilities
+  - **Semantic Layer**: Business-friendly abstraction with reusable definitions
+    - Dataset configurations with dimensions, measures, and hierarchies
+    - Automatic join management for complex data relationships
+    - Time dimension hierarchies (Year → Quarter → Month → Week → Day)
+  - **Pivot Tables**: Cross-tabulation with multi-dimensional aggregation
+    - Row and column pivoting
+    - Automatic grand totals and subtotals
+    - Multiple measures with different aggregation functions
+  - **ROLLUP & CUBE Operations**: Hierarchical summaries
+    - ROLLUP for hierarchical subtotals (right-to-left)
+    - CUBE for all dimension combinations
+    - GROUPING SETS for custom grouping patterns
+  - **Time Series Analysis**: Comprehensive temporal analytics
+    - Flexible time grains (year, quarter, month, week, day, hour)
+    - Gap filling with date spine generation
+    - Period comparisons (YoY, MoM, QoQ, WoW, DoD)
+  - **Window Functions**: Advanced analytical calculations
+    - Running totals, running averages, moving averages
+    - Rankings (RANK, DENSE_RANK, ROW_NUMBER, PERCENT_RANK, NTILE)
+    - LAG/LEAD, percent of total, percent change
+  - **Statistical Analysis**: Comprehensive statistics
+    - Summary statistics (count, sum, mean, median, stddev, variance)
+    - Percentiles (p25, p50, p75, p90, p95, p99) and IQR
+    - Correlation matrix between measures
+    - Histograms with frequency distribution
+  - **Contribution Analysis**: Pareto and Top-N analysis
+    - Top N / Bottom N with percentage of total
+    - Cumulative contribution percentages
+    - Automatic Pareto classification
+- **OLAP Dataset Creator** in MCP Studio: Visual dataset configuration
+  - Define dimensions with column mappings
+  - Configure measures with aggregation expressions
+  - Set up table joins visually
+  - Configure time dimensions for time series analysis
+  - Live JSON preview and one-click deployment
+- **12 New OLAP Tools**: Complete analytics toolkit
+  - `olap_list_datasets`: List available datasets
+  - `olap_describe_dataset`: Get dataset schema details
+  - `olap_pivot_table`: Create pivot tables
+  - `olap_hierarchical_summary`: ROLLUP/CUBE operations
+  - `olap_time_series`: Time series analysis
+  - `olap_window_analysis`: Window function calculations
+  - `olap_statistics`: Statistical analysis
+  - `olap_histogram`: Distribution histograms
+  - `olap_top_n`: Top/Bottom N analysis
+  - `olap_contribution`: Pareto analysis
+  - `olap_correlation`: Correlation matrix
+- **Documentation**: Complete OLAP analytics documentation
+
+### Version 2.7.0 (February 2026)
+- **PowerBI DAX Query Tool Creator**: Execute DAX queries against PowerBI datasets
+  - Parameterized DAX queries with auto-generated input schemas
+  - JSON result format with columns and row data
+  - Azure AD Service Principal authentication
+  - Configurable timeout and max rows
+- **IBM LiveLink Document Tool Creator**: Query and download ECM documents
+  - Search, list, get metadata, and download operations
+  - Base64 encoded document output for all file types
+  - Multiple authentication types: Basic, OAuth, OTDS
+  - OpenText Content Server REST API v1 and v2 support
+- **Documentation Updates**: Comprehensive docs for all new tool creators
+
+### Version 2.6.0 (February 2026)
+- **PowerBI Report Tool Creator**: Export PowerBI reports as PDF/PPTX/PNG via MCP
+  - Azure AD Service Principal authentication
+  - Base64 encoded output for easy file handling
+  - Optional page selection for specific report pages
+  - Support for PDF, PPTX, and PNG export formats
+  - Configurable timeout for long-running exports
+- **Documentation Updates**: Comprehensive docs for PowerBI Tool Creator
+
+### Version 2.5.0 (February 2026)
+- **Script Tool Creator**: Execute shell/Python/Node scripts as MCP tools
+  - Support for Bash, Sh, Zsh, Python, Node.js, Ruby, Perl
+  - Input: Array of string arguments
+  - Output: STDOUT, STDERR, exit code, execution time
+  - Security validation and timeout handling
+- **SAJHA Meaning Section**: Added Hindi/Urdu etymology and philosophy explanation
+- **Documentation Updates**: Comprehensive docs for Script Tool Creator
 
 ### Version 2.4.0 (February 2026)
 - **Comprehensive Dark Theme**: 3,200+ lines of CSS for complete dark mode support

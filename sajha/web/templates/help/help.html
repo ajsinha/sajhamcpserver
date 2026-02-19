@@ -1098,7 +1098,7 @@ def compound_interest(
                     <!-- REST Creator Features -->
                     <div class="card border-info mb-3" id="mcp-studio-rest">
                         <div class="card-header bg-info text-dark">
-                            <i class="bi bi-cloud me-2"></i>REST Service Tool Creator Features (v2.4.0)
+                            <i class="bi bi-cloud me-2"></i>REST Service Tool Creator Features (v2.9.0)
                         </div>
                         <div class="card-body small">
                             <div class="row">
@@ -1136,7 +1136,7 @@ def compound_interest(
                     <!-- DB Query Creator Features -->
                     <div class="card border-warning mb-3" id="mcp-studio-dbquery">
                         <div class="card-header bg-warning text-dark">
-                            <i class="bi bi-database me-2"></i>Database Query Tool Creator Features (v2.4.0)
+                            <i class="bi bi-database me-2"></i>Database Query Tool Creator Features (v2.9.0)
                         </div>
                         <div class="card-body small">
                             <div class="row">
@@ -1171,23 +1171,187 @@ def compound_interest(
                         </div>
                     </div>
                     
+                    <!-- Script Tool Creator Features -->
+                    <div class="card border-danger mb-3" id="mcp-studio-script">
+                        <div class="card-header bg-danger text-white">
+                            <i class="bi bi-terminal me-2"></i>Script Tool Creator Features (v2.9.0)
+                        </div>
+                        <div class="card-body small">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>Supported Script Types:</strong>
+                                    <ul class="mb-0">
+                                        <li>Bash / Shell (sh, zsh)</li>
+                                        <li>Python 3</li>
+                                        <li>Node.js</li>
+                                        <li>Ruby, Perl</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Input/Output:</strong>
+                                    <ul class="mb-0">
+                                        <li>Input: Array of strings (args)</li>
+                                        <li>Output: STDOUT, STDERR</li>
+                                        <li>Exit code & execution time</li>
+                                        <li>Success/failure status</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Features:</strong>
+                                    <ul class="mb-0">
+                                        <li>Upload or paste script</li>
+                                        <li>Security validation</li>
+                                        <li>Configurable timeout</li>
+                                        <li>Environment variables</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- PowerBI Report Tool Creator Features -->
+                    <div class="card mb-3" id="mcp-studio-powerbi" style="border: 2px solid #f2c811;">
+                        <div class="card-header" style="background: linear-gradient(135deg, #f2c811 0%, #e6b800 100%); color: #212529;">
+                            <i class="bi bi-bar-chart-fill me-2"></i>PowerBI Report Tool Creator Features (v2.9.0)
+                        </div>
+                        <div class="card-body small">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>Export Formats:</strong>
+                                    <ul class="mb-0">
+                                        <li>PDF (most common)</li>
+                                        <li>PPTX (PowerPoint)</li>
+                                        <li>PNG (Image)</li>
+                                        <li>Base64 encoded output</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Authentication:</strong>
+                                    <ul class="mb-0">
+                                        <li>Azure AD Service Principal</li>
+                                        <li>Tenant ID & Client ID</li>
+                                        <li>Env var for client secret</li>
+                                        <li>Secure credential handling</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Features:</strong>
+                                    <ul class="mb-0">
+                                        <li>Workspace & Report IDs</li>
+                                        <li>Optional page selection</li>
+                                        <li>Configurable timeout</li>
+                                        <li>GUID validation</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- PowerBI DAX Query Tool Creator Features -->
+                    <div class="card mb-3" id="mcp-studio-powerbidax" style="border: 2px solid #00d4aa;">
+                        <div class="card-header" style="background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%); color: #212529;">
+                            <i class="bi bi-braces me-2"></i>PowerBI DAX Query Tool Creator Features (v2.9.0)
+                        </div>
+                        <div class="card-body small">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>DAX Query:</strong>
+                                    <ul class="mb-0">
+                                        <li>EVALUATE statements</li>
+                                        <li>Parameterized queries</li>
+                                        <li>@param substitution</li>
+                                        <li>Configurable max rows</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Output:</strong>
+                                    <ul class="mb-0">
+                                        <li>JSON result format</li>
+                                        <li>Column names & types</li>
+                                        <li>Row data array</li>
+                                        <li>Query time metrics</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Configuration:</strong>
+                                    <ul class="mb-0">
+                                        <li>Dataset ID & Workspace ID</li>
+                                        <li>Azure AD authentication</li>
+                                        <li>Timeout settings</li>
+                                        <li>Auto-generated schemas</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- IBM LiveLink Document Tool Creator Features -->
+                    <div class="card mb-3" id="mcp-studio-livelink" style="border: 2px solid #0077b6;">
+                        <div class="card-header" style="background: linear-gradient(135deg, #0077b6 0%, #023e8a 100%); color: white;">
+                            <i class="bi bi-folder2-open me-2"></i>IBM LiveLink Document Tool Creator Features (v2.9.0)
+                        </div>
+                        <div class="card-body small">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>Operations:</strong>
+                                    <ul class="mb-0">
+                                        <li>Search documents</li>
+                                        <li>List folder contents</li>
+                                        <li>Get document metadata</li>
+                                        <li>Download as base64</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Authentication:</strong>
+                                    <ul class="mb-0">
+                                        <li>Basic Auth</li>
+                                        <li>OAuth tokens</li>
+                                        <li>OTDS (OpenText Directory)</li>
+                                        <li>Env var credentials</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Features:</strong>
+                                    <ul class="mb-0">
+                                        <li>REST API v1 & v2</li>
+                                        <li>Max file size limits</li>
+                                        <li>Timeout configuration</li>
+                                        <li>Document type filters</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="alert alert-info mt-3 mb-0">
                         <div class="row align-items-center">
-                            <div class="col-md-8">
+                            <div class="col-md-6">
                                 <i class="bi bi-info-circle me-2"></i>
-                                <strong>Pro Tip:</strong> Use path parameters with <code>{param_name}</code> syntax in REST URLs, and <code>{{param_name}}</code> in SQL queries. Parameters are substituted automatically.
+                                <strong>Pro Tip:</strong> Use <code>{param}</code> in REST, <code>{{param}}</code> in SQL, <code>@param</code> in DAX queries.
                             </div>
-                            <div class="col-md-4 text-md-end mt-2 mt-md-0">
+                            <div class="col-md-6 text-md-end mt-2 mt-md-0">
                                 {% if user and user.roles and 'admin' in user.roles %}
-                                <div class="btn-group">
+                                <div class="btn-group btn-group-sm flex-wrap">
                                     <a href="{{ url_for('studio_home') }}" class="btn btn-primary">
-                                        <i class="bi bi-magic me-1"></i>MCP Studio
+                                        <i class="bi bi-magic me-1"></i>Studio
                                     </a>
                                     <a href="{{ url_for('studio_rest') }}" class="btn btn-success">
-                                        <i class="bi bi-cloud-arrow-up me-1"></i>REST Creator
+                                        <i class="bi bi-cloud me-1"></i>REST
                                     </a>
                                     <a href="{{ url_for('studio_dbquery') }}" class="btn btn-warning text-dark">
-                                        <i class="bi bi-database me-1"></i>DB Query
+                                        <i class="bi bi-database me-1"></i>DB
+                                    </a>
+                                    <a href="{{ url_for('studio_script') }}" class="btn btn-danger">
+                                        <i class="bi bi-terminal me-1"></i>Script
+                                    </a>
+                                    <a href="{{ url_for('studio_powerbi') }}" class="btn" style="background: #f2c811; color: #212529;">
+                                        <i class="bi bi-bar-chart me-1"></i>Report
+                                    </a>
+                                    <a href="{{ url_for('studio_powerbidax') }}" class="btn" style="background: #00d4aa; color: #212529;">
+                                        <i class="bi bi-braces me-1"></i>DAX
+                                    </a>
+                                    <a href="{{ url_for('studio_livelink') }}" class="btn" style="background: #0077b6; color: white;">
+                                        <i class="bi bi-folder2 me-1"></i>LiveLink
                                     </a>
                                 </div>
                                 {% else %}
