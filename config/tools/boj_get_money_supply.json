@@ -2,7 +2,7 @@
   "name": "boj_get_money_supply",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJGetMoneySupplyTool",
   "description": "Retrieve Japanese money stock indicators (M1, M2, M3) with historical data.",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "duckdb_refresh_views",
   "implementation": "sajha.tools.impl.duckdb_olap_tools_refactored.DuckDbRefreshViewsTool",
   "description": "Refresh materialized views or reload external data files into DuckDB",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "data_directory": "${data.duckdb.dir}",
   "inputSchema": {

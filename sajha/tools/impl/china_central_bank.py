@@ -215,7 +215,7 @@ class PBoCGetCGBYieldTool(PeoplesBankOfChinaBaseTool):
         default_config = {
             'name': 'pboc_get_cgb_yield',
             'description': 'Retrieve Chinese Government Bond (CGB) yields',
-            'version': '2.2.0',
+            'version': '2.9.6',
             'enabled': True
         }
         if config:
@@ -287,7 +287,7 @@ class PBoCGetPolicyRateTool(PeoplesBankOfChinaBaseTool):
         default_config = {
             'name': 'pboc_get_policy_rate',
             'description': 'Retrieve PBoC policy interest rates',
-            'version': '2.2.0',
+            'version': '2.9.6',
             'enabled': True
         }
         if config:
@@ -359,7 +359,7 @@ class PBoCGetExchangeRateTool(PeoplesBankOfChinaBaseTool):
         default_config = {
             'name': 'pboc_get_exchange_rate',
             'description': 'Retrieve Chinese Yuan exchange rates',
-            'version': '2.2.0',
+            'version': '2.9.6',
             'enabled': True
         }
         if config:
@@ -425,7 +425,7 @@ class PBoCGetMoneySupplyTool(PeoplesBankOfChinaBaseTool):
         default_config = {
             'name': 'pboc_get_money_supply',
             'description': 'Retrieve Chinese money supply (M0, M1, M2)',
-            'version': '2.2.0',
+            'version': '2.9.6',
             'enabled': True
         }
         if config:
@@ -491,7 +491,7 @@ class PBoCGetInflationTool(PeoplesBankOfChinaBaseTool):
         default_config = {
             'name': 'pboc_get_inflation',
             'description': 'Retrieve Chinese inflation data (CPI, PPI)',
-            'version': '2.2.0',
+            'version': '2.9.6',
             'enabled': True
         }
         if config:
@@ -557,7 +557,7 @@ class PBoCGetEconomicIndicatorTool(PeoplesBankOfChinaBaseTool):
         default_config = {
             'name': 'pboc_get_economic_indicator',
             'description': 'Retrieve Chinese economic indicators (GDP, unemployment, industrial production, trade)',
-            'version': '2.2.0',
+            'version': '2.9.6',
             'enabled': True
         }
         if config:
@@ -625,7 +625,7 @@ class PBoCListSeriesTools(PeoplesBankOfChinaBaseTool):
         default_config = {
             'name': 'pboc_list_series',
             'description': 'List available Chinese economic data series',
-            'version': '2.2.0',
+            'version': '2.9.6',
             'enabled': True
         }
         if config:

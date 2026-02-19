@@ -2,7 +2,7 @@
   "name": "boj_get_economic_indicator",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJGetEconomicIndicatorTool",
   "description": "Retrieve Japanese economic indicators (GDP, unemployment, industrial production, trade balance)",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

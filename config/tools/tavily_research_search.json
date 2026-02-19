@@ -2,7 +2,7 @@
   "name": "tavily_research_search",
   "implementation": "sajha.tools.impl.tavily_tool_refactored.TavilyResearchSearchTool",
   "description": "Perform comprehensive research search with advanced depth, analysis, and higher result counts for academic and professional research",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "api_key": "${tavily.api.key}",
   "inputSchema": {

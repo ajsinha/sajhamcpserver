@@ -105,7 +105,7 @@ Usage - IBM LiveLink Document:
     generator.generate_tool(config)
 """
 
-__version__ = '2.8.0'
+__version__ = '2.9.6'
 __author__ = 'Ashutosh Sinha'
 __email__ = 'ajsinha@gmail.com'
 

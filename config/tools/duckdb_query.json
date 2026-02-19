@@ -2,7 +2,7 @@
   "name": "duckdb_query",
   "implementation": "sajha.tools.impl.duckdb_olap_tools_refactored.DuckDbQueryTool",
   "description": "Execute SQL queries on CSV, Parquet, and JSON files using DuckDB analytics engine. Query the customers, orders, and products tables directly with SQL.",
-  "version": "2.9.1",
+  "version": "2.9.6",
   "enabled": true,
   "data_directory": "${data.duckdb.dir}",
   "auto_refresh_enabled": true,

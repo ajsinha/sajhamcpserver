@@ -1,6 +1,6 @@
 """
 SAJHA MCP Server - Rollup Engine
-Version: 2.9.0
+Version: 2.9.6
 
 Engine for hierarchical aggregations using ROLLUP, CUBE, and GROUPING SETS.
 """

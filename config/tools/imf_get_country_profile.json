@@ -2,7 +2,7 @@
   "name": "imf_get_country_profile",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetCountryProfileTool",
   "description": "Get a comprehensive economic profile for a country with key indicators including GDP growth, inflation, unemployment, current account, and public debt.",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

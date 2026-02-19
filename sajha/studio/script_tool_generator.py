@@ -32,7 +32,7 @@ class ScriptToolConfig:
     script_content: str
     
     # Optional metadata
-    version: str = "2.8.0"
+    version: str = "2.9.6"
     author: str = ""
     tags: List[str] = field(default_factory=list)
     
@@ -80,7 +80,7 @@ class ScriptToolConfig:
             description=data.get('description', ''),
             script_type=data.get('script_type', 'shell'),
             script_content=data.get('script_content', ''),
-            version=data.get('version', '2.8.0'),
+            version=data.get('version', '2.9.6'),
             author=data.get('author', ''),
             tags=data.get('tags', []),
             timeout_seconds=data.get('timeout_seconds', 30),
@@ -294,7 +294,7 @@ class ScriptToolGenerator:
             "metadata": {
                 "created_at": datetime.now().isoformat(),
                 "created_by": "MCP Studio Script Tool Creator",
-                "generator_version": "2.8.0"
+                "generator_version": "2.9.6"
             }
         }
         

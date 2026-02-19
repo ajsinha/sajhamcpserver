@@ -2,7 +2,7 @@
   "name": "extract_metadata",
   "implementation": "sajha.tools.impl.webcrawler_tool_refactored.ExtractMetadataTool",
   "description": "Extract SEO and structural metadata including title, meta tags, headings, and content metrics from a web page",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "sec_get_financial_data",
   "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECGetFinancialDataTool",
   "description": "Retrieve specific financial metrics (Assets, Revenue, Net Income, etc.) from company XBRL filings",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

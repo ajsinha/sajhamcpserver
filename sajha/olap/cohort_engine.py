@@ -1,6 +1,6 @@
 """
 SAJHA MCP Server - Cohort Analysis Engine
-Version: 2.9.0
+Version: 2.9.6
 
 Engine for cohort analysis including customer retention, 
 revenue cohorts, and behavioral segmentation.

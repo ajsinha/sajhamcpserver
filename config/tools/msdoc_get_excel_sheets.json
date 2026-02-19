@@ -2,7 +2,7 @@
   "name": "msdoc_get_excel_sheets",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocGetExcelSheetsTool",
   "description": "List all worksheets in an Excel workbook",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

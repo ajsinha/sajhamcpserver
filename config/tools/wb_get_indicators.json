@@ -2,7 +2,7 @@
   "name": "wb_get_indicators",
   "implementation": "sajha.tools.impl.world_bank_tool.WBGetIndicatorsTool",
   "description": "Retrieve list of all available World Bank development indicators with their descriptions and metadata. Browse thousands of economic, social, and environmental indicators.",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

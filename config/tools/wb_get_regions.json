@@ -2,7 +2,7 @@
   "name": "wb_get_regions",
   "implementation": "sajha.tools.impl.world_bank_tool.WBGetRegionsTool",
   "description": "Retrieve World Bank geographic region classifications and metadata. Get information about regional groupings of countries.",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

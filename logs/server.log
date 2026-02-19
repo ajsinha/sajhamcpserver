@@ -1,546 +1,536 @@
-2026-02-19 17:14:54 | INFO     | __main__                       | 
-2026-02-19 17:14:54 | INFO     | __main__                       | ================================================================================
-2026-02-19 17:14:54 | INFO     | __main__                       |    ███████╗ █████╗      ██╗██╗  ██╗ █████╗     ███╗   ███╗ ██████╗██████╗ 
-2026-02-19 17:14:54 | INFO     | __main__                       |    ██╔════╝██╔══██╗     ██║██║  ██║██╔══██╗    ████╗ ████║██╔════╝██╔══██╗
-2026-02-19 17:14:54 | INFO     | __main__                       |    ███████╗███████║     ██║███████║███████║    ██╔████╔██║██║     ██████╔╝
-2026-02-19 17:14:54 | INFO     | __main__                       |    ╚════██║██╔══██║██   ██║██╔══██║██╔══██║    ██║╚██╔╝██║██║     ██╔═══╝ 
-2026-02-19 17:14:54 | INFO     | __main__                       |    ███████║██║  ██║╚█████╔╝██║  ██║██║  ██║    ██║ ╚═╝ ██║╚██████╗██║     
-2026-02-19 17:14:54 | INFO     | __main__                       |    ╚══════╝╚═╝  ╚═╝ ╚════╝ ╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝     ╚═╝ ╚═════╝╚═╝     
-2026-02-19 17:14:54 | INFO     | __main__                       |                                                                           
-2026-02-19 17:14:54 | INFO     | __main__                       |                      Model Context Protocol Server                        
-2026-02-19 17:14:54 | INFO     | __main__                       | ================================================================================
-2026-02-19 17:14:54 | INFO     | __main__                       | 
-2026-02-19 17:14:54 | INFO     | __main__                       |   Version:    2.9.6
-2026-02-19 17:14:54 | INFO     | __main__                       |   Start Time: 2026-02-19 17:14:54
-2026-02-19 17:14:54 | INFO     | __main__                       |   Python:     3.12.3
-2026-02-19 17:14:54 | INFO     | __main__                       |   Platform:   linux
-2026-02-19 17:14:54 | INFO     | __main__                       |   PID:        3981352
-2026-02-19 17:14:54 | INFO     | __main__                       | 
-2026-02-19 17:14:54 | INFO     | __main__                       | ============================================================================
-2026-02-19 17:14:54 | INFO     | __main__                       |   [17:14:54.662] PHASE 1: DIRECTORY SETUP
-2026-02-19 17:14:54 | INFO     | __main__                       | ============================================================================
-2026-02-19 17:14:54 | INFO     | __main__                       |        -> Created: data/flask_session
-2026-02-19 17:14:54 | INFO     | __main__                       |   [OK] Directory setup complete (1 created)
-2026-02-19 17:14:54 | INFO     | __main__                       | 
-2026-02-19 17:14:54 | INFO     | __main__                       | ============================================================================
-2026-02-19 17:14:54 | INFO     | __main__                       |   [17:14:54.662] PHASE 2: LOADING CONFIGURATION
-2026-02-19 17:14:54 | INFO     | __main__                       | ============================================================================
-2026-02-19 17:14:54 | INFO     | __main__                       |        -> Server Host: 0.0.0.0
-2026-02-19 17:14:54 | INFO     | __main__                       |        -> Server Port: 3002
-2026-02-19 17:14:54 | INFO     | __main__                       |        -> Debug Mode: False
-2026-02-19 17:14:54 | INFO     | __main__                       |        -> SSL/TLS: Disabled
-2026-02-19 17:14:54 | INFO     | __main__                       |        -> Hot-Reload Interval: 300 seconds
-2026-02-19 17:14:54 | INFO     | __main__                       |        -> Log Level: INFO
-2026-02-19 17:14:54 | INFO     | __main__                       |   [OK] Configuration loaded from properties files
-2026-02-19 17:14:54 | INFO     | __main__                       |        -> Signal handlers registered (SIGINT, SIGTERM)
-2026-02-19 17:14:54 | INFO     | __main__                       | 
-2026-02-19 17:14:54 | INFO     | __main__                       | ============================================================================
-2026-02-19 17:14:54 | INFO     | __main__                       |   [17:14:54.662] PHASE 3: APPLICATION INITIALIZATION
-2026-02-19 17:14:54 | INFO     | __main__                       | ============================================================================
-2026-02-19 17:14:54 | INFO     | __main__                       |        -> Creating SajhaMCPServerWebApp instance
-2026-02-19 17:14:54 | INFO     | sajha.web.sajhamcpserver_web   | Application configured: SAJHA MCP Server v2.3.2
-2026-02-19 17:14:54 | INFO     | sajha.web.sajhamcpserver_web   | SAJHA MCP Server Web Application initialized
-2026-02-19 17:14:54 | INFO     | __main__                       |        -> Initializing Authentication Manager
-2026-02-19 17:14:54 | INFO     | __main__                       |        -> Initializing Tools Registry
-2026-02-19 17:14:54 | INFO     | __main__                       |        -> Initializing Prompts Registry
-2026-02-19 17:14:54 | INFO     | __main__                       |        -> Initializing Hot-Reload Manager
-2026-02-19 17:14:54 | INFO     | __main__                       |        -> Registering Flask Routes
-2026-02-19 17:14:54 | INFO     | __main__                       |        -> Registering SocketIO Handlers
-2026-02-19 17:14:54 | INFO     | sajha.web.sajhamcpserver_web   | Preparing SAJHA MCP Server...
-2026-02-19 17:14:54 | INFO     | sajha.web.sajhamcpserver_web   | Initializing core managers...
-2026-02-19 17:14:54 | INFO     | sajha.web.sajhamcpserver_web   | Config paths from properties:
-2026-02-19 17:14:54 | INFO     | sajha.web.sajhamcpserver_web   |   users: config/users.json
-2026-02-19 17:14:54 | INFO     | sajha.web.sajhamcpserver_web   |   apikeys: config/apikeys.json
-2026-02-19 17:14:54 | INFO     | sajha.web.sajhamcpserver_web   |   tools: config/tools
-2026-02-19 17:14:54 | INFO     | sajha.web.sajhamcpserver_web   |   prompts: config/prompts
-2026-02-19 17:14:54 | INFO     | sajha.web.sajhamcpserver_web   |   cwd: /home/ashutosh/PycharmProjects/sajhamcpserver
-2026-02-19 17:14:54 | INFO     | sajha.core.auth_manager        | AuthManager initializing:
-2026-02-19 17:14:54 | INFO     | sajha.core.auth_manager        |   Users config: /home/ashutosh/PycharmProjects/sajhamcpserver/config/users.json (exists: True)
-2026-02-19 17:14:54 | INFO     | sajha.core.auth_manager        |   APIKeys config: /home/ashutosh/PycharmProjects/sajhamcpserver/config/apikeys.json (exists: True)
-2026-02-19 17:14:54 | INFO     | sajha.core.apikey_manager      | APIKeyManager initializing with config: /home/ashutosh/PycharmProjects/sajhamcpserver/config/apikeys.json
-2026-02-19 17:14:54 | INFO     | sajha.core.apikey_manager      | Loading API keys from: /home/ashutosh/PycharmProjects/sajhamcpserver/config/apikeys.json
-2026-02-19 17:14:54 | INFO     | sajha.core.apikey_manager      |   File exists: True
-2026-02-19 17:14:54 | INFO     | sajha.core.apikey_manager      | Loaded 4 API keys from /home/ashutosh/PycharmProjects/sajhamcpserver/config/apikeys.json
-2026-02-19 17:14:54 | INFO     | sajha.core.auth_manager        | Loaded 1 users from /home/ashutosh/PycharmProjects/sajhamcpserver/config/users.json
-2026-02-19 17:14:54 | INFO     | sajha.web.sajhamcpserver_web   | Auth manager initialized (users: /home/ashutosh/PycharmProjects/sajhamcpserver/config/users.json)
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | ToolsRegistry singleton reset
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Forcing ToolsRegistry reinit with: config/tools
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | ToolsRegistry initializing with config dir: /home/ashutosh/PycharmProjects/sajhamcpserver/config/tools
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loading tools from /home/ashutosh/PycharmProjects/sajhamcpserver/config/tools
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_exchange_rate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_exchange_rate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_sdgs
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_sdgs
-2026-02-19 17:14:54 | INFO     | DuckDbListTablesTool           | Found 3 data files in ./data/duckdb
-2026-02-19 17:14:54 | INFO     | DuckDbListTablesTool           | ✓ Created view 'customers' from customers.csv (50 rows)
-2026-02-19 17:14:54 | INFO     | DuckDbListTablesTool           | ✓ Created view 'orders' from orders.csv (80 rows)
-2026-02-19 17:14:54 | INFO     | DuckDbListTablesTool           | ✓ Created view 'products' from products.csv (27 rows)
-2026-02-19 17:14:54 | INFO     | DuckDbListTablesTool           | Initialization complete: 3 views available
-2026-02-19 17:14:54 | INFO     | DuckDbListTablesTool           | Auto-refresh enabled: checking every 600 seconds
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_list_tables
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_list_tables
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: check_robots_txt
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: check_robots_txt
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_jgb_yield
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_jgb_yield
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_compare_countries
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_compare_countries
-2026-02-19 17:14:54 | INFO     | sajha.tools.impl.duckdb_olap_advanced | DuckDBSQLTool: Initialized with tables from /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_sql
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_sql
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_bond_yield
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_bond_yield
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_bop_data
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_bop_data
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: extract_content
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: extract_content
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_exchange_rate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_exchange_rate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_search_series
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_search_series
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_financial_ratios
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_financial_ratios
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_trade_data
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_trade_data
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_sdg_targets
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_sdg_targets
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_economic_indicator
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_economic_indicator
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_participation_rate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_participation_rate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_agency_statistics
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_agency_statistics
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_proxy_statements
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_proxy_statements
-2026-02-19 17:14:54 | WARNING  | SqlSelectCountRowsTool         | Data file not found: ./data/sqlselect/customers.csv
-2026-02-19 17:14:54 | WARNING  | SqlSelectCountRowsTool         | Data file not found: ./data/sqlselect/orders.csv
-2026-02-19 17:14:54 | WARNING  | SqlSelectCountRowsTool         | Data file not found: ./data/sqlselect/products.csv
-2026-02-19 17:14:54 | WARNING  | SqlSelectCountRowsTool         | Data file not found: ./data/sqlselect/sales.csv
-2026-02-19 17:14:54 | INFO     | SqlSelectCountRowsTool         | DuckDB connection initialized for sqlselect_count_rows
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_count_rows
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_count_rows
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: fed_get_latest
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fed_get_latest
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_get_all_resources
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_get_all_resources
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: extract_links
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: extract_links
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_registration_statements
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_registration_statements
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: bdf_get_oat_yield
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: bdf_get_oat_yield
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_read_excel_sheet
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_read_excel_sheet
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_offense_data
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_offense_data
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_compare_states
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_compare_states
-2026-02-19 17:14:54 | INFO     | sajha.olap.semantic_layer      | Loaded semantic layer: 0 datasets, 0 measures, 0 dimensions
-2026-02-19 17:14:54 | INFO     | sajha.tools.impl.duckdb_olap_advanced | DuckDB OLAP connection initialized
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: olap_time_series
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: olap_time_series
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: tavily_news_search
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: tavily_news_search
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: rbi_get_policy_rate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: rbi_get_policy_rate
-2026-02-19 17:14:54 | INFO     | DuckDbGetStatsTool             | Found 3 data files in ./data/duckdb
-2026-02-19 17:14:54 | INFO     | DuckDbGetStatsTool             | ✓ Created view 'customers' from customers.csv (50 rows)
-2026-02-19 17:14:54 | INFO     | DuckDbGetStatsTool             | ✓ Created view 'orders' from orders.csv (80 rows)
-2026-02-19 17:14:54 | INFO     | DuckDbGetStatsTool             | ✓ Created view 'products' from products.csv (27 rows)
-2026-02-19 17:14:54 | INFO     | DuckDbGetStatsTool             | Initialization complete: 3 views available
-2026-02-19 17:14:54 | INFO     | DuckDbGetStatsTool             | Auto-refresh enabled: checking every 600 seconds
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_get_stats
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_get_stats
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_extract_text
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_extract_text
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_cgb_yield
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_cgb_yield
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: extract_metadata
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: extract_metadata
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_interest_rate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_interest_rate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_weo_data
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_weo_data
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_search_word
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_search_word
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_search_agencies
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_search_agencies
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_xbrl_frames_multi_concept
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_xbrl_frames_multi_concept
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_get_documents
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_get_documents
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_insider_trading
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_insider_trading
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_national_statistics
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_national_statistics
-2026-02-19 17:14:54 | WARNING  | SqlSelectGetSchemaTool         | Data file not found: ./data/sqlselect/customers.csv
-2026-02-19 17:14:54 | WARNING  | SqlSelectGetSchemaTool         | Data file not found: ./data/sqlselect/orders.csv
-2026-02-19 17:14:54 | WARNING  | SqlSelectGetSchemaTool         | Data file not found: ./data/sqlselect/products.csv
-2026-02-19 17:14:54 | WARNING  | SqlSelectGetSchemaTool         | Data file not found: ./data/sqlselect/sales.csv
-2026-02-19 17:14:54 | INFO     | SqlSelectGetSchemaTool         | DuckDB connection initialized for sqlselect_get_schema
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_get_schema
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_get_schema
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_amendments
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_amendments
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_list_series
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_list_series
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_read_word
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_read_word
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_inflation
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_inflation
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: bdf_get_exchange_rate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: bdf_get_exchange_rate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_company_concept
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_company_concept
-2026-02-19 17:14:54 | INFO     | sajha.olap.semantic_layer      | Loaded semantic layer: 0 datasets, 0 measures, 0 dimensions
-2026-02-19 17:14:54 | INFO     | sajha.tools.impl.duckdb_olap_advanced | DuckDB OLAP connection initialized
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: olap_pivot_table
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: olap_pivot_table
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: tavily_research_search
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: tavily_research_search
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_latest
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_latest
-2026-02-19 17:14:54 | INFO     | DuckDbAggregateTool            | Found 3 data files in ./data/duckdb
-2026-02-19 17:14:54 | INFO     | DuckDbAggregateTool            | ✓ Created view 'customers' from customers.csv (50 rows)
-2026-02-19 17:14:54 | INFO     | DuckDbAggregateTool            | ✓ Created view 'orders' from orders.csv (80 rows)
-2026-02-19 17:14:54 | INFO     | DuckDbAggregateTool            | ✓ Created view 'products' from products.csv (27 rows)
-2026-02-19 17:14:54 | INFO     | DuckDbAggregateTool            | Initialization complete: 3 views available
-2026-02-19 17:14:54 | INFO     | DuckDbAggregateTool            | Auto-refresh enabled: checking every 600 seconds
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_aggregate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_aggregate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: rbi_get_exchange_rate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: rbi_get_exchange_rate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_ownership_reports
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_ownership_reports
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_frame_data
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_frame_data
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_policy_rate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_policy_rate
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_bond_yield
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_bond_yield
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_search_indicators
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_search_indicators
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: wiki_search
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wiki_search
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_indicator_data
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_indicator_data
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_list_files
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_list_files
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_compare_countries
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_compare_countries
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_common_indicators
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_common_indicators
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: tavily_web_search
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: tavily_web_search
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_sdg_indicators
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_sdg_indicators
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_country_trade
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_country_trade
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_current_reports
-2026-02-19 17:14:54 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_current_reports
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_country_profile
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_country_profile
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: bdf_get_eurozone_indicator
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: bdf_get_eurozone_indicator
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_company_search
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_company_search
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: un_compare_trade
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_compare_trade
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_state_statistics
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_state_statistics
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_countries
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_countries
-2026-02-19 17:14:55 | INFO     | DuckDbQueryTool                | Found 3 data files in ./data/duckdb
-2026-02-19 17:14:55 | INFO     | DuckDbQueryTool                | ✓ Created view 'customers' from customers.csv (50 rows)
-2026-02-19 17:14:55 | INFO     | DuckDbQueryTool                | ✓ Created view 'orders' from orders.csv (80 rows)
-2026-02-19 17:14:55 | INFO     | DuckDbQueryTool                | ✓ Created view 'products' from products.csv (27 rows)
-2026-02-19 17:14:55 | INFO     | DuckDbQueryTool                | Initialization complete: 3 views available
-2026-02-19 17:14:55 | INFO     | DuckDbQueryTool                | Auto-refresh enabled: checking every 300 seconds
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_query
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_query
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_latest
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_latest
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: yahoo_search_symbols
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: yahoo_search_symbols
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_find_page
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_find_page
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: crawl_sitemap
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: crawl_sitemap
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_series
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_series
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_indicators
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_indicators
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_get_latest_earnings
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_get_latest_earnings
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_databases
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_databases
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: fed_get_common_indicators
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fed_get_common_indicators
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_foreign_issuers
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_foreign_issuers
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_trade_balance
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_trade_balance
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_get_word_metadata
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_get_word_metadata
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_filings_by_form
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_filings_by_form
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_get_excel_metadata
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_get_excel_metadata
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_list_series
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_list_series
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_inflation
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_inflation
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_read_excel
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_read_excel
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: bdf_get_ecb_policy_rate
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: bdf_get_ecb_policy_rate
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_exchange_rate
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_exchange_rate
-2026-02-19 17:14:55 | WARNING  | SqlSelectExecuteQueryTool      | Data file not found: ./data/sqlselect/customers.csv
-2026-02-19 17:14:55 | WARNING  | SqlSelectExecuteQueryTool      | Data file not found: ./data/sqlselect/orders.csv
-2026-02-19 17:14:55 | WARNING  | SqlSelectExecuteQueryTool      | Data file not found: ./data/sqlselect/products.csv
-2026-02-19 17:14:55 | WARNING  | SqlSelectExecuteQueryTool      | Data file not found: ./data/sqlselect/sales.csv
-2026-02-19 17:14:55 | INFO     | SqlSelectExecuteQueryTool      | DuckDB connection initialized for sqlselect_execute_query
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_execute_query
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_execute_query
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_economic_indicator
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_economic_indicator
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: bdf_get_french_indicator
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: bdf_get_french_indicator
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_search_excel
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_search_excel
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_list_supported_companies
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_list_supported_companies
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_money_supply
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_money_supply
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_lending_types
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_lending_types
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_get_excel_sheets
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_get_excel_sheets
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_dataflows
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_dataflows
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: google_search
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: google_search
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_get_annual_reports
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_get_annual_reports
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_money_supply
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_money_supply
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_topic_indicators
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_topic_indicators
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_interest_rate
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_interest_rate
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: rbi_get_gsec_yield
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: rbi_get_gsec_yield
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_search_company
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_search_company
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_company_tickers_by_exchange
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_company_tickers_by_exchange
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_country_data
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_country_data
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_company_facts
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_company_facts
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_agency_details
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_agency_details
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: fed_search_series
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fed_search_series
-2026-02-19 17:14:55 | WARNING  | SqlSelectDescribeSourceTool    | Data file not found: ./data/sqlselect/customers.csv
-2026-02-19 17:14:55 | WARNING  | SqlSelectDescribeSourceTool    | Data file not found: ./data/sqlselect/orders.csv
-2026-02-19 17:14:55 | WARNING  | SqlSelectDescribeSourceTool    | Data file not found: ./data/sqlselect/products.csv
-2026-02-19 17:14:55 | WARNING  | SqlSelectDescribeSourceTool    | Data file not found: ./data/sqlselect/sales.csv
-2026-02-19 17:14:55 | INFO     | SqlSelectDescribeSourceTool    | DuckDB connection initialized for sqlselect_describe_source
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_describe_source
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_describe_source
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_inflation
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_inflation
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_company_submissions
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_company_submissions
-2026-02-19 17:14:55 | INFO     | DuckDbListFilesTool            | Found 3 data files in ./data/duckdb
-2026-02-19 17:14:55 | INFO     | DuckDbListFilesTool            | ✓ Created view 'customers' from customers.csv (50 rows)
-2026-02-19 17:14:55 | INFO     | DuckDbListFilesTool            | ✓ Created view 'orders' from orders.csv (80 rows)
-2026-02-19 17:14:55 | INFO     | DuckDbListFilesTool            | ✓ Created view 'products' from products.csv (27 rows)
-2026-02-19 17:14:55 | INFO     | DuckDbListFilesTool            | Initialization complete: 3 views available
-2026-02-19 17:14:55 | INFO     | DuckDbListFilesTool            | Auto-refresh enabled: checking every 600 seconds
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_list_files
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_list_files
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_company_info
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_company_info
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_companies_by_sic
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_companies_by_sic
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_search_series
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_search_series
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: wiki_get_summary
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wiki_get_summary
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_data
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_data
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: tavily_domain_search
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: tavily_domain_search
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_sdg_data
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_sdg_data
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: get_page_info
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: get_page_info
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_insider_transactions
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_insider_transactions
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_sdg_progress
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_sdg_progress
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: yahoo_get_history
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: yahoo_get_history
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: rbi_get_forex_reserves
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: rbi_get_forex_reserves
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_institutional_holdings
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_institutional_holdings
-2026-02-19 17:14:55 | INFO     | sajha.tools.impl.duckdb_olap_advanced | CustomerOLAPTool: DuckDB connection initialized
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: customer_olap_pivot
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: customer_olap_pivot
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_policy_rate
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_policy_rate
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_get_presentations
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_get_presentations
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: yahoo_get_quote
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: yahoo_get_quote
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_crime_trend
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_crime_trend
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: fed_get_series
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fed_get_series
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_ifs_data
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_ifs_data
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_mutual_fund_holdings
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_mutual_fund_holdings
-2026-02-19 17:14:55 | INFO     | DuckDbRefreshViewsTool         | Found 3 data files in ./data/duckdb
-2026-02-19 17:14:55 | INFO     | DuckDbRefreshViewsTool         | ✓ Created view 'customers' from customers.csv (50 rows)
-2026-02-19 17:14:55 | INFO     | DuckDbRefreshViewsTool         | ✓ Created view 'orders' from orders.csv (80 rows)
-2026-02-19 17:14:55 | INFO     | DuckDbRefreshViewsTool         | ✓ Created view 'products' from products.csv (27 rows)
-2026-02-19 17:14:55 | INFO     | DuckDbRefreshViewsTool         | Initialization complete: 3 views available
-2026-02-19 17:14:55 | INFO     | DuckDbRefreshViewsTool         | Auto-refresh enabled: checking every 600 seconds
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_refresh_views
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_refresh_views
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_company_filings
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_company_filings
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_financial_data
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_financial_data
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_regions
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_regions
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: rbi_get_inflation
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: rbi_get_inflation
-2026-02-19 17:14:55 | INFO     | DuckDbDescribeTableTool        | Found 3 data files in ./data/duckdb
-2026-02-19 17:14:55 | INFO     | DuckDbDescribeTableTool        | ✓ Created view 'customers' from customers.csv (50 rows)
-2026-02-19 17:14:55 | INFO     | DuckDbDescribeTableTool        | ✓ Created view 'orders' from orders.csv (80 rows)
-2026-02-19 17:14:55 | INFO     | DuckDbDescribeTableTool        | ✓ Created view 'products' from products.csv (27 rows)
-2026-02-19 17:14:55 | INFO     | DuckDbDescribeTableTool        | Initialization complete: 3 views available
-2026-02-19 17:14:55 | INFO     | DuckDbDescribeTableTool        | Auto-refresh enabled: checking every 600 seconds
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_describe_table
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_describe_table
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: wiki_get_page
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wiki_get_page
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: crawl_url
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: crawl_url
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_series
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_series
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_common_indicators
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_common_indicators
-2026-02-19 17:14:55 | WARNING  | SqlSelectSampleDataTool        | Data file not found: ./data/sqlselect/customers.csv
-2026-02-19 17:14:55 | WARNING  | SqlSelectSampleDataTool        | Data file not found: ./data/sqlselect/orders.csv
-2026-02-19 17:14:55 | WARNING  | SqlSelectSampleDataTool        | Data file not found: ./data/sqlselect/products.csv
-2026-02-19 17:14:55 | WARNING  | SqlSelectSampleDataTool        | Data file not found: ./data/sqlselect/sales.csv
-2026-02-19 17:14:55 | INFO     | SqlSelectSampleDataTool        | DuckDB connection initialized for sqlselect_sample_data
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_sample_data
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_sample_data
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_filing_details
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_filing_details
-2026-02-19 17:14:55 | WARNING  | SqlSelectListSourcesTool       | Data file not found: ./data/sqlselect/customers.csv
-2026-02-19 17:14:55 | WARNING  | SqlSelectListSourcesTool       | Data file not found: ./data/sqlselect/orders.csv
-2026-02-19 17:14:55 | WARNING  | SqlSelectListSourcesTool       | Data file not found: ./data/sqlselect/products.csv
-2026-02-19 17:14:55 | WARNING  | SqlSelectListSourcesTool       | Data file not found: ./data/sqlselect/sales.csv
-2026-02-19 17:14:55 | INFO     | SqlSelectListSourcesTool       | DuckDB connection initialized for sqlselect_list_sources
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_list_sources
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_list_sources
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_exchange_rate
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_exchange_rate
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_income_levels
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_income_levels
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_company_facts
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_company_facts
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_mutual_fund_holdings
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_mutual_fund_holdings
-2026-02-19 17:14:55 | INFO     | sajha.tools.tools_registry     | Started file monitoring for tool configurations
-2026-02-19 17:14:55 | INFO     | sajha.web.sajhamcpserver_web   | Tools registry initialized with 158 tools from /home/ashutosh/PycharmProjects/sajhamcpserver/config/tools
-2026-02-19 17:14:55 | INFO     | root                           | PromptsRegistry instance reset
-2026-02-19 17:14:55 | INFO     | root                           | Forcing PromptsRegistry reinit with: config/prompts
-2026-02-19 17:14:55 | INFO     | root                           | PromptsRegistry initializing with config dir: /home/ashutosh/PycharmProjects/sajhamcpserver/config/prompts
-2026-02-19 17:14:55 | INFO     | root                           | Loaded 6 prompts, 0 errors
-2026-02-19 17:14:55 | INFO     | root                           | PromptsRegistry singleton initialized with 6 prompts
-2026-02-19 17:14:55 | INFO     | root                           | Auto-refresh enabled: every 600 seconds
-2026-02-19 17:14:55 | INFO     | root                           | Auto-refresh worker started (interval: 600s)
-2026-02-19 17:14:55 | INFO     | root                           | Auto-refresh thread started
-2026-02-19 17:14:55 | INFO     | sajha.web.sajhamcpserver_web   | Prompts registry initialized with 6 prompts from /home/ashutosh/PycharmProjects/sajhamcpserver/config/prompts
-2026-02-19 17:14:55 | INFO     | sajha.web.sajhamcpserver_web   | MCP handler initialized
-2026-02-19 17:14:55 | INFO     | sajha.core.hot_reload_manager  | HotReloadManager initialized with 300s interval
-2026-02-19 17:14:55 | INFO     | sajha.core.hot_reload_manager  | Watching users config: /home/ashutosh/PycharmProjects/sajhamcpserver/config/users.json
-2026-02-19 17:14:55 | INFO     | sajha.core.hot_reload_manager  | Watching apikeys config: /home/ashutosh/PycharmProjects/sajhamcpserver/config/apikeys.json
-2026-02-19 17:14:55 | INFO     | sajha.core.hot_reload_manager  | Watching tool configs in: /home/ashutosh/PycharmProjects/sajhamcpserver/config/tools
-2026-02-19 17:14:55 | INFO     | sajha.core.hot_reload_manager  | Watching tool modules in: /home/ashutosh/PycharmProjects/sajhamcpserver/sajha/tools/impl
-2026-02-19 17:14:55 | INFO     | sajha.core.hot_reload_manager  | Watching prompts in: /home/ashutosh/PycharmProjects/sajhamcpserver/config/prompts
-2026-02-19 17:14:55 | INFO     | sajha.core.hot_reload_manager  | File watches configured for hot-reload
-2026-02-19 17:14:55 | INFO     | sajha.core.hot_reload_manager  | Reload callbacks configured
-2026-02-19 17:14:55 | INFO     | sajha.core.hot_reload_manager  | Hot-reload monitoring started (interval: 300s)
-2026-02-19 17:14:55 | INFO     | sajha.web.sajhamcpserver_web   | Hot-reload manager started (interval: 300 seconds)
-2026-02-19 17:14:55 | INFO     | sajha.web.sajhamcpserver_web   | Registering routes...
-2026-02-19 17:14:55 | INFO     | sajha.core.tool_groups_manager | ToolGroupsManager initializing with tools dir: /home/ashutosh/PycharmProjects/sajhamcpserver/config/tools
-2026-02-19 17:14:55 | INFO     | sajha.core.tool_groups_manager | Tool groups refreshed: 11 groups, 158 tools in 0.00s
-2026-02-19 17:14:55 | INFO     | sajha.core.tool_groups_manager | Tool groups refresh thread started (interval: 300s)
-2026-02-19 17:14:55 | INFO     | sajha.web.sajhamcpserver_web   | All routes registered successfully
-2026-02-19 17:14:55 | INFO     | sajha.web.sajhamcpserver_web   | Error handlers registered
-2026-02-19 17:14:55 | INFO     | sajha.web.sajhamcpserver_web   | Health check endpoints registered
-2026-02-19 17:14:55 | INFO     | sajha.web.sajhamcpserver_web   | SAJHA MCP Server prepared successfully
-2026-02-19 17:14:55 | INFO     | __main__                       |   [OK] Application initialized successfully
-2026-02-19 17:14:55 | INFO     | __main__                       | 
-2026-02-19 17:14:55 | INFO     | __main__                       | ============================================================================
-2026-02-19 17:14:55 | INFO     | __main__                       |   [17:14:55.205] PHASE 4: LOADING RESOURCES
-2026-02-19 17:14:55 | INFO     | __main__                       | ============================================================================
-2026-02-19 17:14:55 | INFO     | __main__                       |        -> MCP Tools loaded: 158
-2026-02-19 17:14:55 | INFO     | __main__                       |        -> Prompts loaded: 6
-2026-02-19 17:14:55 | INFO     | __main__                       |        -> User accounts loaded: 1
-2026-02-19 17:14:55 | INFO     | __main__                       |        -> API Keys loaded: 4
-2026-02-19 17:14:55 | INFO     | __main__                       |   [OK] All resources loaded successfully
-2026-02-19 17:14:55 | INFO     | __main__                       | 
-2026-02-19 17:14:55 | INFO     | __main__                       | ============================================================================
-2026-02-19 17:14:55 | INFO     | __main__                       |   [17:14:55.205] PHASE 5: STARTING HTTP SERVER
-2026-02-19 17:14:55 | INFO     | __main__                       | ============================================================================
-2026-02-19 17:14:55 | INFO     | __main__                       |        -> Protocol: HTTP
-2026-02-19 17:14:55 | INFO     | __main__                       |        -> Binding to: 0.0.0.0:3002
-2026-02-19 17:14:55 | INFO     | __main__                       |        -> WebSocket Support: Enabled
-2026-02-19 17:14:55 | INFO     | __main__                       |        -> CORS: Enabled
-2026-02-19 17:14:55 | INFO     | __main__                       |   [OK] Server configured in 0.55s
-2026-02-19 17:14:55 | INFO     | __main__                       | 
-2026-02-19 17:14:55 | INFO     | __main__                       | ============================================================================
-2026-02-19 17:14:55 | INFO     | __main__                       |               SAJHA MCP SERVER STARTED SUCCESSFULLY!
-2026-02-19 17:14:55 | INFO     | __main__                       | ============================================================================
-2026-02-19 17:14:55 | INFO     | __main__                       | 
-2026-02-19 17:14:55 | INFO     | __main__                       |    URL:           http://localhost:3002
-2026-02-19 17:14:55 | INFO     | __main__                       |    Version:       2.9.6
-2026-02-19 17:14:55 | INFO     | __main__                       |    Tools:         158
-2026-02-19 17:14:55 | INFO     | __main__                       |    Prompts:       6
-2026-02-19 17:14:55 | INFO     | __main__                       |    Users:         1
-2026-02-19 17:14:55 | INFO     | __main__                       |    API Keys:      4
-2026-02-19 17:14:55 | INFO     | __main__                       |    Startup Time:  0.55 seconds
-2026-02-19 17:14:55 | INFO     | __main__                       | 
-2026-02-19 17:14:55 | INFO     | __main__                       | ----------------------------------------------------------------------------
-2026-02-19 17:14:55 | INFO     | __main__                       |    MCP Studio:    Python Code | REST Service | DB Query
-2026-02-19 17:14:55 | INFO     | __main__                       |    Web Interface: Dashboard | Tools | Prompts | Monitoring | Admin
-2026-02-19 17:14:55 | INFO     | __main__                       | ----------------------------------------------------------------------------
-2026-02-19 17:14:55 | INFO     | __main__                       | 
-2026-02-19 17:14:55 | INFO     | __main__                       |    Press Ctrl+C to initiate graceful shutdown
-2026-02-19 17:14:55 | INFO     | __main__                       | 
-2026-02-19 17:14:55 | INFO     | __main__                       | ============================================================================
-2026-02-19 17:14:55 | INFO     | __main__                       | 
-2026-02-19 17:15:08 | INFO     | sajha.core.auth_manager        | Saved 1 users to configuration
-2026-02-19 17:15:08 | INFO     | sajha.core.auth_manager        | User authenticated successfully: admin
-2026-02-19 17:15:39 | INFO     | root                           | WebSocket client connected: COI_9brFlgn2cifpAAAB
-2026-02-19 17:15:49 | INFO     | ECBGetExchangeRateTool         | Tool executed successfully: ecb_get_exchange_rate (1.01s)
-2026-02-19 17:19:55 | INFO     | sajha.core.hot_reload_manager  | Config file changed: users.json (/home/ashutosh/PycharmProjects/sajhamcpserver/config/users.json)
-2026-02-19 17:19:55 | INFO     | sajha.core.hot_reload_manager  | Reloading users configuration (modified)
-2026-02-19 17:19:55 | INFO     | sajha.core.auth_manager        | Loaded 1 users from /home/ashutosh/PycharmProjects/sajhamcpserver/config/users.json
-2026-02-19 17:19:55 | INFO     | sajha.core.tool_groups_manager | Tool groups refreshed: 11 groups, 158 tools in 0.01s
-2026-02-19 17:24:55 | INFO     | root                           | Auto-refresh: Reloading prompts...
-2026-02-19 17:24:55 | INFO     | root                           | Loaded 6 prompts, 0 errors
-2026-02-19 17:24:55 | INFO     | root                           | Auto-refresh: Reloaded 6 prompts successfully
-2026-02-19 17:24:55 | INFO     | sajha.core.tool_groups_manager | Tool groups refreshed: 11 groups, 158 tools in 0.01s
+2026-02-19 17:39:19 | INFO     | __main__                       | 
+2026-02-19 17:39:19 | INFO     | __main__                       | ================================================================================
+2026-02-19 17:39:19 | INFO     | __main__                       |    ███████╗ █████╗      ██╗██╗  ██╗ █████╗     ███╗   ███╗ ██████╗██████╗ 
+2026-02-19 17:39:19 | INFO     | __main__                       |    ██╔════╝██╔══██╗     ██║██║  ██║██╔══██╗    ████╗ ████║██╔════╝██╔══██╗
+2026-02-19 17:39:19 | INFO     | __main__                       |    ███████╗███████║     ██║███████║███████║    ██╔████╔██║██║     ██████╔╝
+2026-02-19 17:39:19 | INFO     | __main__                       |    ╚════██║██╔══██║██   ██║██╔══██║██╔══██║    ██║╚██╔╝██║██║     ██╔═══╝ 
+2026-02-19 17:39:19 | INFO     | __main__                       |    ███████║██║  ██║╚█████╔╝██║  ██║██║  ██║    ██║ ╚═╝ ██║╚██████╗██║     
+2026-02-19 17:39:19 | INFO     | __main__                       |    ╚══════╝╚═╝  ╚═╝ ╚════╝ ╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝     ╚═╝ ╚═════╝╚═╝     
+2026-02-19 17:39:19 | INFO     | __main__                       |                                                                           
+2026-02-19 17:39:19 | INFO     | __main__                       |                      Model Context Protocol Server                        
+2026-02-19 17:39:19 | INFO     | __main__                       | ================================================================================
+2026-02-19 17:39:19 | INFO     | __main__                       | 
+2026-02-19 17:39:19 | INFO     | __main__                       |   Version:    2.9.6
+2026-02-19 17:39:19 | INFO     | __main__                       |   Start Time: 2026-02-19 17:39:19
+2026-02-19 17:39:19 | INFO     | __main__                       |   Python:     3.12.3
+2026-02-19 17:39:19 | INFO     | __main__                       |   Platform:   linux
+2026-02-19 17:39:19 | INFO     | __main__                       |   PID:        4040559
+2026-02-19 17:39:19 | INFO     | __main__                       | 
+2026-02-19 17:39:19 | INFO     | __main__                       | ============================================================================
+2026-02-19 17:39:19 | INFO     | __main__                       |   [17:39:19.137] PHASE 1: DIRECTORY SETUP
+2026-02-19 17:39:19 | INFO     | __main__                       | ============================================================================
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Created: data/flask_session
+2026-02-19 17:39:19 | INFO     | __main__                       |   [OK] Directory setup complete (1 created)
+2026-02-19 17:39:19 | INFO     | __main__                       | 
+2026-02-19 17:39:19 | INFO     | __main__                       | ============================================================================
+2026-02-19 17:39:19 | INFO     | __main__                       |   [17:39:19.137] PHASE 2: LOADING CONFIGURATION
+2026-02-19 17:39:19 | INFO     | __main__                       | ============================================================================
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Server Host: 0.0.0.0
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Server Port: 3002
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Debug Mode: False
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> SSL/TLS: Disabled
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Hot-Reload Interval: 300 seconds
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Log Level: INFO
+2026-02-19 17:39:19 | INFO     | __main__                       |   [OK] Configuration loaded from properties files
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Signal handlers registered (SIGINT, SIGTERM)
+2026-02-19 17:39:19 | INFO     | __main__                       | 
+2026-02-19 17:39:19 | INFO     | __main__                       | ============================================================================
+2026-02-19 17:39:19 | INFO     | __main__                       |   [17:39:19.138] PHASE 3: APPLICATION INITIALIZATION
+2026-02-19 17:39:19 | INFO     | __main__                       | ============================================================================
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Creating SajhaMCPServerWebApp instance
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   | Application configured: SAJHA MCP Server v2.9.6
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   | SAJHA MCP Server Web Application initialized
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Initializing Authentication Manager
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Initializing Tools Registry
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Initializing Prompts Registry
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Initializing Hot-Reload Manager
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Registering Flask Routes
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Registering SocketIO Handlers
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   | Preparing SAJHA MCP Server...
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   | Initializing core managers...
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   | Config paths from properties:
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   |   users: config/users.json
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   |   apikeys: config/apikeys.json
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   |   tools: config/tools
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   |   prompts: config/prompts
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   |   cwd: /home/ashutosh/PycharmProjects/sajhamcpserver
+2026-02-19 17:39:19 | INFO     | sajha.core.auth_manager        | AuthManager initializing:
+2026-02-19 17:39:19 | INFO     | sajha.core.auth_manager        |   Users config: /home/ashutosh/PycharmProjects/sajhamcpserver/config/users.json (exists: True)
+2026-02-19 17:39:19 | INFO     | sajha.core.auth_manager        |   APIKeys config: /home/ashutosh/PycharmProjects/sajhamcpserver/config/apikeys.json (exists: True)
+2026-02-19 17:39:19 | INFO     | sajha.core.apikey_manager      | APIKeyManager initializing with config: /home/ashutosh/PycharmProjects/sajhamcpserver/config/apikeys.json
+2026-02-19 17:39:19 | INFO     | sajha.core.apikey_manager      | Loading API keys from: /home/ashutosh/PycharmProjects/sajhamcpserver/config/apikeys.json
+2026-02-19 17:39:19 | INFO     | sajha.core.apikey_manager      |   File exists: True
+2026-02-19 17:39:19 | INFO     | sajha.core.apikey_manager      | Loaded 4 API keys from /home/ashutosh/PycharmProjects/sajhamcpserver/config/apikeys.json
+2026-02-19 17:39:19 | INFO     | sajha.core.auth_manager        | Loaded 1 users from /home/ashutosh/PycharmProjects/sajhamcpserver/config/users.json
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   | Auth manager initialized (users: /home/ashutosh/PycharmProjects/sajhamcpserver/config/users.json)
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | ToolsRegistry singleton reset
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Forcing ToolsRegistry reinit with: config/tools
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | ToolsRegistry initializing with config dir: /home/ashutosh/PycharmProjects/sajhamcpserver/config/tools
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loading tools from /home/ashutosh/PycharmProjects/sajhamcpserver/config/tools
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_exchange_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_exchange_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_sdgs
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_sdgs
+2026-02-19 17:39:19 | INFO     | DuckDbListTablesTool           | Found 3 data files in ./data/duckdb
+2026-02-19 17:39:19 | INFO     | DuckDbListTablesTool           | ✓ Created view 'customers' from customers.csv (50 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbListTablesTool           | ✓ Created view 'orders' from orders.csv (80 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbListTablesTool           | ✓ Created view 'products' from products.csv (27 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbListTablesTool           | Initialization complete: 3 views available
+2026-02-19 17:39:19 | INFO     | DuckDbListTablesTool           | Auto-refresh enabled: checking every 600 seconds
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_list_tables
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_list_tables
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: check_robots_txt
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: check_robots_txt
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_jgb_yield
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_jgb_yield
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_compare_countries
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_compare_countries
+2026-02-19 17:39:19 | INFO     | sajha.tools.impl.duckdb_olap_advanced | DuckDBSQLTool: Initialized with tables from /home/ashutosh/PycharmProjects/sajhamcpserver/data/duckdb
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_sql
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_sql
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_bond_yield
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_bond_yield
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_bop_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_bop_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: extract_content
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: extract_content
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_exchange_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_exchange_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_search_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_search_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_financial_ratios
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_financial_ratios
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_trade_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_trade_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_sdg_targets
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_sdg_targets
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_economic_indicator
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_economic_indicator
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_participation_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_participation_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_agency_statistics
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_agency_statistics
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_proxy_statements
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_proxy_statements
+2026-02-19 17:39:19 | WARNING  | SqlSelectCountRowsTool         | Data file not found: ./data/sqlselect/customers.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectCountRowsTool         | Data file not found: ./data/sqlselect/orders.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectCountRowsTool         | Data file not found: ./data/sqlselect/products.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectCountRowsTool         | Data file not found: ./data/sqlselect/sales.csv
+2026-02-19 17:39:19 | INFO     | SqlSelectCountRowsTool         | DuckDB connection initialized for sqlselect_count_rows
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_count_rows
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_count_rows
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: fed_get_latest
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fed_get_latest
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_get_all_resources
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_get_all_resources
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: extract_links
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: extract_links
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_registration_statements
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_registration_statements
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: bdf_get_oat_yield
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: bdf_get_oat_yield
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_read_excel_sheet
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_read_excel_sheet
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_offense_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_offense_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_compare_states
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_compare_states
+2026-02-19 17:39:19 | INFO     | sajha.olap.semantic_layer      | Loaded semantic layer: 0 datasets, 0 measures, 0 dimensions
+2026-02-19 17:39:19 | INFO     | sajha.tools.impl.duckdb_olap_advanced | DuckDB OLAP connection initialized
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: olap_time_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: olap_time_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: tavily_news_search
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: tavily_news_search
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: rbi_get_policy_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: rbi_get_policy_rate
+2026-02-19 17:39:19 | INFO     | DuckDbGetStatsTool             | Found 3 data files in ./data/duckdb
+2026-02-19 17:39:19 | INFO     | DuckDbGetStatsTool             | ✓ Created view 'customers' from customers.csv (50 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbGetStatsTool             | ✓ Created view 'orders' from orders.csv (80 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbGetStatsTool             | ✓ Created view 'products' from products.csv (27 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbGetStatsTool             | Initialization complete: 3 views available
+2026-02-19 17:39:19 | INFO     | DuckDbGetStatsTool             | Auto-refresh enabled: checking every 600 seconds
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_get_stats
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_get_stats
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_extract_text
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_extract_text
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_cgb_yield
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_cgb_yield
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: extract_metadata
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: extract_metadata
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_interest_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_interest_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_weo_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_weo_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_search_word
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_search_word
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_search_agencies
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_search_agencies
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_xbrl_frames_multi_concept
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_xbrl_frames_multi_concept
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_get_documents
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_get_documents
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_insider_trading
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_insider_trading
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_national_statistics
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_national_statistics
+2026-02-19 17:39:19 | WARNING  | SqlSelectGetSchemaTool         | Data file not found: ./data/sqlselect/customers.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectGetSchemaTool         | Data file not found: ./data/sqlselect/orders.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectGetSchemaTool         | Data file not found: ./data/sqlselect/products.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectGetSchemaTool         | Data file not found: ./data/sqlselect/sales.csv
+2026-02-19 17:39:19 | INFO     | SqlSelectGetSchemaTool         | DuckDB connection initialized for sqlselect_get_schema
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_get_schema
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_get_schema
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_amendments
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_amendments
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_list_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_list_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_read_word
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_read_word
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_inflation
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_inflation
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: bdf_get_exchange_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: bdf_get_exchange_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_company_concept
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_company_concept
+2026-02-19 17:39:19 | INFO     | sajha.olap.semantic_layer      | Loaded semantic layer: 0 datasets, 0 measures, 0 dimensions
+2026-02-19 17:39:19 | INFO     | sajha.tools.impl.duckdb_olap_advanced | DuckDB OLAP connection initialized
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: olap_pivot_table
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: olap_pivot_table
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: tavily_research_search
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: tavily_research_search
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_latest
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_latest
+2026-02-19 17:39:19 | INFO     | DuckDbAggregateTool            | Found 3 data files in ./data/duckdb
+2026-02-19 17:39:19 | INFO     | DuckDbAggregateTool            | ✓ Created view 'customers' from customers.csv (50 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbAggregateTool            | ✓ Created view 'orders' from orders.csv (80 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbAggregateTool            | ✓ Created view 'products' from products.csv (27 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbAggregateTool            | Initialization complete: 3 views available
+2026-02-19 17:39:19 | INFO     | DuckDbAggregateTool            | Auto-refresh enabled: checking every 600 seconds
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_aggregate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_aggregate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: rbi_get_exchange_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: rbi_get_exchange_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_ownership_reports
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_ownership_reports
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_frame_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_frame_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_policy_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_policy_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_bond_yield
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_bond_yield
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_search_indicators
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_search_indicators
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: wiki_search
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wiki_search
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_indicator_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_indicator_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_list_files
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_list_files
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_compare_countries
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_compare_countries
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_common_indicators
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_common_indicators
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: tavily_web_search
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: tavily_web_search
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_sdg_indicators
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_sdg_indicators
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_country_trade
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_country_trade
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_current_reports
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_current_reports
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_country_profile
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_country_profile
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: bdf_get_eurozone_indicator
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: bdf_get_eurozone_indicator
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_company_search
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_company_search
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: un_compare_trade
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_compare_trade
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_state_statistics
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_state_statistics
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_countries
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_countries
+2026-02-19 17:39:19 | INFO     | DuckDbQueryTool                | Found 3 data files in ./data/duckdb
+2026-02-19 17:39:19 | INFO     | DuckDbQueryTool                | ✓ Created view 'customers' from customers.csv (50 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbQueryTool                | ✓ Created view 'orders' from orders.csv (80 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbQueryTool                | ✓ Created view 'products' from products.csv (27 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbQueryTool                | Initialization complete: 3 views available
+2026-02-19 17:39:19 | INFO     | DuckDbQueryTool                | Auto-refresh enabled: checking every 300 seconds
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_query
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_query
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_latest
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_latest
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: yahoo_search_symbols
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: yahoo_search_symbols
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_find_page
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_find_page
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: crawl_sitemap
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: crawl_sitemap
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_indicators
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_indicators
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_get_latest_earnings
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_get_latest_earnings
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_databases
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_databases
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: fed_get_common_indicators
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fed_get_common_indicators
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_foreign_issuers
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_foreign_issuers
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_trade_balance
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_trade_balance
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_get_word_metadata
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_get_word_metadata
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_filings_by_form
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_filings_by_form
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_get_excel_metadata
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_get_excel_metadata
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_list_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_list_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_inflation
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_inflation
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_read_excel
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_read_excel
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: bdf_get_ecb_policy_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: bdf_get_ecb_policy_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_get_exchange_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_get_exchange_rate
+2026-02-19 17:39:19 | WARNING  | SqlSelectExecuteQueryTool      | Data file not found: ./data/sqlselect/customers.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectExecuteQueryTool      | Data file not found: ./data/sqlselect/orders.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectExecuteQueryTool      | Data file not found: ./data/sqlselect/products.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectExecuteQueryTool      | Data file not found: ./data/sqlselect/sales.csv
+2026-02-19 17:39:19 | INFO     | SqlSelectExecuteQueryTool      | DuckDB connection initialized for sqlselect_execute_query
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_execute_query
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_execute_query
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_economic_indicator
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_economic_indicator
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: bdf_get_french_indicator
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: bdf_get_french_indicator
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_search_excel
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_search_excel
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_list_supported_companies
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_list_supported_companies
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_money_supply
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_money_supply
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_lending_types
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_lending_types
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: msdoc_get_excel_sheets
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: msdoc_get_excel_sheets
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_dataflows
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_dataflows
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: google_search
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: google_search
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_get_annual_reports
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_get_annual_reports
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: boj_get_money_supply
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boj_get_money_supply
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_topic_indicators
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_topic_indicators
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_interest_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_interest_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: rbi_get_gsec_yield
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: rbi_get_gsec_yield
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_search_company
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_search_company
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_company_tickers_by_exchange
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_company_tickers_by_exchange
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_country_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_country_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_company_facts
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_company_facts
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_agency_details
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_agency_details
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: fed_search_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fed_search_series
+2026-02-19 17:39:19 | WARNING  | SqlSelectDescribeSourceTool    | Data file not found: ./data/sqlselect/customers.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectDescribeSourceTool    | Data file not found: ./data/sqlselect/orders.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectDescribeSourceTool    | Data file not found: ./data/sqlselect/products.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectDescribeSourceTool    | Data file not found: ./data/sqlselect/sales.csv
+2026-02-19 17:39:19 | INFO     | SqlSelectDescribeSourceTool    | DuckDB connection initialized for sqlselect_describe_source
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_describe_source
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_describe_source
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_inflation
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_inflation
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_company_submissions
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_company_submissions
+2026-02-19 17:39:19 | INFO     | DuckDbListFilesTool            | Found 3 data files in ./data/duckdb
+2026-02-19 17:39:19 | INFO     | DuckDbListFilesTool            | ✓ Created view 'customers' from customers.csv (50 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbListFilesTool            | ✓ Created view 'orders' from orders.csv (80 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbListFilesTool            | ✓ Created view 'products' from products.csv (27 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbListFilesTool            | Initialization complete: 3 views available
+2026-02-19 17:39:19 | INFO     | DuckDbListFilesTool            | Auto-refresh enabled: checking every 600 seconds
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_list_files
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_list_files
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_company_info
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_company_info
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_companies_by_sic
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_companies_by_sic
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: boc_search_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: boc_search_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: wiki_get_summary
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wiki_get_summary
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: tavily_domain_search
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: tavily_domain_search
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_sdg_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_sdg_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: get_page_info
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: get_page_info
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_insider_transactions
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_insider_transactions
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: un_get_sdg_progress
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: un_get_sdg_progress
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: yahoo_get_history
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: yahoo_get_history
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: rbi_get_forex_reserves
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: rbi_get_forex_reserves
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_institutional_holdings
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_institutional_holdings
+2026-02-19 17:39:19 | INFO     | sajha.tools.impl.duckdb_olap_advanced | CustomerOLAPTool: DuckDB connection initialized
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: customer_olap_pivot
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: customer_olap_pivot
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_policy_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_policy_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: ir_get_presentations
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ir_get_presentations
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: yahoo_get_quote
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: yahoo_get_quote
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: fbi_get_crime_trend
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fbi_get_crime_trend
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: fed_get_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: fed_get_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: imf_get_ifs_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: imf_get_ifs_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_mutual_fund_holdings
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_mutual_fund_holdings
+2026-02-19 17:39:19 | INFO     | DuckDbRefreshViewsTool         | Found 3 data files in ./data/duckdb
+2026-02-19 17:39:19 | INFO     | DuckDbRefreshViewsTool         | ✓ Created view 'customers' from customers.csv (50 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbRefreshViewsTool         | ✓ Created view 'orders' from orders.csv (80 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbRefreshViewsTool         | ✓ Created view 'products' from products.csv (27 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbRefreshViewsTool         | Initialization complete: 3 views available
+2026-02-19 17:39:19 | INFO     | DuckDbRefreshViewsTool         | Auto-refresh enabled: checking every 600 seconds
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_refresh_views
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_refresh_views
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_company_filings
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_company_filings
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: sec_get_financial_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sec_get_financial_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_regions
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_regions
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: rbi_get_inflation
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: rbi_get_inflation
+2026-02-19 17:39:19 | INFO     | DuckDbDescribeTableTool        | Found 3 data files in ./data/duckdb
+2026-02-19 17:39:19 | INFO     | DuckDbDescribeTableTool        | ✓ Created view 'customers' from customers.csv (50 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbDescribeTableTool        | ✓ Created view 'orders' from orders.csv (80 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbDescribeTableTool        | ✓ Created view 'products' from products.csv (27 rows)
+2026-02-19 17:39:19 | INFO     | DuckDbDescribeTableTool        | Initialization complete: 3 views available
+2026-02-19 17:39:19 | INFO     | DuckDbDescribeTableTool        | Auto-refresh enabled: checking every 600 seconds
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: duckdb_describe_table
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: duckdb_describe_table
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: wiki_get_page
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wiki_get_page
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: crawl_url
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: crawl_url
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_series
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: ecb_get_common_indicators
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: ecb_get_common_indicators
+2026-02-19 17:39:19 | WARNING  | SqlSelectSampleDataTool        | Data file not found: ./data/sqlselect/customers.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectSampleDataTool        | Data file not found: ./data/sqlselect/orders.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectSampleDataTool        | Data file not found: ./data/sqlselect/products.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectSampleDataTool        | Data file not found: ./data/sqlselect/sales.csv
+2026-02-19 17:39:19 | INFO     | SqlSelectSampleDataTool        | DuckDB connection initialized for sqlselect_sample_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_sample_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_sample_data
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_filing_details
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_filing_details
+2026-02-19 17:39:19 | WARNING  | SqlSelectListSourcesTool       | Data file not found: ./data/sqlselect/customers.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectListSourcesTool       | Data file not found: ./data/sqlselect/orders.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectListSourcesTool       | Data file not found: ./data/sqlselect/products.csv
+2026-02-19 17:39:19 | WARNING  | SqlSelectListSourcesTool       | Data file not found: ./data/sqlselect/sales.csv
+2026-02-19 17:39:19 | INFO     | SqlSelectListSourcesTool       | DuckDB connection initialized for sqlselect_list_sources
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: sqlselect_list_sources
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: sqlselect_list_sources
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: pboc_get_exchange_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: pboc_get_exchange_rate
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: wb_get_income_levels
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: wb_get_income_levels
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_company_facts
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_company_facts
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Tool registered: edgar_mutual_fund_holdings
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Loaded custom tool: edgar_mutual_fund_holdings
+2026-02-19 17:39:19 | INFO     | sajha.tools.tools_registry     | Started file monitoring for tool configurations
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   | Tools registry initialized with 158 tools from /home/ashutosh/PycharmProjects/sajhamcpserver/config/tools
+2026-02-19 17:39:19 | INFO     | root                           | PromptsRegistry instance reset
+2026-02-19 17:39:19 | INFO     | root                           | Forcing PromptsRegistry reinit with: config/prompts
+2026-02-19 17:39:19 | INFO     | root                           | PromptsRegistry initializing with config dir: /home/ashutosh/PycharmProjects/sajhamcpserver/config/prompts
+2026-02-19 17:39:19 | INFO     | root                           | Loaded 6 prompts, 0 errors
+2026-02-19 17:39:19 | INFO     | root                           | PromptsRegistry singleton initialized with 6 prompts
+2026-02-19 17:39:19 | INFO     | root                           | Auto-refresh enabled: every 600 seconds
+2026-02-19 17:39:19 | INFO     | root                           | Auto-refresh worker started (interval: 600s)
+2026-02-19 17:39:19 | INFO     | root                           | Auto-refresh thread started
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   | Prompts registry initialized with 6 prompts from /home/ashutosh/PycharmProjects/sajhamcpserver/config/prompts
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   | MCP handler initialized
+2026-02-19 17:39:19 | INFO     | sajha.core.hot_reload_manager  | HotReloadManager initialized with 300s interval
+2026-02-19 17:39:19 | INFO     | sajha.core.hot_reload_manager  | Watching users config: /home/ashutosh/PycharmProjects/sajhamcpserver/config/users.json
+2026-02-19 17:39:19 | INFO     | sajha.core.hot_reload_manager  | Watching apikeys config: /home/ashutosh/PycharmProjects/sajhamcpserver/config/apikeys.json
+2026-02-19 17:39:19 | INFO     | sajha.core.hot_reload_manager  | Watching tool configs in: /home/ashutosh/PycharmProjects/sajhamcpserver/config/tools
+2026-02-19 17:39:19 | INFO     | sajha.core.hot_reload_manager  | Watching tool modules in: /home/ashutosh/PycharmProjects/sajhamcpserver/sajha/tools/impl
+2026-02-19 17:39:19 | INFO     | sajha.core.hot_reload_manager  | Watching prompts in: /home/ashutosh/PycharmProjects/sajhamcpserver/config/prompts
+2026-02-19 17:39:19 | INFO     | sajha.core.hot_reload_manager  | File watches configured for hot-reload
+2026-02-19 17:39:19 | INFO     | sajha.core.hot_reload_manager  | Reload callbacks configured
+2026-02-19 17:39:19 | INFO     | sajha.core.hot_reload_manager  | Hot-reload monitoring started (interval: 300s)
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   | Hot-reload manager started (interval: 300 seconds)
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   | Registering routes...
+2026-02-19 17:39:19 | INFO     | sajha.core.tool_groups_manager | ToolGroupsManager initializing with tools dir: /home/ashutosh/PycharmProjects/sajhamcpserver/config/tools
+2026-02-19 17:39:19 | INFO     | sajha.core.tool_groups_manager | Tool groups refreshed: 11 groups, 158 tools in 0.01s
+2026-02-19 17:39:19 | INFO     | sajha.core.tool_groups_manager | Tool groups refresh thread started (interval: 300s)
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   | All routes registered successfully
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   | Error handlers registered
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   | Health check endpoints registered
+2026-02-19 17:39:19 | INFO     | sajha.web.sajhamcpserver_web   | SAJHA MCP Server prepared successfully
+2026-02-19 17:39:19 | INFO     | __main__                       |   [OK] Application initialized successfully
+2026-02-19 17:39:19 | INFO     | __main__                       | 
+2026-02-19 17:39:19 | INFO     | __main__                       | ============================================================================
+2026-02-19 17:39:19 | INFO     | __main__                       |   [17:39:19.695] PHASE 4: LOADING RESOURCES
+2026-02-19 17:39:19 | INFO     | __main__                       | ============================================================================
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> MCP Tools loaded: 158
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Prompts loaded: 6
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> User accounts loaded: 1
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> API Keys loaded: 4
+2026-02-19 17:39:19 | INFO     | __main__                       |   [OK] All resources loaded successfully
+2026-02-19 17:39:19 | INFO     | __main__                       | 
+2026-02-19 17:39:19 | INFO     | __main__                       | ============================================================================
+2026-02-19 17:39:19 | INFO     | __main__                       |   [17:39:19.696] PHASE 5: STARTING HTTP SERVER
+2026-02-19 17:39:19 | INFO     | __main__                       | ============================================================================
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Protocol: HTTP
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> Binding to: 0.0.0.0:3002
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> WebSocket Support: Enabled
+2026-02-19 17:39:19 | INFO     | __main__                       |        -> CORS: Enabled
+2026-02-19 17:39:19 | INFO     | __main__                       |   [OK] Server configured in 0.56s
+2026-02-19 17:39:19 | INFO     | __main__                       | 
+2026-02-19 17:39:19 | INFO     | __main__                       | ============================================================================
+2026-02-19 17:39:19 | INFO     | __main__                       |               SAJHA MCP SERVER STARTED SUCCESSFULLY!
+2026-02-19 17:39:19 | INFO     | __main__                       | ============================================================================
+2026-02-19 17:39:19 | INFO     | __main__                       | 
+2026-02-19 17:39:19 | INFO     | __main__                       |    URL:           http://localhost:3002
+2026-02-19 17:39:19 | INFO     | __main__                       |    Version:       2.9.6
+2026-02-19 17:39:19 | INFO     | __main__                       |    Tools:         158
+2026-02-19 17:39:19 | INFO     | __main__                       |    Prompts:       6
+2026-02-19 17:39:19 | INFO     | __main__                       |    Users:         1
+2026-02-19 17:39:19 | INFO     | __main__                       |    API Keys:      4
+2026-02-19 17:39:19 | INFO     | __main__                       |    Startup Time:  0.56 seconds
+2026-02-19 17:39:19 | INFO     | __main__                       | 
+2026-02-19 17:39:19 | INFO     | __main__                       | ----------------------------------------------------------------------------
+2026-02-19 17:39:19 | INFO     | __main__                       |    MCP Studio:    Python Code | REST Service | DB Query
+2026-02-19 17:39:19 | INFO     | __main__                       |    Web Interface: Dashboard | Tools | Prompts | Monitoring | Admin
+2026-02-19 17:39:19 | INFO     | __main__                       | ----------------------------------------------------------------------------
+2026-02-19 17:39:19 | INFO     | __main__                       | 
+2026-02-19 17:39:19 | INFO     | __main__                       |    Press Ctrl+C to initiate graceful shutdown
+2026-02-19 17:39:19 | INFO     | __main__                       | 
+2026-02-19 17:39:19 | INFO     | __main__                       | ============================================================================
+2026-02-19 17:39:19 | INFO     | __main__                       | 
+2026-02-19 17:39:36 | INFO     | sajha.core.auth_manager        | Saved 1 users to configuration
+2026-02-19 17:39:36 | INFO     | sajha.core.auth_manager        | User authenticated successfully: admin

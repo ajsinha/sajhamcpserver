@@ -2,7 +2,7 @@
   "name": "edgar_institutional_holdings",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARInstitutionalHoldingsTool",
   "description": "Retrieve institutional investment manager holdings (Form 13F-HR) showing quarterly portfolio positions of hedge funds, mutual funds, and other institutions",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

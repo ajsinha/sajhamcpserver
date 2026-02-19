@@ -2,7 +2,7 @@
   "name": "un_get_sdg_data",
   "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNGetSDGDataTool",
   "description": "Retrieve historical time series data for a specific SDG indicator, optionally filtered by country and date range",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

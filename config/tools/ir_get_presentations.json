@@ -2,7 +2,7 @@
   "name": "ir_get_presentations",
   "implementation": "sajha.tools.impl.investor_relations_tool_refactored.IRGetPresentationsTool",
   "description": "Get investor presentations and earnings decks for a company",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

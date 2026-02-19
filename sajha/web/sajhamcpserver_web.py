@@ -69,7 +69,7 @@ class SajhaMCPServerWebApp:
         prop_conf: PropertiesConfigurator instance for configuration
     """
     
-    VERSION = '2.2.0'
+    VERSION = '2.9.6'
     
     def __init__(self, secret_key: Optional[str] = None, config_path: Optional[str] = None):
         """

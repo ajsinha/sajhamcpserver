@@ -1,6 +1,6 @@
 """
 SAJHA MCP Server - OLAP Analytics Module
-Version: 2.9.0
+Version: 2.9.6
 
 This module provides advanced OLAP (Online Analytical Processing) capabilities
 built on top of DuckDB, including:
@@ -47,4 +47,4 @@ __all__ = [
     'OLAPQueryBuilder'
 ]
 
-__version__ = "2.9.0"
+__version__ = "2.9.6"

@@ -1,6 +1,6 @@
 """
 SAJHA MCP Server - Window Engine
-Version: 2.9.0
+Version: 2.9.6
 
 Engine for window function calculations including running totals,
 rankings, moving averages, and percent of total calculations.

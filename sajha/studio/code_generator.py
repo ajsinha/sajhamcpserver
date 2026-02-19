@@ -27,7 +27,7 @@ class ToolCodeGenerator:
     from ToolDefinition objects.
     """
     
-    VERSION = '2.2.0'
+    VERSION = '2.9.6'
     
     def __init__(
         self, 

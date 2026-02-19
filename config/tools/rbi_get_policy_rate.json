@@ -2,7 +2,7 @@
   "name": "rbi_get_policy_rate",
   "implementation": "sajha.tools.impl.india_central_bank.RBIGetPolicyRateTool",
   "description": "Retrieve RBI policy rates including repo, reverse repo, bank rate, CRR, and SLR",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

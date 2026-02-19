@@ -229,7 +229,7 @@ class BoJGetJGBYieldTool(BankOfJapanBaseTool):
         default_config = {
             'name': 'boj_get_jgb_yield',
             'description': 'Retrieve Japanese Government Bond (JGB) yields',
-            'version': '2.2.0',
+            'version': '2.9.6',
             'enabled': True
         }
         if config:
@@ -314,7 +314,7 @@ class BoJGetPolicyRateTool(BankOfJapanBaseTool):
         default_config = {
             'name': 'boj_get_policy_rate',
             'description': 'Retrieve Bank of Japan policy interest rates',
-            'version': '2.2.0',
+            'version': '2.9.6',
             'enabled': True
         }
         if config:
@@ -386,7 +386,7 @@ class BoJGetExchangeRateTool(BankOfJapanBaseTool):
         default_config = {
             'name': 'boj_get_exchange_rate',
             'description': 'Retrieve Japanese Yen exchange rates',
-            'version': '2.2.0',
+            'version': '2.9.6',
             'enabled': True
         }
         if config:
@@ -452,7 +452,7 @@ class BoJGetMoneySupplyTool(BankOfJapanBaseTool):
         default_config = {
             'name': 'boj_get_money_supply',
             'description': 'Retrieve Japanese money supply (M1, M2, M3)',
-            'version': '2.2.0',
+            'version': '2.9.6',
             'enabled': True
         }
         if config:
@@ -518,7 +518,7 @@ class BoJGetInflationTool(BankOfJapanBaseTool):
         default_config = {
             'name': 'boj_get_inflation',
             'description': 'Retrieve Japanese inflation data (CPI, PPI)',
-            'version': '2.2.0',
+            'version': '2.9.6',
             'enabled': True
         }
         if config:
@@ -584,7 +584,7 @@ class BoJGetEconomicIndicatorTool(BankOfJapanBaseTool):
         default_config = {
             'name': 'boj_get_economic_indicator',
             'description': 'Retrieve Japanese economic indicators (GDP, unemployment, industrial production)',
-            'version': '2.2.0',
+            'version': '2.9.6',
             'enabled': True
         }
         if config:
@@ -651,7 +651,7 @@ class BoJListSeriesTools(BankOfJapanBaseTool):
         default_config = {
             'name': 'boj_list_series',
             'description': 'List available Japanese economic data series',
-            'version': '2.2.0',
+            'version': '2.9.6',
             'enabled': True
         }
         if config:

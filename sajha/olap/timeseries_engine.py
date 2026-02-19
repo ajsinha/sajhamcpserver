@@ -1,6 +1,6 @@
 """
 SAJHA MCP Server - Time Series Engine
-Version: 2.9.0
+Version: 2.9.6
 
 Engine for time series analytics including temporal aggregations,
 gap filling, and period-over-period comparisons.

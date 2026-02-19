@@ -2,7 +2,7 @@
   "name": "ecb_get_interest_rate",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetInterestRateTool",
   "description": "Retrieve ECB interest rates including main refinancing rate, deposit facility rate, and money market rates (EONIA, €STR).",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

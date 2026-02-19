@@ -1,6 +1,6 @@
 """
 SAJHA MCP Server - Statistics Engine
-Version: 2.9.0
+Version: 2.9.6
 
 Engine for statistical calculations including summary statistics,
 percentiles, distributions, correlations, and histograms.

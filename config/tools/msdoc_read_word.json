@@ -2,7 +2,7 @@
   "name": "msdoc_read_word",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocReadWordTool",
   "description": "Read and extract content from Word documents including paragraphs and tables",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

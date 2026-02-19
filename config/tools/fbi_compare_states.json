@@ -2,7 +2,7 @@
   "name": "fbi_compare_states",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBICompareStatesTool",
   "description": "Compare crime statistics across multiple US states for analysis and ranking",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

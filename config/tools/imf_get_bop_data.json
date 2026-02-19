@@ -2,7 +2,7 @@
   "name": "imf_get_bop_data",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetBOPDataTool",
   "description": "Retrieve Balance of Payments (BOP) data including current account, capital account, trade balance, and financial flows.",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

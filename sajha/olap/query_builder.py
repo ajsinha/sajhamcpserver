@@ -1,6 +1,6 @@
 """
 SAJHA MCP Server - OLAP Query Builder
-Version: 2.9.0
+Version: 2.9.6
 
 Base query building utilities used by all OLAP engines.
 """

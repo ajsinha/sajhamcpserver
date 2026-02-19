@@ -2,7 +2,7 @@
   "name": "fed_get_latest",
   "implementation": "sajha.tools.impl.fed_reserve_tool_refactored.FedGetLatestTool",
   "description": "Retrieve the most recent observation for a FRED economic data series. Perfect for getting current values of key economic indicators.",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

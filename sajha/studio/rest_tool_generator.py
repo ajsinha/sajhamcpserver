@@ -41,7 +41,7 @@ class RESTToolDefinition:
     csv_delimiter: str = ","
     csv_has_header: bool = True
     csv_skip_rows: int = 0  # Number of rows to skip before header/data
-    version: str = "2.8.0"
+    version: str = "2.9.6"
 
 
 class RESTToolGenerator:

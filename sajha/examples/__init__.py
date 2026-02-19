@@ -24,7 +24,7 @@ Usage:
        etc.
 """
 
-__version__ = '2.3.0'
+__version__ = '2.9.6'
 __author__ = 'Ashutosh Sinha'
 __email__ = 'ajsinha@gmail.com'
 

@@ -36,7 +36,7 @@ class PowerBIToolConfig:
     client_secret_env: str = "POWERBI_CLIENT_SECRET"  # Environment variable name for client secret
     
     # Optional metadata
-    version: str = "2.8.0"
+    version: str = "2.9.6"
     author: str = ""
     tags: List[str] = field(default_factory=list)
     
@@ -152,7 +152,7 @@ class PowerBIToolGenerator:
                 "source": "powerbi",
                 "report_name": config.report_name,
                 "export_format": config.export_format,
-                "generator_version": "2.8.0"
+                "generator_version": "2.9.6"
             }
         }
     
@@ -606,7 +606,7 @@ __all__ = ['PowerBI{class_name}Tool']
             tenant_id=data.get('tenant_id', ''),
             client_id=data.get('client_id', ''),
             client_secret_env=data.get('client_secret_env', 'POWERBI_CLIENT_SECRET'),
-            version=data.get('version', '2.8.0'),
+            version=data.get('version', '2.9.6'),
             author=data.get('author', ''),
             tags=data.get('tags', []),
             page_name=data.get('page_name', ''),

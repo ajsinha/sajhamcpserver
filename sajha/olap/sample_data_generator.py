@@ -1,6 +1,6 @@
 """
 SAJHA MCP Server - Sample Data Generator
-Version: 2.9.0
+Version: 2.9.6
 
 Generates sample datasets for OLAP analytics demonstrations and testing.
 """

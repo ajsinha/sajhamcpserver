@@ -2,7 +2,7 @@
   "name": "ir_find_page",
   "implementation": "sajha.tools.impl.investor_relations_tool_refactored.IRFindPageTool",
   "description": "Find the investor relations page URL for a specific company",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

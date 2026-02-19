@@ -2,7 +2,7 @@
   "name": "edgar_xbrl_frames_multi_concept",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARXBRLFramesMultiConceptTool",
   "description": "Retrieve multiple XBRL concepts in a single frame query for efficient batch analysis across all companies",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "wb_get_income_levels",
   "implementation": "sajha.tools.impl.world_bank_tool.WBGetIncomeLevelsTool",
   "description": "Retrieve World Bank income level classifications and metadata. Get information about income groupings (High, Upper Middle, Lower Middle, Low).",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

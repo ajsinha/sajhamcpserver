@@ -2,7 +2,7 @@
   "name": "sqlselect_execute_query",
   "implementation": "sajha.tools.impl.sqlselect_tool_refactored.SqlSelectExecuteQueryTool",
   "description": "Execute SQL SELECT queries on configured data sources with built-in safety checks and result limiting",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "data_directory": "${data.sqlselect.dir}",
   "data_sources": {

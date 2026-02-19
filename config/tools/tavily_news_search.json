@@ -2,7 +2,7 @@
   "name": "tavily_news_search",
   "implementation": "sajha.tools.impl.tavily_tool_refactored.TavilyNewsSearchTool",
   "description": "Search for recent news articles using Tavily with news-optimized results and recency prioritization",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "api_key": "${tavily.api.key}",
   "inputSchema": {

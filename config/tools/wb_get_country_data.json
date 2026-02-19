@@ -2,7 +2,7 @@
   "name": "wb_get_country_data",
   "implementation": "sajha.tools.impl.world_bank_tool.WBGetCountryDataTool",
   "description": "Retrieve specific indicator data for a single country over time. Get historical time series data for any World Bank indicator.",
-  "version": "2.2.0",
+  "version": "2.9.6",
   "enabled": true,
   "inputSchema": {
     "type": "object",

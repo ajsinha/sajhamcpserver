@@ -39,7 +39,7 @@ class LiveLinkToolConfig:
     document_types: List[str] = field(default_factory=list)  # Filter by doc types
     
     # Optional metadata
-    version: str = "2.8.0"
+    version: str = "2.9.6"
     author: str = ""
     tags: List[str] = field(default_factory=list)
     
@@ -139,7 +139,7 @@ class LiveLinkToolGenerator:
                 "source": "livelink",
                 "auth_type": config.auth_type,
                 "api_version": config.api_version,
-                "generator_version": "2.8.0"
+                "generator_version": "2.9.6"
             }
         }
     
@@ -665,7 +665,7 @@ __all__ = ['LiveLink{class_name}Tool']
             oauth_token_env=data.get('oauth_token_env', 'LIVELINK_OAUTH_TOKEN'),
             default_parent_id=data.get('default_parent_id', ''),
             document_types=data.get('document_types', []),
-            version=data.get('version', '2.8.0'),
+            version=data.get('version', '2.9.6'),
             author=data.get('author', ''),
             tags=data.get('tags', []),
             timeout_seconds=data.get('timeout_seconds', 60),
