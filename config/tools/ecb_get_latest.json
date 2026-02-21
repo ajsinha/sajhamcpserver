@@ -2,7 +2,7 @@
   "name": "ecb_get_latest",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetLatestTool",
   "description": "Retrieve the most recent observation for any European Central Bank data series. Optimized for single-value queries with minimal response payload.",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "sec_search_company",
   "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECSearchCompanyTool",
   "description": "Search for companies by name or ticker symbol in SEC EDGAR database",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

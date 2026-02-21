@@ -2,7 +2,7 @@
   "name": "sqlselect_list_sources",
   "implementation": "sajha.tools.impl.sqlselect_tool_refactored.SqlSelectListSourcesTool",
   "description": "List all available data sources with their metadata and file information",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "data_directory": "${data.sqlselect.dir}",
   "data_sources": {

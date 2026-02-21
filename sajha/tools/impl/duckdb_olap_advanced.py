@@ -1,6 +1,6 @@
 """
 SAJHA MCP Server - Advanced OLAP Tools
-Version: 2.9.6
+Version: 2.9.8
 
 MCP tools for advanced OLAP analytics including pivot tables, rollups,
 window functions, time series analysis, statistical calculations,

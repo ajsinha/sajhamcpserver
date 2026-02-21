@@ -69,7 +69,7 @@ class SajhaMCPServerWebApp:
         prop_conf: PropertiesConfigurator instance for configuration
     """
     
-    VERSION = '2.9.6'
+    VERSION = '2.9.8'
     
     def __init__(self, secret_key: Optional[str] = None, config_path: Optional[str] = None):
         """
@@ -143,8 +143,13 @@ class SajhaMCPServerWebApp:
         def inject_globals():
             """Inject global variables into all templates."""
             return {
-                'app_name': self.app.config.get('APP_NAME', 'SAJHA MCP Server'),
-                'app_version': self.app.config.get('APP_VERSION', self.VERSION),
+                'app_name': self.prop_conf.get('app.name', 'SAJHA MCP Server'),
+                'app_version': self.prop_conf.get('app.version', self.VERSION),
+                'app_author': self.prop_conf.get('app.author', 'Ashutosh Sinha'),
+                'app_email': self.prop_conf.get('app.email', 'ajsinha@gmail.com'),
+                'app_copyright_years': self.prop_conf.get('app.copyright.years', '2025-2030'),
+                'app_github_repo': self.prop_conf.get('app.github.repo', 'https://github.com/ajsinha/sajhamcpserver'),
+                'app_github_repo_name': self.prop_conf.get('app.github.repo.name', 'ajsinha/sajhamcpserver'),
                 'current_year': datetime.now().year,
                 'prop_conf': self.prop_conf
             }

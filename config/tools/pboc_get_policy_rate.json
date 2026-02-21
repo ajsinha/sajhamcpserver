@@ -2,7 +2,7 @@
   "name": "pboc_get_policy_rate",
   "implementation": "sajha.tools.impl.china_central_bank.PBoCGetPolicyRateTool",
   "description": "Retrieve China Loan Prime Rate (Policy Rate) for 1-year and 5-year tenors",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

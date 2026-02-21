@@ -2,7 +2,7 @@
   "name": "fbi_search_agencies",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBISearchAgenciesTool",
   "description": "Search for law enforcement agencies by name or location to find their ORI codes",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "un_get_country_trade",
   "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNGetCountryTradeTool",
   "description": "Retrieve comprehensive trade summary (both imports and exports) for a specific country in a given year",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "pboc_get_economic_indicator",
   "implementation": "sajha.tools.impl.china_central_bank.PBoCGetEconomicIndicatorTool",
   "description": "Retrieve Chinese economic indicators (GDP, unemployment, industrial production, trade, FDI)",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

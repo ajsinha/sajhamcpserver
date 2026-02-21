@@ -39,7 +39,7 @@ class PowerBIDAXToolConfig:
     client_secret_env: str = "POWERBI_CLIENT_SECRET"  # Environment variable name
     
     # Optional metadata
-    version: str = "2.9.6"
+    version: str = "2.9.8"
     author: str = ""
     tags: List[str] = field(default_factory=list)
     
@@ -153,7 +153,7 @@ class PowerBIDAXToolGenerator:
                 "requiresApiKey": False,
                 "source": "powerbi_dax",
                 "dataset_name": config.dataset_name,
-                "generator_version": "2.9.6"
+                "generator_version": "2.9.8"
             }
         }
     
@@ -551,7 +551,7 @@ __all__ = ['PowerBIDAX{class_name}Tool']
             tenant_id=data.get('tenant_id', ''),
             client_id=data.get('client_id', ''),
             client_secret_env=data.get('client_secret_env', 'POWERBI_CLIENT_SECRET'),
-            version=data.get('version', '2.9.6'),
+            version=data.get('version', '2.9.8'),
             author=data.get('author', ''),
             tags=data.get('tags', []),
             timeout_seconds=data.get('timeout_seconds', 60),

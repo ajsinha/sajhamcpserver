@@ -29,7 +29,7 @@ class SajhaClient:
         result = client.execute_tool("wiki_search", {"query": "Python"})
     """
     
-    VERSION = '2.9.6'
+    VERSION = '2.9.8'
     DEFAULT_BASE_URL = 'http://localhost:3002'
     
     def __init__(self, 

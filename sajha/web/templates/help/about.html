@@ -27,7 +27,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="card h-100 text-center">
                 <div class="card-body py-4">
                     <i class="bi bi-gear-wide-connected" style="font-size: 3rem; color: var(--sajha-primary);"></i>
-                    <h3 class="mt-3 mb-1">Version 2.9.6</h3>
+                    <h3 class="mt-3 mb-1">Version {{ app_version }}</h3>
                     <p class="text-muted mb-0">Current Release</p>
                 </div>
                 <div class="card-footer bg-transparent">
@@ -683,11 +683,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <i class="bi bi-c-circle me-2"></i>Copyright & Contact
                 </div>
                 <div class="card-body text-center py-4">
-                    <h5 class="mb-3">Copyright © 2025-2030 Ashutosh Sinha</h5>
+                    <h5 class="mb-3">Copyright © {{ app_copyright_years }} {{ app_author }}</h5>
                     <p class="text-muted mb-4">All rights reserved. SAJHA MCP Server is proprietary software.</p>
                     <div class="d-flex justify-content-center gap-3">
-                        <a href="mailto:ajsinha@gmail.com" class="btn btn-outline-primary">
-                            <i class="bi bi-envelope me-2"></i>ajsinha@gmail.com
+                        <a href="mailto:{{ app_email }}" class="btn btn-outline-primary">
+                            <i class="bi bi-envelope me-2"></i>{{ app_email }}
+                        </a>
+                        <a href="{{ app_github_repo }}" target="_blank" class="btn btn-outline-dark">
+                            <i class="bi bi-github me-2"></i>GitHub Repository
                         </a>
                         <a href="https://modelcontextprotocol.io" target="_blank" class="btn btn-outline-secondary">
                             <i class="bi bi-box-arrow-up-right me-2"></i>MCP Specification

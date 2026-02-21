@@ -2,7 +2,7 @@
   "name": "pboc_get_inflation",
   "implementation": "sajha.tools.impl.china_central_bank.PBoCGetInflationTool",
   "description": "Retrieve China foreign exchange and gold reserves",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

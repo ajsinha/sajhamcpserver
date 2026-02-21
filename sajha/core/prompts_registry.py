@@ -1,6 +1,5 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Patent Pending - Abhikarta LLM Platform
 Prompts Registry for SAJHA MCP Server - Singleton with Auto-Refresh
 """
 

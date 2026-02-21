@@ -2,7 +2,7 @@
   "name": "boj_get_policy_rate",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJGetPolicyRateTool",
   "description": "Retrieve Bank of Japan policy interest rate and discount rate with historical data.",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

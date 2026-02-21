@@ -2,7 +2,7 @@
     "name": "customer_olap_pivot",
     "description": "Create pivot tables for customer analytics - analyze customer segments, regions, products, and revenue with multi-dimensional grouping",
     "category": "OLAP Analytics",
-    "version": "2.9.6",
+    "version": "2.9.8",
     "enabled": true,
     "implementation": "sajha.tools.impl.duckdb_olap_advanced.CustomerOLAPTool",
     "data_directory": "${data.duckdb.dir}",

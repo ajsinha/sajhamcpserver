@@ -44,7 +44,7 @@ class DBQueryToolDefinition:
     literature: str = ""  # Context/documentation for AI
     timeout: int = 30
     max_rows: int = 1000
-    version: str = "2.9.6"
+    version: str = "2.9.8"
 
 
 class DBQueryToolGenerator:

@@ -2,7 +2,7 @@
   "name": "un_get_trade_data",
   "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNGetTradeDataTool",
   "description": "Retrieve bilateral trade data from UN Comtrade database for imports/exports between countries",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

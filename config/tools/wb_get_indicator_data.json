@@ -2,7 +2,7 @@
   "name": "wb_get_indicator_data",
   "implementation": "sajha.tools.impl.world_bank_tool.WBGetIndicatorDataTool",
   "description": "Retrieve a specific indicator across all countries for comparison. Get cross-country data for any World Bank indicator in a single query.",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

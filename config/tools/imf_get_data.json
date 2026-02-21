@@ -2,7 +2,7 @@
   "name": "imf_get_data",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetDataTool",
   "description": "Retrieve economic data from any IMF database for a specific country and indicator. Generic access to all IMF data.",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

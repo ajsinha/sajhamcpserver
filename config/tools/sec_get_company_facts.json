@@ -2,7 +2,7 @@
   "name": "sec_get_company_facts",
   "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECGetCompanyFactsTool",
   "description": "Retrieve all XBRL financial facts reported by a company in structured format",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

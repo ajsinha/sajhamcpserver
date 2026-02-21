@@ -2,7 +2,7 @@
     "name": "duckdb_sql",
     "description": "Execute SQL queries directly on CSV data files. Available tables: customers (50 rows), orders (80 rows), products (27 rows). Use standard SQL syntax.",
     "category": "Data Analytics",
-    "version": "2.9.6",
+    "version": "2.9.8",
     "enabled": true,
     "implementation": "sajha.tools.impl.duckdb_olap_advanced.DuckDBSQLTool",
     "data_directory": "${data.duckdb.dir}",

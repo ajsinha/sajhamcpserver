@@ -1,0 +1,54 @@
+# --- Byte-compiled / optimized / DLL files ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Environments ---
+data/
+logs/
+.venv/
+venv/
+ENV/
+env/
+# Explicitly ignoring local environment folders
+.python-version
+
+# --- Distribution / Packaging ---
+dist/
+build/
+eggs/
+*.egg-info/
+*.egg
+nosetests.xml
+coverage.xml
+*.cover
+*.pyo
+
+# --- Unit test / Coverage reports ---
+htmlcov/
+.tox/
+.nosexy
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+.hypothesis/
+.pytest_cache/
+
+# --- Jupyter Notebooks ---
+.ipynb_checkpoints
+
+# --- Secret / Configuration files ---
+.env
+.flaskenv
+instance/
+!config.example.py
+
+# --- IDE specific (optional but recommended) ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store

@@ -2,7 +2,7 @@
   "name": "sec_get_company_filings",
   "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECGetCompanyFilingsTool",
   "description": "Retrieve SEC filings for a company with optional filtering by type and date range",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

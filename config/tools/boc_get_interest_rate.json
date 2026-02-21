@@ -2,7 +2,7 @@
   "name": "boc_get_interest_rate",
   "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCGetInterestRateTool",
   "description": "Retrieve Bank of Canada interest rates including policy rate, overnight rate (CORRA), and prime rate with historical data.",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

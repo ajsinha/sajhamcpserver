@@ -2,7 +2,7 @@
   "name": "fed_search_series",
   "implementation": "sajha.tools.impl.fed_reserve_tool_refactored.FedSearchSeriesTool",
   "description": "Search for economic data series in the FRED database. Find the right data series using keywords and discover available economic indicators.",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

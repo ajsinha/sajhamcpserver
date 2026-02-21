@@ -1,0 +1,741 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}SharePoint Tool Creator - MCP Studio - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .sharepoint-creator-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .creator-header {
+        background: linear-gradient(135deg, #0078d4 0%, #004578 100%);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+        color: #fff;
+    }
+    
+    .creator-header h3 {
+        color: #fff;
+        margin-bottom: 8px;
+    }
+    
+    .creator-header .subtitle {
+        color: #a0d8ff;
+        font-size: 0.95rem;
+    }
+    
+    .form-section {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #0078d4 0%, #004578 100%);
+        color: white;
+        padding: 15px 20px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-header.secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    }
+    
+    .section-header.success {
+        background: linear-gradient(135deg, #198754 0%, #157347 100%);
+    }
+    
+    .section-body {
+        padding: 20px;
+    }
+    
+    .tool-type-select {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+    
+    .tool-type-btn {
+        padding: 15px 25px;
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
+        background: #fff;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        text-align: center;
+        min-width: 150px;
+    }
+    
+    .tool-type-btn:hover {
+        border-color: #0078d4;
+        transform: translateY(-2px);
+    }
+    
+    .tool-type-btn.active {
+        border-color: #0078d4;
+        background: #0078d4;
+        color: white;
+    }
+    
+    .tool-type-btn i {
+        display: block;
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+    
+    .operation-checkbox {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 15px;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        margin: 5px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .operation-checkbox:hover {
+        background: #f8f9fa;
+    }
+    
+    .operation-checkbox input:checked + span {
+        color: #0078d4;
+        font-weight: 600;
+    }
+    
+    .preview-code {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 20px;
+        border-radius: 8px;
+        font-family: 'Cascadia Code', 'Fira Code', monospace;
+        font-size: 0.85rem;
+        max-height: 400px;
+        overflow: auto;
+    }
+    
+    .btn-deploy {
+        background: linear-gradient(135deg, #198754 0%, #157347 100%);
+        border: none;
+        padding: 12px 30px;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    
+    .btn-deploy:hover {
+        background: linear-gradient(135deg, #157347 0%, #146c43 100%);
+    }
+    
+    .variable-hint {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+    
+    .variable-hint code {
+        background: #e9ecef;
+        padding: 2px 6px;
+        border-radius: 3px;
+        color: #0078d4;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sharepoint-creator-container py-4">
+    <!-- Header -->
+    <div class="creator-header">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h3>
+                    <i class="bi bi-microsoft me-2"></i>SharePoint Tool Creator
+                    <span class="badge bg-light text-dark ms-2" style="font-size: 0.5em;">v{{ app_version }}</span>
+                </h3>
+                <p class="subtitle mb-0">
+                    Create MCP tools that integrate with Microsoft SharePoint - documents, lists, sites, and search
+                </p>
+            </div>
+            <a href="{{ url_for('studio.studio_home') }}" class="btn btn-outline-light">
+                <i class="bi bi-arrow-left me-1"></i>Back to Studio
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Left Column: Configuration Form -->
+        <div class="col-lg-7">
+            <form id="sharepoint-tool-form">
+                <!-- Tool Type Selection -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                        <span>1. Select Tool Type</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="tool-type-select">
+                            <div class="tool-type-btn active" data-type="documents">
+                                <i class="bi bi-file-earmark-text"></i>
+                                Documents
+                            </div>
+                            <div class="tool-type-btn" data-type="lists">
+                                <i class="bi bi-list-ul"></i>
+                                Lists
+                            </div>
+                            <div class="tool-type-btn" data-type="sites">
+                                <i class="bi bi-globe"></i>
+                                Sites
+                            </div>
+                            <div class="tool-type-btn" data-type="search">
+                                <i class="bi bi-search"></i>
+                                Search
+                            </div>
+                        </div>
+                        <input type="hidden" id="tool_type" name="tool_type" value="documents">
+                    </div>
+                </div>
+                
+                <!-- Basic Information -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <i class="bi bi-info-circle"></i>
+                        <span>2. Basic Information</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Tool Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="name" name="name" 
+                                       placeholder="e.g., sharepoint_project_docs" required
+                                       pattern="[a-z][a-z0-9_]*">
+                                <div class="form-text">Lowercase with underscores (e.g., my_sharepoint_tool)</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Version</label>
+                                <input type="text" class="form-control" id="version" name="version" 
+                                       value="{{ app_version }}">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Description <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="description" name="description" 
+                                          rows="2" placeholder="Describe what this tool does..." required></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Category</label>
+                                <input type="text" class="form-control" id="category" name="category" 
+                                       value="Document Management">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tags</label>
+                                <input type="text" class="form-control" id="tags" name="tags" 
+                                       placeholder="sharepoint, microsoft, documents">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SharePoint Connection -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <i class="bi bi-link-45deg"></i>
+                        <span>3. SharePoint Connection</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">SharePoint Site URL <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="site_url" name="site_url" 
+                                       placeholder="https://tenant.sharepoint.com/sites/mysite" required>
+                                <div class="variable-hint">
+                                    Use variable: <code>${sharepoint.site.url}</code>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Default Folder Path</label>
+                                <input type="text" class="form-control" id="default_folder" name="default_folder" 
+                                       value="/Shared Documents">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Default List Name</label>
+                                <input type="text" class="form-control" id="default_list" name="default_list" 
+                                       placeholder="e.g., Tasks, Projects">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Azure AD Authentication -->
+                <div class="form-section">
+                    <div class="section-header secondary">
+                        <i class="bi bi-shield-lock"></i>
+                        <span>4. Azure AD Authentication</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Authentication Type</label>
+                                <select class="form-select" id="auth_type" name="auth_type">
+                                    <option value="client_credentials" selected>Client Credentials (App-Only)</option>
+                                    <option value="certificate">Certificate</option>
+                                    <option value="user_credentials">User Credentials (ROPC)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tenant ID <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="tenant_id" name="tenant_id" 
+                                       placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required>
+                                <div class="variable-hint">Use variable: <code>${azure.tenant.id}</code></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Client ID <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="client_id" name="client_id" 
+                                       placeholder="App Registration Client ID" required>
+                                <div class="variable-hint">Use variable: <code>${sharepoint.client.id}</code></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Client Secret</label>
+                                <input type="password" class="form-control" id="client_secret" name="client_secret" 
+                                       placeholder="App Registration Client Secret">
+                                <div class="variable-hint">Use variable: <code>${sharepoint.client.secret}</code></div>
+                            </div>
+                        </div>
+                        <div class="alert alert-info mt-3 mb-0">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Setup Required:</strong> Create an Azure AD App Registration with SharePoint API permissions.
+                            <a href="https://docs.microsoft.com/en-us/sharepoint/dev/sp-add-ins/register-sharepoint-add-ins" 
+                               target="_blank">Learn more</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Operations Selection -->
+                <div class="form-section">
+                    <div class="section-header success">
+                        <i class="bi bi-gear"></i>
+                        <span>5. Select Operations</span>
+                    </div>
+                    <div class="section-body">
+                        <p class="text-muted mb-3">Select which operations to enable for this tool:</p>
+                        
+                        <!-- Document Operations -->
+                        <div id="operations-documents">
+                            <h6 class="mb-3"><i class="bi bi-file-earmark me-2"></i>Document Operations</h6>
+                            <div class="d-flex flex-wrap">
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="list_files" checked>
+                                    <span class="ms-2">List Files</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="get_file" checked>
+                                    <span class="ms-2">Get File</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="download" checked>
+                                    <span class="ms-2">Download</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="upload">
+                                    <span class="ms-2">Upload</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="search" checked>
+                                    <span class="ms-2">Search</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="get_metadata" checked>
+                                    <span class="ms-2">Get Metadata</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="update_metadata">
+                                    <span class="ms-2">Update Metadata</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="get_versions">
+                                    <span class="ms-2">Get Versions</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="check_out">
+                                    <span class="ms-2">Check Out</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="check_in">
+                                    <span class="ms-2">Check In</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="move">
+                                    <span class="ms-2">Move</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="copy">
+                                    <span class="ms-2">Copy</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="delete">
+                                    <span class="ms-2">Delete</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- List Operations -->
+                        <div id="operations-lists" style="display: none;">
+                            <h6 class="mb-3"><i class="bi bi-list-ul me-2"></i>List Operations</h6>
+                            <div class="d-flex flex-wrap">
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="get_lists" checked>
+                                    <span class="ms-2">Get Lists</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="get_list_items" checked>
+                                    <span class="ms-2">Get Items</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="get_item" checked>
+                                    <span class="ms-2">Get Item</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="create_item">
+                                    <span class="ms-2">Create Item</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="update_item">
+                                    <span class="ms-2">Update Item</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="delete_item">
+                                    <span class="ms-2">Delete Item</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="get_list_schema" checked>
+                                    <span class="ms-2">Get Schema</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="query_items" checked>
+                                    <span class="ms-2">Query Items</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Site Operations -->
+                        <div id="operations-sites" style="display: none;">
+                            <h6 class="mb-3"><i class="bi bi-globe me-2"></i>Site Operations</h6>
+                            <div class="d-flex flex-wrap">
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="get_site_info" checked>
+                                    <span class="ms-2">Get Site Info</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="get_subsites" checked>
+                                    <span class="ms-2">Get Subsites</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="get_users" checked>
+                                    <span class="ms-2">Get Users</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="get_groups" checked>
+                                    <span class="ms-2">Get Groups</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="get_permissions">
+                                    <span class="ms-2">Get Permissions</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="get_content_types">
+                                    <span class="ms-2">Content Types</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Search Operations -->
+                        <div id="operations-search" style="display: none;">
+                            <h6 class="mb-3"><i class="bi bi-search me-2"></i>Search Types</h6>
+                            <div class="d-flex flex-wrap">
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="all" checked>
+                                    <span class="ms-2">Search All</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="documents" checked>
+                                    <span class="ms-2">Documents</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="people" checked>
+                                    <span class="ms-2">People</span>
+                                </label>
+                                <label class="operation-checkbox">
+                                    <input type="checkbox" name="operations[]" value="sites" checked>
+                                    <span class="ms-2">Sites</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Options -->
+                <div class="form-section">
+                    <div class="section-header secondary">
+                        <i class="bi bi-sliders"></i>
+                        <span>6. Options</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Max File Size (MB)</label>
+                                <input type="number" class="form-control" id="max_file_size_mb" 
+                                       name="max_file_size_mb" value="100" min="1" max="500">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Cache TTL (seconds)</label>
+                                <input type="number" class="form-control" id="cache_ttl_seconds" 
+                                       name="cache_ttl_seconds" value="300" min="0" max="3600">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Allowed File Types</label>
+                                <input type="text" class="form-control" id="allowed_file_types" 
+                                       name="allowed_file_types" placeholder="docx,pdf,xlsx (empty=all)">
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="enable_version_control" 
+                                           name="enable_version_control" checked>
+                                    <label class="form-check-label" for="enable_version_control">
+                                        Enable Version Control
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="enable_metadata" 
+                                           name="enable_metadata" checked>
+                                    <label class="form-check-label" for="enable_metadata">
+                                        Enable Metadata Operations
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="cache_enabled" 
+                                           name="cache_enabled" checked>
+                                    <label class="form-check-label" for="cache_enabled">
+                                        Enable Caching
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Deploy Button -->
+                <div class="d-flex gap-3 justify-content-end mt-4">
+                    <button type="button" class="btn btn-outline-secondary" id="btn-preview">
+                        <i class="bi bi-eye me-2"></i>Preview Configuration
+                    </button>
+                    <button type="submit" class="btn btn-success btn-deploy">
+                        <i class="bi bi-rocket-takeoff me-2"></i>Deploy Tool
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Right Column: Preview -->
+        <div class="col-lg-5">
+            <div class="form-section sticky-top" style="top: 20px;">
+                <div class="section-header">
+                    <i class="bi bi-code-slash"></i>
+                    <span>Configuration Preview</span>
+                </div>
+                <div class="section-body p-0">
+                    <pre class="preview-code mb-0" id="config-preview">{
+  "name": "sharepoint_documents",
+  "description": "SharePoint document management tool",
+  "tool_type": "documents",
+  "version": "{{ app_version }}",
+  "site_url": "${sharepoint.site.url}",
+  "authentication": {
+    "type": "client_credentials",
+    "tenant_id": "${azure.tenant.id}",
+    "client_id": "${sharepoint.client.id}",
+    "client_secret": "${sharepoint.client.secret}"
+  }
+}</pre>
+                </div>
+            </div>
+            
+            <!-- Help Section -->
+            <div class="form-section mt-4">
+                <div class="section-header secondary">
+                    <i class="bi bi-question-circle"></i>
+                    <span>Quick Help</span>
+                </div>
+                <div class="section-body">
+                    <h6>Azure AD Setup</h6>
+                    <ol class="small mb-3">
+                        <li>Go to Azure Portal → Azure AD → App registrations</li>
+                        <li>Create new registration</li>
+                        <li>Add API permissions: SharePoint → Sites.Read.All</li>
+                        <li>Create a client secret</li>
+                        <li>Copy Tenant ID, Client ID, and Secret</li>
+                    </ol>
+                    
+                    <h6>Variable Reference</h6>
+                    <table class="table table-sm small">
+                        <tr>
+                            <td><code>${sharepoint.site.url}</code></td>
+                            <td>Site URL from properties</td>
+                        </tr>
+                        <tr>
+                            <td><code>${azure.tenant.id}</code></td>
+                            <td>Azure AD tenant ID</td>
+                        </tr>
+                        <tr>
+                            <td><code>${sharepoint.client.id}</code></td>
+                            <td>App registration client ID</td>
+                        </tr>
+                        <tr>
+                            <td><code>${sharepoint.client.secret}</code></td>
+                            <td>App registration secret</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('sharepoint-tool-form');
+    const previewEl = document.getElementById('config-preview');
+    const toolTypeInput = document.getElementById('tool_type');
+    
+    // Tool type selection
+    document.querySelectorAll('.tool-type-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.tool-type-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            const type = this.dataset.type;
+            toolTypeInput.value = type;
+            
+            // Show/hide operations sections
+            document.querySelectorAll('[id^="operations-"]').forEach(el => el.style.display = 'none');
+            document.getElementById('operations-' + type).style.display = 'block';
+            
+            updatePreview();
+        });
+    });
+    
+    // Update preview on any input change
+    form.querySelectorAll('input, textarea, select').forEach(input => {
+        input.addEventListener('input', updatePreview);
+        input.addEventListener('change', updatePreview);
+    });
+    
+    function updatePreview() {
+        const formData = new FormData(form);
+        const operations = [];
+        
+        document.querySelectorAll('input[name="operations[]"]:checked').forEach(cb => {
+            operations.push(cb.value);
+        });
+        
+        const config = {
+            name: formData.get('name') || 'sharepoint_tool',
+            description: formData.get('description') || 'SharePoint integration tool',
+            tool_type: formData.get('tool_type') || 'documents',
+            version: formData.get('version') || '{{ app_version }}',
+            site_url: formData.get('site_url') || '${sharepoint.site.url}',
+            authentication: {
+                type: formData.get('auth_type') || 'client_credentials',
+                tenant_id: formData.get('tenant_id') || '${azure.tenant.id}',
+                client_id: formData.get('client_id') || '${sharepoint.client.id}',
+                client_secret: formData.get('client_secret') ? '***hidden***' : '${sharepoint.client.secret}'
+            },
+            options: {
+                default_folder: formData.get('default_folder') || '/Shared Documents',
+                default_list: formData.get('default_list') || '',
+                allowed_operations: operations
+            }
+        };
+        
+        previewEl.textContent = JSON.stringify(config, null, 2);
+    }
+    
+    // Preview button
+    document.getElementById('btn-preview').addEventListener('click', function() {
+        updatePreview();
+        previewEl.scrollIntoView({ behavior: 'smooth' });
+    });
+    
+    // Form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const operations = [];
+        
+        document.querySelectorAll('input[name="operations[]"]:checked').forEach(cb => {
+            operations.push(cb.value);
+        });
+        
+        const data = {
+            name: formData.get('name'),
+            description: formData.get('description'),
+            tool_type: formData.get('tool_type'),
+            version: formData.get('version'),
+            site_url: formData.get('site_url'),
+            auth_type: formData.get('auth_type'),
+            tenant_id: formData.get('tenant_id'),
+            client_id: formData.get('client_id'),
+            client_secret: formData.get('client_secret'),
+            default_folder: formData.get('default_folder'),
+            default_list: formData.get('default_list'),
+            allowed_operations: operations,
+            max_file_size_mb: parseInt(formData.get('max_file_size_mb')),
+            cache_ttl_seconds: parseInt(formData.get('cache_ttl_seconds')),
+            allowed_file_types: formData.get('allowed_file_types') ? 
+                formData.get('allowed_file_types').split(',').map(s => s.trim()) : [],
+            enable_version_control: formData.get('enable_version_control') === 'on',
+            enable_metadata: formData.get('enable_metadata') === 'on',
+            cache_enabled: formData.get('cache_enabled') === 'on',
+            category: formData.get('category'),
+            tags: formData.get('tags') ? formData.get('tags').split(',').map(s => s.trim()) : []
+        };
+        
+        try {
+            const response = await fetch('{{ url_for("studio.deploy_sharepoint_tool") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('Tool deployed successfully!\\n\\nTool: ' + result.tool_name + '\\nFile: ' + result.config_file);
+                window.location.href = '{{ url_for("tools.list_tools") }}';
+            } else {
+                alert('Error: ' + (result.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Deploy error:', error);
+            alert('Error deploying tool: ' + error.message);
+        }
+    });
+    
+    // Initialize preview
+    updatePreview();
+});
+</script>
+{% endblock %}

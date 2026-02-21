@@ -1,0 +1,62 @@
+{
+    "name": "sharepoint_search",
+    "description": "Enterprise search across SharePoint - documents, sites, people, and lists",
+    "category": "Document Management",
+    "version": "2.9.8",
+    "enabled": true,
+    "implementation": "sajha.tools.impl.sharepoint_tool.SharePointSearchTool",
+    "site_url": "${sharepoint.site.url}",
+    "authentication": {
+        "type": "client_credentials",
+        "tenant_id": "${azure.tenant.id}",
+        "client_id": "${sharepoint.client.id}",
+        "client_secret": "${sharepoint.client.secret}"
+    },
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "required": true,
+                "description": "Search query"
+            },
+            "search_type": {
+                "type": "string",
+                "enum": ["all", "documents", "people", "sites"],
+                "default": "all"
+            },
+            "file_types": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Filter by file types (e.g., ['docx', 'pdf'])"
+            },
+            "max_results": {
+                "type": "integer",
+                "default": 50,
+                "maximum": 500
+            },
+            "start_row": {
+                "type": "integer",
+                "default": 0
+            }
+        }
+    },
+    "metadata": {
+        "author": "Ashutosh Sinha",
+        "tags": ["sharepoint", "search", "enterprise", "microsoft"],
+        "examples": [
+            {
+                "description": "Search all content",
+                "input": {"query": "quarterly report", "search_type": "all"}
+            },
+            {
+                "description": "Search documents by type",
+                "input": {"query": "budget", "search_type": "documents", "file_types": ["xlsx", "pdf"]}
+            },
+            {
+                "description": "Search people",
+                "input": {"query": "project manager", "search_type": "people"}
+            }
+        ]
+    }
+}

@@ -2,7 +2,7 @@
   "name": "yahoo_get_quote",
   "implementation": "sajha.tools.impl.yahoo_finance_tool.YahooGetQuoteTool",
   "description": "Retrieve real-time stock quote data including current price, volume, market cap, and key statistics for a given stock symbol.",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

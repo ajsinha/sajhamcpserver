@@ -2,7 +2,7 @@
   "name": "imf_get_databases",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetDatabasesTool",
   "description": "List all available IMF databases including IFS, WEO, BOP, and more. Use this to discover what data sources are available.",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

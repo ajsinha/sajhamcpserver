@@ -2,7 +2,7 @@
   "name": "get_page_info",
   "implementation": "sajha.tools.impl.webcrawler_tool_refactored.GetPageInfoTool",
   "description": "Get comprehensive information and statistics about a web page including metadata, structure, link/image counts, and content metrics",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

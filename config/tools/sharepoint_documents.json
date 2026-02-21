@@ -1,0 +1,105 @@
+{
+    "name": "sharepoint_documents",
+    "description": "Manage documents in Microsoft SharePoint - upload, download, search, version control, metadata management",
+    "category": "Document Management",
+    "version": "2.9.8",
+    "enabled": true,
+    "implementation": "sajha.tools.impl.sharepoint_tool.SharePointDocumentTool",
+    "site_url": "${sharepoint.site.url}",
+    "authentication": {
+        "type": "client_credentials",
+        "tenant_id": "${azure.tenant.id}",
+        "client_id": "${sharepoint.client.id}",
+        "client_secret": "${sharepoint.client.secret}"
+    },
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "operation": {
+                "type": "string",
+                "required": true,
+                "enum": ["list_files", "get_file", "download", "upload", "search", "get_metadata", "update_metadata", "check_out", "check_in", "get_versions", "delete", "move", "copy"],
+                "description": "Document operation to perform"
+            },
+            "folder_path": {
+                "type": "string",
+                "description": "Folder path (e.g., /Shared Documents/Project)"
+            },
+            "file_url": {
+                "type": "string",
+                "description": "Server-relative file URL"
+            },
+            "file_name": {
+                "type": "string",
+                "description": "File name for upload"
+            },
+            "content_base64": {
+                "type": "string",
+                "description": "Base64-encoded file content for upload"
+            },
+            "query": {
+                "type": "string",
+                "description": "Search query text"
+            },
+            "metadata": {
+                "type": "object",
+                "description": "Metadata fields to update"
+            },
+            "destination_url": {
+                "type": "string",
+                "description": "Destination URL for move/copy"
+            },
+            "overwrite": {
+                "type": "boolean",
+                "default": false
+            },
+            "recursive": {
+                "type": "boolean",
+                "default": false
+            }
+        }
+    },
+    "outputSchema": {
+        "type": "object",
+        "properties": {
+            "success": {"type": "boolean"},
+            "files": {"type": "array"},
+            "file_url": {"type": "string"},
+            "metadata": {"type": "object"},
+            "versions": {"type": "array"},
+            "results": {"type": "array"},
+            "execution_time_ms": {"type": "number"},
+            "error": {"type": "string"}
+        }
+    },
+    "metadata": {
+        "author": "Ashutosh Sinha",
+        "category": "Document Management",
+        "tags": ["sharepoint", "documents", "microsoft", "ecm", "office365"],
+        "rateLimit": 100,
+        "cacheTTL": 300,
+        "examples": [
+            {
+                "description": "List files in folder",
+                "input": {
+                    "operation": "list_files",
+                    "folder_path": "/Shared Documents"
+                }
+            },
+            {
+                "description": "Search documents",
+                "input": {
+                    "operation": "search",
+                    "query": "project report 2024"
+                }
+            },
+            {
+                "description": "Get file metadata",
+                "input": {
+                    "operation": "get_metadata",
+                    "file_url": "/sites/team/Shared Documents/report.docx"
+                }
+            }
+        ]
+    }
+}

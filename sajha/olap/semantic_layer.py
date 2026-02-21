@@ -1,6 +1,6 @@
 """
 SAJHA MCP Server - Semantic Layer
-Version: 2.9.6
+Version: 2.9.8
 
 The Semantic Layer provides a business-friendly abstraction over raw database tables,
 defining datasets with measures, dimensions, and hierarchies that can be queried

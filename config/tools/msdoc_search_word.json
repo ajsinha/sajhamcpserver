@@ -2,7 +2,7 @@
   "name": "msdoc_search_word",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocSearchWordTool",
   "description": "Search for specific text within Word documents and return matching paragraphs",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

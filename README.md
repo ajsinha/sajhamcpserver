@@ -17,7 +17,7 @@ SAJHA MCP Server is a production-ready Python-based implementation of the Model 
 - ✅ 40+ Built-in tools: Financial, Search, Government APIs, Analytics
 - ✅ Properties-based configuration with auto-reload
 - ✅ Comprehensive audit logging
-- ✅ **MCP Studio** (v2.9.0): Visual Tool Creation Platform
+- ✅ **MCP Studio** (v2.9.8): Visual Tool Creation Platform
   - Python Code Tool Creator with @sajhamcptool decorator
   - **REST Service Tool Creator** - Wrap any REST API as MCP tool
     - Supports JSON, CSV, XML, and plain text response formats
@@ -27,7 +27,7 @@ SAJHA MCP Server is a production-ready Python-based implementation of the Model 
     - Parameterized queries with auto-generated schemas
   - **Script Tool Creator** - Execute scripts as MCP tools
     - Shell scripts (Bash, Sh, Zsh)
-    - Python scripts
+    - Python scripts with full package support
     - Node.js, Ruby, Perl scripts
     - Array of string arguments as input, STDOUT/STDERR as output
   - **PowerBI Report Tool Creator** - Export reports as PDF
@@ -46,13 +46,22 @@ SAJHA MCP Server is a production-ready Python-based implementation of the Model 
     - Base64 encoded document output
     - Basic Auth, OAuth, OTDS authentication
     - REST API v1 and v2 support
+  - **NEW: Microsoft SharePoint Tool Creator** (v2.9.8) - SharePoint integration
+    - **Document Management** - Upload, download, search, check-in/out
+    - **List Operations** - CRUD operations on SharePoint lists
+    - **Site Management** - Query sites, subsites, users, groups
+    - **Enterprise Search** - Full-text search across documents, people, sites
+    - Azure AD Client Credentials authentication
+    - Microsoft Graph API integration
+    - Version control and metadata support
+    - Configurable file type restrictions
   - **OLAP Dataset Creator** - Define semantic datasets
     - Configure dimensions, measures, and hierarchies
     - Automatic join configuration
     - Time dimension support for time series analysis
   - JSON Schema guided form interface
-  - Multiple authentication options (API Key, Basic Auth)
-- ✅ **OLAP Analytics Engine** (v2.9.0): Advanced Multi-Dimensional Analysis
+  - Multiple authentication options (API Key, Basic Auth, OAuth2)
+- ✅ **OLAP Analytics Engine** (v2.9.8): Advanced Multi-Dimensional Analysis
   - **Semantic Layer** - Business-friendly abstraction over raw data
     - Reusable dimension and measure definitions
     - Hierarchies for drill-down analysis
@@ -85,12 +94,12 @@ SAJHA MCP Server is a production-ready Python-based implementation of the Model 
     - Top N / Bottom N analysis
     - Cumulative contribution percentages
     - Automatic A/B/C classification
-  - **NEW: Cohort Analysis** (v2.9.0) - Track groups over time
+  - **NEW: Cohort Analysis** (v2.9.8) - Track groups over time
     - Customer cohort tracking
     - Retention analysis with percentage matrices
     - Multi-period comparison
     - Cohort-based revenue tracking
-  - **NEW: Sample Data Generator** (v2.9.0) - Demo data creation
+  - **NEW: Sample Data Generator** (v2.9.8) - Demo data creation
     - Generate realistic sales, customer, and product data
     - Configurable date ranges and volumes
     - Automatic OLAP configuration file generation
@@ -559,6 +568,37 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha
   - `olap_contribution`: Pareto analysis
   - `olap_correlation`: Correlation matrix
 - **Documentation**: Complete OLAP analytics documentation
+
+### Version 2.9.8 (February 2026)
+- **Dynamic Application Configuration**: All app metadata now configurable via application.properties
+  - Author name, email, copyright years from config
+  - GitHub repository URL from config
+  - Version displayed dynamically across all UI pages
+  - Flask context processor injects config values into all templates
+- **Microsoft SharePoint Tool Creator**: Full SharePoint integration via MCP Studio
+  - **Document Management Tool**: Upload, download, search, check-in/out, versions
+  - **List Operations Tool**: Create, read, update, delete SharePoint list items
+  - **Site Management Tool**: Query sites, subsites, users, groups, permissions
+  - **Enterprise Search Tool**: Full-text search across documents, people, sites
+  - Azure AD Client Credentials and Certificate authentication
+  - Microsoft Graph API integration
+  - Version control and metadata support
+  - Configurable file type and size restrictions
+- **Variable Substitution System**: Dynamic configuration with ${key} pattern
+  - Supports PropertiesConfigurator values
+  - Environment variable fallback
+  - Default values with ${key:default} syntax
+- **Enhanced User Guides**: Comprehensive documentation for all tool creators
+  - REST Tool Creator Guide
+  - Script Tool Creator Guide
+  - Python Code Tool Creator Guide
+  - Database Query Tool Creator Guide
+  - OLAP Tool Creator Guide
+  - PowerBI Tool Creator Guide
+  - PowerBI DAX Tool Creator Guide
+  - IBM LiveLink Tool Creator Guide
+  - SharePoint Tool Creator Guide
+- **Bug Fixes**: Async method fixes, input parsing improvements, OLAP constructor fixes
 
 ### Version 2.7.0 (February 2026)
 - **PowerBI DAX Query Tool Creator**: Execute DAX queries against PowerBI datasets

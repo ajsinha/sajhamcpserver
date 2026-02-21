@@ -2,7 +2,7 @@
   "name": "msdoc_get_word_metadata",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocGetWordMetadataTool",
   "description": "Extract metadata and document properties from Word files",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -1,0 +1,87 @@
+{
+    "name": "sharepoint_lists",
+    "description": "Manage SharePoint lists - create, read, update, delete list items with query support",
+    "category": "Document Management",
+    "version": "2.9.8",
+    "enabled": true,
+    "implementation": "sajha.tools.impl.sharepoint_tool.SharePointListTool",
+    "site_url": "${sharepoint.site.url}",
+    "authentication": {
+        "type": "client_credentials",
+        "tenant_id": "${azure.tenant.id}",
+        "client_id": "${sharepoint.client.id}",
+        "client_secret": "${sharepoint.client.secret}"
+    },
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "operation": {
+                "type": "string",
+                "required": true,
+                "enum": ["get_lists", "get_list_items", "get_item", "create_item", "update_item", "delete_item", "get_list_schema", "query_items"],
+                "description": "List operation to perform"
+            },
+            "list_name": {
+                "type": "string",
+                "description": "SharePoint list name"
+            },
+            "item_id": {
+                "type": "integer",
+                "description": "List item ID"
+            },
+            "item_data": {
+                "type": "object",
+                "description": "Data for create/update operations"
+            },
+            "filter": {
+                "type": "string",
+                "description": "OData filter query"
+            },
+            "select_fields": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Fields to select"
+            },
+            "order_by": {
+                "type": "string",
+                "description": "Order by field"
+            },
+            "top": {
+                "type": "integer",
+                "default": 100,
+                "description": "Number of items to return"
+            },
+            "skip": {
+                "type": "integer",
+                "default": 0,
+                "description": "Number of items to skip"
+            }
+        }
+    },
+    "metadata": {
+        "author": "Ashutosh Sinha",
+        "tags": ["sharepoint", "lists", "microsoft", "office365"],
+        "examples": [
+            {
+                "description": "Get all lists",
+                "input": {"operation": "get_lists"}
+            },
+            {
+                "description": "Get items from a list",
+                "input": {
+                    "operation": "get_list_items",
+                    "list_name": "Tasks",
+                    "top": 50
+                }
+            },
+            {
+                "description": "Query list with filter",
+                "input": {
+                    "operation": "query_items",
+                    "list_name": "Projects",
+                    "filter": "Status eq 'Active'"
+                }
+            }
+        ]
+    }
+}

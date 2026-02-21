@@ -1,6 +1,6 @@
 """
 SAJHA MCP Server - Pivot Engine
-Version: 2.9.6
+Version: 2.9.8
 
 Engine for generating and executing pivot table queries using DuckDB's
 native PIVOT functionality.

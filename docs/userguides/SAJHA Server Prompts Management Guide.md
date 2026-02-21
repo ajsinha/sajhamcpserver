@@ -1,4 +1,4 @@
-ajsion# SAJHA Server Prompts Management Guide
+# SAJHA Server Prompts Management Guide
 
 **Complete Documentation for Prompts Management System**
 
@@ -6,8 +6,7 @@ ajsion# SAJHA Server Prompts Management Guide
 
 **Copyright All rights Reserved 2025-2030**  
 **Ashutosh Sinha**  
-**Email: ajsinha@gmail.com**  
-**Patent Pending - Abhikarta LLM Platform**
+**Email: ajsinha@gmail.com**
 
 ---
 
@@ -3624,8 +3623,7 @@ For questions, issues, or enhancements, refer to the troubleshooting section or 
 
 **Copyright All rights Reserved 2025-2030**  
 **Ashutosh Sinha**  
-**Email: ajsinha@gmail.com**  
-**Patent Pending - Abhikarta LLM Platform**
+**Email: ajsinha@gmail.com**
 
 ---
 

@@ -28,6 +28,6 @@ __all__ = [
     'EnhancedIRScraperFactory',
 ]
 
-__version__ = '2.9.6'
+__version__ = '2.9.8'
 __author__ = 'Ashutosh Sinha'
 __email__ = 'ajsinha@gmail.com'

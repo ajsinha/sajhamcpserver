@@ -2,7 +2,7 @@
   "name": "extract_links",
   "implementation": "sajha.tools.impl.webcrawler_tool_refactored.ExtractLinksTool",
   "description": "Extract all hyperlinks from a web page with options to normalize URLs and filter by internal/external",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

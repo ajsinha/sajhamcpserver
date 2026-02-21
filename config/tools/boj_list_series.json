@@ -2,7 +2,7 @@
   "name": "boj_list_series",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJListSeriesTools",
   "description": "List available Japanese economic data series from Bank of Japan",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

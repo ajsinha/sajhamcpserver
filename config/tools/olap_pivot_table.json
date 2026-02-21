@@ -2,7 +2,7 @@
     "name": "olap_pivot_table",
     "description": "Create interactive pivot tables for multi-dimensional analysis with rows, columns, values, and automatic totals",
     "category": "OLAP Analytics",
-    "version": "2.9.6",
+    "version": "2.9.8",
     "enabled": true,
     "implementation": "sajha.tools.impl.duckdb_olap_advanced.DuckDBOLAPAdvancedTool",
     "parameters": {

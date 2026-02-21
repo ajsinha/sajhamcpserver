@@ -2,7 +2,7 @@
   "name": "bdf_get_french_indicator",
   "implementation": "sajha.tools.impl.france_central_bank.BdFGetFrenchEconomicIndicatorTool",
   "description": "Retrieve French economic indicators including CPI, GDP, and unemployment",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "metadata": {
     "author": "Ashutosh Sinha",

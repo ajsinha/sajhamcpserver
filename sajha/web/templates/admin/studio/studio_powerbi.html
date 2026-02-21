@@ -428,7 +428,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div>
                 <h3 class="mb-0">
                     <i class="bi bi-file-earmark-pdf me-2"></i>PowerBI PDF Report Tool Creator
-                    <span class="badge bg-light text-dark ms-2" style="font-size: 0.5em;">v2.9.6</span>
+                    <span class="badge bg-light text-dark ms-2" style="font-size: 0.5em;">v{{ app_version }}</span>
                 </h3>
                 <p class="subtitle mb-0">
                     Create MCP tools to retrieve PowerBI reports as PDF (base64 encoded)
@@ -704,7 +704,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             name: data.tool_name || 'your_tool_name',
             implementation: `sajha.tools.impl.powerbi_${data.tool_name || 'your_tool'}.PowerBI...Tool`,
             description: data.description || 'Your tool description',
-            version: '2.9.6',
+            version: '{{ app_version }}',
             enabled: true,
             metadata: {
                 author: data.author || 'MCP Studio - PowerBI Generator',

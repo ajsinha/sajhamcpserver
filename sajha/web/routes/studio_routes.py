@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server - MCP Studio Routes v2.8.0
+SAJHA MCP Server - MCP Studio Routes v2.9.8
 
 Copyright © 2025-2030, All Rights Reserved
 Ashutosh Sinha
@@ -7,7 +7,7 @@ Email: ajsinha@gmail.com
 
 Routes for the MCP Studio feature - admin-only tool creation interface.
 Supports Python code-based, REST service-based, DB Query-based, Script-based,
-PowerBI report, PowerBI DAX query, and IBM LiveLink document tool creation.
+PowerBI report, PowerBI DAX query, IBM LiveLink document, and SharePoint tool creation.
 """
 
 import json
@@ -22,6 +22,7 @@ from sajha.studio import ScriptToolGenerator, ScriptToolConfig
 from sajha.studio import PowerBIToolGenerator, PowerBIToolConfig
 from sajha.studio import PowerBIDAXToolGenerator, PowerBIDAXToolConfig
 from sajha.studio import LiveLinkToolGenerator, LiveLinkToolConfig
+from sajha.studio.sharepoint_tool_generator import SharePointToolGenerator, SharePointToolConfig
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,11 @@ class StudioRoutes(BaseRoutes):
         self.livelink_generator = LiveLinkToolGenerator(
             config_dir=os.path.join(base_dir, 'config', 'tools'),
             impl_dir=os.path.join(base_dir, 'sajha', 'tools', 'impl')
+        )
+        
+        # Initialize SharePoint generator with proper paths
+        self.sharepoint_generator = SharePointToolGenerator(
+            output_dir=os.path.join(base_dir, 'config', 'tools')
         )
     
     def register_routes(self, app):
@@ -674,7 +680,7 @@ class StudioRoutes(BaseRoutes):
                     description=data.get('description', ''),
                     script_type=data.get('script_type', 'bash'),
                     script_content=data.get('script_content', ''),
-                    version='2.9.6',
+                    version='2.9.8',
                     author=data.get('author', ''),
                     tags=data.get('tags', []),
                     timeout_seconds=data.get('timeout_seconds', 30),
@@ -734,7 +740,7 @@ class StudioRoutes(BaseRoutes):
                     description=data.get('description', ''),
                     script_type=data.get('script_type', 'bash'),
                     script_content=data.get('script_content', ''),
-                    version='2.9.6',
+                    version='2.9.8',
                     author=data.get('author', ''),
                     tags=data.get('tags', []),
                     timeout_seconds=data.get('timeout_seconds', 30),
@@ -825,7 +831,7 @@ class StudioRoutes(BaseRoutes):
                     tenant_id=data.get('tenant_id', ''),
                     client_id=data.get('client_id', ''),
                     client_secret_env=data.get('client_secret_env', 'POWERBI_CLIENT_SECRET'),
-                    version='2.9.6',
+                    version='2.9.8',
                     author=data.get('author', ''),
                     tags=data.get('tags', []),
                     page_name=data.get('page_name', ''),
@@ -870,7 +876,7 @@ class StudioRoutes(BaseRoutes):
                     tenant_id=data.get('tenant_id', ''),
                     client_id=data.get('client_id', ''),
                     client_secret_env=data.get('client_secret_env', 'POWERBI_CLIENT_SECRET'),
-                    version='2.9.6',
+                    version='2.9.8',
                     author=data.get('author', ''),
                     tags=data.get('tags', []),
                     page_name=data.get('page_name', ''),
@@ -929,7 +935,7 @@ class StudioRoutes(BaseRoutes):
                     tenant_id=data.get('tenant_id', ''),
                     client_id=data.get('client_id', ''),
                     client_secret_env=data.get('client_secret_env', 'POWERBI_CLIENT_SECRET'),
-                    version='2.9.6',
+                    version='2.9.8',
                     author=data.get('author', ''),
                     tags=data.get('tags', []),
                     timeout_seconds=data.get('timeout_seconds', 60),
@@ -965,7 +971,7 @@ class StudioRoutes(BaseRoutes):
                     tenant_id=data.get('tenant_id', ''),
                     client_id=data.get('client_id', ''),
                     client_secret_env=data.get('client_secret_env', 'POWERBI_CLIENT_SECRET'),
-                    version='2.9.6',
+                    version='2.9.8',
                     author=data.get('author', ''),
                     tags=data.get('tags', []),
                     timeout_seconds=data.get('timeout_seconds', 60),
@@ -1018,7 +1024,7 @@ class StudioRoutes(BaseRoutes):
                     oauth_token_env=data.get('oauth_token_env', 'LIVELINK_OAUTH_TOKEN'),
                     default_parent_id=data.get('default_parent_id', ''),
                     document_types=data.get('document_types', []),
-                    version='2.9.6',
+                    version='2.9.8',
                     author=data.get('author', ''),
                     tags=data.get('tags', []),
                     timeout_seconds=data.get('timeout_seconds', 60),
@@ -1054,7 +1060,7 @@ class StudioRoutes(BaseRoutes):
                     oauth_token_env=data.get('oauth_token_env', 'LIVELINK_OAUTH_TOKEN'),
                     default_parent_id=data.get('default_parent_id', ''),
                     document_types=data.get('document_types', []),
-                    version='2.9.6',
+                    version='2.9.8',
                     author=data.get('author', ''),
                     tags=data.get('tags', []),
                     timeout_seconds=data.get('timeout_seconds', 60),
@@ -1076,6 +1082,125 @@ class StudioRoutes(BaseRoutes):
                 
             except Exception as e:
                 logger.error(f"Error deploying LiveLink tool: {e}", exc_info=True)
+                return jsonify({'success': False, 'error': str(e)})
+        
+        # ========== SharePoint Tool Creator Routes ==========
+        
+        @app.route('/admin/studio/sharepoint')
+        @self.admin_required
+        def studio_sharepoint():
+            """SharePoint Tool Creator page."""
+            user_session = self.get_user_session()
+            existing_tools = list(self.tools_registry.tools.keys())
+            return render_template('admin/studio/studio_sharepoint.html',
+                                 user=user_session,
+                                 existing_tools=existing_tools)
+        
+        @app.route('/admin/studio/sharepoint/preview', methods=['POST'])
+        @self.admin_required
+        def studio_sharepoint_preview():
+            """Preview SharePoint tool configuration."""
+            try:
+                data = request.get_json()
+                
+                config = SharePointToolConfig(
+                    name=data.get('name', ''),
+                    description=data.get('description', ''),
+                    tool_type=data.get('tool_type', 'documents'),
+                    site_url=data.get('site_url', ''),
+                    version=data.get('version', '2.9.8'),
+                    auth_type=data.get('auth_type', 'client_credentials'),
+                    tenant_id=data.get('tenant_id', ''),
+                    client_id=data.get('client_id', ''),
+                    client_secret=data.get('client_secret', ''),
+                    default_folder=data.get('default_folder', '/Shared Documents'),
+                    default_list=data.get('default_list', ''),
+                    allowed_operations=data.get('allowed_operations', []),
+                    max_file_size_mb=data.get('max_file_size_mb', 100),
+                    cache_ttl_seconds=data.get('cache_ttl_seconds', 300),
+                    allowed_file_types=data.get('allowed_file_types', []),
+                    enable_version_control=data.get('enable_version_control', True),
+                    enable_metadata=data.get('enable_metadata', True),
+                    cache_enabled=data.get('cache_enabled', True),
+                    category=data.get('category', 'Document Management'),
+                    tags=data.get('tags', ['sharepoint', 'microsoft', 'documents'])
+                )
+                
+                # Validate
+                errors = self.sharepoint_generator.validate(config)
+                if errors:
+                    return jsonify({'success': False, 'errors': errors})
+                
+                # Generate config
+                tool_config = self.sharepoint_generator.generate(config)
+                
+                return jsonify({
+                    'success': True,
+                    'config': tool_config
+                })
+                
+            except Exception as e:
+                logger.error(f"Error previewing SharePoint tool: {e}", exc_info=True)
+                return jsonify({'success': False, 'error': str(e)})
+        
+        @app.route('/admin/studio/sharepoint/deploy', methods=['POST'])
+        @self.admin_required
+        def deploy_sharepoint_tool():
+            """Deploy SharePoint tool."""
+            try:
+                data = request.get_json()
+                
+                config = SharePointToolConfig(
+                    name=data.get('name', ''),
+                    description=data.get('description', ''),
+                    tool_type=data.get('tool_type', 'documents'),
+                    site_url=data.get('site_url', ''),
+                    version=data.get('version', '2.9.8'),
+                    auth_type=data.get('auth_type', 'client_credentials'),
+                    tenant_id=data.get('tenant_id', ''),
+                    client_id=data.get('client_id', ''),
+                    client_secret=data.get('client_secret', ''),
+                    default_folder=data.get('default_folder', '/Shared Documents'),
+                    default_list=data.get('default_list', ''),
+                    allowed_operations=data.get('allowed_operations', []),
+                    max_file_size_mb=data.get('max_file_size_mb', 100),
+                    cache_ttl_seconds=data.get('cache_ttl_seconds', 300),
+                    allowed_file_types=data.get('allowed_file_types', []),
+                    enable_version_control=data.get('enable_version_control', True),
+                    enable_metadata=data.get('enable_metadata', True),
+                    cache_enabled=data.get('cache_enabled', True),
+                    category=data.get('category', 'Document Management'),
+                    tags=data.get('tags', ['sharepoint', 'microsoft', 'documents'])
+                )
+                
+                # Validate
+                errors = self.sharepoint_generator.validate(config)
+                if errors:
+                    return jsonify({'success': False, 'error': '; '.join(errors)})
+                
+                # Check for existing tool
+                existing_tools = list(self.tools_registry.tools.keys())
+                if config.name in existing_tools:
+                    return jsonify({'success': False, 'error': f'Tool "{config.name}" already exists'})
+                
+                # Save the tool
+                output_path = self.sharepoint_generator.save(config)
+                
+                # Reload tools registry
+                try:
+                    self.tools_registry.reload_all_tools()
+                except Exception as reload_error:
+                    logger.warning(f"Could not reload tools: {reload_error}")
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'SharePoint tool "{config.name}" deployed successfully!',
+                    'config_file': str(output_path),
+                    'tool_name': config.name
+                })
+                
+            except Exception as e:
+                logger.error(f"Error deploying SharePoint tool: {e}", exc_info=True)
                 return jsonify({'success': False, 'error': str(e)})
         
         # ========== OLAP Dataset Creator Routes ==========
@@ -1118,7 +1243,7 @@ class StudioRoutes(BaseRoutes):
                         config = json.load(f)
                 else:
                     config = {
-                        'version': '2.9.6',
+                        'version': '2.9.8',
                         'description': 'OLAP Dataset Definitions for Semantic Layer',
                         'datasets': {}
                     }

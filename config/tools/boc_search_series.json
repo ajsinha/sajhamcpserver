@@ -2,7 +2,7 @@
   "name": "boc_search_series",
   "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCSearchSeriesTool",
   "description": "Search and discover available Bank of Canada economic data series organized by category. Helps users find the right data series for their needs.",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",

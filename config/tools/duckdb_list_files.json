@@ -2,7 +2,7 @@
   "name": "duckdb_list_files",
   "implementation": "sajha.tools.impl.duckdb_olap_tools_refactored.DuckDbListFilesTool",
   "description": "List available data files (CSV, Parquet, JSON) in the data directory for loading into DuckDB",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "data_directory": "${data.duckdb.dir}",
   "inputSchema": {

@@ -2,7 +2,7 @@
   "name": "duckdb_get_stats",
   "implementation": "sajha.tools.impl.duckdb_olap_tools_refactored.DuckDbGetStatsTool",
   "description": "Get statistical summary for numeric columns in a table (count, mean, std, min, max, percentiles)",
-  "version": "2.9.6",
+  "version": "2.9.8",
   "enabled": true,
   "data_directory": "${data.duckdb.dir}",
   "inputSchema": {
