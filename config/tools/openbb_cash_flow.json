@@ -1,0 +1,58 @@
+{
+  "name": "openbb_cash_flow",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBCashFlowTool",
+  "description": "Get cash flow statement via OpenBB \u2014 operating, investing, financing cash flows, free cash flow from multiple providers",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "period": {
+        "type": "string",
+        "description": "Period: annual or quarter",
+        "enum": [
+          "annual",
+          "quarter"
+        ],
+        "default": "annual"
+      },
+      "provider": {
+        "type": "string",
+        "description": "Data provider",
+        "default": "yfinance"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 5
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Statements",
+    "tags": [
+      "openbb",
+      "cash flow",
+      "fcf"
+    ],
+    "examples": []
+  }
+}

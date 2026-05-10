@@ -1,0 +1,49 @@
+{
+  "name": "av_stock_intraday",
+  "implementation": "sajha.tools.impl.alphavantage_tools.AVStockIntradayTool",
+  "description": "Get intraday stock prices from Alpha Vantage \u2014 1min, 5min, 15min, 30min, 60min intervals",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "interval": {
+        "type": "string",
+        "default": "5min",
+        "enum": [
+          "1min",
+          "5min",
+          "15min",
+          "30min",
+          "60min"
+        ]
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Market Data",
+    "tags": [
+      "alphavantage",
+      "intraday"
+    ]
+  },
+  "api_key": "${alpha_vantage.api.key}"
+}

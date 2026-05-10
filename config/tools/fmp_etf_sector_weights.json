@@ -1,0 +1,39 @@
+{
+  "name": "fmp_etf_sector_weights",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
+  "description": "Get ETF sector weightings from FMP",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "ETFs",
+    "tags": [
+      "fmp",
+      "etf",
+      "sectors"
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

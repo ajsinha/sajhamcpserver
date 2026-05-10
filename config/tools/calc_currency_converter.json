@@ -1,0 +1,44 @@
+{
+  "name": "calc_currency_converter",
+  "implementation": "sajha.tools.impl.calc_tools.CalcCurrencyConverterTool",
+  "description": "Convert between currencies using live exchange rates (free API)",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "from": {
+        "type": "string",
+        "default": "USD"
+      },
+      "to": {
+        "type": "string",
+        "default": "EUR"
+      },
+      "amount": {
+        "type": "number",
+        "default": 1
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Calculators",
+    "tags": [
+      "calculator",
+      "currency",
+      "converter"
+    ]
+  }
+}

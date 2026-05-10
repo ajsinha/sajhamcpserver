@@ -1,0 +1,42 @@
+{
+  "name": "fred_yield_spread",
+  "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
+  "description": "Get 10Y-2Y Treasury Yield Spread from FRED \u2014 recession indicator (series: T10Y2Y)",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "series_id": {
+        "type": "string",
+        "default": "T10Y2Y"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 20
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Fixed Income",
+    "tags": [
+      "fred",
+      "yield spread",
+      "recession"
+    ]
+  },
+  "api_key": "${fred.api.key}"
+}

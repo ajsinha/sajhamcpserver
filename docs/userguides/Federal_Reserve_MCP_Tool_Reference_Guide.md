@@ -139,7 +139,7 @@ Each tool specializes in a specific data retrieval pattern:
 - ✗ HTML Parsing
 - ✗ Database Queries
 - ✗ File System Access
-- ✗ WebSocket Streaming
+- ✗ WebSocket Streaming (use SSE transport)
 
 ### API Communication
 

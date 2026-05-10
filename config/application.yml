@@ -1,0 +1,131 @@
+# ============================================================================
+# SAJHA MCP Server v3 — Application Configuration
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha
+#
+# Features:
+#   - Environment variable substitution:  ${VAR:default_value}
+#   - Override any key via env var:        SAJHA_DB_HOST=prod-db.internal
+#   - Nested keys flatten to dot notation: db.host, server.port, etc.
+#   - Supports .env file for local development
+# ============================================================================
+
+app:
+  name: SAJHA MCP Server
+  version: 3.1.0
+  description: Model Context Protocol Server
+  author: Ashutosh Sinha
+  email: ajsinha@gmail.com
+  copyright_years: "2025-2030"
+  github:
+    repo: https://github.com/ajsinha/sajhamcpserver
+    repo_name: ajsinha/sajhamcpserver
+
+server:
+  host: ${SERVER_HOST:0.0.0.0}
+  port: ${SERVER_PORT:3002}
+  debug: false
+
+# ── Database ─────────────────────────────────────────────────────────────────
+# Switch to PostgreSQL by changing db.type and filling in connection details.
+# SQLite DB file is auto-created in data/ (excluded from git).
+
+db:
+  type: sqlite                          # sqlite | postgresql
+  path: data/sajha.db                   # SQLite file path (relative to project root)
+  # ── PostgreSQL (uncomment to switch) ──
+  # type: postgresql
+  # host: ${DB_HOST:localhost}
+  # port: ${DB_PORT:5432}
+  # name: ${DB_NAME:sajha_mcp}
+  # user: ${DB_USER:sajha}
+  # password: ${DB_PASSWORD:sajha}
+  # driver: psycopg2                    # psycopg2 | psycopg
+  pool:
+    size: ${DB_POOL_SIZE:10}
+  echo: false                           # Log all SQL statements (debug)
+
+# ── Authentication ───────────────────────────────────────────────────────────
+
+auth:
+  jwt:
+    secret: ${JWT_SECRET:sajha-jwt-secret-change-in-production}
+    algorithm: HS256
+    expiry_minutes: ${JWT_EXPIRY:60}
+  session:
+    secret_key: ${SESSION_SECRET:sajha-session-secret-change-in-production}
+    timeout_minutes: 60
+
+# ── OAuth (optional) ────────────────────────────────────────────────────────
+
+oauth:
+  mode: none                            # none | internal | external | hybrid
+  provider: ""                          # azure | okta | auth0 | keycloak
+  azure:
+    tenant_id: ${AZURE_TENANT_ID:}
+    client_id: ${AZURE_CLIENT_ID:}
+    client_secret: ${AZURE_CLIENT_SECRET:}
+
+# ── Config Paths ─────────────────────────────────────────────────────────────
+
+config:
+  tools:
+    dir: config/tools
+  prompts:
+    dir: config/prompts
+  users:
+    path: config/users.json
+  apikeys:
+    path: config/apikeys.json
+  ir:
+    dir: config/ir
+
+# ── Hot Reload ───────────────────────────────────────────────────────────────
+
+hot_reload:
+  enabled: true
+  interval_seconds: 300
+
+# ── Features ─────────────────────────────────────────────────────────────────
+
+features:
+  websocket:
+    enabled: true
+  monitoring:
+    enabled: true
+  admin:
+    panel:
+      enabled: true
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+
+logging:
+  level: ${LOG_LEVEL:INFO}
+
+# ── Data Directories ────────────────────────────────────────────────────────
+
+data:
+  duckdb:
+    dir: ./data/duckdb
+  sqlselect:
+    dir: ./data/sqlselect
+
+# ── External API Keys ───────────────────────────────────────────────────────
+
+fmp:
+  api:
+    key: ${FMP_API_KEY:}
+
+google:
+  api:
+    key: ${GOOGLE_API_KEY:}
+  search:
+    engine:
+      id: ${GOOGLE_SEARCH_ENGINE_ID:}
+
+fred:
+  api:
+    key: ${FRED_API_KEY:}
+
+tavily:
+  api:
+    key: ${TAVILY_API_KEY:}

@@ -1,0 +1,88 @@
+{
+  "name": "openbb_equity_price",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBEquityPriceTool",
+  "description": "Get historical equity prices via OpenBB \u2014 daily OHLCV data from Yahoo Finance, FMP, or Intrinio. Supports global stocks.",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "provider": {
+        "type": "string",
+        "description": "Data provider",
+        "enum": [
+          "yfinance",
+          "fmp",
+          "intrinio"
+        ],
+        "default": "yfinance"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer"
+      },
+      "prices": {
+        "type": "array"
+      }
+    },
+    "required": [
+      "symbol",
+      "prices"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Market Data",
+    "tags": [
+      "openbb",
+      "equity",
+      "price",
+      "historical",
+      "ohlcv",
+      "chart"
+    ],
+    "examples": [
+      {
+        "description": "Apple 1-year history",
+        "input": {
+          "symbol": "AAPL",
+          "start_date": "2024-01-01"
+        }
+      },
+      {
+        "description": "Tesla 6 months",
+        "input": {
+          "symbol": "TSLA",
+          "start_date": "2025-11-01",
+          "end_date": "2026-05-01"
+        }
+      }
+    ]
+  }
+}

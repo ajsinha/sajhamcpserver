@@ -1,0 +1,45 @@
+{
+  "name": "openbb_dividends",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBDividendsTool",
+  "description": "Get dividend history via OpenBB \u2014 ex-date, payment date, amount, frequency for any stock",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "provider": {
+        "type": "string",
+        "description": "Data provider",
+        "default": "yfinance"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Dividends",
+    "tags": [
+      "openbb",
+      "dividends",
+      "yield",
+      "income"
+    ],
+    "examples": []
+  }
+}

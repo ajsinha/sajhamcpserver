@@ -1,0 +1,57 @@
+{
+  "name": "fmp_stock_quote",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPStockQuoteTool",
+  "description": "Get real-time stock quote from FMP \u2014 current price, change, volume, day high/low, 52-week range, market cap, PE ratio",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string"
+      },
+      "quote": {
+        "type": "object",
+        "description": "Real-time quote with price, change, volume, marketCap"
+      }
+    },
+    "required": [
+      "symbol",
+      "quote"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Market Data",
+    "tags": [
+      "fmp",
+      "quote",
+      "price",
+      "realtime",
+      "stock"
+    ],
+    "examples": [
+      {
+        "description": "Get AAPL quote",
+        "input": {
+          "symbol": "AAPL"
+        }
+      }
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

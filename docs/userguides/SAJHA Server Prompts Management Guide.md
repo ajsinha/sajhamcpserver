@@ -191,7 +191,7 @@ sajhamcpserver/
 │                   Web Interface / API                    │
 └────────────────────┬────────────────────────────────────┘
                      │
-                     │ HTTP/WebSocket
+                     │ HTTP/SSE
                      │
 ┌────────────────────▼────────────────────────────────────┐
 │                Prompts Routes Layer                      │
@@ -284,7 +284,7 @@ JSON File (persistent storage)
 ### Prerequisites
 
 - Python 3.7+
-- Flask and dependencies installed
+- FastAPI and dependencies installed
 - SAJHA MCP Server running
 - Admin access for testing
 
@@ -367,17 +367,17 @@ INFO:root:All routes registered successfully
 
 ```bash
 # Login
-curl -c cookies.txt -X POST http://localhost:5000/login \
+curl -c cookies.txt -X POST http://localhost:3002/login \
   -d "user_id=admin&password=admin123"
 
 # List prompts
-curl -b cookies.txt http://localhost:5000/api/prompts/list
+curl -b cookies.txt http://localhost:3002/api/prompts/list
 
 # Get specific prompt
-curl -b cookies.txt http://localhost:5000/api/prompts/code_review
+curl -b cookies.txt http://localhost:3002/api/prompts/code_review
 
 # Render a prompt
-curl -b cookies.txt -X POST http://localhost:5000/api/prompts/code_review/render \
+curl -b cookies.txt -X POST http://localhost:3002/api/prompts/code_review/render \
   -H "Content-Type: application/json" \
   -d '{"code":"print(123)","language":"Python","priority":"high"}'
 ```
@@ -651,13 +651,13 @@ Analyze sales figures using regression approach
 All endpoints require authentication. First, obtain a session token:
 
 ```bash
-curl -c cookies.txt -X POST http://localhost:5000/login \
+curl -c cookies.txt -X POST http://localhost:3002/login \
   -d "user_id=admin&password=admin123"
 ```
 
 Use the cookie file in subsequent requests:
 ```bash
-curl -b cookies.txt http://localhost:5000/api/prompts/list
+curl -b cookies.txt http://localhost:3002/api/prompts/list
 ```
 
 ### Public Endpoints (Authenticated Users)
@@ -693,7 +693,7 @@ GET /prompts/list
 
 **cURL Example:**
 ```bash
-curl -b cookies.txt http://localhost:5000/api/prompts/list
+curl -b cookies.txt http://localhost:3002/api/prompts/list
 ```
 
 #### 2. Get Specific Prompt
@@ -737,7 +737,7 @@ GET /prompts/<prompt_name>
 
 **cURL Example:**
 ```bash
-curl -b cookies.txt http://localhost:5000/api/prompts/code_review
+curl -b cookies.txt http://localhost:3002/api/prompts/code_review
 ```
 
 #### 3. Render Prompt
@@ -775,7 +775,7 @@ Content-Type: application/json
 **cURL Example:**
 ```bash
 curl -b cookies.txt -X POST \
-  http://localhost:5000/api/prompts/code_review/render \
+  http://localhost:3002/api/prompts/code_review/render \
   -H "Content-Type: application/json" \
   -d '{
     "code": "print(123)",
@@ -810,7 +810,7 @@ GET /api/prompts/search?q=<query>
 
 **cURL Example:**
 ```bash
-curl -b cookies.txt "http://localhost:5000/api/prompts/search?q=code"
+curl -b cookies.txt "http://localhost:3002/api/prompts/search?q=code"
 ```
 
 #### 5. List Categories
@@ -835,7 +835,7 @@ GET /api/prompts/categories
 
 **cURL Example:**
 ```bash
-curl -b cookies.txt http://localhost:5000/api/prompts/categories
+curl -b cookies.txt http://localhost:3002/api/prompts/categories
 ```
 
 #### 6. List Tags
@@ -871,7 +871,7 @@ GET /api/prompts/tags
 
 **cURL Example:**
 ```bash
-curl -b cookies.txt http://localhost:5000/api/prompts/tags
+curl -b cookies.txt http://localhost:3002/api/prompts/tags
 ```
 
 #### 7. Get Statistics
@@ -897,7 +897,7 @@ GET /api/prompts/statistics
 
 **cURL Example:**
 ```bash
-curl -b cookies.txt http://localhost:5000/api/prompts/statistics
+curl -b cookies.txt http://localhost:3002/api/prompts/statistics
 ```
 
 #### 8. Filter by Category
@@ -965,7 +965,7 @@ Content-Type: application/json
 **cURL Example:**
 ```bash
 curl -b cookies.txt -X POST \
-  http://localhost:5000/api/prompts/create \
+  http://localhost:3002/api/prompts/create \
   -H "Content-Type: application/json" \
   -d '{
     "name": "test_prompt",
@@ -1014,7 +1014,7 @@ Content-Type: application/json
 **cURL Example:**
 ```bash
 curl -b cookies.txt -X PUT \
-  http://localhost:5000/api/prompts/test_prompt/update \
+  http://localhost:3002/api/prompts/test_prompt/update \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Updated test prompt",
@@ -1042,7 +1042,7 @@ POST /api/prompts/<prompt_name>/delete
 **cURL Example:**
 ```bash
 curl -b cookies.txt -X DELETE \
-  http://localhost:5000/api/prompts/test_prompt/delete
+  http://localhost:3002/api/prompts/test_prompt/delete
 ```
 
 ### Admin Web Routes
@@ -1066,7 +1066,7 @@ These routes return HTML pages for administrative management (requires HTML temp
 ```python
 import requests
 
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://localhost:3002"
 
 # Login
 login_response = requests.post(
@@ -1094,7 +1094,7 @@ for prompt in prompts['prompts']:
 ```python
 import requests
 
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://localhost:3002"
 session_cookie = # ... from login
 
 # Get prompt details
@@ -1131,7 +1131,7 @@ else:
 ```python
 import requests
 
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://localhost:3002"
 session_cookie = # ... from login
 
 # Search prompts
@@ -1165,7 +1165,7 @@ print(f"Available tags: {', '.join(tags)}")
 ```python
 import requests
 
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://localhost:3002"
 session_cookie = # ... from admin login
 
 # Create new prompt
@@ -1214,7 +1214,7 @@ else:
 ```python
 import requests
 
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://localhost:3002"
 session_cookie = # ... from admin login
 
 # Update prompt
@@ -1308,7 +1308,7 @@ class PromptsClient:
         return response.json()
 
 # Usage
-client = PromptsClient("http://localhost:5000", "admin", "admin123")
+client = PromptsClient("http://localhost:3002", "admin", "admin123")
 
 # List all prompts
 prompts = client.list_prompts()
@@ -1340,18 +1340,18 @@ pprint(stats['statistics'])
 
 ```bash
 # 1. Login and save cookie
-curl -c cookies.txt -X POST http://localhost:5000/login \
+curl -c cookies.txt -X POST http://localhost:3002/login \
   -d "user_id=admin&password=admin123"
 
 # 2. List all prompts
-curl -b cookies.txt http://localhost:5000/api/prompts/list | jq
+curl -b cookies.txt http://localhost:3002/api/prompts/list | jq
 
 # 3. Get specific prompt
-curl -b cookies.txt http://localhost:5000/api/prompts/code_review | jq
+curl -b cookies.txt http://localhost:3002/api/prompts/code_review | jq
 
 # 4. Render prompt
 curl -b cookies.txt -X POST \
-  http://localhost:5000/api/prompts/code_review/render \
+  http://localhost:3002/api/prompts/code_review/render \
   -H "Content-Type: application/json" \
   -d '{
     "code": "print(123)",
@@ -1361,16 +1361,16 @@ curl -b cookies.txt -X POST \
 
 # 5. Search prompts
 curl -b cookies.txt \
-  "http://localhost:5000/api/prompts/search?q=code" | jq
+  "http://localhost:3002/api/prompts/search?q=code" | jq
 
 # 6. Get categories
-curl -b cookies.txt http://localhost:5000/api/prompts/categories | jq
+curl -b cookies.txt http://localhost:3002/api/prompts/categories | jq
 
 # 7. Get tags
-curl -b cookies.txt http://localhost:5000/api/prompts/tags | jq
+curl -b cookies.txt http://localhost:3002/api/prompts/tags | jq
 
 # 8. Get statistics
-curl -b cookies.txt http://localhost:5000/api/prompts/statistics | jq
+curl -b cookies.txt http://localhost:3002/api/prompts/statistics | jq
 ```
 
 #### Admin Operations
@@ -1378,7 +1378,7 @@ curl -b cookies.txt http://localhost:5000/api/prompts/statistics | jq
 ```bash
 # Create new prompt
 curl -b cookies.txt -X POST \
-  http://localhost:5000/api/prompts/create \
+  http://localhost:3002/api/prompts/create \
   -H "Content-Type: application/json" \
   -d '{
     "name": "test_prompt",
@@ -1400,7 +1400,7 @@ curl -b cookies.txt -X POST \
 
 # Update prompt
 curl -b cookies.txt -X PUT \
-  http://localhost:5000/api/prompts/test_prompt/update \
+  http://localhost:3002/api/prompts/test_prompt/update \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Updated test prompt",
@@ -1411,7 +1411,7 @@ curl -b cookies.txt -X PUT \
 
 # Delete prompt
 curl -b cookies.txt -X DELETE \
-  http://localhost:5000/api/prompts/test_prompt/delete | jq
+  http://localhost:3002/api/prompts/test_prompt/delete | jq
 ```
 
 ### JavaScript/Node.js Examples
@@ -1476,7 +1476,7 @@ class PromptsClient {
 
 // Usage
 async function main() {
-  const client = new PromptsClient('http://localhost:5000');
+  const client = new PromptsClient('http://localhost:3002');
   
   await client.login('admin', 'admin123');
   
@@ -1502,7 +1502,7 @@ main().catch(console.error);
 ```javascript
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = 'http://localhost:3002';
 
 async function demonstratePrompts() {
   // Create axios instance with cookie jar
@@ -1644,11 +1644,11 @@ prompts_registry.load_all_prompts()
 
 ```bash
 # Get the prompt
-curl -b cookies.txt http://localhost:5000/api/prompts/my_custom_prompt
+curl -b cookies.txt http://localhost:3002/api/prompts/my_custom_prompt
 
 # Test rendering
 curl -b cookies.txt -X POST \
-  http://localhost:5000/api/prompts/my_custom_prompt/render \
+  http://localhost:3002/api/prompts/my_custom_prompt/render \
   -H "Content-Type: application/json" \
   -d '{"variable1": "value1", "variable2": "value2"}'
 ```
@@ -2020,7 +2020,7 @@ Six ready-to-use prompts are included to demonstrate various use cases:
 **Example Usage**:
 ```bash
 curl -b cookies.txt -X POST \
-  http://localhost:5000/api/prompts/code_review/render \
+  http://localhost:3002/api/prompts/code_review/render \
   -H "Content-Type: application/json" \
   -d '{
     "code": "def calculate_discount(price, discount):\\n    return price - (price * discount / 100)",
@@ -2052,7 +2052,7 @@ curl -b cookies.txt -X POST \
 **Example Usage**:
 ```bash
 curl -b cookies.txt -X POST \
-  http://localhost:5000/api/prompts/documentation_generator/render \
+  http://localhost:3002/api/prompts/documentation_generator/render \
   -H "Content-Type: application/json" \
   -d '{
     "code": "class UserManager:\\n    def create_user(self, username, email): pass",
@@ -2084,7 +2084,7 @@ curl -b cookies.txt -X POST \
 **Example Usage**:
 ```bash
 curl -b cookies.txt -X POST \
-  http://localhost:5000/api/prompts/data_analysis/render \
+  http://localhost:3002/api/prompts/data_analysis/render \
   -H "Content-Type: application/json" \
   -d '{
     "data": "Sales data for Q1-Q4 2024 showing 15% YoY growth",
@@ -2116,7 +2116,7 @@ curl -b cookies.txt -X POST \
 **Example Usage**:
 ```bash
 curl -b cookies.txt -X POST \
-  http://localhost:5000/api/prompts/bug_diagnosis/render \
+  http://localhost:3002/api/prompts/bug_diagnosis/render \
   -H "Content-Type: application/json" \
   -d '{
     "error_message": "AttributeError: 'NoneType' object has no attribute 'get'",
@@ -2148,7 +2148,7 @@ curl -b cookies.txt -X POST \
 **Example Usage**:
 ```bash
 curl -b cookies.txt -X POST \
-  http://localhost:5000/api/prompts/business_plan/render \
+  http://localhost:3002/api/prompts/business_plan/render \
   -H "Content-Type: application/json" \
   -d '{
     "business_idea": "AI-powered code review service for enterprises",
@@ -2181,7 +2181,7 @@ curl -b cookies.txt -X POST \
 **Example Usage**:
 ```bash
 curl -b cookies.txt -X POST \
-  http://localhost:5000/api/prompts/content_writing/render \
+  http://localhost:3002/api/prompts/content_writing/render \
   -H "Content-Type: application/json" \
   -d '{
     "topic": "Benefits of automated code review",
@@ -2245,7 +2245,7 @@ Each prompt tracks:
 #### Via API
 
 ```bash
-curl -b cookies.txt http://localhost:5000/api/prompts/statistics
+curl -b cookies.txt http://localhost:3002/api/prompts/statistics
 ```
 
 #### Via Python
@@ -2396,7 +2396,7 @@ import requests
 
 def mcp_request(method, params=None):
     response = requests.post(
-        'http://localhost:5000/mcp',
+        'http://localhost:3002/mcp',
         json={
             'jsonrpc': '2.0',
             'method': method,
@@ -2439,7 +2439,7 @@ The prompts system includes comprehensive security measures.
 
 **Login Process**:
 ```bash
-curl -c cookies.txt -X POST http://localhost:5000/login \
+curl -c cookies.txt -X POST http://localhost:3002/login \
   -d "user_id=admin&password=admin123"
 ```
 
@@ -2951,15 +2951,15 @@ EOF
 
 ```bash
 # 1. Get prompt details to see required arguments
-curl -b cookies.txt http://localhost:5000/api/prompts/code_review | jq
+curl -b cookies.txt http://localhost:3002/api/prompts/code_review | jq
 
 # 2. Verify argument names match template
-curl -b cookies.txt http://localhost:5000/api/prompts/code_review | \
+curl -b cookies.txt http://localhost:3002/api/prompts/code_review | \
     jq '.prompt.arguments[].name'
 
 # 3. Test with all required arguments
 curl -b cookies.txt -X POST \
-    http://localhost:5000/api/prompts/code_review/render \
+    http://localhost:3002/api/prompts/code_review/render \
     -H "Content-Type: application/json" \
     -d '{
         "code": "test",
@@ -2985,14 +2985,14 @@ curl -b cookies.txt -X POST \
 
 ```bash
 # 1. Check if logged in
-curl -b cookies.txt http://localhost:5000/api/prompts/list
+curl -b cookies.txt http://localhost:3002/api/prompts/list
 
 # 2. Login again
-curl -c cookies.txt -X POST http://localhost:5000/login \
+curl -c cookies.txt -X POST http://localhost:3002/login \
     -d "user_id=admin&password=admin123"
 
 # 3. Verify admin access
-curl -b cookies.txt http://localhost:5000/admin/prompts
+curl -b cookies.txt http://localhost:3002/admin/prompts
 
 # 4. Check user role in logs
 grep "User.*authenticated" logs/server.log
@@ -3090,10 +3090,10 @@ logging.basicConfig(
 
 ```bash
 # Get detailed statistics
-curl -b cookies.txt http://localhost:5000/api/prompts/statistics | jq
+curl -b cookies.txt http://localhost:3002/api/prompts/statistics | jq
 
 # Check for errors
-curl -b cookies.txt http://localhost:5000/api/prompts/statistics | \
+curl -b cookies.txt http://localhost:3002/api/prompts/statistics | \
     jq '.statistics | {loading_errors, render_errors}'
 ```
 
@@ -3149,11 +3149,11 @@ If issues persist:
 # ==================
 
 # Login
-curl -c cookies.txt -X POST http://localhost:5000/login \
+curl -c cookies.txt -X POST http://localhost:3002/login \
   -d "user_id=admin&password=admin123"
 
 # Logout
-curl -b cookies.txt http://localhost:5000/logout
+curl -b cookies.txt http://localhost:3002/logout
 
 
 # ==================
@@ -3161,19 +3161,19 @@ curl -b cookies.txt http://localhost:5000/logout
 # ==================
 
 # List all prompts
-curl -b cookies.txt http://localhost:5000/api/prompts/list
+curl -b cookies.txt http://localhost:3002/api/prompts/list
 
 # Get specific prompt
-curl -b cookies.txt http://localhost:5000/api/prompts/<name>
+curl -b cookies.txt http://localhost:3002/api/prompts/<name>
 
 # Get categories
-curl -b cookies.txt http://localhost:5000/api/prompts/categories
+curl -b cookies.txt http://localhost:3002/api/prompts/categories
 
 # Get tags
-curl -b cookies.txt http://localhost:5000/api/prompts/tags
+curl -b cookies.txt http://localhost:3002/api/prompts/tags
 
 # Get statistics
-curl -b cookies.txt http://localhost:5000/api/prompts/statistics
+curl -b cookies.txt http://localhost:3002/api/prompts/statistics
 
 
 # ==================
@@ -3181,13 +3181,13 @@ curl -b cookies.txt http://localhost:5000/api/prompts/statistics
 # ==================
 
 # Search prompts
-curl -b cookies.txt "http://localhost:5000/api/prompts/search?q=code"
+curl -b cookies.txt "http://localhost:3002/api/prompts/search?q=code"
 
 # Filter by category (web UI)
-curl -b cookies.txt http://localhost:5000/prompts/category/development
+curl -b cookies.txt http://localhost:3002/prompts/category/development
 
 # Filter by tag (web UI)
-curl -b cookies.txt http://localhost:5000/prompts/tag/code
+curl -b cookies.txt http://localhost:3002/prompts/tag/code
 
 
 # ==================
@@ -3196,7 +3196,7 @@ curl -b cookies.txt http://localhost:5000/prompts/tag/code
 
 # Render prompt
 curl -b cookies.txt -X POST \
-  http://localhost:5000/api/prompts/<name>/render \
+  http://localhost:3002/api/prompts/<name>/render \
   -H "Content-Type: application/json" \
   -d '{"arg1":"value1","arg2":"value2"}'
 
@@ -3207,7 +3207,7 @@ curl -b cookies.txt -X POST \
 
 # Create prompt
 curl -b cookies.txt -X POST \
-  http://localhost:5000/api/prompts/create \
+  http://localhost:3002/api/prompts/create \
   -H "Content-Type: application/json" \
   -d '{
     "name":"prompt_name",
@@ -3219,13 +3219,13 @@ curl -b cookies.txt -X POST \
 
 # Update prompt
 curl -b cookies.txt -X PUT \
-  http://localhost:5000/api/prompts/<name>/update \
+  http://localhost:3002/api/prompts/<name>/update \
   -H "Content-Type: application/json" \
   -d '{...updated config...}'
 
 # Delete prompt
 curl -b cookies.txt -X DELETE \
-  http://localhost:5000/api/prompts/<name>/delete
+  http://localhost:3002/api/prompts/<name>/delete
 
 
 # ==================
@@ -3318,7 +3318,7 @@ success, msg = registry.create_prompt("new_prompt", {
 })
 
 # Via HTTP API
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://localhost:3002"
 session = requests.Session()
 session.post(f"{BASE_URL}/login", data={"user_id": "admin", "password": "admin123"})
 
@@ -3545,7 +3545,7 @@ Share prompts with community:
 ### Learning Resources
 
 **Documentation**:
-- Flask Documentation: https://flask.palletsprojects.com/
+- FastAPI Documentation: https://fastapi.tiangolo.com/
 - JSON Schema: https://json-schema.org/
 - REST API Best Practices
 

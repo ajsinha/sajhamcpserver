@@ -1,0 +1,40 @@
+{
+  "name": "openbb_economy_interest_rate",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
+  "description": "Get short-term interest rates via OpenBB by country",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "country": {
+        "type": "string",
+        "default": "united_states"
+      },
+      "provider": {
+        "type": "string",
+        "default": "oecd"
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Economics",
+    "tags": [
+      "openbb",
+      "interest rate",
+      "short term"
+    ]
+  }
+}

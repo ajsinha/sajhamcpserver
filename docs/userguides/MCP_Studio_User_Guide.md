@@ -1,13 +1,13 @@
 # MCP Studio User Guide
 
-**Version: 2.9.0**  
+**Version: 3.1.0**  
 **Copyright © 2025-2030 Ashutosh Sinha, All Rights Reserved**
 
 ---
 
 ## Overview
 
-MCP Studio is a comprehensive visual tool creation platform that allows administrators to create custom MCP tools without manual coding. Version 2.9.0 introduces **eight creation methods** with full dark theme support and enhanced OLAP capabilities:
+MCP Studio is a comprehensive visual tool creation platform that allows administrators to create custom MCP tools without manual coding. Version 3.1.0 introduces **eight creation methods** with full dark theme support and enhanced OLAP capabilities:
 
 1. **Python Code Tool Creator** - Write Python functions with the `@sajhamcptool` decorator
 2. **REST Service Tool Creator** - Wrap any REST API endpoint as an MCP tool
@@ -18,7 +18,7 @@ MCP Studio is a comprehensive visual tool creation platform that allows administ
 7. **IBM LiveLink Document Tool Creator** - Query and download ECM documents
 8. **OLAP Dataset Creator** - Define semantic datasets for advanced analytics
 
-### New in Version 2.9.0
+### New in Version 3.1.0
 
 - **Cohort Analysis** - Track user groups over time with retention matrices
 - **Sample Data Generator** - Generate demo datasets for testing and demonstrations
@@ -73,7 +73,7 @@ All MCP Studio pages support both light and dark themes with the navbar theme to
 - **Timeout Configuration** - Handle long-running exports (30-600 seconds)
 - **Environment Variable Credentials** - Client secret stored securely
 
-### PowerBI DAX Query Tool Creator (NEW in v2.7.0)
+### PowerBI DAX Query Tool Creator (NEW in v3.1.0)
 - **DAX Query Execution** - Execute EVALUATE statements against datasets
 - **Parameterized Queries** - Use @parameter_name for dynamic values
 - **Auto-Generated Schemas** - Input schema from defined parameters
@@ -82,7 +82,7 @@ All MCP Studio pages support both light and dark themes with the navbar theme to
 - **Configurable Limits** - Timeout and max rows settings
 - **Query Metrics** - Execution time in response
 
-### IBM LiveLink Document Tool Creator (NEW in v2.7.0)
+### IBM LiveLink Document Tool Creator (NEW in v3.1.0)
 - **Multiple Operations** - Search, list, get metadata, download
 - **Base64 Document Output** - All file types returned as base64
 - **Multiple Auth Types** - Basic Auth, OAuth, OTDS
@@ -91,7 +91,7 @@ All MCP Studio pages support both light and dark themes with the navbar theme to
 - **Size Limits** - Configurable max file size (1-500 MB)
 - **Timeout Handling** - Configurable request timeout
 
-### OLAP Dataset Creator (NEW in v2.8.0)
+### OLAP Dataset Creator (NEW in v3.1.0)
 - **Semantic Layer Configuration** - Define business-friendly abstractions
 - **Dimension Definition** - Configure categorical attributes for grouping
 - **Measure Definition** - Define numeric aggregations with expressions

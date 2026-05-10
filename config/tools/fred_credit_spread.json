@@ -1,0 +1,41 @@
+{
+  "name": "fred_credit_spread",
+  "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
+  "description": "Get ICE BofA US Corporate Bond Spread from FRED (series: BAMLC0A0CM)",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "series_id": {
+        "type": "string",
+        "default": "BAMLC0A0CM"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 20
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Fixed Income",
+    "tags": [
+      "fred",
+      "bamlc0a0cm"
+    ]
+  },
+  "api_key": "${fred.api.key}"
+}

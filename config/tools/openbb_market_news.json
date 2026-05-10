@@ -1,0 +1,66 @@
+{
+  "name": "openbb_market_news",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBMarketNewsTool",
+  "description": "Get latest market and world news via OpenBB \u2014 aggregated headlines from Benzinga, FMP, and other providers",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "description": "Number of articles",
+        "default": 10,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "provider": {
+        "type": "string",
+        "description": "News provider",
+        "enum": [
+          "benzinga",
+          "fmp",
+          "biztoc"
+        ],
+        "default": "benzinga"
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "articles_count": {
+        "type": "integer"
+      },
+      "articles": {
+        "type": "array"
+      }
+    },
+    "required": [
+      "articles_count",
+      "articles"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "News",
+    "tags": [
+      "openbb",
+      "news",
+      "market",
+      "headlines",
+      "world"
+    ],
+    "examples": [
+      {
+        "description": "Latest 10 market headlines",
+        "input": {
+          "limit": 10
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "av_treasury_yield",
+  "implementation": "sajha.tools.impl.alphavantage_tools.AVTreasuryYieldTool",
+  "description": "Get Treasury Yield from Alpha Vantage \u2014 2yr, 5yr, 7yr, 10yr, 30yr",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "maturity": {
+        "type": "string",
+        "default": "10year",
+        "enum": [
+          "3month",
+          "2year",
+          "5year",
+          "7year",
+          "10year",
+          "30year"
+        ]
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Fixed Income",
+    "tags": [
+      "alphavantage",
+      "treasury",
+      "yield"
+    ]
+  },
+  "api_key": "${alpha_vantage.api.key}"
+}

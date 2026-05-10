@@ -1,0 +1,39 @@
+{
+  "name": "fmp_13f_filing",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
+  "description": "Get 13F institutional holdings filing from FMP \u2014 hedge fund positions",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string",
+        "description": "CIK number of the filer"
+      }
+    },
+    "required": [
+      "cik"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Ownership",
+    "tags": [
+      "fmp",
+      "13f",
+      "institutional"
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

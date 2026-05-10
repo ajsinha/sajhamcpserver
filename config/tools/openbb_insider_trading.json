@@ -1,0 +1,50 @@
+{
+  "name": "openbb_insider_trading",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBInsiderTradingTool",
+  "description": "Get insider trading activity via OpenBB \u2014 officer/director buys and sells from SEC Form 4 filings",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "provider": {
+        "type": "string",
+        "default": "fmp"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 5
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Ownership",
+    "tags": [
+      "openbb",
+      "insider",
+      "trading",
+      "form 4",
+      "officers"
+    ],
+    "examples": []
+  }
+}

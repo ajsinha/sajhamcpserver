@@ -1,0 +1,60 @@
+{
+  "name": "openbb_equity_profile",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBEquityProfileTool",
+  "description": "Get company profile via OpenBB \u2014 name, sector, industry, market cap, employees, description, CEO, headquarters",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)"
+      },
+      "provider": {
+        "type": "string",
+        "description": "Data provider",
+        "default": "yfinance"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string"
+      },
+      "profile": {
+        "type": "object"
+      }
+    },
+    "required": [
+      "symbol",
+      "profile"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Company Data",
+    "tags": [
+      "openbb",
+      "profile",
+      "company",
+      "sector",
+      "industry"
+    ],
+    "examples": [
+      {
+        "description": "Microsoft profile",
+        "input": {
+          "symbol": "MSFT"
+        }
+      }
+    ]
+  }
+}

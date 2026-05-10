@@ -1,0 +1,62 @@
+{
+  "name": "fmp_company_profile",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPCompanyProfileTool",
+  "description": "Get comprehensive company profile from FMP \u2014 market cap, sector, industry, CEO, description, financial summary, and stock info",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string"
+      },
+      "profile": {
+        "type": "object",
+        "description": "Company profile data including price, mktCap, sector, industry, ceo, description"
+      }
+    },
+    "required": [
+      "symbol",
+      "profile"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Company Data",
+    "tags": [
+      "fmp",
+      "profile",
+      "company",
+      "fundamentals"
+    ],
+    "examples": [
+      {
+        "description": "Get Apple profile",
+        "input": {
+          "symbol": "AAPL"
+        }
+      },
+      {
+        "description": "Get Tesla profile",
+        "input": {
+          "symbol": "TSLA"
+        }
+      }
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

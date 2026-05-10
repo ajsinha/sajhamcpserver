@@ -1,0 +1,79 @@
+{
+  "name": "fmp_key_metrics",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPKeyMetricsTool",
+  "description": "Get key financial ratios from FMP \u2014 PE, PB, PS, EV/EBITDA, ROE, ROA, current ratio, debt/equity, dividend yield, profit margins",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)"
+      },
+      "period": {
+        "type": "string",
+        "description": "Reporting period",
+        "enum": [
+          "annual",
+          "quarter"
+        ],
+        "default": "annual"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records to return",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 100
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string"
+      },
+      "period": {
+        "type": "string"
+      },
+      "ratios": {
+        "type": "array",
+        "description": "Financial ratio records"
+      }
+    },
+    "required": [
+      "symbol",
+      "ratios"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Analysis",
+    "tags": [
+      "fmp",
+      "ratios",
+      "metrics",
+      "valuation",
+      "pe",
+      "roe"
+    ],
+    "examples": [
+      {
+        "description": "Amazon valuation ratios",
+        "input": {
+          "symbol": "AMZN",
+          "period": "annual",
+          "limit": 5
+        }
+      }
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

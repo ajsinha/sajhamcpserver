@@ -1,0 +1,37 @@
+{
+  "name": "cg_search",
+  "implementation": "sajha.tools.impl.coingecko_tools.CGSearchTool",
+  "description": "Search CoinGecko for coins, exchanges, categories by keyword",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Search keyword"
+      }
+    },
+    "required": [
+      "query"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Cryptocurrency",
+    "tags": [
+      "coingecko",
+      "search"
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "fred_high_yield_spread",
+  "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
+  "description": "Get ICE BofA High Yield Spread from FRED (series: BAMLH0A0HYM2)",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "series_id": {
+        "type": "string",
+        "default": "BAMLH0A0HYM2"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 20
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Fixed Income",
+    "tags": [
+      "fred",
+      "bamlh0a0hym2"
+    ]
+  },
+  "api_key": "${fred.api.key}"
+}

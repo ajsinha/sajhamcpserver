@@ -1,0 +1,42 @@
+{
+  "name": "fmp_exec_compensation",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPExecCompensationTool",
+  "description": "Get executive compensation data from FMP \u2014 salary, bonus, stock awards, total pay for company officers",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Company Data",
+    "tags": [
+      "fmp",
+      "executive",
+      "compensation",
+      "salary",
+      "ceo pay"
+    ],
+    "examples": []
+  },
+  "api_key": "${fmp.api.key}"
+}

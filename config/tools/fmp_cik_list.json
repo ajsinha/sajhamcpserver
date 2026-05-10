@@ -1,0 +1,37 @@
+{
+  "name": "fmp_cik_list",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
+  "description": "Get list of SEC CIK numbers from FMP",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 20
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Stock Directory",
+    "tags": [
+      "fmp",
+      "directory"
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

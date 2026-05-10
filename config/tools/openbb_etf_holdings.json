@@ -1,0 +1,69 @@
+{
+  "name": "openbb_etf_holdings",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBETFHoldingsTool",
+  "description": "Get ETF holdings breakdown via OpenBB \u2014 top holdings, portfolio weights, sectors for SPY, QQQ, VTI, and other ETFs",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "ETF ticker (e.g., SPY, QQQ, VTI, IWM)",
+        "default": "SPY"
+      },
+      "provider": {
+        "type": "string",
+        "default": "fmp"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string"
+      },
+      "holdings_count": {
+        "type": "integer"
+      },
+      "holdings": {
+        "type": "array"
+      }
+    },
+    "required": [
+      "symbol",
+      "holdings"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "ETFs",
+    "tags": [
+      "openbb",
+      "etf",
+      "holdings",
+      "portfolio",
+      "weights"
+    ],
+    "examples": [
+      {
+        "description": "SPY top holdings",
+        "input": {
+          "symbol": "SPY"
+        }
+      },
+      {
+        "description": "QQQ holdings",
+        "input": {
+          "symbol": "QQQ"
+        }
+      }
+    ]
+  }
+}

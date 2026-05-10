@@ -1,0 +1,56 @@
+{
+  "name": "calc_dcf_model",
+  "implementation": "sajha.tools.impl.calc_tools.CalcDCFModelTool",
+  "description": "Build a DCF valuation model \u2014 project cash flows, terminal value, enterprise value",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "free_cash_flow": {
+        "type": "number"
+      },
+      "growth_rate": {
+        "type": "number",
+        "description": "%"
+      },
+      "wacc": {
+        "type": "number",
+        "description": "%"
+      },
+      "terminal_growth": {
+        "type": "number",
+        "description": "%",
+        "default": 2
+      },
+      "projection_years": {
+        "type": "integer",
+        "default": 5
+      }
+    },
+    "required": [
+      "free_cash_flow",
+      "growth_rate",
+      "wacc"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Calculators",
+    "tags": [
+      "calculator",
+      "dcf",
+      "valuation"
+    ]
+  }
+}

@@ -2,7 +2,7 @@
 
 **Copyright All rights reserved 2025-2030, Ashutosh Sinha**  
 **Email: ajsinha@gmail.com**  
-**Version: 2.3.0**  
+**Version: 3.1.0**  
 **Last Updated: October 31, 2025**
 
 ---
@@ -1414,7 +1414,7 @@ raise ValueError("Unknown indicator: xyz")
 1. **No Real-Time Data**
    - No live/streaming data
    - Batch updates (quarterly/annually)
-   - No WebSocket support
+   - SSE transport available via /mcp/sse
 
 2. **Pagination**
    - Max per_page: 1000 for data, 500 for metadata

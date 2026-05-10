@@ -1,0 +1,32 @@
+{
+  "name": "fmp_sp500_constituents",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
+  "description": "Get current S&P 500 constituents from FMP \u2014 all 500 stocks",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Indexes",
+    "tags": [
+      "fmp",
+      "sp500",
+      "constituents"
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

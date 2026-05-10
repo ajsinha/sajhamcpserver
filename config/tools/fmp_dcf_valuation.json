@@ -1,0 +1,42 @@
+{
+  "name": "fmp_dcf_valuation",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPDCFValuationTool",
+  "description": "Get discounted cash flow valuation from FMP \u2014 DCF per share, stock price, and date for intrinsic value analysis",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Valuation",
+    "tags": [
+      "fmp",
+      "dcf",
+      "valuation",
+      "intrinsic value",
+      "fair value"
+    ],
+    "examples": []
+  },
+  "api_key": "${fmp.api.key}"
+}

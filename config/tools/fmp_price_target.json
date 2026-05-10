@@ -1,0 +1,46 @@
+{
+  "name": "fmp_price_target",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPPriceTargetTool",
+  "description": "Get analyst price targets from FMP \u2014 target price, analyst name, firm, published date for a stock",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 5
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Analyst",
+    "tags": [
+      "fmp",
+      "price target",
+      "analyst",
+      "forecast"
+    ],
+    "examples": []
+  },
+  "api_key": "${fmp.api.key}"
+}

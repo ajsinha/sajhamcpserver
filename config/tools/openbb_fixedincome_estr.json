@@ -1,0 +1,36 @@
+{
+  "name": "openbb_fixedincome_estr",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
+  "description": "Get Euro Short-Term Rate (ESTR) via OpenBB",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "provider": {
+        "type": "string",
+        "default": "federal_reserve"
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Fixed Income",
+    "tags": [
+      "openbb",
+      "estr",
+      "euro"
+    ]
+  }
+}

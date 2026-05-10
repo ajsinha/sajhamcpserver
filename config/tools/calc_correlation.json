@@ -1,0 +1,46 @@
+{
+  "name": "calc_correlation",
+  "implementation": "sajha.tools.impl.calc_tools.CalcCorrelationTool",
+  "description": "Calculate Pearson correlation between two data series",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "series_x": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "series_y": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    "required": [
+      "series_x",
+      "series_y"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Calculators",
+    "tags": [
+      "calculator",
+      "correlation"
+    ]
+  }
+}

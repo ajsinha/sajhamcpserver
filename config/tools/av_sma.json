@@ -1,0 +1,46 @@
+{
+  "name": "av_sma",
+  "implementation": "sajha.tools.impl.alphavantage_tools.AVSMATool",
+  "description": "Get Simple Moving Average from Alpha Vantage",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "interval": {
+        "type": "string",
+        "default": "daily"
+      },
+      "time_period": {
+        "type": "integer",
+        "default": 14
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Technical Indicators",
+    "tags": [
+      "alphavantage",
+      "sma"
+    ]
+  },
+  "api_key": "${alpha_vantage.api.key}"
+}

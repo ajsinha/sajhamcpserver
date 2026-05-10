@@ -1,0 +1,46 @@
+{
+  "name": "calc_capm",
+  "implementation": "sajha.tools.impl.calc_tools.CalcCAPMTool",
+  "description": "Calculate expected return using CAPM \u2014 Capital Asset Pricing Model",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "risk_free_rate": {
+        "type": "number",
+        "description": "%"
+      },
+      "beta": {
+        "type": "number"
+      },
+      "market_return": {
+        "type": "number",
+        "description": "%"
+      }
+    },
+    "required": [
+      "risk_free_rate",
+      "beta",
+      "market_return"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Calculators",
+    "tags": [
+      "calculator",
+      "capm"
+    ]
+  }
+}

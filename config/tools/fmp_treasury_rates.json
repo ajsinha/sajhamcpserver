@@ -1,0 +1,45 @@
+{
+  "name": "fmp_treasury_rates",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPTreasuryRatesTool",
+  "description": "Get US Treasury rates from FMP \u2014 yield curve data across 1mo, 3mo, 6mo, 1yr, 2yr, 5yr, 10yr, 30yr maturities",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "from_date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)"
+      },
+      "to_date": {
+        "type": "string",
+        "description": "End date (YYYY-MM-DD)"
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Fixed Income",
+    "tags": [
+      "fmp",
+      "treasury",
+      "yield",
+      "rates",
+      "bonds",
+      "yield curve"
+    ],
+    "examples": []
+  },
+  "api_key": "${fmp.api.key}"
+}

@@ -1,0 +1,116 @@
+{
+  "name": "fmp_stock_screener",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPStockScreenerTool",
+  "description": "Screen stocks using FMP filters \u2014 market cap range, sector, industry, price, beta, dividend yield, volume, country, exchange",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "marketCapMoreThan": {
+        "type": "integer",
+        "description": "Minimum market cap in USD"
+      },
+      "marketCapLowerThan": {
+        "type": "integer",
+        "description": "Maximum market cap in USD"
+      },
+      "sector": {
+        "type": "string",
+        "description": "Sector filter (e.g., Technology, Healthcare, Financial Services)"
+      },
+      "industry": {
+        "type": "string",
+        "description": "Industry filter"
+      },
+      "country": {
+        "type": "string",
+        "description": "Country filter (e.g., US, GB, JP)"
+      },
+      "exchange": {
+        "type": "string",
+        "description": "Exchange (e.g., NYSE, NASDAQ)"
+      },
+      "dividendMoreThan": {
+        "type": "number",
+        "description": "Minimum dividend yield"
+      },
+      "betaMoreThan": {
+        "type": "number",
+        "description": "Minimum beta"
+      },
+      "betaLowerThan": {
+        "type": "number",
+        "description": "Maximum beta"
+      },
+      "priceMoreThan": {
+        "type": "number",
+        "description": "Minimum price"
+      },
+      "priceLowerThan": {
+        "type": "number",
+        "description": "Maximum price"
+      },
+      "volumeMoreThan": {
+        "type": "integer",
+        "description": "Minimum daily volume"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Max results",
+        "default": 20
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "criteria": {
+        "type": "object"
+      },
+      "results_count": {
+        "type": "integer"
+      },
+      "results": {
+        "type": "array"
+      }
+    },
+    "required": [
+      "results_count",
+      "results"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Stock Screening",
+    "tags": [
+      "fmp",
+      "screener",
+      "filter",
+      "scan",
+      "stocks"
+    ],
+    "examples": [
+      {
+        "description": "Large-cap tech stocks",
+        "input": {
+          "sector": "Technology",
+          "marketCapMoreThan": 100000000000,
+          "limit": 10
+        }
+      },
+      {
+        "description": "High-dividend US stocks",
+        "input": {
+          "country": "US",
+          "dividendMoreThan": 4,
+          "limit": 20
+        }
+      }
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

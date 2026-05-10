@@ -1,0 +1,39 @@
+{
+  "name": "fmp_index_historical",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
+  "description": "Get historical index data from FMP",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "default": "^GSPC"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Indexes",
+    "tags": [
+      "fmp",
+      "index",
+      "historical"
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

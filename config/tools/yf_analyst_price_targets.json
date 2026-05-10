@@ -1,0 +1,37 @@
+{
+  "name": "yf_analyst_price_targets",
+  "implementation": "sajha.tools.impl.yfinance_tools.YFAnalystPriceTargetsTool",
+  "description": "Get analyst price targets from Yahoo Finance \u2014 low, mean, median, high targets",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Analyst",
+    "tags": [
+      "yfinance",
+      "price target"
+    ]
+  }
+}

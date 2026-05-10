@@ -1,0 +1,61 @@
+{
+  "name": "openbb_economy_cpi",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBEconomyCPITool",
+  "description": "Get Consumer Price Index (CPI) data via OpenBB \u2014 inflation trends, CPI values over time from FRED or other providers",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "country": {
+        "type": "string",
+        "description": "Country",
+        "default": "united_states"
+      },
+      "provider": {
+        "type": "string",
+        "default": "fred"
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "country": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer"
+      },
+      "cpi_data": {
+        "type": "array"
+      }
+    },
+    "required": [
+      "country",
+      "cpi_data"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Economics",
+    "tags": [
+      "openbb",
+      "cpi",
+      "inflation",
+      "consumer prices",
+      "economics"
+    ],
+    "examples": [
+      {
+        "description": "US CPI data",
+        "input": {
+          "country": "united_states"
+        }
+      }
+    ]
+  }
+}

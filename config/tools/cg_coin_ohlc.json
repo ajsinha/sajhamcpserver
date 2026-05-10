@@ -1,0 +1,41 @@
+{
+  "name": "cg_coin_ohlc",
+  "implementation": "sajha.tools.impl.coingecko_tools.CGCoinOHLCTool",
+  "description": "Get crypto OHLC candlestick data from CoinGecko",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "default": "bitcoin"
+      },
+      "days": {
+        "type": "integer",
+        "default": 30
+      }
+    },
+    "required": [
+      "id"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Cryptocurrency",
+    "tags": [
+      "coingecko",
+      "ohlc"
+    ]
+  }
+}

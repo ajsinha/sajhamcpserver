@@ -1,0 +1,35 @@
+{
+  "name": "cg_exchanges_list",
+  "implementation": "sajha.tools.impl.coingecko_tools.CGExchangesListTool",
+  "description": "Get crypto exchanges list from CoinGecko \u2014 ranked by volume, trust score",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "default": 20
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Cryptocurrency",
+    "tags": [
+      "coingecko",
+      "exchanges"
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "name": "openbb_regulators_sec_filings",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
+  "description": "Get SEC filings via OpenBB \u2014 10-K, 10-Q, 8-K regulatory filings",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol"
+      },
+      "provider": {
+        "type": "string",
+        "default": "sec"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "SEC & Regulatory",
+    "tags": [
+      "openbb",
+      "sec",
+      "filings"
+    ]
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "name": "fmp_analyst_estimates",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPAnalystEstimatesTool",
+  "description": "Get analyst consensus estimates from FMP \u2014 estimated revenue, EPS, EBITDA, net income, and SGA for upcoming periods",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)"
+      },
+      "period": {
+        "type": "string",
+        "description": "Reporting period",
+        "enum": [
+          "annual",
+          "quarter"
+        ],
+        "default": "annual"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records to return",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 100
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string"
+      },
+      "period": {
+        "type": "string"
+      },
+      "estimates": {
+        "type": "array",
+        "description": "Analyst estimate records"
+      }
+    },
+    "required": [
+      "symbol",
+      "estimates"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Analysis",
+    "tags": [
+      "fmp",
+      "analyst",
+      "estimates",
+      "consensus",
+      "forecast",
+      "eps"
+    ],
+    "examples": [
+      {
+        "description": "Apple analyst estimates",
+        "input": {
+          "symbol": "AAPL",
+          "period": "annual",
+          "limit": 4
+        }
+      }
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

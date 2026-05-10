@@ -1,0 +1,46 @@
+{
+  "name": "calc_beta",
+  "implementation": "sajha.tools.impl.calc_tools.CalcBetaTool",
+  "description": "Calculate stock beta from stock and market return series",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "stock_returns": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "market_returns": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    "required": [
+      "stock_returns",
+      "market_returns"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Calculators",
+    "tags": [
+      "calculator",
+      "beta"
+    ]
+  }
+}

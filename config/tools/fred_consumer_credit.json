@@ -1,0 +1,42 @@
+{
+  "name": "fred_consumer_credit",
+  "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
+  "description": "Get US Total Consumer Credit from FRED (series: TOTALSL)",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "series_id": {
+        "type": "string",
+        "default": "TOTALSL"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 20
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Economics",
+    "tags": [
+      "fred",
+      "consumer",
+      "credit"
+    ]
+  },
+  "api_key": "${fred.api.key}"
+}

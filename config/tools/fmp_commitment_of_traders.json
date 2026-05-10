@@ -1,0 +1,39 @@
+{
+  "name": "fmp_commitment_of_traders",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
+  "description": "Get Commitment of Traders report from FMP \u2014 COT futures positioning",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "default": "ES"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Derivatives",
+    "tags": [
+      "fmp",
+      "cot",
+      "futures"
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

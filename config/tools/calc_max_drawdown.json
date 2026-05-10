@@ -1,0 +1,40 @@
+{
+  "name": "calc_max_drawdown",
+  "implementation": "sajha.tools.impl.calc_tools.CalcMaxDrawdownTool",
+  "description": "Calculate maximum drawdown from a series of portfolio values",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "portfolio_values": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    "required": [
+      "portfolio_values"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Calculators",
+    "tags": [
+      "calculator",
+      "drawdown",
+      "risk"
+    ]
+  }
+}

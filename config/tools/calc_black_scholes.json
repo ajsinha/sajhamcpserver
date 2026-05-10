@@ -1,0 +1,55 @@
+{
+  "name": "calc_black_scholes",
+  "implementation": "sajha.tools.impl.calc_tools.CalcBlackScholesTool",
+  "description": "Calculate option prices using Black-Scholes model \u2014 European call and put",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "stock_price": {
+        "type": "number"
+      },
+      "strike": {
+        "type": "number"
+      },
+      "time_years": {
+        "type": "number"
+      },
+      "risk_free_rate": {
+        "type": "number",
+        "description": "%"
+      },
+      "volatility": {
+        "type": "number",
+        "description": "%"
+      }
+    },
+    "required": [
+      "stock_price",
+      "strike",
+      "time_years",
+      "risk_free_rate",
+      "volatility"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Calculators",
+    "tags": [
+      "calculator",
+      "options",
+      "black-scholes"
+    ]
+  }
+}

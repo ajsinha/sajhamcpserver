@@ -69,22 +69,29 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="card-body">
                     {% if tools %}
                     <!-- Search and Controls -->
-                    <div class="row mb-3">
-                        <div class="col-md-6">
+                    <div class="row mb-3 g-2">
+                        <div class="col-md-3">
+                            <select id="groupFilter" class="form-select">
+                                <option value="all">All Groups</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control" id="searchTools" placeholder="Search tools by name...">
+                                <input type="text" class="form-control" id="searchTools" placeholder="Search by name or description (e.g. interest rate, GDP)...">
                             </div>
                         </div>
-                        <div class="col-md-6 text-end">
-                            <label for="rowsPerPage" class="me-2">Show:</label>
-                            <select id="rowsPerPage" class="form-select d-inline-block" style="width: auto;">
-                                <option value="5" selected>5</option>
-                                <option value="10">10</option>
+                        <div class="col-md-2">
+                            <select id="rowsPerPage" class="form-select">
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
                                 <option value="50">50</option>
                                 <option value="all">All</option>
                             </select>
-                            <span class="ms-2">entries</span>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <span class="badge bg-primary" id="filteredCount">{{ tools|length }}</span> tools
+                        </div>
                         </div>
                     </div>
 
@@ -92,6 +99,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         <table class="table table-hover" id="toolsTable">
                             <thead>
                                 <tr>
+                                    <th style="width:120px">Group</th>
                                     <th style="cursor: pointer;" id="sortToolName">
                                         Tool Name <i class="bi bi-arrow-down-up"></i>
                                     </th>
@@ -231,31 +239,45 @@ const toolsData = [
     {% for tool in tools %}
     {
         name: "{{ tool.name }}",
-        description: "{{ tool.description }}",
-        executeUrl: "{{ url_for('tool_execute', tool_name=tool.name) }}"
+        description: {{ tool.description|tojson }},
+        executeUrl: "{{ url_for('tool_execute', tool_name=tool.name) }}",
+        group: "{{ tool.name.split('_')[0] if '_' in tool.name else 'unknown' }}"
     }{% if not loop.last %},{% endif %}
     {% endfor %}
 ];
 
 let currentPage = 1;
-let rowsPerPage = 5;
+let rowsPerPage = 10;
 let filteredData = [...toolsData];
 let sortAscending = true;
+
+// Build group dropdown
+const groupCounts = {};
+toolsData.forEach(t => { groupCounts[t.group] = (groupCounts[t.group]||0) + 1; });
+Object.keys(groupCounts).sort().forEach(g => {
+    const o = document.createElement('option');
+    o.value = g; o.textContent = `${g.toUpperCase()} (${groupCounts[g]})`;
+    document.getElementById('groupFilter').appendChild(o);
+});
+
+function applyDashboardFilters() {
+    const group = document.getElementById('groupFilter').value;
+    const search = document.getElementById('searchTools').value.toLowerCase().trim();
+    filteredData = toolsData.filter(t => {
+        return (group === 'all' || t.group === group) &&
+               (!search || t.name.toLowerCase().includes(search) || t.description.toLowerCase().includes(search));
+    });
+    currentPage = 1;
+    document.getElementById('filteredCount').textContent = filteredData.length;
+    renderTable();
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     renderTable();
 
-    // Search functionality
-    document.getElementById('searchTools').addEventListener('input', function(e) {
-        const searchTerm = e.target.value.toLowerCase();
-        filteredData = toolsData.filter(tool =>
-            tool.name.toLowerCase().includes(searchTerm) ||
-            tool.description.toLowerCase().includes(searchTerm)
-        );
-        currentPage = 1;
-        renderTable();
-    });
+    document.getElementById('searchTools').addEventListener('input', applyDashboardFilters);
+    document.getElementById('groupFilter').addEventListener('change', applyDashboardFilters);
 
     // Rows per page change
     document.getElementById('rowsPerPage').addEventListener('change', function(e) {
@@ -317,7 +339,11 @@ function renderTable() {
             '';
         {% endif %}
 
+        const GC = {fmp:'#0d6efd',openbb:'#198754',yf:'#ffc107',av:'#6f42c1',fred:'#dc3545',
+            cg:'#fd7e14',calc:'#20c997',edgar:'#6610f2',wb:'#0dcaf0'};
+        const gc = GC[tool.group] || '#6c757d';
         row.innerHTML = `
+            <td><span class="badge" style="background:${gc}">${tool.group.toUpperCase()}</span></td>
             <td><strong>${tool.name}</strong></td>
             <td>${tool.description}</td>
             <td>

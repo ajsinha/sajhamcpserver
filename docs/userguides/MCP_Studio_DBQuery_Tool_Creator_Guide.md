@@ -1,5 +1,5 @@
 # MCP Studio Database Query Tool Creator Guide
-## SAJHA MCP Server v2.9.8
+## SAJHA MCP Server v3.1.0
 
 ## Overview
 
@@ -454,7 +454,7 @@ params = {"name": user_input}
 }
 ```
 
-Store credentials in `application.properties`:
+Store credentials in `application.yml`:
 ```properties
 db.user=${DB_USER}
 db.password=${DB_PASSWORD}
@@ -629,5 +629,5 @@ mysql -h hostname -u username -p database -e "SELECT 1"
 
 ---
 
-*SAJHA MCP Server v2.9.8 - Database Query Tool Creator Guide*
+*SAJHA MCP Server v3.1.0 - Database Query Tool Creator Guide*
 *Copyright © 2025-2030 Ashutosh Sinha*

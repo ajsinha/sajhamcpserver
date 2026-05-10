@@ -1,0 +1,45 @@
+{
+  "name": "calc_npv",
+  "implementation": "sajha.tools.impl.calc_tools.CalcNPVTool",
+  "description": "Calculate Net Present Value (NPV) of cash flows at a discount rate",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "discount_rate": {
+        "type": "number",
+        "description": "%"
+      },
+      "cash_flows": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Cash flows starting with initial investment (negative)"
+      }
+    },
+    "required": [
+      "discount_rate",
+      "cash_flows"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Calculators",
+    "tags": [
+      "calculator",
+      "npv"
+    ]
+  }
+}

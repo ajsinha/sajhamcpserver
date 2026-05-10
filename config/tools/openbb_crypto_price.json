@@ -1,0 +1,81 @@
+{
+  "name": "openbb_crypto_price",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBCryptoPriceTool",
+  "description": "Get historical cryptocurrency prices via OpenBB \u2014 daily OHLCV for BTC, ETH, SOL, and other crypto assets",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Crypto pair (e.g., BTCUSD, ETHUSD, SOLUSD)",
+        "default": "BTCUSD"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "provider": {
+        "type": "string",
+        "description": "Data provider",
+        "default": "yfinance"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer"
+      },
+      "prices": {
+        "type": "array"
+      }
+    },
+    "required": [
+      "symbol",
+      "prices"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Cryptocurrency",
+    "tags": [
+      "openbb",
+      "crypto",
+      "bitcoin",
+      "ethereum",
+      "prices"
+    ],
+    "examples": [
+      {
+        "description": "Bitcoin 90 days",
+        "input": {
+          "symbol": "BTCUSD"
+        }
+      },
+      {
+        "description": "Ethereum history",
+        "input": {
+          "symbol": "ETHUSD",
+          "start_date": "2025-01-01"
+        }
+      }
+    ]
+  }
+}

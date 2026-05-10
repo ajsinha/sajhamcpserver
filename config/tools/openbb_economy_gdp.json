@@ -1,0 +1,67 @@
+{
+  "name": "openbb_economy_gdp",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBEconomyGDPTool",
+  "description": "Get nominal GDP data via OpenBB \u2014 GDP values and growth rates for countries worldwide from OECD or World Bank",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "country": {
+        "type": "string",
+        "description": "Country name or code (e.g., united_states, germany, japan)",
+        "default": "united_states"
+      },
+      "provider": {
+        "type": "string",
+        "default": "oecd"
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "country": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer"
+      },
+      "gdp_data": {
+        "type": "array"
+      }
+    },
+    "required": [
+      "country",
+      "gdp_data"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Economics",
+    "tags": [
+      "openbb",
+      "gdp",
+      "economy",
+      "macroeconomics",
+      "growth"
+    ],
+    "examples": [
+      {
+        "description": "US GDP data",
+        "input": {
+          "country": "united_states"
+        }
+      },
+      {
+        "description": "Japan GDP",
+        "input": {
+          "country": "japan"
+        }
+      }
+    ]
+  }
+}

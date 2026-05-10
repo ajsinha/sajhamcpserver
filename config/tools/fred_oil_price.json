@@ -1,0 +1,38 @@
+{
+  "name": "fred_oil_price",
+  "implementation": "sajha.tools.impl.fred_tools.FREDOilPriceTool",
+  "description": "Get WTI Crude Oil Price from FRED",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 30
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Commodities",
+    "tags": [
+      "fred",
+      "oil",
+      "wti"
+    ]
+  },
+  "api_key": "${fred.api.key}"
+}

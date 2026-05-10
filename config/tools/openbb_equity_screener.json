@@ -1,0 +1,59 @@
+{
+  "name": "openbb_equity_screener",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBEquityScreenerTool",
+  "description": "Screen stocks via OpenBB \u2014 filter by market cap, sector, industry, region from Yahoo Finance or FMP",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "provider": {
+        "type": "string",
+        "default": "fmp"
+      },
+      "market_cap_min": {
+        "type": "integer",
+        "description": "Min market cap"
+      },
+      "market_cap_max": {
+        "type": "integer",
+        "description": "Max market cap"
+      },
+      "sector": {
+        "type": "string",
+        "description": "Sector filter"
+      },
+      "country": {
+        "type": "string",
+        "description": "Country filter"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 5
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Stock Screening",
+    "tags": [
+      "openbb",
+      "screener",
+      "filter",
+      "scan"
+    ],
+    "examples": []
+  }
+}

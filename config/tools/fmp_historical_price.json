@@ -1,0 +1,50 @@
+{
+  "name": "fmp_historical_price",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPHistoricalPriceTool",
+  "description": "Get historical daily stock prices from FMP \u2014 open, high, low, close, volume, adjusted close for any date range",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "from_date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)"
+      },
+      "to_date": {
+        "type": "string",
+        "description": "End date (YYYY-MM-DD)"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Market Data",
+    "tags": [
+      "fmp",
+      "price",
+      "historical",
+      "ohlcv",
+      "chart"
+    ],
+    "examples": []
+  },
+  "api_key": "${fmp.api.key}"
+}

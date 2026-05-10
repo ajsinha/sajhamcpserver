@@ -1,0 +1,42 @@
+{
+  "name": "openbb_commodity_search",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
+  "description": "Search for commodities via OpenBB",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "default": "gold"
+      },
+      "provider": {
+        "type": "string",
+        "default": "yfinance"
+      }
+    },
+    "required": [
+      "query"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Commodities",
+    "tags": [
+      "openbb",
+      "commodity",
+      "search"
+    ]
+  }
+}

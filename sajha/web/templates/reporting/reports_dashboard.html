@@ -1,0 +1,163 @@
+{% extends "common/base.html" %}
+
+{% block title %}Reports — {{ app_name }}{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-bar-chart-line"></i> Reports Dashboard</h2>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary btn-sm" onclick="loadPeriod('24h')">24h</button>
+            <button class="btn btn-outline-primary btn-sm active" onclick="loadPeriod('7d')">7 Days</button>
+            <button class="btn btn-outline-primary btn-sm" onclick="loadPeriod('30d')">30 Days</button>
+        </div>
+    </div>
+
+    <!-- Overview Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Total Calls (24h)</h6>
+                    <h2 class="card-title text-primary">{{ overview_24h.total_calls }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Total Calls (7d)</h6>
+                    <h2 class="card-title text-success">{{ overview_7d.total_calls }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Error Rate (7d)</h6>
+                    <h2 class="card-title text-warning">{{ overview_7d.error_rate }}%</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Active Users (7d)</h6>
+                    <h2 class="card-title text-info">{{ overview_7d.active_users }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Top Tools -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-tools"></i> Top Tools (7 Days)</div>
+                <div class="card-body">
+                    {% if top_tools %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead><tr><th>Tool</th><th>Calls</th><th>Avg (ms)</th><th>Errors</th></tr></thead>
+                            <tbody>
+                            {% for t in top_tools %}
+                            <tr>
+                                <td><code>{{ t.tool_name }}</code></td>
+                                <td>{{ t.total_calls }}</td>
+                                <td>{{ t.avg_duration_ms }}</td>
+                                <td>
+                                    {% if t.error_count > 0 %}
+                                    <span class="badge bg-danger">{{ t.error_count }}</span>
+                                    {% else %}
+                                    <span class="badge bg-success">0</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">No tool usage data yet. Execute some tools to see analytics.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Users -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-people"></i> Top Users (7 Days)</div>
+                <div class="card-body">
+                    {% if top_users %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead><tr><th>User</th><th>Calls</th><th>Tools Used</th><th>Last Active</th></tr></thead>
+                            <tbody>
+                            {% for u in top_users %}
+                            <tr>
+                                <td><code>{{ u.user_id }}</code></td>
+                                <td>{{ u.total_calls }}</td>
+                                <td>{{ u.tools_used }}</td>
+                                <td>{{ u.last_active|dt(16) if u.last_active else '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">No user activity data yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart area -->
+    <div class="row g-3 mt-2">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-graph-up"></i> Tool Usage Chart</div>
+                <div class="card-body">
+                    <canvas id="usageChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toolData = {{ top_tools|tojson }};
+    if (toolData && toolData.length > 0) {
+        const ctx = document.getElementById('usageChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: toolData.map(t => t.tool_name),
+                datasets: [{
+                    label: 'Calls',
+                    data: toolData.map(t => t.total_calls),
+                    backgroundColor: 'rgba(13, 110, 253, 0.6)',
+                    borderColor: 'rgba(13, 110, 253, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+});
+
+function loadPeriod(period) {
+    window.location.href = '/reports?period=' + period;
+}
+</script>
+{% endblock %}

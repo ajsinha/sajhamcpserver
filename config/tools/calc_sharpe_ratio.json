@@ -1,0 +1,47 @@
+{
+  "name": "calc_sharpe_ratio",
+  "implementation": "sajha.tools.impl.calc_tools.CalcSharpeRatioTool",
+  "description": "Calculate Sharpe Ratio \u2014 risk-adjusted return measure",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "portfolio_return": {
+        "type": "number",
+        "description": "%"
+      },
+      "risk_free_rate": {
+        "type": "number",
+        "description": "%"
+      },
+      "volatility": {
+        "type": "number",
+        "description": "%"
+      }
+    },
+    "required": [
+      "portfolio_return",
+      "risk_free_rate",
+      "volatility"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Calculators",
+    "tags": [
+      "calculator",
+      "sharpe"
+    ]
+  }
+}

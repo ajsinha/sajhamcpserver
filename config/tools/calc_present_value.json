@@ -1,0 +1,45 @@
+{
+  "name": "calc_present_value",
+  "implementation": "sajha.tools.impl.calc_tools.CalcPresentValueTool",
+  "description": "Calculate present value \u2014 what a future sum is worth today given a discount rate",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "future_value": {
+        "type": "number"
+      },
+      "rate": {
+        "type": "number",
+        "description": "%"
+      },
+      "years": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "future_value",
+      "rate",
+      "years"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Calculators",
+    "tags": [
+      "calculator",
+      "present value"
+    ]
+  }
+}

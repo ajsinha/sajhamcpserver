@@ -1,0 +1,43 @@
+{
+  "name": "fmp_ipo_calendar",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPIPOCalendarTool",
+  "description": "Get upcoming and recent IPOs from FMP \u2014 company name, expected date, price range, shares offered, exchange",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "from_date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)"
+      },
+      "to_date": {
+        "type": "string",
+        "description": "End date (YYYY-MM-DD)"
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Calendar",
+    "tags": [
+      "fmp",
+      "ipo",
+      "calendar",
+      "new listings"
+    ],
+    "examples": []
+  },
+  "api_key": "${fmp.api.key}"
+}

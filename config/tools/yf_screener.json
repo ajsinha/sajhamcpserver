@@ -1,0 +1,44 @@
+{
+  "name": "yf_screener",
+  "implementation": "sajha.tools.impl.yfinance_tools.YFScreenerTool",
+  "description": "Screen stocks using Yahoo Finance \u2014 gainers, losers, most active, undervalued, growth",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "screen_type": {
+        "type": "string",
+        "default": "day_gainers",
+        "enum": [
+          "day_gainers",
+          "day_losers",
+          "most_actives",
+          "undervalued_large_caps",
+          "aggressive_small_caps",
+          "growth_technology_stocks",
+          "undervalued_growth_stocks"
+        ]
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Stock Screening",
+    "tags": [
+      "yfinance",
+      "screener"
+    ]
+  }
+}

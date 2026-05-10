@@ -1,0 +1,41 @@
+{
+  "name": "yf_forex_history",
+  "implementation": "sajha.tools.impl.yfinance_tools.YFForexHistoryTool",
+  "description": "Get forex pair history from Yahoo Finance \u2014 EURUSD, GBPJPY, USDINR, etc.",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "pair": {
+        "type": "string",
+        "default": "EURUSD=X"
+      },
+      "period": {
+        "type": "string",
+        "default": "3mo"
+      }
+    },
+    "required": [
+      "pair"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Forex",
+    "tags": [
+      "yfinance",
+      "forex"
+    ]
+  }
+}

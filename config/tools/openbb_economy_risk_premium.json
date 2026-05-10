@@ -1,0 +1,35 @@
+{
+  "name": "openbb_economy_risk_premium",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
+  "description": "Get market risk premium via OpenBB by country",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "provider": {
+        "type": "string",
+        "default": "fmp"
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Economics",
+    "tags": [
+      "openbb",
+      "risk premium"
+    ]
+  }
+}

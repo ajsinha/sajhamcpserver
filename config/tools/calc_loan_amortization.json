@@ -1,0 +1,46 @@
+{
+  "name": "calc_loan_amortization",
+  "implementation": "sajha.tools.impl.calc_tools.CalcLoanAmortizationTool",
+  "description": "Calculate loan amortization \u2014 monthly payment, total interest, total paid",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "principal": {
+        "type": "number"
+      },
+      "annual_rate": {
+        "type": "number",
+        "description": "%"
+      },
+      "months": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "principal",
+      "annual_rate",
+      "months"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Calculators",
+    "tags": [
+      "calculator",
+      "loan",
+      "mortgage"
+    ]
+  }
+}

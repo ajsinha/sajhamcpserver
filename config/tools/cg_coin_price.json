@@ -1,0 +1,42 @@
+{
+  "name": "cg_coin_price",
+  "implementation": "sajha.tools.impl.coingecko_tools.CGCoinPriceTool",
+  "description": "Get current crypto prices from CoinGecko \u2014 price, 24h change, market cap for any coin",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "ids": {
+        "type": "string",
+        "default": "bitcoin",
+        "description": "Coin IDs (comma-separated: bitcoin,ethereum,solana)"
+      },
+      "vs": {
+        "type": "string",
+        "default": "usd"
+      }
+    },
+    "required": [
+      "ids"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Cryptocurrency",
+    "tags": [
+      "coingecko",
+      "price"
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "cg_companies_holdings",
+  "implementation": "sajha.tools.impl.coingecko_tools.CGCompaniesHoldingsTool",
+  "description": "Get public companies holding BTC/ETH from CoinGecko \u2014 Tesla, MicroStrategy, etc.",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "coin_id": {
+        "type": "string",
+        "default": "bitcoin",
+        "enum": [
+          "bitcoin",
+          "ethereum"
+        ]
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Cryptocurrency",
+    "tags": [
+      "coingecko",
+      "companies",
+      "treasury"
+    ]
+  }
+}

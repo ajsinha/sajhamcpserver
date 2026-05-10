@@ -1,0 +1,62 @@
+{
+  "name": "openbb_treasury_rates",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBTreasuryRatesTool",
+  "description": "Get US Treasury and Federal Funds rate data via OpenBB \u2014 daily effective federal funds rate from the Federal Reserve",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "start_date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "provider": {
+        "type": "string",
+        "default": "federal_reserve"
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "data_points": {
+        "type": "integer"
+      },
+      "rates": {
+        "type": "array"
+      }
+    },
+    "required": [
+      "rates"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Fixed Income",
+    "tags": [
+      "openbb",
+      "treasury",
+      "interest rates",
+      "federal funds",
+      "yield"
+    ],
+    "examples": [
+      {
+        "description": "Fed funds rate 1 year",
+        "input": {
+          "start_date": "2025-05-01"
+        }
+      }
+    ]
+  }
+}

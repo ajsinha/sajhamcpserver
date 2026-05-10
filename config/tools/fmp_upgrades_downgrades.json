@@ -1,0 +1,46 @@
+{
+  "name": "fmp_upgrades_downgrades",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPUpgradesDowngradesTool",
+  "description": "Get analyst upgrades and downgrades from FMP \u2014 rating changes, firm, previous/new grade for a stock",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 5
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Analyst",
+    "tags": [
+      "fmp",
+      "upgrade",
+      "downgrade",
+      "rating"
+    ],
+    "examples": []
+  },
+  "api_key": "${fmp.api.key}"
+}

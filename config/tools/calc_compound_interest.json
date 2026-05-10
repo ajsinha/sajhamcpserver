@@ -1,0 +1,49 @@
+{
+  "name": "calc_compound_interest",
+  "implementation": "sajha.tools.impl.calc_tools.CalcCompoundInterestTool",
+  "description": "Calculate compound interest \u2014 future value of an investment with regular compounding",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "principal": {
+        "type": "number"
+      },
+      "rate": {
+        "type": "number",
+        "description": "Annual rate %"
+      },
+      "years": {
+        "type": "number"
+      },
+      "compounds_per_year": {
+        "type": "integer",
+        "default": 12
+      }
+    },
+    "required": [
+      "principal",
+      "rate",
+      "years"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Calculators",
+    "tags": [
+      "calculator",
+      "compound interest"
+    ]
+  }
+}

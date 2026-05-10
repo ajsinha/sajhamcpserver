@@ -1,0 +1,39 @@
+{
+  "name": "fmp_commodity_quote",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
+  "description": "Get commodity quote from FMP \u2014 gold, oil, silver, etc.",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "default": "GCUSD"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Commodities",
+    "tags": [
+      "fmp",
+      "commodity",
+      "quote"
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

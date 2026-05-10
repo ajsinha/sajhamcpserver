@@ -1,54 +1,58 @@
-# --- Byte-compiled / optimized / DLL files ---
+# ============================================================================
+# SAJHA MCP Server v3 — Git Ignore
+# ============================================================================
+
+# ── Database (SQLite files auto-created on startup, never checked in) ────
+data/*.db
+data/*.db-journal
+data/*.db-wal
+*.sqlite
+*.sqlite3
+
+# ── Logs ─────────────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ── Temp ─────────────────────────────────────────────────────────────────
+temp/
+tmp/
+
+# ── Python ───────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
-
-# --- Environments ---
-data/
-logs/
-.venv/
-venv/
-ENV/
-env/
-# Explicitly ignoring local environment folders
-.python-version
-
-# --- Distribution / Packaging ---
+*.pyo
+*.egg-info/
 dist/
 build/
-eggs/
-*.egg-info/
 *.egg
-nosetests.xml
-coverage.xml
-*.cover
-*.pyo
+.eggs/
+*.whl
+.venv/
+venv/
+env/
 
-# --- Unit test / Coverage reports ---
-htmlcov/
-.tox/
-.nosexy
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*,cover
-.hypothesis/
-.pytest_cache/
-
-# --- Jupyter Notebooks ---
-.ipynb_checkpoints
-
-# --- Secret / Configuration files ---
-.env
-.flaskenv
-instance/
-!config.example.py
-
-# --- IDE specific (optional but recommended) ---
-.vscode/
+# ── IDE ──────────────────────────────────────────────────────────────────
 .idea/
+.vscode/
+*.iml
 *.swp
 *.swo
+*~
+
+# ── Environment (secrets) ───────────────────────────────────────────────
+.env
+.env.local
+.env.production
+
+# ── OS ───────────────────────────────────────────────────────────────────
 .DS_Store
+Thumbs.db
+
+# ── Alembic ──────────────────────────────────────────────────────────────
+alembic/versions/*.pyc
+
+# ── Test ─────────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/

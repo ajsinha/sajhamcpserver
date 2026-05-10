@@ -1,0 +1,41 @@
+{
+  "name": "fred_gold_price",
+  "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
+  "description": "Get Gold Price (London Fix) from FRED (series: GOLDAMGBD228NLBM)",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "series_id": {
+        "type": "string",
+        "default": "GOLDAMGBD228NLBM"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 20
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Commodities",
+    "tags": [
+      "fred",
+      "goldamgbd228nlbm"
+    ]
+  },
+  "api_key": "${fred.api.key}"
+}

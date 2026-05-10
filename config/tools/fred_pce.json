@@ -1,0 +1,38 @@
+{
+  "name": "fred_pce",
+  "implementation": "sajha.tools.impl.fred_tools.FREDPCETool",
+  "description": "Get US Personal Consumption Expenditures from FRED",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 30
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Economics",
+    "tags": [
+      "fred",
+      "pce",
+      "spending"
+    ]
+  },
+  "api_key": "${fred.api.key}"
+}

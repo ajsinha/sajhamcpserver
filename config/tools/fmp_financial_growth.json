@@ -1,0 +1,48 @@
+{
+  "name": "fmp_financial_growth",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
+  "description": "Get financial growth metrics from FMP \u2014 revenue, earnings, cash flow growth rates",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol"
+      },
+      "period": {
+        "type": "string",
+        "default": "annual"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 20
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Analysis",
+    "tags": [
+      "fmp",
+      "growth",
+      "metrics"
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

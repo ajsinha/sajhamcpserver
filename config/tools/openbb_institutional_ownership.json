@@ -1,0 +1,45 @@
+{
+  "name": "openbb_institutional_ownership",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBInstitutionalOwnershipTool",
+  "description": "Get institutional ownership via OpenBB \u2014 major fund holders, shares held, changes from SEC 13F filings",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "provider": {
+        "type": "string",
+        "default": "fmp"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Ownership",
+    "tags": [
+      "openbb",
+      "institutional",
+      "ownership",
+      "13f",
+      "funds"
+    ],
+    "examples": []
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "av_company_overview",
+  "implementation": "sajha.tools.impl.alphavantage_tools.AVCompanyOverviewTool",
+  "description": "Get company fundamentals overview from Alpha Vantage \u2014 PE, EPS, dividend, market cap, sector, description",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Company Data",
+    "tags": [
+      "alphavantage",
+      "overview"
+    ]
+  },
+  "api_key": "${alpha_vantage.api.key}"
+}

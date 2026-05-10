@@ -1,0 +1,39 @@
+{
+  "name": "fmp_stock_split_calendar",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
+  "description": "Get upcoming stock splits from FMP",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "from_date": {
+        "type": "string"
+      },
+      "to_date": {
+        "type": "string"
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Calendar",
+    "tags": [
+      "fmp",
+      "splits",
+      "calendar"
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

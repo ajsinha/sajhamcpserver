@@ -1,0 +1,46 @@
+{
+  "name": "fmp_economic_calendar",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPEconomicCalendarTool",
+  "description": "Get economic events calendar from FMP \u2014 GDP releases, jobs reports, CPI, Fed meetings, PMI with estimates vs actuals",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "from_date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)"
+      },
+      "to_date": {
+        "type": "string",
+        "description": "End date (YYYY-MM-DD)"
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Economics",
+    "tags": [
+      "fmp",
+      "economic",
+      "calendar",
+      "events",
+      "gdp",
+      "cpi",
+      "fomc"
+    ],
+    "examples": []
+  },
+  "api_key": "${fmp.api.key}"
+}

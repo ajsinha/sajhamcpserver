@@ -1,0 +1,43 @@
+{
+  "name": "fmp_technical_williams",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
+  "description": "Get Williams %R from FMP technical indicator for a stock",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol"
+      },
+      "period": {
+        "type": "integer",
+        "default": 14
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Technical Indicators",
+    "tags": [
+      "fmp",
+      "williams",
+      "technical"
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

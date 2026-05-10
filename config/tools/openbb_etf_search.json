@@ -1,0 +1,41 @@
+{
+  "name": "openbb_etf_search",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
+  "description": "Search for ETFs via OpenBB \u2014 find ETFs by name or keyword",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string",
+        "default": "fmp"
+      }
+    },
+    "required": [
+      "query"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "ETFs",
+    "tags": [
+      "openbb",
+      "etf",
+      "search"
+    ]
+  }
+}

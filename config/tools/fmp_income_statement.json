@@ -1,0 +1,78 @@
+{
+  "name": "fmp_income_statement",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPIncomeStatementTool",
+  "description": "Get income statement from FMP \u2014 revenue, cost of revenue, gross profit, operating expenses, EBITDA, net income, EPS",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)"
+      },
+      "period": {
+        "type": "string",
+        "description": "Reporting period",
+        "enum": [
+          "annual",
+          "quarter"
+        ],
+        "default": "annual"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records to return",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 100
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string"
+      },
+      "period": {
+        "type": "string"
+      },
+      "statements": {
+        "type": "array",
+        "description": "Income statement records"
+      }
+    },
+    "required": [
+      "symbol",
+      "statements"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Statements",
+    "tags": [
+      "fmp",
+      "income",
+      "revenue",
+      "earnings",
+      "financials"
+    ],
+    "examples": [
+      {
+        "description": "Apple annual income statements",
+        "input": {
+          "symbol": "AAPL",
+          "period": "annual",
+          "limit": 5
+        }
+      }
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

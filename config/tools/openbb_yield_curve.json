@@ -1,0 +1,42 @@
+{
+  "name": "openbb_yield_curve",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBYieldCurveTool",
+  "description": "Get US Treasury yield curve via OpenBB \u2014 rates across all maturities (1mo to 30yr) for a given date",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "date": {
+        "type": "string",
+        "description": "Date for yield curve (YYYY-MM-DD, latest if omitted)"
+      },
+      "provider": {
+        "type": "string",
+        "default": "federal_reserve"
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Fixed Income",
+    "tags": [
+      "openbb",
+      "yield curve",
+      "treasury",
+      "interest rates"
+    ],
+    "examples": []
+  }
+}

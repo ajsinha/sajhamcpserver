@@ -1,5 +1,5 @@
 # MCP Studio SharePoint Tool Creator Guide
-## SAJHA MCP Server v2.9.8
+## SAJHA MCP Server v3.1.0
 
 ## Overview
 
@@ -128,7 +128,7 @@ Add the following Microsoft Graph permissions:
 Record these values for SAJHA configuration:
 
 ```properties
-# Add to application.properties
+# Add to application.yml
 azure.tenant.id=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 sharepoint.client.id=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 sharepoint.client.secret=your-client-secret-value
@@ -474,7 +474,7 @@ More secure for production environments.
 
 ### Store Credentials Securely
 
-Add to `application.properties`:
+Add to `application.yml`:
 
 ```properties
 # Azure AD / SharePoint Configuration
@@ -666,5 +666,5 @@ curl -H "Authorization: Bearer {access_token}" \
 
 ---
 
-*SAJHA MCP Server v2.9.8 - SharePoint Tool Creator Guide*
+*SAJHA MCP Server v3.1.0 - SharePoint Tool Creator Guide*
 *Copyright © 2025-2030 Ashutosh Sinha*

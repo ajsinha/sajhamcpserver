@@ -1,0 +1,49 @@
+{
+  "name": "calc_retirement",
+  "implementation": "sajha.tools.impl.calc_tools.CalcRetirementTool",
+  "description": "Calculate retirement savings projection \u2014 future balance with annual contributions",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "current_savings": {
+        "type": "number"
+      },
+      "annual_contribution": {
+        "type": "number"
+      },
+      "return_rate": {
+        "type": "number",
+        "description": "%"
+      },
+      "years": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "current_savings",
+      "annual_contribution",
+      "return_rate",
+      "years"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Calculators",
+    "tags": [
+      "calculator",
+      "retirement"
+    ]
+  }
+}

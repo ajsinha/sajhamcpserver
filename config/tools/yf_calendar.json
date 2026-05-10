@@ -1,0 +1,38 @@
+{
+  "name": "yf_calendar",
+  "implementation": "sajha.tools.impl.yfinance_tools.YFCalendarTool",
+  "description": "Get earnings/dividend calendar from Yahoo Finance \u2014 upcoming events and dates",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Calendar",
+    "tags": [
+      "yfinance",
+      "calendar",
+      "events"
+    ]
+  }
+}

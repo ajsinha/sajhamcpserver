@@ -1,0 +1,65 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}Documentation — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="welcome-banner">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-book-half me-3" style="font-size: 2.5rem;"></i>
+                    <div>
+                        <h2 class="mb-1">Documentation</h2>
+                        <p class="mb-0 opacity-75">SAJHA MCP Server v{{ app_version }} — Guides, architecture, and API reference</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if docs %}
+    <div class="card mb-4">
+        <div class="card-header card-header-primary">
+            <i class="bi bi-file-text me-2"></i>Top-Level Documents
+        </div>
+        <div class="card-body">
+            <div class="list-group">
+                {% for doc in docs %}
+                <a href="/docs/view/{{ doc.path }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-file-earmark-text me-2"></i>{{ doc.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% for section_name, section_docs in sections.items() %}
+    <div class="card mb-4">
+        <div class="card-header card-header-info">
+            <i class="bi bi-folder2-open me-2"></i>{{ section_name }}
+            <span class="badge bg-light text-dark float-end">{{ section_docs|length }} docs</span>
+        </div>
+        <div class="card-body">
+            <div class="list-group">
+                {% for doc in section_docs %}
+                <a href="/docs/view/{{ doc.path }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-file-earmark-text me-2"></i>{{ doc.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if not docs and not sections %}
+    <div class="card">
+        <div class="card-body">
+            <p class="text-muted text-center my-4">No documentation files found in the <code>docs/</code> directory.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

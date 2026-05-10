@@ -1,0 +1,69 @@
+{
+  "name": "yf_stock_history",
+  "implementation": "sajha.tools.impl.yfinance_tools.YFStockHistoryTool",
+  "description": "Get historical stock price data from Yahoo Finance \u2014 OHLCV for any period (1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max)",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "period": {
+        "type": "string",
+        "default": "1y",
+        "enum": [
+          "1d",
+          "5d",
+          "1mo",
+          "3mo",
+          "6mo",
+          "1y",
+          "2y",
+          "5y",
+          "10y",
+          "ytd",
+          "max"
+        ]
+      },
+      "interval": {
+        "type": "string",
+        "default": "1d",
+        "enum": [
+          "1m",
+          "5m",
+          "15m",
+          "1h",
+          "1d",
+          "1wk",
+          "1mo"
+        ]
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Market Data",
+    "tags": [
+      "yfinance",
+      "history",
+      "ohlcv",
+      "chart"
+    ]
+  }
+}

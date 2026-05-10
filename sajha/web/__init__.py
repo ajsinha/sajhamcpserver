@@ -1,9 +1,8 @@
 """
+SAJHA MCP Server v3 — Web Assets
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Web module for SAJHA MCP Server v2.3.0
+
+This package contains only static assets (templates/ and static/).
+The application class is in sajha.app.SajhaMCPServerWebApp.
+Route modules are in sajha.routes/.
 """
-
-from .app import create_app
-from .sajhamcpserver_web import SajhaMCPServerWebApp
-
-__all__ = ['create_app', 'SajhaMCPServerWebApp']

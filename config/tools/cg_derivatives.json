@@ -1,0 +1,30 @@
+{
+  "name": "cg_derivatives",
+  "implementation": "sajha.tools.impl.coingecko_tools.CGDerivativesTool",
+  "description": "Get crypto derivatives data from CoinGecko \u2014 futures, perpetuals",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Derivatives",
+    "tags": [
+      "coingecko",
+      "derivatives"
+    ]
+  }
+}

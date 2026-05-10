@@ -1,0 +1,30 @@
+{
+  "name": "yf_trending_tickers",
+  "implementation": "sajha.tools.impl.yfinance_tools.YFTrendingTickersTool",
+  "description": "Get trending/most active tickers from Yahoo Finance \u2014 what the market is watching today",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Market Performance",
+    "tags": [
+      "yfinance",
+      "trending"
+    ]
+  }
+}

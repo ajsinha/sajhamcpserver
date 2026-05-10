@@ -1,0 +1,42 @@
+{
+  "name": "yf_multi_ticker_history",
+  "implementation": "sajha.tools.impl.yfinance_tools.YFMultiTickerHistoryTool",
+  "description": "Get price history for multiple stocks at once from Yahoo Finance \u2014 compare up to 10 tickers",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbols": {
+        "type": "string",
+        "description": "Space-separated symbols (e.g., 'AAPL MSFT GOOGL')"
+      },
+      "period": {
+        "type": "string",
+        "default": "1mo"
+      }
+    },
+    "required": [
+      "symbols"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Market Data",
+    "tags": [
+      "yfinance",
+      "multi",
+      "compare"
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "fmp_most_active",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPMostActiveTool",
+  "description": "Get most actively traded stocks from FMP \u2014 highest volume stocks today",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 5
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Market Performance",
+    "tags": [
+      "fmp",
+      "active",
+      "volume",
+      "most traded"
+    ],
+    "examples": []
+  },
+  "api_key": "${fmp.api.key}"
+}

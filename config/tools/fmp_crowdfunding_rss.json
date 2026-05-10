@@ -1,0 +1,31 @@
+{
+  "name": "fmp_crowdfunding_rss",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
+  "description": "Get latest crowdfunding filings RSS from FMP",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "SEC & Regulatory",
+    "tags": [
+      "fmp",
+      "crowdfunding"
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

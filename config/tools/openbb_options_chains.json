@@ -1,0 +1,45 @@
+{
+  "name": "openbb_options_chains",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBOptionsChainsTool",
+  "description": "Get options chain data via OpenBB \u2014 calls and puts with strike, bid, ask, volume, open interest, Greeks",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "provider": {
+        "type": "string",
+        "default": "cboe"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Derivatives",
+    "tags": [
+      "openbb",
+      "options",
+      "calls",
+      "puts",
+      "greeks"
+    ],
+    "examples": []
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "av_stock_daily",
+  "implementation": "sajha.tools.impl.alphavantage_tools.AVStockDailyTool",
+  "description": "Get daily stock prices from Alpha Vantage \u2014 OHLCV time series",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "outputsize": {
+        "type": "string",
+        "default": "compact",
+        "enum": [
+          "compact",
+          "full"
+        ]
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Market Data",
+    "tags": [
+      "alphavantage",
+      "daily"
+    ]
+  },
+  "api_key": "${alpha_vantage.api.key}"
+}

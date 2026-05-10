@@ -1,0 +1,45 @@
+{
+  "name": "fmp_senate_trading",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPSenateTradingTool",
+  "description": "Get US Senate stock trading disclosures from FMP \u2014 senator name, transaction type, amount, asset, date",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Optional symbol filter"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 5
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Ownership & Insider",
+    "tags": [
+      "fmp",
+      "senate",
+      "congress",
+      "trading",
+      "disclosure"
+    ],
+    "examples": []
+  },
+  "api_key": "${fmp.api.key}"
+}

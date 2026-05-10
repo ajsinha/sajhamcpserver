@@ -1,0 +1,50 @@
+{
+  "name": "openbb_commodity_price",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBCommodityPriceTool",
+  "description": "Get commodity price history via OpenBB \u2014 gold, silver, oil, natural gas, copper, wheat, corn, etc.",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Commodity symbol (GC=F for gold, CL=F for oil, SI=F for silver)"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)"
+      },
+      "provider": {
+        "type": "string",
+        "description": "Data provider",
+        "default": "yfinance"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Commodities",
+    "tags": [
+      "openbb",
+      "commodity",
+      "gold",
+      "oil",
+      "silver"
+    ],
+    "examples": []
+  }
+}

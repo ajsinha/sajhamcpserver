@@ -37,15 +37,24 @@ class MCPHandler:
         self.logger = logging.getLogger(__name__)
         self.prompts_registry = prompts_registry
         self.server_info = {
-            "protocolVersion": "1.0",
-            "serverName": "SAJHA MCP Server",
-            "serverVersion": "1.0.0",
+            "protocolVersion": "2025-06-18",
+            "serverInfo": {
+                "name": "SAJHA MCP Server",
+                "version": "3.1.0"
+            },
             "capabilities": {
                 "tools": {
                     "listChanged": True
                 },
-                "prompts": {},
-                "resources": {}
+                "prompts": {
+                    "listChanged": True
+                },
+                "resources": {
+                    "subscribe": True,
+                    "listChanged": True
+                },
+                "logging": {},
+                "completions": {}
             }
         }
     
@@ -100,6 +109,27 @@ class MCPHandler:
                 return self.handle_prompts_list()
             elif method in ['prompts/get', 'api/prompts/get', '/prompts/get', '/api/prompts/get']:
                 return self.handle_prompts_get(request_data)
+
+            # ── MCP v3 additions: Resources ──────────────────────
+            elif method == 'resources/list':
+                result = self._handle_resources_list(params)
+            elif method == 'resources/read':
+                result = self._handle_resources_read(params)
+            elif method == 'resources/templates/list':
+                result = self._handle_resources_templates_list(params)
+            elif method == 'resources/subscribe':
+                result = self._handle_resources_subscribe(params)
+            elif method == 'resources/unsubscribe':
+                result = self._handle_resources_unsubscribe(params)
+
+            # ── MCP v3 additions: Completion ─────────────────────
+            elif method == 'completion/complete':
+                result = self._handle_completion_complete(params)
+
+            # ── MCP v3 additions: Logging ────────────────────────
+            elif method == 'logging/setLevel':
+                result = self._handle_logging_set_level(params)
+
             else:
                 return self._create_error_response(
                     request_id,
@@ -271,7 +301,23 @@ class MCPHandler:
                     if tool['name'] in accessible_tools
                 ]
         
-        return {"tools": all_tools}
+        # Pagination support (MCP spec)
+        cursor = params.get('cursor')
+        page_size = 100
+        if cursor:
+            try:
+                start = int(cursor)
+            except (ValueError, TypeError):
+                start = 0
+        else:
+            start = 0
+        
+        page = all_tools[start:start + page_size]
+        result = {"tools": page}
+        if start + page_size < len(all_tools):
+            result['nextCursor'] = str(start + page_size)
+        
+        return result
 
     def _handle_tool_input_schema(self, params: Dict, session: Optional[Dict]) -> Dict:
         if not self.tools_registry:
@@ -395,20 +441,210 @@ class MCPHandler:
             raise ValueError(f"Tool execution failed: {str(e)}")
     
     def _handle_ping(self, params: Dict, session: Optional[Dict]) -> Dict:
-        """
-        Handle ping request
-        
-        Args:
-            params: Request parameters
-            session: Session data
-            
-        Returns:
-            Pong response
-        """
+        """Handle ping request"""
         return {
             "status": "ok",
             "timestamp": datetime.now().isoformat() + "Z"
         }
+
+    # ═════════════════════════════════════════════════════════════
+    # MCP v3: Resources
+    # ═════════════════════════════════════════════════════════════
+
+    def _handle_resources_list(self, params: Dict) -> Dict:
+        """Handle resources/list — expose datasets, tool catalog, data files."""
+        import os
+        resources = []
+
+        # Tool catalog as a resource
+        tool_count = len(self.tools_registry.tools) if self.tools_registry else 0
+        resources.append({
+            'uri': 'sajha://tools/catalog',
+            'name': 'Tool Catalog',
+            'mimeType': 'application/json',
+            'description': f'Catalog of {tool_count} available MCP tools',
+        })
+
+        # Prompt catalog
+        prompt_count = len(self.prompts_registry.prompts) if self.prompts_registry else 0
+        if prompt_count > 0:
+            resources.append({
+                'uri': 'sajha://prompts/catalog',
+                'name': 'Prompt Catalog',
+                'mimeType': 'application/json',
+                'description': f'Catalog of {prompt_count} available prompts',
+            })
+
+        # Data directory files
+        for data_dir in ['data/duckdb', 'data/sqlselect']:
+            if os.path.isdir(data_dir):
+                for fname in os.listdir(data_dir):
+                    if fname.endswith(('.csv', '.parquet', '.json', '.xlsx')):
+                        resources.append({
+                            'uri': f'sajha://data/{fname}',
+                            'name': fname,
+                            'mimeType': 'application/octet-stream',
+                            'description': f'Data file: {fname}',
+                        })
+
+        # Pagination support
+        cursor = params.get('cursor')
+        page_size = 50
+        if cursor:
+            try:
+                start = int(cursor)
+            except (ValueError, TypeError):
+                start = 0
+        else:
+            start = 0
+
+        page = resources[start:start + page_size]
+        result = {'resources': page}
+        if start + page_size < len(resources):
+            result['nextCursor'] = str(start + page_size)
+
+        return result
+
+    def _handle_resources_read(self, params: Dict) -> Dict:
+        """Handle resources/read — read a resource by URI."""
+        import json as _json
+        uri = params.get('uri', '')
+
+        if uri == 'sajha://tools/catalog':
+            tools = self.tools_registry.get_all_tools() if self.tools_registry else []
+            return {
+                'contents': [{
+                    'uri': uri,
+                    'mimeType': 'application/json',
+                    'text': _json.dumps(tools, indent=2, default=str),
+                }]
+            }
+
+        if uri == 'sajha://prompts/catalog':
+            prompts = self.prompts_registry.get_all_prompts() if self.prompts_registry else []
+            return {
+                'contents': [{
+                    'uri': uri,
+                    'mimeType': 'application/json',
+                    'text': _json.dumps(prompts, indent=2, default=str),
+                }]
+            }
+
+        if uri.startswith('sajha://data/'):
+            fname = uri.replace('sajha://data/', '')
+            for data_dir in ['data/duckdb', 'data/sqlselect']:
+                import os
+                fpath = os.path.join(data_dir, fname)
+                if os.path.isfile(fpath):
+                    try:
+                        with open(fpath, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        return {
+                            'contents': [{
+                                'uri': uri,
+                                'mimeType': 'text/csv' if fname.endswith('.csv') else 'application/json',
+                                'text': content,
+                            }]
+                        }
+                    except Exception as e:
+                        return {'contents': [{'uri': uri, 'mimeType': 'text/plain', 'text': f'Error reading file: {e}'}]}
+
+        return {'contents': [{'uri': uri, 'mimeType': 'text/plain', 'text': f'Resource not found: {uri}'}]}
+
+    def _handle_resources_templates_list(self, params: Dict) -> Dict:
+        """Handle resources/templates/list — parameterized resource templates."""
+        return {
+            'resourceTemplates': [
+                {
+                    'uriTemplate': 'sajha://tools/{tool_name}/schema',
+                    'name': 'Tool Schema',
+                    'description': 'Get the input/output schema for a specific tool',
+                    'mimeType': 'application/json',
+                },
+                {
+                    'uriTemplate': 'sajha://data/{filename}',
+                    'name': 'Data File',
+                    'description': 'Read a data file from the server data directory',
+                },
+            ]
+        }
+
+    def _handle_resources_subscribe(self, params: Dict) -> Dict:
+        """Handle resources/subscribe — subscribe to resource changes."""
+        uri = params.get('uri', '')
+        self.logger.info(f"Client subscribed to resource: {uri}")
+        return {}
+
+    def _handle_resources_unsubscribe(self, params: Dict) -> Dict:
+        """Handle resources/unsubscribe — unsubscribe from resource changes."""
+        uri = params.get('uri', '')
+        self.logger.info(f"Client unsubscribed from resource: {uri}")
+        return {}
+
+    # ═════════════════════════════════════════════════════════════
+    # MCP v3: Completion
+    # ═════════════════════════════════════════════════════════════
+
+    def _handle_completion_complete(self, params: Dict) -> Dict:
+        """Handle completion/complete — auto-complete for tool/prompt arguments."""
+        ref = params.get('ref', {})
+        argument = params.get('argument', {})
+        arg_name = argument.get('name', '')
+        partial = argument.get('value', '')
+
+        values = []
+
+        if ref.get('type') == 'ref/tool':
+            tool_name = ref.get('name', '')
+            tool = self.tools_registry.get_tool(tool_name) if self.tools_registry else None
+            if tool:
+                schema = tool.input_schema
+                prop = schema.get('properties', {}).get(arg_name, {})
+                # Suggest from enum values
+                if 'enum' in prop:
+                    values = [v for v in prop['enum'] if partial.lower() in v.lower()]
+                # Suggest from default
+                elif 'default' in prop and partial == '':
+                    values = [str(prop['default'])]
+
+        elif ref.get('type') == 'ref/prompt':
+            prompt_name = ref.get('name', '')
+            if self.prompts_registry:
+                prompt = self.prompts_registry.get_prompt(prompt_name)
+                if prompt and 'arguments' in prompt:
+                    for arg in prompt.get('arguments', []):
+                        if arg.get('name') == arg_name and 'enum' in arg:
+                            values = [v for v in arg['enum'] if partial.lower() in v.lower()]
+
+        return {
+            'completion': {
+                'values': values[:20],
+                'hasMore': len(values) > 20,
+                'total': len(values),
+            }
+        }
+
+    # ═════════════════════════════════════════════════════════════
+    # MCP v3: Logging
+    # ═════════════════════════════════════════════════════════════
+
+    def _handle_logging_set_level(self, params: Dict) -> Dict:
+        """Handle logging/setLevel — dynamically adjust server log level."""
+        level = params.get('level', 'info').upper()
+        valid = {'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL',
+                 'ALERT', 'NOTICE', 'EMERGENCY'}  # MCP spec levels
+        level_map = {
+            'ALERT': 'CRITICAL', 'NOTICE': 'INFO', 'EMERGENCY': 'CRITICAL',
+            'DEBUG': 'DEBUG', 'INFO': 'INFO', 'WARNING': 'WARNING',
+            'ERROR': 'ERROR', 'CRITICAL': 'CRITICAL',
+        }
+        if level not in valid:
+            return {'error': f'Invalid level: {level}'}
+
+        python_level = level_map.get(level, 'INFO')
+        logging.getLogger().setLevel(getattr(logging, python_level))
+        self.logger.info(f'Log level changed to {level} (Python: {python_level})')
+        return {}
     
     def handle_batch_request(self, requests: List[Dict], session: Optional[Dict] = None) -> List[Dict]:
         """

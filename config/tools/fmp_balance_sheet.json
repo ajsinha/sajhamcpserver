@@ -1,0 +1,78 @@
+{
+  "name": "fmp_balance_sheet",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPBalanceSheetTool",
+  "description": "Get balance sheet from FMP \u2014 total assets, liabilities, equity, cash, short/long-term debt, retained earnings",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)"
+      },
+      "period": {
+        "type": "string",
+        "description": "Reporting period",
+        "enum": [
+          "annual",
+          "quarter"
+        ],
+        "default": "annual"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records to return",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 100
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string"
+      },
+      "period": {
+        "type": "string"
+      },
+      "statements": {
+        "type": "array",
+        "description": "Balance sheet records"
+      }
+    },
+    "required": [
+      "symbol",
+      "statements"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Statements",
+    "tags": [
+      "fmp",
+      "balance sheet",
+      "assets",
+      "liabilities",
+      "equity"
+    ],
+    "examples": [
+      {
+        "description": "Microsoft balance sheet",
+        "input": {
+          "symbol": "MSFT",
+          "period": "annual",
+          "limit": 3
+        }
+      }
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

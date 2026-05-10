@@ -1,0 +1,43 @@
+{
+  "name": "av_crypto_daily",
+  "implementation": "sajha.tools.impl.alphavantage_tools.AVCryptoDailyTool",
+  "description": "Get daily crypto prices from Alpha Vantage \u2014 BTC, ETH, etc.",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "default": "BTC"
+      },
+      "market": {
+        "type": "string",
+        "default": "USD"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Cryptocurrency",
+    "tags": [
+      "alphavantage",
+      "crypto",
+      "daily"
+    ]
+  },
+  "api_key": "${alpha_vantage.api.key}"
+}

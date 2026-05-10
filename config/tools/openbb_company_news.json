@@ -1,0 +1,49 @@
+{
+  "name": "openbb_company_news",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBCompanyNewsTool",
+  "description": "Get company-specific news via OpenBB \u2014 headlines, summaries for a specific stock from Benzinga, FMP, or others",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 5
+      },
+      "provider": {
+        "type": "string",
+        "default": "benzinga"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "News",
+    "tags": [
+      "openbb",
+      "news",
+      "company",
+      "stock"
+    ],
+    "examples": []
+  }
+}

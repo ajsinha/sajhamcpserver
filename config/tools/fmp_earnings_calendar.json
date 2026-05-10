@@ -1,0 +1,47 @@
+{
+  "name": "fmp_earnings_calendar",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPEarningsCalendarTool",
+  "description": "Get upcoming and recent earnings announcements from FMP \u2014 dates, EPS estimates vs actuals, revenue estimates",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "from_date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)"
+      },
+      "to_date": {
+        "type": "string",
+        "description": "End date (YYYY-MM-DD)"
+      },
+      "symbol": {
+        "type": "string",
+        "description": "Optional: filter by symbol"
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Calendar",
+    "tags": [
+      "fmp",
+      "earnings",
+      "calendar",
+      "eps"
+    ],
+    "examples": []
+  },
+  "api_key": "${fmp.api.key}"
+}

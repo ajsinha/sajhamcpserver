@@ -1,5 +1,5 @@
 # MCP Studio REST Tool Creator Guide
-## SAJHA MCP Server v2.9.8
+## SAJHA MCP Server v3.1.0
 
 ## Overview
 
@@ -450,7 +450,7 @@ Enable detailed logging:
 ### 2. Security
 
 - **Never hardcode credentials** - use `${variable}` syntax
-- Store API keys in `application.properties`
+- Store API keys in `application.yml`
 - Use HTTPS endpoints only
 - Implement rate limiting
 
@@ -632,5 +632,5 @@ tail -f logs/sajha_mcp.log | grep "REST"
 
 ---
 
-*SAJHA MCP Server v2.9.8 - REST Tool Creator Guide*
+*SAJHA MCP Server v3.1.0 - REST Tool Creator Guide*
 *Copyright © 2025-2030 Ashutosh Sinha*

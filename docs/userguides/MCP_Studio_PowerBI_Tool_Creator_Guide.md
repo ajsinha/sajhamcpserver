@@ -1,5 +1,5 @@
 # MCP Studio PowerBI Tool Creator Guide
-## SAJHA MCP Server v2.9.8
+## SAJHA MCP Server v3.1.0
 
 ## Overview
 
@@ -94,7 +94,7 @@ The PowerBI Tool Creator enables you to create MCP tools that interact with Micr
 }
 ```
 
-### Store Credentials in application.properties
+### Store Credentials in application.yml
 
 ```properties
 # Azure AD Configuration
@@ -539,5 +539,5 @@ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 
 ---
 
-*SAJHA MCP Server v2.9.8 - PowerBI Tool Creator Guide*
+*SAJHA MCP Server v3.1.0 - PowerBI Tool Creator Guide*
 *Copyright © 2025-2030 Ashutosh Sinha*

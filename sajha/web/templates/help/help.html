@@ -14,7 +14,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <i class="bi bi-question-circle-fill me-3" style="font-size: 2.5rem;"></i>
                     <div>
                         <h2 class="mb-1">Help Center</h2>
-                        <p class="mb-0 opacity-75">Comprehensive guide to using SAJHA MCP Server</p>
+                        <p class="mb-0 opacity-75">SAJHA MCP Server v{{ app_version }} — Guides, tutorials, and API reference</p>
                     </div>
                 </div>
             </div>
@@ -45,7 +45,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         <div class="col-md-2 col-6">
                             <a href="#tools" class="btn btn-outline-info w-100 h-100 py-3">
                                 <i class="bi bi-tools d-block mb-1" style="font-size: 1.5rem;"></i>
-                                Using Tools
+                                Tool Groups
                             </a>
                         </div>
                         <div class="col-md-2 col-6">
@@ -61,7 +61,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             </a>
                         </div>
                         <div class="col-md-2 col-6">
-                            <a href="{{ url_for('docs_list') }}" class="btn btn-outline-success w-100 h-100 py-3">
+                            <a href="/docs" class="btn btn-outline-success w-100 h-100 py-3">
                                 <i class="bi bi-book d-block mb-1" style="font-size: 1.5rem;"></i>
                                 <strong>Docs</strong>
                             </a>
@@ -72,7 +72,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         </div>
     </div>
 
-    <!-- Project Documentation Card -->
+    <!-- Documentation Card -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-warning">
@@ -83,24 +83,28 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         </div>
                         <div class="col-md-6 mb-3 mb-md-0">
                             <h4 class="mb-2"><i class="bi bi-file-earmark-text me-2"></i>Project Documentation</h4>
-                            <p class="mb-2 text-muted">Access comprehensive documentation including system architecture, glossary, tool reference guides, and user manuals. All documentation is rendered from markdown files for easy reading.</p>
+                            <p class="mb-2 text-muted">Architecture reference, API docs, tool guides, glossary. All documentation is live markdown rendered in-browser.</p>
                             <div class="d-flex flex-wrap gap-2">
                                 <span class="badge bg-danger">Architecture</span>
                                 <span class="badge bg-secondary">Glossary</span>
-                                <span class="badge bg-primary">Tool Guides</span>
-                                <span class="badge bg-success">API Reference</span>
+                                <span class="badge bg-primary">API Reference</span>
+                                <span class="badge bg-success">Tool Guides</span>
+                                <span class="badge bg-info">Changelog</span>
                             </div>
                         </div>
                         <div class="col-md-4 text-center text-md-end">
                             <div class="btn-group-vertical btn-group-lg w-100" style="max-width: 280px;">
-                                <a href="{{ url_for('docs_view', doc_path='architecture/SAJHA_MCP_Server_Architecture.md') }}" class="btn btn-danger mb-2">
+                                <a href="/docs/view/architecture/SAJHA_MCP_Server_Architecture.md" class="btn btn-danger mb-2">
                                     <i class="bi bi-diagram-3 me-2"></i>System Architecture
                                 </a>
-                                <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-secondary mb-2">
-                                    <i class="bi bi-card-text me-2"></i>Glossary of Terms
+                                <a href="/docs/view/API_Reference.md" class="btn btn-primary mb-2">
+                                    <i class="bi bi-code-slash me-2"></i>API Reference
                                 </a>
-                                <a href="{{ url_for('docs_list') }}" class="btn btn-warning">
-                                    <i class="bi bi-folder2-open me-2"></i>Browse All Documentation
+                                <a href="/docs/view/architecture/Glossary.md" class="btn btn-secondary mb-2">
+                                    <i class="bi bi-card-text me-2"></i>Glossary
+                                </a>
+                                <a href="/docs" class="btn btn-warning">
+                                    <i class="bi bi-folder2-open me-2"></i>Browse All Docs
                                 </a>
                             </div>
                         </div>
@@ -110,7 +114,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         </div>
     </div>
 
-    <!-- Getting Started Section -->
+    <!-- Getting Started -->
     <div class="row mb-4" id="getting-started">
         <div class="col-12">
             <div class="card">
@@ -120,37 +124,18 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <h5><i class="bi bi-1-circle me-2 text-primary"></i>Login to the System</h5>
-                            <p>Use your assigned credentials to log in. The default administrator account uses:</p>
-                            <ul>
-                                <li><strong>Username:</strong> admin</li>
-                                <li><strong>Password:</strong> admin123 (change immediately after first login)</li>
-                            </ul>
-                            
-                            <h5 class="mt-4"><i class="bi bi-2-circle me-2 text-primary"></i>Navigate the Dashboard</h5>
-                            <p>After logging in, you'll see the main dashboard with:</p>
-                            <ul>
-                                <li>Quick statistics on available tools and prompts</li>
-                                <li>Recent activity overview</li>
-                                <li>System status indicators</li>
-                            </ul>
+                            <h5><i class="bi bi-1-circle me-2 text-primary"></i>Login</h5>
+                            <p>Default admin credentials: <code>admin</code> / <code>admin123</code> (change after first login).</p>
+
+                            <h5 class="mt-4"><i class="bi bi-2-circle me-2 text-primary"></i>Dashboard</h5>
+                            <p>The dashboard shows tool counts, error summaries, and provider group badges. Click any group badge to filter tools.</p>
                         </div>
                         <div class="col-md-6">
-                            <h5><i class="bi bi-3-circle me-2 text-primary"></i>Explore Available Tools</h5>
-                            <p>Navigate to the <strong>Tools</strong> section to see all available MCP tools. Each tool has:</p>
-                            <ul>
-                                <li>Detailed description of capabilities</li>
-                                <li>Input schema documentation</li>
-                                <li>Execute interface for testing</li>
-                            </ul>
-                            
-                            <h5 class="mt-4"><i class="bi bi-4-circle me-2 text-primary"></i>Create and Manage Prompts</h5>
-                            <p>Use the <strong>Prompts</strong> section to:</p>
-                            <ul>
-                                <li>Create reusable prompt templates</li>
-                                <li>Organize prompts by category</li>
-                                <li>Test prompts with sample data</li>
-                            </ul>
+                            <h5><i class="bi bi-3-circle me-2 text-primary"></i>Explore Tools</h5>
+                            <p>The <strong>Tools</strong> page lists all 497 tools with group dropdown, description search, and clickable provider badges. Each tool has a schema viewer and execute interface.</p>
+
+                            <h5 class="mt-4"><i class="bi bi-4-circle me-2 text-primary"></i>Configuration</h5>
+                            <p>All config is in <code>config/application.yml</code>. API keys go in the <code>fmp.api.key</code>, <code>fred.api.key</code>, etc. sections. Override any key via <code>SAJHA_</code> environment variables.</p>
                         </div>
                     </div>
                 </div>
@@ -158,486 +143,99 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         </div>
     </div>
 
-    <!-- Tutorial Section -->
+    <!-- Tutorial -->
     <div class="row mb-4" id="tutorial">
         <div class="col-12">
             <div class="card border-warning">
                 <div class="card-header bg-warning text-dark">
-                    <i class="bi bi-mortarboard me-2"></i>Tutorial: Creating Your First MCP Tool
-                    <span class="badge bg-dark ms-2">Step-by-Step Guide</span>
+                    <i class="bi bi-mortarboard me-2"></i>Tutorial: Creating an MCP Tool
+                    <span class="badge bg-dark ms-2">Two Methods</span>
                 </div>
                 <div class="card-body">
-                    <p class="lead">Learn how to create a custom MCP tool from scratch. We'll build a simple "Temperature Converter" tool using both methods: manual coding and MCP Studio.</p>
-                    
-                    <!-- Method Selection Tabs -->
-                    <ul class="nav nav-tabs mb-4" id="tutorialTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button" role="tab">
-                                <i class="bi bi-code-slash me-2"></i>Method 1: Manual Coding
-                            </button>
+                    <ul class="nav nav-tabs mb-4" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#manual" type="button"><i class="bi bi-code-slash me-2"></i>Manual Coding</button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="studio-tab" data-bs-toggle="tab" data-bs-target="#studio" type="button" role="tab">
-                                <i class="bi bi-magic me-2"></i>Method 2: MCP Studio
-                            </button>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#studio" type="button"><i class="bi bi-magic me-2"></i>MCP Studio</button>
                         </li>
                     </ul>
-                    
-                    <div class="tab-content" id="tutorialTabContent">
-                        <!-- Manual Coding Tab -->
-                        <div class="tab-pane fade show active" id="manual" role="tabpanel">
+
+                    <div class="tab-content">
+                        <!-- Manual Tab -->
+                        <div class="tab-pane fade show active" id="manual">
                             <div class="alert alert-secondary">
-                                <i class="bi bi-clock me-2"></i><strong>Estimated Time:</strong> 15-20 minutes
-                                <span class="ms-3"><i class="bi bi-files me-2"></i><strong>Files to Create:</strong> 2 (JSON config + Python class)</span>
+                                <i class="bi bi-clock me-2"></i><strong>~15 minutes</strong>
+                                <span class="ms-3"><strong>2 files:</strong> JSON config + Python class</span>
                             </div>
-                            
-                            <!-- Step 1: Understanding the Structure -->
-                            <div class="card mb-4 border-primary">
-                                <div class="card-header bg-primary text-white">
-                                    <i class="bi bi-1-circle me-2"></i>Step 1: Understanding the Tool Structure
-                                </div>
-                                <div class="card-body">
-                                    <p>Every MCP tool in SAJHA consists of two files:</p>
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="card bg-light">
-                                                <div class="card-body">
-                                                    <h6><i class="bi bi-filetype-json text-warning me-2"></i>Tool Configuration (JSON)</h6>
-                                                    <p class="small mb-1"><strong>Location:</strong> <code>config/tools/{tool_name}.json</code></p>
-                                                    <p class="small mb-0"><strong>Purpose:</strong> Defines tool metadata, description, and links to the Python implementation</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="card bg-light">
-                                                <div class="card-body">
-                                                    <h6><i class="bi bi-filetype-py text-primary me-2"></i>Tool Implementation (Python)</h6>
-                                                    <p class="small mb-1"><strong>Location:</strong> <code>sajha/tools/impl/{tool_name}.py</code></p>
-                                                    <p class="small mb-0"><strong>Purpose:</strong> Contains the actual tool logic, input/output schemas, and execution code</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Step 2: Create JSON Config -->
-                            <div class="card mb-4 border-primary">
-                                <div class="card-header bg-primary text-white">
-                                    <i class="bi bi-2-circle me-2"></i>Step 2: Create the JSON Configuration
-                                </div>
-                                <div class="card-body">
-                                    <p>Create file: <code>config/tools/temperature_converter.json</code></p>
-                                    <pre class="bg-dark text-light p-3 rounded"><code>{
+
+                            <h6><strong>Step 1:</strong> Create <code>config/tools/temperature_converter.json</code></h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>{
   "name": "temperature_converter",
   "implementation": "sajha.tools.impl.temperature_converter.TemperatureConverterTool",
   "description": "Convert temperatures between Celsius, Fahrenheit, and Kelvin",
-  "version": "{{ app_version }}",
   "enabled": true,
-  "metadata": {
-    "author": "Your Name",
-    "category": "Utilities",
-    "tags": ["temperature", "converter", "units", "celsius", "fahrenheit"],
-    "rateLimit": 120,
-    "cacheTTL": 0
-  }
+  "metadata": {"category": "Utilities", "tags": ["temperature", "converter"]}
 }</code></pre>
-                                    <h6 class="mt-3"><i class="bi bi-info-circle me-2"></i>JSON Fields Explained:</h6>
-                                    <table class="table table-sm table-bordered">
-                                        <thead class="table-light">
-                                            <tr><th>Field</th><th>Required</th><th>Description</th></tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr><td><code>name</code></td><td><span class="badge bg-danger">Yes</span></td><td>Unique tool identifier (lowercase, underscores)</td></tr>
-                                            <tr><td><code>implementation</code></td><td><span class="badge bg-danger">Yes</span></td><td>Full Python path to the tool class</td></tr>
-                                            <tr><td><code>description</code></td><td><span class="badge bg-danger">Yes</span></td><td>Human-readable description shown in tool listings</td></tr>
-                                            <tr><td><code>version</code></td><td><span class="badge bg-secondary">No</span></td><td>Version string for tracking</td></tr>
-                                            <tr><td><code>enabled</code></td><td><span class="badge bg-secondary">No</span></td><td>Set to <code>false</code> to disable without deleting</td></tr>
-                                            <tr><td><code>metadata.author</code></td><td><span class="badge bg-secondary">No</span></td><td>Tool author name</td></tr>
-                                            <tr><td><code>metadata.category</code></td><td><span class="badge bg-secondary">No</span></td><td>Category for grouping in UI</td></tr>
-                                            <tr><td><code>metadata.tags</code></td><td><span class="badge bg-secondary">No</span></td><td>Array of searchable tags</td></tr>
-                                            <tr><td><code>metadata.rateLimit</code></td><td><span class="badge bg-secondary">No</span></td><td>Max requests per minute (default: 60)</td></tr>
-                                            <tr><td><code>metadata.cacheTTL</code></td><td><span class="badge bg-secondary">No</span></td><td>Cache duration in seconds (0 = no cache)</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            
-                            <!-- Step 3: Create Python Implementation -->
-                            <div class="card mb-4 border-primary">
-                                <div class="card-header bg-primary text-white">
-                                    <i class="bi bi-3-circle me-2"></i>Step 3: Create the Python Implementation
-                                </div>
-                                <div class="card-body">
-                                    <p>Create file: <code>sajha/tools/impl/temperature_converter.py</code></p>
-                                    <pre class="bg-dark text-light p-3 rounded" style="font-size: 12px;"><code>"""
-Temperature Converter MCP Tool
 
-Copyright © 2025-2030, All Rights Reserved
-Your Name
-"""
-
-from typing import Dict, Any
-from sajha.tools.base_mcp_tool import BaseMCPTool
-
+                            <h6 class="mt-4"><strong>Step 2:</strong> Create <code>sajha/tools/impl/temperature_converter.py</code></h6>
+                            <pre class="bg-dark text-light p-3 rounded" style="font-size: 12px;"><code>from sajha.tools.base_mcp_tool import BaseMCPTool
 
 class TemperatureConverterTool(BaseMCPTool):
-    """
-    Convert temperatures between Celsius, Fahrenheit, and Kelvin.
-    """
-    
-    def __init__(self, config: Dict = None):
-        """Initialize the temperature converter tool."""
-        default_config = {
-            'name': 'temperature_converter',
-            'description': 'Convert temperatures between Celsius, Fahrenheit, and Kelvin',
-            'version': '{{ app_version }}',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        """Define what inputs this tool accepts."""
-        return {
-            "type": "object",
-            "properties": {
-                "value": {
-                    "type": "number",
-                    "description": "Temperature value to convert"
-                },
-                "from_unit": {
-                    "type": "string",
-                    "enum": ["celsius", "fahrenheit", "kelvin"],
-                    "description": "Source temperature unit"
-                },
-                "to_unit": {
-                    "type": "string",
-                    "enum": ["celsius", "fahrenheit", "kelvin"],
-                    "description": "Target temperature unit"
-                }
-            },
-            "required": ["value", "from_unit", "to_unit"]
-        }
-    
-    def get_output_schema(self) -> Dict:
-        """Define what this tool returns."""
-        return {
-            "type": "object",
-            "properties": {
-                "original_value": {"type": "number"},
-                "original_unit": {"type": "string"},
-                "converted_value": {"type": "number"},
-                "converted_unit": {"type": "string"}
-            }
-        }
-    
-    def execute(self, arguments: Dict[str, Any]) -> Dict:
-        """
-        Execute the temperature conversion.
-        
-        Args:
-            arguments: Dictionary with 'value', 'from_unit', 'to_unit'
-            
-        Returns:
-            Conversion result dictionary
-        """
-        value = arguments['value']
-        from_unit = arguments['from_unit'].lower()
-        to_unit = arguments['to_unit'].lower()
-        
-        # Convert to Celsius first (as intermediate)
-        if from_unit == 'celsius':
-            celsius = value
-        elif from_unit == 'fahrenheit':
-            celsius = (value - 32) * 5/9
-        elif from_unit == 'kelvin':
-            celsius = value - 273.15
-        else:
-            return {"error": f"Unknown source unit: {from_unit}"}
-        
-        # Convert from Celsius to target
-        if to_unit == 'celsius':
-            result = celsius
-        elif to_unit == 'fahrenheit':
-            result = celsius * 9/5 + 32
-        elif to_unit == 'kelvin':
-            result = celsius + 273.15
-        else:
-            return {"error": f"Unknown target unit: {to_unit}"}
-        
-        return {
-            "original_value": value,
-            "original_unit": from_unit,
-            "converted_value": round(result, 2),
-            "converted_unit": to_unit
-        }
+    def __init__(self, config=None):
+        super().__init__(config or {'name': 'temperature_converter',
+                                     'description': 'Convert temperatures'})
 
+    def get_input_schema(self):
+        return {"type": "object", "properties": {
+            "value": {"type": "number"},
+            "from_unit": {"type": "string", "enum": ["celsius", "fahrenheit", "kelvin"]},
+            "to_unit": {"type": "string", "enum": ["celsius", "fahrenheit", "kelvin"]}
+        }, "required": ["value", "from_unit", "to_unit"]}
 
-# Tool registry - maps tool name to class
-TEMPERATURE_CONVERTER_TOOLS = {
-    'temperature_converter': TemperatureConverterTool
-}</code></pre>
-                                    
-                                    <h6 class="mt-3"><i class="bi bi-info-circle me-2"></i>Python Class Structure Explained:</h6>
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <table class="table table-sm table-bordered">
-                                                <thead class="table-light">
-                                                    <tr><th>Method</th><th>Purpose</th></tr>
-                                                </thead>
-                                                <tbody>
-                                                    <tr><td><code>__init__</code></td><td>Initialize tool with config, call parent constructor</td></tr>
-                                                    <tr><td><code>get_input_schema</code></td><td>Return JSON Schema defining accepted inputs</td></tr>
-                                                    <tr><td><code>get_output_schema</code></td><td>Return JSON Schema defining output format</td></tr>
-                                                    <tr><td><code>execute</code></td><td>Main logic - receives arguments dict, returns result dict</td></tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="alert alert-info small mb-0">
-                                                <strong>Key Points:</strong>
-                                                <ul class="mb-0 mt-1">
-                                                    <li>Class must extend <code>BaseMCPTool</code></li>
-                                                    <li>Input schema uses JSON Schema format</li>
-                                                    <li><code>required</code> array lists mandatory fields</li>
-                                                    <li><code>enum</code> restricts values to specific options</li>
-                                                    <li>Always return a dictionary from <code>execute</code></li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Step 4: Deploy -->
-                            <div class="card mb-4 border-primary">
-                                <div class="card-header bg-primary text-white">
-                                    <i class="bi bi-4-circle me-2"></i>Step 4: Deploy the Tool
-                                </div>
-                                <div class="card-body">
-                                    <p>After creating both files, the tool will be automatically loaded:</p>
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <h6><i class="bi bi-lightning me-2"></i>Option A: Hot-Reload (Automatic)</h6>
-                                            <p class="small">The server automatically scans for new tools every 5 minutes. Just wait for the next reload cycle.</p>
-                                            <pre class="bg-dark text-light p-2 rounded small"><code># Check server logs for:
-"Reloaded X tools from config/tools"</code></pre>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <h6><i class="bi bi-arrow-clockwise me-2"></i>Option B: Restart Server</h6>
-                                            <p class="small">For immediate availability, restart the server:</p>
-                                            <pre class="bg-dark text-light p-2 rounded small"><code># Stop with Ctrl+C, then:
-python run_server.py</code></pre>
-                                        </div>
-                                    </div>
-                                    
-                                    <h6 class="mt-3"><i class="bi bi-check-circle me-2 text-success"></i>Verify Deployment:</h6>
-                                    <pre class="bg-dark text-light p-2 rounded"><code># Test with curl
-curl -X POST http://localhost:8000/api/tools/execute \
-  -H "X-API-Key: YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tool": "temperature_converter",
-    "arguments": {
-      "value": 100,
-      "from_unit": "celsius",
-      "to_unit": "fahrenheit"
-    }
-  }'
+    def get_output_schema(self):
+        return {"type": "object", "properties": {
+            "converted_value": {"type": "number"}, "converted_unit": {"type": "string"}}}
 
-# Expected response:
-# {"original_value": 100, "original_unit": "celsius", "converted_value": 212.0, "converted_unit": "fahrenheit"}</code></pre>
-                                </div>
-                            </div>
+    def execute(self, arguments):
+        v, f, t = arguments['value'], arguments['from_unit'], arguments['to_unit']
+        c = v if f == 'celsius' else (v - 32) * 5/9 if f == 'fahrenheit' else v - 273.15
+        r = c if t == 'celsius' else c * 9/5 + 32 if t == 'fahrenheit' else c + 273.15
+        return {"converted_value": round(r, 2), "converted_unit": t}</code></pre>
+
+                            <h6 class="mt-4"><strong>Step 3:</strong> Deploy</h6>
+                            <p>The hot-reload system picks up new tools automatically. Or restart: <code>python run_server.py</code></p>
+
+                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X POST http://localhost:3002/api/tools/execute \
+  -H "X-API-Key: YOUR_KEY" -H "Content-Type: application/json" \
+  -d '{"tool": "temperature_converter", "arguments": {"value": 100, "from_unit": "celsius", "to_unit": "fahrenheit"}}'
+# → {"converted_value": 212.0, "converted_unit": "fahrenheit"}</code></pre>
                         </div>
-                        
-                        <!-- MCP Studio Tab -->
-                        <div class="tab-pane fade" id="studio" role="tabpanel">
-                            <div class="alert alert-success">
-                                <i class="bi bi-clock me-2"></i><strong>Estimated Time:</strong> 2-3 minutes
-                                <span class="ms-3"><i class="bi bi-magic me-2"></i><strong>Files Created:</strong> Automatically generated!</span>
-                            </div>
-                            
-                            <!-- Studio Step 1 -->
-                            <div class="card mb-4 border-success">
-                                <div class="card-header bg-success text-white">
-                                    <i class="bi bi-1-circle me-2"></i>Step 1: Open MCP Studio
-                                </div>
-                                <div class="card-body">
-                                    <p>Navigate to <strong>Admin → MCP Studio</strong> in the navigation menu.</p>
-                                    <div class="alert alert-warning small">
-                                        <i class="bi bi-shield-lock me-2"></i>MCP Studio is available only to administrators.
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Studio Step 2 -->
-                            <div class="card mb-4 border-success">
-                                <div class="card-header bg-success text-white">
-                                    <i class="bi bi-2-circle me-2"></i>Step 2: Enter Tool Name
-                                </div>
-                                <div class="card-body">
-                                    <p>In the <strong>Tool Name</strong> field, enter: <code>temperature_converter</code></p>
-                                    <p class="small text-muted">Use lowercase letters, numbers, and underscores only. Must be at least 3 characters.</p>
-                                </div>
-                            </div>
-                            
-                            <!-- Studio Step 3 -->
-                            <div class="card mb-4 border-success">
-                                <div class="card-header bg-success text-white">
-                                    <i class="bi bi-3-circle me-2"></i>Step 3: Write the Decorated Function
-                                </div>
-                                <div class="card-body">
-                                    <p>Paste this code into the editor:</p>
-                                    <pre class="bg-dark text-light p-3 rounded"><code>from sajha.studio import sajhamcptool
 
-@sajhamcptool(
-    description="Convert temperatures between Celsius, Fahrenheit, and Kelvin",
-    category="Utilities",
-    tags=["temperature", "converter", "units", "celsius", "fahrenheit"]
-)
-def convert_temperature(
-    value: float,
-    from_unit: str,
-    to_unit: str
-) -> dict:
-    """Convert temperature between units."""
-    from_unit = from_unit.lower()
-    to_unit = to_unit.lower()
-    
-    # Convert to Celsius first
-    if from_unit == 'celsius':
-        celsius = value
-    elif from_unit == 'fahrenheit':
-        celsius = (value - 32) * 5/9
-    elif from_unit == 'kelvin':
-        celsius = value - 273.15
-    else:
-        return {"error": f"Unknown source unit: {from_unit}"}
-    
-    # Convert from Celsius to target
-    if to_unit == 'celsius':
-        result = celsius
-    elif to_unit == 'fahrenheit':
-        result = celsius * 9/5 + 32
-    elif to_unit == 'kelvin':
-        result = celsius + 273.15
-    else:
-        return {"error": f"Unknown target unit: {to_unit}"}
-    
-    return {
-        "original_value": value,
-        "original_unit": from_unit,
-        "converted_value": round(result, 2),
-        "converted_unit": to_unit
-    }</code></pre>
-                                    
-                                    <h6 class="mt-3"><i class="bi bi-info-circle me-2"></i>Notice the Differences from Manual Method:</h6>
-                                    <table class="table table-sm table-bordered">
-                                        <thead class="table-light">
-                                            <tr><th>Manual Method</th><th>MCP Studio</th></tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr><td>Write JSON Schema manually</td><td>Type hints → Schema automatically</td></tr>
-                                            <tr><td>Create BaseMCPTool class</td><td>Just write a function</td></tr>
-                                            <tr><td>Extract arguments manually</td><td>Arguments become function parameters</td></tr>
-                                            <tr><td>Create 2 files</td><td>Both files auto-generated</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                        <!-- Studio Tab -->
+                        <div class="tab-pane fade" id="studio">
+                            <div class="alert alert-success">
+                                <i class="bi bi-clock me-2"></i><strong>~3 minutes</strong>
+                                <span class="ms-3">Files auto-generated, instant deploy</span>
                             </div>
-                            
-                            <!-- Studio Step 4 -->
-                            <div class="card mb-4 border-success">
-                                <div class="card-header bg-success text-white">
-                                    <i class="bi bi-4-circle me-2"></i>Step 4: Analyze and Preview
-                                </div>
-                                <div class="card-body">
-                                    <p>Click the <strong>Analyze Code</strong> button. The system will:</p>
-                                    <ul>
-                                        <li>Parse your function and extract the <code>@sajhamcptool</code> decorator</li>
-                                        <li>Read type hints (<code>value: float</code>, <code>from_unit: str</code>, etc.)</li>
-                                        <li>Generate the JSON configuration (shown in right panel, top)</li>
-                                        <li>Generate the Python class (shown in right panel, bottom)</li>
-                                    </ul>
-                                    <p>Review the <strong>Analysis Result</strong> panel to see extracted parameters.</p>
-                                </div>
-                            </div>
-                            
-                            <!-- Studio Step 5 -->
-                            <div class="card mb-4 border-success">
-                                <div class="card-header bg-success text-white">
-                                    <i class="bi bi-5-circle me-2"></i>Step 5: Deploy
-                                </div>
-                                <div class="card-body">
-                                    <p>Click the <strong>Deploy Tool</strong> button and confirm. The system will:</p>
-                                    <ol>
-                                        <li>Save <code>config/tools/temperature_converter.json</code></li>
-                                        <li>Save <code>sajha/tools/impl/studio_temperature_converter.py</code></li>
-                                        <li>Automatically reload the tools registry</li>
-                                    </ol>
-                                    <div class="alert alert-success">
-                                        <i class="bi bi-check-circle me-2"></i>Your tool is immediately available - no server restart needed!
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Comparison Summary -->
-                            <div class="card border-info">
-                                <div class="card-header bg-info text-white">
-                                    <i class="bi bi-bar-chart me-2"></i>Method Comparison Summary
-                                </div>
-                                <div class="card-body">
-                                    <table class="table table-bordered mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>Aspect</th>
-                                                <th><i class="bi bi-code-slash me-1"></i>Manual Coding</th>
-                                                <th><i class="bi bi-magic me-1"></i>MCP Studio</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>Time Required</td>
-                                                <td>15-20 minutes</td>
-                                                <td class="table-success">2-3 minutes</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Files to Create</td>
-                                                <td>2 files manually</td>
-                                                <td class="table-success">Auto-generated</td>
-                                            </tr>
-                                            <tr>
-                                                <td>JSON Schema</td>
-                                                <td>Write by hand</td>
-                                                <td class="table-success">From type hints</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Boilerplate Code</td>
-                                                <td>~50 lines of class structure</td>
-                                                <td class="table-success">Just the function</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Flexibility</td>
-                                                <td class="table-success">Full control over everything</td>
-                                                <td>Standard patterns only</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Complex Features</td>
-                                                <td class="table-success">API calls, state, inheritance</td>
-                                                <td>Single function tools</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Best For</td>
-                                                <td>Complex tools, API integrations</td>
-                                                <td class="table-success">Quick utilities, simple logic</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+
+                            <ol class="mb-3">
+                                <li>Go to <strong>MCP Studio</strong> (<code>/studio</code>)</li>
+                                <li>Enter tool name: <code>temperature_converter</code></li>
+                                <li>Paste a <code>@sajhamcptool</code> decorated function</li>
+                                <li>Click <strong>Analyze Code</strong> — previews JSON config + Python class</li>
+                                <li>Click <strong>Deploy</strong> — tool is immediately available</li>
+                            </ol>
+
+                            <pre class="bg-dark text-light p-3 rounded" style="font-size: 12px;"><code>from sajha.studio import sajhamcptool
+
+@sajhamcptool(description="Convert temperatures", category="Utilities")
+def convert_temperature(value: float, from_unit: str, to_unit: str) -> dict:
+    c = value if from_unit == 'celsius' else (value - 32) * 5/9 if from_unit == 'fahrenheit' else value - 273.15
+    r = c if to_unit == 'celsius' else c * 9/5 + 32 if to_unit == 'fahrenheit' else c + 273.15
+    return {"converted_value": round(r, 2), "converted_unit": to_unit}</code></pre>
+
+                            <p class="text-muted mt-3">Type hints become JSON Schema automatically. No boilerplate class needed.</p>
                         </div>
                     </div>
                 </div>
@@ -645,44 +243,34 @@ def convert_temperature(
         </div>
     </div>
 
-    <!-- Using Tools Section -->
+    <!-- Tool Groups -->
     <div class="row mb-4" id="tools">
         <div class="col-12">
             <div class="card">
                 <div class="card-header card-header-info d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-tools me-2"></i>Available Tool Groups</span>
+                    <span><i class="bi bi-tools me-2"></i>Tool Groups</span>
                     <span class="badge bg-light text-dark">
                         <i class="bi bi-gear me-1"></i>{{ tool_stats.total_tools }} tools in {{ tool_stats.total_groups }} groups
-                        <small class="ms-2 text-muted">(Auto-refreshes every 5 min)</small>
                     </span>
                 </div>
                 <div class="card-body">
-                    <!-- Tool Search -->
                     <div class="row mb-4">
                         <div class="col-md-6 mx-auto">
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control" id="toolSearch" placeholder="Search tools...">
-                                <button class="btn btn-outline-secondary" type="button" id="clearToolSearch">
-                                    <i class="bi bi-x-lg"></i>
-                                </button>
+                                <input type="text" class="form-control" id="toolSearch" placeholder="Search tool groups...">
+                                <button class="btn btn-outline-secondary" type="button" id="clearToolSearch"><i class="bi bi-x-lg"></i></button>
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Tool Search Results (hidden by default) -->
+
                     <div id="toolSearchResults" class="d-none mb-4">
                         <div class="card border-info">
-                            <div class="card-header bg-info text-white">
-                                <i class="bi bi-search me-2"></i>Search Results
-                            </div>
-                            <div class="card-body" id="toolSearchResultsBody">
-                                <!-- Populated by JavaScript -->
-                            </div>
+                            <div class="card-header bg-info text-white"><i class="bi bi-search me-2"></i>Search Results</div>
+                            <div class="card-body" id="toolSearchResultsBody"></div>
                         </div>
                     </div>
-                    
-                    <!-- Dynamic Tool Group Cards -->
+
                     <div class="row" id="toolGroupsContainer">
                         {% for group in tool_groups %}
                         <div class="col-lg-4 col-md-6 mb-4 tool-group-card" data-group="{{ group.name }}">
@@ -705,11 +293,8 @@ def convert_temperature(
                                         <small class="text-muted">
                                             <i class="bi bi-check-circle text-success me-1"></i>{{ group.enabled_count }} enabled
                                         </small>
-                                        <button class="btn btn-sm btn-outline-{{ group.color }} view-group-tools" 
-                                                data-group="{{ group.name }}"
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#toolGroupModal">
-                                            <i class="bi bi-eye me-1"></i>View Tools
+                                        <button class="btn btn-sm btn-outline-{{ group.color }} view-group-tools" data-group="{{ group.name }}" data-bs-toggle="modal" data-bs-target="#toolGroupModal">
+                                            <i class="bi bi-eye me-1"></i>View
                                         </button>
                                     </div>
                                 </div>
@@ -717,12 +302,10 @@ def convert_temperature(
                         </div>
                         {% endfor %}
                     </div>
-                    
-                    <!-- No Results Message -->
+
                     <div id="noToolGroupResults" class="d-none text-center py-4">
                         <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
-                        <h5 class="mt-3 text-muted">No matching tool groups found</h5>
-                        <p class="text-muted mb-0">Try a different search term</p>
+                        <h5 class="mt-3 text-muted">No matching groups</h5>
                     </div>
                 </div>
             </div>
@@ -730,629 +313,180 @@ def convert_temperature(
     </div>
 
     <!-- Tool Group Modal -->
-    <div class="modal fade" id="toolGroupModal" tabindex="-1" aria-labelledby="toolGroupModalLabel" aria-hidden="true">
+    <div class="modal fade" id="toolGroupModal" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="toolGroupModalLabel">
-                        <i class="bi bi-tools me-2"></i>Tools in Group
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="toolGroupModalLabel"><i class="bi bi-tools me-2"></i>Tools</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="toolGroupModalBody">
-                    <div class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
+                    <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div>
             </div>
         </div>
     </div>
 
-    <!-- Managing Prompts Section -->
-    <div class="row mb-4" id="prompts">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-success">
-                    <i class="bi bi-chat-square-text me-2"></i>Managing Prompts
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h5><i class="bi bi-plus-circle me-2 text-success"></i>Creating Prompts</h5>
-                            <p>Create reusable prompt templates with:</p>
-                            <ol>
-                                <li>Navigate to <strong>Prompts</strong> → <strong>Create New</strong></li>
-                                <li>Enter a unique prompt name and description</li>
-                                <li>Write your prompt template using variables like <code>{{variable_name}}</code></li>
-                                <li>Define arguments schema for input validation</li>
-                                <li>Save and test your prompt</li>
-                            </ol>
-                            
-                            <div class="alert alert-info">
-                                <i class="bi bi-lightbulb me-2"></i>
-                                <strong>Tip:</strong> Use descriptive variable names and include default values where appropriate.
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <h5><i class="bi bi-folder me-2 text-primary"></i>Organizing Prompts</h5>
-                            <p>Best practices for prompt organization:</p>
-                            <ul>
-                                <li>Use clear, descriptive names</li>
-                                <li>Add detailed descriptions for each prompt</li>
-                                <li>Group related prompts by category</li>
-                                <li>Include usage examples in descriptions</li>
-                            </ul>
-                            
-                            <h5 class="mt-4"><i class="bi bi-play-circle me-2 text-info"></i>Testing Prompts</h5>
-                            <p>Before deploying prompts:</p>
-                            <ul>
-                                <li>Use the built-in test interface</li>
-                                <li>Try various input combinations</li>
-                                <li>Verify output formatting</li>
-                                <li>Check for edge cases</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- API Reference Section -->
+    <!-- API Reference -->
     <div class="row mb-4" id="api">
         <div class="col-12">
             <div class="card">
                 <div class="card-header card-header-secondary">
-                    <i class="bi bi-code-slash me-2"></i>API Reference
+                    <i class="bi bi-code-slash me-2"></i>API Quick Reference
                 </div>
                 <div class="card-body">
-                    <!-- Authentication Methods -->
                     <div class="alert alert-info mb-4">
                         <i class="bi bi-info-circle me-2"></i>
-                        <strong>Two Authentication Methods:</strong> You can authenticate using either <strong>Session Tokens</strong> (from login) or <strong>API Keys</strong> (for programmatic access). API Keys are recommended for scripts and integrations.
+                        <strong>3 auth methods:</strong> <code>X-API-Key</code> header (recommended for automation), <code>Authorization: Bearer</code> JWT, or <code>sajha_token</code> session cookie. Full reference: <a href="/docs/view/API_Reference.md">/docs/view/API_Reference.md</a>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
-                            <h5><i class="bi bi-person-badge me-2 text-warning"></i>Method 1: Session Token</h5>
-                            <pre class="bg-dark text-light p-3 rounded"><code># Step 1: Login to get token
-curl -X POST http://localhost:8000/api/auth/login \
+                            <h5><i class="bi bi-key-fill me-2 text-success"></i>API Key Authentication</h5>
+                            <pre class="bg-dark text-light p-3 rounded"><code># Execute a tool
+curl -X POST http://localhost:3002/api/tools/execute \
+  -H "X-API-Key: sk_live_abc123" \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": "admin",
-    "password": "your_password"
-  }'
-
-# Response: {"token": "eyJ...","user_id": "admin"}
-
-# Step 2: Use token in requests
-curl -X POST http://localhost:8000/api/mcp \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": "1",
-    "method": "tools/list"
+    "tool": "yahoo_finance_quote",
+    "arguments": {"symbol": "AAPL"}
   }'</code></pre>
-                            
-                            <h5 class="mt-4"><i class="bi bi-key-fill me-2 text-success"></i>Method 2: API Key (Recommended)</h5>
-                            <pre class="bg-dark text-light p-3 rounded"><code># Use X-API-Key header - no login required!
-curl -X POST http://localhost:8000/api/mcp \
-  -H "X-API-Key: sk_live_abc123xyz789" \
+
+                            <h5 class="mt-4"><i class="bi bi-person-badge me-2 text-warning"></i>JWT Authentication</h5>
+                            <pre class="bg-dark text-light p-3 rounded"><code># Get token
+curl -X POST http://localhost:3002/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": "1", 
-    "method": "tools/list"
-  }'</code></pre>
-                            <p class="small text-muted mt-2">
-                                <i class="bi bi-shield-check me-1"></i>
-                                API keys have tool-level permissions. Create keys in Admin → API Keys.
-                            </p>
+  -d '{"user_id": "admin", "password": "admin123"}'
+
+# Use token
+curl -X POST http://localhost:3002/mcp \
+  -H "Authorization: Bearer eyJ..." \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":"1","method":"tools/list"}'</code></pre>
                         </div>
                         <div class="col-md-6">
-                            <h5><i class="bi bi-play me-2 text-primary"></i>Execute Tool (with API Key)</h5>
-                            <pre class="bg-dark text-light p-3 rounded"><code># Execute a tool using API Key
-curl -X POST http://localhost:8000/api/tools/execute \
-  -H "X-API-Key: sk_live_abc123xyz789" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tool": "wikipedia",
-    "arguments": {
-      "action": "search",
-      "query": "Python programming",
-      "limit": 5
-    }
-  }'</code></pre>
-                            
-                            <h5 class="mt-4"><i class="bi bi-code-square me-2 text-info"></i>Python Example</h5>
-                            <pre class="bg-dark text-light p-3 rounded"><code>import requests
-
-API_KEY = "sk_live_abc123xyz789"
-BASE_URL = "http://localhost:8000"
-
-# List available tools
-response = requests.post(
-    f"{BASE_URL}/api/mcp",
-    headers={
-        "X-API-Key": API_KEY,
-        "Content-Type": "application/json"
-    },
-    json={
-        "jsonrpc": "2.0",
-        "id": "1",
-        "method": "tools/list"
-    }
+                            <h5><i class="bi bi-code-square me-2 text-info"></i>Python SDK</h5>
+                            <pre class="bg-dark text-light p-3 rounded"><code>from sajhaclient import (
+    SajhaConfig, SajhaClient,
+    MCPClient, ApiKeyAuth
 )
-print(response.json())</code></pre>
+
+config = SajhaConfig(
+    base_url="http://localhost:3002"
+)
+auth = ApiKeyAuth("sk_live_abc123")
+
+# REST client
+client = SajhaClient(config, auth=auth)
+tools = client.list_tools()
+result = client.execute_tool(
+    "fred_gdp",
+    {"start_date": "2024-01-01"}
+)
+
+# MCP client (JSON-RPC 2.0)
+mcp = MCPClient(config, auth=auth)
+mcp.initialize()
+mcp_tools = mcp.list_tools()
+mcp_result = mcp.call_tool(
+    "yahoo_finance_quote",
+    {"symbol": "TSLA"}
+)</code></pre>
                         </div>
                     </div>
-                    
-                    <!-- Additional Examples -->
-                    <hr class="my-4">
-                    <h5><i class="bi bi-collection me-2"></i>More API Key Examples</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6 class="text-muted"><i class="bi bi-terminal me-1"></i>Bash Script</h6>
-                            <pre class="bg-dark text-light p-3 rounded" style="font-size: 12px;"><code>#!/bin/bash
-API_KEY="sk_live_abc123xyz789"
-BASE_URL="http://localhost:8000"
 
-# Function to call MCP tool
-call_tool() {
-    local tool=$1
-    local args=$2
-    
-    curl -s -X POST "$BASE_URL/api/tools/execute" \
-        -H "X-API-Key: $API_KEY" \
-        -H "Content-Type: application/json" \
-        -d "{\"tool\": \"$tool\", \"arguments\": $args}"
-}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h5><i class="bi bi-broadcast me-2"></i>MCP Protocol (JSON-RPC 2.0)</h5>
+                            <pre class="bg-dark text-light p-3 rounded"><code># MCP initialize
+curl -X POST http://localhost:3002/mcp \
+  -H "X-API-Key: sk_live_abc123" -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":"1","method":"initialize","params":{"protocolVersion":"2025-06-18"}}'
 
-# Example: Search Wikipedia
-call_tool "wikipedia" '{"action":"search","query":"AI"}'</code></pre>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-muted"><i class="bi bi-filetype-js me-1"></i>JavaScript/Node.js</h6>
-                            <pre class="bg-dark text-light p-3 rounded" style="font-size: 12px;"><code>const API_KEY = 'sk_live_abc123xyz789';
-const BASE_URL = 'http://localhost:8000';
-
-async function executeTool(tool, args) {
-    const response = await fetch(
-        `${BASE_URL}/api/tools/execute`,
-        {
-            method: 'POST',
-            headers: {
-                'X-API-Key': API_KEY,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ tool, arguments: args })
-        }
-    );
-    return response.json();
-}
-
-// Example usage
-executeTool('yahoo_finance', {
-    action: 'get_quote', symbol: 'AAPL'
-}).then(console.log);</code></pre>
+# MCP tools/call
+curl -X POST http://localhost:3002/mcp \
+  -H "X-API-Key: sk_live_abc123" -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":"2","method":"tools/call","params":{"name":"calc_compound_interest","arguments":{"principal":10000,"rate":0.05,"years":10}}}'</code></pre>
                         </div>
                     </div>
-                    
-                    <div class="row mt-3">
-                        <div class="col-md-6">
-                            <h6 class="text-muted"><i class="bi bi-broadcast me-1"></i>WebSocket with API Key</h6>
-                            <pre class="bg-dark text-light p-3 rounded" style="font-size: 12px;"><code>// Connect to WebSocket
-const socket = io('ws://localhost:8000');
 
-// Authenticate with API Key
-socket.emit('authenticate', { 
-    api_key: 'sk_live_abc123xyz789'
-});
-
-// Listen for auth result
-socket.on('authenticated', (data) => {
-    console.log('Authenticated:', data);
-    
-    // Now execute tools
-    socket.emit('tool_execute', {
-        tool: 'wikipedia',
-        arguments: { action: 'search', query: 'MCP' }
-    });
-});
-
-socket.on('tool_result', (result) => {
-    console.log('Result:', result);
-});</code></pre>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-muted"><i class="bi bi-shield-lock me-1"></i>API Key Permissions</h6>
-                            <div class="card bg-dark border-secondary">
-                                <div class="card-body text-light" style="font-size: 13px;">
-                                    <p><strong>API keys support granular permissions:</strong></p>
-                                    <ul class="mb-2">
-                                        <li><code>["*"]</code> - Access all tools</li>
-                                        <li><code>["wikipedia", "yahoo_*"]</code> - Specific tools + wildcard</li>
-                                        <li><code>["fed_*", "ecb_*"]</code> - Central bank tools only</li>
-                                    </ul>
-                                    <p class="mb-0"><strong>Create API keys:</strong> Admin → API Keys → Create New</p>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="text-end mt-3">
+                        <a href="/docs/view/API_Reference.md" class="btn btn-outline-primary"><i class="bi bi-book me-1"></i>Full API Reference</a>
+                        <a href="/api/docs" class="btn btn-outline-info ms-2" target="_blank"><i class="bi bi-code-slash me-1"></i>OpenAPI Docs</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MCP Studio Section -->
+    <!-- MCP Studio -->
     <div class="row mb-4" id="mcp-studio">
         <div class="col-12">
-            <div class="card border-purple" style="border-color: #8a2be2 !important;">
+            <div class="card" style="border-color: #8a2be2 !important;">
                 <div class="card-header text-white" style="background: linear-gradient(135deg, #8a2be2 0%, #9b59b6 100%);">
-                    <i class="bi bi-magic me-2"></i>MCP Studio - Visual Tool Creation Platform <span class="badge bg-light text-dark ms-2">v{{ app_version }}</span>
+                    <i class="bi bi-magic me-2"></i>MCP Studio — Visual Tool Creation
                 </div>
                 <div class="card-body">
+                    <p>MCP Studio provides <strong>7 tool creator types</strong>. Each generates both a JSON config and Python implementation, deployed instantly via hot-reload.</p>
+
                     <div class="row mb-4">
-                        <div class="col-12">
-                            <h5><i class="bi bi-stars me-2 text-warning"></i>What is MCP Studio?</h5>
-                            <p>MCP Studio is a comprehensive visual tool creation platform that allows administrators to create custom MCP tools without manual coding. It offers <strong>two creation methods</strong>:</p>
-                        </div>
-                    </div>
-                    
-                    <!-- Two Creation Methods -->
-                    <div class="row mb-4">
-                        <!-- Python Code Creator -->
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-6 col-lg-4 mb-3">
                             <div class="card h-100 border-primary">
-                                <div class="card-header bg-primary text-white">
-                                    <i class="bi bi-code-slash me-2"></i>Python Code Tool Creator
-                                </div>
-                                <div class="card-body">
-                                    <p>Write Python functions with the <code>@sajhamcptool</code> decorator. The system automatically generates:</p>
-                                    <ul class="small">
-                                        <li><strong>Tool JSON Configuration</strong> - name, description, metadata</li>
-                                        <li><strong>Python Implementation</strong> - complete BaseMCPTool class</li>
-                                        <li><strong>Input/Output Schemas</strong> - from type hints</li>
-                                    </ul>
-                                    <pre class="bg-dark text-light p-2 rounded" style="font-size: 11px;"><code>@sajhamcptool(
-    description="Calculate interest",
-    category="Finance"
-)
-def compound_interest(
-    principal: float,
-    rate: float,
-    years: int
-) -> dict:
-    amount = principal * (1 + rate/12) ** (12 * years)
-    return {"result": amount}</code></pre>
-                                    <p class="small text-muted mt-2 mb-0"><strong>Best for:</strong> Custom logic, complex calculations, multi-step processes</p>
-                                </div>
+                                <div class="card-header bg-primary text-white"><i class="bi bi-code-slash me-2"></i>Python Code</div>
+                                <div class="card-body small">Write <code>@sajhamcptool</code> decorated functions. Type hints become JSON Schema automatically.</div>
                             </div>
                         </div>
-                        
-                        <!-- REST Service Creator -->
-                        <div class="col-md-6 mb-3" id="mcp-studio-rest">
+                        <div class="col-md-6 col-lg-4 mb-3">
                             <div class="card h-100 border-success">
-                                <div class="card-header bg-success text-white">
-                                    <i class="bi bi-cloud-arrow-up me-2"></i>REST Service Tool Creator
-                                </div>
-                                <div class="card-body">
-                                    <p>Wrap any REST API endpoint as an MCP tool through a visual interface:</p>
-                                    <ul class="small">
-                                        <li><strong>HTTP Methods</strong> - GET, POST, PUT, DELETE, PATCH</li>
-                                        <li><strong>Authentication</strong> - API Key or Basic Auth</li>
-                                        <li><strong>JSON Schemas</strong> - Request and response validation</li>
-                                        <li><strong>Custom Headers</strong> - Any HTTP headers</li>
-                                        <li><strong>Path Parameters</strong> - Use <code>{param}</code> syntax in URLs</li>
-                                    </ul>
-                                    <div class="bg-light p-2 rounded small mb-2">
-                                        <strong>Built-in Examples:</strong><br>
-                                        <code class="text-success">Open-Meteo Weather</code>,
-                                        <code class="text-primary">JSONPlaceholder</code>,
-                                        <code class="text-dark">GitHub API</code>,
-                                        <code class="text-warning">Coinbase Prices</code>
-                                    </div>
-                                    <p class="small text-muted mb-0"><strong>Best for:</strong> External APIs, third-party services, data integrations</p>
-                                </div>
+                                <div class="card-header bg-success text-white"><i class="bi bi-cloud-arrow-up me-2"></i>REST Service</div>
+                                <div class="card-body small">Wrap any REST API as an MCP tool. Supports GET/POST/PUT/DELETE, JSON/CSV/XML responses, API Key and Basic Auth.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100 border-warning">
+                                <div class="card-header bg-warning text-dark"><i class="bi bi-database me-2"></i>DB Query</div>
+                                <div class="card-body small">Parameterized SQL templates against DuckDB, SQLite, PostgreSQL, or MySQL.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100 border-danger">
+                                <div class="card-header bg-danger text-white"><i class="bi bi-terminal me-2"></i>Script</div>
+                                <div class="card-body small">Execute Bash, Python, Node.js, Ruby, or Perl scripts with array-of-string arguments.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100" style="border: 2px solid #f2c811;">
+                                <div class="card-header" style="background: #f2c811; color: #212529;"><i class="bi bi-bar-chart-fill me-2"></i>PowerBI Report</div>
+                                <div class="card-body small">Export PowerBI reports as PDF/PPTX/PNG via Azure AD Service Principal.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100" style="border: 2px solid #00d4aa;">
+                                <div class="card-header" style="background: #00d4aa; color: #212529;"><i class="bi bi-braces me-2"></i>PowerBI DAX</div>
+                                <div class="card-body small">Execute EVALUATE DAX queries against PowerBI datasets with parameterized inputs.</div>
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Key Benefits -->
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <h6><i class="bi bi-lightbulb me-2 text-info"></i>Key Benefits</h6>
-                            <ul class="small">
-                                <li>No manual JSON configuration required</li>
-                                <li>No boilerplate class code to write</li>
-                                <li>Type hints become JSON schemas automatically</li>
-                                <li>Instant deployment with hot-reload</li>
-                                <li>Built-in validation before deployment</li>
-                                <li>Multi-encoding support for international APIs</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6><i class="bi bi-gear me-2 text-secondary"></i>How to Access</h6>
-                            <ol class="small">
-                                <li>Navigate to <strong>Admin → MCP Studio</strong></li>
-                                <li>Choose creation method:
-                                    <ul>
-                                        <li><strong>Python Code:</strong> Use the code editor on main page</li>
-                                        <li><strong>REST Service:</strong> Click "Open REST Creator"</li>
-                                        <li><strong>DB Query:</strong> Click "Open DB Query Creator"</li>
-                                    </ul>
-                                </li>
-                                <li>Fill in tool details and schemas</li>
-                                <li>Preview generated files</li>
-                                <li>Click <strong>Deploy</strong> - tool available immediately!</li>
-                            </ol>
-                        </div>
+
+                    <div class="card mb-3" style="border: 2px solid #0077b6;">
+                        <div class="card-header" style="background: #0077b6; color: white;"><i class="bi bi-folder2-open me-2"></i>LiveLink (OpenText Content Server)</div>
+                        <div class="card-body small">Search, list, get metadata, and download documents from OpenText ECM. Supports Basic Auth, OAuth, and OTDS.</div>
                     </div>
-                    
-                    <!-- REST Creator Features -->
-                    <div class="card border-info mb-3" id="mcp-studio-rest">
-                        <div class="card-header bg-info text-dark">
-                            <i class="bi bi-cloud me-2"></i>REST Service Tool Creator Features (v{{ app_version }})
-                        </div>
-                        <div class="card-body small">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <strong>Endpoint Configuration:</strong>
-                                    <ul class="mb-0">
-                                        <li>Full URL with path parameters</li>
-                                        <li>HTTP method selection</li>
-                                        <li>Content-Type configuration</li>
-                                        <li>Timeout settings</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Response Formats:</strong>
-                                    <ul class="mb-0">
-                                        <li>JSON (default)</li>
-                                        <li>CSV (with delimiter, header, skip rows)</li>
-                                        <li>XML</li>
-                                        <li>Plain text</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Authentication Options:</strong>
-                                    <ul class="mb-0">
-                                        <li>None (public APIs)</li>
-                                        <li>API Key (custom header)</li>
-                                        <li>Basic Auth</li>
-                                        <li>6 quick examples included</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- DB Query Creator Features -->
-                    <div class="card border-warning mb-3" id="mcp-studio-dbquery">
-                        <div class="card-header bg-warning text-dark">
-                            <i class="bi bi-database me-2"></i>Database Query Tool Creator Features (v{{ app_version }})
-                        </div>
-                        <div class="card-body small">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <strong>Supported Databases:</strong>
-                                    <ul class="mb-0">
-                                        <li>DuckDB (embedded analytics)</li>
-                                        <li>SQLite</li>
-                                        <li>PostgreSQL</li>
-                                        <li>MySQL</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Query Features:</strong>
-                                    <ul class="mb-0">
-                                        <li>Parameterized SQL templates</li>
-                                        <li>Multiple parameter types</li>
-                                        <li>Auto-generated input schemas</li>
-                                        <li>Row limit protection</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Parameter Types:</strong>
-                                    <ul class="mb-0">
-                                        <li>string, integer, number</li>
-                                        <li>boolean, date</li>
-                                        <li>Enum (dropdown options)</li>
-                                        <li>Optional with defaults</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Script Tool Creator Features -->
-                    <div class="card border-danger mb-3" id="mcp-studio-script">
-                        <div class="card-header bg-danger text-white">
-                            <i class="bi bi-terminal me-2"></i>Script Tool Creator Features (v{{ app_version }})
-                        </div>
-                        <div class="card-body small">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <strong>Supported Script Types:</strong>
-                                    <ul class="mb-0">
-                                        <li>Bash / Shell (sh, zsh)</li>
-                                        <li>Python 3</li>
-                                        <li>Node.js</li>
-                                        <li>Ruby, Perl</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Input/Output:</strong>
-                                    <ul class="mb-0">
-                                        <li>Input: Array of strings (args)</li>
-                                        <li>Output: STDOUT, STDERR</li>
-                                        <li>Exit code & execution time</li>
-                                        <li>Success/failure status</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Features:</strong>
-                                    <ul class="mb-0">
-                                        <li>Upload or paste script</li>
-                                        <li>Security validation</li>
-                                        <li>Configurable timeout</li>
-                                        <li>Environment variables</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- PowerBI Report Tool Creator Features -->
-                    <div class="card mb-3" id="mcp-studio-powerbi" style="border: 2px solid #f2c811;">
-                        <div class="card-header" style="background: linear-gradient(135deg, #f2c811 0%, #e6b800 100%); color: #212529;">
-                            <i class="bi bi-bar-chart-fill me-2"></i>PowerBI Report Tool Creator Features (v{{ app_version }})
-                        </div>
-                        <div class="card-body small">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <strong>Export Formats:</strong>
-                                    <ul class="mb-0">
-                                        <li>PDF (most common)</li>
-                                        <li>PPTX (PowerPoint)</li>
-                                        <li>PNG (Image)</li>
-                                        <li>Base64 encoded output</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Authentication:</strong>
-                                    <ul class="mb-0">
-                                        <li>Azure AD Service Principal</li>
-                                        <li>Tenant ID & Client ID</li>
-                                        <li>Env var for client secret</li>
-                                        <li>Secure credential handling</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Features:</strong>
-                                    <ul class="mb-0">
-                                        <li>Workspace & Report IDs</li>
-                                        <li>Optional page selection</li>
-                                        <li>Configurable timeout</li>
-                                        <li>GUID validation</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- PowerBI DAX Query Tool Creator Features -->
-                    <div class="card mb-3" id="mcp-studio-powerbidax" style="border: 2px solid #00d4aa;">
-                        <div class="card-header" style="background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%); color: #212529;">
-                            <i class="bi bi-braces me-2"></i>PowerBI DAX Query Tool Creator Features (v{{ app_version }})
-                        </div>
-                        <div class="card-body small">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <strong>DAX Query:</strong>
-                                    <ul class="mb-0">
-                                        <li>EVALUATE statements</li>
-                                        <li>Parameterized queries</li>
-                                        <li>@param substitution</li>
-                                        <li>Configurable max rows</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Output:</strong>
-                                    <ul class="mb-0">
-                                        <li>JSON result format</li>
-                                        <li>Column names & types</li>
-                                        <li>Row data array</li>
-                                        <li>Query time metrics</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Configuration:</strong>
-                                    <ul class="mb-0">
-                                        <li>Dataset ID & Workspace ID</li>
-                                        <li>Azure AD authentication</li>
-                                        <li>Timeout settings</li>
-                                        <li>Auto-generated schemas</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- IBM LiveLink Document Tool Creator Features -->
-                    <div class="card mb-3" id="mcp-studio-livelink" style="border: 2px solid #0077b6;">
-                        <div class="card-header" style="background: linear-gradient(135deg, #0077b6 0%, #023e8a 100%); color: white;">
-                            <i class="bi bi-folder2-open me-2"></i>IBM LiveLink Document Tool Creator Features (v{{ app_version }})
-                        </div>
-                        <div class="card-body small">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <strong>Operations:</strong>
-                                    <ul class="mb-0">
-                                        <li>Search documents</li>
-                                        <li>List folder contents</li>
-                                        <li>Get document metadata</li>
-                                        <li>Download as base64</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Authentication:</strong>
-                                    <ul class="mb-0">
-                                        <li>Basic Auth</li>
-                                        <li>OAuth tokens</li>
-                                        <li>OTDS (OpenText Directory)</li>
-                                        <li>Env var credentials</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Features:</strong>
-                                    <ul class="mb-0">
-                                        <li>REST API v1 & v2</li>
-                                        <li>Max file size limits</li>
-                                        <li>Timeout configuration</li>
-                                        <li>Document type filters</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
+
                     <div class="alert alert-info mt-3 mb-0">
                         <div class="row align-items-center">
                             <div class="col-md-6">
                                 <i class="bi bi-info-circle me-2"></i>
-                                <strong>Pro Tip:</strong> Use <code>{param}</code> in REST, <code>{{param}}</code> in SQL, <code>@param</code> in DAX queries.
+                                <strong>Tip:</strong> Use <code>{param}</code> in REST URLs, <code>{{ '{{param}}' }}</code> in SQL, <code>@param</code> in DAX.
                             </div>
                             <div class="col-md-6 text-md-end mt-2 mt-md-0">
                                 {% if user and user.roles and 'admin' in user.roles %}
                                 <div class="btn-group btn-group-sm flex-wrap">
-                                    <a href="{{ url_for('studio_home') }}" class="btn btn-primary">
-                                        <i class="bi bi-magic me-1"></i>Studio
-                                    </a>
-                                    <a href="{{ url_for('studio_rest') }}" class="btn btn-success">
-                                        <i class="bi bi-cloud me-1"></i>REST
-                                    </a>
-                                    <a href="{{ url_for('studio_dbquery') }}" class="btn btn-warning text-dark">
-                                        <i class="bi bi-database me-1"></i>DB
-                                    </a>
-                                    <a href="{{ url_for('studio_script') }}" class="btn btn-danger">
-                                        <i class="bi bi-terminal me-1"></i>Script
-                                    </a>
-                                    <a href="{{ url_for('studio_powerbi') }}" class="btn" style="background: #f2c811; color: #212529;">
-                                        <i class="bi bi-bar-chart me-1"></i>Report
-                                    </a>
-                                    <a href="{{ url_for('studio_powerbidax') }}" class="btn" style="background: #00d4aa; color: #212529;">
-                                        <i class="bi bi-braces me-1"></i>DAX
-                                    </a>
-                                    <a href="{{ url_for('studio_livelink') }}" class="btn" style="background: #0077b6; color: white;">
-                                        <i class="bi bi-folder2 me-1"></i>LiveLink
-                                    </a>
+                                    <a href="{{ url_for('studio_home') }}" class="btn btn-primary"><i class="bi bi-magic me-1"></i>Studio</a>
+                                    <a href="{{ url_for('studio_rest') }}" class="btn btn-success"><i class="bi bi-cloud me-1"></i>REST</a>
+                                    <a href="{{ url_for('studio_dbquery') }}" class="btn btn-warning text-dark"><i class="bi bi-database me-1"></i>DB</a>
+                                    <a href="{{ url_for('studio_script') }}" class="btn btn-danger"><i class="bi bi-terminal me-1"></i>Script</a>
                                 </div>
                                 {% else %}
                                 <span class="badge bg-secondary"><i class="bi bi-lock me-1"></i>Admin Only</span>
@@ -1365,7 +499,7 @@ def compound_interest(
         </div>
     </div>
 
-    <!-- Troubleshooting Section -->
+    <!-- Troubleshooting -->
     <div class="row mb-4" id="troubleshooting">
         <div class="col-12">
             <div class="card">
@@ -1377,17 +511,16 @@ def compound_interest(
                         <div class="accordion-item">
                             <h2 class="accordion-header">
                                 <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#issue1">
-                                    <i class="bi bi-exclamation-triangle me-2 text-warning"></i>
-                                    Cannot log in with correct credentials
+                                    <i class="bi bi-exclamation-triangle me-2 text-warning"></i>Cannot log in
                                 </button>
                             </h2>
                             <div id="issue1" class="accordion-collapse collapse show" data-bs-parent="#troubleshootingAccordion">
                                 <div class="accordion-body">
                                     <ol>
-                                        <li>Verify the user exists in <code>config/users.json</code></li>
-                                        <li>Check that the user account is enabled (<code>"enabled": true</code>)</li>
-                                        <li>Clear browser cookies and try again</li>
-                                        <li>Check server logs at <code>logs/server.log</code> for authentication errors</li>
+                                        <li>Verify the user exists in the database (or <code>config/users.json</code> for legacy import)</li>
+                                        <li>Check that the account is enabled</li>
+                                        <li>Clear browser cookies and retry</li>
+                                        <li>Check server console for auth errors</li>
                                     </ol>
                                 </div>
                             </div>
@@ -1395,17 +528,16 @@ def compound_interest(
                         <div class="accordion-item">
                             <h2 class="accordion-header">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#issue2">
-                                    <i class="bi bi-exclamation-triangle me-2 text-warning"></i>
-                                    Tool execution returns errors
+                                    <i class="bi bi-exclamation-triangle me-2 text-warning"></i>Tool execution errors
                                 </button>
                             </h2>
                             <div id="issue2" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
                                 <div class="accordion-body">
                                     <ol>
-                                        <li>Verify required API keys are configured in <code>config/application.properties</code></li>
-                                        <li>Check the tool configuration in <code>config/tools/</code></li>
-                                        <li>Ensure the tool is enabled and accessible to your user role</li>
-                                        <li>Review the tool's input schema for correct parameter format</li>
+                                        <li>Check that required API keys are set in <code>config/application.yml</code> (e.g., <code>fmp.api.key</code>, <code>fred.api.key</code>)</li>
+                                        <li>Verify the tool is enabled: <code>GET /api/tools/list</code></li>
+                                        <li>Check the tool's input schema: <code>GET /api/tools/{name}/schema</code></li>
+                                        <li>Review server logs for stack traces</li>
                                     </ol>
                                 </div>
                             </div>
@@ -1413,17 +545,16 @@ def compound_interest(
                         <div class="accordion-item">
                             <h2 class="accordion-header">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#issue3">
-                                    <i class="bi bi-exclamation-triangle me-2 text-warning"></i>
-                                    WebSocket connection fails
+                                    <i class="bi bi-exclamation-triangle me-2 text-warning"></i>MCP client connection issues
                                 </button>
                             </h2>
                             <div id="issue3" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
                                 <div class="accordion-body">
                                     <ol>
-                                        <li>Ensure <code>features.websocket.enabled=true</code> in application.properties</li>
-                                        <li>Check that no firewall is blocking WebSocket connections</li>
-                                        <li>Verify the authentication token is valid</li>
-                                        <li>Try refreshing the page to establish a new connection</li>
+                                        <li>HTTP POST transport: <code>POST http://localhost:3002/mcp</code></li>
+                                        <li>SSE transport: <code>GET /mcp/sse</code> for event stream, <code>POST /mcp/message</code> for messages</li>
+                                        <li>Verify auth token/API key is valid</li>
+                                        <li>Check <code>/health</code> endpoint for server status</li>
                                     </ol>
                                 </div>
                             </div>
@@ -1434,20 +565,18 @@ def compound_interest(
         </div>
     </div>
 
-    <!-- Contact Support -->
+    <!-- Contact -->
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-header card-header-primary">
-                    <i class="bi bi-envelope me-2"></i>Need More Help?
+                    <i class="bi bi-envelope me-2"></i>Need Help?
                 </div>
                 <div class="card-body text-center py-4">
                     <i class="bi bi-headset" style="font-size: 3rem; color: var(--sajha-primary);"></i>
                     <h5 class="mt-3">Contact Support</h5>
-                    <p class="text-muted">For additional assistance, please contact the system administrator.</p>
-                    <a href="mailto:{{ app_email }}" class="btn btn-primary">
-                        <i class="bi bi-envelope me-2"></i>Email Support
-                    </a>
+                    <p class="text-muted">For assistance, contact the system administrator.</p>
+                    <a href="mailto:{{ app_email }}" class="btn btn-primary"><i class="bi bi-envelope me-2"></i>{{ app_email }}</a>
                 </div>
             </div>
         </div>
@@ -1466,19 +595,19 @@ def compound_interest(
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <p><strong>MCP (Model Context Protocol):</strong> A standardized protocol enabling AI systems to interact with external tools and data sources.</p>
-                        <p><strong>JSON-RPC 2.0:</strong> The remote procedure call protocol used by MCP for request/response communication.</p>
-                        <p><strong>API Key:</strong> A unique identifier used to authenticate requests to external services.</p>
+                        <p><strong>MCP:</strong> Model Context Protocol — a standardized interface for AI tool discovery and execution via JSON-RPC 2.0.</p>
+                        <p><strong>JSON-RPC 2.0:</strong> The protocol encoding used for MCP request/response communication.</p>
+                        <p><strong>SSE:</strong> Server-Sent Events — one of two MCP transports, alongside HTTP POST.</p>
                     </div>
                     <div class="col-md-6">
-                        <p><strong>Hot-Reload:</strong> Runtime configuration update without server restart.</p>
-                        <p><strong>WebSocket:</strong> A communication protocol for real-time bidirectional data exchange.</p>
-                        <p><strong>REST API:</strong> An architectural style for web services using HTTP methods.</p>
+                        <p><strong>A2A:</strong> Agent-to-Agent protocol for multi-agent orchestration.</p>
+                        <p><strong>Hot-Reload:</strong> Automatic config reload without server restart.</p>
+                        <p><strong>API Key:</strong> An <code>X-API-Key</code> credential with tool-level permissions.</p>
                     </div>
                 </div>
                 <div class="text-end mt-2">
-                    <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-book me-1"></i>View Full Glossary
+                    <a href="/docs/view/architecture/Glossary.md" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-book me-1"></i>Full Glossary
                     </a>
                 </div>
             </div>
@@ -1490,168 +619,59 @@ def compound_interest(
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Tool search functionality
     var searchTimeout;
-    
+
     $('#toolSearch').on('input', function() {
         var query = $(this).val().trim();
-        
-        // Clear previous timeout
-        if (searchTimeout) {
-            clearTimeout(searchTimeout);
-        }
-        
+        if (searchTimeout) clearTimeout(searchTimeout);
         if (query.length === 0) {
-            // Show all groups, hide search results
             $('.tool-group-card').removeClass('d-none');
             $('#toolSearchResults').addClass('d-none');
             $('#noToolGroupResults').addClass('d-none');
             return;
         }
-        
-        if (query.length < 2) {
-            return;
-        }
-        
-        // Debounce search
+        if (query.length < 2) return;
         searchTimeout = setTimeout(function() {
-            searchTools(query);
-        }, 300);
-    });
-    
-    $('#clearToolSearch').on('click', function() {
-        $('#toolSearch').val('').trigger('input');
-    });
-    
-    function searchTools(query) {
-        $.ajax({
-            url: '/api/tool-groups/search?q=' + encodeURIComponent(query),
-            method: 'GET',
-            success: function(data) {
-                if (data.results && data.results.length > 0) {
-                    // Show search results
-                    var html = '<div class="table-responsive"><table class="table table-hover">';
-                    html += '<thead><tr><th>Tool Name</th><th>Group</th><th>Description</th><th>Status</th></tr></thead><tbody>';
-                    
-                    data.results.forEach(function(tool) {
-                        var statusBadge = tool.enabled 
-                            ? '<span class="badge bg-success">Enabled</span>' 
-                            : '<span class="badge bg-secondary">Disabled</span>';
-                        html += '<tr>';
-                        html += '<td><i class="bi ' + tool.group_icon + ' text-' + tool.group_color + ' me-2"></i><code>' + tool.name + '</code></td>';
-                        html += '<td><span class="badge bg-' + tool.group_color + '">' + tool.group + '</span></td>';
-                        html += '<td>' + tool.description.substring(0, 100) + '...</td>';
-                        html += '<td>' + statusBadge + '</td>';
-                        html += '</tr>';
-                    });
-                    
-                    html += '</tbody></table></div>';
-                    html += '<p class="text-muted mt-2"><small>Found ' + data.count + ' tool(s) matching "' + data.query + '"</small></p>';
-                    
-                    $('#toolSearchResultsBody').html(html);
-                    $('#toolSearchResults').removeClass('d-none');
-                    
-                    // Filter group cards based on results
-                    var matchedGroups = [...new Set(data.results.map(t => t.group))];
-                    $('.tool-group-card').each(function() {
-                        var groupName = $(this).data('group');
-                        if (matchedGroups.includes(groupName)) {
-                            $(this).removeClass('d-none');
-                        } else {
-                            $(this).addClass('d-none');
-                        }
-                    });
-                    
-                    $('#noToolGroupResults').addClass('d-none');
+            var queryLower = query.toLowerCase();
+            var hasResults = false;
+            $('.tool-group-card').each(function() {
+                var groupName = $(this).data('group').toLowerCase();
+                var cardText = $(this).text().toLowerCase();
+                if (groupName.includes(queryLower) || cardText.includes(queryLower)) {
+                    $(this).removeClass('d-none');
+                    hasResults = true;
                 } else {
-                    // No results
-                    $('#toolSearchResults').addClass('d-none');
-                    $('.tool-group-card').addClass('d-none');
-                    $('#noToolGroupResults').removeClass('d-none');
+                    $(this).addClass('d-none');
                 }
-            },
-            error: function() {
-                // Fallback to client-side filtering
-                var queryLower = query.toLowerCase();
-                var hasResults = false;
-                
-                $('.tool-group-card').each(function() {
-                    var groupName = $(this).data('group').toLowerCase();
-                    var cardText = $(this).text().toLowerCase();
-                    
-                    if (groupName.includes(queryLower) || cardText.includes(queryLower)) {
-                        $(this).removeClass('d-none');
-                        hasResults = true;
-                    } else {
-                        $(this).addClass('d-none');
-                    }
-                });
-                
-                if (hasResults) {
-                    $('#noToolGroupResults').addClass('d-none');
-                } else {
-                    $('#noToolGroupResults').removeClass('d-none');
-                }
-                
-                $('#toolSearchResults').addClass('d-none');
-            }
-        });
-    }
-    
-    // View group tools modal
+            });
+            $('#noToolGroupResults').toggleClass('d-none', hasResults);
+        }, 200);
+    });
+
+    $('#clearToolSearch').on('click', function() { $('#toolSearch').val('').trigger('input'); });
+
     $('.view-group-tools').on('click', function() {
         var groupName = $(this).data('group');
-        
         $('#toolGroupModalLabel').html('<i class="bi bi-tools me-2"></i>' + groupName);
-        $('#toolGroupModalBody').html('<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
-        
+        $('#toolGroupModalBody').html('<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>');
         $.ajax({
             url: '/api/tool-groups/' + encodeURIComponent(groupName),
-            method: 'GET',
             success: function(data) {
-                var html = '<div class="mb-3">';
-                html += '<p class="text-muted">' + data.group.description + '</p>';
-                html += '<div class="mb-2">';
-                data.group.categories.forEach(function(cat) {
-                    html += '<span class="badge bg-' + data.group.color + ' me-1">' + cat + '</span>';
+                var html = '<div class="table-responsive"><table class="table table-sm table-hover"><thead><tr><th>Tool</th><th>Description</th><th>Status</th></tr></thead><tbody>';
+                (data.tools || []).forEach(function(t) {
+                    html += '<tr><td><code>' + t.name + '</code></td><td><small>' + (t.description || '').substring(0, 100) + '</small></td>';
+                    html += '<td>' + (t.enabled ? '<span class="badge bg-success">On</span>' : '<span class="badge bg-secondary">Off</span>') + '</td></tr>';
                 });
-                html += '</div></div>';
-                
-                html += '<div class="table-responsive"><table class="table table-sm table-hover">';
-                html += '<thead class="table-light"><tr><th>Tool Name</th><th>Category</th><th>Description</th><th>Status</th></tr></thead><tbody>';
-                
-                data.tools.forEach(function(tool) {
-                    var statusBadge = tool.enabled 
-                        ? '<span class="badge bg-success"><i class="bi bi-check-circle"></i></span>' 
-                        : '<span class="badge bg-secondary"><i class="bi bi-x-circle"></i></span>';
-                    html += '<tr>';
-                    html += '<td><code>' + tool.name + '</code></td>';
-                    html += '<td><small class="text-muted">' + tool.category + '</small></td>';
-                    html += '<td><small>' + tool.description.substring(0, 80) + '...</small></td>';
-                    html += '<td class="text-center">' + statusBadge + '</td>';
-                    html += '</tr>';
-                });
-                
                 html += '</tbody></table></div>';
-                html += '<p class="text-muted mt-2"><small><i class="bi bi-info-circle me-1"></i>Showing ' + data.tools.length + ' tool(s) in this group</small></p>';
-                
                 $('#toolGroupModalBody').html(html);
             },
-            error: function() {
-                $('#toolGroupModalBody').html('<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>Failed to load tools</div>');
-            }
+            error: function() { $('#toolGroupModalBody').html('<div class="alert alert-danger">Failed to load</div>'); }
         });
     });
-    
-    // Smooth scroll for anchor links
+
     $('a[href^="#"]').on('click', function(e) {
         var target = $($(this).attr('href'));
-        if (target.length) {
-            e.preventDefault();
-            $('html, body').animate({
-                scrollTop: target.offset().top - 80
-            }, 500);
-        }
+        if (target.length) { e.preventDefault(); $('html, body').animate({ scrollTop: target.offset().top - 80 }, 500); }
     });
 });
 </script>

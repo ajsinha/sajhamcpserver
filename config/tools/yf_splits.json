@@ -1,0 +1,37 @@
+{
+  "name": "yf_splits",
+  "implementation": "sajha.tools.impl.yfinance_tools.YFSplitsTool",
+  "description": "Get stock split history from Yahoo Finance \u2014 all historical splits with dates and ratios",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Corporate Actions",
+    "tags": [
+      "yfinance",
+      "splits"
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "name": "calc_sortino_ratio",
+  "implementation": "sajha.tools.impl.calc_tools.CalcSortinoRatioTool",
+  "description": "Calculate Sortino Ratio \u2014 downside risk-adjusted return",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "portfolio_return": {
+        "type": "number",
+        "description": "%"
+      },
+      "risk_free_rate": {
+        "type": "number",
+        "description": "%"
+      },
+      "downside_deviation": {
+        "type": "number",
+        "description": "%"
+      }
+    },
+    "required": [
+      "portfolio_return",
+      "risk_free_rate",
+      "downside_deviation"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Calculators",
+    "tags": [
+      "calculator",
+      "sortino"
+    ]
+  }
+}

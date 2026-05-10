@@ -1,0 +1,53 @@
+{
+  "name": "fmp_sec_filings",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPSECFilingsTool",
+  "description": "Get SEC filings from FMP \u2014 10-K, 10-Q, 8-K, S-1 and other regulatory filings with links and dates",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "type": {
+        "type": "string",
+        "description": "Filing type (10-K, 10-Q, 8-K, etc.)"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 5
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "SEC & Regulatory",
+    "tags": [
+      "fmp",
+      "sec",
+      "filings",
+      "10-K",
+      "10-Q",
+      "8-K",
+      "regulatory"
+    ],
+    "examples": []
+  },
+  "api_key": "${fmp.api.key}"
+}

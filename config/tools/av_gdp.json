@@ -1,0 +1,40 @@
+{
+  "name": "av_gdp",
+  "implementation": "sajha.tools.impl.alphavantage_tools.AVGDPTool",
+  "description": "Get US Real GDP from Alpha Vantage \u2014 quarterly and annual",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "interval": {
+        "type": "string",
+        "default": "annual",
+        "enum": [
+          "annual",
+          "quarterly"
+        ]
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Economics",
+    "tags": [
+      "alphavantage",
+      "gdp"
+    ]
+  },
+  "api_key": "${alpha_vantage.api.key}"
+}

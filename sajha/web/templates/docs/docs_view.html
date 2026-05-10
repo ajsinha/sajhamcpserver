@@ -1,0 +1,272 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+-->
+{% block title %}{{ doc_name }} — {{ app_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<style>
+.markdown-body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    word-wrap: break-word;
+    padding: 2rem;
+}
+.markdown-body h1 {
+    font-size: 2em;
+    border-bottom: 2px solid var(--sajha-primary, #0d6efd);
+    padding-bottom: 0.5em;
+    margin-bottom: 1em;
+}
+.markdown-body h2 {
+    font-size: 1.5em;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 0.3em;
+    margin-top: 1.5em;
+    margin-bottom: 0.75em;
+}
+.markdown-body h3 {
+    font-size: 1.25em;
+    margin-top: 1.25em;
+    margin-bottom: 0.5em;
+}
+.markdown-body p { margin-bottom: 1em; }
+.markdown-body code {
+    background-color: #f1f3f5;
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 85%;
+}
+.markdown-body pre {
+    background-color: #1e1e2e;
+    color: #f8f8f2;
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1em 0;
+}
+.markdown-body pre code {
+    background-color: transparent;
+    color: inherit;
+    padding: 0;
+    font-size: 90%;
+}
+.markdown-body blockquote {
+    border-left: 4px solid #0d6efd;
+    padding: 0.5em 1em;
+    margin: 1em 0;
+    background-color: #f8f9fa;
+}
+.markdown-body blockquote p { margin-bottom: 0; }
+.markdown-body ul, .markdown-body ol { padding-left: 2em; margin-bottom: 1em; }
+.markdown-body li { margin-bottom: 0.25em; }
+.markdown-body table { width: 100%; border-collapse: collapse; margin: 1em 0; }
+.markdown-body table th, .markdown-body table td {
+    border: 1px solid #dee2e6;
+    padding: 0.75em;
+    text-align: left;
+}
+.markdown-body table th { background-color: #0d6efd; color: white; font-weight: 600; }
+.markdown-body table tr:nth-child(even) { background-color: #f8f9fa; }
+.markdown-body table tr:hover { background-color: #e9ecef; }
+.markdown-body a { color: #0d6efd; text-decoration: none; }
+.markdown-body a:hover { text-decoration: underline; }
+.markdown-body hr { border: none; border-top: 2px solid #dee2e6; margin: 2em 0; }
+.markdown-body img { max-width: 100%; height: auto; }
+
+.toc-sidebar {
+    position: sticky;
+    top: 80px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+}
+.toc-sidebar .nav-link {
+    color: #6c757d;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border-left: 2px solid transparent;
+}
+.toc-sidebar .nav-link:hover {
+    color: #0d6efd;
+    border-left-color: #0d6efd;
+}
+.toc-sidebar .nav-link.active {
+    color: #0d6efd;
+    border-left-color: #0d6efd;
+    font-weight: 600;
+}
+.toc-sidebar .nav-link.h3-link { padding-left: 1.5rem; font-size: 0.8rem; }
+
+/* Dark mode support */
+[data-bs-theme="dark"] .markdown-body code { background-color: #343a40; }
+[data-bs-theme="dark"] .markdown-body blockquote { background-color: #2b3035; }
+[data-bs-theme="dark"] .markdown-body table tr:nth-child(even) { background-color: #2b3035; }
+[data-bs-theme="dark"] .markdown-body table tr:hover { background-color: #343a40; }
+[data-bs-theme="dark"] .markdown-body table th, .dark-theme .markdown-body table th { background-color: #0b5ed7; }
+
+@media print {
+    .no-print { display: none !important; }
+    .markdown-body { padding: 0; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <div class="row mb-3 no-print">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="/docs">Documentation</a></li>
+                    {% for part in breadcrumb[:-1] %}
+                    <li class="breadcrumb-item">{{ part }}</li>
+                    {% endfor %}
+                    <li class="breadcrumb-item active">{{ breadcrumb[-1] if breadcrumb else doc_name }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Table of Contents Sidebar -->
+        <div class="col-lg-3 d-none d-lg-block no-print">
+            <div class="card toc-sidebar">
+                <div class="card-header card-header-secondary">
+                    <i class="bi bi-list-ul me-2"></i>Contents
+                </div>
+                <div class="card-body p-2">
+                    <nav id="toc-nav" class="nav flex-column">
+                        <div class="text-center text-muted py-3"><small>Loading...</small></div>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-9">
+            <div class="card mb-3 no-print">
+                <div class="card-header card-header-primary d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-file-earmark-text me-2"></i>
+                        <span>{{ doc_name }}</span>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-light" onclick="window.print()">
+                            <i class="bi bi-printer me-1"></i>Print
+                        </button>
+                        <a href="/docs" class="btn btn-sm btn-outline-light">
+                            <i class="bi bi-arrow-left me-1"></i>Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <div id="markdown-content" class="markdown-body">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Raw markdown (base64 encoded to avoid Jinja/HTML entity conflicts) -->
+<script type="text/template" id="raw-markdown-b64">{{ content_b64 }}</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+<script>
+function b64DecodeUnicode(str) {
+    try {
+        return decodeURIComponent(atob(str).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+    } catch (e) {
+        try { return atob(str); } catch (e2) { return ''; }
+    }
+}
+
+$(document).ready(function() {
+    try {
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    try { return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value; } catch (e) {}
+                }
+                try { return hljs.highlightAuto(code).value; } catch (e) { return code; }
+            },
+            breaks: false,
+            gfm: true
+        });
+
+        var b64 = document.getElementById('raw-markdown-b64').textContent.trim();
+        var md = b64DecodeUnicode(b64);
+        if (!md) throw new Error('Failed to decode content');
+
+        $('#markdown-content').html(marked.parse(md));
+
+        // Highlight any remaining un-highlighted code blocks
+        document.querySelectorAll('pre code').forEach(function(block) {
+            if (!block.classList.contains('hljs')) {
+                try { hljs.highlightElement(block); } catch (e) {}
+            }
+        });
+
+        // Generate Table of Contents
+        var toc = $('#toc-nav');
+        toc.empty();
+        var headings = $('#markdown-content').find('h1, h2, h3');
+        if (headings.length === 0) {
+            toc.html('<div class="text-center text-muted py-3"><small>No headings</small></div>');
+            return;
+        }
+        headings.each(function(i) {
+            var $h = $(this), text = $h.text().trim(), level = this.tagName.toLowerCase();
+            if (!text) return;
+            var id = $h.attr('id') || 'h-' + i + '-' + text.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50);
+            $h.attr('id', id);
+            var cls = 'nav-link' + (level === 'h3' ? ' h3-link' : '');
+            toc.append($('<a>').addClass(cls).attr('href', '#' + id).text(text.length > 45 ? text.substring(0, 45) + '…' : text));
+        });
+
+        // TOC scroll tracking
+        $('#toc-nav').on('click', 'a', function(e) {
+            e.preventDefault();
+            var t = $($(this).attr('href'));
+            if (t.length) $('html, body').animate({ scrollTop: t.offset().top - 80 }, 400);
+        });
+
+        $(window).on('scroll', function() {
+            var pos = $(window).scrollTop() + 100, last = null;
+            $('#markdown-content').find('h1, h2, h3').each(function() {
+                var id = $(this).attr('id');
+                if (id && $(this).offset().top <= pos) last = id;
+            });
+            $('#toc-nav .nav-link').removeClass('active');
+            if (last) $('#toc-nav .nav-link[href="#' + last + '"]').addClass('active');
+            else $('#toc-nav .nav-link').first().addClass('active');
+        });
+
+    } catch (e) {
+        $('#markdown-content').html('<div class="alert alert-danger m-3"><i class="bi bi-exclamation-triangle me-2"></i>Error rendering: ' + e.message + '</div>');
+    }
+});
+</script>
+{% endblock %}

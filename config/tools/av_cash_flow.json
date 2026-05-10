@@ -1,0 +1,38 @@
+{
+  "name": "av_cash_flow",
+  "implementation": "sajha.tools.impl.alphavantage_tools.AVCashFlowTool",
+  "description": "Get cash flow from Alpha Vantage \u2014 operating, investing, financing",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Statements",
+    "tags": [
+      "alphavantage",
+      "cash flow"
+    ]
+  },
+  "api_key": "${alpha_vantage.api.key}"
+}

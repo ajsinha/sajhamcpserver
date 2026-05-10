@@ -1,137 +1,93 @@
 {% extends "common/base.html" %}
-<!--
-Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
--->
 {% block title %}Tools - SAJHA MCP Server{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <h1 class="h3 mb-4">
         <i class="bi bi-tools"></i> Available Tools
+        <span class="badge bg-primary ms-2">{{ tools|length }}</span>
     </h1>
-    
+
     <div class="card">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="bi bi-tools"></i> Available Tools (Total: {{ tools|length }})</h5>
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-tools"></i> Tool Catalog</h5>
+            <span class="badge bg-light text-primary" id="headerCount">{{ tools|length }} tools</span>
         </div>
         <div class="card-body">
             {% if tools %}
-            <!-- Search and Controls -->
-            <div class="row mb-3">
-                <div class="col-md-6">
+            <!-- Filters Row -->
+            <div class="row mb-3 g-2">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-muted">TOOL GROUP</label>
+                    <select id="groupFilter" class="form-select">
+                        <option value="all">All Groups</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label fw-bold small text-muted">SEARCH BY NAME OR DESCRIPTION</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" id="searchTools" placeholder="Search tools by name or description...">
+                        <input type="text" class="form-control" id="searchTools"
+                               placeholder="e.g. interest rate, stock quote, GDP, bitcoin...">
+                        <button class="btn btn-outline-secondary" type="button" id="clearSearch"
+                                title="Clear search"><i class="bi bi-x-lg"></i></button>
                     </div>
                 </div>
-                <div class="col-md-6 text-end">
-                    <label for="rowsPerPage" class="me-2">Show:</label>
-                    <select id="rowsPerPage" class="form-select d-inline-block" style="width: auto;">
-                        <option value="5" selected>5</option>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small text-muted">SHOW</label>
+                    <select id="rowsPerPage" class="form-select">
                         <option value="10">10</option>
+                        <option value="25" selected>25</option>
                         <option value="50">50</option>
+                        <option value="100">100</option>
                         <option value="all">All</option>
                     </select>
-                    <span class="ms-2">entries</span>
                 </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small text-muted">SORT</label>
+                    <select id="sortBy" class="form-select">
+                        <option value="name_asc">Name A-Z</option>
+                        <option value="name_desc">Name Z-A</option>
+                        <option value="group_asc">Group A-Z</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Group Badges (clickable) -->
+            <div class="mb-3" id="groupBadgesRow">
+                <div class="d-flex flex-wrap gap-1" id="groupBadges"></div>
+            </div>
+
+            <!-- Results Info -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div id="tableInfo" class="text-muted small"></div>
             </div>
 
             <div class="table-responsive">
                 <table class="table table-striped table-hover" id="toolsListTable">
-                    <thead>
+                    <thead class="table-light">
                         <tr>
-                            <th style="cursor: pointer;" id="sortToolName">
-                                Name <i class="bi bi-arrow-down-up"></i>
-                            </th>
+                            <th style="width:130px">Group</th>
+                            <th>Tool Name</th>
                             <th>Description</th>
-                            <th>Parameters</th>
-                            <th>Actions</th>
+                            <th style="width:100px">Params</th>
+                            <th style="width:150px">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {% for tool in tools %}
-                        <tr>
-                            <td>
-                                <strong>{{ tool.name }}</strong>
-                            </td>
-                            <td>{{ tool.description }}</td>
-                            <td>
-                                {% if tool.inputSchema and tool.inputSchema.required %}
-                                <span class="badge bg-info">{{ tool.inputSchema.required|length }} required</span>
-                                {% endif %}
-                                {% if tool.inputSchema and tool.inputSchema.properties %}
-                                <span class="badge bg-secondary">{{ tool.inputSchema.properties|length }} total</span>
-                                {% else %}
-                                <span class="badge bg-light text-dark">No parameters</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="btn-group" role="group">
-                                    <a href="{{ url_for('tool_execute', tool_name=tool.name) }}"
-                                       class="btn btn-sm btn-success">
-                                        <i class="bi bi-play-circle"></i> Execute
-                                    </a>
-                                    <a href="{{ url_for('tool_schema', tool_name=tool.name) }}"
-                                       class="btn btn-sm btn-info">
-                                        <i class="bi bi-info-circle"></i> Details
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
 
             <!-- Pagination -->
             <div class="row mt-3">
+                <div class="col-md-6"><div id="paginationInfo" class="text-muted small"></div></div>
                 <div class="col-md-6">
-                    <div id="tableInfo" class="text-muted"></div>
-                </div>
-                <div class="col-md-6">
-                    <nav aria-label="Tools pagination">
-                        <ul class="pagination justify-content-end mb-0" id="pagination"></ul>
-                    </nav>
+                    <nav><ul class="pagination pagination-sm justify-content-end mb-0" id="pagination"></ul></nav>
                 </div>
             </div>
             {% else %}
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle"></i> No tools available or you don't have access to any tools.
-            </div>
+            <div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> No tools available.</div>
             {% endif %}
-        </div>
-    </div>
-</div>
-
-{% endblock %}
-
-{% block page_glossary %}
-<div class="container-fluid mt-4">
-    <div class="card border-secondary">
-        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
-            <i class="bi bi-book me-2"></i>Page Glossary
-            <i class="bi bi-chevron-down float-end"></i>
-        </div>
-        <div class="collapse" id="pageGlossary">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Tool:</strong> A function exposed via MCP that AI systems can call. Each tool has a name, description, input schema, and execution logic.</p>
-                        <p><strong>Input Schema:</strong> A JSON Schema definition describing the valid parameters a tool accepts.</p>
-                        <p><strong>JSON-RPC:</strong> The protocol used for MCP tool calls, using JSON for request/response encoding.</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Tool Registry:</strong> The singleton component managing all registered tools, handling loading and hot-reload.</p>
-                        <p><strong>Execute:</strong> Running a tool with provided arguments to produce results.</p>
-                        <p><strong>Category:</strong> A grouping mechanism for organizing related tools (e.g., Financial, Search, Government).</p>
-                    </div>
-                </div>
-                <div class="text-end mt-2">
-                    <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-book me-1"></i>View Full Glossary
-                    </a>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -139,205 +95,117 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 {% block extra_js %}
 <script>
-// Store original tools data
 const toolsData = [
     {% for tool in tools %}
-    {
-        name: "{{ tool.name }}",
-        description: "{{ tool.description }}",
-        executeUrl: "{{ url_for('tool_execute', tool_name=tool.name) }}",
-        requiredParams: {% if tool.inputSchema and tool.inputSchema.required %}{{ tool.inputSchema.required|length }}{% else %}0{% endif %},
-        totalParams: {% if tool.inputSchema and tool.inputSchema.properties %}{{ tool.inputSchema.properties|length }}{% else %}0{% endif %},
-        hasParams: {% if tool.inputSchema and tool.inputSchema.properties %}true{% else %}false{% endif %}
+    { name: "{{ tool.name }}", description: {{ tool.description|tojson }},
+      executeUrl: "{{ url_for('tool_execute', tool_name=tool.name) }}",
+      requiredParams: {% if tool.inputSchema and tool.inputSchema.required %}{{ tool.inputSchema.required|length }}{% else %}0{% endif %},
+      totalParams: {% if tool.inputSchema and tool.inputSchema.properties %}{{ tool.inputSchema.properties|length }}{% else %}0{% endif %},
+      group: "{{ tool.name.split('_')[0] if '_' in tool.name else 'unknown' }}"
     }{% if not loop.last %},{% endif %}
     {% endfor %}
 ];
 
-let currentPage = 1;
-let rowsPerPage = 5;
-let filteredData = [...toolsData];
-let sortAscending = true;
+const GC = {fmp:'#0d6efd',openbb:'#198754',yf:'#ffc107',av:'#6f42c1',fred:'#dc3545',
+    cg:'#fd7e14',calc:'#20c997',edgar:'#6610f2',wb:'#0dcaf0',duckdb:'#adb5bd',
+    tavily:'#d63384',sec:'#495057',imf:'#e91e63',ecb:'#795548',boc:'#607d8b',
+    boj:'#ff5722',pboc:'#9c27b0',rbi:'#00bcd4',ir:'#8bc34a',un:'#3f51b5',
+    fbi:'#f44336',wiki:'#009688',sqlselect:'#cddc39',olap:'#ff9800',msdoc:'#673ab7'};
 
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-    renderTable();
+let currentPage = 1, rowsPerPage = 25, filteredData = [...toolsData];
 
-    // Search functionality
-    document.getElementById('searchTools').addEventListener('input', function(e) {
-        const searchTerm = e.target.value.toLowerCase();
-        filteredData = toolsData.filter(tool =>
-            tool.name.toLowerCase().includes(searchTerm) ||
-            tool.description.toLowerCase().includes(searchTerm)
-        );
-        currentPage = 1;
-        renderTable();
-    });
+// Build group index
+const groupCounts = {};
+toolsData.forEach(t => { groupCounts[t.group] = (groupCounts[t.group]||0) + 1; });
+const groups = Object.keys(groupCounts).sort();
 
-    // Rows per page change
-    document.getElementById('rowsPerPage').addEventListener('change', function(e) {
-        rowsPerPage = e.target.value === 'all' ? filteredData.length : parseInt(e.target.value);
-        currentPage = 1;
-        renderTable();
-    });
-
-    // Sort by tool name
-    document.getElementById('sortToolName').addEventListener('click', function() {
-        sortAscending = !sortAscending;
-        filteredData.sort((a, b) => {
-            if (sortAscending) {
-                return a.name.localeCompare(b.name);
-            } else {
-                return b.name.localeCompare(a.name);
-            }
-        });
-        updateSortIcon();
-        renderTable();
-    });
+// Populate dropdown
+const gs = document.getElementById('groupFilter');
+groups.forEach(g => {
+    const o = document.createElement('option');
+    o.value = g; o.textContent = `${g.toUpperCase()} (${groupCounts[g]})`;
+    gs.appendChild(o);
 });
 
-function updateSortIcon() {
-    const icon = document.querySelector('#sortToolName i');
-    if (sortAscending) {
-        icon.className = 'bi bi-arrow-up';
-    } else {
-        icon.className = 'bi bi-arrow-down';
-    }
+// Populate clickable badges
+const bb = document.getElementById('groupBadges');
+groups.forEach(g => {
+    const b = document.createElement('span');
+    b.className = 'badge rounded-pill'; b.style.cssText = `background:${GC[g]||'#6c757d'};cursor:pointer;font-size:0.72rem;`;
+    b.textContent = `${g} (${groupCounts[g]})`;
+    b.onclick = () => { gs.value = g; applyFilters(); };
+    bb.appendChild(b);
+});
+
+function applyFilters() {
+    const group = gs.value;
+    const search = document.getElementById('searchTools').value.toLowerCase().trim();
+    filteredData = toolsData.filter(t => {
+        return (group === 'all' || t.group === group) &&
+               (!search || t.name.toLowerCase().includes(search) || t.description.toLowerCase().includes(search));
+    });
+    const sort = document.getElementById('sortBy').value;
+    if (sort === 'name_asc') filteredData.sort((a,b) => a.name.localeCompare(b.name));
+    else if (sort === 'name_desc') filteredData.sort((a,b) => b.name.localeCompare(a.name));
+    else if (sort === 'group_asc') filteredData.sort((a,b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name));
+    currentPage = 1; renderTable();
+    document.getElementById('headerCount').textContent = `${filteredData.length} of ${toolsData.length} tools`;
+    // Highlight active badge
+    bb.querySelectorAll('.badge').forEach(b => { b.style.opacity = group === 'all' || b.textContent.startsWith(group) ? '1' : '0.5'; });
+}
+
+function hl(text, term) {
+    if (!term) return text;
+    return text.replace(new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`,'gi'),'<mark>$1</mark>');
 }
 
 function renderTable() {
     const tbody = document.querySelector('#toolsListTable tbody');
-    const totalRows = filteredData.length;
-    const totalPages = Math.ceil(totalRows / rowsPerPage);
+    const n = filteredData.length;
+    const rpp = rowsPerPage === 'all' ? n : rowsPerPage;
+    const pages = Math.ceil(n/rpp) || 1;
+    if (currentPage > pages) currentPage = pages;
+    const s = (currentPage-1)*rpp, e = Math.min(s+rpp, n);
+    const search = document.getElementById('searchTools').value.toLowerCase().trim();
 
-    // Adjust current page if needed
-    if (currentPage > totalPages) {
-        currentPage = totalPages || 1;
-    }
-
-    const start = (currentPage - 1) * rowsPerPage;
-    const end = Math.min(start + rowsPerPage, totalRows);
-    const pageData = filteredData.slice(start, end);
-
-    // Clear tbody
     tbody.innerHTML = '';
-
-    // Render rows
-    pageData.forEach(tool => {
-        const row = document.createElement('tr');
-
-        let paramsBadges = '';
-        if (tool.requiredParams > 0) {
-            paramsBadges += `<span class="badge bg-info">${tool.requiredParams} required</span> `;
-        }
-        if (tool.hasParams) {
-            paramsBadges += `<span class="badge bg-secondary">${tool.totalParams} total</span>`;
-        } else {
-            paramsBadges = '<span class="badge bg-light text-dark">No parameters</span>';
-        }
-
-        row.innerHTML = `
-            <td><strong>${tool.name}</strong></td>
-            <td>${tool.description}</td>
-            <td>${paramsBadges}</td>
-            <td>
-                <div class="btn-group" role="group">
-                    <a href="${tool.executeUrl}" class="btn btn-sm btn-success">
-                        <i class="bi bi-play-circle"></i> Execute
-                    </a>
-                    <a href="/tools/${tool.name}/schema" class="btn btn-sm btn-info">
-                        <i class="bi bi-info-circle"></i> Details
-                    </a>
-                </div>
-            </td>
-        `;
-        tbody.appendChild(row);
+    filteredData.slice(s, e).forEach(t => {
+        const c = GC[t.group]||'#6c757d';
+        const pBadge = t.totalParams > 0 ? `<span class="badge bg-secondary">${t.totalParams}</span>` : '<span class="badge bg-light text-dark">0</span>';
+        tbody.innerHTML += `<tr>
+            <td><span class="badge" style="background:${c}">${t.group.toUpperCase()}</span></td>
+            <td><strong>${search ? hl(t.name, search) : t.name}</strong></td>
+            <td class="small">${search ? hl(t.description, search) : t.description}</td>
+            <td>${pBadge}</td>
+            <td><div class="btn-group btn-group-sm">
+                <a href="${t.executeUrl}" class="btn btn-success"><i class="bi bi-play-circle"></i> Run</a>
+                <a href="/tools/${t.name}/schema" class="btn btn-outline-info"><i class="bi bi-info-circle"></i></a>
+            </div></td></tr>`;
     });
 
-    // Update info
-    if (totalRows > 0) {
-        document.getElementById('tableInfo').textContent =
-            `Showing ${start + 1} to ${end} of ${totalRows} entries`;
-    } else {
-        document.getElementById('tableInfo').textContent = 'No entries found';
-    }
-
-    // Render pagination
-    renderPagination(totalPages);
+    document.getElementById('tableInfo').textContent = n > 0 ? `Showing ${s+1}–${e} of ${n} tools` : 'No tools match';
+    renderPagination(pages);
 }
 
-function renderPagination(totalPages) {
-    const pagination = document.getElementById('pagination');
-    pagination.innerHTML = '';
-
-    if (totalPages <= 1) return;
-
-    // Previous button
-    const prevLi = document.createElement('li');
-    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
-    pagination.appendChild(prevLi);
-
-    // Page numbers
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    // Adjust start if we're near the end
-    if (endPage - startPage < maxVisiblePages - 1) {
-        startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    // First page
-    if (startPage > 1) {
-        const li = document.createElement('li');
-        li.className = 'page-item';
-        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(1); return false;">1</a>`;
-        pagination.appendChild(li);
-
-        if (startPage > 2) {
-            const dots = document.createElement('li');
-            dots.className = 'page-item disabled';
-            dots.innerHTML = `<span class="page-link">...</span>`;
-            pagination.appendChild(dots);
-        }
-    }
-
-    // Page numbers
-    for (let i = startPage; i <= endPage; i++) {
-        const li = document.createElement('li');
-        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
-        pagination.appendChild(li);
-    }
-
-    // Last page
-    if (endPage < totalPages) {
-        if (endPage < totalPages - 1) {
-            const dots = document.createElement('li');
-            dots.className = 'page-item disabled';
-            dots.innerHTML = `<span class="page-link">...</span>`;
-            pagination.appendChild(dots);
-        }
-
-        const li = document.createElement('li');
-        li.className = 'page-item';
-        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages}); return false;">${totalPages}</a>`;
-        pagination.appendChild(li);
-    }
-
-    // Next button
-    const nextLi = document.createElement('li');
-    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
-    pagination.appendChild(nextLi);
+function renderPagination(tp) {
+    const el = document.getElementById('pagination'); el.innerHTML = '';
+    if (tp <= 1) return;
+    const li = (l,p,d=false,a=false) => `<li class="page-item ${d?'disabled':''} ${a?'active':''}"><a class="page-link" href="#" onclick="changePage(${p});return false;">${l}</a></li>`;
+    el.innerHTML += li('&laquo;', currentPage-1, currentPage===1);
+    let st = Math.max(1,currentPage-2), en = Math.min(tp,currentPage+2);
+    if (st > 1) { el.innerHTML += li('1',1); if(st>2) el.innerHTML += li('...',0,true); }
+    for (let i=st;i<=en;i++) el.innerHTML += li(i,i,false,i===currentPage);
+    if (en < tp) { if(en<tp-1) el.innerHTML += li('...',0,true); el.innerHTML += li(tp,tp); }
+    el.innerHTML += li('&raquo;', currentPage+1, currentPage===tp);
 }
 
-function changePage(page) {
-    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-    if (page >= 1 && page <= totalPages) {
-        currentPage = page;
-        renderTable();
-    }
-}
+function changePage(p) { const rpp = rowsPerPage==='all'?filteredData.length:rowsPerPage; const tp=Math.ceil(filteredData.length/rpp); if(p>=1&&p<=tp){currentPage=p;renderTable();} }
+
+gs.addEventListener('change', applyFilters);
+document.getElementById('searchTools').addEventListener('input', applyFilters);
+document.getElementById('sortBy').addEventListener('change', applyFilters);
+document.getElementById('rowsPerPage').addEventListener('change', e => { rowsPerPage = e.target.value==='all'?'all':parseInt(e.target.value); currentPage=1; renderTable(); });
+document.getElementById('clearSearch').addEventListener('click', () => { document.getElementById('searchTools').value=''; applyFilters(); });
+document.addEventListener('DOMContentLoaded', applyFilters);
 </script>
 {% endblock %}

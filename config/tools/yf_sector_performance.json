@@ -1,0 +1,30 @@
+{
+  "name": "yf_sector_performance",
+  "implementation": "sajha.tools.impl.yfinance_tools.YFSectorPerformanceTool",
+  "description": "Get sector ETF performance from Yahoo Finance \u2014 XLK, XLF, XLV, etc.",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Market Performance",
+    "tags": [
+      "yfinance",
+      "sector"
+    ]
+  }
+}

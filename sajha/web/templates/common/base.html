@@ -68,6 +68,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             {% endif %}
                         </ul>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('reports_dashboard') }}">
+                            <i class="bi bi-bar-chart-line"></i> Reports
+                        </a>
+                    </li>
                     {% if user and user.roles and 'admin' in user.roles %}
                     <!-- MCP Studio - Top Level Menu -->
                     <li class="nav-item dropdown">

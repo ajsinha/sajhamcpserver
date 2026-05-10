@@ -1,0 +1,42 @@
+{
+  "name": "yf_index_history",
+  "implementation": "sajha.tools.impl.yfinance_tools.YFIndexHistoryTool",
+  "description": "Get market index history from Yahoo Finance \u2014 S&P 500, NASDAQ, Dow Jones, Russell",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "index": {
+        "type": "string",
+        "default": "^GSPC",
+        "description": "Index symbol (^GSPC, ^DJI, ^IXIC, ^RUT)"
+      },
+      "period": {
+        "type": "string",
+        "default": "1y"
+      }
+    },
+    "required": [
+      "index"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Indexes",
+    "tags": [
+      "yfinance",
+      "index"
+    ]
+  }
+}

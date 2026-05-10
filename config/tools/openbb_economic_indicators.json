@@ -1,0 +1,47 @@
+{
+  "name": "openbb_economic_indicators",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBEconomicIndicatorsTool",
+  "description": "Get economic indicators via OpenBB \u2014 unemployment rate, industrial production, retail sales, housing starts",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "country": {
+        "type": "string",
+        "default": "united_states"
+      },
+      "symbol": {
+        "type": "string",
+        "description": "Indicator code"
+      },
+      "provider": {
+        "type": "string",
+        "default": "fred"
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Economics",
+    "tags": [
+      "openbb",
+      "economic",
+      "indicators",
+      "unemployment",
+      "fred"
+    ],
+    "examples": []
+  }
+}

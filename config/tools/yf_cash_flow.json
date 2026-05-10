@@ -1,0 +1,41 @@
+{
+  "name": "yf_cash_flow",
+  "implementation": "sajha.tools.impl.yfinance_tools.YFCashFlowTool",
+  "description": "Get cash flow statement from Yahoo Finance \u2014 operating, investing, financing (annual or quarterly)",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "quarterly": {
+        "type": "boolean",
+        "default": false
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Statements",
+    "tags": [
+      "yfinance",
+      "cash flow"
+    ]
+  }
+}

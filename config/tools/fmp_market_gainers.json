@@ -1,0 +1,39 @@
+{
+  "name": "fmp_market_gainers",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPMarketGainersTool",
+  "description": "Get today's biggest stock market gainers from FMP \u2014 top performing stocks by percentage change",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "description": "Number of records",
+        "default": 5
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Market Performance",
+    "tags": [
+      "fmp",
+      "gainers",
+      "movers"
+    ],
+    "examples": []
+  },
+  "api_key": "${fmp.api.key}"
+}

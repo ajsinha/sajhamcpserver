@@ -1,0 +1,46 @@
+{
+  "name": "av_atr",
+  "implementation": "sajha.tools.impl.alphavantage_tools.AVATRTool",
+  "description": "Get Average True Range from Alpha Vantage \u2014 volatility measure",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      },
+      "interval": {
+        "type": "string",
+        "default": "daily"
+      },
+      "time_period": {
+        "type": "integer",
+        "default": 14
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Technical Indicators",
+    "tags": [
+      "alphavantage",
+      "atr"
+    ]
+  },
+  "api_key": "${alpha_vantage.api.key}"
+}

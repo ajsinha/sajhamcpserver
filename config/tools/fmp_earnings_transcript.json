@@ -1,0 +1,47 @@
+{
+  "name": "fmp_earnings_transcript",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
+  "description": "Get earnings call transcript from FMP \u2014 full text of quarterly earnings call",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol"
+      },
+      "quarter": {
+        "type": "integer",
+        "default": 1
+      },
+      "year": {
+        "type": "integer",
+        "default": 2025
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Earnings",
+    "tags": [
+      "fmp",
+      "transcript",
+      "earnings call"
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

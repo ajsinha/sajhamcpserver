@@ -1,0 +1,31 @@
+{
+  "name": "yf_market_summary",
+  "implementation": "sajha.tools.impl.yfinance_tools.YFMarketSummaryTool",
+  "description": "Get market summary from Yahoo Finance \u2014 S&P 500, Dow, NASDAQ, VIX, Treasury yields at a glance",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Market Data",
+    "tags": [
+      "yfinance",
+      "market",
+      "summary"
+    ]
+  }
+}

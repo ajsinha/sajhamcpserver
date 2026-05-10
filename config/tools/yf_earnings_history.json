@@ -1,0 +1,38 @@
+{
+  "name": "yf_earnings_history",
+  "implementation": "sajha.tools.impl.yfinance_tools.YFEarningsHistoryTool",
+  "description": "Get earnings history from Yahoo Finance \u2014 EPS estimates vs actuals, surprise %",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Earnings",
+    "tags": [
+      "yfinance",
+      "earnings",
+      "eps"
+    ]
+  }
+}

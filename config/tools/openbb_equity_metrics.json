@@ -1,0 +1,79 @@
+{
+  "name": "openbb_equity_metrics",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBEquityMetricsTool",
+  "description": "Get key fundamental metrics via OpenBB \u2014 PE, PB, EV/EBITDA, ROE, ROA, margins, growth rates, dividend info",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)"
+      },
+      "period": {
+        "type": "string",
+        "description": "Reporting period",
+        "enum": [
+          "annual",
+          "quarter"
+        ],
+        "default": "annual"
+      },
+      "provider": {
+        "type": "string",
+        "default": "fmp"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of records to return",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 100
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string"
+      },
+      "period": {
+        "type": "string"
+      },
+      "metrics": {
+        "type": "array"
+      }
+    },
+    "required": [
+      "symbol",
+      "metrics"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Financial Analysis",
+    "tags": [
+      "openbb",
+      "fundamentals",
+      "metrics",
+      "valuation",
+      "ratios"
+    ],
+    "examples": [
+      {
+        "description": "Apple fundamental metrics",
+        "input": {
+          "symbol": "AAPL",
+          "period": "annual"
+        }
+      }
+    ]
+  }
+}

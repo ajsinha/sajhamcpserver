@@ -1,0 +1,32 @@
+{
+  "name": "fmp_equity_offering",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
+  "description": "Get equity offering filings from FMP \u2014 Reg D, Reg A+ offerings",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "SEC & Regulatory",
+    "tags": [
+      "fmp",
+      "equity",
+      "offering"
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

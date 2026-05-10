@@ -1,0 +1,71 @@
+{
+  "name": "fmp_stock_news",
+  "implementation": "sajha.tools.impl.fmp_tools.FMPStockNewsTool",
+  "description": "Get latest stock market news from FMP \u2014 headlines, summaries, sources, sentiment for specific stocks or the broader market",
+  "version": "3.1.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Stock symbol (optional, omit for general market news)"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of articles",
+        "default": 10,
+        "minimum": 1,
+        "maximum": 50
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string"
+      },
+      "articles_count": {
+        "type": "integer"
+      },
+      "articles": {
+        "type": "array"
+      }
+    },
+    "required": [
+      "articles_count",
+      "articles"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "News",
+    "tags": [
+      "fmp",
+      "news",
+      "stock",
+      "market",
+      "headlines"
+    ],
+    "examples": [
+      {
+        "description": "Tesla news",
+        "input": {
+          "symbol": "TSLA",
+          "limit": 5
+        }
+      },
+      {
+        "description": "General market news",
+        "input": {
+          "limit": 10
+        }
+      }
+    ]
+  },
+  "api_key": "${fmp.api.key}"
+}

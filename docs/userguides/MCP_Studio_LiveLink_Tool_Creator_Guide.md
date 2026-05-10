@@ -1,5 +1,5 @@
 # MCP Studio IBM LiveLink Tool Creator Guide
-## SAJHA MCP Server v2.9.8
+## SAJHA MCP Server v3.1.0
 
 ## Overview
 
@@ -90,7 +90,7 @@ The IBM LiveLink (OpenText Content Server) Tool Creator enables you to create MC
 }
 ```
 
-### Store Credentials in application.properties
+### Store Credentials in application.yml
 
 ```properties
 # LiveLink Server Configuration
@@ -624,5 +624,5 @@ curl -u username:password \
 
 ---
 
-*SAJHA MCP Server v2.9.8 - IBM LiveLink Tool Creator Guide*
+*SAJHA MCP Server v3.1.0 - IBM LiveLink Tool Creator Guide*
 *Copyright © 2025-2030 Ashutosh Sinha*
