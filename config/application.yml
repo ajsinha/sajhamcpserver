@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 3.1.0
+  version: 4.0.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   email: ajsinha@gmail.com
@@ -26,23 +26,52 @@ server:
   debug: false
 
 # ── Database ─────────────────────────────────────────────────────────────────
-# Switch to PostgreSQL by changing db.type and filling in connection details.
-# SQLite DB file is auto-created in data/ (excluded from git).
+# SAJHA uses SQL scripts only — no migrations, no Alembic, no ORM auto-create.
+#   Schema: db/scripts/001_schema.sql  (CREATE TABLE IF NOT EXISTS — safe to re-run)
+#   Seed:   db/scripts/002_seed.sql    (INSERT OR IGNORE — safe to re-run)
+#
+# Default: SQLite (zero config, single file, good for dev/small production).
+# For production: uncomment the PostgreSQL block below and comment out SQLite.
 
 db:
-  type: sqlite                          # sqlite | postgresql
-  path: data/sajha.db                   # SQLite file path (relative to project root)
-  # ── PostgreSQL (uncomment to switch) ──
+  # ── SQLite (default — works out of the box) ──
+  type: sqlite
+  path: data/sajha.db
+
+  # ── PostgreSQL (uncomment for production) ──
   # type: postgresql
   # host: ${DB_HOST:localhost}
   # port: ${DB_PORT:5432}
-  # name: ${DB_NAME:sajha_mcp}
+  # name: ${DB_NAME:sajha}
   # user: ${DB_USER:sajha}
-  # password: ${DB_PASSWORD:sajha}
-  # driver: psycopg2                    # psycopg2 | psycopg
+  # password: ${DB_PASSWORD:change-me-in-production}
+  # driver: psycopg2                      # psycopg2 (sync) | asyncpg (async)
+  # ssl: false                            # Set true for cloud-hosted PostgreSQL
+  #
+  # ── PostgreSQL on AWS RDS ──
+  # type: postgresql
+  # host: ${SAJHA_DB_HOST:sajha-db.xxxx.us-east-1.rds.amazonaws.com}
+  # port: ${SAJHA_DB_PORT:5432}
+  # name: ${SAJHA_DB_NAME:sajha}
+  # user: ${SAJHA_DB_USER:sajha}
+  # password: ${SAJHA_DB_PASSWORD:}       # Set via env var or Secrets Manager
+  # driver: psycopg2
+  # ssl: true
+  #
+  # ── PostgreSQL on Hetzner Managed DB ──
+  # type: postgresql
+  # host: ${DB_HOST:your-db.hetzner.cloud}
+  # port: ${DB_PORT:5432}
+  # name: ${DB_NAME:sajha}
+  # user: ${DB_USER:sajha}
+  # password: ${DB_PASSWORD:}
+  # driver: psycopg2
+  # ssl: true
+
   pool:
     size: ${DB_POOL_SIZE:10}
-  echo: false                           # Log all SQL statements (debug)
+  echo: false                             # Log all SQL statements (debug only)
+  scripts_dir: db/scripts                 # Location of 001_schema.sql + 002_seed.sql
 
 # ── Authentication ───────────────────────────────────────────────────────────
 
@@ -72,6 +101,8 @@ config:
     dir: config/tools
   prompts:
     dir: config/prompts
+  plugins:
+    dir: config/plugins
   users:
     path: config/users.json
   apikeys:
@@ -100,10 +131,13 @@ features:
 
 logging:
   level: ${LOG_LEVEL:INFO}
+  dir: ./logs                              # Log directory (created if missing)
+  file: ""                                 # Log file name (empty = stdout only, e.g. "sajha.log")
 
 # ── Data Directories ────────────────────────────────────────────────────────
 
 data:
+  dir: ./data                              # Base data directory
   duckdb:
     dir: ./data/duckdb
   sqlselect:

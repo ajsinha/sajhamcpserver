@@ -86,13 +86,19 @@ class PluginManager:
     Each subdirectory with a plugin.json is a plugin.
     """
 
-    PLUGINS_DIR = 'config/plugins'
+    PLUGINS_DIR = 'config/plugins'  # default, overridden by config
 
     def __init__(self, tools_registry, storage_backend=None):
         self._registry = tools_registry
         self._storage = storage_backend
         self._plugins: Dict[str, PluginManifest] = {}
         self._status: Dict[str, PluginStatus] = {}
+        # Read from config if available
+        try:
+            from sajha.core.config import get_settings
+            self.PLUGINS_DIR = get_settings().config_plugins_dir
+        except Exception:
+            pass
 
     def discover(self) -> List[PluginManifest]:
         """Scan plugins directory for installed plugins."""

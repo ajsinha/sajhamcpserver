@@ -29,7 +29,8 @@ from sajha.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-VERSION = '4.0.0'
+from sajha.core.config import get_settings as _get_settings
+VERSION = _get_settings().app_version  # Single source: config/application.yml → app.version
 
 # ── Template engine (shared across routes) ───────────────────────
 _web_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'web')
@@ -48,8 +49,17 @@ def render(request: Request, template_name: str, context: dict = None, status_co
 
 
 def render_standalone(request: Request, template_name: str, context: dict = None, status_code: int = 200):
-    """Render a standalone template (not extending base.html). Used for landing page."""
+    """Render a standalone template (not extending base.html). Used for landing page, login."""
+    from sajha.core.config import get_settings
+    s = get_settings()
     ctx = context or {}
+    # Inject same app globals that base.html templates get
+    ctx.setdefault('app_version', s.app_version)
+    ctx.setdefault('app_name', s.app_name)
+    ctx.setdefault('app_author', s.app_author)
+    ctx.setdefault('app_email', s.app_email)
+    ctx.setdefault('app_github_repo', s.app_github_repo)
+    ctx.setdefault('app_copyright_years', s.app_copyright_years)
     return templates.TemplateResponse(request, template_name, ctx, status_code=status_code)
 
 

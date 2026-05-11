@@ -20,7 +20,8 @@ router = APIRouter(tags=['auth'])
 @router.get('/login')
 async def login_page(request: Request):
     """Render login page."""
-    return render(request, 'auth/login.html', {
+    from sajha.app import render_standalone
+    return render_standalone(request, 'auth/login.html', {
         'error': None,
     })
 
@@ -36,7 +37,8 @@ async def login_form(
     token = AuthManager.authenticate_local(db, user_id, password)
 
     if not token:
-        return render(request, 'auth/login.html', {
+        from sajha.app import render_standalone
+        return render_standalone(request, 'auth/login.html', {
             'error': 'Invalid credentials',
         })
 

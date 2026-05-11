@@ -36,11 +36,13 @@ class MCPHandler:
         self.auth_manager = auth_manager
         self.logger = logging.getLogger(__name__)
         self.prompts_registry = prompts_registry
+        from sajha.core.config import get_settings
+        _s = get_settings()
         self.server_info = {
             "protocolVersion": "2025-06-18",
             "serverInfo": {
-                "name": "SAJHA MCP Server",
-                "version": "4.0.0"
+                "name": _s.app_name,
+                "version": _s.app_version
             },
             "capabilities": {
                 "tools": {

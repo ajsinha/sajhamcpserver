@@ -268,7 +268,7 @@ SAJHA MCP Server — Landing Page
 
 <!-- Navigation -->
 <nav class="top-nav" id="topNav">
-    <div class="logo">SAJHA<span>v4.0.0</span></div>
+    <div class="logo">SAJHA<span>v{{ app_version }}</span></div>
     <div class="nav-links">
         <a href="#features">Features</a>
         <a href="#transports">Transports</a>
@@ -405,12 +405,12 @@ SAJHA MCP Server — Landing Page
 
 <!-- Footer -->
 <footer class="footer">
-    <div class="footer-left">© 2025–2030 Ashutosh Sinha · SAJHA MCP Server v4.0.0</div>
+    <div class="footer-left">© {{ app_copyright_years }} {{ app_name }} | {{ app_author }} · Version {{ app_version }}</div>
     <div class="footer-links">
         <a href="/help"><i class="bi bi-question-circle me-1"></i>Help</a>
         <a href="/about"><i class="bi bi-info-circle me-1"></i>About</a>
         <a href="/docs"><i class="bi bi-book me-1"></i>Docs</a>
-        <a href="https://github.com/ajsinha/sajhamcpserver"><i class="bi bi-github me-1"></i>GitHub</a>
+        <a href="{{ app_github_repo }}"><i class="bi bi-github me-1"></i>GitHub</a>
     </div>
 </footer>
 

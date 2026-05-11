@@ -173,6 +173,11 @@ class Settings(BaseSettings):
     # Data directories
     data_duckdb_dir: str = Field(default_factory=lambda: _get('data.duckdb.dir', './data/duckdb'))
     data_sqlselect_dir: str = Field(default_factory=lambda: _get('data.sqlselect.dir', './data/sqlselect'))
+    data_dir: str = Field(default_factory=lambda: _get('data.dir', './data'))
+    config_plugins_dir: str = Field(default_factory=lambda: _get('config.plugins.dir', 'config/plugins'))
+    log_level: str = Field(default_factory=lambda: _get('logging.level', 'INFO'))
+    log_dir: str = Field(default_factory=lambda: _get('logging.dir', './logs'))
+    log_file: str = Field(default_factory=lambda: _get('logging.file', ''))
 
     # External API keys
     google_api_key: str = Field(default_factory=lambda: _get('google.api.key', ''))
