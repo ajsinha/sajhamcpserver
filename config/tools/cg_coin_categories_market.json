@@ -2,7 +2,7 @@
   "name": "cg_coin_categories_market",
   "implementation": "sajha.tools.impl.coingecko_tools.CGCoinCategoriesMarketTool",
   "description": "Get crypto categories with market data from CoinGecko \u2014 market cap, volume, change per category",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -1,0 +1,92 @@
+# SAJHA MCP Server — Hetzner Cloud Deployment
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha
+#
+# Usage:
+#   scp -r . root@<your-server>:~/sajha/
+#   ssh root@<your-server>
+#   cd ~/sajha && docker compose up -d
+#
+version: "3.9"
+
+services:
+  sajha:
+    image: ghcr.io/ajsinha/sajhamcpserver:latest
+    build:
+      context: ../../
+      dockerfile: deployment/aws/Dockerfile
+    container_name: sajha-mcp
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      - SAJHA_SERVER_HOST=0.0.0.0
+      - SAJHA_SERVER_PORT=3002
+      - SAJHA_DB_TYPE=postgresql
+      - SAJHA_DB_HOST=postgres
+      - SAJHA_DB_PORT=5432
+      - SAJHA_DB_NAME=sajha
+      - SAJHA_DB_USER=sajha
+      - SAJHA_DB_PASSWORD=${DB_PASSWORD:-sajha_secure_2025}
+      - SAJHA_JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - SAJHA_STORAGE_BACKEND=local
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - TOGETHER_API_KEY=${TOGETHER_API_KEY:-}
+    volumes:
+      - sajha-data:/app/data
+      - sajha-config:/app/config
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - sajha-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: sajha-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=sajha
+      - POSTGRES_USER=sajha
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-sajha_secure_2025}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sajha"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sajha-net
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: sajha-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - sajha
+    networks:
+      - sajha-net
+
+volumes:
+  pgdata:
+  sajha-data:
+  sajha-config:
+  caddy-data:
+  caddy-config:
+
+networks:
+  sajha-net:
+    driver: bridge

@@ -2,7 +2,7 @@
   "name": "cg_defi_global",
   "implementation": "sajha.tools.impl.coingecko_tools.CGDefiGlobalTool",
   "description": "Get global DeFi market stats from CoinGecko \u2014 TVL, DeFi market cap, ETH dominance",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -59,68 +59,212 @@
     --radius-lg: 0.75rem;
     --radius-xl: 1rem;
     
-    /* Theme-aware colors (Light Theme - Default) */
-    --theme-bg: linear-gradient(135deg, var(--sajha-gray-100) 0%, var(--sajha-light) 50%, var(--sajha-accent-light) 100%);
-    --theme-text: var(--sajha-gray-800);
-    --theme-text-muted: var(--sajha-gray-600);
-    --theme-card-bg: var(--sajha-white);
-    --theme-card-border: var(--sajha-gray-200);
-    --theme-input-bg: var(--sajha-white);
-    --theme-input-border: var(--sajha-gray-300);
-    --theme-table-header: linear-gradient(135deg, var(--sajha-gray-100) 0%, var(--sajha-gray-200) 100%);
-    --theme-table-stripe: rgba(0, 121, 193, 0.03);
-    --theme-footer-bg: linear-gradient(135deg, var(--sajha-gray-100) 0%, var(--sajha-white) 100%);
-    --theme-dropdown-bg: var(--sajha-white);
-    --theme-code-bg: var(--sajha-accent-light);
-    --theme-pre-bg: var(--sajha-gray-900);
-    --theme-modal-bg: var(--sajha-white);
+    /* Theme-aware colors (Light Theme - Refined) */
+    --theme-bg: linear-gradient(160deg, #f0f5fa 0%, #ffffff 40%, #eef4fb 100%);
+    --theme-text: #1e293b;
+    --theme-text-muted: #64748b;
+    --theme-card-bg: #ffffff;
+    --theme-card-border: #e2e8f0;
+    --theme-input-bg: #ffffff;
+    --theme-input-border: #cbd5e1;
+    --theme-table-header: linear-gradient(135deg, #f0f5fa 0%, #e8eef6 100%);
+    --theme-table-stripe: rgba(0, 121, 193, 0.02);
+    --theme-footer-bg: linear-gradient(135deg, #f0f5fa 0%, #ffffff 100%);
+    --theme-dropdown-bg: #ffffff;
+    --theme-code-bg: #eef4fb;
+    --theme-pre-bg: #0a1628;
+    --theme-modal-bg: #ffffff;
 }
 
 /* ============================================
    DARK THEME VARIABLES
    ============================================ */
 [data-theme="dark"] {
-    --sajha-white: #1a1a2e;
-    --sajha-light: #16213e;
-    --sajha-gray-100: #1e2746;
-    --sajha-gray-200: #2a3550;
-    --sajha-gray-300: #3d4a63;
-    --sajha-gray-400: #5a6b84;
-    --sajha-gray-500: #8892a6;
-    --sajha-gray-600: #a8b2c4;
-    --sajha-gray-700: #c8d0de;
-    --sajha-gray-800: #e4e8f0;
-    --sajha-gray-900: #f5f7fa;
+    /* ── Navy palette matching landing page ── */
+    --sajha-white: #0a1628;
+    --sajha-light: #0e1a30;
+    --sajha-gray-100: #12213b;
+    --sajha-gray-200: #1a2f50;
+    --sajha-gray-300: #2a4060;
+    --sajha-gray-400: #4a6080;
+    --sajha-gray-500: #8892a4;
+    --sajha-gray-600: #b0b8c8;
+    --sajha-gray-700: #d0d6e0;
+    --sajha-gray-800: #e8ecf2;
+    --sajha-gray-900: #f0f4f8;
     
-    /* Adjusted accent for dark mode */
-    --sajha-accent-light: rgba(0, 163, 224, 0.15);
-    --sajha-success-light: rgba(40, 167, 69, 0.2);
-    --sajha-danger-light: rgba(220, 53, 69, 0.2);
-    --sajha-warning-light: rgba(255, 193, 7, 0.2);
-    --sajha-info-light: rgba(23, 162, 184, 0.2);
+    /* Accent tints for dark */
+    --sajha-accent-light: rgba(0, 163, 224, 0.12);
+    --sajha-success-light: rgba(6, 214, 160, 0.12);
+    --sajha-danger-light: rgba(220, 53, 69, 0.15);
+    --sajha-warning-light: rgba(255, 193, 7, 0.12);
+    --sajha-info-light: rgba(0, 163, 224, 0.12);
     
-    /* Dark shadows */
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+    /* Shadows with navy undertone */
+    --shadow-sm: 0 1px 3px 0 rgba(0, 10, 30, 0.4);
+    --shadow-md: 0 4px 8px -1px rgba(0, 10, 30, 0.5), 0 2px 4px -1px rgba(0, 10, 30, 0.4);
+    --shadow-lg: 0 10px 20px -3px rgba(0, 10, 30, 0.5), 0 4px 8px -2px rgba(0, 10, 30, 0.4);
+    --shadow-xl: 0 20px 30px -5px rgba(0, 10, 30, 0.6), 0 10px 15px -5px rgba(0, 10, 30, 0.4);
     
-    /* Theme-aware colors (Dark Theme) */
-    --theme-bg: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
-    --theme-text: #e4e8f0;
-    --theme-text-muted: #a8b2c4;
-    --theme-card-bg: #1e2746;
-    --theme-card-border: #3d4a63;
-    --theme-input-bg: #2a3550;
-    --theme-input-border: #3d4a63;
-    --theme-table-header: linear-gradient(135deg, #1e2746 0%, #2a3550 100%);
-    --theme-table-stripe: rgba(0, 163, 224, 0.05);
-    --theme-footer-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    --theme-dropdown-bg: #1e2746;
-    --theme-code-bg: rgba(0, 163, 224, 0.15);
+    /* ── Theme colors — glass-morphism aligned with landing ── */
+    --theme-bg: #0a1628;
+    --theme-text: #e8ecf2;
+    --theme-text-muted: #8892a4;
+    --theme-card-bg: rgba(255, 255, 255, 0.04);
+    --theme-card-border: rgba(255, 255, 255, 0.08);
+    --theme-input-bg: rgba(255, 255, 255, 0.06);
+    --theme-input-border: rgba(255, 255, 255, 0.10);
+    --theme-table-header: rgba(0, 121, 193, 0.08);
+    --theme-table-stripe: rgba(0, 163, 224, 0.03);
+    --theme-footer-bg: rgba(0, 0, 0, 0.15);
+    --theme-dropdown-bg: #12213b;
+    --theme-code-bg: rgba(0, 163, 224, 0.1);
     --theme-pre-bg: #0f0f1a;
     --theme-modal-bg: #1e2746;
 }
+
+
+/* ============================================
+   ATMOSPHERIC BACKGROUNDS & GLASS-MORPHISM
+   ============================================ */
+
+/* Dark theme atmospheric gradient (matches landing page) */
+[data-theme="dark"] body {
+    background: #0a1628 !important;
+}
+[data-theme="dark"] body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        radial-gradient(ellipse 70% 50% at 20% 20%, rgba(0, 121, 193, 0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 60%, rgba(6, 214, 160, 0.03) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 50% 90%, rgba(0, 163, 224, 0.04) 0%, transparent 50%);
+}
+[data-theme="dark"] .container-fluid,
+[data-theme="dark"] .container {
+    position: relative;
+    z-index: 1;
+}
+
+/* Dark theme glass-morphism cards */
+[data-theme="dark"] .card {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+[data-theme="dark"] .card:hover {
+    border-color: rgba(0, 163, 224, 0.2) !important;
+}
+[data-theme="dark"] .card-header {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+[data-theme="dark"] .card-header-primary {
+    background: rgba(0, 121, 193, 0.15) !important;
+    color: #e8ecf2 !important;
+}
+[data-theme="dark"] .card-header-success {
+    background: rgba(6, 214, 160, 0.12) !important;
+    color: #e8ecf2 !important;
+}
+
+/* Dark theme navbar — glass blur */
+[data-theme="dark"] .navbar {
+    background: rgba(10, 22, 40, 0.85) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Dark theme tables */
+[data-theme="dark"] .table {
+    --bs-table-bg: transparent;
+    color: #e8ecf2;
+}
+[data-theme="dark"] .table thead th {
+    background: rgba(0, 121, 193, 0.08);
+    border-color: rgba(255, 255, 255, 0.06);
+}
+[data-theme="dark"] .table td {
+    border-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Dark theme form controls */
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-color: rgba(255, 255, 255, 0.10) !important;
+    color: #e8ecf2 !important;
+}
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus {
+    border-color: rgba(0, 163, 224, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.1) !important;
+}
+
+/* Dark theme badges */
+[data-theme="dark"] .badge.bg-light {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #e8ecf2 !important;
+}
+
+/* Dark theme dropdown */
+[data-theme="dark"] .dropdown-menu {
+    background: #12213b !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(20px);
+}
+[data-theme="dark"] .dropdown-item {
+    color: #b0b8c8 !important;
+}
+[data-theme="dark"] .dropdown-item:hover {
+    background: rgba(0, 163, 224, 0.1) !important;
+    color: #e8ecf2 !important;
+}
+
+/* ── Light theme polish ── */
+[data-theme="light"] body,
+body:not([data-theme]) {
+    background: linear-gradient(160deg, #f0f5fa 0%, #ffffff 40%, #eef4fb 100%) !important;
+}
+
+[data-theme="light"] .card,
+body:not([data-theme]) .card {
+    box-shadow: 0 1px 3px rgba(0, 49, 104, 0.06), 0 1px 2px rgba(0, 49, 104, 0.04);
+    border: 1px solid #e2e8f0;
+}
+[data-theme="light"] .card:hover,
+body:not([data-theme]) .card:hover {
+    box-shadow: 0 4px 12px rgba(0, 49, 104, 0.08), 0 2px 4px rgba(0, 49, 104, 0.04);
+}
+
+[data-theme="light"] .navbar,
+body:not([data-theme]) .navbar {
+    box-shadow: 0 1px 4px rgba(0, 49, 104, 0.08);
+}
+
+/* ── Shared polish (both themes) ── */
+.card {
+    border-radius: var(--radius-lg) !important;
+    transition: all var(--transition-normal);
+}
+.card-header {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+}
+.card-header:first-child {
+    border-top-left-radius: calc(var(--radius-lg) - 1px) !important;
+    border-top-right-radius: calc(var(--radius-lg) - 1px) !important;
+}
+
+/* Smooth theme transition */
+body, .card, .navbar, .form-control, .form-select, .table, .dropdown-menu {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
 
 /* ============================================
    BASE STYLES

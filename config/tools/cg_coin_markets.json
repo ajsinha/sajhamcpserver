@@ -2,7 +2,7 @@
   "name": "cg_coin_markets",
   "implementation": "sajha.tools.impl.coingecko_tools.CGCoinMarketsTool",
   "description": "Get top crypto by market cap from CoinGecko \u2014 ranked list with prices and 24h change",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

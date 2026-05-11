@@ -87,10 +87,12 @@ async def logout(request: Request):
     return response
 
 
-# ── Redirect root to dashboard or login ──────────────────────────
+# ── Landing page or dashboard ────────────────────────────────────
 
 @router.get('/')
-async def root(auth: AuthContext = Depends(get_current_user)):
+async def root(request: Request, auth: AuthContext = Depends(get_current_user)):
     if auth.authenticated:
         return RedirectResponse(url='/dashboard', status_code=302)
-    return RedirectResponse(url='/login', status_code=302)
+    # Show landing page for unauthenticated visitors
+    from sajha.app import render_standalone
+    return render_standalone(request, 'landing.html', {})

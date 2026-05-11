@@ -129,3 +129,29 @@ fred:
 tavily:
   api:
     key: ${TAVILY_API_KEY:}
+
+# ── AI Integration ───────────────────────────────────────────
+# LLM providers, semantic discovery, and gateway configuration.
+# Each provider is enabled by setting its API key (or for keyless
+# providers like Bedrock/Ollama, they register automatically).
+ai:
+  default_provider: ${AI_DEFAULT_PROVIDER:anthropic}
+  default_model: ${AI_DEFAULT_MODEL:claude-sonnet-4-20250514}
+  embedding_provider: ${AI_EMBEDDING_PROVIDER:openai}
+  embedding_model: ${AI_EMBEDDING_MODEL:text-embedding-3-small}
+  cache:
+    enabled: true
+    ttl_seconds: 3600
+  anthropic:
+    api_key: ${ANTHROPIC_API_KEY:}
+  openai:
+    api_key: ${OPENAI_API_KEY:}
+  bedrock:
+    region: ${AWS_DEFAULT_REGION:us-east-1}
+  together:
+    api_key: ${TOGETHER_API_KEY:}
+  ollama:
+    base_url: ${OLLAMA_BASE_URL:http://localhost:11434}
+  azure_openai:
+    api_key: ${AZURE_OPENAI_API_KEY:}
+    endpoint: ${AZURE_OPENAI_ENDPOINT:}

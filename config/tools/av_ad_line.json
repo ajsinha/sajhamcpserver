@@ -2,7 +2,7 @@
   "name": "av_ad_line",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVADLineTool",
   "description": "Get Accumulation/Distribution Line from Alpha Vantage",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

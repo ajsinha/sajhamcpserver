@@ -2,7 +2,7 @@
   "name": "fmp_share_float",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
   "description": "Get share float data from FMP \u2014 free float, shares outstanding",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

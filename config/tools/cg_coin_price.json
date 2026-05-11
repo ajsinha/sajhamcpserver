@@ -2,7 +2,7 @@
   "name": "cg_coin_price",
   "implementation": "sajha.tools.impl.coingecko_tools.CGCoinPriceTool",
   "description": "Get current crypto prices from CoinGecko \u2014 price, 24h change, market cap for any coin",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

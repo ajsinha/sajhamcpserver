@@ -11,7 +11,13 @@
     <div class="card">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="bi bi-tools"></i> Tool Catalog</h5>
-            <span class="badge bg-light text-primary" id="headerCount">{{ tools|length }} tools</span>
+            <div class="d-flex align-items-center gap-2">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-light active" id="viewTable" onclick="setView('table')" title="Table view"><i class="bi bi-list-ul"></i></button>
+                    <button type="button" class="btn btn-outline-light" id="viewCards" onclick="setView('cards')" title="Card view"><i class="bi bi-grid-3x3-gap"></i></button>
+                </div>
+                <span class="badge bg-light text-primary" id="headerCount">{{ tools|length }} tools</span>
+            </div>
         </div>
         <div class="card-body">
             {% if tools %}
@@ -64,7 +70,7 @@
             </div>
 
             <div class="table-responsive">
-                <table class="table table-striped table-hover" id="toolsListTable">
+                <table class="table" data-sajha-table="false table-striped table-hover" id="toolsListTable">
                     <thead class="table-light">
                         <tr>
                             <th style="width:130px">Group</th>
@@ -91,6 +97,21 @@
         </div>
     </div>
 </div>
+<!-- Card Grid View -->
+<div id="cardViewContainer" style="display:none" class="row g-3 mt-2">
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.tool-card{border:1px solid var(--theme-card-border);border-radius:var(--radius-md);padding:1rem;transition:all var(--transition-fast);background:var(--theme-card-bg);height:100%}
+.tool-card:hover{border-color:var(--sajha-primary);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.tool-card .tool-name{font-weight:600;font-size:.9rem;color:var(--sajha-primary);text-decoration:none;display:block;margin-bottom:.25rem}
+.tool-card .tool-name:hover{text-decoration:underline}
+.tool-card .tool-desc{font-size:.8rem;color:var(--theme-text-muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tool-card .tool-provider{font-size:.7rem;font-weight:600;padding:.15rem .5rem;border-radius:4px;background:rgba(0,121,193,.1);color:var(--sajha-primary);display:inline-block;margin-top:.5rem}
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -207,5 +228,46 @@ document.getElementById('sortBy').addEventListener('change', applyFilters);
 document.getElementById('rowsPerPage').addEventListener('change', e => { rowsPerPage = e.target.value==='all'?'all':parseInt(e.target.value); currentPage=1; renderTable(); });
 document.getElementById('clearSearch').addEventListener('click', () => { document.getElementById('searchTools').value=''; applyFilters(); });
 document.addEventListener('DOMContentLoaded', applyFilters);
+
+function setView(mode) {
+    const table = document.querySelector('table').parentElement;
+    const cards = document.getElementById('cardViewContainer');
+    const pagination = document.querySelector('.pagination')?.parentElement;
+    document.getElementById('viewTable').classList.toggle('active', mode==='table');
+    document.getElementById('viewTable').classList.toggle('btn-light', mode==='table');
+    document.getElementById('viewTable').classList.toggle('btn-outline-light', mode!=='table');
+    document.getElementById('viewCards').classList.toggle('active', mode==='cards');
+    document.getElementById('viewCards').classList.toggle('btn-light', mode==='cards');
+    document.getElementById('viewCards').classList.toggle('btn-outline-light', mode!=='cards');
+    if (mode === 'cards') {
+        table.style.display = 'none';
+        if (pagination) pagination.style.display = 'none';
+        cards.style.display = 'flex';
+        renderCards();
+    } else {
+        table.style.display = '';
+        if (pagination) pagination.style.display = '';
+        cards.style.display = 'none';
+    }
+}
+
+function renderCards() {
+    const container = document.getElementById('cardViewContainer');
+    container.innerHTML = '';
+    const data = filteredData || allTools;
+    data.forEach(t => {
+        const group = (t.name || '').split('_')[0];
+        const colors = {fmp:'#0079c1',openbb:'#ff6600',fred:'#004b87',yahoo:'#7b0099',alpha:'#28a745',coingecko:'#8bc34a',calc:'#dc3545',olap:'#6f42c1',duckdb:'#ffc107'};
+        const color = colors[group] || '#6c757d';
+        const card = document.createElement('div');
+        card.className = 'col-md-6 col-lg-4 col-xl-3';
+        card.innerHTML = `<div class="tool-card">
+            <a href="/tools/${t.name}/schema" class="tool-name">${t.name}</a>
+            <div class="tool-desc">${t.description || 'No description'}</div>
+            <span class="tool-provider" style="background:${color}15;color:${color}">${group.toUpperCase()}</span>
+        </div>`;
+        container.appendChild(card);
+    });
+}
 </script>
 {% endblock %}

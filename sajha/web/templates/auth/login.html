@@ -1,85 +1,51 @@
-{% extends "common/base.html" %}
-<!--
-Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
--->
-{% block title %}Login - SAJHA MCP Server{% endblock %}
-
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-4">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0"><i class="bi bi-lock"></i> Login</h4>
-            </div>
-            <div class="card-body">
-                {% if error %}
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill"></i> {{ error }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-                {% endif %}
-                
-                <form method="POST" action="{{ url_for('login') }}">
-                    <div class="mb-3">
-                        <label for="user_id" class="form-label">User ID</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-person"></i></span>
-                            <input type="text" class="form-control" id="user_id" name="user_id" required autofocus>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-key"></i></span>
-                            <input type="password" class="form-control" id="password" name="password" required>
-                        </div>
-                    </div>
-                    
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-box-arrow-in-right"></i> Sign In
-                        </button>
-                    </div>
-                </form>
-                
-                <!-- Help & About Links -->
-                <div class="mt-4 pt-3 border-top text-center">
-                    <a href="{{ url_for('help_page') }}" class="btn btn-outline-secondary btn-sm me-2">
-                        <i class="bi bi-question-circle me-1"></i>Help
-                    </a>
-                    <a href="{{ url_for('about_page') }}" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-info-circle me-1"></i>About
-                    </a>
-                </div>
-            </div>
-            <div class="card-footer text-muted text-center">
-                <small>SAJHA MCP Server v2.0</small>
-            </div>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In — SAJHA MCP Server</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Plus Jakarta Sans',sans-serif;background:#0a1628;color:#f0f4f8;min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative}
+        body::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 80% 50% at 30% 30%,rgba(0,121,193,.1) 0%,transparent 70%),radial-gradient(ellipse 60% 40% at 70% 70%,rgba(6,214,160,.06) 0%,transparent 60%)}
+        .wrap{width:100%;max-width:420px;padding:2rem;position:relative;z-index:1}
+        .brand{text-align:center;margin-bottom:2.5rem}
+        .brand h1{font-size:2rem;font-weight:800;letter-spacing:-1px;background:linear-gradient(135deg,#00a3e0,#06d6a0);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .brand p{color:#8892a4;font-size:.9rem;margin-top:.5rem}
+        .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:2rem;backdrop-filter:blur(20px)}
+        .card h2{font-size:1.3rem;font-weight:600;margin-bottom:1.5rem;text-align:center}
+        .fg{margin-bottom:1.25rem}
+        .fg label{display:block;font-size:.8rem;font-weight:600;color:#8892a4;text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem}
+        .iw{display:flex;align-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;transition:border-color .2s}
+        .iw:focus-within{border-color:#00a3e0}
+        .iw i{padding:0 .75rem;color:#8892a4;font-size:1.1rem}
+        .iw input{flex:1;background:none;border:none;outline:none;color:#f0f4f8;font-size:.95rem;padding:.75rem .75rem .75rem 0;font-family:inherit}
+        .iw input::placeholder{color:#546178}
+        .err{background:rgba(220,53,69,.1);border:1px solid rgba(220,53,69,.3);color:#ff6b7a;padding:.75rem 1rem;border-radius:10px;font-size:.85rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:.5rem}
+        .submit{width:100%;padding:.85rem;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#0079c1,#00a3e0);color:#fff;transition:all .3s;box-shadow:0 4px 15px rgba(0,121,193,.3)}
+        .submit:hover{transform:translateY(-2px);box-shadow:0 6px 25px rgba(0,121,193,.5)}
+        .links{text-align:center;margin-top:2rem;display:flex;gap:2rem;justify-content:center}
+        .links a,.back a{color:#8892a4;text-decoration:none;font-size:.85rem;transition:color .2s}
+        .links a:hover,.back a:hover{color:#00a3e0}
+        .back{text-align:center;margin-top:1.5rem}
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="brand"><h1>SAJHA</h1><p>MCP Server — Sign in to continue</p></div>
+    <div class="card">
+        <h2><i class="bi bi-lock me-2"></i>Sign In</h2>
+        {% if error %}<div class="err"><i class="bi bi-exclamation-triangle-fill"></i> {{ error }}</div>{% endif %}
+        <form method="POST" action="/login">
+            <div class="fg"><label>User ID</label><div class="iw"><i class="bi bi-person"></i><input type="text" name="user_id" placeholder="Enter your user ID" required autofocus></div></div>
+            <div class="fg"><label>Password</label><div class="iw"><i class="bi bi-key"></i><input type="password" name="password" placeholder="Enter your password" required></div></div>
+            <button type="submit" class="submit"><i class="bi bi-box-arrow-in-right me-2"></i>Sign In</button>
+        </form>
     </div>
+    <div class="links"><a href="/help"><i class="bi bi-question-circle me-1"></i>Help</a><a href="/about"><i class="bi bi-info-circle me-1"></i>About</a><a href="/docs"><i class="bi bi-book me-1"></i>Docs</a></div>
+    <div class="back"><a href="/"><i class="bi bi-arrow-left me-1"></i>Back to home</a></div>
 </div>
-{% endblock %}
-
-{% block page_glossary %}
-<div class="container mt-4" style="max-width: 500px;">
-    <div class="card border-secondary">
-        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
-            <i class="bi bi-book me-2"></i>Page Glossary
-            <i class="bi bi-chevron-down float-end"></i>
-        </div>
-        <div class="collapse" id="pageGlossary">
-            <div class="card-body">
-                <p><strong>Authentication:</strong> The process of verifying user identity via username and password.</p>
-                <p><strong>Session:</strong> A period of interaction after login, maintained via secure tokens.</p>
-                <p><strong>RBAC:</strong> Role-Based Access Control determining what actions users can perform.</p>
-                <div class="text-end mt-2">
-                    <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-book me-1"></i>View Full Glossary
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
+</body>
+</html>

@@ -44,7 +44,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 </div>
                 <div class="card-body">
                     <p>SAJHA MCP Server is a comprehensive Python implementation of the <strong>Model Context Protocol (MCP)</strong> built on <strong>FastAPI</strong>. It provides a standardized interface for AI tools and services, serving <strong>497 tools</strong> across financial markets, government data, search engines, analytics, and enterprise integrations through a single MCP-compliant endpoint.</p>
-                    <p class="mb-0">The server supports HTTP POST and SSE transports for MCP communication, implements the A2A (Agent-to-Agent) protocol for multi-agent orchestration, and includes a full web UI for tool discovery, testing, and administration.</p>
+                    <p class="mb-0">The server supports <strong>three transports</strong> (HTTP POST, SSE, WebSocket), includes an <strong>embedded LLM gateway</strong> with 6 AI providers, <strong>semantic tool discovery</strong>, <strong>composite tool orchestration</strong>, <strong>OpenTelemetry observability</strong>, <strong>multi-tenancy</strong>, a <strong>plugin system</strong>, and a full web UI with 12 interactive screens. Version 4.0.0 adds production hardening with tool versioning, contract testing, per-tool latency histograms, and enterprise isolation.</p>
                 </div>
             </div>
         </div>
@@ -101,8 +101,8 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                     <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
                                         <i class="bi bi-arrows-angle-contract text-success" style="font-size: 2rem;"></i>
                                     </div>
-                                    <h5>Dual Transport</h5>
-                                    <p class="text-muted small mb-0">HTTP POST (<code>/mcp</code>) and SSE (<code>/mcp/sse</code>) transports per MCP specification.</p>
+                                    <h5>Three Transports</h5>
+                                    <p class="text-muted small mb-0">HTTP POST (<code>/mcp</code>), SSE (<code>/mcp/sse</code>), and WebSocket (<code>/mcp/ws</code>) — full-duplex bidirectional.</p>
                                 </div>
                             </div>
                         </div>
@@ -179,7 +179,65 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                         <i class="bi bi-bar-chart-line text-success" style="font-size: 2rem;"></i>
                                     </div>
                                     <h5>Reporting</h5>
-                                    <p class="text-muted small mb-0">7 report APIs, Chart.js dashboard, usage heatmaps, and audit logs.</p>
+                                    <p class="text-muted small mb-0">6 report APIs, Chart.js dashboard, usage heatmaps, and audit logs.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <div class="rounded-circle bg-info bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                        <i class="bi bi-cpu text-info" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h5>LLM Gateway</h5>
+                                    <p class="text-muted small mb-0">6 AI providers (Anthropic, OpenAI, Bedrock, Together, Ollama, Azure). Registry factory. DB-managed models.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                        <i class="bi bi-boxes text-warning" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h5>Composite Tools</h5>
+                                    <p class="text-muted small mb-0">Sibling (parallel) and Parent-Child (fan-out) patterns. Visual builder. Dynamic schemas.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                        <i class="bi bi-graph-up text-danger" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h5>OpenTelemetry</h5>
+                                    <p class="text-muted small mb-0">Per-tool p50/p95/p99 latency. Error spike alerts. Health probes. Optional OTEL SDK export.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                        <i class="bi bi-people text-primary" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h5>Multi-Tenancy</h5>
+                                    <p class="text-muted small mb-0">Tenant-isolated tools, per-tenant quotas, data isolation, API key pools.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                        <i class="bi bi-puzzle text-success" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h5>Plugin System</h5>
+                                    <p class="text-muted small mb-0">Standardized plugin.json manifest. Drop directory → discover → validate → load.</p>
+                                </div>
+                            </div>
+                        </div>
                                 </div>
                             </div>
                         </div>
@@ -285,7 +343,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <thead class="table-primary">
                                 <tr>
                                     <th>Feature</th>
-                                    <th class="text-center"><i class="bi bi-star-fill text-warning"></i> SAJHA v3.1</th>
+                                    <th class="text-center"><i class="bi bi-star-fill text-warning"></i> SAJHA v4.0</th>
                                     <th class="text-center">Typical MCP Servers</th>
                                     <th class="text-center">Claude Desktop</th>
                                 </tr>

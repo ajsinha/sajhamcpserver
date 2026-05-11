@@ -2,7 +2,7 @@
   "name": "fred_30yr_treasury",
   "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
   "description": "Get 30-Year Treasury Yield from FRED (series: DGS30)",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

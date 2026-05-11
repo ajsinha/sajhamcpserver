@@ -2,7 +2,7 @@
   "name": "fmp_forex_historical",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
   "description": "Get historical forex rates from FMP \u2014 daily OHLCV for currency pairs",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

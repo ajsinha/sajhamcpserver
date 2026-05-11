@@ -2,7 +2,7 @@
   "name": "fred_consumer_sentiment",
   "implementation": "sajha.tools.impl.fred_tools.FREDConsumerSentimentTool",
   "description": "Get Michigan Consumer Sentiment Index from FRED",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -1,6 +1,6 @@
 # CoinGecko — Tool Reference Guide
 
-**Version:** 3.1.0 · **Tools:** 25 · **API Key Required:** No (free public API)
+**Version:** 4.0.0 · **Tools:** 25 · **API Key Required:** No (free public API)
 
 ---
 

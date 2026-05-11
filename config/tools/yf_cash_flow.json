@@ -2,7 +2,7 @@
   "name": "yf_cash_flow",
   "implementation": "sajha.tools.impl.yfinance_tools.YFCashFlowTool",
   "description": "Get cash flow statement from Yahoo Finance \u2014 operating, investing, financing (annual or quarterly)",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

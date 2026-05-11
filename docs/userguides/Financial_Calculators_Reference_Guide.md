@@ -1,6 +1,6 @@
 # Financial Calculators — Tool Reference Guide
 
-**Version:** 3.1.0 · **Tools:** 19 · **API Key Required:** No (pure math, no external APIs)
+**Version:** 4.0.0 · **Tools:** 19 · **API Key Required:** No (pure math, no external APIs)
 
 ---
 

@@ -2,7 +2,7 @@
   "name": "openbb_economy_gdp",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBEconomyGDPTool",
   "description": "Get nominal GDP data via OpenBB \u2014 GDP values and growth rates for countries worldwide from OECD or World Bank",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

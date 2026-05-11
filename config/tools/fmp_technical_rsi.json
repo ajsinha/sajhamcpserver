@@ -2,7 +2,7 @@
   "name": "fmp_technical_rsi",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
   "description": "Get RSI technical indicator from FMP for a stock",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

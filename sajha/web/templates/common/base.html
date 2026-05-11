@@ -52,10 +52,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <i class="bi bi-tools"></i> Tools
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('prompts_list') }}">
-                            <i class="bi bi-chat-square-text"></i> Prompts
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-cpu"></i> AI
                         </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('ai_settings') }}"><i class="bi bi-cloud me-2"></i>LLM</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('prompts_list') }}"><i class="bi bi-chat-square-text me-2"></i>Prompts</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('composite_builder') }}"><i class="bi bi-boxes me-2"></i>Composite Builder</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="monitoringDropdown" role="button" data-bs-toggle="dropdown">
@@ -141,6 +146,8 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <li><a class="dropdown-item" href="{{ url_for('admin_prompts') }}"><i class="bi bi-chat-square-text me-2"></i>Manage Prompts</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin_apikeys') }}"><i class="bi bi-key me-2"></i>API Keys</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('ai_settings') }}"><i class="bi bi-cpu me-2"></i>AI Providers & Models</a></li>
                         </ul>
                     </li>
                     {% endif %}
@@ -208,6 +215,8 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/table-enhance.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sajha-table.js') }}"></script>
     <!-- Socket.IO -->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <!-- Custom JS -->

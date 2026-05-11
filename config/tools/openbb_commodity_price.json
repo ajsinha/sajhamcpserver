@@ -2,7 +2,7 @@
   "name": "openbb_commodity_price",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBCommodityPriceTool",
   "description": "Get commodity price history via OpenBB \u2014 gold, silver, oil, natural gas, copper, wheat, corn, etc.",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

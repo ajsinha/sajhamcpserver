@@ -2,7 +2,7 @@
   "name": "calc_percentage_change",
   "implementation": "sajha.tools.impl.calc_tools.CalcPercentageChangeTool",
   "description": "Calculate percentage change between two values",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

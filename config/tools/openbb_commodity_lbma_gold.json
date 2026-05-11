@@ -2,7 +2,7 @@
   "name": "openbb_commodity_lbma_gold",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
   "description": "Get LBMA gold fixing prices via OpenBB",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

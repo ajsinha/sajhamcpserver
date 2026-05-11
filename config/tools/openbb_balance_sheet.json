@@ -2,7 +2,7 @@
   "name": "openbb_balance_sheet",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBBalanceSheetTool",
   "description": "Get balance sheet via OpenBB \u2014 assets, liabilities, equity, cash, debt from Yahoo Finance, FMP, or Intrinio",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "av_atr",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVATRTool",
   "description": "Get Average True Range from Alpha Vantage \u2014 volatility measure",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

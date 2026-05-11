@@ -2,7 +2,7 @@
   "name": "fred_retail_sales",
   "implementation": "sajha.tools.impl.fred_tools.FREDRetailSalesTool",
   "description": "Get US Retail Sales from FRED",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

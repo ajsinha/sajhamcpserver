@@ -2,7 +2,7 @@
   "name": "fmp_available_countries",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
   "description": "Get all available countries from FMP",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "fmp_symbol_changes",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
   "description": "Get recent stock symbol changes from FMP \u2014 mergers, renames",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

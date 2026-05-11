@@ -2,7 +2,7 @@
   "name": "av_treasury_yield",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVTreasuryYieldTool",
   "description": "Get Treasury Yield from Alpha Vantage \u2014 2yr, 5yr, 7yr, 10yr, 30yr",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

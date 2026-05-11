@@ -1,0 +1,12 @@
+# Replace with your domain
+# Caddy auto-provisions Let's Encrypt SSL certificates
+{$DOMAIN:sajha.example.com} {
+    reverse_proxy sajha:3002
+
+    # WebSocket support
+    @websocket {
+        header Connection *Upgrade*
+        header Upgrade    websocket
+    }
+    reverse_proxy @websocket sajha:3002
+}

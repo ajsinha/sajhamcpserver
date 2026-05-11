@@ -819,33 +819,7 @@
     </div>
 </div>
 
-<!-- Success Modal -->
-<div class="modal fade" id="successModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content bg-dark">
-            <div class="modal-header border-success">
-                <h5 class="modal-title text-success">
-                    <i class="bi bi-check-circle me-2"></i>Tool Deployed Successfully!
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-light">Your tool has been created and deployed.</p>
-                <div class="bg-secondary bg-opacity-25 p-3 rounded">
-                    <p class="mb-2"><strong>Tool Name:</strong> <code id="deployedToolName"></code></p>
-                    <p class="mb-2"><strong>JSON Config:</strong> <code id="deployedJsonPath"></code></p>
-                    <p class="mb-0"><strong>Python File:</strong> <code id="deployedPythonPath"></code></p>
-                </div>
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <a href="{{ url_for('admin_tools') }}" class="btn btn-primary">
-                    <i class="bi bi-tools me-1"></i>View Tools
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
+<div id="successBanner" class="alert alert-success d-none mx-3 mt-3"><h5><i class="bi bi-check-circle-fill me-2"></i>Tool Created!</h5><p class="mb-1">Your tool is ready.</p><a href="/tools" class="btn btn-success btn-sm">View Tools</a></div>
 {% endblock %}
 
 {% block page_glossary %}
@@ -1047,8 +1021,7 @@ async function deployTool() {
             document.getElementById('deployedJsonPath').textContent = data.json_path;
             document.getElementById('deployedPythonPath').textContent = data.python_path;
             
-            const modal = new bootstrap.Modal(document.getElementById('successModal'));
-            modal.show();
+            document.getElementById('successBanner').classList.remove('d-none');
             
             statusBar.className = 'status-bar success';
             statusBar.textContent = `Tool "${toolName}" deployed successfully!`;

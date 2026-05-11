@@ -2,7 +2,7 @@
   "name": "yf_calendar",
   "implementation": "sajha.tools.impl.yfinance_tools.YFCalendarTool",
   "description": "Get earnings/dividend calendar from Yahoo Finance \u2014 upcoming events and dates",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

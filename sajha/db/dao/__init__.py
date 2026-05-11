@@ -18,11 +18,19 @@ from sqlalchemy.orm import Session
 from sajha.db.models import (
     User, Role, Permission, ApiKey, UserSession,
     ToolUsageEvent, AuditLog, A2ATask, user_roles,
+    Prompt, PromptTag,
+    LLMProviderRecord, LLMModelRecord,
+    CompositeToolRecord, CompositeToolStepRecord,
 )
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
+List = list  # for type hints below
+
+def _uuid():
+    import uuid
+    return str(uuid.uuid4())
 
 
 # ── Base DAO ─────────────────────────────────────────────────────
@@ -429,3 +437,319 @@ class A2ATaskDAO(BaseDAO[A2ATask]):
                 task.error_message = error
             task.updated_at = datetime.now(timezone.utc)
             self.db.commit()
+
+
+# ── Prompt DAO (v4.0.0 — prompts in database) ────────────────
+
+class PromptDAO(BaseDAO[Prompt]):
+    """Data access for prompts. Replaces JSON file-based storage."""
+
+    def __init__(self, db: Session):
+        super().__init__(db, Prompt)
+
+    def get_by_name(self, name: str) -> Optional[Prompt]:
+        return self.db.query(Prompt).filter(Prompt.name == name).first()
+
+    def get_all_enabled(self) -> List[Prompt]:
+        return self.db.query(Prompt).filter(Prompt.enabled == True).order_by(Prompt.name).all()
+
+    def get_by_category(self, category: str) -> List[Prompt]:
+        return self.db.query(Prompt).filter(
+            Prompt.category == category, Prompt.enabled == True
+        ).order_by(Prompt.name).all()
+
+    def get_by_tag(self, tag: str) -> List[Prompt]:
+        return self.db.query(Prompt).join(PromptTag).filter(
+            PromptTag.tag == tag, Prompt.enabled == True
+        ).order_by(Prompt.name).all()
+
+    def get_categories(self) -> List[str]:
+        rows = self.db.query(Prompt.category).filter(
+            Prompt.category.isnot(None), Prompt.enabled == True
+        ).distinct().all()
+        return sorted([r[0] for r in rows if r[0]])
+
+    def get_tags(self) -> List[str]:
+        rows = self.db.query(PromptTag.tag).distinct().all()
+        return sorted([r[0] for r in rows])
+
+    def create_prompt(self, name: str, template: str, description: str = '',
+                      category: str = '', arguments: list = None,
+                      tags: list = None, created_by: str = '') -> Prompt:
+        """Create a new prompt with tags."""
+        import json
+        prompt = Prompt(
+            id=_uuid(),
+            name=name,
+            template=template,
+            description=description,
+            category=category,
+            arguments_json=json.dumps(arguments or []),
+            created_by=created_by,
+            enabled=True,
+        )
+        if tags:
+            for tag in tags:
+                prompt.tags.append(PromptTag(prompt_id=prompt.id, tag=tag))
+        self.db.add(prompt)
+        self.db.commit()
+        self.db.refresh(prompt)
+        return prompt
+
+    def update_prompt(self, name: str, **kwargs) -> Optional[Prompt]:
+        """Update prompt fields. Pass tags=[] to replace tags."""
+        import json
+        prompt = self.get_by_name(name)
+        if not prompt:
+            return None
+
+        for key, value in kwargs.items():
+            if key == 'tags':
+                # Replace all tags
+                self.db.query(PromptTag).filter(PromptTag.prompt_id == prompt.id).delete()
+                for tag in value:
+                    self.db.add(PromptTag(prompt_id=prompt.id, tag=tag))
+            elif key == 'arguments':
+                prompt.arguments_json = json.dumps(value)
+            elif hasattr(prompt, key):
+                setattr(prompt, key, value)
+
+        self.db.commit()
+        self.db.refresh(prompt)
+        return prompt
+
+    def delete_prompt(self, name: str) -> bool:
+        prompt = self.get_by_name(name)
+        if prompt:
+            self.db.delete(prompt)
+            self.db.commit()
+            return True
+        return False
+
+    def search(self, query: str) -> List[Prompt]:
+        """Search prompts by name or description."""
+        q = f'%{query}%'
+        return self.db.query(Prompt).filter(
+            Prompt.enabled == True,
+            (Prompt.name.ilike(q) | Prompt.description.ilike(q))
+        ).order_by(Prompt.name).all()
+
+    def import_from_json(self, json_data: dict) -> Prompt:
+        """Import a single prompt from legacy JSON format.
+        Used for one-time migration from config/prompts/*.json to database.
+        """
+        import json
+        name = json_data.get('name', '')
+        if not name:
+            return None
+        existing = self.get_by_name(name)
+        if existing:
+            return existing  # skip duplicates
+
+        return self.create_prompt(
+            name=name,
+            template=json_data.get('template', ''),
+            description=json_data.get('description', ''),
+            category=json_data.get('category', ''),
+            arguments=json_data.get('arguments', []),
+            tags=json_data.get('tags', []),
+            created_by='migration',
+        )
+
+
+# ── LLM Provider DAO ─────────────────────────────────────────
+
+class LLMProviderDAO(BaseDAO[LLMProviderRecord]):
+    def __init__(self, db: Session):
+        super().__init__(db, LLMProviderRecord)
+
+    def get_by_type(self, provider_type: str) -> Optional[LLMProviderRecord]:
+        return self.db.query(LLMProviderRecord).filter(LLMProviderRecord.provider_type == provider_type).first()
+
+    def get_all_enabled(self) -> List[LLMProviderRecord]:
+        return self.db.query(LLMProviderRecord).filter(LLMProviderRecord.enabled == True).order_by(LLMProviderRecord.display_name).all()
+
+    def get_default(self) -> Optional[LLMProviderRecord]:
+        return self.db.query(LLMProviderRecord).filter(LLMProviderRecord.is_default == True, LLMProviderRecord.enabled == True).first()
+
+    def set_default(self, provider_type: str) -> bool:
+        self.db.query(LLMProviderRecord).update({LLMProviderRecord.is_default: False})
+        p = self.get_by_type(provider_type)
+        if p:
+            p.is_default = True
+            self.db.commit()
+            return True
+        return False
+
+    def update_config(self, provider_type: str, api_key: str = None, base_url: str = None,
+                      region: str = None, enabled: bool = None) -> Optional[LLMProviderRecord]:
+        p = self.get_by_type(provider_type)
+        if not p:
+            return None
+        if api_key is not None: p.api_key = api_key
+        if base_url is not None: p.base_url = base_url
+        if region is not None: p.region = region
+        if enabled is not None: p.enabled = enabled
+        self.db.commit()
+        self.db.refresh(p)
+        return p
+
+
+# ── LLM Model DAO ────────────────────────────────────────────
+
+class LLMModelDAO(BaseDAO[LLMModelRecord]):
+    def __init__(self, db: Session):
+        super().__init__(db, LLMModelRecord)
+
+    def get_by_model_id(self, model_id: str) -> Optional[LLMModelRecord]:
+        return self.db.query(LLMModelRecord).filter(LLMModelRecord.model_id == model_id).first()
+
+    def get_by_provider(self, provider_type: str, enabled_only: bool = True) -> List[LLMModelRecord]:
+        q = self.db.query(LLMModelRecord).filter(LLMModelRecord.provider_type == provider_type)
+        if enabled_only:
+            q = q.filter(LLMModelRecord.enabled == True)
+        return q.order_by(LLMModelRecord.display_name).all()
+
+    def get_all_enabled(self) -> List[LLMModelRecord]:
+        return self.db.query(LLMModelRecord).filter(LLMModelRecord.enabled == True).order_by(LLMModelRecord.provider_type, LLMModelRecord.display_name).all()
+
+    def get_default_for_provider(self, provider_type: str) -> Optional[LLMModelRecord]:
+        return self.db.query(LLMModelRecord).filter(
+            LLMModelRecord.provider_type == provider_type,
+            LLMModelRecord.is_default == True, LLMModelRecord.enabled == True
+        ).first()
+
+    def get_embedding_models(self) -> List[LLMModelRecord]:
+        return self.db.query(LLMModelRecord).filter(
+            LLMModelRecord.supports_embeddings == True, LLMModelRecord.enabled == True
+        ).all()
+
+    def set_default(self, provider_type: str, model_id: str) -> bool:
+        self.db.query(LLMModelRecord).filter(LLMModelRecord.provider_type == provider_type).update({LLMModelRecord.is_default: False})
+        m = self.get_by_model_id(model_id)
+        if m:
+            m.is_default = True
+            self.db.commit()
+            return True
+        return False
+
+    def create_model(self, provider_type: str, model_id: str, display_name: str, **kwargs) -> LLMModelRecord:
+        rec = LLMModelRecord(
+            id=_uuid(), provider_type=provider_type, model_id=model_id,
+            display_name=display_name, **kwargs
+        )
+        self.db.add(rec)
+        self.db.commit()
+        self.db.refresh(rec)
+        return rec
+
+    def update_model(self, model_id: str, **kwargs) -> Optional[LLMModelRecord]:
+        m = self.get_by_model_id(model_id)
+        if not m: return None
+        for k, v in kwargs.items():
+            if hasattr(m, k): setattr(m, k, v)
+        self.db.commit()
+        self.db.refresh(m)
+        return m
+
+    def delete_model(self, model_id: str) -> bool:
+        m = self.get_by_model_id(model_id)
+        if m:
+            self.db.delete(m)
+            self.db.commit()
+            return True
+        return False
+
+
+# ── Composite Tool DAO ────────────────────────────────────────
+
+class CompositeToolDAO:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get_all(self, enabled_only: bool = True) -> List[CompositeToolRecord]:
+        q = self.db.query(CompositeToolRecord)
+        if enabled_only:
+            q = q.filter(CompositeToolRecord.enabled == True)
+        return q.order_by(CompositeToolRecord.name).all()
+
+    def get_by_name(self, name: str) -> Optional[CompositeToolRecord]:
+        return self.db.query(CompositeToolRecord).filter(CompositeToolRecord.name == name).first()
+
+    def get_by_id(self, id: str) -> Optional[CompositeToolRecord]:
+        return self.db.query(CompositeToolRecord).filter(CompositeToolRecord.id == id).first()
+
+    def create(self, name: str, master_tool: str, arrangement: str = 'sibling',
+               description: str = '', master_output_key: str = 'master',
+               record_path: str = '', created_by: str = '',
+               steps: list = None) -> CompositeToolRecord:
+        import json
+        rec = CompositeToolRecord(
+            id=_uuid(), name=name, description=description,
+            arrangement=arrangement, master_tool=master_tool,
+            master_output_key=master_output_key, record_path=record_path,
+            enabled=True, created_by=created_by,
+        )
+        if steps:
+            for i, s in enumerate(steps):
+                rec.steps.append(CompositeToolStepRecord(
+                    id=_uuid(), step_order=i,
+                    tool_name=s['tool_name'], output_key=s['output_key'],
+                    execution_mode=s.get('execution_mode', 'parallel'),
+                    param_mapping=json.dumps(s.get('param_mapping', {})),
+                    static_params=json.dumps(s.get('static_params', {})),
+                    condition=s.get('condition', ''),
+                ))
+        self.db.add(rec)
+        self.db.commit()
+        self.db.refresh(rec)
+        return rec
+
+    def update(self, name: str, **kwargs) -> Optional[CompositeToolRecord]:
+        rec = self.get_by_name(name)
+        if not rec:
+            return None
+        steps_data = kwargs.pop('steps', None)
+        for k, v in kwargs.items():
+            if hasattr(rec, k):
+                setattr(rec, k, v)
+        if steps_data is not None:
+            import json
+            self.db.query(CompositeToolStepRecord).filter(
+                CompositeToolStepRecord.composite_tool_id == rec.id).delete()
+            for i, s in enumerate(steps_data):
+                self.db.add(CompositeToolStepRecord(
+                    id=_uuid(), composite_tool_id=rec.id, step_order=i,
+                    tool_name=s['tool_name'], output_key=s['output_key'],
+                    execution_mode=s.get('execution_mode', 'parallel'),
+                    param_mapping=json.dumps(s.get('param_mapping', {})),
+                    static_params=json.dumps(s.get('static_params', {})),
+                    condition=s.get('condition', ''),
+                ))
+        self.db.commit()
+        self.db.refresh(rec)
+        return rec
+
+    def delete(self, name: str) -> bool:
+        rec = self.get_by_name(name)
+        if rec:
+            self.db.delete(rec)
+            self.db.commit()
+            return True
+        return False
+
+    def to_dict(self, rec: CompositeToolRecord) -> dict:
+        import json
+        return {
+            'id': rec.id, 'name': rec.name, 'description': rec.description,
+            'arrangement': rec.arrangement, 'master_tool': rec.master_tool,
+            'master_output_key': rec.master_output_key, 'record_path': rec.record_path,
+            'enabled': rec.enabled, 'created_by': rec.created_by,
+            'steps': [{
+                'tool_name': s.tool_name, 'output_key': s.output_key,
+                'execution_mode': s.execution_mode,
+                'param_mapping': json.loads(s.param_mapping) if s.param_mapping else {},
+                'static_params': json.loads(s.static_params) if s.static_params else {},
+                'condition': s.condition or '',
+            } for s in rec.steps],
+        }

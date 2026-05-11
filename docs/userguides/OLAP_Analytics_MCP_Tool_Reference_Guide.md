@@ -842,5 +842,5 @@ See full API documentation at `/api/docs` or use the MCP Studio interface for in
 
 ---
 
-*Document Version: 3.1.0*
+*Document Version: 4.0.0*
 *Last Updated: February 2026*

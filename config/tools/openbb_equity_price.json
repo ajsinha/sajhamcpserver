@@ -2,7 +2,7 @@
   "name": "openbb_equity_price",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBEquityPriceTool",
   "description": "Get historical equity prices via OpenBB \u2014 daily OHLCV data from Yahoo Finance, FMP, or Intrinio. Supports global stocks.",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

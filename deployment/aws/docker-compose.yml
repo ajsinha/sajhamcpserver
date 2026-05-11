@@ -1,0 +1,60 @@
+# ═══════════════════════════════════════════════════════════════
+# SAJHA MCP Server — Local Development with Docker Compose
+# Usage: cd aws && docker compose up --build
+# ═══════════════════════════════════════════════════════════════
+version: '3.9'
+
+services:
+  sajha:
+    build:
+      context: ..
+      dockerfile: aws/Dockerfile
+    container_name: sajha-mcp-server
+    ports:
+      - "3002:3002"
+    environment:
+      # Storage: local filesystem (default for dev)
+      SAJHA_STORAGE_BACKEND: local
+      SAJHA_BASE_DIR: /app
+      # Database: SQLite for dev, PostgreSQL for prod
+      SAJHA_DB_TYPE: sqlite
+      SAJHA_DB_PATH: /app/data/sajha.db
+      # Auth
+      JWT_SECRET: dev-secret-change-in-production
+      # API Keys (set your own)
+      FMP_API_KEY: ${FMP_API_KEY:-}
+      FRED_API_KEY: ${FRED_API_KEY:-}
+      # Server
+      SERVER_PORT: 3002
+      LOG_LEVEL: INFO
+      UVICORN_WORKERS: 1
+    volumes:
+      # Mount config for live editing during development
+      - ../config:/app/config
+      - ../sajha/tools/impl:/app/sajha/tools/impl
+      - sajha-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Optional: PostgreSQL for production-like testing
+  postgres:
+    image: postgres:16-alpine
+    container_name: sajha-postgres
+    environment:
+      POSTGRES_DB: sajha
+      POSTGRES_USER: sajha
+      POSTGRES_PASSWORD: sajha_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    profiles:
+      - postgres
+
+volumes:
+  sajha-data:
+  pg-data:

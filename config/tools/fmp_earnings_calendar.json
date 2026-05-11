@@ -2,7 +2,7 @@
   "name": "fmp_earnings_calendar",
   "implementation": "sajha.tools.impl.fmp_tools.FMPEarningsCalendarTool",
   "description": "Get upcoming and recent earnings announcements from FMP \u2014 dates, EPS estimates vs actuals, revenue estimates",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

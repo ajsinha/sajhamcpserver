@@ -2,7 +2,7 @@
   "name": "fmp_most_active",
   "implementation": "sajha.tools.impl.fmp_tools.FMPMostActiveTool",
   "description": "Get most actively traded stocks from FMP \u2014 highest volume stocks today",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

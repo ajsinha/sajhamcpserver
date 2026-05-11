@@ -2,7 +2,7 @@
   "name": "openbb_equity_revenue_segment",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
   "description": "Get revenue by business segment via OpenBB",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

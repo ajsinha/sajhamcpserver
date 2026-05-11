@@ -61,7 +61,7 @@
                 <div class="card-body">
                     {% if top_tools %}
                     <div class="table-responsive">
-                        <table class="table table-sm table-hover">
+                        <table class="table" data-enhance="true" table-sm table-hover">
                             <thead><tr><th>Tool</th><th>Calls</th><th>Avg (ms)</th><th>Errors</th></tr></thead>
                             <tbody>
                             {% for t in top_tools %}
@@ -95,7 +95,7 @@
                 <div class="card-body">
                     {% if top_users %}
                     <div class="table-responsive">
-                        <table class="table table-sm table-hover">
+                        <table class="table" data-enhance="true" table-sm table-hover">
                             <thead><tr><th>User</th><th>Calls</th><th>Tools Used</th><th>Last Active</th></tr></thead>
                             <tbody>
                             {% for u in top_users %}

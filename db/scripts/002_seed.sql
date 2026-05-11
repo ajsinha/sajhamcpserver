@@ -119,3 +119,36 @@ WHERE NOT EXISTS (SELECT 1 FROM user_roles WHERE user_id = 'user-admin-0001' AND
 -- NOTE: Additional API keys from config/apikeys.json are imported by the
 -- Python seed script (sajha/db/seed.py) which hashes raw keys at runtime.
 -- This SQL only provides a fallback default key for first-time setup.
+
+-- ── Default LLM Providers ───────────────────────────────────────────────────
+
+INSERT OR IGNORE INTO llm_providers (id, provider_type, display_name, enabled, base_url, is_default)
+VALUES
+    ('p-anthro-001', 'anthropic',    'Anthropic (Claude)',       1, 'https://api.anthropic.com',       1),
+    ('p-openai-001', 'openai',       'OpenAI (GPT)',             1, 'https://api.openai.com/v1',       0),
+    ('p-bedrk-001',  'bedrock',      'AWS Bedrock',              1, NULL,                              0),
+    ('p-togth-001',  'together',     'Together.ai',              1, 'https://api.together.xyz/v1',     0),
+    ('p-ollam-001',  'ollama',       'Ollama (Local)',           0, 'http://localhost:11434',           0),
+    ('p-azure-001',  'azure_openai', 'Azure OpenAI Service',    0, NULL,                              0);
+
+-- ── Default LLM Models ─────────────────────────────────────────────────────
+
+INSERT OR IGNORE INTO llm_models (id, provider_type, model_id, display_name, context_window, max_output_tokens, input_cost_per_1k, output_cost_per_1k, supports_tools, supports_vision, supports_embeddings, tags, is_default, enabled) VALUES
+    -- Anthropic
+    ('m-cl-son4',  'anthropic', 'claude-sonnet-4-20250514',       'Claude Sonnet 4',          200000, 8192,  0.003,   0.015,  1, 1, 0, 'balanced,tools,vision',      1, 1),
+    ('m-cl-hai35', 'anthropic', 'claude-haiku-3-5-20241022',      'Claude Haiku 3.5',         200000, 8192,  0.0008,  0.004,  1, 1, 0, 'fast,cheap,tools',           0, 1),
+    -- OpenAI
+    ('m-gpt-4o',   'openai',   'gpt-4o',                          'GPT-4o',                   128000, 4096,  0.005,   0.015,  1, 1, 0, 'balanced,vision',            1, 1),
+    ('m-gpt-4om',  'openai',   'gpt-4o-mini',                     'GPT-4o Mini',              128000, 4096,  0.00015, 0.0006, 1, 0, 0, 'fast,cheap',                 0, 1),
+    ('m-gpt-o3m',  'openai',   'o3-mini',                         'o3-mini',                  200000, 100000,0.0011,  0.0044, 1, 0, 0, 'reasoning',                  0, 1),
+    ('m-oai-emb',  'openai',   'text-embedding-3-small',          'Embeddings 3 Small',       8191,   0,     0.00002, 0.0,    0, 0, 1, 'embeddings',                 1, 1),
+    ('m-oai-embl', 'openai',   'text-embedding-3-large',          'Embeddings 3 Large',       8191,   0,     0.00013, 0.0,    0, 0, 1, 'embeddings,high-dim',        0, 1),
+    -- AWS Bedrock
+    ('m-br-son4',  'bedrock',  'anthropic.claude-sonnet-4-20250514-v1:0', 'Claude Sonnet 4 (Bedrock)', 200000, 8192, 0.003, 0.015, 1, 1, 0, 'balanced,tools',     1, 1),
+    ('m-br-hai35', 'bedrock',  'anthropic.claude-haiku-3-5-20241022-v1:0','Claude Haiku 3.5 (Bedrock)',200000, 8192, 0.0008,0.004, 1, 0, 0, 'fast,cheap',         0, 1),
+    ('m-br-llm70', 'bedrock',  'meta.llama3-1-70b-instruct-v1:0', 'Llama 3.1 70B (Bedrock)',  128000, 4096,  0.00099, 0.00099,0, 0, 0, 'open-source',               0, 1),
+    ('m-br-temb',  'bedrock',  'amazon.titan-embed-text-v2:0',    'Titan Embeddings v2',      8192,   0,     0.00002, 0.0,    0, 0, 1, 'embeddings',                 1, 1),
+    -- Together.ai
+    ('m-tg-ll70',  'together', 'meta-llama/Llama-3.3-70B-Instruct-Turbo','Llama 3.3 70B Turbo', 128000, 4096, 0.00088, 0.00088, 1, 0, 0, 'fast,open-source',     1, 1),
+    ('m-tg-qw72',  'together', 'Qwen/Qwen2.5-72B-Instruct-Turbo','Qwen 2.5 72B Turbo',       32768,  4096,  0.0012,  0.0012, 1, 0, 0, 'multilingual',              0, 1),
+    ('m-tg-ds70',  'together', 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B','DeepSeek R1 70B', 128000, 4096,  0.00055, 0.00219,0, 0, 0, 'reasoning,cheap',           0, 1);

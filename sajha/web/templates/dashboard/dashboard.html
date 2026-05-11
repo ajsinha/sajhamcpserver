@@ -1,458 +1,162 @@
 {% extends "common/base.html" %}
-<!--
-Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
--->
 {% block title %}Dashboard - SAJHA MCP Server{% endblock %}
-
+{% block extra_css %}
+<style>
+.metric-card{background:var(--theme-card-bg);border:1px solid var(--theme-card-border);border-radius:var(--radius-lg);padding:1.5rem;transition:all var(--transition-normal)}
+.metric-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.metric-value{font-size:2.2rem;font-weight:700;letter-spacing:-1px;line-height:1}
+.metric-label{font-size:.8rem;font-weight:600;color:var(--theme-text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:.5rem}
+.metric-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:1rem}
+.activity-item{padding:.75rem 0;border-bottom:1px solid var(--theme-card-border);display:flex;align-items:center;gap:1rem}
+.activity-item:last-child{border:none}
+.activity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.quick-action{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-radius:var(--radius-md);border:1px solid var(--theme-card-border);text-decoration:none;color:var(--theme-text);transition:all var(--transition-fast);background:var(--theme-card-bg)}
+.quick-action:hover{border-color:var(--sajha-primary);color:var(--sajha-primary);transform:translateX(4px)}
+.quick-action i{font-size:1.2rem;width:24px;text-align:center}
+.welcome-bar{background:linear-gradient(135deg,var(--sajha-primary) 0%,var(--sajha-accent) 100%);color:#fff;border-radius:var(--radius-lg);padding:1.5rem 2rem;margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
+.welcome-bar h2{font-size:1.5rem;font-weight:700;margin:0}
+.welcome-bar p{margin:0;opacity:.85;font-size:.9rem}
+.transport-badge{display:inline-flex;align-items:center;gap:.25rem;padding:.25rem .6rem;border-radius:6px;font-size:.7rem;font-weight:600;font-family:'JetBrains Mono',monospace}
+</style>
+{% endblock %}
 {% block content %}
 <div class="container-fluid">
-    <h1 class="h3 mb-4">
-        <i class="bi bi-speedometer2"></i> Dashboard
-    </h1>
-    
-    <!-- Welcome Section -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="alert alert-info">
-                <h5><i class="bi bi-person-circle"></i> Welcome, {{ user.user_name }}!</h5>
-                <p class="mb-0">Role(s): {{ user.roles|join(', ') }}</p>
+    <!-- Welcome Bar -->
+    <div class="welcome-bar">
+        <div>
+            <h2>Welcome back, {{ user.user_name }}</h2>
+            <p>Role: {{ user.roles|join(', ') }} · SAJHA MCP Server v{{ app_version }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <span class="transport-badge" style="background:rgba(255,255,255,.15)"><i class="bi bi-circle-fill" style="font-size:6px;color:#28a745"></i> HTTP</span>
+            <span class="transport-badge" style="background:rgba(255,255,255,.15)"><i class="bi bi-circle-fill" style="font-size:6px;color:#28a745"></i> SSE</span>
+            <span class="transport-badge" style="background:rgba(255,255,255,.15)"><i class="bi bi-circle-fill" style="font-size:6px;color:#28a745"></i> WebSocket</span>
+        </div>
+    </div>
+
+    <!-- Metric Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="metric-card">
+                <div class="metric-icon" style="background:rgba(0,121,193,.1);color:var(--sajha-primary)"><i class="bi bi-tools"></i></div>
+                <div class="metric-value" style="color:var(--sajha-primary)">{{ tools_count }}</div>
+                <div class="metric-label">Active Tools</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="metric-card">
+                <div class="metric-icon" style="background:rgba(40,167,69,.1);color:var(--sajha-success)"><i class="bi bi-people"></i></div>
+                <div class="metric-value" style="color:var(--sajha-success)">{{ users_count }}</div>
+                <div class="metric-label">Users</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="metric-card">
+                <div class="metric-icon" style="background:rgba(111,66,193,.1);color:#6f42c1"><i class="bi bi-chat-square-text"></i></div>
+                <div class="metric-value" style="color:#6f42c1">{{ prompts_count }}</div>
+                <div class="metric-label">Prompts</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="metric-card">
+                <div class="metric-icon" style="background:rgba(220,53,69,.1);color:var(--sajha-danger)"><i class="bi bi-exclamation-triangle"></i></div>
+                <div class="metric-value" style="color:var(--sajha-danger)">{{ tool_errors|length }}</div>
+                <div class="metric-label">Tool Errors</div>
             </div>
         </div>
     </div>
-    
-    <!-- Tool Errors Panel (Admin Only) -->
-    {% if is_admin and tool_errors %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-danger">
-                <div class="card-header bg-danger text-white">
-                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Tool Load Failures</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Tool Name</th>
-                                    <th>Error Message</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for tool_name, error_msg in tool_errors.items() %}
-                                <tr>
-                                    <td>{{ tool_name }}</td>
-                                    <td class="text-danger">{{ error_msg }}</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-warning" onclick="reloadTool('{{ tool_name }}')">
-                                            <i class="bi bi-arrow-clockwise"></i> Reload
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Available Tools -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-tools"></i> Available Tools (Total: {{ tools|length }})</h5>
-                </div>
-                <div class="card-body">
-                    {% if tools %}
-                    <!-- Search and Controls -->
-                    <div class="row mb-3 g-2">
-                        <div class="col-md-3">
-                            <select id="groupFilter" class="form-select">
-                                <option value="all">All Groups</option>
-                            </select>
-                        </div>
-                        <div class="col-md-5">
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control" id="searchTools" placeholder="Search by name or description (e.g. interest rate, GDP)...">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <select id="rowsPerPage" class="form-select">
-                                <option value="10" selected>10</option>
-                                <option value="25">25</option>
-                                <option value="50">50</option>
-                                <option value="all">All</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2 text-end">
-                            <span class="badge bg-primary" id="filteredCount">{{ tools|length }}</span> tools
-                        </div>
-                        </div>
-                    </div>
 
-                    <div class="table-responsive">
-                        <table class="table table-hover" id="toolsTable">
-                            <thead>
-                                <tr>
-                                    <th style="width:120px">Group</th>
-                                    <th style="cursor: pointer;" id="sortToolName">
-                                        Tool Name <i class="bi bi-arrow-down-up"></i>
-                                    </th>
-                                    <th>Description</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for tool in tools %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ tool.name }}</strong>
-                                    </td>
-                                    <td>{{ tool.description }}</td>
-                                    <td>
-                                        <a href="{{ url_for('tool_execute', tool_name=tool.name) }}"
-                                           class="btn btn-sm btn-success">
-                                            <i class="bi bi-play-circle"></i> Execute
-                                        </a>
-                                        {% if is_admin %}
-                                        <a href="{{ url_for('tool_schema', tool_name=tool.name) }}"
-                                           class="btn btn-sm btn-info">
-                                            <i class="bi bi-code-square"></i> Schema
-                                        </a>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination -->
-                    <div class="row mt-3">
-                        <div class="col-md-6">
-                            <div id="tableInfo" class="text-muted"></div>
-                        </div>
-                        <div class="col-md-6">
-                            <nav aria-label="Tools pagination">
-                                <ul class="pagination justify-content-end mb-0" id="pagination"></ul>
-                            </nav>
-                        </div>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i> No tools available or you don't have access to any tools.
-                    </div>
+    <div class="row g-3">
+        <!-- Quick Actions -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header card-header-primary"><i class="bi bi-lightning me-2"></i>Quick Actions</div>
+                <div class="card-body d-flex flex-column gap-2">
+                    <a href="/tools" class="quick-action"><i class="bi bi-search text-primary"></i><div><strong>Browse Tools</strong><br><small class="text-muted">Search and test {{ tools_count }} tools</small></div></a>
+                    <a href="/studio" class="quick-action"><i class="bi bi-magic text-purple" style="color:#8a2be2"></i><div><strong>MCP Studio</strong><br><small class="text-muted">Create new tools visually</small></div></a>
+                    <a href="/composite/builder" class="quick-action"><i class="bi bi-boxes text-warning"></i><div><strong>Composite Builder</strong><br><small class="text-muted">Chain tools together</small></div></a>
+                    <a href="/ai/settings" class="quick-action"><i class="bi bi-cpu text-info"></i><div><strong>AI Settings</strong><br><small class="text-muted">LLM providers and models</small></div></a>
+                    <a href="/reports" class="quick-action"><i class="bi bi-bar-chart text-success"></i><div><strong>Reports</strong><br><small class="text-muted">Usage analytics and audit</small></div></a>
+                    {% if is_admin %}
+                    <a href="/admin/users" class="quick-action"><i class="bi bi-shield-lock text-danger"></i><div><strong>Admin Panel</strong><br><small class="text-muted">Users, roles, API keys</small></div></a>
                     {% endif %}
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Quick Stats -->
-    <div class="row mt-4">
-        <div class="col-md-3">
-            <div class="card text-center">
+        <!-- Platform Overview -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header card-header-success"><i class="bi bi-diagram-3 me-2"></i>Platform</div>
                 <div class="card-body">
-                    <h5 class="card-title">Total Tools</h5>
-                    <p class="card-text display-4">{{ tools|length }}</p>
+                    <div class="d-flex flex-column gap-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted"><i class="bi bi-database me-2"></i>Database Tables</span>
+                            <span class="badge bg-primary">19</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted"><i class="bi bi-code-slash me-2"></i>API Endpoints</span>
+                            <span class="badge bg-success">79+</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted"><i class="bi bi-arrows-expand me-2"></i>Transports</span>
+                            <span class="badge bg-info">3</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted"><i class="bi bi-cpu me-2"></i>LLM Providers</span>
+                            <span class="badge bg-warning text-dark">6</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted"><i class="bi bi-shield me-2"></i>Auth Methods</span>
+                            <span class="badge bg-danger">4</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted"><i class="bi bi-puzzle me-2"></i>MCP Methods</span>
+                            <span class="badge bg-secondary">12</span>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="small text-muted">
+                        <i class="bi bi-heart-pulse text-success me-1"></i> <a href="/health" class="text-decoration-none">Health</a> ·
+                        <a href="/ready" class="text-decoration-none">Readiness</a> ·
+                        <a href="/docs" class="text-decoration-none">API Docs</a>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-center">
+
+        <!-- Tool Errors & Activity -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header" style="background:var(--sajha-gray-700);color:#fff"><i class="bi bi-activity me-2"></i>Status</div>
                 <div class="card-body">
-                    <h5 class="card-title">Total Prompts</h5>
-                    <p class="card-text display-4">{{ prompts_count if prompts_count is defined else 0 }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title">Your Access Level</h5>
-                    <p class="card-text">
-                        {% if is_admin %}
-                        <span class="badge bg-danger fs-5">Admin</span>
-                        {% else %}
-                        <span class="badge bg-primary fs-5">User</span>
-                        {% endif %}
-                    </p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title">Server Status</h5>
-                    <p class="card-text">
-                        <span class="badge bg-success fs-5">Online</span>
-                    </p>
+                    {% if tool_errors %}
+                    <h6 class="text-danger mb-2"><i class="bi bi-exclamation-triangle me-1"></i>Tool Load Failures</h6>
+                    <div style="max-height:200px;overflow-y:auto">
+                        {% for name, error in tool_errors.items() %}
+                        <div class="activity-item">
+                            <div class="activity-dot" style="background:var(--sajha-danger)"></div>
+                            <div class="small"><strong>{{ name }}</strong><br><span class="text-muted">{{ error[:80] }}</span></div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-check-circle text-success" style="font-size:2.5rem"></i>
+                        <p class="mt-2 mb-0 text-muted">All tools loaded successfully</p>
+                    </div>
+                    {% endif %}
+                    <hr>
+                    <h6 class="text-muted mb-2"><i class="bi bi-clock-history me-1"></i>Quick Links</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="/reports" class="badge bg-primary text-decoration-none py-2 px-3">Reports</a>
+                        <a href="/prompts" class="badge bg-info text-decoration-none py-2 px-3">Prompts</a>
+                        <a href="/help" class="badge bg-warning text-dark text-decoration-none py-2 px-3">Help</a>
+                        <a href="/about" class="badge bg-secondary text-decoration-none py-2 px-3">About</a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-{% endblock %}
-
-{% block page_glossary %}
-<div class="container-fluid mt-4">
-    <div class="card border-secondary">
-        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
-            <i class="bi bi-book me-2"></i>Page Glossary
-            <i class="bi bi-chevron-down float-end"></i>
-        </div>
-        <div class="collapse" id="pageGlossary">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Dashboard:</strong> The main overview page displaying system status, tool statistics, and quick access to common functions.</p>
-                        <p><strong>MCP (Model Context Protocol):</strong> A standardized protocol enabling AI systems to interact with external tools through a consistent interface.</p>
-                        <p><strong>Tool:</strong> A function exposed via MCP that AI systems can call to perform specific actions or retrieve data.</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Prompt:</strong> A text template with variable placeholders used to generate consistent instructions for AI systems.</p>
-                        <p><strong>Hot-Reload:</strong> The capability to update configuration or tools at runtime without restarting the server.</p>
-                        <p><strong>RBAC (Role-Based Access Control):</strong> An authorization approach where permissions are assigned based on user roles.</p>
-                    </div>
-                </div>
-                <div class="text-end mt-2">
-                    <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-book me-1"></i>View Full Glossary
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-// Store original tools data
-const toolsData = [
-    {% for tool in tools %}
-    {
-        name: "{{ tool.name }}",
-        description: {{ tool.description|tojson }},
-        executeUrl: "{{ url_for('tool_execute', tool_name=tool.name) }}",
-        group: "{{ tool.name.split('_')[0] if '_' in tool.name else 'unknown' }}"
-    }{% if not loop.last %},{% endif %}
-    {% endfor %}
-];
-
-let currentPage = 1;
-let rowsPerPage = 10;
-let filteredData = [...toolsData];
-let sortAscending = true;
-
-// Build group dropdown
-const groupCounts = {};
-toolsData.forEach(t => { groupCounts[t.group] = (groupCounts[t.group]||0) + 1; });
-Object.keys(groupCounts).sort().forEach(g => {
-    const o = document.createElement('option');
-    o.value = g; o.textContent = `${g.toUpperCase()} (${groupCounts[g]})`;
-    document.getElementById('groupFilter').appendChild(o);
-});
-
-function applyDashboardFilters() {
-    const group = document.getElementById('groupFilter').value;
-    const search = document.getElementById('searchTools').value.toLowerCase().trim();
-    filteredData = toolsData.filter(t => {
-        return (group === 'all' || t.group === group) &&
-               (!search || t.name.toLowerCase().includes(search) || t.description.toLowerCase().includes(search));
-    });
-    currentPage = 1;
-    document.getElementById('filteredCount').textContent = filteredData.length;
-    renderTable();
-}
-
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-    renderTable();
-
-    document.getElementById('searchTools').addEventListener('input', applyDashboardFilters);
-    document.getElementById('groupFilter').addEventListener('change', applyDashboardFilters);
-
-    // Rows per page change
-    document.getElementById('rowsPerPage').addEventListener('change', function(e) {
-        rowsPerPage = e.target.value === 'all' ? filteredData.length : parseInt(e.target.value);
-        currentPage = 1;
-        renderTable();
-    });
-
-    // Sort by tool name
-    document.getElementById('sortToolName').addEventListener('click', function() {
-        sortAscending = !sortAscending;
-        filteredData.sort((a, b) => {
-            if (sortAscending) {
-                return a.name.localeCompare(b.name);
-            } else {
-                return b.name.localeCompare(a.name);
-            }
-        });
-        updateSortIcon();
-        renderTable();
-    });
-});
-
-function updateSortIcon() {
-    const icon = document.querySelector('#sortToolName i');
-    if (sortAscending) {
-        icon.className = 'bi bi-arrow-up';
-    } else {
-        icon.className = 'bi bi-arrow-down';
-    }
-}
-
-function renderTable() {
-    const tbody = document.querySelector('#toolsTable tbody');
-    const totalRows = filteredData.length;
-    const totalPages = Math.ceil(totalRows / rowsPerPage);
-
-    // Adjust current page if needed
-    if (currentPage > totalPages) {
-        currentPage = totalPages || 1;
-    }
-
-    const start = (currentPage - 1) * rowsPerPage;
-    const end = Math.min(start + rowsPerPage, totalRows);
-    const pageData = filteredData.slice(start, end);
-
-    // Clear tbody
-    tbody.innerHTML = '';
-
-    // Render rows
-    pageData.forEach(tool => {
-        const row = document.createElement('tr');
-
-        const schemaButton = {% if is_admin %}
-            `<a href="/tools/${tool.name}/schema" class="btn btn-sm btn-info">
-                <i class="bi bi-code-square"></i> Schema
-            </a>`;
-        {% else %}
-            '';
-        {% endif %}
-
-        const GC = {fmp:'#0d6efd',openbb:'#198754',yf:'#ffc107',av:'#6f42c1',fred:'#dc3545',
-            cg:'#fd7e14',calc:'#20c997',edgar:'#6610f2',wb:'#0dcaf0'};
-        const gc = GC[tool.group] || '#6c757d';
-        row.innerHTML = `
-            <td><span class="badge" style="background:${gc}">${tool.group.toUpperCase()}</span></td>
-            <td><strong>${tool.name}</strong></td>
-            <td>${tool.description}</td>
-            <td>
-                <a href="${tool.executeUrl}" class="btn btn-sm btn-success">
-                    <i class="bi bi-play-circle"></i> Execute
-                </a>
-                ${schemaButton}
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
-
-    // Update info
-    if (totalRows > 0) {
-        document.getElementById('tableInfo').textContent =
-            `Showing ${start + 1} to ${end} of ${totalRows} entries`;
-    } else {
-        document.getElementById('tableInfo').textContent = 'No entries found';
-    }
-
-    // Render pagination
-    renderPagination(totalPages);
-}
-
-function renderPagination(totalPages) {
-    const pagination = document.getElementById('pagination');
-    pagination.innerHTML = '';
-
-    if (totalPages <= 1) return;
-
-    // Previous button
-    const prevLi = document.createElement('li');
-    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
-    pagination.appendChild(prevLi);
-
-    // Page numbers
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    // Adjust start if we're near the end
-    if (endPage - startPage < maxVisiblePages - 1) {
-        startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    // First page
-    if (startPage > 1) {
-        const li = document.createElement('li');
-        li.className = 'page-item';
-        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(1); return false;">1</a>`;
-        pagination.appendChild(li);
-
-        if (startPage > 2) {
-            const dots = document.createElement('li');
-            dots.className = 'page-item disabled';
-            dots.innerHTML = `<span class="page-link">...</span>`;
-            pagination.appendChild(dots);
-        }
-    }
-
-    // Page numbers
-    for (let i = startPage; i <= endPage; i++) {
-        const li = document.createElement('li');
-        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
-        pagination.appendChild(li);
-    }
-
-    // Last page
-    if (endPage < totalPages) {
-        if (endPage < totalPages - 1) {
-            const dots = document.createElement('li');
-            dots.className = 'page-item disabled';
-            dots.innerHTML = `<span class="page-link">...</span>`;
-            pagination.appendChild(dots);
-        }
-
-        const li = document.createElement('li');
-        li.className = 'page-item';
-        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages}); return false;">${totalPages}</a>`;
-        pagination.appendChild(li);
-    }
-
-    // Next button
-    const nextLi = document.createElement('li');
-    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
-    pagination.appendChild(nextLi);
-}
-
-function changePage(page) {
-    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-    if (page >= 1 && page <= totalPages) {
-        currentPage = page;
-        renderTable();
-    }
-}
-
-function reloadTool(toolName) {
-    if (confirm(`Reload tool: ${toolName}?`)) {
-        $.post(`/api/admin/tools/${toolName}/reload`)
-            .done(function() {
-                location.reload();
-            })
-            .fail(function() {
-                alert('Failed to reload tool');
-            });
-    }
-}
-</script>
 {% endblock %}

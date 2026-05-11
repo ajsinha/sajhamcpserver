@@ -2,7 +2,7 @@
   "name": "calc_sortino_ratio",
   "implementation": "sajha.tools.impl.calc_tools.CalcSortinoRatioTool",
   "description": "Calculate Sortino Ratio \u2014 downside risk-adjusted return",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

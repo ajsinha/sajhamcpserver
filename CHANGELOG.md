@@ -2,6 +2,46 @@
 
 ---
 
+## v4.0.0 (May 2026) — Production Hardening
+
+Major release: WebSocket transport, OpenTelemetry observability, tool versioning, multi-tenancy, and plugin system.
+
+### New Features
+
+- **WebSocket transport** (`/mcp/ws`): Full-duplex bidirectional MCP communication. Server pushes notifications without polling. Auth via `?token=` or `?api_key=` query params. WSSession tracks auth context and state. `MCPWebSocketClient` added to SDK.
+- **OpenTelemetry observability** (`sajha/observability/`): MetricsCollector with per-tool LatencyHistogram (p50/p95/p99). AlertRule engine for error spikes and latency thresholds with webhook support. OTELIntegration optionally exports to Datadog/Grafana/Splunk. HealthProbe with `/health` (liveness) and `/ready` (readiness).
+- **Tool versioning** (`sajha/core/tool_versioning.py`): ToolVersion with lifecycle states (active → deprecated → sunset → retired). ToolVersionManager resolves `tool@version` names with deprecation warnings. ContractTestRunner validates schemas against live execution. `tool_versions` DB table.
+- **Multi-tenancy** (`sajha/core/tenancy.py`): Tenant-isolated tool access with wildcard patterns + blocked lists. TenantQuota with daily/monthly call limits and token budgets. Data isolation via per-tenant directory prefixes. `tenants` DB table. Admin CRUD API.
+- **Plugin system** (`sajha/core/plugins.py`): Standardized `plugin.json` manifest format. PluginManager discovers, validates (checksum + version + config keys), installs dependencies, and registers tools. Supports JSON configs and Python classes. Admin load/unload API.
+- **19 database tables** (was 17): added `tenants` and `tool_versions`.
+- **Operations routes** (`sajha/routes/ops_routes.py`): `/health`, `/ready`, `/api/metrics/*`, `/api/tenants/*`, `/api/plugins/*`, `/api/contract-test/*`, `/api/tool-versions/*`.
+- **Embedded LLM Gateway**: 6 providers (Anthropic, OpenAI, Bedrock, Together, Ollama, Azure OpenAI) via official SDKs. Registry-based factory pattern (`register_provider_class()`). DB-managed providers and models (`llm_providers` + `llm_models` tables). User-level overrides (`user_ai_preferences`). Response cache (SHA-256 LRU). Token budget tracking (`llm_usage`).
+- **Semantic Tool Discovery**: Vector embeddings of 497 tool descriptions. Cosine similarity search. NL parameter extraction via LLM. Keyword fallback for offline use.
+- **Composite Tools**: Sibling (parallel) and Parent-Child (fan-out) patterns. Declarative DB definitions (`composite_tools` + `composite_tool_steps`). Dynamic input/output schema building at boot. Visual builder UI at `/composite/builder`.
+- **Storage & Reload Abstractions**: `StorageBackend` ABC (Local + S3) and `ReloadManager` ABC (Local + S3). Factory pattern via `SAJHA_STORAGE_BACKEND` config. Identical behavior on-prem and AWS.
+- **AWS Deployment Blueprint**: Dockerfile (multi-stage), AWS CDK Python stack (VPC + ALB + ECS Fargate + RDS + S3 + Secrets Manager + CloudWatch dashboard), bootstrap.sh.
+- **DB-driven prompts**: `prompts` + `prompt_tags` tables with PromptDAO (12 methods). Migration utility from legacy JSON.
+
+### API Changes
+
+- New: `GET /mcp/ws` (WebSocket), `GET /health`, `GET /ready`
+- New: `GET /api/metrics`, `GET /api/metrics/tools`, `GET /api/metrics/tools/{name}`
+- New: `GET/POST/PUT/DELETE /api/tenants/*`
+- New: `GET/POST /api/plugins/*`
+- New: `POST /api/contract-test`, `POST /api/contract-test/{tool_name}`
+- New: `GET/POST /api/ai/providers/*`, `GET/POST /api/ai/models/*`, `GET/POST/DELETE /api/ai/preferences`
+- New: `POST /api/ai/resolve-tool`, `POST /api/ai/complete`, `GET /api/ai/usage`
+- New: `GET/POST/PUT/DELETE /api/composite-tools/*`
+- New: `GET /api/ws/sessions`
+
+### SDK Changes
+
+- Added `MCPWebSocketClient` with full WebSocket MCP support (requires `websockets` package)
+- Updated `__init__.py` exports to include `MCPWebSocketClient`
+- Version bumped to 4.0.0
+
+---
+
 ## v3.1.0 (May 2026) — FastAPI Migration
 
 Complete rewrite from Flask to FastAPI. Every component rebuilt, all documentation rewritten.
@@ -9,60 +49,27 @@ Complete rewrite from Flask to FastAPI. Every component rebuilt, all documentati
 ### Breaking Changes
 
 - **Framework:** Flask → FastAPI (ASGI). All routes converted from Blueprints to APIRouters.
-- **Configuration:** `application.properties` and `server.properties` removed. All config now in `config/application.yml`.
-- **Database:** Alembic removed. Schema managed via `db/scripts/001_schema.sql` with `CREATE TABLE IF NOT EXISTS`.
-- **Transport:** Socket.IO/WebSocket removed. MCP transport now uses HTTP POST and SSE per MCP specification.
-- **Password hashing:** passlib removed, replaced with direct bcrypt (bcrypt 4.x compatibility).
-- **Entry point:** `run_server.py` now starts Uvicorn directly. `python run_server.py` is the only command needed.
+- **Configuration:** `.properties` files removed. All config now in `config/application.yml`.
+- **Database:** Alembic removed. Schema managed via SQL scripts with `CREATE TABLE IF NOT EXISTS`.
+- **Transport:** Socket.IO removed. MCP transport uses HTTP POST and SSE per MCP spec.
+- **Password hashing:** passlib removed, replaced with direct bcrypt 4.x.
 
 ### New in v3.1.0
 
-- **FastAPI orchestrator:** `SajhaMCPServerWebApp` class in `sajha/app.py` — single entry point, zero inline routes.
-- **13 route modules** in `sajha/routes/` with 79+ endpoints.
-- **MCP compliance (2025-06-18):** 12 MCP methods fully implemented, 5 capabilities declared.
-- **A2A protocol:** Agent card at `/.well-known/agent.json`, task lifecycle endpoints.
-- **Reporting:** 7 API endpoints + Chart.js dashboard at `/reports`.
-- **497 tools** loaded (up from ~150 in v2).
-- **Generic tool pattern:** `FMPGenericTool` and `OpenBBGenericTool` auto-map tool names to API endpoints from JSON configs.
-- **YAML-only config:** `config/application.yml` with `${ENV_VAR:default}` substitution and `SAJHA_` env prefix override.
-- **SQL-based schema:** 9 tables via `db/scripts/001_schema.sql` + `002_seed.sql`.
-- **8 ORM models** and **7 DAO classes** for structured database access.
-- **FastAPI auth dependencies:** `get_current_user`, `require_auth`, `require_admin`.
-- **SSE transport:** `GET /mcp/sse` + `POST /mcp/message` per MCP specification.
-- **Starlette 1.0 TemplateResponse API** — `request` as positional parameter.
-- **UI enhancements:** Tool group dropdown, description search with highlighting, clickable provider badges, group column in tables.
-- **120 tests** across config, auth, database, and endpoint modules.
-- **Zero-dependency client SDK** in `clientsdk/` — Python stdlib only.
-- **Documentation rewrite:** All docs rewritten for v3, including architecture, glossary, API reference, README.
-
-### Removed
-
-- `sajha/web/app.py` (v2 Flask backward-compat wrapper)
-- `sajha/web/sajhamcpserver_web.py` (v2 Flask SajhaMCPServerWebApp)
-- `sajha/web/routes/*.py` (14 Flask blueprint files)
-- `alembic.ini` + `alembic/` directory
-- `config/application.properties`
-- `config/server.properties`
-- All `.properties` fallback and parsing code
-
-### Known Issues
-
-- 3 SharePoint tools fail to load (abstract class, `get_input_schema`/`get_output_schema` not implemented).
-- `${data.sqlselect.dir}` CSV data files absent in fresh install — tools load but warn.
-- Dashboard template escaping edge case for tool descriptions with special characters.
+- FastAPI orchestrator, 13 route modules, 79+ endpoints
+- MCP compliance (2025-06-18): 12 methods, 5 capabilities
+- A2A protocol with agent card and task lifecycle
+- Reporting: 6 API endpoints + Chart.js dashboard
+- 497 tools loaded from JSON configs
+- YAML-only config with env var substitution
+- SQL-based schema: 9 tables
+- Zero-dependency client SDK
 
 ---
 
 ## v2.9.8 and Earlier (Flask)
 
 Flask-based implementation with .properties configuration. See git history for detailed v2 changelog.
-
-Key v2 milestones:
-- v2.9.8: SharePoint Tool Creator, OLAP Dataset Creator, 150+ tools
-- v2.8.x: MCP Studio (Python Code, REST, DB Query, Script, PowerBI, LiveLink creators)
-- v2.7.x: Hot-reload system, API key management
-- v2.5.x: WebSocket support, prompts management
-- v2.0.0: Initial release with MCP compliance, web UI, tool framework
 
 ---
 

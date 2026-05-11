@@ -605,3 +605,86 @@ print(f"Staging tools: {len(staging.list_tools())}")
 ---
 
 *SAJHA MCP Server Client SDK v3.0.0 — Built for the developer community.*
+
+---
+
+## WebSocket Client (v4.0.0)
+
+Full-duplex bidirectional MCP communication. Requires: `pip install websockets`
+
+### Basic Usage
+
+```python
+from sajhaclient import MCPWebSocketClient, SajhaConfig, ApiKeyAuth
+
+config = SajhaConfig(base_url="http://localhost:3002")
+ws = MCPWebSocketClient(config, auth=ApiKeyAuth("sja_your_key"))
+
+ws.connect()
+info = ws.initialize()
+print(f"Server: {info['serverInfo']['name']} v{info['serverInfo']['version']}")
+
+# List tools
+tools = ws.list_tools()
+print(f"Available: {len(tools['tools'])} tools")
+
+# Call a tool
+result = ws.call_tool("yahoo_quote", symbol="AAPL")
+print(result)
+
+ws.disconnect()
+```
+
+### Context Manager
+
+```python
+with MCPWebSocketClient(config, auth=ApiKeyAuth("sja_key")) as ws:
+    ws.initialize()
+    result = ws.call_tool("fred_gdp")
+    # Connection auto-closes on exit
+```
+
+### Notifications
+
+```python
+ws = MCPWebSocketClient(config, auth=ApiKeyAuth("sja_key"))
+ws.connect()
+ws.initialize()
+
+# Register notification handler
+def on_change(notification):
+    print(f"Server notification: {notification['method']}")
+
+ws.on_notification(on_change)
+
+# Now when an admin enables/disables a tool, your handler fires
+result = ws.call_tool("fmp_stock_quote", symbol="MSFT")
+```
+
+### Resources & Prompts via WebSocket
+
+```python
+with MCPWebSocketClient(config, auth=ApiKeyAuth("sja_key")) as ws:
+    ws.initialize()
+    
+    # List resources
+    resources = ws.list_resources()
+    
+    # Read a resource
+    catalog = ws.read_resource("sajha://tools/catalog")
+    
+    # List and get prompts
+    prompts = ws.list_prompts()
+    prompt = ws.get_prompt("risk_analysis", {"symbol": "AAPL"})
+    
+    # Ping
+    pong = ws.ping()
+```
+
+### When to Use WebSocket vs HTTP vs SSE
+
+| Transport | Use Case |
+|-----------|----------|
+| `MCPClient` (HTTP POST) | Simple tool calls, automation scripts, CI/CD |
+| `MCPSSEClient` (SSE) | Long-running tools, progress streaming, web UI |
+| `MCPWebSocketClient` (WS) | Interactive agents, real-time notifications, low-latency |

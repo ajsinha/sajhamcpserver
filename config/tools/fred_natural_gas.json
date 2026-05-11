@@ -2,7 +2,7 @@
   "name": "fred_natural_gas",
   "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
   "description": "Get Henry Hub Natural Gas Spot Price from FRED (series: DHHNGSP)",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

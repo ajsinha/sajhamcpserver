@@ -2,7 +2,7 @@
   "name": "fred_real_gdp_per_capita",
   "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
   "description": "Get US Real GDP Per Capita from FRED (series: A939RX0Q048SBEA)",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

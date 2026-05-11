@@ -2,7 +2,7 @@
   "name": "fmp_grade",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
   "description": "Get company investment grade from FMP \u2014 overall financial grade",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "fmp_sector_performance",
   "implementation": "sajha.tools.impl.fmp_tools.FMPSectorPerformanceTool",
   "description": "Get sector performance summary from FMP \u2014 percentage change by sector (Technology, Healthcare, Finance, etc.)",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

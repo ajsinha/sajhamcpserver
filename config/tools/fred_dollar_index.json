@@ -2,7 +2,7 @@
   "name": "fred_dollar_index",
   "implementation": "sajha.tools.impl.fred_tools.FREDDollarIndexTool",
   "description": "Get Trade Weighted US Dollar Index from FRED",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

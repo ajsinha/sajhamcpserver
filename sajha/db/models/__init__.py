@@ -240,3 +240,140 @@ class A2ATask(Base):
 
     def __repr__(self):
         return f'<A2ATask {self.id[:8]} state={self.state}>'
+
+
+# ── Prompt (v4.0.0 — moved from JSON files to database) ─────
+
+class Prompt(Base):
+    __tablename__ = 'prompts'
+
+    id              = Column(String(36), primary_key=True)
+    name            = Column(String(255), unique=True, nullable=False)
+    description     = Column(Text)
+    category        = Column(String(100))
+    template        = Column(Text, nullable=False)
+    arguments_json  = Column(Text)          # JSON array of argument definitions
+    created_by      = Column(String(100))
+    enabled         = Column(Boolean, default=True, nullable=False)
+    created_at      = Column(DateTime, default=datetime.utcnow)
+    updated_at      = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    tags = relationship('PromptTag', back_populates='prompt', cascade='all, delete-orphan')
+
+    @property
+    def tag_list(self):
+        return [t.tag for t in self.tags] if self.tags else []
+
+
+class PromptTag(Base):
+    __tablename__ = 'prompt_tags'
+
+    prompt_id = Column(String(36), ForeignKey('prompts.id', ondelete='CASCADE'), primary_key=True)
+    tag       = Column(String(100), primary_key=True)
+
+    prompt = relationship('Prompt', back_populates='tags')
+
+
+# ── LLM Provider (v4.0.0 — AI integration) ──────────────────
+
+class LLMProviderRecord(Base):
+    __tablename__ = 'llm_providers'
+
+    id            = Column(String(36), primary_key=True)
+    provider_type = Column(String(50), unique=True, nullable=False)
+    display_name  = Column(String(255), nullable=False)
+    enabled       = Column(Boolean, default=True, nullable=False)
+    api_key       = Column(String(500))
+    base_url      = Column(String(500))
+    region        = Column(String(50))
+    extra_config  = Column(Text)        # JSON for provider-specific settings
+    is_default    = Column(Boolean, default=False, nullable=False)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+    updated_at    = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class LLMModelRecord(Base):
+    __tablename__ = 'llm_models'
+
+    id                  = Column(String(36), primary_key=True)
+    provider_type       = Column(String(50), nullable=False)
+    model_id            = Column(String(255), nullable=False)
+    display_name        = Column(String(255), nullable=False)
+    context_window      = Column(Integer, default=0)
+    max_output_tokens   = Column(Integer, default=4096)
+    input_cost_per_1k   = Column(Float, default=0.0)
+    output_cost_per_1k  = Column(Float, default=0.0)
+    supports_tools      = Column(Boolean, default=True)
+    supports_vision     = Column(Boolean, default=False)
+    supports_streaming  = Column(Boolean, default=True)
+    supports_embeddings = Column(Boolean, default=False)
+    tags                = Column(Text)       # comma-separated
+    is_default          = Column(Boolean, default=False)
+    enabled             = Column(Boolean, default=True)
+    created_at          = Column(DateTime, default=datetime.utcnow)
+
+
+# ── Composite Tool (v4.0.0 — multi-tool orchestration) ───────
+
+class CompositeToolRecord(Base):
+    __tablename__ = 'composite_tools'
+
+    id              = Column(String(36), primary_key=True)
+    name            = Column(String(255), unique=True, nullable=False)
+    description     = Column(Text)
+    arrangement     = Column(String(20), nullable=False, default='sibling')  # 'sibling' | 'parent_child'
+    master_tool     = Column(String(255), nullable=False)
+    master_output_key = Column(String(100), default='master')
+    record_path     = Column(String(255))  # for parent_child: path to array in master output
+    enabled         = Column(Boolean, default=True, nullable=False)
+    created_by      = Column(String(100))
+    created_at      = Column(DateTime, default=datetime.utcnow)
+    updated_at      = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    steps = relationship('CompositeToolStepRecord', back_populates='composite_tool',
+                         cascade='all, delete-orphan', order_by='CompositeToolStepRecord.step_order')
+
+
+class CompositeToolStepRecord(Base):
+    __tablename__ = 'composite_tool_steps'
+
+    id                = Column(String(36), primary_key=True)
+    composite_tool_id = Column(String(36), ForeignKey('composite_tools.id', ondelete='CASCADE'), nullable=False)
+    step_order        = Column(Integer, default=0)
+    tool_name         = Column(String(255), nullable=False)
+    output_key        = Column(String(100), nullable=False)
+    execution_mode    = Column(String(20), default='parallel')  # 'parallel' | 'for_each_record'
+    param_mapping     = Column(Text)    # JSON: {"target_param": "$.source_field"}
+    static_params     = Column(Text)    # JSON: {"limit": 5}
+    condition         = Column(Text)    # Optional: expression for conditional execution
+
+    composite_tool = relationship('CompositeToolRecord', back_populates='steps')
+
+
+# ── Tenant (v4.0.0 — multi-tenancy) ─────────────────────────
+
+class TenantRecord(Base):
+    __tablename__ = 'tenants'
+    id            = Column(String(36), primary_key=True)
+    name          = Column(String(255), unique=True, nullable=False)
+    enabled       = Column(Boolean, default=True, nullable=False)
+    tool_patterns = Column(Text)
+    blocked_tools = Column(Text)
+    quota_json    = Column(Text)
+    data_prefix   = Column(String(255))
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+# ── Tool Version (v4.0.0 — versioning) ──────────────────────
+
+class ToolVersionRecord(Base):
+    __tablename__ = 'tool_versions'
+    id            = Column(String(36), primary_key=True)
+    tool_name     = Column(String(255), nullable=False)
+    version       = Column(String(50), nullable=False)
+    lifecycle     = Column(String(20), default='active')
+    deprecated_at = Column(DateTime)
+    sunset_date   = Column(String(20))
+    successor     = Column(String(255))
+    changelog     = Column(Text)
+    created_at    = Column(DateTime, default=datetime.utcnow)

@@ -1,0 +1,38 @@
+#cloud-config
+# SAJHA MCP Server — Hetzner Cloud-Init
+# Use when creating a Hetzner Cloud server via CLI or console.
+#
+# hcloud server create --name sajha --type cx22 --image ubuntu-24.04 \
+#   --user-data-from-file cloud-init.yml --ssh-key your-key
+#
+package_update: true
+package_upgrade: true
+
+packages:
+  - docker.io
+  - docker-compose-v2
+  - curl
+  - git
+  - ufw
+
+runcmd:
+  # Enable Docker
+  - systemctl enable docker
+  - systemctl start docker
+
+  # Firewall
+  - ufw allow OpenSSH
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw --force enable
+
+  # Clone and deploy
+  - git clone https://github.com/ajsinha/sajhamcpserver.git /opt/sajha
+  - cd /opt/sajha/deployment/hetzner
+  - cp .env.example .env
+  - docker compose up -d
+
+  # Log completion
+  - echo "SAJHA MCP Server deployed at $(date)" >> /var/log/sajha-deploy.log
+
+final_message: "SAJHA MCP Server is starting. Access at https://your-domain after DNS setup."

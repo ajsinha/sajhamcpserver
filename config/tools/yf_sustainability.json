@@ -2,7 +2,7 @@
   "name": "yf_sustainability",
   "implementation": "sajha.tools.impl.yfinance_tools.YFSustainabilityTool",
   "description": "Get ESG sustainability scores from Yahoo Finance \u2014 environmental, social, governance ratings",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "openbb_news_search",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
   "description": "Search financial news via OpenBB \u2014 filtered by keywords",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

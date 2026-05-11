@@ -1,6 +1,6 @@
 # FRED (Federal Reserve Economic Data) — Tool Reference Guide
 
-**Version:** 3.1.0 · **Tools:** 55 · **API Key Required:** Yes (`fred.api.key` in `config/application.yml`)
+**Version:** 4.0.0 · **Tools:** 55 · **API Key Required:** Yes (`fred.api.key` in `config/application.yml`)
 
 ---
 

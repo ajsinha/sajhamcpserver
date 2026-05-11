@@ -1,6 +1,6 @@
 # SAJHA MCP Server — Glossary
 
-**Version:** 3.1.0 · **Last Updated:** May 2026
+**Version:** 4.0.0 · **Last Updated:** May 2026
 
 ---
 
@@ -110,5 +110,5 @@
 
 ---
 
-*SAJHA MCP Server v3.1.0 — Glossary*
+*SAJHA MCP Server v4.0.0 — Glossary*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

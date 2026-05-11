@@ -2,7 +2,7 @@
   "name": "calc_future_value",
   "implementation": "sajha.tools.impl.calc_tools.CalcFutureValueTool",
   "description": "Calculate future value \u2014 what a present sum grows to at a given rate",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

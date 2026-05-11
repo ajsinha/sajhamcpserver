@@ -1,293 +1,153 @@
-# SAJHA MCP Server — API Reference
+# SAJHA MCP Server v4.0.0 — API Reference
 
-**Version:** 3.1.0 · **Protocol:** MCP 2025-06-18 · **Base URL:** `http://localhost:3002`
+Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
 
 ---
+
+## Transports
+
+| Transport | Endpoint | Method | Description |
+|-----------|----------|--------|-------------|
+| HTTP POST | `/mcp` | POST | Stateless JSON-RPC 2.0 |
+| SSE | `/mcp/sse` | GET | Server-push streaming |
+| SSE Message | `/mcp/message` | POST | Paired with SSE endpoint |
+| WebSocket | `/mcp/ws` | WS | Full-duplex bidirectional |
+
+## MCP Methods (JSON-RPC 2.0)
+
+| Method | Description |
+|--------|-------------|
+| `initialize` | Negotiate capabilities, exchange server/client info |
+| `initialized` | Client confirms initialization complete |
+| `ping` | Health check |
+| `tools/list` | List available tools (paginated) |
+| `tools/call` | Execute a tool with arguments |
+| `resources/list` | List available resources |
+| `resources/read` | Read a resource by URI |
+| `prompts/list` | List prompt templates |
+| `prompts/get` | Get a prompt with variable substitution |
+| `completion/complete` | Auto-complete tool/prompt arguments |
+| `logging/setLevel` | Change server log level |
 
 ## Authentication
 
-All API endpoints require authentication via one of:
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/login` | GET/POST | Web UI login (session cookie) |
+| `/logout` | GET | Clear session |
+| `/api/auth/login` | POST | JWT authentication (returns token) |
+| `/api/auth/me` | GET | Current user info |
 
-| Method | Header / Cookie | Example |
-|--------|----------------|---------|
-| **API Key** | `X-API-Key: <key>` | `X-API-Key: sk_live_abc123` |
-| **Bearer JWT** | `Authorization: Bearer <token>` | Obtain via `POST /api/auth/login` |
-| **Session cookie** | `sajha_token` cookie | Set automatically on web login |
+## Tools
 
-### Obtain a JWT Token
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/tools` | GET | List all tools |
+| `/api/tools/{name}/schema` | GET | Tool input/output schema |
+| `/api/tools/{name}/execute` | POST | Execute a tool |
 
-```
-POST /api/auth/login
-Content-Type: application/json
+## AI Integration
 
-{"user_id": "admin", "password": "admin123"}
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/ai/providers` | GET | List LLM providers with health |
+| `/api/ai/providers/{type}/config` | POST | Update provider config |
+| `/api/ai/providers/{type}/health` | POST | Health check provider |
+| `/api/ai/models` | GET | List all models |
+| `/api/ai/models` | POST | Create model entry |
+| `/api/ai/models/{id}` | PUT | Update model |
+| `/api/ai/models/{id}` | DELETE | Delete model |
+| `/api/ai/defaults` | POST | Set default provider/model |
+| `/api/ai/preferences` | GET/POST/DELETE | User AI preferences |
+| `/api/ai/usage` | GET | Token usage |
+| `/api/ai/resolve-tool` | POST | Semantic tool search |
+| `/api/ai/complete` | POST | LLM completion via gateway |
+| `/api/ai/registry` | GET | Registered provider classes |
 
-→ {"token": "eyJ...", "user_id": "admin"}
-```
+## Composite Tools
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/composite-tools` | GET | List composites |
+| `/api/composite-tools` | POST | Create composite |
+| `/api/composite-tools/{name}` | GET | Get composite with schemas |
+| `/api/composite-tools/{name}` | PUT | Update composite |
+| `/api/composite-tools/{name}` | DELETE | Delete composite |
+| `/api/composite-tools/{name}/preview-schema` | GET | Preview auto-generated schemas |
+
+## Observability & Health
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Liveness probe (always OK) |
+| `/ready` | GET | Readiness probe (checks DB, tools) |
+| `/api/metrics` | GET | Global metrics summary |
+| `/api/metrics/tools` | GET | Per-tool metrics (p50/p95/p99) |
+| `/api/metrics/tools/{name}` | GET | Single tool metrics |
+
+## Multi-Tenancy
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/tenants` | GET | List tenants |
+| `/api/tenants` | POST | Create tenant |
+| `/api/tenants/{id}` | GET | Get tenant |
+| `/api/tenants/{id}` | PUT | Update tenant |
+| `/api/tenants/{id}` | DELETE | Delete tenant |
+
+## Plugins
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/plugins` | GET | List plugins + status |
+| `/api/plugins/{name}/load` | POST | Load a plugin |
+| `/api/plugins/{name}/unload` | POST | Unload a plugin |
+| `/api/plugins/discover` | POST | Rescan plugins directory |
+
+## Tool Versioning & Testing
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/tool-versions` | GET | List tool versions |
+| `/api/tool-versions/{name}/deprecate` | POST | Deprecate a tool version |
+| `/api/contract-test` | POST | Run contract tests on all tools |
+| `/api/contract-test/{name}` | POST | Test a single tool |
+
+## Reporting
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/reports/overview` | GET | Platform overview (totals, top tools) |
+| `/api/reports/tools/usage` | GET | Per-tool usage stats |
+| `/api/reports/tools/{name}/detail` | GET | Single tool deep dive |
+| `/api/reports/users/activity` | GET | Per-user activity |
+| `/api/reports/heatmap` | GET | Hour × day execution heatmap |
+| `/api/reports/audit` | GET | Audit trail (filterable, paginated) |
+
+## Admin
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/admin/users` | GET/POST | User CRUD |
+| `/api/admin/tools/{name}/enable` | POST | Enable tool |
+| `/api/admin/tools/{name}/disable` | POST | Disable tool |
+| `/api/admin/apikeys` | GET/POST | API key management |
+
+## A2A Protocol
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/.well-known/agent.json` | GET | Agent card |
+| `/a2a/tasks/send` | POST | Create task |
+| `/a2a/tasks/{id}` | GET | Get task status |
+| `/a2a/tasks/{id}/cancel` | DELETE | Cancel task |
+
+## WebSocket Sessions
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/ws/sessions` | GET | List active WebSocket connections |
 
 ---
 
-## MCP Protocol Endpoints
-
-### POST /mcp
-
-The primary MCP endpoint. Accepts JSON-RPC 2.0 requests.
-
-```
-POST /mcp
-Content-Type: application/json
-X-API-Key: <key>
-
-{
-  "jsonrpc": "2.0",
-  "id": "1",
-  "method": "<method>",
-  "params": {}
-}
-```
-
-#### Supported Methods
-
-**initialize** — Handshake, returns server info and capabilities.
-
-```json
-{"jsonrpc": "2.0", "id": "1", "method": "initialize", "params": {"protocolVersion": "2025-06-18"}}
-```
-
-Response includes `protocolVersion`, `serverInfo`, and `capabilities` (tools, prompts, resources, logging, completions).
-
-**tools/list** — List available tools with cursor-based pagination (100/page).
-
-```json
-{"jsonrpc": "2.0", "id": "2", "method": "tools/list", "params": {"cursor": null}}
-```
-
-**tools/call** — Execute a tool.
-
-```json
-{"jsonrpc": "2.0", "id": "3", "method": "tools/call", "params": {
-  "name": "yahoo_finance_quote",
-  "arguments": {"symbol": "AAPL"}
-}}
-```
-
-**prompts/list** — List prompt templates.
-
-**prompts/get** — Get a prompt with argument substitution.
-
-```json
-{"jsonrpc": "2.0", "id": "4", "method": "prompts/get", "params": {
-  "name": "market_analysis",
-  "arguments": {"symbol": "TSLA"}
-}}
-```
-
-**resources/list** — List resources (50/page), auto-discovers data files.
-
-**resources/read** — Read a resource by URI.
-
-**resources/templates/list** — List URI templates (2 available).
-
-**resources/subscribe** / **resources/unsubscribe** — Resource change notifications.
-
-**completion/complete** — Auto-suggest values from tool schema enums.
-
-**logging/setLevel** — Change server log level dynamically.
-
-```json
-{"jsonrpc": "2.0", "id": "5", "method": "logging/setLevel", "params": {"level": "debug"}}
-```
-
-**ping** — Health check.
-
-### SSE Transport
-
-**GET /mcp/sse** — Establish an SSE connection for streaming responses.
-
-**POST /mcp/message** — Send a message over an established SSE session.
-
----
-
-## REST API Endpoints
-
-### Tool Execution
-
-**POST /api/tools/execute** — Execute a tool via REST.
-
-```
-POST /api/tools/execute
-Content-Type: application/json
-X-API-Key: <key>
-
-{
-  "tool": "yahoo_finance_quote",
-  "arguments": {"symbol": "AAPL"}
-}
-```
-
-**GET /api/tools/list** — List all tools (JSON array).
-
-**GET /api/tools/{tool_name}/schema** — Get input/output schema for a tool.
-
-### Admin APIs
-
-**POST /api/admin/tools/{tool_name}/enable** — Enable a tool.
-
-**POST /api/admin/tools/{tool_name}/disable** — Disable a tool.
-
-**GET /api/admin/tools/{tool_name}/config** — Get tool JSON config.
-
-**POST /api/admin/tools/{tool_name}/config** — Update tool config.
-
-**POST /api/admin/tools/reload** — Force immediate hot-reload of all tools.
-
-**GET /api/admin/users** — List all users.
-
-**POST /api/admin/users/create** — Create a new user.
-
-**POST /api/admin/users/{uid}/enable** — Enable a user.
-
-**POST /api/admin/users/{uid}/disable** — Disable a user.
-
-**DELETE /api/admin/users/{uid}/delete** — Delete a user.
-
-**GET /api/admin/tools/metrics/export** — Export tool usage metrics.
-
-### Prompts API
-
-**GET /api/prompts/list** — List all prompts (JSON).
-
-**GET /api/prompts/{prompt_name}** — Get a specific prompt.
-
-**POST /api/prompts/create** — Create a new prompt.
-
-### Resources API
-
-**POST /api/resources/list** — List MCP resources.
-
-**POST /api/resources/read** — Read a resource by URI.
-
-**POST /api/completion/complete** — Autocomplete from tool schemas.
-
-**POST /api/logging/setLevel** — Set server log level.
-
-### Reporting API
-
-**GET /api/reports/overview** — System overview statistics.
-
-**GET /api/reports/tools/usage** — Tool execution counts.
-
-**GET /api/reports/tools/{tool_name}/detail** — Per-tool detail metrics.
-
-**GET /api/reports/users/activity** — User activity data.
-
-**GET /api/reports/heatmap** — Usage heatmap data.
-
-**GET /api/reports/audit** — Audit log entries.
-
-### Health
-
-**GET /health** — Server health check (no auth required).
-
----
-
-## A2A Protocol Endpoints
-
-**GET /.well-known/agent.json** — Agent card (auto-generated from tool registry).
-
-**POST /a2a** — Agent-to-agent task operations (JSON-RPC):
-
-```json
-{"jsonrpc": "2.0", "id": "1", "method": "tasks/send", "params": {
-  "task": {"tool": "wikipedia", "arguments": {"action": "search", "query": "AI"}}
-}}
-```
-
-Methods: `tasks/send`, `tasks/get`, `tasks/cancel`.
-
----
-
-## Web UI Endpoints
-
-| Path | Page |
-|------|------|
-| `/` | Redirect to login or dashboard |
-| `/login` | Login page |
-| `/logout` | Logout |
-| `/dashboard` | Main dashboard |
-| `/tools` | Tool list with search and filtering |
-| `/tools/{name}/execute` | Tool execution interface |
-| `/tools/{name}/schema` | Tool schema viewer |
-| `/tools/{name}/config` | Tool config viewer |
-| `/prompts` | Prompts list |
-| `/prompts/create` | Create new prompt |
-| `/prompts/{name}` | Prompt detail |
-| `/prompts/{name}/test` | Prompt test interface |
-| `/reports` | Reporting dashboard |
-| `/studio` | MCP Studio home |
-| `/studio/rest` | REST Service Tool Creator |
-| `/studio/dbquery` | DB Query Tool Creator |
-| `/studio/script` | Script Tool Creator |
-| `/studio/powerbi` | PowerBI Report Tool Creator |
-| `/studio/powerbidax` | PowerBI DAX Query Tool Creator |
-| `/studio/livelink` | LiveLink Tool Creator |
-| `/studio/olap` | OLAP Dataset Creator |
-| `/studio/sharepoint` | SharePoint Tool Creator |
-| `/studio/examples` | Studio examples |
-| `/admin/users` | User management |
-| `/admin/tools` | Tool management |
-| `/admin/apikeys` | API key management |
-| `/monitoring/tools` | Tool metrics |
-| `/monitoring/users` | User activity |
-| `/help` | Help center |
-| `/about` | About page |
-| `/docs` | Documentation browser |
-| `/docs/view/{path}` | Document viewer |
-| `/api/docs` | FastAPI OpenAPI docs |
-| `/api/redoc` | FastAPI ReDoc |
-
----
-
-## Error Codes (JSON-RPC 2.0)
-
-| Code | Meaning |
-|------|---------|
-| `-32700` | Parse error |
-| `-32600` | Invalid request |
-| `-32601` | Method not found |
-| `-32602` | Invalid params |
-| `-32603` | Internal error |
-| `-32001` | Unauthorized |
-| `-32002` | Forbidden |
-
----
-
-## Python Client SDK
-
-```python
-from sajhaclient import SajhaConfig, SajhaClient, MCPClient, A2AClient, ApiKeyAuth
-
-# REST Client
-config = SajhaConfig(base_url="http://localhost:3002")
-client = SajhaClient(config, auth=ApiKeyAuth("sk_live_..."))
-tools = client.list_tools()
-result = client.execute_tool("yahoo_finance_quote", {"symbol": "AAPL"})
-
-# MCP Client (JSON-RPC)
-mcp = MCPClient(config, auth=ApiKeyAuth("sk_live_..."))
-mcp.initialize()
-tools = mcp.list_tools()
-result = mcp.call_tool("fred_gdp", {"start_date": "2020-01-01"})
-
-# A2A Client
-a2a = A2AClient(config, auth=ApiKeyAuth("sk_live_..."))
-card = a2a.get_agent_card()
-task = a2a.send_task({"tool": "wikipedia", "arguments": {"action": "search", "query": "AI"}})
-```
-
-Full SDK documentation: `clientsdk/docs/USER_GUIDE.md`.
-
----
-
-*SAJHA MCP Server v3.1.0 — API Reference*
-*Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*
+*SAJHA MCP Server v4.0.0 — API Reference*

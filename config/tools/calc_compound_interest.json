@@ -2,7 +2,7 @@
   "name": "calc_compound_interest",
   "implementation": "sajha.tools.impl.calc_tools.CalcCompoundInterestTool",
   "description": "Calculate compound interest \u2014 future value of an investment with regular compounding",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "fmp_balance_sheet",
   "implementation": "sajha.tools.impl.fmp_tools.FMPBalanceSheetTool",
   "description": "Get balance sheet from FMP \u2014 total assets, liabilities, equity, cash, short/long-term debt, retained earnings",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

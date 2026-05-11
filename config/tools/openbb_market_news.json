@@ -2,7 +2,7 @@
   "name": "openbb_market_news",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBMarketNewsTool",
   "description": "Get latest market and world news via OpenBB \u2014 aggregated headlines from Benzinga, FMP, and other providers",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "openbb_derivatives_futures_historical",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
   "description": "Get historical futures prices via OpenBB",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "fmp_economic_calendar",
   "implementation": "sajha.tools.impl.fmp_tools.FMPEconomicCalendarTool",
   "description": "Get economic events calendar from FMP \u2014 GDP releases, jobs reports, CPI, Fed meetings, PMI with estimates vs actuals",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

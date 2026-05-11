@@ -1,5 +1,5 @@
 # MCP Studio OLAP Tool Creator Guide
-## SAJHA MCP Server v3.1.0
+## SAJHA MCP Server v4.0.0
 
 ## Overview
 
@@ -615,5 +615,5 @@ Cohort Retention Analysis
 
 ---
 
-*SAJHA MCP Server v3.1.0 - OLAP Tool Creator Guide*
+*SAJHA MCP Server v4.0.0 - OLAP Tool Creator Guide*
 *Copyright © 2025-2030 Ashutosh Sinha*

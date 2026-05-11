@@ -2,7 +2,7 @@
   "name": "fmp_esg_rating",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
   "description": "Get ESG rating from FMP \u2014 environmental, social, governance scores",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

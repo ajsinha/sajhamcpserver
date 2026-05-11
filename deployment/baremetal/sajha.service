@@ -1,0 +1,48 @@
+# SAJHA MCP Server — systemd Service File
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha
+#
+# Install: sudo cp sajha.service /etc/systemd/system/
+#          sudo systemctl daemon-reload
+#          sudo systemctl enable sajha
+#          sudo systemctl start sajha
+#
+[Unit]
+Description=SAJHA MCP Server v4.0.0
+Documentation=https://github.com/ajsinha/sajhamcpserver
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=sajha
+Group=sajha
+WorkingDirectory=/opt/sajha
+ExecStart=/opt/sajha/venv/bin/python run_server.py
+Restart=always
+RestartSec=5
+TimeoutStartSec=30
+
+# Environment
+Environment=SAJHA_SERVER_HOST=127.0.0.1
+Environment=SAJHA_SERVER_PORT=3002
+Environment=SAJHA_DB_TYPE=postgresql
+Environment=SAJHA_DB_HOST=localhost
+Environment=SAJHA_DB_PORT=5432
+Environment=SAJHA_DB_NAME=sajha
+Environment=SAJHA_STORAGE_BACKEND=local
+EnvironmentFile=-/opt/sajha/.env
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/sajha/data /opt/sajha/config /tmp
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sajha
+
+[Install]
+WantedBy=multi-user.target

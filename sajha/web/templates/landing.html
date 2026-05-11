@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+SAJHA MCP Server — Landing Page
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAJHA — The Intelligence Layer for AI Agents</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --navy: #0a1628;
+            --navy-mid: #12213b;
+            --navy-light: #1a2f50;
+            --blue: #0079c1;
+            --blue-bright: #00a3e0;
+            --blue-glow: rgba(0, 163, 224, 0.15);
+            --cyan: #06d6a0;
+            --white: #f0f4f8;
+            --white-pure: #ffffff;
+            --gray: #8892a4;
+            --gray-light: #c1c8d4;
+            --glass: rgba(255, 255, 255, 0.04);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-hover: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            background: var(--navy);
+            color: var(--white);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ═══ Navigation ═══ */
+        .top-nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            padding: 1.25rem 2rem;
+            display: flex; align-items: center; justify-content: space-between;
+            backdrop-filter: blur(20px);
+            background: rgba(10, 22, 40, 0.8);
+            border-bottom: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
+        }
+        .top-nav.scrolled { padding: 0.75rem 2rem; background: rgba(10, 22, 40, 0.95); }
+        .logo {
+            font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--blue-bright), var(--cyan));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .logo span { font-weight: 400; opacity: 0.7; -webkit-text-fill-color: var(--gray); margin-left: 0.5rem; font-size: 0.8rem; }
+        .nav-links { display: flex; gap: 2rem; align-items: center; }
+        .nav-links a {
+            color: var(--gray-light); text-decoration: none; font-size: 0.9rem; font-weight: 500;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--white-pure); }
+        .btn-login {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem;
+            background: linear-gradient(135deg, var(--blue), var(--blue-bright));
+            color: var(--white-pure); text-decoration: none; border: none; cursor: pointer;
+            transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0, 121, 193, 0.3);
+        }
+        .btn-login:hover {
+            transform: translateY(-2px); box-shadow: 0 6px 25px rgba(0, 121, 193, 0.5);
+            color: var(--white-pure);
+        }
+
+        /* ═══ Hero ═══ */
+        .hero {
+            min-height: 100vh; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+            padding: 8rem 2rem 4rem; position: relative;
+        }
+        .hero::before {
+            content: ''; position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% 20%, rgba(0, 121, 193, 0.12) 0%, transparent 70%),
+                radial-gradient(ellipse 60% 50% at 80% 60%, rgba(6, 214, 160, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 40% at 20% 80%, rgba(0, 163, 224, 0.08) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.4rem 1rem; border-radius: 20px; margin-bottom: 2rem;
+            background: var(--glass); border: 1px solid var(--glass-border);
+            font-size: 0.8rem; color: var(--blue-bright); font-weight: 500;
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+        .hero-badge i { font-size: 0.7rem; }
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 800; letter-spacing: -2px;
+            line-height: 1.1; margin-bottom: 1.5rem; max-width: 900px;
+            animation: fadeInUp 0.8s ease 0.4s both;
+        }
+        .hero h1 .gradient-text {
+            background: linear-gradient(135deg, var(--blue-bright) 0%, var(--cyan) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero-sub {
+            font-size: 1.2rem; color: var(--gray); max-width: 640px;
+            line-height: 1.7; margin-bottom: 3rem;
+            animation: fadeInUp 0.8s ease 0.6s both;
+        }
+        .hero-actions {
+            display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
+            animation: fadeInUp 0.8s ease 0.8s both;
+        }
+        .btn-hero {
+            padding: 0.9rem 2rem; border-radius: 10px; font-weight: 600; font-size: 1rem;
+            text-decoration: none; transition: all 0.3s ease; display: inline-flex;
+            align-items: center; gap: 0.5rem;
+        }
+        .btn-hero-primary {
+            background: linear-gradient(135deg, var(--blue), var(--blue-bright));
+            color: var(--white-pure); box-shadow: 0 4px 20px rgba(0, 121, 193, 0.4);
+        }
+        .btn-hero-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0, 121, 193, 0.5); color: var(--white-pure); }
+        .btn-hero-outline {
+            background: transparent; color: var(--gray-light);
+            border: 1.5px solid var(--glass-border);
+        }
+        .btn-hero-outline:hover { border-color: var(--blue-bright); color: var(--white-pure); background: var(--glass); }
+        .hero-code {
+            margin-top: 4rem; max-width: 680px; width: 100%; text-align: left;
+            animation: fadeInUp 0.8s ease 1s both;
+        }
+        .code-window {
+            background: var(--navy-mid); border-radius: 12px; overflow: hidden;
+            border: 1px solid var(--glass-border); box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .code-bar {
+            padding: 0.7rem 1rem; display: flex; align-items: center; gap: 0.5rem;
+            background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--glass-border);
+        }
+        .code-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .code-dot.r { background: #ff5f57; }
+        .code-dot.y { background: #febc2e; }
+        .code-dot.g { background: #28c840; }
+        .code-bar span { margin-left: auto; font-size: 0.75rem; color: var(--gray); font-family: 'JetBrains Mono', monospace; }
+        .code-body {
+            padding: 1.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
+            line-height: 1.8; color: var(--gray-light);
+        }
+        .code-body .kw { color: #c792ea; }
+        .code-body .fn { color: #82aaff; }
+        .code-body .str { color: #c3e88d; }
+        .code-body .cmt { color: #546e7a; }
+        .code-body .num { color: #f78c6c; }
+
+        /* ═══ Stats ═══ */
+        .stats {
+            padding: 5rem 2rem; display: flex; justify-content: center;
+            gap: 4rem; flex-wrap: wrap;
+            border-top: 1px solid var(--glass-border);
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(0, 121, 193, 0.02);
+        }
+        .stat { text-align: center; }
+        .stat-num {
+            font-size: 3rem; font-weight: 800; letter-spacing: -2px;
+            background: linear-gradient(135deg, var(--blue-bright), var(--cyan));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .stat-label { color: var(--gray); font-size: 0.85rem; font-weight: 500; margin-top: 0.25rem; }
+
+        /* ═══ Features ═══ */
+        .features { padding: 6rem 2rem; max-width: 1200px; margin: 0 auto; }
+        .section-label {
+            font-size: 0.8rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+            color: var(--blue-bright); margin-bottom: 0.75rem;
+        }
+        .section-title {
+            font-size: 2.2rem; font-weight: 700; letter-spacing: -1px; margin-bottom: 1rem;
+        }
+        .section-desc { color: var(--gray); font-size: 1rem; max-width: 600px; line-height: 1.7; margin-bottom: 3rem; }
+        .feature-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;
+        }
+        .feature-card {
+            background: var(--glass); border: 1px solid var(--glass-border);
+            border-radius: 16px; padding: 2rem; transition: all 0.3s ease;
+            position: relative; overflow: hidden;
+        }
+        .feature-card:hover {
+            border-color: rgba(0, 163, 224, 0.3); background: var(--glass-hover);
+            transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+        }
+        .feature-card::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--blue-bright), transparent);
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .feature-card:hover::after { opacity: 1; }
+        .feature-icon {
+            width: 48px; height: 48px; border-radius: 12px; display: flex;
+            align-items: center; justify-content: center; margin-bottom: 1.25rem;
+            font-size: 1.3rem;
+        }
+        .feature-card h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .feature-card p { color: var(--gray); font-size: 0.88rem; line-height: 1.6; margin: 0; }
+
+        /* ═══ Transports ═══ */
+        .transports { padding: 6rem 2rem; max-width: 1200px; margin: 0 auto; }
+        .transport-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+        .transport-card {
+            background: var(--glass); border: 1px solid var(--glass-border);
+            border-radius: 16px; padding: 2rem; text-align: center;
+            transition: all 0.3s ease;
+        }
+        .transport-card:hover { border-color: rgba(0, 163, 224, 0.3); transform: translateY(-4px); }
+        .transport-card .proto {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+            color: var(--blue-bright); background: var(--blue-glow);
+            padding: 0.3rem 0.8rem; border-radius: 6px; display: inline-block; margin-bottom: 1rem;
+        }
+        .transport-card h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .transport-card p { color: var(--gray); font-size: 0.85rem; line-height: 1.6; }
+
+        /* ═══ CTA ═══ */
+        .cta {
+            padding: 6rem 2rem; text-align: center;
+            background: linear-gradient(180deg, var(--navy) 0%, var(--navy-mid) 100%);
+            border-top: 1px solid var(--glass-border);
+        }
+        .cta h2 { font-size: 2.5rem; font-weight: 700; letter-spacing: -1px; margin-bottom: 1rem; }
+        .cta p { color: var(--gray); font-size: 1.1rem; margin-bottom: 2rem; }
+
+        /* ═══ Footer ═══ */
+        .footer {
+            padding: 3rem 2rem; border-top: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center;
+            max-width: 1200px; margin: 0 auto; flex-wrap: wrap; gap: 1rem;
+        }
+        .footer-left { color: var(--gray); font-size: 0.85rem; }
+        .footer-links { display: flex; gap: 2rem; }
+        .footer-links a { color: var(--gray); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .footer-links a:hover { color: var(--blue-bright); }
+
+        /* ═══ Animations ═══ */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeInUp 0.8s ease both; }
+
+        /* ═══ Responsive ═══ */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; letter-spacing: -1px; }
+            .hero-sub { font-size: 1rem; }
+            .stats { gap: 2rem; }
+            .stat-num { font-size: 2rem; }
+            .transport-grid { grid-template-columns: 1fr; }
+            .nav-links { gap: 1rem; }
+            .footer { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="top-nav" id="topNav">
+    <div class="logo">SAJHA<span>v4.0.0</span></div>
+    <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#transports">Transports</a>
+        <a href="/help">Help</a>
+        <a href="/about">About</a>
+        <a href="/docs">Docs</a>
+        <a href="/login" class="btn-login"><i class="bi bi-box-arrow-in-right"></i> Sign In</a>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="hero-badge"><i class="bi bi-circle-fill"></i> MCP Protocol v2025-06-18 · Production Ready</div>
+    <h1>The <span class="gradient-text">Intelligence Layer</span><br>for AI Agents</h1>
+    <p class="hero-sub">497 tools. 6 LLM providers. 3 transports. One protocol.<br>
+    SAJHA connects every AI agent to financial markets, government data, analytics, and enterprise systems through a single MCP endpoint.</p>
+    <div class="hero-actions">
+        <a href="/login" class="btn-hero btn-hero-primary"><i class="bi bi-rocket-takeoff"></i> Get Started</a>
+        <a href="/docs" class="btn-hero btn-hero-outline"><i class="bi bi-book"></i> Documentation</a>
+    </div>
+    <div class="hero-code">
+        <div class="code-window">
+            <div class="code-bar">
+                <div class="code-dot r"></div><div class="code-dot y"></div><div class="code-dot g"></div>
+                <span>connect.py</span>
+            </div>
+            <div class="code-body">
+<span class="kw">from</span> sajhaclient <span class="kw">import</span> <span class="fn">MCPWebSocketClient</span>, <span class="fn">ApiKeyAuth</span><br>
+<br>
+<span class="kw">with</span> <span class="fn">MCPWebSocketClient</span>(auth=<span class="fn">ApiKeyAuth</span>(<span class="str">"sja_key"</span>)) <span class="kw">as</span> ws:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;ws.<span class="fn">initialize</span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;tools = ws.<span class="fn">list_tools</span>()&nbsp;&nbsp;<span class="cmt"># 497 tools available</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;quote = ws.<span class="fn">call_tool</span>(<span class="str">"yahoo_quote"</span>, symbol=<span class="str">"AAPL"</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;risk&nbsp; = ws.<span class="fn">call_tool</span>(<span class="str">"calc_var"</span>, returns=quote[<span class="str">"history"</span>])
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats -->
+<section class="stats">
+    <div class="stat"><div class="stat-num">497</div><div class="stat-label">Built-in Tools</div></div>
+    <div class="stat"><div class="stat-num">6</div><div class="stat-label">LLM Providers</div></div>
+    <div class="stat"><div class="stat-num">3</div><div class="stat-label">Transports</div></div>
+    <div class="stat"><div class="stat-num">19</div><div class="stat-label">Database Tables</div></div>
+    <div class="stat"><div class="stat-num">79+</div><div class="stat-label">API Endpoints</div></div>
+    <div class="stat"><div class="stat-num">12</div><div class="stat-label">MCP Methods</div></div>
+</section>
+
+<!-- Features -->
+<section class="features" id="features">
+    <div class="section-label">Capabilities</div>
+    <h2 class="section-title">Not a tool server. An intelligence server.</h2>
+    <p class="section-desc">SAJHA embeds the LLM gateway, so it can reason about tools, resolve intent, compose workflows, and track costs. Other MCP servers are dumb pipes.</p>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="feature-icon" style="background: rgba(0, 163, 224, 0.1); color: var(--blue-bright);"><i class="bi bi-cpu"></i></div>
+            <h3>Embedded LLM Gateway</h3>
+            <p>Anthropic, OpenAI, Bedrock, Together, Ollama, Azure — all via official SDKs. Registry factory for custom providers. DB-managed models with user-level overrides.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon" style="background: rgba(6, 214, 160, 0.1); color: var(--cyan);"><i class="bi bi-search"></i></div>
+            <h3>Semantic Tool Discovery</h3>
+            <p>Describe what you need in English. Vector embeddings of 497 tool descriptions resolve intent to the right tool with confidence scores and auto-extracted parameters.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;"><i class="bi bi-boxes"></i></div>
+            <h3>Composite Tools</h3>
+            <p>Chain multiple tools into one call. Sibling pattern runs tools in parallel. Parent-Child fans out per record. Dynamic schemas built at boot from DB definitions.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon" style="background: rgba(220, 53, 69, 0.1); color: #dc3545;"><i class="bi bi-graph-up"></i></div>
+            <h3>OpenTelemetry Observability</h3>
+            <p>Per-tool p50/p95/p99 latency histograms. Error spike alerting. Health probes for Kubernetes. Optional OTEL SDK exports to Datadog, Grafana, Splunk.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon" style="background: rgba(111, 66, 193, 0.1); color: #6f42c1;"><i class="bi bi-people"></i></div>
+            <h3>Multi-Tenancy</h3>
+            <p>Tenant-isolated tool access with wildcard patterns. Per-tenant quotas, data isolation, and API key pools. Enterprise-ready from day one.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon" style="background: rgba(40, 167, 69, 0.1); color: #28a745;"><i class="bi bi-puzzle"></i></div>
+            <h3>Plugin System</h3>
+            <p>Drop a plugin directory with JSON tool configs or Python classes. Auto-discovered, checksum-verified, dependency-installed. Publish and share tool packs.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon" style="background: rgba(0, 163, 224, 0.1); color: var(--blue-bright);"><i class="bi bi-shield-lock"></i></div>
+            <h3>Multi-Layer Security</h3>
+            <p>Four auth methods: JWT, API Key, Session Cookie, OAuth SSO. RBAC with wildcard tool permissions. Every call authenticated, authorised, and audit-logged.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon" style="background: rgba(6, 214, 160, 0.1); color: var(--cyan);"><i class="bi bi-magic"></i></div>
+            <h3>MCP Studio</h3>
+            <p>7 visual tool creators: Python, REST, DB Query, Script, PowerBI Report, PowerBI DAX, LiveLink. Analysts create tools without writing code. Hot-reload deploys in seconds.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;"><i class="bi bi-clock-history"></i></div>
+            <h3>Tool Versioning</h3>
+            <p>Run v1 and v2 side-by-side. Deprecation lifecycle with sunset dates. Contract testing validates all 497 tools against live APIs. Zero surprises in production.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Transports -->
+<section class="transports" id="transports">
+    <div class="section-label">Connectivity</div>
+    <h2 class="section-title">Three ways to connect. One protocol.</h2>
+    <p class="section-desc">Every transport uses the same MCPHandler — identical JSON-RPC 2.0, same 12 methods, same auth, same audit logging.</p>
+    <div class="transport-grid">
+        <div class="transport-card">
+            <div class="proto">POST /mcp</div>
+            <h3>HTTP POST</h3>
+            <p>Stateless request-response. One call, one result. Best for automation scripts, CI/CD pipelines, and simple tool execution.</p>
+        </div>
+        <div class="transport-card">
+            <div class="proto">GET /mcp/sse</div>
+            <h3>Server-Sent Events</h3>
+            <p>Server-push streaming. Persistent connection for long-running tools, progress updates, and real-time web UI feeds.</p>
+        </div>
+        <div class="transport-card">
+            <div class="proto">WS /mcp/ws</div>
+            <h3>WebSocket</h3>
+            <p>Full-duplex bidirectional. Server pushes notifications without polling. Best for interactive agents and real-time dashboards.</p>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+    <h2>Ready to connect your agents?</h2>
+    <p>497 tools waiting. Zero setup required. Start in 30 seconds.</p>
+    <a href="/login" class="btn-hero btn-hero-primary" style="font-size: 1.1rem; padding: 1rem 2.5rem;"><i class="bi bi-rocket-takeoff"></i> Sign In to SAJHA</a>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="footer-left">© 2025–2030 Ashutosh Sinha · SAJHA MCP Server v4.0.0</div>
+    <div class="footer-links">
+        <a href="/help"><i class="bi bi-question-circle me-1"></i>Help</a>
+        <a href="/about"><i class="bi bi-info-circle me-1"></i>About</a>
+        <a href="/docs"><i class="bi bi-book me-1"></i>Docs</a>
+        <a href="https://github.com/ajsinha/sajhamcpserver"><i class="bi bi-github me-1"></i>GitHub</a>
+    </div>
+</footer>
+
+<script>
+// Scroll effect for nav
+window.addEventListener('scroll', () => {
+    document.getElementById('topNav').classList.toggle('scrolled', window.scrollY > 50);
+});
+
+// Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelector(a.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
+    });
+});
+</script>
+</body>
+</html>

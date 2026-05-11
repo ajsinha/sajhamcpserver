@@ -43,6 +43,8 @@ async def tool_execute_page(tool_name: str, request: Request, auth: AuthContext 
         'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
         'tool': tool.to_mcp_format(),
         'tool_name': tool_name,
+        'tool_enabled': tool.enabled,
+        'tool_version': getattr(tool, 'version', '4.0.0'),
         'is_admin': auth.is_admin,
     })
 
@@ -57,11 +59,19 @@ async def tool_schema_page(tool_name: str, request: Request, auth: AuthContext =
             'message': f'Tool "{tool_name}" does not exist',
         }, status_code=404)
 
+    import json
+    tool_data = tool.to_mcp_format()
+    tool_cfg = tools_registry.tool_configs.get(tool_name, {})
+    
     return render(request, 'tools/tool_schema.html', {
         'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
-        'tool': tool.to_mcp_format(),
+        'tool': tool_data,
         'tool_name': tool_name,
-        'tool_config': tools_registry.tool_configs.get(tool_name, {}),
+        'tool_config': tool_cfg,
+        'tool_enabled': tool.enabled,
+        'tool_version': getattr(tool, 'version', '4.0.0'),
+        'schema_json': json.dumps(tool_data.get('inputSchema', {}), indent=2, default=str),
+        'config_json': json.dumps(tool_cfg, indent=2, default=str),
         'is_admin': auth.is_admin,
     })
 

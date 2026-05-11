@@ -2,7 +2,7 @@
   "name": "openbb_regulators_sec_search",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
   "description": "Search SEC EDGAR via OpenBB \u2014 find companies and filings",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

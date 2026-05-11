@@ -232,25 +232,10 @@ Provide feedback on:
     </div>
 </div>
 
-<!-- Preview Modal -->
-<div class="modal fade" id="previewModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-eye"></i> Prompt Preview (JSON)</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <pre id="previewJson" class="bg-dark text-light p-3 rounded" style="white-space: pre-wrap; word-wrap: break-word;"></pre>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="copyPreview()">
-                    <i class="bi bi-clipboard"></i> Copy
-                </button>
-            </div>
-        </div>
-    </div>
+<!-- Preview Section (replaced modal) -->
+<div id="previewSection" class="card mt-3 d-none">
+    <div class="card-header bg-info text-white d-flex justify-content-between"><span><i class="bi bi-eye me-2"></i>Prompt Preview (JSON)</span><button class="btn btn-sm btn-outline-light" onclick="this.closest('.card').classList.add('d-none')">Close</button></div>
+    <div class="card-body"><pre id="previewContent" class="bg-dark text-light p-3 rounded" style="max-height:400px;overflow:auto"></pre></div>
 </div>
 
 {% endblock %}
@@ -390,7 +375,8 @@ function collectFormData() {
 function previewPrompt() {
     const data = collectFormData();
     document.getElementById('previewJson').textContent = JSON.stringify(data, null, 2);
-    new bootstrap.Modal(document.getElementById('previewModal')).show();
+    document.getElementById('previewSection').classList.remove('d-none');
+    document.getElementById('previewSection').scrollIntoView({behavior:'smooth'});
 }
 
 function copyPreview() {

@@ -2,7 +2,7 @@
   "name": "fmp_exec_compensation",
   "implementation": "sajha.tools.impl.fmp_tools.FMPExecCompensationTool",
   "description": "Get executive compensation data from FMP \u2014 salary, bonus, stock awards, total pay for company officers",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

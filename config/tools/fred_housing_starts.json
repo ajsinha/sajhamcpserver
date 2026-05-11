@@ -2,7 +2,7 @@
   "name": "fred_housing_starts",
   "implementation": "sajha.tools.impl.fred_tools.FREDHousingStartsTool",
   "description": "Get US Housing Starts from FRED",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

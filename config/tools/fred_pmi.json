@@ -2,7 +2,7 @@
   "name": "fred_pmi",
   "implementation": "sajha.tools.impl.fred_tools.FREDPMITool",
   "description": "Get Manufacturing Employment (proxy for PMI) from FRED",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

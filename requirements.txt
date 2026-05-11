@@ -53,3 +53,16 @@ openbb[yfinance,fmp,fred,sec,ecb,imf,oecd,worldbank,alpha_vantage,benzinga,intri
 # ── Testing ──────────────────────────────────────────────────
 pytest>=7.4.0
 pytest-asyncio>=0.23.0
+
+# ── AI Integration: LLM Provider SDKs ────────────────────────
+anthropic>=0.39.0                   # Claude API (official SDK)
+openai>=1.50.0                      # OpenAI GPT + embeddings (official SDK)
+together>=1.3.0                     # Together.ai open-source models
+ollama>=0.4.0                       # Ollama local models
+# boto3 already listed above for AWS/S3 — also covers Bedrock
+
+# ── v4.0.0: Observability (optional — falls back to built-in metrics) ─
+# opentelemetry-api>=1.20.0
+# opentelemetry-sdk>=1.20.0
+# opentelemetry-exporter-otlp>=1.20.0
+# Uncomment above for OTEL trace/metric export to Datadog/Grafana/Splunk

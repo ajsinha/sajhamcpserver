@@ -2,7 +2,7 @@
   "name": "fmp_insider_trading",
   "implementation": "sajha.tools.impl.fmp_tools.FMPInsiderTradingTool",
   "description": "Get insider trading activity from FMP \u2014 buys, sells, and option exercises by company officers, directors, and major shareholders",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

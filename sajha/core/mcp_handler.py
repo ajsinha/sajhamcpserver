@@ -40,7 +40,7 @@ class MCPHandler:
             "protocolVersion": "2025-06-18",
             "serverInfo": {
                 "name": "SAJHA MCP Server",
-                "version": "3.1.0"
+                "version": "4.0.0"
             },
             "capabilities": {
                 "tools": {
@@ -54,7 +54,11 @@ class MCPHandler:
                     "listChanged": True
                 },
                 "logging": {},
-                "completions": {}
+                "completions": {},
+                "websocket": {
+                    "endpoint": "/mcp/ws",
+                    "authMethods": ["token", "api_key"]
+                }
             }
         }
     

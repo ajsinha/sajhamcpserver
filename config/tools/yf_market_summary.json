@@ -2,7 +2,7 @@
   "name": "yf_market_summary",
   "implementation": "sajha.tools.impl.yfinance_tools.YFMarketSummaryTool",
   "description": "Get market summary from Yahoo Finance \u2014 S&P 500, Dow, NASDAQ, VIX, Treasury yields at a glance",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

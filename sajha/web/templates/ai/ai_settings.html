@@ -1,0 +1,496 @@
+{% extends "common/base.html" %}
+{% block title %}AI Settings - SAJHA MCP Server{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0"><i class="bi bi-cpu"></i> AI Settings</h1>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#providers"><i class="bi bi-cloud me-1"></i>Providers</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#models"><i class="bi bi-boxes me-1"></i>Models</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#preferences"><i class="bi bi-sliders me-1"></i>My Preferences</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#semantic"><i class="bi bi-search me-1"></i>Semantic Search</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#usage"><i class="bi bi-bar-chart me-1"></i>Token Usage</a></li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- ═══ Providers Tab ═══ -->
+        <div class="tab-pane fade show active" id="providers">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="bi bi-cloud me-2"></i>Configured Providers</h5>
+                <button class="btn btn-success" onclick="showAddProvider()"><i class="bi bi-plus-lg me-1"></i>Add Provider</button>
+            </div>
+            <div class="row g-3" id="providerCards"></div>
+
+            <!-- ═══ Add Provider Form (inline, no modal) ═══ -->
+            <div class="card mt-4" id="addProviderForm" style="display:none">
+                <div class="card-header bg-success text-white"><i class="bi bi-plus-circle me-2"></i>Add New LLM Provider</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Provider Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="newProvType" onchange="updateProviderFields()">
+                                <option value="">Select provider...</option>
+                                <option value="anthropic">Anthropic (Claude)</option>
+                                <option value="openai">OpenAI (GPT)</option>
+                                <option value="bedrock">AWS Bedrock</option>
+                                <option value="together">Together.ai</option>
+                                <option value="ollama">Ollama (Local)</option>
+                                <option value="azure_openai">Azure OpenAI</option>
+                                <option value="custom">Custom Provider</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Display Name</label>
+                            <input type="text" class="form-control" id="newProvName" placeholder="e.g. Production Anthropic">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Status</label>
+                            <select class="form-select" id="newProvEnabled">
+                                <option value="true">Enabled</option>
+                                <option value="false">Disabled</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">API Key <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-key"></i></span>
+                                <input type="password" class="form-control" id="newProvApiKey" placeholder="sk-ant-... or sk-...">
+                                <button class="btn btn-outline-secondary" type="button" onclick="toggleKeyVisibility('newProvApiKey', this)"><i class="bi bi-eye"></i></button>
+                            </div>
+                            <div class="form-text" id="apiKeyHint">Required for cloud providers. Not needed for Ollama.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Base URL</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+                                <input type="text" class="form-control" id="newProvBaseUrl" placeholder="Auto-detected from provider type">
+                            </div>
+                            <div class="form-text" id="baseUrlHint">Leave blank to use the provider's default endpoint.</div>
+                        </div>
+                    </div>
+
+                    <!-- Conditional fields based on provider type -->
+                    <div id="bedrockFields" class="row g-3 mt-1" style="display:none">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">AWS Region</label>
+                            <select class="form-select" id="newProvRegion">
+                                <option value="us-east-1">us-east-1 (N. Virginia)</option>
+                                <option value="us-west-2">us-west-2 (Oregon)</option>
+                                <option value="eu-west-1">eu-west-1 (Ireland)</option>
+                                <option value="ap-northeast-1">ap-northeast-1 (Tokyo)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">AWS Access Key ID</label>
+                            <input type="text" class="form-control" id="newProvAwsKey" placeholder="AKIA...">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">AWS Secret Access Key</label>
+                            <input type="password" class="form-control" id="newProvAwsSecret" placeholder="Secret key">
+                        </div>
+                    </div>
+
+                    <div id="azureFields" class="row g-3 mt-1" style="display:none">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Azure Deployment Name</label>
+                            <input type="text" class="form-control" id="newProvAzureDeployment" placeholder="gpt-4-deployment">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">API Version</label>
+                            <input type="text" class="form-control" id="newProvAzureVersion" value="2024-02-15-preview">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Azure Endpoint</label>
+                            <input type="text" class="form-control" id="newProvAzureEndpoint" placeholder="https://your-resource.openai.azure.com">
+                        </div>
+                    </div>
+
+                    <div id="ollamaFields" class="row g-3 mt-1" style="display:none">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Ollama Host</label>
+                            <input type="text" class="form-control" id="newProvOllamaHost" value="http://localhost:11434">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Default Model</label>
+                            <input type="text" class="form-control" id="newProvOllamaModel" placeholder="llama3, mistral, codellama...">
+                        </div>
+                    </div>
+
+                    <div id="customFields" class="row g-3 mt-1" style="display:none">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Provider Class (Python)</label>
+                            <input type="text" class="form-control" id="newProvCustomClass" placeholder="my_module.MyLLMProvider">
+                            <div class="form-text">Fully qualified Python class implementing LLMProvider ABC.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Extra Config (JSON)</label>
+                            <textarea class="form-control" id="newProvCustomConfig" rows="2" placeholder='{"timeout": 30, "max_retries": 3}'></textarea>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <div class="d-flex gap-2 align-items-center">
+                        <button class="btn btn-success" onclick="saveNewProvider()"><i class="bi bi-check-lg me-1"></i>Save Provider</button>
+                        <button class="btn btn-outline-info" onclick="testNewProvider()"><i class="bi bi-heart-pulse me-1"></i>Test Connection</button>
+                        <button class="btn btn-secondary" onclick="cancelAddProvider()">Cancel</button>
+                        <div id="addProvStatus" class="ms-3"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ Edit Provider Form (inline, no modal) ═══ -->
+            <div class="card mt-4" id="editProviderForm" style="display:none">
+                <div class="card-header bg-warning text-dark"><i class="bi bi-pencil me-2"></i>Edit Provider — <span id="editProvName"></span></div>
+                <div class="card-body">
+                    <input type="hidden" id="editProvType">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">API Key</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-key"></i></span>
+                                <input type="password" class="form-control" id="editProvApiKey" placeholder="Enter new API key (leave blank to keep current)">
+                                <button class="btn btn-outline-secondary" type="button" onclick="toggleKeyVisibility('editProvApiKey', this)"><i class="bi bi-eye"></i></button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Base URL (optional)</label>
+                            <input type="text" class="form-control" id="editProvBaseUrl" placeholder="Custom endpoint URL">
+                        </div>
+                    </div>
+                    <div class="mt-3 d-flex gap-2">
+                        <button class="btn btn-primary" onclick="saveProvider()"><i class="bi bi-check-lg me-1"></i>Save</button>
+                        <button class="btn btn-secondary" onclick="cancelEditProvider()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Models Tab ═══ -->
+        <div class="tab-pane fade" id="models">
+            <div class="table-responsive">
+                <table class="table table-hover" id="modelsTable" data-enhance="true" data-page-sizes="10,25,50">
+                    <thead><tr><th>Model</th><th>Provider</th><th>Context</th><th>Cost (in/out)</th><th>Default</th><th>Actions</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- Inline Add Form (replaces modal) -->
+            <div class="card mt-3" id="addModelForm" style="display:none">
+                <div class="card-header bg-success text-white"><i class="bi bi-plus-circle me-2"></i>Add Model</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3"><label class="form-label">Provider</label><select class="form-select" id="newModelProvider"><option>anthropic</option><option>openai</option><option>bedrock</option><option>together</option><option>ollama</option><option>azure_openai</option></select></div>
+                        <div class="col-md-3"><label class="form-label">Model ID</label><input class="form-control" id="newModelId" placeholder="claude-sonnet-4-20250514"></div>
+                        <div class="col-md-2"><label class="form-label">Context Window</label><input type="number" class="form-control" id="newModelCtx" value="200000"></div>
+                        <div class="col-md-2"><label class="form-label">Input Cost ($/1K)</label><input type="number" step="0.001" class="form-control" id="newModelCostIn" value="0.003"></div>
+                        <div class="col-md-2"><label class="form-label">Output Cost ($/1K)</label><input type="number" step="0.001" class="form-control" id="newModelCostOut" value="0.015"></div>
+                    </div>
+                    <div class="mt-3 d-flex gap-2">
+                        <button class="btn btn-success" onclick="saveNewModel()"><i class="bi bi-plus-lg me-1"></i>Add</button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('addModelForm').style.display='none'">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-outline-success mt-3" onclick="document.getElementById('addModelForm').style.display='block'" id="showAddModel"><i class="bi bi-plus-lg me-1"></i>Add Model</button>
+        </div>
+
+        <!-- ═══ Preferences Tab ═══ -->
+        <div class="tab-pane fade" id="preferences">
+            <div class="card">
+                <div class="card-header card-header-info"><i class="bi bi-sliders me-2"></i>My AI Preferences</div>
+                <div class="card-body">
+                    <p class="text-muted">Override the system default provider and model for your account. Leave blank to use system defaults.</p>
+                    <div class="row g-3">
+                        <div class="col-md-4"><label class="form-label fw-bold">Preferred Provider</label><select class="form-select" id="prefProvider"><option value="">System Default</option></select></div>
+                        <div class="col-md-4"><label class="form-label fw-bold">Preferred Model</label><select class="form-select" id="prefModel"><option value="">System Default</option></select></div>
+                        <div class="col-md-2"><label class="form-label fw-bold">Temperature</label><input type="number" step="0.1" min="0" max="2" class="form-control" id="prefTemp" value="0.7"></div>
+                        <div class="col-md-2"><label class="form-label fw-bold">Max Tokens</label><input type="number" class="form-control" id="prefMaxTokens" value="4096"></div>
+                    </div>
+                    <div class="mt-3 d-flex gap-2">
+                        <button class="btn btn-primary" onclick="savePreferences()"><i class="bi bi-check-lg me-1"></i>Save Preferences</button>
+                        <button class="btn btn-outline-danger" onclick="clearPreferences()"><i class="bi bi-trash me-1"></i>Clear (Use Defaults)</button>
+                    </div>
+                    <div id="prefStatus" class="mt-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Semantic Search Tab ═══ -->
+        <div class="tab-pane fade" id="semantic">
+            <div class="card">
+                <div class="card-header card-header-primary"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
+                <div class="card-body">
+                    <p class="text-muted">Describe what you need in plain English. SAJHA finds the best matching tools using vector similarity.</p>
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control form-control-lg" id="semanticQuery" placeholder="e.g. find companies with high debt-to-equity ratios">
+                        <button class="btn btn-primary" onclick="semanticSearch()"><i class="bi bi-search me-1"></i>Search</button>
+                    </div>
+                    <div id="semanticResults"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Usage Tab ═══ -->
+        <div class="tab-pane fade" id="usage">
+            <div class="card">
+                <div class="card-header card-header-success"><i class="bi bi-bar-chart me-2"></i>Token Usage</div>
+                <div class="card-body" id="usageContent"><p class="text-muted">Loading usage data...</p></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load providers on page load
+function loadProviders() {
+    fetch('/api/ai/providers').then(r=>r.json()).then(data => {
+        const c = document.getElementById('providerCards');
+        c.innerHTML = '';
+        (data.providers||[]).forEach(p => {
+            const health = p.health ? '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Healthy</span>' : '<span class="badge bg-secondary">Unknown</span>';
+            const enabled = p.enabled ? '' : 'opacity-50';
+            const status = p.enabled ? '<span class="badge bg-success bg-opacity-75 ms-1">ON</span>' : '<span class="badge bg-danger bg-opacity-75 ms-1">OFF</span>';
+            const hasKey = p.has_api_key ? '<i class="bi bi-key-fill text-success me-1" title="API key configured"></i>' : '<i class="bi bi-key text-danger me-1" title="No API key"></i>';
+            c.innerHTML += `<div class="col-md-6 col-lg-4"><div class="card h-100 ${enabled}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div><h5 class="mb-0">${p.display_name || p.type}</h5><small class="text-muted">${p.type}</small></div>
+                        <div>${health}${status}</div>
+                    </div>
+                    <div class="mb-2 small">${hasKey}<span class="text-muted">${p.base_url || 'Default endpoint'}</span></div>
+                    <div class="mb-2 small text-muted">${p.model_count || 0} models configured</div>
+                    <div class="d-flex gap-2 mt-auto flex-wrap">
+                        <button class="btn btn-sm btn-outline-warning" onclick="editProvider('${p.type}')"><i class="bi bi-pencil me-1"></i>Edit</button>
+                        <button class="btn btn-sm btn-outline-info" onclick="testProvider('${p.type}')"><i class="bi bi-heart-pulse me-1"></i>Test</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="setDefault('${p.type}')"><i class="bi bi-star me-1"></i>Default</button>
+                        <button class="btn btn-sm btn-outline-${p.enabled?'secondary':'success'}" onclick="toggleProvider('${p.type}', ${!p.enabled})">${p.enabled?'Disable':'Enable'}</button>
+                    </div>
+                </div>
+            </div></div>`;
+        });
+    }).catch(()=>{});
+}
+
+function editProvider(type) {
+    document.getElementById('editProviderForm').style.display = 'block';
+    document.getElementById('editProvType').value = type;
+    document.getElementById('editProvName').textContent = type;
+    document.getElementById('editProviderForm').scrollIntoView({behavior:'smooth'});
+}
+
+function cancelEditProvider() {
+    document.getElementById('editProviderForm').style.display = 'none';
+}
+
+function saveProvider() {
+    const type = document.getElementById('editProvType').value;
+    fetch(`/api/ai/providers/${type}/config`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({api_key: document.getElementById('editProvApiKey').value, base_url: document.getElementById('editProvBaseUrl').value})
+    }).then(r=>r.json()).then(()=>{
+        cancelEditProvider();
+        loadProviders();
+    });
+}
+
+function testProvider(type) {
+    fetch(`/api/ai/providers/${type}/health`, {method:'POST'}).then(r=>r.json()).then(d=>{
+        alert(d.healthy ? `${type}: Healthy!` : `${type}: ${d.error||'Failed'}`);
+    });
+}
+
+function setDefault(type) {
+    fetch('/api/ai/defaults', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({provider:type})})
+    .then(()=>loadProviders());
+}
+
+function toggleProvider(type, enable) {
+    fetch(`/api/ai/providers/${type}/config`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({enabled: enable})
+    }).then(()=>loadProviders());
+}
+
+function loadModels() {
+    fetch('/api/ai/models').then(r=>r.json()).then(data => {
+        const tb = document.querySelector('#modelsTable tbody');
+        tb.innerHTML = '';
+        (data.models||[]).forEach(m => {
+            tb.innerHTML += `<tr>
+                <td><strong>${m.model_id}</strong></td>
+                <td><span class="badge bg-primary">${m.provider_type}</span></td>
+                <td>${m.context_window?.toLocaleString()||'-'}</td>
+                <td>$${m.input_cost_per_1k||0} / $${m.output_cost_per_1k||0}</td>
+                <td>${m.is_default?'<i class="bi bi-star-fill text-warning"></i>':''}</td>
+                <td><button class="btn btn-sm btn-outline-danger" onclick="deleteModel('${m.id}')"><i class="bi bi-trash"></i></button></td>
+            </tr>`;
+        });
+        // Re-enhance table after dynamic data load
+        const tbl = document.getElementById('modelsTable');
+        if (tbl) { tbl.dataset.enhanced = 'false'; window.enhanceTable(tbl); }
+    });
+}
+
+function saveNewModel() {
+    fetch('/api/ai/models', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+        provider_type: document.getElementById('newModelProvider').value,
+        model_id: document.getElementById('newModelId').value,
+        context_window: parseInt(document.getElementById('newModelCtx').value),
+        input_cost_per_1k: parseFloat(document.getElementById('newModelCostIn').value),
+        output_cost_per_1k: parseFloat(document.getElementById('newModelCostOut').value)
+    })}).then(()=>{document.getElementById('addModelForm').style.display='none'; loadModels();});
+}
+
+function deleteModel(id) {
+    if(confirm('Delete this model?')) fetch(`/api/ai/models/${id}`,{method:'DELETE'}).then(()=>loadModels());
+}
+
+function savePreferences() {
+    fetch('/api/ai/preferences', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+        provider: document.getElementById('prefProvider').value,
+        model: document.getElementById('prefModel').value,
+        temperature: parseFloat(document.getElementById('prefTemp').value),
+        max_tokens: parseInt(document.getElementById('prefMaxTokens').value)
+    })}).then(()=>{document.getElementById('prefStatus').innerHTML='<div class="alert alert-success py-2"><i class="bi bi-check-lg me-1"></i>Saved</div>';});
+}
+
+function clearPreferences() {
+    fetch('/api/ai/preferences',{method:'DELETE'}).then(()=>{document.getElementById('prefStatus').innerHTML='<div class="alert alert-info py-2">Preferences cleared — using system defaults</div>';});
+}
+
+function semanticSearch() {
+    const q = document.getElementById('semanticQuery').value;
+    if (!q) return;
+    const r = document.getElementById('semanticResults');
+    r.innerHTML = '<div class="text-muted">Searching...</div>';
+    fetch('/api/ai/resolve-tool', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:q,top_k:5})})
+    .then(res=>res.json()).then(data => {
+        r.innerHTML = '';
+        (data.matches||[]).forEach(m => {
+            r.innerHTML += `<div class="card mb-2"><div class="card-body py-2 d-flex justify-content-between align-items-center">
+                <div><strong>${m.tool_name}</strong><br><small class="text-muted">${m.description||''}</small></div>
+                <span class="badge bg-primary">${(m.score*100).toFixed(0)}%</span>
+            </div></div>`;
+        });
+        if (!data.matches?.length) r.innerHTML = '<div class="alert alert-warning">No matches found</div>';
+    }).catch(e => r.innerHTML = `<div class="alert alert-danger">${e}</div>`);
+}
+
+document.addEventListener('DOMContentLoaded', () => { loadProviders(); loadModels(); });
+
+// ═══ Add Provider ═══
+
+function showAddProvider() {
+    document.getElementById('addProviderForm').style.display = 'block';
+    document.getElementById('addProviderForm').scrollIntoView({behavior:'smooth'});
+}
+
+function cancelAddProvider() {
+    document.getElementById('addProviderForm').style.display = 'none';
+    document.getElementById('addProvStatus').innerHTML = '';
+}
+
+function updateProviderFields() {
+    const type = document.getElementById('newProvType').value;
+    // Hide all conditional fields
+    ['bedrockFields','azureFields','ollamaFields','customFields'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+    });
+    // Show relevant fields
+    if (type === 'bedrock') document.getElementById('bedrockFields').style.display = 'flex';
+    else if (type === 'azure_openai') document.getElementById('azureFields').style.display = 'flex';
+    else if (type === 'ollama') document.getElementById('ollamaFields').style.display = 'flex';
+    else if (type === 'custom') document.getElementById('customFields').style.display = 'flex';
+
+    // Update hints
+    const hints = {
+        anthropic: {url: 'Default: https://api.anthropic.com', key: 'Format: sk-ant-api03-...'},
+        openai: {url: 'Default: https://api.openai.com/v1', key: 'Format: sk-...'},
+        bedrock: {url: 'Uses AWS SDK — no URL needed', key: 'Uses AWS credentials instead of API key'},
+        together: {url: 'Default: https://api.together.xyz', key: 'Get from together.ai dashboard'},
+        ollama: {url: 'Default: http://localhost:11434', key: 'Not required for local Ollama'},
+        azure_openai: {url: 'Your Azure OpenAI resource endpoint', key: 'Azure API key'},
+        custom: {url: 'Your custom provider endpoint', key: 'Provider-specific API key'},
+    };
+    const h = hints[type] || {url: '', key: ''};
+    document.getElementById('baseUrlHint').textContent = h.url;
+    document.getElementById('apiKeyHint').textContent = h.key;
+
+    // Auto-fill base URLs
+    const urls = {anthropic:'', openai:'', together:'', ollama:'http://localhost:11434', bedrock:'', azure_openai:'', custom:''};
+    document.getElementById('newProvBaseUrl').placeholder = urls[type] || 'Auto-detected';
+}
+
+function toggleKeyVisibility(inputId, btn) {
+    const inp = document.getElementById(inputId);
+    if (inp.type === 'password') { inp.type = 'text'; btn.innerHTML = '<i class="bi bi-eye-slash"></i>'; }
+    else { inp.type = 'password'; btn.innerHTML = '<i class="bi bi-eye"></i>'; }
+}
+
+function saveNewProvider() {
+    const type = document.getElementById('newProvType').value;
+    if (!type) { document.getElementById('addProvStatus').innerHTML = '<span class="text-danger">Select a provider type</span>'; return; }
+
+    const payload = {
+        provider_type: type,
+        display_name: document.getElementById('newProvName').value || type,
+        api_key: document.getElementById('newProvApiKey').value,
+        base_url: document.getElementById('newProvBaseUrl').value,
+        enabled: document.getElementById('newProvEnabled').value === 'true',
+    };
+
+    // Add type-specific fields
+    if (type === 'bedrock') {
+        payload.region = document.getElementById('newProvRegion').value;
+        payload.aws_access_key = document.getElementById('newProvAwsKey').value;
+        payload.aws_secret_key = document.getElementById('newProvAwsSecret').value;
+    } else if (type === 'azure_openai') {
+        payload.deployment = document.getElementById('newProvAzureDeployment').value;
+        payload.api_version = document.getElementById('newProvAzureVersion').value;
+        payload.endpoint = document.getElementById('newProvAzureEndpoint').value;
+    } else if (type === 'ollama') {
+        payload.base_url = document.getElementById('newProvOllamaHost').value || 'http://localhost:11434';
+        payload.default_model = document.getElementById('newProvOllamaModel').value;
+    } else if (type === 'custom') {
+        payload.provider_class = document.getElementById('newProvCustomClass').value;
+        try { payload.extra_config = JSON.parse(document.getElementById('newProvCustomConfig').value || '{}'); } catch(e) {}
+    }
+
+    document.getElementById('addProvStatus').innerHTML = '<span class="text-info"><i class="bi bi-hourglass-split me-1"></i>Saving...</span>';
+    fetch(`/api/ai/providers/${type}/config`, {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    }).then(r => r.json()).then(d => {
+        if (d.error) {
+            document.getElementById('addProvStatus').innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${d.error}</span>`;
+        } else {
+            document.getElementById('addProvStatus').innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Provider saved!</span>';
+            setTimeout(() => { cancelAddProvider(); loadProviders(); }, 1500);
+        }
+    }).catch(e => {
+        document.getElementById('addProvStatus').innerHTML = `<span class="text-danger">Error: ${e}</span>`;
+    });
+}
+
+function testNewProvider() {
+    const type = document.getElementById('newProvType').value;
+    if (!type) { document.getElementById('addProvStatus').innerHTML = '<span class="text-danger">Select a provider type first</span>'; return; }
+    document.getElementById('addProvStatus').innerHTML = '<span class="text-info"><i class="bi bi-hourglass-split me-1"></i>Testing connection...</span>';
+    fetch(`/api/ai/providers/${type}/health`, {method:'POST'}).then(r=>r.json()).then(d => {
+        if (d.healthy) {
+            document.getElementById('addProvStatus').innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Connection successful!</span>';
+        } else {
+            document.getElementById('addProvStatus').innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>${d.error || 'Connection failed'}</span>`;
+        }
+    }).catch(e => {
+        document.getElementById('addProvStatus').innerHTML = `<span class="text-danger">Test failed: ${e}</span>`;
+    });
+}
+</script>
+{% endblock %}

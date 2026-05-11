@@ -2,7 +2,7 @@
   "name": "openbb_treasury_rates",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBTreasuryRatesTool",
   "description": "Get US Treasury and Federal Funds rate data via OpenBB \u2014 daily effective federal funds rate from the Federal Reserve",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -916,31 +916,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     </div>
 </div>
 
-<!-- Success Modal -->
-<div class="modal fade" id="successModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">
-                    <i class="bi bi-check-circle me-2"></i>Tool Deployed Successfully!
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Your REST tool has been created and loaded!</p>
-                <div class="bg-light p-3 rounded">
-                    <p class="mb-1"><strong>Tool:</strong> <code id="deployedToolName"></code></p>
-                    <p class="mb-1"><strong>Config:</strong> <code id="deployedJsonPath"></code></p>
-                    <p class="mb-0"><strong>Implementation:</strong> <code id="deployedPythonPath"></code></p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <a href="{{ url_for('tools_list') }}" class="btn btn-primary">
-                    <i class="bi bi-tools me-1"></i>View Tools
-                </a>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
+<!-- Success Banner (replaced modal) -->
+<div id="successBanner" class="alert alert-success d-none mx-3 mt-3" role="alert">
+    <h5><i class="bi bi-check-circle-fill me-2"></i>Tool Created Successfully!</h5>
+    <p class="mb-2">Your tool has been saved and is ready to use.</p>
+    <div class="d-flex gap-2">
+        <a href="/tools" class="btn btn-success btn-sm">View Tools</a>
+        <button class="btn btn-outline-success btn-sm" onclick="this.closest('.alert').classList.add('d-none')">Dismiss</button>
     </div>
 </div>
 {% endblock %}
@@ -1234,8 +1216,8 @@ async function deployTool() {
             document.getElementById('deployedJsonPath').textContent = result.json_path;
             document.getElementById('deployedPythonPath').textContent = result.python_path;
             
-            const modal = new bootstrap.Modal(document.getElementById('successModal'));
-            modal.show();
+            document.getElementById('successBanner').classList.remove('d-none');
+            document.getElementById('successBanner').scrollIntoView({behavior:'smooth'});
             
             showStatus('Tool deployed successfully!', 'success');
         } else {

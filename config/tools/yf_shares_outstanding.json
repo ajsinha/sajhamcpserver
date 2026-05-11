@@ -2,7 +2,7 @@
   "name": "yf_shares_outstanding",
   "implementation": "sajha.tools.impl.yfinance_tools.YFSharesOutstandingTool",
   "description": "Get shares outstanding history from Yahoo Finance \u2014 track share count changes over time",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

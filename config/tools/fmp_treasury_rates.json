@@ -2,7 +2,7 @@
   "name": "fmp_treasury_rates",
   "implementation": "sajha.tools.impl.fmp_tools.FMPTreasuryRatesTool",
   "description": "Get US Treasury rates from FMP \u2014 yield curve data across 1mo, 3mo, 6mo, 1yr, 2yr, 5yr, 10yr, 30yr maturities",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

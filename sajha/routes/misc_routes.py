@@ -6,7 +6,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 import os
 from pathlib import Path
 from fastapi import APIRouter, Request, Depends
-from sajha.auth import require_auth, require_admin, AuthContext
+from sajha.auth import require_auth, require_admin, get_current_user, AuthContext
 from sajha.app import render
 
 router = APIRouter(tags=['misc'])
@@ -58,7 +58,7 @@ async def monitoring_users(request: Request, auth: AuthContext = Depends(require
 # ── Help & About ─────────────────────────────────────────────────
 
 @router.get('/help')
-async def help_page(request: Request, auth: AuthContext = Depends(require_auth)):
+async def help_page(request: Request, auth: AuthContext = Depends(get_current_user)):
     from sajha.app import tools_registry
     total_tools = len(tools_registry.tools) if tools_registry else 0
     # Build tool groups from tool name prefixes
@@ -93,7 +93,7 @@ async def help_page(request: Request, auth: AuthContext = Depends(require_auth))
         })
 
     return render(request, 'help/help.html', {
-        'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
+        'user': {'user_id': auth.user_id or 'guest', 'user_name': auth.user_name or 'Guest', 'roles': auth.roles or []},
         'is_admin': auth.is_admin,
         'tool_stats': {'total_tools': total_tools, 'total_groups': len(group_map)},
         'tool_groups': tool_groups,
@@ -101,13 +101,13 @@ async def help_page(request: Request, auth: AuthContext = Depends(require_auth))
 
 
 @router.get('/about')
-async def about_page(request: Request, auth: AuthContext = Depends(require_auth)):
+async def about_page(request: Request, auth: AuthContext = Depends(get_current_user)):
     from sajha.app import tools_registry, prompts_registry, VERSION
     from sajha.core.config import get_settings
     settings = get_settings()
 
     return render(request, 'help/about.html', {
-        'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
+        'user': {'user_id': auth.user_id or 'guest', 'user_name': auth.user_name or 'Guest', 'roles': auth.roles or []},
         'is_admin': auth.is_admin,
         'server_version': VERSION,
         'tools_count': len(tools_registry.tools) if tools_registry else 0,
@@ -120,7 +120,7 @@ async def about_page(request: Request, auth: AuthContext = Depends(require_auth)
 
 @router.get('/docs')
 @router.get('/docs/')
-async def docs_list(request: Request, auth: AuthContext = Depends(require_auth)):
+async def docs_list(request: Request, auth: AuthContext = Depends(get_current_user)):
     docs_dir = Path('docs')
     sections = {}  # folder_name -> list of docs
     top_level = []
@@ -139,7 +139,7 @@ async def docs_list(request: Request, auth: AuthContext = Depends(require_auth))
                 top_level.append(entry)
 
     return render(request, 'docs/docs_list.html', {
-        'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
+        'user': {'user_id': auth.user_id or 'guest', 'user_name': auth.user_name or 'Guest', 'roles': auth.roles or []},
         'docs': top_level,
         'sections': sections,
         'is_admin': auth.is_admin,
@@ -147,7 +147,7 @@ async def docs_list(request: Request, auth: AuthContext = Depends(require_auth))
 
 
 @router.get('/docs/view/{doc_path:path}')
-async def docs_view(doc_path: str, request: Request, auth: AuthContext = Depends(require_auth)):
+async def docs_view(doc_path: str, request: Request, auth: AuthContext = Depends(get_current_user)):
     import base64
     docs_path = Path('docs') / doc_path
     if not docs_path.exists() or not docs_path.is_file():
@@ -166,7 +166,7 @@ async def docs_view(doc_path: str, request: Request, auth: AuthContext = Depends
     breadcrumb.append(display_name)
 
     return render(request, 'docs/docs_view.html', {
-        'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
+        'user': {'user_id': auth.user_id or 'guest', 'user_name': auth.user_name or 'Guest', 'roles': auth.roles or []},
         'doc_name': display_name,
         'content_b64': content_b64,
         'breadcrumb': breadcrumb,

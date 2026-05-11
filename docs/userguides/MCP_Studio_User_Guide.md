@@ -1,6 +1,6 @@
 # MCP Studio User Guide
 
-**Version: 3.1.0**  
+**Version: 4.0.0**  
 **Copyright © 2025-2030 Ashutosh Sinha, All Rights Reserved**
 
 ---
@@ -73,7 +73,7 @@ All MCP Studio pages support both light and dark themes with the navbar theme to
 - **Timeout Configuration** - Handle long-running exports (30-600 seconds)
 - **Environment Variable Credentials** - Client secret stored securely
 
-### PowerBI DAX Query Tool Creator (NEW in v3.1.0)
+### PowerBI DAX Query Tool Creator (NEW in v4.0.0)
 - **DAX Query Execution** - Execute EVALUATE statements against datasets
 - **Parameterized Queries** - Use @parameter_name for dynamic values
 - **Auto-Generated Schemas** - Input schema from defined parameters
@@ -82,7 +82,7 @@ All MCP Studio pages support both light and dark themes with the navbar theme to
 - **Configurable Limits** - Timeout and max rows settings
 - **Query Metrics** - Execution time in response
 
-### IBM LiveLink Document Tool Creator (NEW in v3.1.0)
+### IBM LiveLink Document Tool Creator (NEW in v4.0.0)
 - **Multiple Operations** - Search, list, get metadata, download
 - **Base64 Document Output** - All file types returned as base64
 - **Multiple Auth Types** - Basic Auth, OAuth, OTDS
@@ -91,7 +91,7 @@ All MCP Studio pages support both light and dark themes with the navbar theme to
 - **Size Limits** - Configurable max file size (1-500 MB)
 - **Timeout Handling** - Configurable request timeout
 
-### OLAP Dataset Creator (NEW in v3.1.0)
+### OLAP Dataset Creator (NEW in v4.0.0)
 - **Semantic Layer Configuration** - Define business-friendly abstractions
 - **Dimension Definition** - Configure categorical attributes for grouping
 - **Measure Definition** - Define numeric aggregations with expressions

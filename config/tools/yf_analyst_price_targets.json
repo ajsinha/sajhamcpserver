@@ -2,7 +2,7 @@
   "name": "yf_analyst_price_targets",
   "implementation": "sajha.tools.impl.yfinance_tools.YFAnalystPriceTargetsTool",
   "description": "Get analyst price targets from Yahoo Finance \u2014 low, mean, median, high targets",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

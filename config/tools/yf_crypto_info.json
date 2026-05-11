@@ -2,7 +2,7 @@
   "name": "yf_crypto_info",
   "implementation": "sajha.tools.impl.yfinance_tools.YFCryptoInfoTool",
   "description": "Get cryptocurrency info from Yahoo Finance \u2014 BTC, ETH, SOL price and market data",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

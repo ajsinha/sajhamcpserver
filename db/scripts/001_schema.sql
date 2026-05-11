@@ -166,3 +166,165 @@ CREATE TABLE IF NOT EXISTS a2a_tasks (
 );
 
 CREATE INDEX IF NOT EXISTS ix_a2a_session ON a2a_tasks(session_id);
+
+
+-- ── Prompts (moved from JSON files to database in v3.1.0) ───────────────────
+--
+-- Stores all prompt templates. Replaces config/prompts/*.json.
+-- PromptsRegistry reads from this table instead of filesystem.
+
+CREATE TABLE IF NOT EXISTS prompts (
+    id              VARCHAR(36)  PRIMARY KEY,
+    name            VARCHAR(255) NOT NULL UNIQUE,
+    description     TEXT,
+    category        VARCHAR(100),
+    template        TEXT         NOT NULL,
+    arguments_json  TEXT,
+    created_by      VARCHAR(100),
+    enabled         BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS ix_prompts_name     ON prompts(name);
+CREATE INDEX IF NOT EXISTS ix_prompts_category ON prompts(category);
+
+
+-- ── Prompt Tags (many-to-many) ──────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS prompt_tags (
+    prompt_id       VARCHAR(36)  NOT NULL REFERENCES prompts(id) ON DELETE CASCADE,
+    tag             VARCHAR(100) NOT NULL,
+    PRIMARY KEY (prompt_id, tag)
+);
+
+CREATE INDEX IF NOT EXISTS ix_prompt_tags_tag ON prompt_tags(tag);
+
+
+-- ── LLM Providers (registered AI providers — managed via Admin UI) ───────────
+
+CREATE TABLE IF NOT EXISTS llm_providers (
+    id              VARCHAR(36)  PRIMARY KEY,
+    provider_type   VARCHAR(50)  NOT NULL UNIQUE,
+    display_name    VARCHAR(255) NOT NULL,
+    enabled         BOOLEAN      NOT NULL DEFAULT TRUE,
+    api_key         VARCHAR(500),
+    base_url        VARCHAR(500),
+    region          VARCHAR(50),
+    extra_config    TEXT,
+    is_default      BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ── LLM Models (available models per provider — managed via Admin UI) ────────
+
+CREATE TABLE IF NOT EXISTS llm_models (
+    id                  VARCHAR(36)   PRIMARY KEY,
+    provider_type       VARCHAR(50)   NOT NULL,
+    model_id            VARCHAR(255)  NOT NULL,
+    display_name        VARCHAR(255)  NOT NULL,
+    context_window      INTEGER       NOT NULL DEFAULT 0,
+    max_output_tokens   INTEGER       NOT NULL DEFAULT 4096,
+    input_cost_per_1k   REAL          NOT NULL DEFAULT 0.0,
+    output_cost_per_1k  REAL          NOT NULL DEFAULT 0.0,
+    supports_tools      BOOLEAN       NOT NULL DEFAULT TRUE,
+    supports_vision     BOOLEAN       NOT NULL DEFAULT FALSE,
+    supports_streaming  BOOLEAN       NOT NULL DEFAULT TRUE,
+    supports_embeddings BOOLEAN       NOT NULL DEFAULT FALSE,
+    tags                TEXT,
+    is_default          BOOLEAN       NOT NULL DEFAULT FALSE,
+    enabled             BOOLEAN       NOT NULL DEFAULT TRUE,
+    created_at          TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(provider_type, model_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_llm_models_provider ON llm_models(provider_type);
+
+-- ── LLM Usage Tracking (token budget per user/model) ────────────────────────
+
+CREATE TABLE IF NOT EXISTS llm_usage (
+    id              VARCHAR(36)  PRIMARY KEY,
+    user_id         VARCHAR(100) NOT NULL,
+    provider        VARCHAR(50)  NOT NULL,
+    model           VARCHAR(255) NOT NULL,
+    input_tokens    INTEGER      NOT NULL DEFAULT 0,
+    output_tokens   INTEGER      NOT NULL DEFAULT 0,
+    cost_usd        REAL         NOT NULL DEFAULT 0.0,
+    latency_ms      INTEGER      NOT NULL DEFAULT 0,
+    timestamp       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS ix_llm_usage_user ON llm_usage(user_id);
+CREATE INDEX IF NOT EXISTS ix_llm_usage_ts   ON llm_usage(timestamp);
+
+-- ── User AI Preferences (user-level model overrides) ────────────────────────
+
+CREATE TABLE IF NOT EXISTS user_ai_preferences (
+    user_id         VARCHAR(100) PRIMARY KEY,
+    provider        VARCHAR(50),
+    model           VARCHAR(255),
+    temperature     REAL,
+    max_tokens      INTEGER,
+    updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ── Composite Tools (declarative multi-tool orchestration) ──────────────────
+
+CREATE TABLE IF NOT EXISTS composite_tools (
+    id              VARCHAR(36)  PRIMARY KEY,
+    name            VARCHAR(255) NOT NULL UNIQUE,
+    description     TEXT,
+    arrangement     VARCHAR(20)  NOT NULL DEFAULT 'sibling',
+    master_tool     VARCHAR(255) NOT NULL,
+    master_output_key VARCHAR(100) NOT NULL DEFAULT 'master',
+    record_path     VARCHAR(255),
+    enabled         BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_by      VARCHAR(100),
+    created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS composite_tool_steps (
+    id                VARCHAR(36)  PRIMARY KEY,
+    composite_tool_id VARCHAR(36)  NOT NULL REFERENCES composite_tools(id) ON DELETE CASCADE,
+    step_order        INTEGER      NOT NULL DEFAULT 0,
+    tool_name         VARCHAR(255) NOT NULL,
+    output_key        VARCHAR(100) NOT NULL,
+    execution_mode    VARCHAR(20)  NOT NULL DEFAULT 'parallel',
+    param_mapping     TEXT,
+    static_params     TEXT,
+    condition         TEXT
+);
+
+CREATE INDEX IF NOT EXISTS ix_comp_steps_tool ON composite_tool_steps(composite_tool_id);
+
+
+-- ── Tenants (v4.0.0 — multi-tenancy) ───────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS tenants (
+    id              VARCHAR(36)  PRIMARY KEY,
+    name            VARCHAR(255) NOT NULL UNIQUE,
+    enabled         BOOLEAN      NOT NULL DEFAULT TRUE,
+    tool_patterns   TEXT,
+    blocked_tools   TEXT,
+    quota_json      TEXT,
+    data_prefix     VARCHAR(255),
+    created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ── Tool Versions (v4.0.0 — versioning & deprecation) ──────────────────────
+
+CREATE TABLE IF NOT EXISTS tool_versions (
+    id              VARCHAR(36)  PRIMARY KEY,
+    tool_name       VARCHAR(255) NOT NULL,
+    version         VARCHAR(50)  NOT NULL,
+    lifecycle       VARCHAR(20)  NOT NULL DEFAULT 'active',
+    deprecated_at   TIMESTAMP,
+    sunset_date     VARCHAR(20),
+    successor       VARCHAR(255),
+    changelog       TEXT,
+    created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(tool_name, version)
+);
