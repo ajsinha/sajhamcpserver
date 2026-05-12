@@ -2,7 +2,7 @@
   "name": "openbb_cash_flow",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBCashFlowTool",
   "description": "Get cash flow statement via OpenBB \u2014 operating, investing, financing cash flows, free cash flow from multiple providers",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

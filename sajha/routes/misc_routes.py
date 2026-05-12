@@ -100,6 +100,72 @@ async def help_page(request: Request, auth: AuthContext = Depends(get_current_us
     })
 
 
+def _build_tool_context(auth):
+    """Shared helper: build tool_stats + tool_groups for help sub-pages."""
+    from sajha.app import tools_registry
+    total_tools = len(tools_registry.tools) if tools_registry else 0
+    group_map = {}
+    if tools_registry:
+        for name, tool in tools_registry.tools.items():
+            prefix = name.split('_')[0] if '_' in name else name
+            if prefix not in group_map:
+                group_map[prefix] = {'count': 0, 'enabled': 0, 'descriptions': []}
+            group_map[prefix]['count'] += 1
+            cfg = getattr(tool, 'config', {}) or {}
+            if cfg.get('enabled', True):
+                group_map[prefix]['enabled'] += 1
+            desc = cfg.get('description', '')
+            if desc and len(group_map[prefix]['descriptions']) < 3:
+                group_map[prefix]['descriptions'].append(desc[:80])
+    colors = ['primary', 'success', 'info', 'warning', 'danger', 'secondary']
+    icons = ['bi-tools', 'bi-graph-up', 'bi-database', 'bi-globe', 'bi-bank',
+             'bi-search', 'bi-calculator', 'bi-file-text', 'bi-currency-exchange']
+    tool_groups = []
+    for i, (gname, gdata) in enumerate(sorted(group_map.items(), key=lambda x: -x[1]['count'])):
+        tool_groups.append({
+            'name': gname, 'tool_count': gdata['count'], 'enabled_count': gdata['enabled'],
+            'color': colors[i % len(colors)], 'icon': icons[i % len(icons)],
+            'description': f"{gdata['count']} tools in the {gname} provider group",
+            'categories': gdata['descriptions'],
+        })
+    return {
+        'tool_stats': {'total_tools': total_tools, 'total_groups': len(group_map)},
+        'tool_groups': tool_groups,
+        'user': {'user_id': auth.user_id or 'guest', 'user_name': auth.user_name or 'Guest', 'roles': auth.roles or []},
+        'is_admin': auth.is_admin,
+    }
+
+
+@router.get('/help/tools')
+async def help_tools_page(request: Request, auth: AuthContext = Depends(get_current_user)):
+    ctx = _build_tool_context(auth)
+    return render(request, 'help/help_tools.html', ctx)
+
+
+@router.get('/help/ai')
+async def help_ai_page(request: Request, auth: AuthContext = Depends(get_current_user)):
+    ctx = _build_tool_context(auth)
+    return render(request, 'help/help_ai.html', ctx)
+
+
+@router.get('/help/enterprise')
+async def help_enterprise_page(request: Request, auth: AuthContext = Depends(get_current_user)):
+    ctx = _build_tool_context(auth)
+    return render(request, 'help/help_enterprise.html', ctx)
+
+
+@router.get('/help/tutorials')
+async def help_tutorials_page(request: Request, auth: AuthContext = Depends(get_current_user)):
+    ctx = _build_tool_context(auth)
+    return render(request, 'help/help_tutorials.html', ctx)
+
+
+@router.get('/help/glossary')
+async def help_glossary_page(request: Request, auth: AuthContext = Depends(get_current_user)):
+    ctx = _build_tool_context(auth)
+    return render(request, 'help/help_glossary.html', ctx)
+
+
 @router.get('/about')
 async def about_page(request: Request, auth: AuthContext = Depends(get_current_user)):
     from sajha.app import tools_registry, prompts_registry, VERSION

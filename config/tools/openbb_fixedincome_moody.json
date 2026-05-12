@@ -2,7 +2,7 @@
   "name": "openbb_fixedincome_moody",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
   "description": "Get Moody's corporate bond yields via OpenBB \u2014 AAA, BAA spreads",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

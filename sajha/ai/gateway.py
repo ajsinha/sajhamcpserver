@@ -271,7 +271,7 @@ class LLMGateway:
             try:
                 models.extend(prov.list_models())
             except Exception as e:
-                logger.warning(f"Failed to list models for {p_type}: {e}")
+                logger.warning(f"Failed to list models for {p_type}: {e}", exc_info=True)
         return models
 
     def health_check_all(self) -> Dict[str, bool]:
@@ -280,7 +280,8 @@ class LLMGateway:
         for p_type, prov in self._providers.items():
             try:
                 results[p_type] = prov.health_check()
-            except:
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}", exc_info=True)
                 results[p_type] = False
         return results
 
@@ -368,11 +369,11 @@ def init_gateway(config: Dict[str, Any], db_session=None) -> LLMGateway:
                     if prov_config.get('api_key') or prov_rec.provider_type in ('bedrock', 'ollama'):
                         _gateway.register_provider(prov_rec.provider_type, **prov_config)
                 except Exception as e:
-                    logger.warning(f"Failed to register DB provider {prov_rec.provider_type}: {e}")
+                    logger.warning(f"Failed to register DB provider {prov_rec.provider_type}: {e}", exc_info=True)
 
             logger.info(f"Gateway loaded {len(_gateway._providers)} providers from database")
         except Exception as e:
-            logger.warning(f"Failed to load providers from DB, falling back to env: {e}")
+            logger.warning(f"Failed to load providers from DB, falling back to env: {e}", exc_info=True)
             _init_gateway_from_env(config, _gateway)
     else:
         _init_gateway_from_env(config, _gateway)
@@ -395,7 +396,7 @@ def _init_gateway_from_env(config: Dict, gateway: LLMGateway):
             try:
                 gateway.register_provider(p_type, **p_config)
             except Exception as e:
-                logger.warning(f"Failed to register env provider {p_type}: {e}")
+                logger.warning(f"Failed to register env provider {p_type}: {e}", exc_info=True)
 
 
 def get_gateway() -> Optional[LLMGateway]:

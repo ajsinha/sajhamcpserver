@@ -421,7 +421,7 @@ FROM ({base_sql}) AS base
             }
             
         except Exception as e:
-            logger.error(f"Statistics query execution error: {e}")
+            logger.error(f"Statistics query execution error: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e),
@@ -464,7 +464,7 @@ FROM ({base_sql}) AS base
             }
             
         except Exception as e:
-            logger.error(f"Histogram query execution error: {e}")
+            logger.error(f"Histogram query execution error: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e),
@@ -505,7 +505,7 @@ FROM ({base_sql}) AS base
             }
             
         except Exception as e:
-            logger.error(f"Correlation query execution error: {e}")
+            logger.error(f"Correlation query execution error: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e),

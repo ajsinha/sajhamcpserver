@@ -2,7 +2,7 @@
   "name": "yf_trending_tickers",
   "implementation": "sajha.tools.impl.yfinance_tools.YFTrendingTickersTool",
   "description": "Get trending/most active tickers from Yahoo Finance \u2014 what the market is watching today",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -242,7 +242,7 @@ class A2ATask(Base):
         return f'<A2ATask {self.id[:8]} state={self.state}>'
 
 
-# ── Prompt (v4.0.0 — moved from JSON files to database) ─────
+# ── Prompt (v4.5.0 — moved from JSON files to database) ─────
 
 class Prompt(Base):
     __tablename__ = 'prompts'
@@ -274,7 +274,7 @@ class PromptTag(Base):
     prompt = relationship('Prompt', back_populates='tags')
 
 
-# ── LLM Provider (v4.0.0 — AI integration) ──────────────────
+# ── LLM Provider (v4.5.0 — AI integration) ──────────────────
 
 class LLMProviderRecord(Base):
     __tablename__ = 'llm_providers'
@@ -313,7 +313,7 @@ class LLMModelRecord(Base):
     created_at          = Column(DateTime, default=datetime.utcnow)
 
 
-# ── Composite Tool (v4.0.0 — multi-tool orchestration) ───────
+# ── Composite Tool (v4.5.0 — multi-tool orchestration) ───────
 
 class CompositeToolRecord(Base):
     __tablename__ = 'composite_tools'
@@ -350,7 +350,7 @@ class CompositeToolStepRecord(Base):
     composite_tool = relationship('CompositeToolRecord', back_populates='steps')
 
 
-# ── Tenant (v4.0.0 — multi-tenancy) ─────────────────────────
+# ── Tenant (v4.5.0 — multi-tenancy) ─────────────────────────
 
 class TenantRecord(Base):
     __tablename__ = 'tenants'
@@ -364,7 +364,7 @@ class TenantRecord(Base):
     created_at    = Column(DateTime, default=datetime.utcnow)
 
 
-# ── Tool Version (v4.0.0 — versioning) ──────────────────────
+# ── Tool Version (v4.5.0 — versioning) ──────────────────────
 
 class ToolVersionRecord(Base):
     __tablename__ = 'tool_versions'

@@ -2,7 +2,7 @@
   "name": "calc_currency_converter",
   "implementation": "sajha.tools.impl.calc_tools.CalcCurrencyConverterTool",
   "description": "Convert between currencies using live exchange rates (free API)",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

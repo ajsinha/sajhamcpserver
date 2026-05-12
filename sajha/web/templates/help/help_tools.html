@@ -1,0 +1,70 @@
+{% extends "common/base.html" %}
+{% block title %}Tool Catalog - Help - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.tool-group-card { border-radius: var(--radius-lg); transition: all 0.2s ease; height: 100%; }
+.tool-group-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.tool-group-header { padding: 1rem 1.25rem; border-radius: var(--radius-lg) var(--radius-lg) 0 0; display: flex; justify-content: space-between; align-items: center; }
+.tool-group-body { padding: 1rem 1.25rem; }
+.tool-group-body p { margin-bottom: 0.5rem; color: var(--t-text2); font-size: 0.9rem; }
+.tool-group-desc { font-size: 0.8rem; padding: 0.2rem 0.5rem; border-radius: 4px; display: inline-block; margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.tool-group-footer { padding: 0.75rem 1.25rem; border-top: 1px solid var(--t-card-b); display: flex; justify-content: space-between; align-items: center; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h3 mb-1"><i class="bi bi-tools me-2"></i>Tool Catalog</h1>
+            <a href="/help" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Back to Help</a>
+        </div>
+        <span class="badge bg-primary rounded-pill px-3 py-2"><i class="bi bi-gear me-1"></i>{{ tool_stats.total_tools }} tools in {{ tool_stats.total_groups }} groups</span>
+    </div>
+
+    <!-- Search -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" id="toolGroupSearch" placeholder="Search tool groups..." autofocus>
+                <button class="btn btn-outline-secondary" onclick="this.previousElementSibling.value='';filterGroups()"><i class="bi bi-x-lg"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tool Group Cards -->
+    <div class="row g-3" id="toolGroupGrid">
+        {% for group in tool_groups %}
+        <div class="col-md-6 col-lg-4 tool-group-col" data-name="{{ group.name }}">
+            <div class="card tool-group-card">
+                <div class="tool-group-header bg-{{ group.color }} text-white">
+                    <span><i class="{{ group.icon }} me-2"></i><strong>{{ group.name }}</strong></span>
+                    <span class="badge bg-white text-dark">{{ group.tool_count }} tools</span>
+                </div>
+                <div class="tool-group-body">
+                    <p>{{ group.description }}</p>
+                    {% for cat in group.categories %}
+                    <div class="tool-group-desc bg-{{ group.color }} bg-opacity-10 text-{{ group.color }}" title="{{ cat }}">{{ cat }}</div>
+                    {% endfor %}
+                </div>
+                <div class="tool-group-footer">
+                    <small class="text-muted"><i class="bi bi-check-circle text-success me-1"></i>{{ group.enabled_count }} enabled</small>
+                    <a href="/tools?group={{ group.name }}" class="btn btn-sm btn-outline-{{ group.color }}"><i class="bi bi-eye me-1"></i>View</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.getElementById('toolGroupSearch').addEventListener('input', filterGroups);
+function filterGroups() {
+    var q = document.getElementById('toolGroupSearch').value.toLowerCase();
+    document.querySelectorAll('.tool-group-col').forEach(function(el) {
+        el.style.display = (!q || el.textContent.toLowerCase().includes(q)) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

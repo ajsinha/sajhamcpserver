@@ -2,7 +2,7 @@
   "name": "fred_national_debt",
   "implementation": "sajha.tools.impl.fred_tools.FREDNationalDebtTool",
   "description": "Get US Federal Debt Total from FRED",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

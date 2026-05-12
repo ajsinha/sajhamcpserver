@@ -105,7 +105,7 @@ class AuthManager:
                 self.users = {user['user_id']: user for user in default_config['users']}
                 self.logger.info("Created default admin user configuration")
         except Exception as e:
-            self.logger.error(f"Error loading users configuration: {e}")
+            self.logger.error(f"Error loading users configuration: {e}", exc_info=True)
             self.users = {}
     
     def authenticate(self, user_id: str, password: str) -> Optional[str]:
@@ -295,7 +295,7 @@ class AuthManager:
 
             self.logger.info(f"Saved {len(self.users)} users to configuration")
         except Exception as e:
-            self.logger.error(f"Error saving users configuration: {e}")
+            self.logger.error(f"Error saving users configuration: {e}", exc_info=True)
 
     # =========================================================================
     # User Management Methods (for Admin UI)
@@ -365,7 +365,7 @@ class AuthManager:
                 return True
 
             except Exception as e:
-                self.logger.error(f"Error creating user: {e}")
+                self.logger.error(f"Error creating user: {e}", exc_info=True)
                 return False
 
     def update_user(self, user_id: str, user_data: Dict) -> bool:
@@ -403,7 +403,7 @@ class AuthManager:
                 return True
 
             except Exception as e:
-                self.logger.error(f"Error updating user: {e}")
+                self.logger.error(f"Error updating user: {e}", exc_info=True)
                 return False
 
     def delete_user(self, user_id: str) -> bool:
@@ -445,7 +445,7 @@ class AuthManager:
                 return True
 
             except Exception as e:
-                self.logger.error(f"Error deleting user: {e}")
+                self.logger.error(f"Error deleting user: {e}", exc_info=True)
                 return False
 
     def enable_user(self, user_id: str) -> bool:
@@ -471,7 +471,7 @@ class AuthManager:
                 return True
 
             except Exception as e:
-                self.logger.error(f"Error enabling user: {e}")
+                self.logger.error(f"Error enabling user: {e}", exc_info=True)
                 return False
 
     def disable_user(self, user_id: str) -> bool:
@@ -510,7 +510,7 @@ class AuthManager:
                 return True
 
             except Exception as e:
-                self.logger.error(f"Error disabling user: {e}")
+                self.logger.error(f"Error disabling user: {e}", exc_info=True)
                 return False
 
     def update_last_login(self, user_id: str):
@@ -525,7 +525,7 @@ class AuthManager:
                 self.users[user_id]['last_login'] = datetime.now().isoformat() + 'Z'
                 self.save_users()
         except Exception as e:
-            self.logger.error(f"Error updating last login: {e}")
+            self.logger.error(f"Error updating last login: {e}", exc_info=True)
 
     # =========================================================================
     # Legacy Methods (for backward compatibility)

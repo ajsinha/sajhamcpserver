@@ -86,7 +86,7 @@ async def a2a_endpoint(
     """
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
         return JSONResponse({
             'jsonrpc': '2.0',
             'error': {'code': -32700, 'message': 'Parse error'},
@@ -228,7 +228,8 @@ def _task_to_response(task: A2ATask) -> dict:
     if task.output_artifacts:
         try:
             result['artifacts'] = json.loads(task.output_artifacts)
-        except (json.JSONDecodeError, TypeError):
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.debug(f"Handled: {e}")
             pass
 
     if task.error_message:

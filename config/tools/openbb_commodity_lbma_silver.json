@@ -2,7 +2,7 @@
   "name": "openbb_commodity_lbma_silver",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
   "description": "Get LBMA silver fixing prices via OpenBB",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

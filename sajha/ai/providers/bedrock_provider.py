@@ -108,6 +108,8 @@ class BedrockProvider(LLMProvider):
         try:
             self._get_client().list_foundation_models(byProvider='anthropic')
             return True
-        except: return False
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
+            return False
     def get_default_model(self): return 'anthropic.claude-sonnet-4-20250514-v1:0'
     def get_default_embedding_model(self): return 'amazon.titan-embed-text-v2:0'

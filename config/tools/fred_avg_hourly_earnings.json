@@ -2,7 +2,7 @@
   "name": "fred_avg_hourly_earnings",
   "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
   "description": "Get US Average Hourly Earnings from FRED (series: CES0500000003)",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

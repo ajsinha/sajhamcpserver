@@ -319,7 +319,7 @@ class {class_name}(BaseMCPTool):
                 "row_count": len(parsed_rows)
             }}
         except Exception as e:
-            logger.error(f"Error parsing CSV: {{e}}")
+            logger.error(f"Error parsing CSV: {{e}}", exc_info=True)
             return {{"raw_text": text, "parse_error": str(e)}}
     
     def _build_url(self, arguments: Dict) -> str:
@@ -450,7 +450,8 @@ try:
     import xml.etree.ElementTree as ET
     root = ET.fromstring(text)
     result = {"root_tag": root.tag, "children": [child.tag for child in root]}
-except:
+except Exception as e:
+    logger.error(f"Unexpected error: {e}", exc_info=True)
     result = {"raw_xml": text}
 
 return {
@@ -478,7 +479,8 @@ return {
             return '''# Parse JSON response
 try:
     result = safe_json_response(response, ENCODINGS_DEFAULT)
-except:
+except Exception as e:
+    logger.error(f"Unexpected error: {e}", exc_info=True)
     result = {"raw_response": response.text}
 
 return {

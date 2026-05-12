@@ -216,5 +216,5 @@ class BaseMCPTool(ABC):
                 self._metadata = self.config.get('metadata', {})
                 self.logger.info(f"Tool configuration loaded: {self.name}")
         except Exception as e:
-            self.logger.error(f"Error loading tool configuration: {e}")
+            self.logger.error(f"Error loading tool configuration: {e}", exc_info=True)
             raise

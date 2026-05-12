@@ -2,7 +2,7 @@
   "name": "openbb_economy_cpi",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBEconomyCPITool",
   "description": "Get Consumer Price Index (CPI) data via OpenBB \u2014 inflation trends, CPI values over time from FRED or other providers",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

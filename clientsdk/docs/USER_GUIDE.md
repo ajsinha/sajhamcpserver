@@ -608,7 +608,7 @@ print(f"Staging tools: {len(staging.list_tools())}")
 
 ---
 
-## WebSocket Client (v4.0.0)
+## WebSocket Client (v4.5.0)
 
 Full-duplex bidirectional MCP communication. Requires: `pip install websockets`
 
@@ -688,3 +688,170 @@ with MCPWebSocketClient(config, auth=ApiKeyAuth("sja_key")) as ws:
 | `MCPClient` (HTTP POST) | Simple tool calls, automation scripts, CI/CD |
 | `MCPSSEClient` (SSE) | Long-running tools, progress streaming, web UI |
 | `MCPWebSocketClient` (WS) | Interactive agents, real-time notifications, low-latency |
+
+---
+
+## Client-Side Composition (v4.5.0)
+
+Chain multiple tool calls client-side with Kleisli semantics.
+
+### ClientPipeline
+
+```python
+from sajhaclient import SajhaClient, SajhaConfig, ApiKeyAuth, ClientPipeline
+
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002"), auth=ApiKeyAuth("sja_key"))
+
+# Build a pipeline: quote → risk calculation
+pipeline = ClientPipeline(client)
+pipeline.add_step("yahoo_quote", param_map={"symbol": "$input.ticker"})
+pipeline.add_step("calc_sharpe", param_map={"returns": "$.history"}, output_key="risk")
+
+result = pipeline.execute({"ticker": "AAPL"})
+
+# Composition metadata
+print(result['_composition']['confidence'])      # 0.8464
+print(result['_composition']['entropy_bits'])     # 0.892
+print(result['_composition']['confidence_floor']) # 0.539
+print(result['_composition']['trace'])            # ['✓ yahoo_quote: 1200ms', '✓ calc_sharpe: 5ms']
+```
+
+### Transport Coalgebra
+
+Swap transports at runtime with behavioral equivalence testing.
+
+```python
+from sajhaclient import HTTPTransport, WSTransport, bisimilar, SajhaConfig, ApiKeyAuth
+
+config = SajhaConfig(base_url="http://localhost:3002")
+auth = ApiKeyAuth("sja_key")
+
+http = HTTPTransport(config, auth)
+ws = WSTransport(config, auth)
+
+# Prove transports are behaviorally equivalent
+test_ops = [
+    ("initialize", None),
+    ("tools/list", None),
+    ("tools/call", {"name": "yahoo_quote", "arguments": {"symbol": "AAPL"}}),
+]
+
+result = bisimilar(http, ws, test_ops)
+print(f"Bisimilar: {result['passed']}")  # True = safe to swap
+```
+
+---
+
+## Transport Coalgebra (v4.5.0)
+
+All three MCP transports implement the same coalgebraic interface: `step(method, params) → (result, new_state)`. This means they're interchangeable.
+
+### Transport Classes
+
+```python
+from sajhaclient import HTTPTransport, SSETransport, WSTransport, SajhaConfig, ApiKeyAuth
+
+config = SajhaConfig(base_url="http://localhost:3002")
+auth = ApiKeyAuth("sja_key")
+
+# All three behave identically
+http = HTTPTransport(config, auth)
+sse = SSETransport(config, auth)
+ws = WSTransport(config, auth)
+
+# Each has the same interface
+result, state = http.step('initialize')
+result, state = http.step('tools/list')
+result, state = http.step('tools/call', {'name': 'yahoo_quote', 'arguments': {'symbol': 'AAPL'}})
+```
+
+### Bisimulation Testing
+
+Prove two transports are behaviorally equivalent:
+
+```python
+from sajhaclient import bisimilar
+
+result = bisimilar(
+    HTTPTransport(config, auth),
+    WSTransport(config, auth),
+    test_sequence=[
+        ('initialize', None),
+        ('tools/list', None),
+        ('tools/call', {'name': 'yahoo_quote', 'arguments': {'symbol': 'AAPL'}}),
+        ('ping', None),
+    ]
+)
+
+print(result['passed'])          # True = same outputs
+print(result['total_steps'])     # 4
+print(result['first_divergence']) # None (no divergence)
+```
+
+### Transport Hot-Swap
+
+```python
+# Start with WebSocket
+transport = WSTransport(config, auth)
+transport.initialize()
+
+# WebSocket drops — fall back to HTTP
+if not transport._client.connected():
+    transport = HTTPTransport(config, auth)
+    transport.initialize()
+
+# Same call works on either transport
+result, _ = transport.step('tools/call', {'name': 'fred_gdp'})
+```
+
+---
+
+## Client-Side Pipelines (v4.5.0)
+
+Build tool chains client-side with confidence tracking:
+
+### Basic Pipeline
+
+```python
+from sajhaclient import SajhaClient, SajhaConfig, ApiKeyAuth, ClientPipeline
+
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002"), auth=ApiKeyAuth("key"))
+
+pipeline = ClientPipeline(client)
+pipeline.add_step("yahoo_quote", param_map={"symbol": "$input.ticker"})
+pipeline.add_step("calc_sharpe", param_map={"returns": "$.history"})
+
+result = pipeline.execute({"ticker": "AAPL"})
+```
+
+### Param Mapping Syntax
+
+| Expression | Meaning | Example |
+|-----------|---------|---------|
+| `$input.field` | From the original pipeline input | `$input.ticker` → "AAPL" |
+| `$.field` | From previous step's output | `$.history` → previous step's history array |
+| `"literal"` | Static value | `"USD"` |
+| `5` | Static number | `5` |
+
+### Entropy Guard
+
+```python
+result = pipeline.execute({"ticker": "AAPL"}, max_entropy_bits=2.0)
+
+comp = result['_composition']
+print(comp['confidence'])       # 0.85 (cumulative)
+print(comp['entropy_bits'])     # 0.61
+print(comp['confidence_floor']) # 0.65 (minimum probability)
+print(comp['guard_passed'])     # True (under 2.0 bits)
+print(comp['trace'])            # ["✓ yahoo_quote: 230ms", "✓ calc_sharpe: 5ms"]
+```
+
+### Fluent API
+
+```python
+result = (ClientPipeline(client)
+    .add_step("fmp_stock_screener", param_map={"marketCap": "$input.min_cap"})
+    .add_step("fmp_profile", param_map={"symbol": "$.symbol"})
+    .add_step("calc_var", param_map={"returns": "$.historicalPrice"})
+    .execute({"min_cap": 1000000000}, max_entropy_bits=2.5))
+```

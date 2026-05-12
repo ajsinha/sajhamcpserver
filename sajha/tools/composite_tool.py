@@ -160,60 +160,122 @@ class CompositeTool(BaseMCPTool):
         return self._output_schema
 
     def execute(self, arguments: Dict) -> Dict:
+        """
+        Execute the composite tool with Kleisli composition semantics.
+        Returns result dict with _composition metadata (confidence, entropy, trace).
+        """
+        from sajha.core.composition import (
+            StepResult, PipelineResult, ParamLens, EntropyGuard,
+            execute_step, get_tool_confidence,
+        )
+
         d = self._definition
         arrangement = d.get('arrangement', 'sibling')
+        max_entropy = d.get('entropy_threshold', 3.0)
+        guard = EntropyGuard(max_entropy_bits=max_entropy)
 
-        # Execute master tool
+        # ── Execute master tool (wrapped in StepResult) ──
         master_name = d['master_tool']
         master_tool = self._registry.get_tool(master_name)
         if not master_tool:
-            return {'error': f'Master tool not found: {master_name}'}
+            return PipelineResult(error=f'Master tool not found: {master_name}').to_dict()
 
-        master_result = master_tool.execute(arguments)
+        master_result = execute_step(master_tool, arguments, master_name)
+        guard.record_step(master_name, master_result.confidence)
+
+        if not master_result.is_success:
+            return PipelineResult(
+                error=master_result.error,
+                trace=master_result.trace,
+                duration_ms=master_result.duration_ms,
+                confidence=0.0,
+                step_results=[master_result],
+            ).to_dict()
+
         master_key = d.get('master_output_key', 'master')
-        result = {master_key: master_result}
+        output = {master_key: master_result.value}
+        all_step_results = [master_result]
+        all_traces = list(master_result.trace)
+        total_duration = master_result.duration_ms
 
         steps = d.get('steps', [])
         if not steps:
-            return result
+            pr = PipelineResult(
+                value=output, trace=all_traces, duration_ms=total_duration,
+                confidence=guard.cumulative_confidence,
+                entropy_bits=guard.cumulative_entropy,
+                step_results=all_step_results, guard_passed=True,
+            )
+            return pr.to_dict()
 
+        # ── Execute steps based on arrangement ──
         if arrangement == 'parent_child':
-            result.update(self._execute_parent_child(arguments, master_result, steps, d))
+            child_output = self._execute_parent_child_composed(
+                arguments, master_result.value, steps, d, guard)
+            output.update(child_output)
         else:
-            result.update(self._execute_sibling(arguments, steps))
+            # Sibling = parallel: use weakest-link confidence model
+            guard.begin_parallel()
+            sibling_output, sibling_results = self._execute_sibling_composed(
+                arguments, steps, guard)
+            guard.end_parallel()
+            output.update(sibling_output)
+            all_step_results.extend(sibling_results)
+            for sr in sibling_results:
+                all_traces.extend(sr.trace)
+                total_duration += sr.duration_ms
 
-        return result
+        # ── Entropy guard check ──
+        guard_status = guard.check_safe(d['name'])
 
-    def _execute_sibling(self, master_input: Dict, steps: List[Dict]) -> Dict:
-        """Run all sibling steps in parallel."""
+        pr = PipelineResult(
+            value=output,
+            trace=all_traces,
+            duration_ms=total_duration,
+            confidence=guard.cumulative_confidence,
+            entropy_bits=guard.cumulative_entropy,
+            step_results=all_step_results,
+            guard_passed=guard_status['passed'],
+            guard_message=guard_status.get('message', ''),
+        )
+        return pr.to_dict()
+
+    def _execute_sibling_composed(self, master_input: Dict, steps: List[Dict],
+                                    guard) -> tuple:
+        """Run sibling steps in parallel with composition tracking."""
+        from sajha.core.composition import execute_step, ParamLens
+
         result = {}
+        step_results = []
 
         def _run_step(step):
             tool = self._registry.get_tool(step['tool_name'])
             if not tool:
-                return step['output_key'], {'error': f'Tool not found: {step["tool_name"]}'}
-            params = _map_params(None, step.get('param_mapping'), step.get('static_params'), master_input)
-            # Merge master input for shared params
+                from sajha.core.composition import StepResult
+                return step['output_key'], StepResult.fail(
+                    f'Tool not found: {step["tool_name"]}', step['tool_name'])
+            lens = ParamLens.from_step_definition(step)
+            params = lens.view(master_input, master_input=master_input)
             merged = {**master_input, **params}
-            try:
-                return step['output_key'], tool.execute(merged)
-            except Exception as e:
-                return step['output_key'], {'error': str(e)}
+            return step['output_key'], execute_step(tool, merged, step['tool_name'])
 
         with ThreadPoolExecutor(max_workers=min(len(steps), 8)) as pool:
             futures = {pool.submit(_run_step, s): s for s in steps}
             for future in as_completed(futures):
-                key, val = future.result()
-                result[key] = val
+                key, sr = future.result()
+                result[key] = sr.value if sr.is_success else {'error': sr.error}
+                step_results.append(sr)
+                guard.record_step(sr.step_name, sr.confidence)
 
-        return result
+        return result, step_results
 
-    def _execute_parent_child(self, master_input: Dict, master_result: Dict,
-                               steps: List[Dict], definition: Dict) -> Dict:
-        """Fan-out: run child steps for each record from master."""
+    def _execute_parent_child_composed(self, master_input: Dict, master_result: Dict,
+                                        steps: List[Dict], definition: Dict, guard) -> Dict:
+        """Fan-out with composition tracking."""
+        from sajha.core.composition import execute_step, ParamLens
+
         record_path = definition.get('record_path', '')
         records = _resolve_path(master_result, record_path)
-
         if not isinstance(records, list):
             records = [records] if records else []
 
@@ -222,20 +284,23 @@ class CompositeTool(BaseMCPTool):
         def _run_child(record, step):
             tool = self._registry.get_tool(step['tool_name'])
             if not tool:
-                return step['output_key'], {'error': f'Tool not found: {step["tool_name"]}'}
-            params = _map_params(record, step.get('param_mapping'), step.get('static_params'), master_input)
-            try:
-                return step['output_key'], tool.execute(params)
-            except Exception as e:
-                return step['output_key'], {'error': str(e)}
+                from sajha.core.composition import StepResult
+                return step['output_key'], StepResult.fail(
+                    f'Tool not found: {step["tool_name"]}', step['tool_name'])
+            lens = ParamLens.from_step_definition(step)
+            params = lens.view({}, master_input=master_input, record=record)
+            return step['output_key'], execute_step(tool, params, step['tool_name'])
 
         with ThreadPoolExecutor(max_workers=min(len(records) * len(steps), 16)) as pool:
             for record in records:
                 entry = {'_record': record}
+                guard.begin_parallel()
                 futures = {pool.submit(_run_child, record, s): s for s in steps}
                 for future in as_completed(futures):
-                    key, val = future.result()
-                    entry[key] = val
+                    key, sr = future.result()
+                    entry[key] = sr.value if sr.is_success else {'error': sr.error}
+                    guard.record_step(sr.step_name, sr.confidence)
+                guard.end_parallel()
                 children.append(entry)
 
         return {'children': children}
@@ -296,7 +361,7 @@ class CompositeToolEngine:
                 count += 1
                 logger.info(f"Composite tool registered: {rec.name} ({rec.arrangement}, {len(definition['steps'])} steps)")
             except Exception as e:
-                logger.warning(f"Failed to build composite tool {rec.name}: {e}")
+                logger.warning(f"Failed to build composite tool {rec.name}: {e}", exc_info=True)
 
         return count
 

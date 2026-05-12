@@ -1,0 +1,101 @@
+{% extends "common/base.html" %}
+{% block title %}AI & Composition - Help - SAJHA MCP Server{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="mb-4">
+        <h1 class="h3 mb-1"><i class="bi bi-cpu me-2"></i>AI & Composition</h1>
+        <a href="/help" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Back to Help</a>
+    </div>
+
+    <!-- LLM Gateway -->
+    <div class="card mb-4">
+        <div class="card-header card-header-primary"><i class="bi bi-cloud me-2"></i>LLM Gateway</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <h6><i class="bi bi-cloud-arrow-up me-2 text-primary"></i>6 Providers</h6>
+                    <p class="small">Anthropic (Claude), OpenAI (GPT), AWS Bedrock, Together.ai, Ollama (local), Azure OpenAI. All via official SDKs. Registry-based factory — add custom providers with <code>register_provider_class()</code>.</p>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="bi bi-database me-2 text-success"></i>DB-Managed Models</h6>
+                    <p class="small">Providers and models managed via <code>llm_providers</code> + <code>llm_models</code> DB tables. Admin UI at <a href="/ai/settings">AI → LLM</a>. Add, edit, test, enable/disable per provider.</p>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="bi bi-person-gear me-2 text-info"></i>User Preferences</h6>
+                    <p class="small">Three-tier model resolution: explicit params → user preferences → system defaults. Each user chooses preferred provider, model, temperature, max tokens at <a href="/ai/settings">AI → LLM → Preferences</a>.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Semantic Discovery -->
+    <div class="card mb-4">
+        <div class="card-header card-header-info"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
+        <div class="card-body">
+            <p>Describe what you need in plain English. SAJHA finds the best matching tools using vector embeddings of all {{ tool_stats.total_tools }} tool descriptions with cosine similarity search.</p>
+            <p class="mb-0"><strong>Try it:</strong> Go to <a href="/ai/settings">AI → LLM</a> → Semantic Search tab → type "find companies with high debt-to-equity ratios".</p>
+        </div>
+    </div>
+
+    <!-- Composite Tools -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark"><i class="bi bi-boxes me-2"></i>Composite Tools</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <h6><i class="bi bi-arrow-left-right me-2 text-info"></i>Sibling Pattern (Parallel)</h6>
+                    <p class="small">Multiple tools run concurrently, results merged. Example: <code>market_snapshot</code> = yahoo_quote + fred_vix + fred_fed_rate — one call, three results. Confidence: weakest-link (min).</p>
+                </div>
+                <div class="col-md-6">
+                    <h6><i class="bi bi-diagram-3 me-2 text-warning"></i>Parent-Child Pattern (Fan-out)</h6>
+                    <p class="small">Master tool runs first, child executes per record. Example: <code>portfolio_dive</code> = duckdb_query → fmp_profile(each ticker). Confidence: multiply (Giry bind).</p>
+                </div>
+            </div>
+            <p class="small mt-2 mb-0"><strong>Build one:</strong> <a href="/composite/builder">MCP Studio → Composite Builder</a> → pick master tool → add steps → preview schemas → save.</p>
+        </div>
+    </div>
+
+    <!-- Composition Framework -->
+    <div class="card mb-4">
+        <div class="card-header" style="background:rgba(111,66,193,0.15);color:var(--t-heading)"><i class="bi bi-diagram-3 me-2"></i>Composition Framework</div>
+        <div class="card-body">
+            <p class="text-muted mb-3">Category-theory-inspired tool composition with mathematical guarantees about confidence, isolation, and error handling.</p>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="card h-100 border-primary">
+                        <div class="card-body">
+                            <h6><i class="bi bi-arrow-right-circle me-2 text-primary"></i>Kleisli Arrows</h6>
+                            <p class="small mb-0">Every tool wrapped in <code>StepResult</code> envelope. Errors short-circuit the pipeline. Traces accumulate. Confidence compounds through the chain.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card h-100 border-success">
+                        <div class="card-body">
+                            <h6><i class="bi bi-funnel me-2 text-success"></i>ParamLens</h6>
+                            <p class="small mb-0">Surgical parameter projection. Child tools see ONLY mapped fields via <code>$.field</code> / <code>$input.field</code> syntax. Prevents accidental coupling.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card h-100 border-warning">
+                        <div class="card-body">
+                            <h6><i class="bi bi-shield-check me-2 text-warning"></i>Entropy Guard</h6>
+                            <p class="small mb-0">Cumulative confidence tracking. Sequential: multiply. Parallel: min (weakest link). Refuses pipelines exceeding entropy threshold.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card h-100 border-info">
+                        <div class="card-body">
+                            <h6><i class="bi bi-percent me-2 text-info"></i>Confidence Scores</h6>
+                            <p class="small mb-0">497 tools classified by reliability: calculators 1.0, FRED 0.95, web crawlers 0.80. Results include <code>_composition.confidence</code>.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="small mt-3 mb-0"><strong>Deep dive:</strong> <a href="/docs">docs/Composition_Framework.md</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

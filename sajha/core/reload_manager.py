@@ -145,12 +145,12 @@ class LocalReloadManager(ReloadManager):
                 try:
                     self._check_prefix(prefix)
                 except Exception as e:
-                    logger.error(f"Reload check error for {prefix}: {e}")
+                    logger.error(f"Reload check error for {prefix}: {e}", exc_info=True)
             for module_dir in list(self._module_watches.keys()):
                 try:
                     self._check_modules(module_dir)
                 except Exception as e:
-                    logger.error(f"Module check error for {module_dir}: {e}")
+                    logger.error(f"Module check error for {module_dir}: {e}", exc_info=True)
 
     def _scan_prefix(self, prefix: str) -> None:
         w = self._watches[prefix]
@@ -320,12 +320,12 @@ class S3ReloadManager(ReloadManager):
                 try:
                     self._check_prefix(prefix)
                 except Exception as e:
-                    logger.error(f"S3 reload check error for {prefix}: {e}")
+                    logger.error(f"S3 reload check error for {prefix}: {e}", exc_info=True)
             for module_dir in list(self._module_watches.keys()):
                 try:
                     self._check_modules(module_dir)
                 except Exception as e:
-                    logger.error(f"S3 module check error for {module_dir}: {e}")
+                    logger.error(f"S3 module check error for {module_dir}: {e}", exc_info=True)
 
     def _check_prefix(self, prefix: str) -> int:
         w = self._watches[prefix]

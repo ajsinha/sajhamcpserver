@@ -366,7 +366,7 @@ ORDER BY c.time_period
             }
             
         except Exception as e:
-            logger.error(f"Time series query execution error: {e}")
+            logger.error(f"Time series query execution error: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e),

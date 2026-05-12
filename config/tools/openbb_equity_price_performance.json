@@ -2,7 +2,7 @@
   "name": "openbb_equity_price_performance",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
   "description": "Get stock price performance via OpenBB \u2014 1d, 1w, 1m, 3m, 6m, 1y, YTD returns",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

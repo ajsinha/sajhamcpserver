@@ -2,7 +2,7 @@
   "name": "fred_2yr_treasury",
   "implementation": "sajha.tools.impl.fred_tools.FRED2YTreasuryTool",
   "description": "Get 2-Year Treasury Yield (DGS2) from FRED",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

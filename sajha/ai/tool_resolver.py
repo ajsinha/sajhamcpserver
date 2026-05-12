@@ -90,7 +90,8 @@ class ToolEmbeddingIndex:
                 if schema and 'properties' in schema:
                     params = list(schema['properties'].keys())[:8]
                     schema_summary = f" Parameters: {', '.join(params)}"
-            except:
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}", exc_info=True)
                 pass
 
             text = f"{name}: {desc}{schema_summary}"
@@ -132,7 +133,7 @@ class ToolEmbeddingIndex:
             return len(self._embeddings)
 
         except Exception as e:
-            logger.error(f"Failed to build tool embeddings: {e}")
+            logger.error(f"Failed to build tool embeddings: {e}", exc_info=True)
             return 0
 
     def search(self, query_embedding: List[float], top_k: int = 5) -> List[ToolMatch]:
@@ -215,7 +216,7 @@ class ToolResolver:
                 return self._fallback_search(query, top_k)
             query_vec = resp.embeddings[0]
         except Exception as e:
-            logger.warning(f"Embedding failed, falling back to text search: {e}")
+            logger.warning(f"Embedding failed, falling back to text search: {e}", exc_info=True)
             return self._fallback_search(query, top_k)
 
         # Vector search
@@ -228,7 +229,7 @@ class ToolResolver:
                 params = self._extract_params(query, top.tool_name)
                 top.suggested_params = params
             except Exception as e:
-                logger.warning(f"Parameter extraction failed: {e}")
+                logger.warning(f"Parameter extraction failed: {e}", exc_info=True)
 
         return matches
 
@@ -261,7 +262,8 @@ class ToolResolver:
         schema = {}
         try:
             schema = tool.get_input_schema()
-        except:
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=True)
             return {}
 
         system = (
@@ -276,7 +278,8 @@ class ToolResolver:
             text = resp.content.strip()
             if text.startswith('{'):
                 return json.loads(text)
-        except:
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=True)
             pass
         return {}
 

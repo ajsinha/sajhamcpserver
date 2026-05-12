@@ -2,7 +2,7 @@
   "name": "fred_auto_sales",
   "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
   "description": "Get US Auto Sales from FRED \u2014 vehicle unit sales (series: TOTALSA)",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

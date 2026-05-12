@@ -140,10 +140,10 @@ class TavilyBaseTool(BaseMCPTool):
             elif e.code == 429:
                 raise ValueError("Rate limit exceeded")
             else:
-                self.logger.error(f"Tavily API error: {e}")
+                self.logger.error(f"Tavily API error: {e}", exc_info=True)
                 raise ValueError(f"Search failed: HTTP {e.code}")
         except Exception as e:
-            self.logger.error(f"Tavily search error: {e}")
+            self.logger.error(f"Tavily search error: {e}", exc_info=True)
             raise ValueError(f"Search failed: {str(e)}")
     
     def _get_demo_results(

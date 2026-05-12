@@ -358,7 +358,7 @@ Requires LiveLink credentials via environment variables."""
             return {{"OTCSTicket": self._auth_ticket}}
             
         except requests.RequestException as e:
-            logger.error(f"OTDS authentication failed: {{e}}")
+            logger.error(f"OTDS authentication failed: {{e}}", exc_info=True)
             return None
     
     def _make_request(self, method: str, endpoint: str, **kwargs) -> requests.Response:
@@ -590,7 +590,7 @@ Requires LiveLink credentials via environment variables."""
                 }}
             
         except Exception as e:
-            logger.error(f"LiveLink tool error: {{e}}")
+            logger.error(f"LiveLink tool error: {{e}}", exc_info=True)
             return {{
                 "success": False,
                 "error": f"Tool execution error: {{str(e)}}"
@@ -645,7 +645,7 @@ __all__ = ['LiveLink{class_name}Tool']
             }
             
         except Exception as e:
-            logger.error(f"Error creating LiveLink tool: {e}")
+            logger.error(f"Error creating LiveLink tool: {e}", exc_info=True)
             return {
                 "success": False,
                 "message": f"Error creating tool: {str(e)}",

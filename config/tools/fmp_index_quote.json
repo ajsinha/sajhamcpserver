@@ -2,7 +2,7 @@
   "name": "fmp_index_quote",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
   "description": "Get market index quote from FMP \u2014 S&P 500, NASDAQ, Dow Jones",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

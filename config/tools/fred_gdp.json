@@ -2,7 +2,7 @@
   "name": "fred_gdp",
   "implementation": "sajha.tools.impl.fred_tools.FREDGDPTool",
   "description": "Get US Gross Domestic Product from FRED",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

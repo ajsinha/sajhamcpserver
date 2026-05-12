@@ -2,7 +2,7 @@
   "name": "yf_mutual_fund_holders",
   "implementation": "sajha.tools.impl.yfinance_tools.YFMutualFundHoldersTool",
   "description": "Get mutual fund holders from Yahoo Finance \u2014 which mutual funds hold this stock",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

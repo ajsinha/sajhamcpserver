@@ -2,7 +2,7 @@
   "name": "openbb_options_chains",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBOptionsChainsTool",
   "description": "Get options chain data via OpenBB \u2014 calls and puts with strike, bid, ask, volume, open interest, Greeks",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

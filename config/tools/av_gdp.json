@@ -2,7 +2,7 @@
   "name": "av_gdp",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVGDPTool",
   "description": "Get US Real GDP from Alpha Vantage \u2014 quarterly and annual",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "openbb_derivatives_futures_curve",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
   "description": "Get futures curve via OpenBB \u2014 forward curve for commodities/futures",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

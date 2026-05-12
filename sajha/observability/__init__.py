@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v4.0.0 — Observability & OpenTelemetry
+SAJHA MCP Server v4.5.0 — Observability & OpenTelemetry
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Production-grade observability: OTEL traces, structured metrics,
@@ -220,7 +220,7 @@ class MetricsCollector:
                     try:
                         cb(rule.name, tool_name, value, rule.threshold)
                     except Exception as e:
-                        logger.warning(f"Alert callback error: {e}")
+                        logger.warning(f"Alert callback error: {e}", exc_info=True)
 
 
 # ── OpenTelemetry Integration ────────────────────────────────
@@ -290,7 +290,8 @@ class OTELIntegration:
             span.set_attribute('tool.duration_ms', duration_ms)
             span.set_attribute('tool.success', success)
             span.end()
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
             pass
 
     def record_metric(self, tool_name: str, duration_ms: float, success: bool):
@@ -303,7 +304,8 @@ class OTELIntegration:
             if self._tool_call_counter:
                 self._tool_call_counter.add(
                     1, {'tool.name': tool_name, 'success': str(success)})
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
             pass
 
 

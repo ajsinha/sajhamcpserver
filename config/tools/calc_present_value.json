@@ -2,7 +2,7 @@
   "name": "calc_present_value",
   "implementation": "sajha.tools.impl.calc_tools.CalcPresentValueTool",
   "description": "Calculate present value \u2014 what a future sum is worth today given a discount rate",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

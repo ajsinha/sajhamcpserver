@@ -206,7 +206,7 @@ class SemanticLayer:
                 self.datasets[name] = dataset
                 
         except Exception as e:
-            logger.error(f"Error loading datasets: {e}")
+            logger.error(f"Error loading datasets: {e}", exc_info=True)
     
     def _load_measures(self, file_path: Path):
         """Load measure definitions from JSON file."""
@@ -225,7 +225,7 @@ class SemanticLayer:
                 self.measures[name] = measure
                 
         except Exception as e:
-            logger.error(f"Error loading measures: {e}")
+            logger.error(f"Error loading measures: {e}", exc_info=True)
     
     def _load_dimensions(self, file_path: Path):
         """Load dimension definitions from JSON file."""
@@ -256,7 +256,7 @@ class SemanticLayer:
                 self.dimensions[name] = dimension
                 
         except Exception as e:
-            logger.error(f"Error loading dimensions: {e}")
+            logger.error(f"Error loading dimensions: {e}", exc_info=True)
     
     def get_dataset(self, name: str) -> Optional[Dataset]:
         """Get a dataset by name."""

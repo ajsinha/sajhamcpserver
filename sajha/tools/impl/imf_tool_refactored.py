@@ -162,7 +162,7 @@ class IMFBaseTool(BaseMCPTool):
             else:
                 raise ValueError(f"Failed to get data: HTTP {e.code}")
         except Exception as e:
-            self.logger.error(f"Failed to get IMF data: {e}")
+            self.logger.error(f"Failed to get IMF data: {e}", exc_info=True)
             raise ValueError(f"Failed to get IMF data: {str(e)}")
 
 
@@ -298,7 +298,7 @@ class IMFGetDataflowsTool(IMFBaseTool):
                     'count': len(formatted_dataflows)
                 }
         except Exception as e:
-            self.logger.error(f"Failed to get dataflows: {e}")
+            self.logger.error(f"Failed to get dataflows: {e}", exc_info=True)
             return {
                 'database': database,
                 'error': str(e),
@@ -774,7 +774,7 @@ class IMFCompareCountriesTool(IMFBaseTool):
                 data = self._get_data(database, country_code, indicator_code, start_year, end_year, frequency)
                 comparison['countries'].append(data)
             except Exception as e:
-                self.logger.warning(f"Failed to get data for {country_code}: {e}")
+                self.logger.warning(f"Failed to get data for {country_code}: {e}", exc_info=True)
                 comparison['countries'].append({
                     'country_code': country_code,
                     'error': str(e)
@@ -874,7 +874,7 @@ class IMFGetCountryProfileTool(IMFBaseTool):
                         'recent_data': data['data'][-3:] if len(data['data']) >= 3 else data['data']
                     }
             except Exception as e:
-                self.logger.warning(f"Failed to get {name} for {country_code}: {e}")
+                self.logger.warning(f"Failed to get {name} for {country_code}: {e}", exc_info=True)
                 profile['indicators'][name] = {
                     'code': code,
                     'error': str(e)

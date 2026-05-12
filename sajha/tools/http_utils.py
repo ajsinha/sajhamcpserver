@@ -37,13 +37,14 @@ def decompress_response(raw_data: bytes, response: HTTPResponse) -> bytes:
     if content_encoding == 'gzip':
         try:
             return gzip.decompress(raw_data)
-        except Exception:
+        except Exception as e:
             pass  # Return original if decompression fails
     elif content_encoding == 'deflate':
         try:
             import zlib
             return zlib.decompress(raw_data, -zlib.MAX_WBITS)
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
             pass
     
     return raw_data
@@ -72,7 +73,8 @@ def safe_decode(
     for encoding in encodings:
         try:
             return raw_data.decode(encoding)
-        except (UnicodeDecodeError, LookupError):
+        except (UnicodeDecodeError, LookupError) as e:
+            logger.debug(f"Handled: {e}")
             continue
     
     # Final fallback: UTF-8 with error handling

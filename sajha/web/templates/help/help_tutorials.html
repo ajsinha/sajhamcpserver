@@ -1,0 +1,125 @@
+{% extends "common/base.html" %}
+{% block title %}Tutorials - Help - SAJHA MCP Server{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="mb-4">
+        <h1 class="h3 mb-1"><i class="bi bi-mortarboard me-2"></i>Tutorials</h1>
+        <a href="/help" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Back to Help</a>
+    </div>
+
+    <!-- Getting Started -->
+    <div class="card mb-4">
+        <div class="card-header card-header-primary"><i class="bi bi-rocket-takeoff me-2"></i>Getting Started</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <h6>1. Browse Tools</h6>
+                    <p class="small">Go to <a href="/tools">Tools</a> → search or filter by category → click any tool to see its schema, parameters, and description.</p>
+                </div>
+                <div class="col-md-4">
+                    <h6>2. Execute a Tool</h6>
+                    <p class="small">Click <strong>Execute</strong> on any tool → fill the parameter form → click <strong>Run</strong>. Results appear with a human-readable summary + raw JSON.</p>
+                </div>
+                <div class="col-md-4">
+                    <h6>3. Connect via API</h6>
+                    <p class="small">Create an API key at <a href="/admin/apikeys">Admin → API Keys</a>. Use it with <code>X-API-Key</code> header or the Python SDK: <code>SajhaClient(config, auth=ApiKeyAuth("key"))</code></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Cards -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-code-slash me-2 text-primary"></i>Create a Tool with MCP Studio</div>
+                <div class="card-body">
+                    <ol class="small mb-0">
+                        <li class="mb-2">Go to <a href="/studio">MCP Studio</a> and choose a creator type (Python, REST, DB Query, Script, etc.).</li>
+                        <li class="mb-2">Fill in the tool name, description, and parameters. JSON Schema is auto-generated.</li>
+                        <li class="mb-2">Add the data source — a Python function, REST URL, SQL query, or script file.</li>
+                        <li class="mb-2">Click <strong>Test</strong> to run with sample arguments and verify the output.</li>
+                        <li class="mb-2">Click <strong>Save</strong>. The tool config is written to <code>config/tools/</code> and hot-reloaded within seconds.</li>
+                        <li>Your tool is now available via <code>tools/list</code> and <code>tools/call</code> on all three transports.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-boxes me-2 text-warning"></i>Build a Composite Tool</div>
+                <div class="card-body">
+                    <ol class="small mb-0">
+                        <li class="mb-2">Go to <a href="/composite/builder">MCP Studio → Composite Builder</a>.</li>
+                        <li class="mb-2">Enter a name (e.g., <code>market_snapshot</code>) and choose arrangement: <strong>Sibling</strong> (parallel) or <strong>Parent-Child</strong> (fan-out).</li>
+                        <li class="mb-2">Set the <strong>Master tool</strong> — this runs first and its output feeds the steps.</li>
+                        <li class="mb-2">Click <strong>+ Add Step</strong> to add child tools. Set output key, param mapping (<code>$.field</code>), and static params.</li>
+                        <li class="mb-2">Watch the <strong>Flow Diagram</strong> update live as you add steps. Drag steps to reorder.</li>
+                        <li class="mb-2">Click <strong>Preview Schema</strong> to see auto-generated input/output schemas.</li>
+                        <li>Click <strong>Save</strong>. The composite is registered and available via MCP immediately.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-cloud me-2 text-info"></i>Connect an LLM Provider</div>
+                <div class="card-body">
+                    <ol class="small mb-0">
+                        <li class="mb-2">Go to <a href="/ai/settings">AI → LLM</a> → <strong>Providers</strong> tab.</li>
+                        <li class="mb-2">Click <strong>Add Provider</strong>. Choose type: Anthropic, OpenAI, Bedrock, Together, Ollama, Azure, or Custom.</li>
+                        <li class="mb-2">Enter the required credentials (API key, endpoint, region, etc.).</li>
+                        <li class="mb-2">Save the provider, then switch to the <strong>Models</strong> tab.</li>
+                        <li class="mb-2">Click <strong>Add Model</strong>, select the provider, enter model ID (e.g., <code>claude-sonnet-4-20250514</code>).</li>
+                        <li>Set your preferences in the <strong>Preferences</strong> tab — default provider, model, temperature.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-puzzle me-2 text-success"></i>Create a Plugin</div>
+                <div class="card-body">
+                    <ol class="small mb-0">
+                        <li class="mb-2">Create a directory: <code>config/plugins/my-plugin/</code></li>
+                        <li class="mb-2">Add <code>plugin.json</code> with name, version, description, and tool list.</li>
+                        <li class="mb-2">Add tool JSON configs in a <code>tools/</code> subdirectory, or Python tool classes.</li>
+                        <li class="mb-2">Call <code>POST /api/plugins/discover</code> to scan for new plugins.</li>
+                        <li class="mb-2">Call <code>POST /api/plugins/my-plugin/load</code> to install dependencies and register tools.</li>
+                        <li>Your plugin's tools are now available via MCP <code>tools/list</code> and <code>tools/call</code>.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-people me-2" style="color:#6f42c1"></i>Set Up Multi-Tenancy</div>
+                <div class="card-body">
+                    <ol class="small mb-0">
+                        <li class="mb-2">Create a tenant: <code>POST /api/tenants</code> with name, tool_patterns, and quotas.</li>
+                        <li class="mb-2">Assign users to the tenant via the Admin panel or API.</li>
+                        <li class="mb-2">Set tool access patterns: <code>["fred_*", "calc_*"]</code> — wildcards with fnmatch.</li>
+                        <li class="mb-2">Set quotas: max calls per day/month, max LLM tokens.</li>
+                        <li>Tenant users can only access tools matching their patterns. Quotas auto-reset.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-terminal me-2 text-danger"></i>Connect the Python SDK</div>
+                <div class="card-body">
+                    <ol class="small mb-0">
+                        <li class="mb-2">Install: <code>pip install sajhaclient</code></li>
+                        <li class="mb-2"><code>from sajhaclient import SajhaClient, SajhaConfig, ApiKeyAuth</code></li>
+                        <li class="mb-2"><code>client = SajhaClient(SajhaConfig(base_url="http://host:3002"), auth=ApiKeyAuth("sja_key"))</code></li>
+                        <li class="mb-2"><code>result = client.execute_tool("yahoo_quote", symbol="AAPL")</code></li>
+                        <li class="mb-2">For pipelines: <code>ClientPipeline(client).add_step(...).execute({...})</code></li>
+                        <li>For WebSocket: <code>MCPWebSocketClient(config, auth)</code> with <code>.connect()</code> + <code>.call_tool()</code></li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

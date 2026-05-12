@@ -2,7 +2,7 @@
   "name": "yf_recommendations",
   "implementation": "sajha.tools.impl.yfinance_tools.YFRecommendationsTool",
   "description": "Get analyst recommendations from Yahoo Finance \u2014 buy/hold/sell ratings over time",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

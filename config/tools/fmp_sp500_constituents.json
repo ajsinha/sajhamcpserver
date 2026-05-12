@@ -2,7 +2,7 @@
   "name": "fmp_sp500_constituents",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
   "description": "Get current S&P 500 constituents from FMP \u2014 all 500 stocks",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

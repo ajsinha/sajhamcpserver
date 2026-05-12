@@ -2,7 +2,7 @@
   "name": "openbb_crypto_price",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBCryptoPriceTool",
   "description": "Get historical cryptocurrency prices via OpenBB \u2014 daily OHLCV for BTC, ETH, SOL, and other crypto assets",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -192,7 +192,7 @@ class ToolGroupsManager:
                 try:
                     self.refresh()
                 except Exception as e:
-                    logger.error(f"Error refreshing tool groups: {e}")
+                    logger.error(f"Error refreshing tool groups: {e}", exc_info=True)
     
     def stop(self):
         """Stop the background refresh thread"""
@@ -264,9 +264,9 @@ class ToolGroupsManager:
                         groups[display_group]['enabled_count'] += 1
                         
                 except json.JSONDecodeError as e:
-                    logger.warning(f"Invalid JSON in {json_file}: {e}")
+                    logger.warning(f"Invalid JSON in {json_file}: {e}", exc_info=True)
                 except Exception as e:
-                    logger.warning(f"Error processing {json_file}: {e}")
+                    logger.warning(f"Error processing {json_file}: {e}", exc_info=True)
             
             # Convert sets to lists for JSON serialization
             for group in groups.values():

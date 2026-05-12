@@ -163,7 +163,7 @@ class FBIGetNationalStatisticsTool(FBIBaseTool):
             return result
             
         except Exception as e:
-            self.logger.error(f"Failed to get national statistics: {e}")
+            self.logger.error(f"Failed to get national statistics: {e}", exc_info=True)
             raise
 
 
@@ -242,7 +242,7 @@ class FBIGetStateStatisticsTool(FBIBaseTool):
             return result
             
         except Exception as e:
-            self.logger.error(f"Failed to get state statistics: {e}")
+            self.logger.error(f"Failed to get state statistics: {e}", exc_info=True)
             raise
 
 
@@ -324,7 +324,7 @@ class FBIGetAgencyStatisticsTool(FBIBaseTool):
             return result
             
         except Exception as e:
-            self.logger.error(f"Failed to get agency statistics: {e}")
+            self.logger.error(f"Failed to get agency statistics: {e}", exc_info=True)
             raise
 
 
@@ -393,7 +393,7 @@ class FBISearchAgenciesTool(FBIBaseTool):
             return result
             
         except Exception as e:
-            self.logger.error(f"Failed to search agencies: {e}")
+            self.logger.error(f"Failed to search agencies: {e}", exc_info=True)
             raise
 
 
@@ -454,7 +454,7 @@ class FBIGetOffenseDataTool(FBIBaseTool):
             return result
             
         except Exception as e:
-            self.logger.error(f"Failed to get offense data: {e}")
+            self.logger.error(f"Failed to get offense data: {e}", exc_info=True)
             raise
 
 
@@ -515,7 +515,7 @@ class FBIGetParticipationRateTool(FBIBaseTool):
             return result
             
         except Exception as e:
-            self.logger.error(f"Failed to get participation rate: {e}")
+            self.logger.error(f"Failed to get participation rate: {e}", exc_info=True)
             raise
 
 
@@ -583,7 +583,7 @@ class FBIGetAgencyDetailsTool(FBIBaseTool):
             return result
             
         except Exception as e:
-            self.logger.error(f"Failed to get agency details: {e}")
+            self.logger.error(f"Failed to get agency details: {e}", exc_info=True)
             raise
 
 
@@ -663,7 +663,7 @@ class FBIGetCrimeTrendTool(FBIBaseTool):
                     })
                     
                 except Exception as e:
-                    self.logger.warning(f"Failed to get data for year {year}: {e}")
+                    self.logger.warning(f"Failed to get data for year {year}: {e}", exc_info=True)
                     continue
             
             if not time_series:
@@ -713,7 +713,7 @@ class FBIGetCrimeTrendTool(FBIBaseTool):
             return result
             
         except Exception as e:
-            self.logger.error(f"Failed to analyze crime trend: {e}")
+            self.logger.error(f"Failed to analyze crime trend: {e}", exc_info=True)
             raise
 
 
@@ -788,7 +788,7 @@ class FBICompareStatesTool(FBIBaseTool):
                     })
                     
                 except Exception as e:
-                    self.logger.warning(f"Failed to get data for state {state}: {e}")
+                    self.logger.warning(f"Failed to get data for state {state}: {e}", exc_info=True)
                     continue
             
             if not states_data:
@@ -824,7 +824,7 @@ class FBICompareStatesTool(FBIBaseTool):
             return result
             
         except Exception as e:
-            self.logger.error(f"Failed to compare states: {e}")
+            self.logger.error(f"Failed to compare states: {e}", exc_info=True)
             raise
 
 

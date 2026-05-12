@@ -308,7 +308,7 @@ GROUP BY {', '.join(row_cols)}
             }
             
         except Exception as e:
-            logger.error(f"Pivot query execution error: {e}")
+            logger.error(f"Pivot query execution error: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e),
@@ -377,5 +377,5 @@ ORDER BY pivot_val
             result = self.conn.execute(sql).fetchall()
             return [row[0] for row in result]
         except Exception as e:
-            logger.error(f"Error getting pivot values: {e}")
+            logger.error(f"Error getting pivot values: {e}", exc_info=True)
             return []

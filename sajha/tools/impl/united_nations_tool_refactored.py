@@ -82,7 +82,7 @@ class UnitedNationsBaseTool(BaseMCPTool):
             with urllib.request.urlopen(req) as response:
                 return safe_json_response(response, ENCODINGS_ALL)
         except Exception as e:
-            self.logger.error(f"Failed to fetch from SDG API: {e}")
+            self.logger.error(f"Failed to fetch from SDG API: {e}", exc_info=True)
             raise
 
 
@@ -438,7 +438,7 @@ class UNGetSDGDataTool(UnitedNationsBaseTool):
                 }
                 
         except Exception as e:
-            self.logger.error(f"Failed to get SDG data: {e}")
+            self.logger.error(f"Failed to get SDG data: {e}", exc_info=True)
             return {
                 'indicator_code': indicator_code,
                 'country_code': country_code,
@@ -549,7 +549,7 @@ class UNGetSDGTargetsTool(UnitedNationsBaseTool):
             }
                 
         except Exception as e:
-            self.logger.error(f"Failed to get SDG targets: {e}")
+            self.logger.error(f"Failed to get SDG targets: {e}", exc_info=True)
             return {
                 'sdg_code': sdg_code,
                 'error': str(e),

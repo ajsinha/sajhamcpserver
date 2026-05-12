@@ -2,7 +2,7 @@
   "name": "fmp_upgrades_downgrades",
   "implementation": "sajha.tools.impl.fmp_tools.FMPUpgradesDowngradesTool",
   "description": "Get analyst upgrades and downgrades from FMP \u2014 rating changes, firm, previous/new grade for a stock",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

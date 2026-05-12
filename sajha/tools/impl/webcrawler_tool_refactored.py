@@ -95,7 +95,8 @@ class WebCrawlerBaseTool(BaseMCPTool):
         try:
             result = urllib.parse.urlparse(url)
             return all([result.scheme, result.netloc])
-        except:
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=True)
             return False
     
     def _fetch_url(self, url: str, timeout: int = None) -> tuple:
@@ -129,7 +130,8 @@ class WebCrawlerBaseTool(BaseMCPTool):
             if self._is_valid_url(url):
                 return url
             return None
-        except:
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=True)
             return None
     
     def _is_same_domain(self, url1: str, url2: str) -> bool:
@@ -138,7 +140,8 @@ class WebCrawlerBaseTool(BaseMCPTool):
             domain1 = urllib.parse.urlparse(url1).netloc
             domain2 = urllib.parse.urlparse(url2).netloc
             return domain1 == domain2
-        except:
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=True)
             return False
 
 
@@ -362,7 +365,7 @@ class CrawlURLTool(WebCrawlerBaseTool):
                                 to_visit.append((normalized, depth + 1))
                 
             except Exception as e:
-                self.logger.warning(f"Error crawling {current_url}: {e}")
+                self.logger.warning(f"Error crawling {current_url}: {e}", exc_info=True)
                 pages.append({
                     'url': current_url,
                     'depth': depth,
@@ -883,7 +886,8 @@ class CrawlSitemapTool(WebCrawlerBaseTool):
                             'urls': urls,
                             'retrieved_at': datetime.now().isoformat()
                         }
-                except:
+                except Exception as e:
+                    logger.error(f"Unexpected error: {e}", exc_info=True)
                     continue
             
             return {
@@ -893,7 +897,7 @@ class CrawlSitemapTool(WebCrawlerBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Error crawling sitemap: {e}")
+            self.logger.error(f"Error crawling sitemap: {e}", exc_info=True)
             return {
                 'error': str(e),
                 'url': url

@@ -166,7 +166,8 @@ def example_eurozone_dashboard():
         try:
             rate = client.get_exchange_rate(curr)
             print(f"   EUR/{curr}: {rate.get('rate', 'N/A')}")
-        except:
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=True)
             pass
     
     # Interest rates
@@ -175,7 +176,8 @@ def example_eurozone_dashboard():
         try:
             rate = client.get_interest_rate(rate_type)
             print(f"   {rate_type}: {rate.get('rate', 'N/A')}%")
-        except:
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=True)
             pass
     
     # Common indicators

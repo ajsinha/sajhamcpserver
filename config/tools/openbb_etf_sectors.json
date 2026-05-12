@@ -2,7 +2,7 @@
   "name": "openbb_etf_sectors",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
   "description": "Get ETF sector allocation via OpenBB",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

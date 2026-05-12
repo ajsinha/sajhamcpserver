@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SAJHA MCP Server v4.0.0 — AWS CDK App
+SAJHA MCP Server v4.5.0 — AWS CDK App
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Deploy:

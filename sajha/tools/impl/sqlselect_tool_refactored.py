@@ -39,7 +39,7 @@ class SqlSelectBaseTool(BaseMCPTool):
             self.logger.info(f"DuckDB connection initialized for {self.name}")
             
         except Exception as e:
-            self.logger.error(f"Failed to initialize DuckDB connection: {str(e)}")
+            self.logger.error(f"Failed to initialize DuckDB connection: {str(e)}", exc_info=True)
             raise Exception(f"Failed to initialize DuckDB connection: {str(e)}")
     
     def _register_data_sources(self):
@@ -73,7 +73,7 @@ class SqlSelectBaseTool(BaseMCPTool):
                 self.logger.info(f"Registered data source: {source_name} ({file_type})")
                     
             except Exception as e:
-                self.logger.error(f"Error registering data source {source_name}: {str(e)}")
+                self.logger.error(f"Error registering data source {source_name}: {str(e)}", exc_info=True)
     
     def _error_response(self, error_message: str) -> Dict[str, Any]:
         """Generate error response"""
@@ -89,7 +89,8 @@ class SqlSelectBaseTool(BaseMCPTool):
             try:
                 self.connection.close()
                 self.logger.info(f"DuckDB connection closed for {self.name}")
-            except:
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}", exc_info=True)
                 pass
 
 
@@ -297,7 +298,7 @@ class SqlSelectDescribeSourceTool(SqlSelectBaseTool):
                 for row in result
             ]
         except Exception as e:
-            self.logger.error(f"Error getting columns for {source_name}: {str(e)}")
+            self.logger.error(f"Error getting columns for {source_name}: {str(e)}", exc_info=True)
             columns = []
         
         # Get row count
@@ -305,7 +306,7 @@ class SqlSelectDescribeSourceTool(SqlSelectBaseTool):
             count_query = f"SELECT COUNT(*) FROM {source_name}"
             row_count = self.connection.execute(count_query).fetchone()[0]
         except Exception as e:
-            self.logger.error(f"Error counting rows for {source_name}: {str(e)}")
+            self.logger.error(f"Error counting rows for {source_name}: {str(e)}", exc_info=True)
             row_count = 0
         
         self.logger.info(f"Described source: {source_name} ({row_count} rows, {len(columns)} columns)")
@@ -442,7 +443,7 @@ class SqlSelectExecuteQueryTool(SqlSelectBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Query execution failed: {str(e)}")
+            self.logger.error(f"Query execution failed: {str(e)}", exc_info=True)
             return self._error_response(f"Query execution failed: {str(e)}")
 
 
@@ -554,7 +555,7 @@ class SqlSelectSampleDataTool(SqlSelectBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to get sample data from {source_name}: {str(e)}")
+            self.logger.error(f"Failed to get sample data from {source_name}: {str(e)}", exc_info=True)
             return self._error_response(f"Failed to get sample data: {str(e)}")
 
 
@@ -671,7 +672,7 @@ class SqlSelectGetSchemaTool(SqlSelectBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to get schema for {source_name}: {str(e)}")
+            self.logger.error(f"Failed to get schema for {source_name}: {str(e)}", exc_info=True)
             return self._error_response(f"Failed to get schema: {str(e)}")
 
 
@@ -766,7 +767,7 @@ class SqlSelectCountRowsTool(SqlSelectBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to count rows in {source_name}: {str(e)}")
+            self.logger.error(f"Failed to count rows in {source_name}: {str(e)}", exc_info=True)
             return self._error_response(f"Failed to count rows: {str(e)}")
 
 

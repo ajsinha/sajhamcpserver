@@ -66,7 +66,7 @@ class EnhancedIRScraperFactory:
             )
             return scraper
         except Exception as e:
-            self.logger.error(f"Error creating scraper for {ticker}: {e}")
+            self.logger.error(f"Error creating scraper for {ticker}: {e}", exc_info=True)
             return None
     
     def is_supported(self, ticker: str) -> bool:
@@ -209,7 +209,7 @@ class EnhancedIRScraperFactory:
             self.company_db.load_from_file(file_path)
             self.logger.info(f"Loaded S&P 500 companies from {file_path}")
         except Exception as e:
-            self.logger.error(f"Error loading S&P 500 companies: {e}")
+            self.logger.error(f"Error loading S&P 500 companies: {e}", exc_info=True)
             raise
     
     def save_company_database(self, file_path: str):
@@ -223,5 +223,5 @@ class EnhancedIRScraperFactory:
             self.company_db.save_to_file(file_path)
             self.logger.info(f"Saved company database to {file_path}")
         except Exception as e:
-            self.logger.error(f"Error saving company database: {e}")
+            self.logger.error(f"Error saving company database: {e}", exc_info=True)
             raise

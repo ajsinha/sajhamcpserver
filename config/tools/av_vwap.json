@@ -2,7 +2,7 @@
   "name": "av_vwap",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVVWAPTool",
   "description": "Get Volume Weighted Average Price from Alpha Vantage",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

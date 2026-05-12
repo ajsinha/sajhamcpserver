@@ -224,7 +224,7 @@ class SECSearchCompanyTool(SECEdgarBaseTool):
                 }
                 
         except Exception as e:
-            self.logger.error(f"Failed to search companies: {e}")
+            self.logger.error(f"Failed to search companies: {e}", exc_info=True)
             raise ValueError(f"Failed to search companies: {str(e)}")
 
 
@@ -384,7 +384,7 @@ class SECGetCompanyInfoTool(SECEdgarBaseTool):
             else:
                 raise ValueError(f"Failed to get company info: HTTP {e.code}")
         except Exception as e:
-            self.logger.error(f"Failed to get company info: {e}")
+            self.logger.error(f"Failed to get company info: {e}", exc_info=True)
             raise ValueError(f"Failed to get company info: {str(e)}")
 
 
@@ -569,7 +569,7 @@ class SECGetCompanyFilingsTool(SECEdgarBaseTool):
                 }
                 
         except Exception as e:
-            self.logger.error(f"Failed to get company filings: {e}")
+            self.logger.error(f"Failed to get company filings: {e}", exc_info=True)
             raise ValueError(f"Failed to get company filings: {str(e)}")
 
 
@@ -664,7 +664,7 @@ class SECGetCompanyFactsTool(SECEdgarBaseTool):
             else:
                 raise ValueError(f"Failed to get company facts: HTTP {e.code}")
         except Exception as e:
-            self.logger.error(f"Failed to get company facts: {e}")
+            self.logger.error(f"Failed to get company facts: {e}", exc_info=True)
             raise ValueError(f"Failed to get company facts: {str(e)}")
 
 
@@ -825,7 +825,7 @@ class SECGetFinancialDataTool(SECEdgarBaseTool):
             else:
                 raise ValueError(f"Failed to get financial data: HTTP {e.code}")
         except Exception as e:
-            self.logger.error(f"Failed to get financial data: {e}")
+            self.logger.error(f"Failed to get financial data: {e}", exc_info=True)
             raise ValueError(f"Failed to get financial data: {str(e)}")
 
 
@@ -978,7 +978,7 @@ class SECGetInsiderTradingTool(SECEdgarBaseTool):
                 }
                 
         except Exception as e:
-            self.logger.error(f"Failed to get insider trading data: {e}")
+            self.logger.error(f"Failed to get insider trading data: {e}", exc_info=True)
             raise ValueError(f"Failed to get insider trading data: {str(e)}")
 
 
@@ -1131,7 +1131,7 @@ class SECGetMutualFundHoldingsTool(SECEdgarBaseTool):
                 }
                 
         except Exception as e:
-            self.logger.error(f"Failed to get mutual fund holdings: {e}")
+            self.logger.error(f"Failed to get mutual fund holdings: {e}", exc_info=True)
             raise ValueError(f"Failed to get mutual fund holdings: {str(e)}")
 
 

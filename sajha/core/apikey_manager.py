@@ -83,7 +83,7 @@ class APIKeyManager:
                 logger.info(f"Loaded {len(self._apikeys)} API keys from {self.config_path}")
                 
             except Exception as e:
-                logger.error(f"Error loading API keys from {self.config_path}: {e}")
+                logger.error(f"Error loading API keys from {self.config_path}: {e}", exc_info=True)
                 self._apikeys = {}
                 self._settings = {}
     
@@ -111,7 +111,7 @@ class APIKeyManager:
             logger.info(f"Created default API keys config at {self.config_path}")
             
         except Exception as e:
-            logger.error(f"Error creating default config: {e}")
+            logger.error(f"Error creating default config: {e}", exc_info=True)
     
     def _save_keys(self):
         """Save API keys to JSON file"""
@@ -129,7 +129,7 @@ class APIKeyManager:
                 return True
                 
             except Exception as e:
-                logger.error(f"Error saving API keys: {e}")
+                logger.error(f"Error saving API keys: {e}", exc_info=True)
                 return False
     
     def generate_key(self) -> str:
@@ -264,7 +264,8 @@ class APIKeyManager:
                     exp_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
                     if datetime.now(timezone.utc) > exp_dt:
                         return False, None, "API key has expired"
-                except:
+                except Exception as e:
+                    logger.error(f"Unexpected error: {e}", exc_info=True)
                     pass
             
             return True, key_data, "Valid"
@@ -308,6 +309,7 @@ class APIKeyManager:
                     if re.match(pattern, tool_name):
                         return True, f"Tool matches pattern '{pattern}'"
                 except re.error:
+                    logger.debug("Invalid regex pattern, skipping", exc_info=True)
                     continue
             return False, f"Tool '{tool_name}' doesn't match any pattern"
         
@@ -488,7 +490,8 @@ class APIKeyManager:
                         exp_dt = datetime.fromisoformat(exp.replace('Z', '+00:00'))
                         if now > exp_dt:
                             expired += 1
-                    except:
+                    except Exception as e:
+                        logger.error(f"Unexpected error: {e}", exc_info=True)
                         pass
             
             total_requests = sum(k.get('usage_stats', {}).get('total_requests', 0) 

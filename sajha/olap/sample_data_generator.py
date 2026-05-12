@@ -123,7 +123,7 @@ class SampleDataGenerator:
             }
             
         except Exception as e:
-            logger.error(f"Error generating sample data: {e}")
+            logger.error(f"Error generating sample data: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e)
@@ -370,7 +370,7 @@ class SampleDataGenerator:
             try:
                 result = self.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
                 stats[table] = {"row_count": result[0]}
-            except Exception:
+            except Exception as e:
                 stats[table] = {"row_count": 0, "error": "Table not found"}
         
         # Get date range for orders
@@ -386,7 +386,8 @@ class SampleDataGenerator:
             }
             stats["orders"]["total_revenue"] = float(result[2]) if result[2] else 0
             stats["orders"]["unique_customers"] = result[3] if result[3] else 0
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
             pass
         
         return stats

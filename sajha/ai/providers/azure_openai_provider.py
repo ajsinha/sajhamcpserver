@@ -72,5 +72,5 @@ class AzureOpenAIProvider(LLMProvider):
                 model='gpt-4o', messages=[{'role': 'user', 'content': 'ping'}], max_tokens=5)
             return bool(r.choices)
         except Exception as e:
-            logger.warning(f"Azure OpenAI health check failed: {e}")
+            logger.warning(f"Azure OpenAI health check failed: {e}", exc_info=True)
             return False

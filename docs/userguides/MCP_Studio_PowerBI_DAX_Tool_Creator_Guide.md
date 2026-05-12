@@ -1,5 +1,5 @@
 # MCP Studio PowerBI DAX Query Tool Creator Guide
-## SAJHA MCP Server v4.0.0
+## SAJHA MCP Server v4.5.0
 
 ## Overview
 
@@ -719,5 +719,5 @@ grep "token" logs/sajha_mcp.log | tail -20
 
 ---
 
-*SAJHA MCP Server v4.0.0 - PowerBI DAX Query Tool Creator Guide*
+*SAJHA MCP Server v4.5.0 - PowerBI DAX Query Tool Creator Guide*
 *Copyright © 2025-2030 Ashutosh Sinha*

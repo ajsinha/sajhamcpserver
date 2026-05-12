@@ -308,7 +308,7 @@ class DatabaseConnectionPool:
                     self._idle_connections.put(conn_wrapper)
                     logger.debug(f"Created initial connection {i + 1}/{self.config.min_idle}")
             except Exception as e:
-                logger.warning(f"Failed to create initial connection: {e}")
+                logger.warning(f"Failed to create initial connection: {e}", exc_info=True)
 
         # Start eviction thread
         if self.config.time_between_eviction_runs > 0:
@@ -370,7 +370,7 @@ class DatabaseConnectionPool:
             return wrapper
 
         except Exception as e:
-            logger.error(f"Failed to create connection: {e}")
+            logger.error(f"Failed to create connection: {e}", exc_info=True)
             self.stats.record_invalidation()
             raise
 
@@ -417,7 +417,8 @@ class DatabaseConnectionPool:
 
         try:
             wrapper.connection.close()
-        except:
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=True)
             pass
 
         wrapper.state = ConnectionState.CLOSED
@@ -450,7 +451,7 @@ class DatabaseConnectionPool:
                 except Full:
                     break
                 except Exception as e:
-                    logger.warning(f"Failed to create connection for min idle: {e}")
+                    logger.warning(f"Failed to create connection for min idle: {e}", exc_info=True)
 
     def _evict_connections(self):
         """Evict idle connections based on eviction policy."""
@@ -538,7 +539,7 @@ class DatabaseConnectionPool:
                     self._remove_abandoned_connections()
 
             except Exception as e:
-                logger.error(f"Error in eviction thread: {e}")
+                logger.error(f"Error in eviction thread: {e}", exc_info=True)
 
         logger.info("Eviction thread stopped")
 
@@ -720,7 +721,8 @@ class DatabaseConnectionPool:
             try:
                 wrapper.connection.rollback()
                 wrapper.in_transaction = False
-            except:
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}", exc_info=True)
                 should_destroy = True
         elif self.config.test_on_return and not self._validate_connection(wrapper):
             should_destroy = True

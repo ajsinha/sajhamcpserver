@@ -2,7 +2,7 @@
   "name": "fred_wheat_price",
   "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
   "description": "Get Wheat Price from FRED (series: PWHEAMTUSDM)",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

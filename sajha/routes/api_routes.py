@@ -42,7 +42,7 @@ async def mcp_endpoint(request: Request, db: Session = Depends(get_db)):
 
     try:
         request_data = await request.json()
-    except Exception:
+    except Exception as e:
         return JSONResponse({
             'jsonrpc': '2.0',
             'error': {'code': -32700, 'message': 'Parse error'},

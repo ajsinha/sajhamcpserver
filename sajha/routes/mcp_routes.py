@@ -78,7 +78,7 @@ async def mcp_message(request: Request, db: Session = Depends(get_db)):
 
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
         return JSONResponse({
             'jsonrpc': '2.0',
             'error': {'code': -32700, 'message': 'Parse error'},

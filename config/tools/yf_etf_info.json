@@ -2,7 +2,7 @@
   "name": "yf_etf_info",
   "implementation": "sajha.tools.impl.yfinance_tools.YFETFInfoTool",
   "description": "Get ETF info from Yahoo Finance \u2014 category, family, assets, yield, expense ratio, returns",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

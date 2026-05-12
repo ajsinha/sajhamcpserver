@@ -2,7 +2,7 @@
   "name": "fred_custom_series",
   "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
   "description": "Fetch ANY of 800,000+ FRED data series by ID \u2014 the universal economic data tool",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

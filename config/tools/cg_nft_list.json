@@ -2,7 +2,7 @@
   "name": "cg_nft_list",
   "implementation": "sajha.tools.impl.coingecko_tools.CGNFTListTool",
   "description": "Get NFT collections list from CoinGecko",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

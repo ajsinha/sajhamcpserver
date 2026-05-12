@@ -1,4 +1,4 @@
-# SAJHA MCP Server v3.1.0 — Dependencies
+# SAJHA MCP Server v4.5.0 — Dependencies
 # Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 #
 # Install: pip install -r requirements.txt
@@ -61,7 +61,7 @@ together>=1.3.0                     # Together.ai open-source models
 ollama>=0.4.0                       # Ollama local models
 # boto3 already listed above for AWS/S3 — also covers Bedrock
 
-# ── v4.0.0: Observability (optional — falls back to built-in metrics) ─
+# ── v4.5.0: Observability (optional — falls back to built-in metrics) ─
 # opentelemetry-api>=1.20.0
 # opentelemetry-sdk>=1.20.0
 # opentelemetry-exporter-otlp>=1.20.0

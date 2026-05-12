@@ -2,7 +2,7 @@
   "name": "fmp_crypto_quote",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
   "description": "Get real-time crypto quote from FMP \u2014 BTC, ETH, etc.",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

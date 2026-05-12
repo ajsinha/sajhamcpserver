@@ -152,7 +152,7 @@ class HotReloadManager:
             try:
                 self._check_and_reload()
             except Exception as e:
-                logger.error(f"Error in hot-reload monitor: {e}")
+                logger.error(f"Error in hot-reload monitor: {e}", exc_info=True)
                 self._stats['errors'].append({
                     'time': datetime.now().isoformat(),
                     'error': str(e)
@@ -192,7 +192,7 @@ class HotReloadManager:
                     self._stats['total_reloads'] += 1
                     
             except Exception as e:
-                logger.error(f"Error checking config file {name}: {e}")
+                logger.error(f"Error checking config file {name}: {e}", exc_info=True)
     
     def _check_python_modules(self):
         """Check Python modules for changes and reload if needed."""
@@ -218,7 +218,7 @@ class HotReloadManager:
                         self._stats['total_reloads'] += 1
                     
             except Exception as e:
-                logger.error(f"Error checking module {module_name}: {e}")
+                logger.error(f"Error checking module {module_name}: {e}", exc_info=True)
     
     def _reload_module(self, module_name: str) -> bool:
         """
@@ -242,7 +242,7 @@ class HotReloadManager:
                 logger.info(f"Successfully loaded module: {module_name}")
                 return True
         except Exception as e:
-            logger.error(f"Failed to reload module {module_name}: {e}\n{traceback.format_exc()}")
+            logger.error(f"Failed to reload module {module_name}: {e}\n{traceback.format_exc()}", exc_info=True)
             return False
     
     def _get_category_from_name(self, name: str) -> str:
@@ -264,7 +264,7 @@ class HotReloadManager:
             try:
                 callback(action, name, path)
             except Exception as e:
-                logger.error(f"Error in reload callback for {category}: {e}")
+                logger.error(f"Error in reload callback for {category}: {e}", exc_info=True)
     
     def force_reload_all(self):
         """Force reload all monitored files and modules."""

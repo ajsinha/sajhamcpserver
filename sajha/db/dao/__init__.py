@@ -439,7 +439,7 @@ class A2ATaskDAO(BaseDAO[A2ATask]):
             self.db.commit()
 
 
-# ── Prompt DAO (v4.0.0 — prompts in database) ────────────────
+# ── Prompt DAO (v4.5.0 — prompts in database) ────────────────
 
 class PromptDAO(BaseDAO[Prompt]):
     """Data access for prompts. Replaces JSON file-based storage."""

@@ -2,7 +2,7 @@
   "name": "fmp_index_historical",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
   "description": "Get historical index data from FMP",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

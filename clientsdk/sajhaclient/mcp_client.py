@@ -86,7 +86,7 @@ class MCPClient:
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'User-Agent': 'sajhaclient-mcp/4.0.0',
+            'User-Agent': 'sajhaclient-mcp/4.5.0',
             **self._auth.get_headers(),
         }
 
@@ -113,7 +113,7 @@ class MCPClient:
 
     # ── MCP Protocol Methods ─────────────────────────────────────
 
-    def initialize(self, client_name: str = "sajhaclient", client_version: str = "4.0.0") -> Dict:
+    def initialize(self, client_name: str = "sajhaclient", client_version: str = "4.5.0") -> Dict:
         """
         Initialize the MCP session. Must be called first.
 
@@ -286,8 +286,9 @@ class MCPSSEClient:
                         for handler in self._notification_handlers:
                             handler(notification)
                     except json.JSONDecodeError:
+                        logger.debug("SSE data not JSON, skipping", exc_info=True)
                         pass
-        except Exception:
+        except Exception as e:
             self._connected = False
 
     def on_notification(self, handler: Callable) -> None:
@@ -393,14 +394,16 @@ class MCPWebSocketClient:
             while self._connected and self._ws:
                 try:
                     raw = self._ws.recv(timeout=1.0)
-                except TimeoutError:
+                except TimeoutError as e:
+                    logger.debug(f"Handled: {e}")
                     continue
-                except Exception:
+                except Exception as e:
                     break
 
                 try:
                     msg = json.loads(raw)
                 except json.JSONDecodeError:
+                    logger.debug("WS message not valid JSON, skipping", exc_info=True)
                     continue
 
                 if 'id' in msg and msg['id'] in self._pending:
@@ -414,8 +417,9 @@ class MCPWebSocketClient:
                         try:
                             handler(msg)
                         except Exception as e:
-                            logger.warning(f"Notification handler error: {e}")
-        except Exception:
+                            logger.warning(f"Notification handler error: {e}", exc_info=True)
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
             pass
         finally:
             self._connected = False
@@ -500,7 +504,8 @@ class MCPWebSocketClient:
         if self._ws:
             try:
                 self._ws.close()
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Error handled: {e}", exc_info=True)
                 pass
             self._ws = None
 
@@ -514,3 +519,304 @@ class MCPWebSocketClient:
 
     def __exit__(self, *args):
         self.disconnect()
+
+
+# ═══════════════════════════════════════════════════════════════
+# PILLAR 2: Transport Coalgebra
+# ═══════════════════════════════════════════════════════════════
+
+class TransportCoalgebra:
+    """
+    Abstract coalgebraic interface for MCP transports.
+
+    All three transport clients (HTTP, SSE, WebSocket) implement the same
+    transition function: step(request) → (response, new_state).
+
+    This enables:
+      - Behavioral equivalence testing (bisimulation)
+      - Runtime transport hot-swap
+      - Unified retry/fallback logic
+    """
+
+    def __init__(self, config: Optional[SajhaConfig] = None, auth: Optional[AuthProvider] = None):
+        self.config = config or SajhaConfig()
+        self._auth = auth or NoAuth()
+        self._state = {'initialized': False, 'request_count': 0, 'transport': 'unknown'}
+
+    @property
+    def state(self) -> dict:
+        return dict(self._state)
+
+    def step(self, method: str, params: Optional[Dict] = None) -> tuple:
+        """
+        Coalgebraic transition: (state, input) → (output, new_state).
+        Input = (method, params). Output = JSON-RPC result.
+        """
+        raise NotImplementedError
+
+    def initialize(self) -> Dict:
+        """Initialize the MCP session."""
+        result, _ = self.step('initialize')
+        return result
+
+    def list_tools(self) -> Dict:
+        """List available tools."""
+        result, _ = self.step('tools/list')
+        return result
+
+    def call_tool(self, name: str, **kwargs) -> Any:
+        """Call a tool by name."""
+        result, _ = self.step('tools/call', {'name': name, 'arguments': kwargs})
+        return result
+
+    def ping(self) -> Dict:
+        """Ping the server."""
+        result, _ = self.step('ping')
+        return result
+
+
+class HTTPTransport(TransportCoalgebra):
+    """HTTP POST transport as a coalgebra."""
+
+    def __init__(self, config=None, auth=None):
+        super().__init__(config, auth)
+        self._client = MCPClient(config, auth)
+        self._state['transport'] = 'http_post'
+
+    def step(self, method, params=None):
+        self._state['request_count'] += 1
+        if method == 'initialize' and not self._state['initialized']:
+            result = self._client.initialize()
+            self._state['initialized'] = True
+        elif method == 'tools/list':
+            result = self._client.list_tools()
+        elif method == 'tools/call':
+            result = self._client.call_tool(params['name'], params.get('arguments', {}))
+        elif method == 'ping':
+            result = self._client.ping()
+        else:
+            result = self._client._rpc(method, params)
+        return result, self.state
+
+
+class SSETransport(TransportCoalgebra):
+    """SSE transport as a coalgebra."""
+
+    def __init__(self, config=None, auth=None):
+        super().__init__(config, auth)
+        self._client = MCPSSEClient(config, auth)
+        self._state['transport'] = 'sse'
+
+    def step(self, method, params=None):
+        self._state['request_count'] += 1
+        if method == 'initialize' and not self._state['initialized']:
+            result = self._client.initialize()
+            self._state['initialized'] = True
+        elif method == 'tools/list':
+            result = self._client.list_tools()
+        elif method == 'tools/call':
+            result = self._client.call_tool(params['name'], params.get('arguments', {}))
+        elif method == 'ping':
+            result = self._client.ping()
+        else:
+            result = self._client._rpc(method, params)
+        return result, self.state
+
+
+class WSTransport(TransportCoalgebra):
+    """WebSocket transport as a coalgebra."""
+
+    def __init__(self, config=None, auth=None):
+        super().__init__(config, auth)
+        self._client = MCPWebSocketClient(config, auth)
+        self._state['transport'] = 'websocket'
+
+    def step(self, method, params=None):
+        self._state['request_count'] += 1
+        if method == 'initialize' and not self._state['initialized']:
+            self._client.connect()
+            result = self._client.initialize()
+            self._state['initialized'] = True
+        elif method == 'tools/list':
+            result = self._client.list_tools()
+        elif method == 'tools/call':
+            result = self._client.call_tool(params['name'], params.get('arguments', {}))
+        elif method == 'ping':
+            result = self._client.ping()
+        else:
+            result = self._client._send_rpc(method, params)
+        return result, self.state
+
+
+def bisimilar(transport_a: TransportCoalgebra, transport_b: TransportCoalgebra,
+              test_sequence: list, comparator=None) -> Dict:
+    """
+    Bisimulation check: verify two transports produce equivalent outputs
+    for the same input sequence.
+
+    Returns: {passed: bool, steps: [...], first_divergence: int|None}
+    """
+    if comparator is None:
+        def comparator(a, b):
+            # Compare structure, not exact values (timestamps etc differ)
+            if type(a) != type(b):
+                return False
+            if isinstance(a, dict) and isinstance(b, dict):
+                return set(a.keys()) == set(b.keys())
+            return True
+
+    results = []
+    divergence = None
+
+    for i, (method, params) in enumerate(test_sequence):
+        out_a, state_a = transport_a.step(method, params)
+        out_b, state_b = transport_b.step(method, params)
+        equivalent = comparator(out_a, out_b)
+        results.append({
+            'step': i,
+            'method': method,
+            'transport_a': state_a.get('transport'),
+            'transport_b': state_b.get('transport'),
+            'equivalent': equivalent,
+        })
+        if not equivalent and divergence is None:
+            divergence = i
+
+    return {
+        'passed': divergence is None,
+        'steps': results,
+        'first_divergence': divergence,
+        'total_steps': len(test_sequence),
+    }
+
+
+# ═══════════════════════════════════════════════════════════════
+# PILLAR 1: Client-Side Composition (Kleisli)
+# ═══════════════════════════════════════════════════════════════
+
+class ClientPipeline:
+    """
+    Client-side tool composition using Kleisli arrows.
+
+    Chains multiple tool calls where output of one feeds the next.
+    Tracks confidence and entropy client-side.
+
+    Usage:
+        client = SajhaClient(config, auth)
+        pipeline = ClientPipeline(client)
+        pipeline.add_step("yahoo_quote", param_map={"symbol": "$input.ticker"})
+        pipeline.add_step("calc_sharpe", param_map={"returns": "$.history"})
+        result = pipeline.execute({"ticker": "AAPL"})
+        print(result['_composition']['confidence'])
+    """
+
+    def __init__(self, client):
+        """
+        Args:
+            client: SajhaClient instance with execute_tool() method.
+        """
+        self._client = client
+        self._steps: list = []
+
+    def add_step(self, tool_name: str, param_map: Dict[str, str] = None,
+                 static_params: Dict[str, Any] = None, output_key: str = None):
+        """
+        Add a step to the pipeline.
+
+        param_map values:
+          "$input.field"  → from original pipeline input
+          "$.field"       → from previous step's output
+          "literal"       → static value
+        """
+        self._steps.append({
+            'tool_name': tool_name,
+            'param_map': param_map or {},
+            'static_params': static_params or {},
+            'output_key': output_key or tool_name,
+        })
+        return self  # fluent API
+
+    def execute(self, initial_input: Dict, max_entropy_bits: float = 3.0) -> Dict:
+        """
+        Execute the pipeline with Kleisli composition semantics.
+        Each step's output feeds the next. Errors short-circuit.
+        """
+        import time
+        import math
+
+        result = {}
+        prev_output = {}
+        cumulative_confidence = 1.0
+        trace = []
+        total_duration = 0.0
+        step_count = 0
+
+        for step in self._steps:
+            # Build params using lens-like projection
+            params = dict(step['static_params'])
+            for target, source in step['param_map'].items():
+                if isinstance(source, str):
+                    if source.startswith('$input.'):
+                        params[target] = initial_input.get(source[7:], '')
+                    elif source.startswith('$.'):
+                        params[target] = prev_output.get(source[2:], '')
+                    else:
+                        params[target] = source
+                else:
+                    params[target] = source
+
+            # Execute tool
+            start = time.time()
+            try:
+                tool_result = self._client.execute_tool(step['tool_name'], **params)
+                duration = (time.time() - start) * 1000
+                step_confidence = 0.92  # default for API tools
+                trace.append(f"✓ {step['tool_name']}: {duration:.0f}ms")
+            except Exception as e:
+                duration = (time.time() - start) * 1000
+                trace.append(f"✗ {step['tool_name']}: {e}")
+                result[step['output_key']] = {'error': str(e)}
+                return {
+                    **result,
+                    '_composition': {
+                        'confidence': 0.0,
+                        'entropy_bits': float('inf'),
+                        'error': str(e),
+                        'trace': trace,
+                        'steps_executed': step_count + 1,
+                    }
+                }
+
+            total_duration += duration
+            cumulative_confidence *= step_confidence
+            step_count += 1
+
+            # Store result
+            result[step['output_key']] = tool_result
+            prev_output = tool_result if isinstance(tool_result, dict) else {}
+
+        # Calculate entropy
+        if cumulative_confidence >= 1.0:
+            entropy = 0.0
+        elif cumulative_confidence <= 0.0:
+            entropy = float('inf')
+        else:
+            p = cumulative_confidence
+            entropy = -(p * math.log2(p) + (1 - p) * math.log2(1 - p))
+
+        return {
+            **result,
+            '_composition': {
+                'confidence': round(cumulative_confidence, 4),
+                'entropy_bits': round(entropy, 3),
+                'confidence_floor': round(2.0 ** (-entropy) if entropy < 100 else 0.0, 4),
+                'duration_ms': round(total_duration, 1),
+                'steps_executed': step_count,
+                'trace': trace,
+                'guard_passed': entropy <= max_entropy_bits,
+            }
+        }
+
+    def __repr__(self):
+        tools = ' >=> '.join(s['tool_name'] for s in self._steps)
+        return f"ClientPipeline({tools})"

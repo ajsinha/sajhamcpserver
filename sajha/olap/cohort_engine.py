@@ -483,7 +483,7 @@ ORDER BY cd.cohort_period, cd.period_number
             }
             
         except Exception as e:
-            logger.error(f"Cohort analysis error: {e}")
+            logger.error(f"Cohort analysis error: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e),
@@ -547,7 +547,7 @@ ORDER BY cd.cohort_period, cd.period_number
             }
             
         except Exception as e:
-            logger.error(f"Retention analysis error: {e}")
+            logger.error(f"Retention analysis error: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e),
@@ -596,7 +596,7 @@ FROM cohort_data
             }
             
         except Exception as e:
-            logger.error(f"Cohort summary error: {e}")
+            logger.error(f"Cohort summary error: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e)

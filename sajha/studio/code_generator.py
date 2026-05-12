@@ -356,7 +356,7 @@ class ToolCodeGenerator:
             try:
                 ast.parse(python_content)
             except SyntaxError as e:
-                logger.error(f"Generated Python has syntax error: {e}")
+                logger.error(f"Generated Python has syntax error: {e}", exc_info=True)
                 return False, f"Generated Python has syntax error on line {e.lineno}: {e.msg}", None, None
             
             # Save JSON config
@@ -372,7 +372,7 @@ class ToolCodeGenerator:
             return True, "Tool saved successfully", str(json_path), str(python_path)
             
         except Exception as e:
-            logger.error(f"Error saving tool: {e}")
+            logger.error(f"Error saving tool: {e}", exc_info=True)
             return False, f"Error saving tool: {str(e)}", None, None
     
     def preview_tool(

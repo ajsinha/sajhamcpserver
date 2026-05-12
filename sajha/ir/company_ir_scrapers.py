@@ -58,7 +58,7 @@ class TeslaIRScraper(BaseIRWebScraper):
                         documents.append(doc)
                         
                 except Exception as e:
-                    self.logger.warning(f"Error scraping {url}: {e}")
+                    self.logger.warning(f"Error scraping {url}: {e}", exc_info=True)
                     continue
             
             # Sort by year (most recent first)
@@ -66,7 +66,7 @@ class TeslaIRScraper(BaseIRWebScraper):
             return documents
             
         except Exception as e:
-            self.logger.error(f"Error scraping Tesla documents: {e}")
+            self.logger.error(f"Error scraping Tesla documents: {e}", exc_info=True)
             return []
     
     def _determine_document_type(self, text: str, url: str) -> Optional[str]:
@@ -127,14 +127,14 @@ class MicrosoftIRScraper(BaseIRWebScraper):
                         documents.append(doc)
                         
                 except Exception as e:
-                    self.logger.warning(f"Error scraping {url}: {e}")
+                    self.logger.warning(f"Error scraping {url}: {e}", exc_info=True)
                     continue
             
             documents.sort(key=lambda x: x.get('year', 0) or 0, reverse=True)
             return documents
             
         except Exception as e:
-            self.logger.error(f"Error scraping Microsoft documents: {e}")
+            self.logger.error(f"Error scraping Microsoft documents: {e}", exc_info=True)
             return []
     
     def _determine_document_type(self, text: str, url: str) -> Optional[str]:
@@ -193,14 +193,14 @@ class CitigroupIRScraper(BaseIRWebScraper):
                         documents.append(doc)
                         
                 except Exception as e:
-                    self.logger.warning(f"Error scraping {url}: {e}")
+                    self.logger.warning(f"Error scraping {url}: {e}", exc_info=True)
                     continue
             
             documents.sort(key=lambda x: x.get('year', 0) or 0, reverse=True)
             return documents
             
         except Exception as e:
-            self.logger.error(f"Error scraping Citigroup documents: {e}")
+            self.logger.error(f"Error scraping Citigroup documents: {e}", exc_info=True)
             return []
     
     def _determine_document_type(self, text: str, url: str) -> Optional[str]:
@@ -259,14 +259,14 @@ class BMOIRScraper(BaseIRWebScraper):
                         documents.append(doc)
                         
                 except Exception as e:
-                    self.logger.warning(f"Error scraping {url}: {e}")
+                    self.logger.warning(f"Error scraping {url}: {e}", exc_info=True)
                     continue
             
             documents.sort(key=lambda x: x.get('year', 0) or 0, reverse=True)
             return documents
             
         except Exception as e:
-            self.logger.error(f"Error scraping BMO documents: {e}")
+            self.logger.error(f"Error scraping BMO documents: {e}", exc_info=True)
             return []
     
     def _determine_document_type(self, text: str, url: str) -> Optional[str]:
@@ -325,14 +325,14 @@ class RBCIRScraper(BaseIRWebScraper):
                         documents.append(doc)
                         
                 except Exception as e:
-                    self.logger.warning(f"Error scraping {url}: {e}")
+                    self.logger.warning(f"Error scraping {url}: {e}", exc_info=True)
                     continue
             
             documents.sort(key=lambda x: x.get('year', 0) or 0, reverse=True)
             return documents
             
         except Exception as e:
-            self.logger.error(f"Error scraping RBC documents: {e}")
+            self.logger.error(f"Error scraping RBC documents: {e}", exc_info=True)
             return []
     
     def _determine_document_type(self, text: str, url: str) -> Optional[str]:
@@ -391,14 +391,14 @@ class JPMorganIRScraper(BaseIRWebScraper):
                         documents.append(doc)
                         
                 except Exception as e:
-                    self.logger.warning(f"Error scraping {url}: {e}")
+                    self.logger.warning(f"Error scraping {url}: {e}", exc_info=True)
                     continue
             
             documents.sort(key=lambda x: x.get('year', 0) or 0, reverse=True)
             return documents
             
         except Exception as e:
-            self.logger.error(f"Error scraping JPMorgan documents: {e}")
+            self.logger.error(f"Error scraping JPMorgan documents: {e}", exc_info=True)
             return []
     
     def _determine_document_type(self, text: str, url: str) -> Optional[str]:
@@ -457,14 +457,14 @@ class GoldmanSachsIRScraper(BaseIRWebScraper):
                         documents.append(doc)
                         
                 except Exception as e:
-                    self.logger.warning(f"Error scraping {url}: {e}")
+                    self.logger.warning(f"Error scraping {url}: {e}", exc_info=True)
                     continue
             
             documents.sort(key=lambda x: x.get('year', 0) or 0, reverse=True)
             return documents
             
         except Exception as e:
-            self.logger.error(f"Error scraping Goldman Sachs documents: {e}")
+            self.logger.error(f"Error scraping Goldman Sachs documents: {e}", exc_info=True)
             return []
     
     def _determine_document_type(self, text: str, url: str) -> Optional[str]:

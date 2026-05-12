@@ -81,7 +81,7 @@ class DuckDbBaseTool(BaseMCPTool):
             result = conn.execute(query)
             return result
         except Exception as e:
-            self.logger.error(f"Query execution failed: {e}")
+            self.logger.error(f"Query execution failed: {e}", exc_info=True)
             raise ValueError(f"Query failed: {str(e)}")
 
     def _format_file_size(self, size_bytes: int) -> str:
@@ -140,7 +140,8 @@ class DuckDbBaseTool(BaseMCPTool):
                         file_info['file_size_bytes'] = stat.st_size
                         file_info['file_size_human'] = self._format_file_size(stat.st_size)
                         file_info['modified_date'] = datetime.fromtimestamp(stat.st_mtime).isoformat()
-                    except:
+                    except Exception as e:
+                        logger.error(f"Unexpected error: {e}", exc_info=True)
                         pass
 
                     files.append(file_info)
@@ -180,7 +181,8 @@ class DuckDbBaseTool(BaseMCPTool):
                     # Drop existing view if it exists
                     try:
                         conn.execute(f"DROP VIEW IF EXISTS {view_name}")
-                    except:
+                    except Exception as e:
+                        logger.error(f"Unexpected error: {e}", exc_info=True)
                         pass
 
                     # Create view based on file type
@@ -234,7 +236,8 @@ class DuckDbBaseTool(BaseMCPTool):
                             'file_type': file_type,
                             'file_path': file_path
                         }
-                    except:
+                    except Exception as e:
+                        logger.error(f"Unexpected error: {e}", exc_info=True)
                         pass
 
                     # Get row count for verification
@@ -245,7 +248,7 @@ class DuckDbBaseTool(BaseMCPTool):
                         self.logger.info(f"✓ Created view '{view_name}' from {filename}")
 
                 except Exception as e:
-                    self.logger.error(f"Failed to create view for {filename}: {e}")
+                    self.logger.error(f"Failed to create view for {filename}: {e}", exc_info=True)
                     continue
 
             # Log summary
@@ -254,7 +257,7 @@ class DuckDbBaseTool(BaseMCPTool):
             self.logger.info(f"Initialization complete: {total_views} views available")
 
         except Exception as e:
-            self.logger.error(f"Failed to initialize views from files: {e}")
+            self.logger.error(f"Failed to initialize views from files: {e}", exc_info=True)
             # Don't raise - allow the tool to continue even if initialization fails
 
     def _start_auto_refresh(self):
@@ -290,7 +293,7 @@ class DuckDbBaseTool(BaseMCPTool):
                 self._check_and_sync_views()
 
             except Exception as e:
-                self.logger.error(f"Auto-refresh error: {e}")
+                self.logger.error(f"Auto-refresh error: {e}", exc_info=True)
                 # Continue running despite errors
 
     def _check_and_sync_views(self):
@@ -323,7 +326,7 @@ class DuckDbBaseTool(BaseMCPTool):
                     self.logger.info(f"🗑️  Removed view '{view_name}' (file deleted: {filename})")
                     changes_made = True
                 except Exception as e:
-                    self.logger.error(f"Failed to remove view for {filename}: {e}")
+                    self.logger.error(f"Failed to remove view for {filename}: {e}", exc_info=True)
 
             # 2. Detect and handle NEW files
             new_files = current_filenames - tracked_filenames
@@ -380,7 +383,7 @@ class DuckDbBaseTool(BaseMCPTool):
                     changes_made = True
 
                 except Exception as e:
-                    self.logger.error(f"Failed to create view for new file {filename}: {e}")
+                    self.logger.error(f"Failed to create view for new file {filename}: {e}", exc_info=True)
 
             # 3. Detect and handle MODIFIED files
             existing_files = current_filenames & tracked_filenames
@@ -436,7 +439,7 @@ class DuckDbBaseTool(BaseMCPTool):
                         changes_made = True
 
                 except Exception as e:
-                    self.logger.error(f"Failed to reload view for modified file {filename}: {e}")
+                    self.logger.error(f"Failed to reload view for modified file {filename}: {e}", exc_info=True)
 
             # Log summary if changes were made
             if changes_made:
@@ -445,7 +448,7 @@ class DuckDbBaseTool(BaseMCPTool):
                 self.logger.info(f"Auto-refresh complete: {total_views} views available")
 
         except Exception as e:
-            self.logger.error(f"Failed to check and sync views: {e}")
+            self.logger.error(f"Failed to check and sync views: {e}", exc_info=True)
 
     def close(self):
         """Close DuckDB connection and stop auto-refresh"""
@@ -514,7 +517,8 @@ class DuckDbListTablesTool(DuckDbBaseTool):
                     count_query = f"SELECT COUNT(*) FROM {row[0]}"
                     count_result = conn.execute(count_query).fetchone()
                     table_info['row_count'] = count_result[0] if count_result else 0
-                except:
+                except Exception as e:
+                    logger.error(f"Unexpected error: {e}", exc_info=True)
                     table_info['row_count'] = None
 
                 tables.append(table_info)
@@ -525,7 +529,7 @@ class DuckDbListTablesTool(DuckDbBaseTool):
             }
 
         except Exception as e:
-            self.logger.error(f"Failed to list tables: {e}")
+            self.logger.error(f"Failed to list tables: {e}", exc_info=True)
             raise
 
 
@@ -607,7 +611,7 @@ class DuckDbDescribeTableTool(DuckDbBaseTool):
             return result
 
         except Exception as e:
-            self.logger.error(f"Failed to describe table: {e}")
+            self.logger.error(f"Failed to describe table: {e}", exc_info=True)
             raise
 
 
@@ -673,7 +677,7 @@ class DuckDbQueryTool(DuckDbBaseTool):
             return response
 
         except Exception as e:
-            self.logger.error(f"Failed to execute query: {e}")
+            self.logger.error(f"Failed to execute query: {e}", exc_info=True)
             raise
 
 
@@ -756,7 +760,7 @@ class DuckDbRefreshViewsTool(DuckDbBaseTool):
             }
 
         except Exception as e:
-            self.logger.error(f"Failed to refresh views: {e}")
+            self.logger.error(f"Failed to refresh views: {e}", exc_info=True)
             raise
 
 
@@ -849,7 +853,8 @@ class DuckDbGetStatsTool(DuckDbBaseTool):
                                 'percentile_75': float(stats[9]) if stats[9] is not None else None
                             })
 
-                    except:
+                    except Exception as e:
+                        logger.error(f"Unexpected error: {e}", exc_info=True)
                         # Non-numeric column
                         stats_query = f"SELECT {', '.join(stats_parts)} FROM {table_name}"
                         stats = conn.execute(stats_query).fetchone()
@@ -864,7 +869,7 @@ class DuckDbGetStatsTool(DuckDbBaseTool):
                         }
 
                 except Exception as e:
-                    self.logger.warning(f"Failed to get stats for column {col}: {e}")
+                    self.logger.warning(f"Failed to get stats for column {col}: {e}", exc_info=True)
                     continue
 
             return {
@@ -874,7 +879,7 @@ class DuckDbGetStatsTool(DuckDbBaseTool):
             }
 
         except Exception as e:
-            self.logger.error(f"Failed to get statistics: {e}")
+            self.logger.error(f"Failed to get statistics: {e}", exc_info=True)
             raise
 
 
@@ -962,7 +967,7 @@ class DuckDbAggregateTool(DuckDbBaseTool):
             }
 
         except Exception as e:
-            self.logger.error(f"Failed to perform aggregation: {e}")
+            self.logger.error(f"Failed to perform aggregation: {e}", exc_info=True)
             raise
 
 
@@ -1016,7 +1021,8 @@ class DuckDbListFilesTool(DuckDbBaseTool):
                     file_info['is_loaded'] = table_name in loaded_tables
                     if file_info['is_loaded']:
                         file_info['table_name'] = table_name
-            except:
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}", exc_info=True)
                 pass
 
             return {
@@ -1027,7 +1033,7 @@ class DuckDbListFilesTool(DuckDbBaseTool):
             }
 
         except Exception as e:
-            self.logger.error(f"Failed to list files: {e}")
+            self.logger.error(f"Failed to list files: {e}", exc_info=True)
             raise
 
 

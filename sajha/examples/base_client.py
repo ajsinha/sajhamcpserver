@@ -110,7 +110,8 @@ class SajhaClient:
             try:
                 error_data = json.loads(error_body)
                 error_msg = error_data.get('error', str(e))
-            except:
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}", exc_info=True)
                 error_msg = error_body or str(e)
             raise SajhaAPIError(f"HTTP {e.code}: {error_msg}", e.code)
         except urllib.error.URLError as e:

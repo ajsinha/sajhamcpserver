@@ -1,6 +1,6 @@
 # SAJHA MCP Server
 
-**Version 4.0.0** · FastAPI · Python 3.9+ · MCP Protocol 2025-06-18
+**Version 4.5.0** · FastAPI · Python 3.9+ · MCP Protocol 2025-06-18
 
 **Copyright © 2025–2030, Ashutosh Sinha** · ajsinha@gmail.com · [GitHub](https://github.com/ajsinha/sajhamcpserver)
 
@@ -10,7 +10,7 @@
 
 SAJHA (Hindi: साझा — "shared, collaborative") MCP Server is a production-grade implementation of the [Model Context Protocol](https://modelcontextprotocol.io) built on FastAPI. It exposes **497 tools** across financial markets, government data, search, analytics, and enterprise integrations through a single, standards-compliant MCP interface.
 
-The server ships with an embedded LLM gateway (6 providers), semantic tool discovery, composite tool orchestration, OpenTelemetry observability, multi-tenancy, a plugin system, three transport options (HTTP POST, SSE, WebSocket), a full web UI, and a zero-dependency Python client SDK.
+The server ships with an embedded LLM gateway (6 providers), semantic tool discovery, composite tool orchestration with category-theory-inspired composition (Kleisli arrows, entropy guard, lens-based param projection), OpenTelemetry observability, multi-tenancy, a plugin system, three transport options (HTTP POST, SSE, WebSocket), a full web UI with 4 themes, and a zero-dependency Python client SDK with transport coalgebra and client-side pipelines.
 
 ---
 
@@ -27,20 +27,26 @@ Server starts at **http://localhost:3002**. Login: `admin` / `admin123`.
 
 ---
 
-## v4.0.0 Highlights
+## v4.5.0 Highlights
 
 | Feature | Description |
 |---------|-------------|
+| **Composition Framework** | Category-theory-inspired tool composition: Kleisli arrows (StepResult envelope), ParamLens (surgical param projection), EntropyGuard (cumulative confidence tracking). [Architecture guide](docs/Composition_Framework.md) |
+| **Parallel Confidence Model** | Sibling steps use weakest-link (min) instead of multiply. Parent-Child uses Giry bind (multiply). Mixed pipelines combine both correctly |
+| **Tool Confidence Registry** | 497 tools classified by reliability: calculators 1.0, FRED 0.95, web crawlers 0.80. Composite results include `_composition.confidence` |
+| **Transport Coalgebra** | Client SDK: `HTTPTransport`, `SSETransport`, `WSTransport` with shared `step()` interface. `bisimilar()` proves behavioral equivalence |
+| **Client-Side Pipelines** | `ClientPipeline` builds tool chains client-side with param mapping and entropy tracking — no server composite needed |
+| **4 UI Themes** | Light, Dark (landing-page glass-morphism), Wall Street (Bloomberg terminal), Ubuntu. Variable-driven CSS (545 lines, was 4,441) |
+| **UX Overhaul** | Active nav highlighting, button press feedback, loading skeletons, keyboard shortcuts, onboarding wizard, empty state CTAs, studio sub-nav, visual flow diagram in composite builder |
+| **Full A11y** | Skip-to-content, focus-visible outlines, ARIA labels, color-scheme per theme, WCAG AA contrast |
 | **3 Transports** | HTTP POST `/mcp`, SSE `/mcp/sse`, WebSocket `/mcp/ws` — all using same MCPHandler |
-| **LLM Gateway** | 6 providers (Anthropic, OpenAI, Bedrock, Together, Ollama, Azure) via official SDKs. Registry-based factory for custom providers |
-| **Semantic Discovery** | Vector embeddings of 497 tool descriptions. NL intent → tool resolution with LLM parameter extraction |
-| **Composite Tools** | Sibling (parallel) and Parent-Child (fan-out) patterns. Declarative DB definitions, dynamic schema building |
-| **OpenTelemetry** | Per-tool p50/p95/p99 latency histograms, error spike alerting, health probes. Optional OTEL SDK export |
-| **Tool Versioning** | v1/v2 side-by-side. Deprecation lifecycle: active → deprecated → sunset → retired. Contract testing |
-| **Multi-Tenancy** | Tenant-isolated tool access, per-tenant quotas (daily/monthly), data isolation, API key pools |
-| **Plugin System** | Standardized plugin.json manifest. Drop directory → discover → validate → load. Checksum verification |
-| **19-Table DB** | users, roles, permissions, api_keys, sessions, audit, prompts, tags, llm_providers, llm_models, llm_usage, ai_prefs, composite_tools, composite_steps, a2a_tasks, tenants, tool_versions |
-| **Client SDK** | SajhaClient (25 REST), MCPClient (12 MCP), MCPSSEClient (SSE), MCPWebSocketClient (WS), A2AClient (6 A2A) |
+| **LLM Gateway** | 6 providers (Anthropic, OpenAI, Bedrock, Together, Ollama, Azure) via official SDKs |
+| **OpenTelemetry** | Per-tool p50/p95/p99 latency histograms, error spike alerting, health probes |
+| **Multi-Tenancy** | Tenant-isolated tools, per-tenant quotas, data isolation |
+| **Plugin System** | Standardized plugin.json manifest. Drop directory → discover → validate → load |
+| **19-Table DB** | Two SQL scripts only (schema + seed). No migrations. SQLite default, PostgreSQL ready |
+| **Property-Driven** | Single `config/application.yml` drives version, email, paths, DB, logging — ${ENV_VAR} substitution |
+| **Client SDK** | 5 client classes: SajhaClient (REST), MCPClient (MCP), MCPSSEClient (SSE), MCPWebSocketClient (WS), A2AClient (A2A) + TransportCoalgebra + ClientPipeline |
 
 ---
 
@@ -48,12 +54,12 @@ Server starts at **http://localhost:3002**. Login: `admin` / `admin123`.
 
 ```
 run_server.py → SajhaMCPServerWebApp
-  ├── FastAPI app (CORS, static files, 14 route modules, 79+ endpoints)
+  ├── FastAPI app (CORS, static, 14 route modules, 79+ endpoints)
   ├── Lifespan startup
-  │     ├── init_db()              → 19 SQL tables (schema + seed)
-  │     ├── init_storage()         → Local or S3 backend
+  │     ├── init_db()              → 19 SQL tables
+  │     ├── init_storage()         → Local or S3
   │     ├── ToolsRegistry          → 497 tools from JSON configs
-  │     ├── CompositeToolEngine    → DB-defined composite tools
+  │     ├── CompositeToolEngine    → DB composites with composition framework
   │     ├── init_observability()   → MetricsCollector + HealthProbe + OTEL
   │     ├── init_tenant_manager()  → Multi-tenant isolation
   │     ├── PluginManager          → Discover + load plugins
@@ -62,6 +68,22 @@ run_server.py → SajhaMCPServerWebApp
   │     ├── MCPHandler             → 12 MCP methods, JSON-RPC 2.0
   │     └── HotReloadManager      → Watches config/ for changes
   └── Uvicorn (ASGI)
+```
+
+**Composition Framework** (from Category Theory):
+
+```
+Pillar 1 (Kleisli):  StepResult envelope — Dict → M[Dict]
+                     Error short-circuits, traces accumulate, confidence compounds
+Pillar 3 (Lenses):   ParamLens — surgical view/set projection
+                     Child tools see ONLY mapped fields, nothing else
+Pillar 4 (Giry):     EntropyGuard — cumulative entropy tracking
+                     Sequential: multiply (Giry bind)
+                     Parallel: min (weakest link)
+                     Mixed: master × min(siblings)
+Pillar 2 (Coalgebra): TransportCoalgebra in client SDK
+                     step(input) → (output, new_state)
+                     bisimilar() proves transport equivalence
 ```
 
 **Transports:**
@@ -74,24 +96,11 @@ run_server.py → SajhaMCPServerWebApp
 
 **Config:** `config/application.yml` — single source, `${ENV_VAR:default}` substitution.
 
-**Database:** SQLite default (`data/sajha.db`), PostgreSQL via `db.type: postgresql`.
+**Database:** SQLite default (`data/sajha.db`), PostgreSQL via `db.type: postgresql`. Two SQL scripts only.
 
 **Auth:** Cookie JWT (web UI) · Bearer JWT (API) · X-API-Key (automation) · OAuth (Azure AD, Okta, Auth0, Keycloak).
 
----
-
-## Web UI Screens
-
-| Screen | Path | Purpose |
-|--------|------|---------|
-| Dashboard | `/` | Summary cards, charts, activity feed |
-| Tools | `/tools` | Browse, search, test 497 tools |
-| AI Settings | `/ai/settings` | LLM providers, models, preferences, semantic search |
-| Composite Builder | `/composite/builder` | Visual multi-tool orchestration |
-| MCP Studio | `/studio` | 7 visual tool creators |
-| Reports | `/reports` | 6 Chart.js reports + CSV export |
-| Prompts | `/prompts` | Template management with tags |
-| Admin | `/admin` | Users, roles, API keys, tools |
+**Deployment:** [AWS CDK](deployment/aws/) · [Hetzner Docker](deployment/hetzner/) · [Bare Metal](deployment/baremetal/)
 
 ---
 
@@ -114,27 +123,20 @@ run_server.py → SajhaMCPServerWebApp
 Zero-dependency Python SDK (stdlib only). Install: `pip install sajhaclient`
 
 ```python
-from sajhaclient import SajhaClient, SajhaConfig, ApiKeyAuth
+from sajhaclient import SajhaClient, SajhaConfig, ApiKeyAuth, ClientPipeline
 
 client = SajhaClient(SajhaConfig(base_url="http://localhost:3002"), auth=ApiKeyAuth("sja_key"))
+
+# Simple tool call
 result = client.execute_tool("yahoo_quote", symbol="AAPL")
+
+# Client-side pipeline with confidence tracking
+pipeline = ClientPipeline(client)
+pipeline.add_step("yahoo_quote", param_map={"symbol": "$input.ticker"})
+pipeline.add_step("calc_sharpe", param_map={"returns": "$.history"})
+result = pipeline.execute({"ticker": "AAPL"})
+print(result['_composition']['confidence'])  # 0.85
 ```
-
-Four client classes: `SajhaClient` (REST), `MCPClient` (JSON-RPC), `MCPSSEClient` (SSE), `MCPWebSocketClient` (WebSocket), `A2AClient` (agent-to-agent).
-
----
-
-## Deployment
-
-| Environment | Method |
-|-------------|--------|
-| **Local dev** | `python run_server.py` |
-| **Docker** | `docker compose up` (see `deployment/aws/docker-compose.yml`) |
-| **AWS ECS** | CDK in `deployment/aws/cdk/` (VPC + ALB + RDS + S3 + Secrets Manager) |
-| **Hetzner** | Docker + Caddy auto-SSL (see `deployment/hetzner/`) |
-| **On-prem** | Nginx + systemd (see `deployment/baremetal/`) |
-
-Storage + Reload abstractions ensure identical behavior: `SAJHA_STORAGE_BACKEND=local` for dev, `=s3` for cloud.
 
 ---
 

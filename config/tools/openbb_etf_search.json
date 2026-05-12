@@ -2,7 +2,7 @@
   "name": "openbb_etf_search",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
   "description": "Search for ETFs via OpenBB \u2014 find ETFs by name or keyword",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

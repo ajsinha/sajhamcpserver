@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v4.0.0 — Operations, Tenancy, Versioning & Plugins Routes
+SAJHA MCP Server v4.5.0 — Operations, Tenancy, Versioning & Plugins Routes
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 """
 import json, logging
@@ -170,3 +170,38 @@ async def api_discover_plugins(auth: AuthContext = Depends(require_admin)):
     if not pm: return JSONResponse({'plugins': []})
     manifests = pm.discover()
     return JSONResponse({'plugins': [m.to_dict() for m in manifests]})
+
+
+# ── Entropy Guard API ────────────────────────────────────────────
+
+@router.get('/api/entropy/tool/{tool_name}')
+async def api_tool_entropy(tool_name: str, auth: AuthContext = Depends(require_auth)):
+    """Get confidence score and entropy for a single tool."""
+    from sajha.core.composition import get_tool_confidence, confidence_to_entropy
+    confidence = get_tool_confidence(tool_name)
+    entropy = confidence_to_entropy(confidence)
+    return JSONResponse({
+        'tool': tool_name,
+        'confidence': round(confidence, 4),
+        'entropy_bits': round(entropy, 3),
+        'category': 'deterministic' if confidence >= 1.0 else 'stochastic',
+    })
+
+
+@router.post('/api/entropy/pipeline')
+async def api_pipeline_entropy(request: Request, auth: AuthContext = Depends(require_auth)):
+    """
+    Pre-execution entropy analysis for a pipeline of tools.
+    Body: {"tools": ["yahoo_quote", "calc_risk", "fmp_profile"], "threshold": 2.0}
+    """
+    from sajha.core.composition import EntropyGuard, get_tool_confidence
+    body = await request.json()
+    tools = body.get('tools', [])
+    threshold = body.get('threshold', 3.0)
+
+    guard = EntropyGuard(max_entropy_bits=threshold)
+    for tool_name in tools:
+        confidence = get_tool_confidence(tool_name)
+        guard.record_step(tool_name, confidence)
+
+    return JSONResponse(guard.check_safe('pipeline'))

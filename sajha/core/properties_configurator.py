@@ -414,7 +414,8 @@ class PropertiesConfigurator:
         try:
             num_value = float(value)
             return bool(num_value)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            logger.debug(f"Handled: {e}")
             pass
 
         # Cannot convert, return default

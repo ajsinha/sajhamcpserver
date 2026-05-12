@@ -55,7 +55,7 @@ class MsDocBaseTool(BaseMCPTool):
             return sorted(files, key=lambda x: x['modified'], reverse=True)
             
         except Exception as e:
-            self.logger.error(f"Failed to list files: {e}")
+            self.logger.error(f"Failed to list files: {e}", exc_info=True)
             return []
     
     def _read_word_document(self, file_path: Path) -> Dict:

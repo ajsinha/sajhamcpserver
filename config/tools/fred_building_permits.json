@@ -2,7 +2,7 @@
   "name": "fred_building_permits",
   "implementation": "sajha.tools.impl.fred_tools.FREDBuildingPermitsTool",
   "description": "Get US Building Permits from FRED",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

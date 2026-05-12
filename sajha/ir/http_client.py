@@ -193,7 +193,8 @@ class EnhancedHTTPClient:
                 except UnicodeDecodeError:
                     try:
                         decoded_content = content.decode('latin-1')
-                    except:
+                    except Exception as e:
+                        logger.error(f"Unexpected error: {e}", exc_info=True)
                         decoded_content = content.decode('utf-8', errors='ignore')
                 
                 # Update session state
@@ -202,7 +203,7 @@ class EnhancedHTTPClient:
                 return decoded_content
                 
             except urllib.error.HTTPError as e:
-                self.logger.warning(f"HTTP Error {e.code} for {url}")
+                self.logger.warning(f"HTTP Error {e.code} for {url}", exc_info=True)
                 
                 if e.code == 403:
                     # Bot detection - wait longer and retry
@@ -233,7 +234,7 @@ class EnhancedHTTPClient:
                     raise ValueError(f"HTTP Error {e.code}: {e.reason}")
                     
             except urllib.error.URLError as e:
-                self.logger.warning(f"URL Error for {url}: {e.reason}")
+                self.logger.warning(f"URL Error for {url}: {e.reason}", exc_info=True)
                 if attempt < self.max_retries - 1:
                     wait_time = (2 ** attempt) * 2 + random.uniform(1, 3)
                     time.sleep(wait_time)
@@ -241,7 +242,7 @@ class EnhancedHTTPClient:
                 raise ValueError(f"Failed to fetch: {e.reason}")
                 
             except Exception as e:
-                self.logger.warning(f"Error fetching {url}: {e}")
+                self.logger.warning(f"Error fetching {url}: {e}", exc_info=True)
                 if attempt < self.max_retries - 1:
                     wait_time = (2 ** attempt) * 2 + random.uniform(1, 3)
                     time.sleep(wait_time)
@@ -303,7 +304,8 @@ class EnhancedHTTPClient:
             
             return True
             
-        except:
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=True)
             # If we can't fetch robots.txt, assume allowed
             return True
     

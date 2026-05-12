@@ -445,7 +445,7 @@ class DBConnectionPoolManager:
             try:
                 pool_info.pool.close()
             except Exception as e:
-                logger.error(f"Error closing pool {pool_key[:8]}...: {e}")
+                logger.error(f"Error closing pool {pool_key[:8]}...: {e}", exc_info=True)
 
             self._total_pools_destroyed += 1
 
@@ -528,7 +528,7 @@ class DBConnectionPoolManager:
                     logger.debug(f"Pool manager stats: {stats}")
 
             except Exception as e:
-                logger.error(f"Error in cleanup thread: {e}")
+                logger.error(f"Error in cleanup thread: {e}", exc_info=True)
 
         logger.info("Pool cleanup thread stopped")
 

@@ -133,7 +133,7 @@ class SharePointBaseTool(BaseMCPTool):
             return response.json() if response.content else {}
             
         except requests.exceptions.RequestException as e:
-            logger.error(f"SharePoint API error: {e}")
+            logger.error(f"SharePoint API error: {e}", exc_info=True)
             raise
 
 
@@ -191,7 +191,7 @@ class SharePointDocumentTool(SharePointBaseTool):
             return result
             
         except Exception as e:
-            logger.error(f"SharePointDocumentTool error: {e}")
+            logger.error(f"SharePointDocumentTool error: {e}", exc_info=True)
             return {
                 'success': False,
                 'error': str(e)
@@ -524,7 +524,7 @@ class SharePointListTool(SharePointBaseTool):
             return result
             
         except Exception as e:
-            logger.error(f"SharePointListTool error: {e}")
+            logger.error(f"SharePointListTool error: {e}", exc_info=True)
             return {
                 'success': False,
                 'error': str(e)
@@ -760,7 +760,7 @@ class SharePointSiteTool(SharePointBaseTool):
             return result
             
         except Exception as e:
-            logger.error(f"SharePointSiteTool error: {e}")
+            logger.error(f"SharePointSiteTool error: {e}", exc_info=True)
             return {
                 'success': False,
                 'error': str(e)
@@ -916,7 +916,7 @@ class SharePointSearchTool(SharePointBaseTool):
             return result
             
         except Exception as e:
-            logger.error(f"SharePointSearchTool error: {e}")
+            logger.error(f"SharePointSearchTool error: {e}", exc_info=True)
             return {
                 'success': False,
                 'error': str(e)

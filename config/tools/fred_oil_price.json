@@ -2,7 +2,7 @@
   "name": "fred_oil_price",
   "implementation": "sajha.tools.impl.fred_tools.FREDOilPriceTool",
   "description": "Get WTI Crude Oil Price from FRED",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

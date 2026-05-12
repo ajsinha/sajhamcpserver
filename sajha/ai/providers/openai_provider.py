@@ -87,7 +87,7 @@ class OpenAIProvider(LLMProvider):
                 model='gpt-4o-mini', messages=[{'role': 'user', 'content': 'ping'}], max_tokens=5)
             return bool(r.choices)
         except Exception as e:
-            logger.warning(f"OpenAI health check failed: {e}")
+            logger.warning(f"OpenAI health check failed: {e}", exc_info=True)
             return False
 
     def get_default_embedding_model(self) -> str:

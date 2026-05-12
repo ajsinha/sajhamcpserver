@@ -323,7 +323,7 @@ Or configure service principal with PowerBI API access."""
             return self._access_token
             
         except requests.RequestException as e:
-            logger.error(f"Failed to get access token: {{e}}")
+            logger.error(f"Failed to get access token: {{e}}", exc_info=True)
             return None
     
     def _export_report(self, page_name: Optional[str] = None, filters: Optional[Dict] = None) -> Dict[str, Any]:
@@ -437,7 +437,7 @@ Or configure service principal with PowerBI API access."""
             
         except requests.RequestException as e:
             export_time = time.time() - start_time
-            logger.error(f"PowerBI API error: {{e}}")
+            logger.error(f"PowerBI API error: {{e}}", exc_info=True)
             return {{
                 "success": False,
                 "error": f"PowerBI API error: {{str(e)}}",
@@ -475,7 +475,7 @@ Or configure service principal with PowerBI API access."""
             return result
             
         except Exception as e:
-            logger.error(f"PowerBI tool error: {{e}}")
+            logger.error(f"PowerBI tool error: {{e}}", exc_info=True)
             return {{
                 "success": False,
                 "error": f"Tool execution error: {{str(e)}}"
@@ -530,7 +530,7 @@ __all__ = ['PowerBI{class_name}Tool']
             }
             
         except Exception as e:
-            logger.error(f"Error creating PowerBI tool: {e}")
+            logger.error(f"Error creating PowerBI tool: {e}", exc_info=True)
             return {
                 "success": False,
                 "message": f"Error creating tool: {str(e)}",
@@ -590,7 +590,7 @@ __all__ = ['PowerBI{class_name}Tool']
                             'enabled': config.get('enabled', True)
                         })
                 except Exception as e:
-                    logger.warning(f"Error reading tool config {filename}: {e}")
+                    logger.warning(f"Error reading tool config {filename}: {e}", exc_info=True)
         
         return tools
 

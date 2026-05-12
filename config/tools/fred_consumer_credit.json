@@ -2,7 +2,7 @@
   "name": "fred_consumer_credit",
   "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
   "description": "Get US Total Consumer Credit from FRED (series: TOTALSL)",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

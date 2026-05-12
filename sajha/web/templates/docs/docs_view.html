@@ -13,69 +13,80 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     line-height: 1.6;
     word-wrap: break-word;
     padding: 2rem;
+    color: var(--t-text);
 }
 .markdown-body h1 {
     font-size: 2em;
-    border-bottom: 2px solid var(--sajha-primary, #0d6efd);
+    border-bottom: 2px solid var(--t-link);
     padding-bottom: 0.5em;
     margin-bottom: 1em;
+    color: var(--t-heading);
 }
 .markdown-body h2 {
     font-size: 1.5em;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid var(--t-card-b);
     padding-bottom: 0.3em;
     margin-top: 1.5em;
     margin-bottom: 0.75em;
+    color: var(--t-heading);
 }
 .markdown-body h3 {
     font-size: 1.25em;
     margin-top: 1.25em;
     margin-bottom: 0.5em;
+    color: var(--t-text2);
 }
-.markdown-body p { margin-bottom: 1em; }
+.markdown-body p { margin-bottom: 1em; color: var(--t-text); }
 .markdown-body code {
-    background-color: #f1f3f5;
+    background-color: var(--t-card-hdr);
     padding: 0.2em 0.4em;
     border-radius: 4px;
     font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
     font-size: 85%;
+    color: var(--t-link);
+    border: 1px solid var(--t-card-b);
 }
 .markdown-body pre {
-    background-color: #1e1e2e;
-    color: #f8f8f2;
+    background-color: var(--t-inp);
+    color: var(--t-text);
     padding: 1rem;
     border-radius: 8px;
     overflow-x: auto;
     margin: 1em 0;
+    border: 1px solid var(--t-card-b);
 }
 .markdown-body pre code {
     background-color: transparent;
     color: inherit;
     padding: 0;
     font-size: 90%;
+    border: none;
 }
 .markdown-body blockquote {
-    border-left: 4px solid #0d6efd;
+    border-left: 4px solid var(--t-link);
     padding: 0.5em 1em;
     margin: 1em 0;
-    background-color: #f8f9fa;
+    background-color: var(--t-card-hdr);
+    color: var(--t-text);
 }
-.markdown-body blockquote p { margin-bottom: 0; }
+.markdown-body blockquote p { margin-bottom: 0; color: var(--t-text); }
 .markdown-body ul, .markdown-body ol { padding-left: 2em; margin-bottom: 1em; }
-.markdown-body li { margin-bottom: 0.25em; }
+.markdown-body li { margin-bottom: 0.25em; color: var(--t-text); }
 .markdown-body table { width: 100%; border-collapse: collapse; margin: 1em 0; }
 .markdown-body table th, .markdown-body table td {
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--t-card-b);
     padding: 0.75em;
     text-align: left;
+    color: var(--t-text);
 }
-.markdown-body table th { background-color: #0d6efd; color: white; font-weight: 600; }
-.markdown-body table tr:nth-child(even) { background-color: #f8f9fa; }
-.markdown-body table tr:hover { background-color: #e9ecef; }
-.markdown-body a { color: #0d6efd; text-decoration: none; }
+.markdown-body table th { background-color: var(--t-link); color: white; font-weight: 600; }
+.markdown-body table tr:nth-child(even) { background-color: var(--t-card-hdr); }
+.markdown-body table tr:hover { background-color: var(--t-dd-hb); }
+.markdown-body a { color: var(--t-link); text-decoration: none; }
 .markdown-body a:hover { text-decoration: underline; }
-.markdown-body hr { border: none; border-top: 2px solid #dee2e6; margin: 2em 0; }
+.markdown-body hr { border: none; border-top: 1px solid var(--t-card-b); margin: 2em 0; }
 .markdown-body img { max-width: 100%; height: auto; }
+.markdown-body strong { color: var(--t-text); }
 
 .toc-sidebar {
     position: sticky;
@@ -84,28 +95,21 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     overflow-y: auto;
 }
 .toc-sidebar .nav-link {
-    color: #6c757d;
+    color: var(--t-text2);
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
     border-left: 2px solid transparent;
 }
 .toc-sidebar .nav-link:hover {
-    color: #0d6efd;
-    border-left-color: #0d6efd;
+    color: var(--t-link);
+    border-left-color: var(--t-link);
 }
 .toc-sidebar .nav-link.active {
-    color: #0d6efd;
-    border-left-color: #0d6efd;
+    color: var(--t-link);
+    border-left-color: var(--t-link);
     font-weight: 600;
 }
 .toc-sidebar .nav-link.h3-link { padding-left: 1.5rem; font-size: 0.8rem; }
-
-/* Dark mode support */
-[data-bs-theme="dark"] .markdown-body code { background-color: #343a40; }
-[data-bs-theme="dark"] .markdown-body blockquote { background-color: #2b3035; }
-[data-bs-theme="dark"] .markdown-body table tr:nth-child(even) { background-color: #2b3035; }
-[data-bs-theme="dark"] .markdown-body table tr:hover { background-color: #343a40; }
-[data-bs-theme="dark"] .markdown-body table th, .dark-theme .markdown-body table th { background-color: #0b5ed7; }
 
 @media print {
     .no-print { display: none !important; }

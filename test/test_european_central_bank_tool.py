@@ -131,7 +131,7 @@ class TestECBGetSeriesTool(unittest.TestCase):
             })
             # Should either error or return empty observations
             self.assertTrue('error' in result or result.get('observation_count', 0) == 0)
-        except Exception:
+        except Exception as e:
             pass  # Expected to fail
 
 
@@ -882,7 +882,7 @@ class TestErrorHandlingAndEdgeCases(unittest.TestCase):
                 'error' in result or 
                 result.get('observation_count', 0) == 0
             )
-        except Exception:
+        except Exception as e:
             pass  # Expected to fail or return empty
     
     def test_maximum_recent_periods(self):

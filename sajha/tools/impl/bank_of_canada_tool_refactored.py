@@ -904,7 +904,7 @@ class BoCGetCommonIndicatorsTool(BankOfCanadaBaseTool):
                     }
                     
             except Exception as e:
-                self.logger.warning(f"Failed to get {indicator}: {e}")
+                self.logger.warning(f"Failed to get {indicator}: {e}", exc_info=True)
                 indicators[indicator] = {
                     'series_name': self.common_series.get(indicator),
                     'error': str(e)

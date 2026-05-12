@@ -1,0 +1,93 @@
+{% extends "common/base.html" %}
+{% block title %}Enterprise Features - Help - SAJHA MCP Server{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="mb-4">
+        <h1 class="h3 mb-1"><i class="bi bi-building me-2"></i>Enterprise Features</h1>
+        <a href="/help" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Back to Help</a>
+    </div>
+
+    <!-- Transports -->
+    <div class="card mb-4">
+        <div class="card-header card-header-success"><i class="bi bi-arrows-expand me-2"></i>Three MCP Transports</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="card h-100 border-primary"><div class="card-body">
+                        <h6><i class="bi bi-send me-2 text-primary"></i>HTTP POST /mcp</h6>
+                        <p class="small mb-0">Stateless. One request = one response. Best for automation scripts, CI/CD pipelines, simple tool calls.</p>
+                    </div></div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-success"><div class="card-body">
+                        <h6><i class="bi bi-broadcast me-2 text-success"></i>SSE /mcp/sse</h6>
+                        <p class="small mb-0">Server-push streaming. Persistent connection for long-running tools, progress updates, web UI real-time feeds.</p>
+                    </div></div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-warning"><div class="card-body">
+                        <h6><i class="bi bi-lightning me-2 text-warning"></i>WebSocket /mcp/ws</h6>
+                        <p class="small mb-0">Full-duplex bidirectional. Server pushes notifications without polling. Best for interactive agents. Connect: <code>ws://host:3002/mcp/ws?token=jwt</code></p>
+                    </div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Observability -->
+    <div class="card mb-4">
+        <div class="card-header card-header-secondary"><i class="bi bi-graph-up me-2"></i>OpenTelemetry Observability</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <h6><i class="bi bi-speedometer2 me-2 text-primary"></i>Metrics</h6>
+                    <p class="small mb-0">Per-tool p50/p95/p99 latency. <code>GET /api/metrics/tools</code> for all tools, <code>/api/metrics/tools/{name}</code> for one.</p>
+                </div>
+                <div class="col-md-3">
+                    <h6><i class="bi bi-bell me-2 text-danger"></i>Alerts</h6>
+                    <p class="small mb-0">Error spike (>10/5min), high latency (p95 >5s). Custom rules with webhook support.</p>
+                </div>
+                <div class="col-md-3">
+                    <h6><i class="bi bi-heart-pulse me-2 text-success"></i>Health Probes</h6>
+                    <p class="small mb-0"><code>/health</code> (liveness) and <code>/ready</code> (readiness). Kubernetes-ready.</p>
+                </div>
+                <div class="col-md-3">
+                    <h6><i class="bi bi-gear me-2 text-info"></i>OTEL Export</h6>
+                    <p class="small mb-0">Optional OpenTelemetry SDK exports traces and metrics to Datadog, Grafana, Splunk, Jaeger.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multi-Tenancy, Plugins, Versioning -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-people me-2"></i>Multi-Tenancy</div>
+                <div class="card-body">
+                    <p class="small">Tenant-isolated tool access with wildcard patterns + blocked lists. Per-tenant quotas (daily/monthly calls, LLM tokens). Data isolation via directory prefixes.</p>
+                    <p class="small mb-0"><strong>API:</strong> <code>GET/POST/PUT/DELETE /api/tenants</code></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-puzzle me-2"></i>Plugin System</div>
+                <div class="card-body">
+                    <p class="small">Drop a plugin directory in <code>config/plugins/</code> with <code>plugin.json</code> manifest + tool configs. Auto-discovered, validated (SHA-256 checksum), dependencies installed.</p>
+                    <p class="small mb-0"><strong>API:</strong> <code>GET /api/plugins</code>, <code>POST /api/plugins/{name}/load</code></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-clock-history me-2"></i>Tool Versioning</div>
+                <div class="card-body">
+                    <p class="small">Run v1 and v2 side-by-side. Deprecation lifecycle: active → deprecated → sunset → retired. Contract testing validates all tools.</p>
+                    <p class="small mb-0"><strong>API:</strong> <code>POST /api/contract-test</code> runs all {{ tool_stats.total_tools }} tools.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

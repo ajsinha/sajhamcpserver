@@ -24,7 +24,7 @@ Quick Start:
     tools = client.list_tools()
 """
 
-__version__ = "4.0.0"
+__version__ = "4.5.0"
 __author__ = "Ashutosh Sinha"
 __email__ = "ajsinha@gmail.com"
 
@@ -32,6 +32,8 @@ from sajhaclient.config import SajhaConfig
 from sajhaclient.auth import AuthProvider, NoAuth, ApiKeyAuth, JWTAuth, OAuthAuth
 from sajhaclient.client import SajhaClient
 from sajhaclient.mcp_client import MCPClient, MCPSSEClient, MCPWebSocketClient
+from sajhaclient.mcp_client import TransportCoalgebra, HTTPTransport, SSETransport, WSTransport
+from sajhaclient.mcp_client import ClientPipeline, bisimilar
 from sajhaclient.a2a_client import A2AClient
 from sajhaclient.exceptions import (
     SajhaError, SajhaConnectionError, SajhaAuthError,

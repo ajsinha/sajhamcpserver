@@ -1210,7 +1210,7 @@ class ECBGetCommonIndicatorsTool(EuropeanCentralBankBaseTool):
                     }
                     
             except Exception as e:
-                self.logger.warning(f"Failed to get {indicator}: {e}")
+                self.logger.warning(f"Failed to get {indicator}: {e}", exc_info=True)
                 series_info = self.common_series.get(indicator, {})
                 indicators[indicator] = {
                     'flow': series_info.get('flow'),

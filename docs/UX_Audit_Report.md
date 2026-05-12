@@ -1,4 +1,4 @@
-# SAJHA MCP Server v4.0.0 — UX Audit Report
+# SAJHA MCP Server v4.5.0 — UX Audit Report
 
 **Prepared by:** UX Design Lead + Behavioral Psychologist  
 **Date:** May 12, 2026  
@@ -276,6 +276,6 @@ SAJHA's landing page achieves #4 and #5. The internal screens need #1, #2, and #
 
 ---
 
-*Report prepared for SAJHA MCP Server v4.0.0*  
+*Report prepared for SAJHA MCP Server v4.5.0*  
 *42 screens audited · 4 themes evaluated · 22 recommendations across 3 priority tiers*  
 *Copyright © 2025-2030 Ashutosh Sinha. All rights reserved.*

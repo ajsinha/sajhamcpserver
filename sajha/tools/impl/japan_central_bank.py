@@ -178,7 +178,8 @@ class BankOfJapanBaseTool(BaseMCPTool):
                                     'date': obs.get('date'),
                                     'value': float(value)
                                 })
-                            except ValueError:
+                            except ValueError as e:
+                                logger.debug(f"Handled: {e}")
                                 pass
                     
                     # Sort chronologically if we fetched in desc order

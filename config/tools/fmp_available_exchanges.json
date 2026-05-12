@@ -2,7 +2,7 @@
   "name": "fmp_available_exchanges",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
   "description": "Get all available stock exchanges from FMP",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

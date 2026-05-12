@@ -2,7 +2,7 @@
   "name": "fmp_etf_list",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
   "description": "Get full list of all available ETFs from FMP",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

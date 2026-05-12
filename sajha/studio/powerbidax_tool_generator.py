@@ -335,7 +335,7 @@ The query must start with EVALUATE and return a table result."""
             return self._access_token
             
         except requests.RequestException as e:
-            logger.error(f"Failed to get access token: {{e}}")
+            logger.error(f"Failed to get access token: {{e}}", exc_info=True)
             return None
     
     def _substitute_parameters(self, query: str, params: Dict[str, Any]) -> str:
@@ -440,7 +440,8 @@ The query must start with EVALUATE and return a table result."""
                     error_data = e.response.json()
                     if 'error' in error_data:
                         error_msg = error_data['error'].get('message', error_msg)
-            except:
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}", exc_info=True)
                 pass
             
             logger.error(f"DAX query error: {{error_msg}}")
@@ -476,7 +477,7 @@ The query must start with EVALUATE and return a table result."""
             return result
             
         except Exception as e:
-            logger.error(f"PowerBI DAX tool error: {{e}}")
+            logger.error(f"PowerBI DAX tool error: {{e}}", exc_info=True)
             return {{
                 "success": False,
                 "error": f"Tool execution error: {{str(e)}}"
@@ -531,7 +532,7 @@ __all__ = ['PowerBIDAX{class_name}Tool']
             }
             
         except Exception as e:
-            logger.error(f"Error creating PowerBI DAX tool: {e}")
+            logger.error(f"Error creating PowerBI DAX tool: {e}", exc_info=True)
             return {
                 "success": False,
                 "message": f"Error creating tool: {str(e)}",

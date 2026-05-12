@@ -268,7 +268,8 @@ def example_crime_dashboard():
         try:
             stats = client.get_state_statistics(state)
             print(f"   {state}: {stats.get('total', 'N/A')} crimes")
-        except:
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=True)
             pass
 
 

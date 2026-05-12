@@ -2,7 +2,7 @@
   "name": "yf_balance_sheet",
   "implementation": "sajha.tools.impl.yfinance_tools.YFBalanceSheetTool",
   "description": "Get balance sheet from Yahoo Finance \u2014 assets, liabilities, equity (annual or quarterly)",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -111,7 +111,7 @@ class FedReserveBaseTool(BaseMCPTool):
                 }
                 
         except Exception as e:
-            self.logger.error(f"FRED API error: {e}")
+            self.logger.error(f"FRED API error: {e}", exc_info=True)
             raise ValueError(f"Failed to get series data: {str(e)}")
     
     def _get_demo_series(self, series_id: str, start_date: str, end_date: str, limit: int) -> Dict:
@@ -499,7 +499,7 @@ class FedSearchSeriesTool(FedReserveBaseTool):
                 }
                 
         except Exception as e:
-            self.logger.error(f"FRED search error: {e}")
+            self.logger.error(f"FRED search error: {e}", exc_info=True)
             raise ValueError(f"Search failed: {str(e)}")
     
     def _get_demo_search(self, query: str, limit: int) -> Dict:
@@ -635,7 +635,7 @@ class FedGetCommonIndicatorsTool(FedReserveBaseTool):
                     }
                     
             except Exception as e:
-                self.logger.warning(f"Failed to get {indicator}: {e}")
+                self.logger.warning(f"Failed to get {indicator}: {e}", exc_info=True)
                 indicators[indicator] = {
                     'series_id': series_id,
                     'error': str(e)

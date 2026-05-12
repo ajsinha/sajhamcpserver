@@ -2,7 +2,7 @@
   "name": "cg_exchange_tickers",
   "implementation": "sajha.tools.impl.coingecko_tools.CGExchangeTickersTool",
   "description": "Get exchange trading pairs from CoinGecko \u2014 all active pairs on an exchange",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

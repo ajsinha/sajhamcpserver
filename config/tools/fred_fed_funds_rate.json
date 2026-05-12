@@ -2,7 +2,7 @@
   "name": "fred_fed_funds_rate",
   "implementation": "sajha.tools.impl.fred_tools.FREDFedFundsRateTool",
   "description": "Get Federal Funds Effective Rate from FRED",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

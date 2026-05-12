@@ -1,5 +1,5 @@
 # MCP Studio PowerBI Tool Creator Guide
-## SAJHA MCP Server v4.0.0
+## SAJHA MCP Server v4.5.0
 
 ## Overview
 
@@ -539,5 +539,5 @@ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 
 ---
 
-*SAJHA MCP Server v4.0.0 - PowerBI Tool Creator Guide*
+*SAJHA MCP Server v4.5.0 - PowerBI Tool Creator Guide*
 *Copyright © 2025-2030 Ashutosh Sinha*

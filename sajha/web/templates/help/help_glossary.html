@@ -1,0 +1,145 @@
+{% extends "common/base.html" %}
+{% block title %}Glossary - Help - SAJHA MCP Server{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="mb-4">
+        <h1 class="h3 mb-1"><i class="bi bi-journal-text me-2"></i>Glossary</h1>
+        <a href="/help" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Back to Help</a>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" id="glossarySearch" placeholder="Search terms..." autofocus>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3" id="glossaryItems">
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>MCP</code> — Model Context Protocol</h6>
+                <p class="small mb-0">Open standard for AI tool integration. JSON-RPC 2.0 over HTTP, SSE, or WebSocket. Defines methods for tools/list, tools/call, resources, prompts, and completions.</p>
+            </div></div>
+        </div>
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>JSON-RPC 2.0</code></h6>
+                <p class="small mb-0">Wire protocol for MCP. Every request: <code>{"jsonrpc":"2.0", "method":"tools/call", "params":{...}, "id":1}</code>. Response: <code>{"result":{...}}</code> or <code>{"error":{...}}</code>.</p>
+            </div></div>
+        </div>
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>Tool</code></h6>
+                <p class="small mb-0">A callable function exposed via MCP. Has a name, description, inputSchema (JSON Schema), and execute method. SAJHA has {{ tool_stats.total_tools }} built-in tools.</p>
+            </div></div>
+        </div>
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>Composite Tool</code></h6>
+                <p class="small mb-0">A tool that orchestrates multiple tools in one call. Sibling (parallel) or Parent-Child (fan-out). Defined in DB, schemas auto-generated.</p>
+            </div></div>
+        </div>
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>StepResult</code> — Kleisli Envelope</h6>
+                <p class="small mb-0">Monadic wrapper for tool execution results. Carries value, error, trace, duration, and confidence. Errors short-circuit the pipeline.</p>
+            </div></div>
+        </div>
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>ParamLens</code></h6>
+                <p class="small mb-0">A view/set pair that projects parent output into child params. Syntax: <code>$.field</code> (from record), <code>$input.field</code> (from original input), literals.</p>
+            </div></div>
+        </div>
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>EntropyGuard</code></h6>
+                <p class="small mb-0">Tracks cumulative confidence through a composite pipeline. Sequential = multiply. Parallel = min (weakest link). Can refuse execution if entropy exceeds threshold.</p>
+            </div></div>
+        </div>
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>Confidence Score</code></h6>
+                <p class="small mb-0">Float 0.0–1.0 indicating tool reliability. 1.0 = deterministic (calculator), 0.95 = stable API (FRED), 0.80 = web crawl. Composites compound scores.</p>
+            </div></div>
+        </div>
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>TransportCoalgebra</code></h6>
+                <p class="small mb-0">Abstract interface for MCP transport clients. <code>step(method, params) → (result, new_state)</code>. HTTPTransport, SSETransport, WSTransport are bisimilar implementations.</p>
+            </div></div>
+        </div>
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>Bisimulation</code></h6>
+                <p class="small mb-0">Behavioral equivalence test. If two transports produce the same outputs for the same inputs, they're bisimilar — safe to hot-swap at runtime.</p>
+            </div></div>
+        </div>
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>ClientPipeline</code></h6>
+                <p class="small mb-0">Client-side tool composition. Chains tools where output feeds the next. Same <code>$.</code> / <code>$input.</code> param mapping as server composites. Tracks confidence.</p>
+            </div></div>
+        </div>
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>MCPHandler</code></h6>
+                <p class="small mb-0">Core server component. Routes all 12 MCP methods. Shared across HTTP POST, SSE, and WebSocket transports. Handles auth, tool execution, audit logging.</p>
+            </div></div>
+        </div>
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>ToolsRegistry</code></h6>
+                <p class="small mb-0">Singleton holding all registered tools. Loaded from JSON configs at boot. Supports hot-reload. Methods: register_tool(), get_tool(), get_all_tools().</p>
+            </div></div>
+        </div>
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>LLM Gateway</code></h6>
+                <p class="small mb-0">Multi-provider AI inference layer. 6 providers (Anthropic, OpenAI, Bedrock, Together, Ollama, Azure). Registry-based factory. DB-managed models.</p>
+            </div></div>
+        </div>
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>MCP Studio</code></h6>
+                <p class="small mb-0">Visual tool creation platform. 9 creator types: Python, REST, DB Query, Script, PowerBI, DAX, LiveLink, SharePoint, OLAP. Zero-code tool building.</p>
+            </div></div>
+        </div>
+
+        <div class="col-md-6 glossary-item">
+            <div class="card h-100"><div class="card-body">
+                <h6 class="mb-1"><code>application.yml</code></h6>
+                <p class="small mb-0">Single configuration file driving everything: version, paths, DB connection, logging, plugins directory. Supports <code>${ENV_VAR:default}</code> substitution.</p>
+            </div></div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.getElementById('glossarySearch').addEventListener('input', function() {
+    var q = this.value.toLowerCase();
+    document.querySelectorAll('.glossary-item').forEach(function(el) {
+        el.style.display = (!q || el.textContent.toLowerCase().includes(q)) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

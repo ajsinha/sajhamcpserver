@@ -219,7 +219,7 @@ class CompanyDatabase:
             self.logger.info(f"Loaded {len(companies_data)} companies from {file_path}")
             
         except Exception as e:
-            self.logger.error(f"Error loading company database: {e}")
+            self.logger.error(f"Error loading company database: {e}", exc_info=True)
             raise
     
     def save_to_file(self, file_path: str):
@@ -241,7 +241,7 @@ class CompanyDatabase:
             self.logger.info(f"Saved {len(self.companies)} companies to {file_path}")
             
         except Exception as e:
-            self.logger.error(f"Error saving company database: {e}")
+            self.logger.error(f"Error saving company database: {e}", exc_info=True)
             raise
     
     def auto_discover_company(self, ticker: str) -> Optional[CompanyConfig]:

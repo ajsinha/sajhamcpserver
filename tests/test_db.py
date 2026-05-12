@@ -34,7 +34,8 @@ def _make_db(tmp_dir: str):
                 if lines:
                     try:
                         conn.execute(text(stmt))
-                    except Exception:
+                    except Exception as e:
+                        logger.warning(f"Error handled: {e}", exc_info=True)
                         pass
             conn.commit()
 
@@ -117,7 +118,8 @@ class TestSQLScripts:
                         if lines:
                             try:
                                 conn.execute(text(stmt))
-                            except Exception:
+                            except Exception as e:
+                                logger.warning(f"Error handled: {e}", exc_info=True)
                                 pass
                     conn.commit()
             roles = db.execute(text('SELECT COUNT(*) FROM roles')).scalar()

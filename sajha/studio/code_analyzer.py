@@ -287,7 +287,7 @@ class CodeAnalyzer:
                     return None
                 return node.id
         except Exception as e:
-            logger.warning(f"Could not evaluate AST node: {e}")
+            logger.warning(f"Could not evaluate AST node: {e}", exc_info=True)
         return None
     
     def _extract_parameters(self, func_node: ast.FunctionDef) -> List[ParameterInfo]:
@@ -371,7 +371,7 @@ class CodeAnalyzer:
                 # Handle typing.Dict, etc.
                 return annotation.attr
         except Exception as e:
-            logger.warning(f"Could not parse type hint: {e}")
+            logger.warning(f"Could not parse type hint: {e}", exc_info=True)
         return 'any'
     
     def _extract_return_type(self, func_node: ast.FunctionDef) -> str:

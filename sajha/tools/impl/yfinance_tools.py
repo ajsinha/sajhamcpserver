@@ -36,7 +36,8 @@ def _df_to_records(df, limit=100):
             if hasattr(df[col], 'dt'):
                 df[col] = df[col].astype(str)
         return df.head(limit).to_dict(orient='records')
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Error handled: {e}", exc_info=True)
         return []
 
 
@@ -103,7 +104,9 @@ class YFCalendarTool(YFBaseTool):
             if hasattr(cal, 'to_dict'):
                 return {"symbol": args['symbol'], "calendar": cal.to_dict()}
             return {"symbol": args['symbol'], "calendar": cal if isinstance(cal, dict) else str(cal)}
-        except: return {"symbol": args['symbol'], "calendar": {}}
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
+            return {"symbol": args['symbol'], "calendar": {}}
 
 class YFSustainabilityTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
@@ -150,7 +153,9 @@ class YFAnalystPriceTargetsTool(YFBaseTool):
             if hasattr(targets, 'to_dict'):
                 return {"symbol": args['symbol'], "targets": targets.to_dict()}
             return {"symbol": args['symbol'], "targets": targets if isinstance(targets, dict) else {}}
-        except: return {"symbol": args['symbol'], "targets": {}}
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
+            return {"symbol": args['symbol'], "targets": {}}
 
 class YFUpgradesDowngradesTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
@@ -242,7 +247,9 @@ class YFSectorPerformanceTool(YFBaseTool):
                 t = yf.Ticker(sym)
                 fi = t.fast_info
                 results.append({"sector": name, "etf": sym, "price": getattr(fi, 'last_price', None)})
-            except: pass
+            except Exception as e:
+                logger.warning(f"Error handled: {e}", exc_info=True)
+                pass
         return {"sectors": results}
 
 class YFCryptoInfoTool(YFBaseTool):
@@ -293,7 +300,9 @@ class YFMultiTickerHistoryTool(YFBaseTool):
             try:
                 sub = df[s] if len(syms) > 1 else df
                 results[s] = _df_to_records(sub, 30)
-            except: results[s] = []
+            except Exception as e:
+                logger.warning(f"Error handled: {e}", exc_info=True)
+                results[s] = []
         return {"symbols": syms, "data": results}
 
 class YFTrendingTickersTool(YFBaseTool):
@@ -319,7 +328,9 @@ class YFMarketSummaryTool(YFBaseTool):
                 fi = t.fast_info
                 results.append({"index": name, "symbol": sym,
                                "price": getattr(fi, 'last_price', None)})
-            except: pass
+            except Exception as e:
+                logger.warning(f"Error handled: {e}", exc_info=True)
+                pass
         return {"market_summary": results}
 
 class YFCompareStocksTool(YFBaseTool):
@@ -339,5 +350,7 @@ class YFCompareStocksTool(YFBaseTool):
                     "52w_high": info.get('fiftyTwoWeekHigh'),
                     "52w_low": info.get('fiftyTwoWeekLow'),
                 })
-            except: pass
+            except Exception as e:
+                logger.warning(f"Error handled: {e}", exc_info=True)
+                pass
         return {"comparison": results}

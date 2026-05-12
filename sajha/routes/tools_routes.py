@@ -44,7 +44,7 @@ async def tool_execute_page(tool_name: str, request: Request, auth: AuthContext 
         'tool': tool.to_mcp_format(),
         'tool_name': tool_name,
         'tool_enabled': tool.enabled,
-        'tool_version': getattr(tool, 'version', settings.app_version if 'settings' in dir() else '4.0.0'),
+        'tool_version': getattr(tool, 'version', settings.app_version if 'settings' in dir() else '4.5.0'),
         'is_admin': auth.is_admin,
     })
 
@@ -69,7 +69,7 @@ async def tool_schema_page(tool_name: str, request: Request, auth: AuthContext =
         'tool_name': tool_name,
         'tool_config': tool_cfg,
         'tool_enabled': tool.enabled,
-        'tool_version': getattr(tool, 'version', settings.app_version if 'settings' in dir() else '4.0.0'),
+        'tool_version': getattr(tool, 'version', settings.app_version if 'settings' in dir() else '4.5.0'),
         'schema_json': json.dumps(tool_data.get('inputSchema', {}), indent=2, default=str),
         'config_json': json.dumps(tool_cfg, indent=2, default=str),
         'is_admin': auth.is_admin,

@@ -58,7 +58,9 @@ async def api_list_providers(auth: AuthContext = Depends(require_auth), db: Sess
             prov_inst = gw.get_provider(p.provider_type)
             if prov_inst:
                 try: healthy = prov_inst.health_check()
-                except: pass
+                except Exception as e:
+                    logger.warning(f"Error handled: {e}", exc_info=True)
+                    pass
 
         providers.append({
             'type': p.provider_type, 'display_name': p.display_name,

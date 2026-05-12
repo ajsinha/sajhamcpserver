@@ -161,7 +161,7 @@ class YahooGetQuoteTool(YahooFinanceBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to get quote for {symbol}: {e}")
+            self.logger.error(f"Failed to get quote for {symbol}: {e}", exc_info=True)
             raise ValueError(f"Failed to get quote for {symbol}: {str(e)}")
 
 
@@ -360,7 +360,7 @@ class YahooGetHistoryTool(YahooFinanceBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to get history for {symbol}: {e}")
+            self.logger.error(f"Failed to get history for {symbol}: {e}", exc_info=True)
             raise ValueError(f"Failed to get history for {symbol}: {str(e)}")
 
 
@@ -482,7 +482,7 @@ class YahooSearchSymbolsTool(YahooFinanceBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to search symbols for '{query}': {e}")
+            self.logger.error(f"Failed to search symbols for '{query}': {e}", exc_info=True)
             raise ValueError(f"Failed to search symbols: {str(e)}")
 
 

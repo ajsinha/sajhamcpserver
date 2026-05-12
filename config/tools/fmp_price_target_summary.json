@@ -2,7 +2,7 @@
   "name": "fmp_price_target_summary",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
   "description": "Get price target consensus summary from FMP \u2014 avg, high, low",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

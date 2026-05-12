@@ -2,7 +2,7 @@
   "name": "av_forex_rate",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVForexRateTool",
   "description": "Get real-time forex exchange rate from Alpha Vantage \u2014 any currency pair",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

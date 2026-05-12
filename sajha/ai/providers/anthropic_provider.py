@@ -83,5 +83,5 @@ class AnthropicProvider(LLMProvider):
             )
             return bool(r.content)
         except Exception as e:
-            logger.warning(f"Anthropic health check failed: {e}")
+            logger.warning(f"Anthropic health check failed: {e}", exc_info=True)
             return False

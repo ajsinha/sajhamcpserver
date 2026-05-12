@@ -2,7 +2,7 @@
   "name": "yf_splits",
   "implementation": "sajha.tools.impl.yfinance_tools.YFSplitsTool",
   "description": "Get stock split history from Yahoo Finance \u2014 all historical splits with dates and ratios",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

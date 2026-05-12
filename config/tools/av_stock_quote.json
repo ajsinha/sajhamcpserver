@@ -2,7 +2,7 @@
   "name": "av_stock_quote",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVStockQuoteTool",
   "description": "Get real-time stock quote from Alpha Vantage \u2014 price, change, volume",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

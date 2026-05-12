@@ -69,7 +69,7 @@ class SECEdgarClient:
             return data
             
         except Exception as e:
-            self.logger.error(f"Error fetching SEC submissions for CIK {cik}: {e}")
+            self.logger.error(f"Error fetching SEC submissions for CIK {cik}: {e}", exc_info=True)
             raise ValueError(f"Failed to fetch SEC data: {str(e)}")
     
     def get_recent_filings(
@@ -148,7 +148,7 @@ class SECEdgarClient:
             return filings
             
         except Exception as e:
-            self.logger.error(f"Error getting recent filings for CIK {cik}: {e}")
+            self.logger.error(f"Error getting recent filings for CIK {cik}: {e}", exc_info=True)
             return []
     
     def get_annual_reports(self, cik: str, limit: int = 5) -> List[Dict]:
@@ -243,7 +243,7 @@ class SECEdgarClient:
             return matching_filings
             
         except Exception as e:
-            self.logger.error(f"Error searching filings: {e}")
+            self.logger.error(f"Error searching filings: {e}", exc_info=True)
             return []
     
     def get_company_facts(self, cik: str) -> Dict:
@@ -266,7 +266,7 @@ class SECEdgarClient:
             return data
             
         except Exception as e:
-            self.logger.error(f"Error fetching company facts for CIK {cik}: {e}")
+            self.logger.error(f"Error fetching company facts for CIK {cik}: {e}", exc_info=True)
             return {}
     
     def get_latest_filing_of_type(self, cik: str, filing_type: str) -> Optional[Dict]:

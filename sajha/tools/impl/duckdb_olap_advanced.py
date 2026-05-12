@@ -90,7 +90,7 @@ class DuckDBOLAPAdvancedTool(BaseMCPTool):
                 self.conn = duckdb.connect(":memory:")
             logger.info("DuckDB OLAP connection initialized")
         except Exception as e:
-            logger.error(f"Failed to initialize DuckDB: {e}")
+            logger.error(f"Failed to initialize DuckDB: {e}", exc_info=True)
             self.conn = duckdb.connect(":memory:")
     
     def get_tools(self) -> List[Dict[str, Any]]:
@@ -1145,7 +1145,7 @@ class CustomerOLAPTool(BaseMCPTool):
             self.conn = duckdb.connect(":memory:")
             logger.info("CustomerOLAPTool: DuckDB connection initialized")
         except Exception as e:
-            logger.error(f"Failed to initialize DuckDB: {e}")
+            logger.error(f"Failed to initialize DuckDB: {e}", exc_info=True)
             raise
     
     def _get_data_path(self) -> str:
@@ -1351,7 +1351,7 @@ class CustomerOLAPTool(BaseMCPTool):
             }
             
         except Exception as e:
-            logger.error(f"CustomerOLAPTool execution error: {e}")
+            logger.error(f"CustomerOLAPTool execution error: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e)
@@ -1449,7 +1449,7 @@ class DuckDBSQLTool(BaseMCPTool):
             
             logger.info(f"DuckDBSQLTool: Initialized with tables from {self.data_dir}")
         except Exception as e:
-            logger.error(f"Failed to initialize DuckDB: {e}")
+            logger.error(f"Failed to initialize DuckDB: {e}", exc_info=True)
             raise
     
     def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
@@ -1523,7 +1523,7 @@ class DuckDBSQLTool(BaseMCPTool):
             }
             
         except Exception as e:
-            logger.error(f"DuckDBSQLTool execution error: {e}")
+            logger.error(f"DuckDBSQLTool execution error: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e),

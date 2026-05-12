@@ -330,7 +330,7 @@ FROM aggregated
             }
             
         except Exception as e:
-            logger.error(f"Window query execution error: {e}")
+            logger.error(f"Window query execution error: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e),

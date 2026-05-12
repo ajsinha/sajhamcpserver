@@ -11,9 +11,9 @@
 .activity-item:last-child{border:none}
 .activity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .quick-action{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-radius:var(--radius-md);border:1px solid var(--theme-card-border);text-decoration:none;color:var(--theme-text);transition:all var(--transition-fast);background:var(--theme-card-bg)}
-.quick-action:hover{border-color:var(--sajha-primary);color:var(--sajha-primary);transform:translateX(4px)}
+.quick-action:hover{border-color:var(--t-link);color:var(--t-link);transform:translateX(4px)}
 .quick-action i{font-size:1.2rem;width:24px;text-align:center}
-.welcome-bar{background:linear-gradient(135deg,var(--sajha-primary) 0%,var(--sajha-accent) 100%);color:#fff;border-radius:var(--radius-lg);padding:1.5rem 2rem;margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
+.welcome-bar{background:linear-gradient(135deg,var(--t-link) 0%,var(--sajha-blue-light) 100%);color:#fff;border-radius:var(--radius-lg);padding:1.5rem 2rem;margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
 .welcome-bar h2{font-size:1.5rem;font-weight:700;margin:0}
 .welcome-bar p{margin:0;opacity:.85;font-size:.9rem}
 .transport-badge{display:inline-flex;align-items:center;gap:.25rem;padding:.25rem .6rem;border-radius:6px;font-size:.7rem;font-weight:600;font-family:'JetBrains Mono',monospace}
@@ -22,7 +22,7 @@
 {% block content %}
 <div class="container-fluid">
     <!-- #11 Onboarding wizard (shows only until dismissed) -->
-    <div id="onboarding" class="card mb-3" style="display:none; border-left: 4px solid var(--sajha-blue);">
+    <div id="onboarding" class="card mb-3" style="display:none; border-left: 4px solid var(--t-link);">
         <div class="card-body py-3">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
@@ -58,15 +58,15 @@
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
             <div class="metric-card">
-                <div class="metric-icon" style="background:rgba(0,121,193,.1);color:var(--sajha-primary)"><i class="bi bi-tools"></i></div>
-                <div class="metric-value" style="color:var(--sajha-primary)">{{ tools_count }}</div>
+                <div class="metric-icon" style="background:rgba(0,121,193,.1);color:var(--t-link)"><i class="bi bi-tools"></i></div>
+                <div class="metric-value" style="color:var(--t-link)">{{ tools_count }}</div>
                 <div class="metric-label">Active Tools</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="metric-card">
-                <div class="metric-icon" style="background:rgba(40,167,69,.1);color:var(--sajha-success)"><i class="bi bi-people"></i></div>
-                <div class="metric-value" style="color:var(--sajha-success)">{{ users_count }}</div>
+                <div class="metric-icon" style="background:rgba(40,167,69,.1);color:var(--color-success)"><i class="bi bi-people"></i></div>
+                <div class="metric-value" style="color:var(--color-success)">{{ users_count }}</div>
                 <div class="metric-label">Users</div>
             </div>
         </div>
@@ -79,8 +79,8 @@
         </div>
         <div class="col-6 col-lg-3">
             <div class="metric-card">
-                <div class="metric-icon" style="background:rgba(220,53,69,.1);color:var(--sajha-danger)"><i class="bi bi-exclamation-triangle"></i></div>
-                <div class="metric-value" style="color:var(--sajha-danger)">{{ tool_errors|length }}</div>
+                <div class="metric-icon" style="background:rgba(220,53,69,.1);color:var(--color-danger)"><i class="bi bi-exclamation-triangle"></i></div>
+                <div class="metric-value" style="color:var(--color-danger)">{{ tool_errors|length }}</div>
                 <div class="metric-label">Tool Errors</div>
             </div>
         </div>
@@ -92,7 +92,7 @@
             <div class="card h-100">
                 <div class="card-header card-header-primary"><i class="bi bi-lightning me-2"></i>Quick Actions</div>
                 <div class="card-body d-flex flex-column gap-2">
-                    <a href="/tools" class="quick-action"><svg class="sajha-icon" style="color:var(--sajha-blue)"><use href="#icon-tool"/></svg><div><strong>Browse Tools</strong><br><small class="text-muted">Search and test {{ tools_count }} tools</small></div></a>
+                    <a href="/tools" class="quick-action"><svg class="sajha-icon" style="color:var(--t-link)"><use href="#icon-tool"/></svg><div><strong>Browse Tools</strong><br><small class="text-muted">Search and test {{ tools_count }} tools</small></div></a>
                     <a href="/studio" class="quick-action"><svg class="sajha-icon" style="color:#8a2be2"><use href="#icon-mcp"/></svg><div><strong>MCP Studio</strong><br><small class="text-muted">Create new tools visually</small></div></a>
                     <a href="/composite/builder" class="quick-action"><svg class="sajha-icon" style="color:var(--color-warning)"><use href="#icon-composite"/></svg><div><strong>Composite Builder</strong><br><small class="text-muted">Chain tools together</small></div></a>
                     <a href="/ai/settings" class="quick-action"><svg class="sajha-icon" style="color:var(--color-info)"><use href="#icon-provider"/></svg><div><strong>AI Settings</strong><br><small class="text-muted">LLM providers and models</small></div></a>
@@ -148,14 +148,14 @@
         <!-- Tool Errors & Activity -->
         <div class="col-lg-4">
             <div class="card h-100">
-                <div class="card-header" style="background:var(--sajha-gray-700);color:#fff"><i class="bi bi-activity me-2"></i>Status</div>
+                <div class="card-header" style="background:var(--t-text2);color:#fff"><i class="bi bi-activity me-2"></i>Status</div>
                 <div class="card-body">
                     {% if tool_errors %}
                     <h6 class="text-danger mb-2"><i class="bi bi-exclamation-triangle me-1"></i>Tool Load Failures</h6>
                     <div style="max-height:200px;overflow-y:auto">
                         {% for name, error in tool_errors.items() %}
                         <div class="activity-item">
-                            <div class="activity-dot" style="background:var(--sajha-danger)"></div>
+                            <div class="activity-dot" style="background:var(--color-danger)"></div>
                             <div class="small"><strong>{{ name }}</strong><br><span class="text-muted">{{ error[:80] }}</span></div>
                         </div>
                         {% endfor %}

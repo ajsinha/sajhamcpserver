@@ -176,7 +176,7 @@ class WikiSearchTool(WikipediaBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to search Wikipedia for '{query}': {e}")
+            self.logger.error(f"Failed to search Wikipedia for '{query}': {e}", exc_info=True)
             raise ValueError(f"Failed to search Wikipedia: {str(e)}")
 
 
@@ -378,7 +378,7 @@ class WikiGetPageTool(WikipediaBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to get Wikipedia page: {e}")
+            self.logger.error(f"Failed to get Wikipedia page: {e}", exc_info=True)
             raise ValueError(f"Failed to get Wikipedia page: {str(e)}")
 
 
@@ -555,7 +555,7 @@ class WikiGetSummaryTool(WikipediaBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to get Wikipedia summary: {e}")
+            self.logger.error(f"Failed to get Wikipedia summary: {e}", exc_info=True)
             raise ValueError(f"Failed to get Wikipedia summary: {str(e)}")
 
 

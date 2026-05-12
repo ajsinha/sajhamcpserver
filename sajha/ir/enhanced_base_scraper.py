@@ -188,7 +188,7 @@ class EnhancedBaseIRScraper(ABC):
         try:
             return self.http_client.fetch(url)
         except Exception as e:
-            self.logger.error(f"Error fetching {url}: {e}")
+            self.logger.error(f"Error fetching {url}: {e}", exc_info=True)
             raise
     
     def extract_links(self, html_content: str, base_url: str = None) -> List[Dict]:
@@ -206,7 +206,7 @@ class EnhancedBaseIRScraper(ABC):
         try:
             parser.feed(html_content)
         except Exception as e:
-            self.logger.warning(f"Error parsing HTML content: {e}")
+            self.logger.warning(f"Error parsing HTML content: {e}", exc_info=True)
             return []
         
         links = []

@@ -1,920 +1,121 @@
 {% extends "common/base.html" %}
-<!--
-Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
--->
 {% block title %}Help - SAJHA MCP Server{% endblock %}
-
 {% block content %}
-<div class="container py-4">
-    <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="welcome-banner">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-question-circle-fill me-3" style="font-size: 2.5rem;"></i>
-                    <div>
-                        <h2 class="mb-1">Help Center</h2>
-                        <p class="mb-0 opacity-75">SAJHA MCP Server v{{ app_version }} — Guides, tutorials, and API reference</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="container-fluid">
+    <div class="text-center mb-4">
+        <h1 class="h2"><i class="bi bi-life-preserver me-2"></i>Help Center</h1>
+        <p class="text-muted">Find guides, tutorials, and reference documentation</p>
     </div>
 
-    <!-- #12 Help Search -->
-    <div class="row mb-3">
+    <!-- Search -->
+    <div class="row mb-4">
         <div class="col-md-6 mx-auto">
-            <div class="input-group">
+            <div class="input-group input-group-lg">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input type="text" class="form-control" id="helpSearch" placeholder="Search help topics..." autofocus>
             </div>
         </div>
     </div>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var hs = document.getElementById('helpSearch');
-        if (hs) hs.addEventListener('input', function() {
-            var q = this.value.toLowerCase();
-            document.querySelectorAll('.card, .row.mb-4').forEach(function(el) {
-                if (el.closest('#helpSearch') || el.closest('.input-group')) return;
-                var match = !q || el.textContent.toLowerCase().includes(q);
-                el.style.display = match ? '' : 'none';
-            });
-        });
-    });
-    </script>
 
-    <!-- Quick Navigation -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-primary">
-                    <i class="bi bi-compass me-2"></i>Quick Navigation
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-2 col-6">
-                            <a href="#getting-started" class="btn btn-outline-primary w-100 h-100 py-3">
-                                <i class="bi bi-rocket-takeoff d-block mb-1" style="font-size: 1.5rem;"></i>
-                                Getting Started
-                            </a>
-                        </div>
-                        <div class="col-md-2 col-6">
-                            <a href="#tutorial" class="btn btn-outline-warning w-100 h-100 py-3">
-                                <i class="bi bi-mortarboard d-block mb-1" style="font-size: 1.5rem;"></i>
-                                Tutorial
-                            </a>
-                        </div>
-                        <div class="col-md-2 col-6">
-                            <a href="#tools" class="btn btn-outline-info w-100 h-100 py-3">
-                                <i class="bi bi-tools d-block mb-1" style="font-size: 1.5rem;"></i>
-                                Tool Groups
-                            </a>
-                        </div>
-                        <div class="col-md-2 col-6">
-                            <a href="#mcp-studio" class="btn w-100 h-100 py-3" style="border: 2px solid #8a2be2; color: #8a2be2;">
-                                <i class="bi bi-magic d-block mb-1" style="font-size: 1.5rem;"></i>
-                                MCP Studio
-                            </a>
-                        </div>
-                        <div class="col-md-2 col-6">
-                            <a href="#api" class="btn btn-outline-secondary w-100 h-100 py-3">
-                                <i class="bi bi-code-slash d-block mb-1" style="font-size: 1.5rem;"></i>
-                                API Reference
-                            </a>
-                        </div>
-                        <div class="col-md-2 col-6">
-                            <a href="#ai-integration" class="btn btn-outline-danger w-100 h-100 py-3">
-                                <i class="bi bi-cpu d-block mb-1" style="font-size: 1.5rem;"></i>
-                                AI &amp; LLM
-                            </a>
-                        </div>
-                        <div class="col-md-2 col-6">
-                            <a href="#transports" class="btn btn-outline-success w-100 h-100 py-3">
-                                <i class="bi bi-lightning d-block mb-1" style="font-size: 1.5rem;"></i>
-                                Transports
-                            </a>
-                        </div>
-                        <div class="col-md-2 col-6">
-                            <a href="#enterprise" class="btn w-100 h-100 py-3" style="border: 2px solid #6f42c1; color: #6f42c1;">
-                                <i class="bi bi-building d-block mb-1" style="font-size: 1.5rem;"></i>
-                                Enterprise
-                            </a>
-                        </div>
-                        <div class="col-md-2 col-6">
-                            <a href="#tutorials" class="btn btn-outline-dark w-100 h-100 py-3">
-                                <i class="bi bi-journal-code d-block mb-1" style="font-size: 1.5rem;"></i>
-                                Tutorials
-                            </a>
-                        </div>
-                        <div class="col-md-2 col-6">
-                            <a href="/docs" class="btn btn-outline-success w-100 h-100 py-3">
-                                <i class="bi bi-book d-block mb-1" style="font-size: 1.5rem;"></i>
-                                <strong>Docs</strong>
-                            </a>
-                        </div>
+    <!-- Hub Cards -->
+    <div class="row g-4 mb-4" id="helpCards">
+        <div class="col-md-4">
+            <a href="/help/tutorials" class="text-decoration-none">
+                <div class="card h-100 text-center py-4">
+                    <div class="card-body">
+                        <i class="bi bi-mortarboard" style="font-size:3rem;color:var(--t-link)"></i>
+                        <h4 class="mt-3">Tutorials</h4>
+                        <p class="text-muted">Step-by-step guides: create tools, build composites, connect LLM providers, set up plugins and tenancy.</p>
+                        <span class="badge bg-primary">6 tutorials</span>
                     </div>
                 </div>
-            </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/help/tools" class="text-decoration-none">
+                <div class="card h-100 text-center py-4">
+                    <div class="card-body">
+                        <i class="bi bi-tools" style="font-size:3rem;color:var(--color-success)"></i>
+                        <h4 class="mt-3">Tool Catalog</h4>
+                        <p class="text-muted">Browse {{ tool_stats.total_tools }} tools across {{ tool_stats.total_groups }} provider groups. Search, filter, and view tool details.</p>
+                        <span class="badge bg-success">{{ tool_stats.total_tools }} tools</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/help/ai" class="text-decoration-none">
+                <div class="card h-100 text-center py-4">
+                    <div class="card-body">
+                        <i class="bi bi-cpu" style="font-size:3rem;color:var(--color-info)"></i>
+                        <h4 class="mt-3">AI & Composition</h4>
+                        <p class="text-muted">LLM Gateway, semantic discovery, composite tools, Kleisli arrows, entropy guard, and confidence tracking.</p>
+                        <span class="badge bg-info">6 providers</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/help/enterprise" class="text-decoration-none">
+                <div class="card h-100 text-center py-4">
+                    <div class="card-body">
+                        <i class="bi bi-building" style="font-size:3rem;color:#6f42c1"></i>
+                        <h4 class="mt-3">Enterprise</h4>
+                        <p class="text-muted">OpenTelemetry observability, multi-tenancy, plugin system, tool versioning, three MCP transports.</p>
+                        <span class="badge" style="background:#6f42c1">5 features</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/docs" class="text-decoration-none">
+                <div class="card h-100 text-center py-4">
+                    <div class="card-body">
+                        <i class="bi bi-book" style="font-size:3rem;color:var(--color-warning)"></i>
+                        <h4 class="mt-3">API Reference</h4>
+                        <p class="text-muted">Complete endpoint catalog: 79+ REST APIs, 12 MCP methods, A2A protocol, WebSocket sessions.</p>
+                        <span class="badge bg-warning text-dark">79+ endpoints</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="mailto:{{ app_email }}" class="text-decoration-none">
+                <div class="card h-100 text-center py-4">
+                    <div class="card-body">
+                        <i class="bi bi-headset" style="font-size:3rem;color:var(--color-danger)"></i>
+                        <h4 class="mt-3">Contact Support</h4>
+                        <p class="text-muted">Need help? Reach the system administrator for assistance with configuration or issues.</p>
+                        <span class="badge bg-danger">{{ app_email }}</span>
+                    </div>
+                </div>
+            </a>
         </div>
     </div>
 
-    <!-- Documentation Card -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-warning">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-2 text-center mb-3 mb-md-0">
-                            <i class="bi bi-book-half text-warning" style="font-size: 4rem;"></i>
-                        </div>
-                        <div class="col-md-6 mb-3 mb-md-0">
-                            <h4 class="mb-2"><i class="bi bi-file-earmark-text me-2"></i>Project Documentation</h4>
-                            <p class="mb-2 text-muted">Architecture reference, API docs, tool guides, glossary. All documentation is live markdown rendered in-browser.</p>
-                            <div class="d-flex flex-wrap gap-2">
-                                <span class="badge bg-danger">Architecture</span>
-                                <span class="badge bg-secondary">Glossary</span>
-                                <span class="badge bg-primary">API Reference</span>
-                                <span class="badge bg-success">Tool Guides</span>
-                                <span class="badge bg-info">Changelog</span>
-                            </div>
-                        </div>
-                        <div class="col-md-4 text-center text-md-end">
-                            <div class="btn-group-vertical btn-group-lg w-100" style="max-width: 280px;">
-                                <a href="/docs/view/architecture/SAJHA_MCP_Server_Architecture.md" class="btn btn-danger mb-2">
-                                    <i class="bi bi-diagram-3 me-2"></i>System Architecture
-                                </a>
-                                <a href="/docs/view/API_Reference.md" class="btn btn-primary mb-2">
-                                    <i class="bi bi-code-slash me-2"></i>API Reference
-                                </a>
-                                <a href="/docs/view/architecture/Glossary.md" class="btn btn-secondary mb-2">
-                                    <i class="bi bi-card-text me-2"></i>Glossary
-                                </a>
-                                <a href="/docs" class="btn btn-warning">
-                                    <i class="bi bi-folder2-open me-2"></i>Browse All Docs
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Getting Started -->
-    <div class="row mb-4" id="getting-started">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-success">
-                    <i class="bi bi-rocket-takeoff me-2"></i>Getting Started
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h5><i class="bi bi-1-circle me-2 text-primary"></i>Login</h5>
-                            <p>Default admin credentials: <code>admin</code> / <code>admin123</code> (change after first login).</p>
-
-                            <h5 class="mt-4"><i class="bi bi-2-circle me-2 text-primary"></i>Dashboard</h5>
-                            <p>The dashboard shows tool counts, error summaries, and provider group badges. Click any group badge to filter tools.</p>
-                        </div>
-                        <div class="col-md-6">
-                            <h5><i class="bi bi-3-circle me-2 text-primary"></i>Explore Tools</h5>
-                            <p>The <strong>Tools</strong> page lists all 497 tools with group dropdown, description search, and clickable provider badges. Each tool has a schema viewer and execute interface.</p>
-
-                            <h5 class="mt-4"><i class="bi bi-4-circle me-2 text-primary"></i>Configuration</h5>
-                            <p>All config is in <code>config/application.yml</code>. API keys go in the <code>fmp.api.key</code>, <code>fred.api.key</code>, etc. sections. Override any key via <code>SAJHA_</code> environment variables.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tutorial -->
-    <div class="row mb-4" id="tutorial">
-        <div class="col-12">
-            <div class="card border-warning">
-                <div class="card-header bg-warning text-dark">
-                    <i class="bi bi-mortarboard me-2"></i>Tutorial: Creating an MCP Tool
-                    <span class="badge bg-dark ms-2">Two Methods</span>
-                </div>
-                <div class="card-body">
-                    <ul class="nav nav-tabs mb-4" role="tablist">
-                        <li class="nav-item">
-                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#manual" type="button"><i class="bi bi-code-slash me-2"></i>Manual Coding</button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#studio" type="button"><i class="bi bi-magic me-2"></i>MCP Studio</button>
-                        </li>
-                    </ul>
-
-                    <div class="tab-content">
-                        <!-- Manual Tab -->
-                        <div class="tab-pane fade show active" id="manual">
-                            <div class="alert alert-secondary">
-                                <i class="bi bi-clock me-2"></i><strong>~15 minutes</strong>
-                                <span class="ms-3"><strong>2 files:</strong> JSON config + Python class</span>
-                            </div>
-
-                            <h6><strong>Step 1:</strong> Create <code>config/tools/temperature_converter.json</code></h6>
-                            <pre class="bg-dark text-light p-3 rounded"><code>{
-  "name": "temperature_converter",
-  "implementation": "sajha.tools.impl.temperature_converter.TemperatureConverterTool",
-  "description": "Convert temperatures between Celsius, Fahrenheit, and Kelvin",
-  "enabled": true,
-  "metadata": {"category": "Utilities", "tags": ["temperature", "converter"]}
-}</code></pre>
-
-                            <h6 class="mt-4"><strong>Step 2:</strong> Create <code>sajha/tools/impl/temperature_converter.py</code></h6>
-                            <pre class="bg-dark text-light p-3 rounded" style="font-size: 12px;"><code>from sajha.tools.base_mcp_tool import BaseMCPTool
-
-class TemperatureConverterTool(BaseMCPTool):
-    def __init__(self, config=None):
-        super().__init__(config or {'name': 'temperature_converter',
-                                     'description': 'Convert temperatures'})
-
-    def get_input_schema(self):
-        return {"type": "object", "properties": {
-            "value": {"type": "number"},
-            "from_unit": {"type": "string", "enum": ["celsius", "fahrenheit", "kelvin"]},
-            "to_unit": {"type": "string", "enum": ["celsius", "fahrenheit", "kelvin"]}
-        }, "required": ["value", "from_unit", "to_unit"]}
-
-    def get_output_schema(self):
-        return {"type": "object", "properties": {
-            "converted_value": {"type": "number"}, "converted_unit": {"type": "string"}}}
-
-    def execute(self, arguments):
-        v, f, t = arguments['value'], arguments['from_unit'], arguments['to_unit']
-        c = v if f == 'celsius' else (v - 32) * 5/9 if f == 'fahrenheit' else v - 273.15
-        r = c if t == 'celsius' else c * 9/5 + 32 if t == 'fahrenheit' else c + 273.15
-        return {"converted_value": round(r, 2), "converted_unit": t}</code></pre>
-
-                            <h6 class="mt-4"><strong>Step 3:</strong> Deploy</h6>
-                            <p>The hot-reload system picks up new tools automatically. Or restart: <code>python run_server.py</code></p>
-
-                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X POST http://localhost:3002/api/tools/execute \
-  -H "X-API-Key: YOUR_KEY" -H "Content-Type: application/json" \
-  -d '{"tool": "temperature_converter", "arguments": {"value": 100, "from_unit": "celsius", "to_unit": "fahrenheit"}}'
-# → {"converted_value": 212.0, "converted_unit": "fahrenheit"}</code></pre>
-                        </div>
-
-                        <!-- Studio Tab -->
-                        <div class="tab-pane fade" id="studio">
-                            <div class="alert alert-success">
-                                <i class="bi bi-clock me-2"></i><strong>~3 minutes</strong>
-                                <span class="ms-3">Files auto-generated, instant deploy</span>
-                            </div>
-
-                            <ol class="mb-3">
-                                <li>Go to <strong>MCP Studio</strong> (<code>/studio</code>)</li>
-                                <li>Enter tool name: <code>temperature_converter</code></li>
-                                <li>Paste a <code>@sajhamcptool</code> decorated function</li>
-                                <li>Click <strong>Analyze Code</strong> — previews JSON config + Python class</li>
-                                <li>Click <strong>Deploy</strong> — tool is immediately available</li>
-                            </ol>
-
-                            <pre class="bg-dark text-light p-3 rounded" style="font-size: 12px;"><code>from sajha.studio import sajhamcptool
-
-@sajhamcptool(description="Convert temperatures", category="Utilities")
-def convert_temperature(value: float, from_unit: str, to_unit: str) -> dict:
-    c = value if from_unit == 'celsius' else (value - 32) * 5/9 if from_unit == 'fahrenheit' else value - 273.15
-    r = c if to_unit == 'celsius' else c * 9/5 + 32 if to_unit == 'fahrenheit' else c + 273.15
-    return {"converted_value": round(r, 2), "converted_unit": to_unit}</code></pre>
-
-                            <p class="text-muted mt-3">Type hints become JSON Schema automatically. No boilerplate class needed.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tool Groups -->
-    <div class="row mb-4" id="tools">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-info d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-tools me-2"></i>Tool Groups</span>
-                    <span class="badge bg-light text-dark">
-                        <i class="bi bi-gear me-1"></i>{{ tool_stats.total_tools }} tools in {{ tool_stats.total_groups }} groups
-                    </span>
-                </div>
-                <div class="card-body">
-                    <div class="row mb-4">
-                        <div class="col-md-6 mx-auto">
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control" id="toolSearch" placeholder="Search tool groups...">
-                                <button class="btn btn-outline-secondary" type="button" id="clearToolSearch"><i class="bi bi-x-lg"></i></button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="toolSearchResults" class="d-none mb-4">
-                        <div class="card border-info">
-                            <div class="card-header bg-info text-white"><i class="bi bi-search me-2"></i>Search Results</div>
-                            <div class="card-body" id="toolSearchResultsBody"></div>
-                        </div>
-                    </div>
-
-                    <div class="row" id="toolGroupsContainer">
-                        {% for group in tool_groups %}
-                        <div class="col-lg-4 col-md-6 mb-4 tool-group-card" data-group="{{ group.name }}">
-                            <div class="card h-100 border-{{ group.color }}">
-                                <div class="card-header bg-{{ group.color }} text-white d-flex justify-content-between align-items-center">
-                                    <span><i class="bi {{ group.icon }} me-2"></i>{{ group.name }}</span>
-                                    <span class="badge bg-light text-{{ group.color }}">{{ group.tool_count }} tools</span>
-                                </div>
-                                <div class="card-body">
-                                    <p class="card-text">{{ group.description }}</p>
-                                    <div class="mb-3">
-                                        {% for category in group.categories[:3] %}
-                                        <span class="badge bg-{{ group.color }} bg-opacity-10 text-{{ group.color }} me-1 mb-1">{{ category }}</span>
-                                        {% endfor %}
-                                        {% if group.categories|length > 3 %}
-                                        <span class="badge bg-secondary">+{{ group.categories|length - 3 }} more</span>
-                                        {% endif %}
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <small class="text-muted">
-                                            <i class="bi bi-check-circle text-success me-1"></i>{{ group.enabled_count }} enabled
-                                        </small>
-                                        <button class="btn btn-sm btn-outline-{{ group.color }} view-group-tools" data-group="{{ group.name }}" onclick="toggleToolGroup(this.dataset.group)">
-                                            <i class="bi bi-eye me-1"></i>View
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-
-                    <div id="noToolGroupResults" class="d-none text-center py-4">
-                        <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
-                        <h5 class="mt-3 text-muted">No matching groups</h5>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tool Group Inline (replaced modal) -->
-    <div id="toolGroupInline" class="card mt-3 d-none">
-        <div class="card-header bg-primary text-white d-flex justify-content-between"><span id="toolGroupInlineLabel"><i class="bi bi-tools me-2"></i>Tools</span><button class="btn btn-sm btn-outline-light" onclick="this.closest('.card').classList.add('d-none')">Close</button></div>
-        <div class="card-body" id="toolGroupInlineBody" style="max-height:400px;overflow-y:auto"></div>
-    </div>
-
-    <!-- API Reference -->
-    <div class="row mb-4" id="api">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-secondary">
-                    <i class="bi bi-code-slash me-2"></i>API Quick Reference
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info mb-4">
-                        <i class="bi bi-info-circle me-2"></i>
-                        <strong>3 auth methods:</strong> <code>X-API-Key</code> header (recommended for automation), <code>Authorization: Bearer</code> JWT, or <code>sajha_token</code> session cookie. Full reference: <a href="/docs/view/API_Reference.md">/docs/view/API_Reference.md</a>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h5><i class="bi bi-key-fill me-2 text-success"></i>API Key Authentication</h5>
-                            <pre class="bg-dark text-light p-3 rounded"><code># Execute a tool
-curl -X POST http://localhost:3002/api/tools/execute \
-  -H "X-API-Key: sk_live_abc123" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tool": "yahoo_finance_quote",
-    "arguments": {"symbol": "AAPL"}
-  }'</code></pre>
-
-                            <h5 class="mt-4"><i class="bi bi-person-badge me-2 text-warning"></i>JWT Authentication</h5>
-                            <pre class="bg-dark text-light p-3 rounded"><code># Get token
-curl -X POST http://localhost:3002/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"user_id": "admin", "password": "admin123"}'
-
-# Use token
-curl -X POST http://localhost:3002/mcp \
-  -H "Authorization: Bearer eyJ..." \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":"1","method":"tools/list"}'</code></pre>
-                        </div>
-                        <div class="col-md-6">
-                            <h5><i class="bi bi-code-square me-2 text-info"></i>Python SDK</h5>
-                            <pre class="bg-dark text-light p-3 rounded"><code>from sajhaclient import (
-    SajhaConfig, SajhaClient,
-    MCPClient, ApiKeyAuth
-)
-
-config = SajhaConfig(
-    base_url="http://localhost:3002"
-)
-auth = ApiKeyAuth("sk_live_abc123")
-
-# REST client
-client = SajhaClient(config, auth=auth)
-tools = client.list_tools()
-result = client.execute_tool(
-    "fred_gdp",
-    {"start_date": "2024-01-01"}
-)
-
-# MCP client (JSON-RPC 2.0)
-mcp = MCPClient(config, auth=auth)
-mcp.initialize()
-mcp_tools = mcp.list_tools()
-mcp_result = mcp.call_tool(
-    "yahoo_finance_quote",
-    {"symbol": "TSLA"}
-)</code></pre>
-                        </div>
-                    </div>
-
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <h5><i class="bi bi-broadcast me-2"></i>MCP Protocol (JSON-RPC 2.0)</h5>
-                            <pre class="bg-dark text-light p-3 rounded"><code># MCP initialize
-curl -X POST http://localhost:3002/mcp \
-  -H "X-API-Key: sk_live_abc123" -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":"1","method":"initialize","params":{"protocolVersion":"2025-06-18"}}'
-
-# MCP tools/call
-curl -X POST http://localhost:3002/mcp \
-  -H "X-API-Key: sk_live_abc123" -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":"2","method":"tools/call","params":{"name":"calc_compound_interest","arguments":{"principal":10000,"rate":0.05,"years":10}}}'</code></pre>
-                        </div>
-                    </div>
-
-                    <div class="text-end mt-3">
-                        <a href="/docs/view/API_Reference.md" class="btn btn-outline-primary"><i class="bi bi-book me-1"></i>Full API Reference</a>
-                        <a href="/api/docs" class="btn btn-outline-info ms-2" target="_blank"><i class="bi bi-code-slash me-1"></i>OpenAPI Docs</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MCP Studio -->
-    <div class="row mb-4" id="mcp-studio">
-        <div class="col-12">
-            <div class="card" style="border-color: #8a2be2 !important;">
-                <div class="card-header text-white" style="background: linear-gradient(135deg, #8a2be2 0%, #9b59b6 100%);">
-                    <i class="bi bi-magic me-2"></i>MCP Studio — Visual Tool Creation
-                </div>
-                <div class="card-body">
-                    <p>MCP Studio provides <strong>7 tool creator types</strong>. Each generates both a JSON config and Python implementation, deployed instantly via hot-reload.</p>
-
-                    <div class="row mb-4">
-                        <div class="col-md-6 col-lg-4 mb-3">
-                            <div class="card h-100 border-primary">
-                                <div class="card-header bg-primary text-white"><i class="bi bi-code-slash me-2"></i>Python Code</div>
-                                <div class="card-body small">Write <code>@sajhamcptool</code> decorated functions. Type hints become JSON Schema automatically.</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-lg-4 mb-3">
-                            <div class="card h-100 border-success">
-                                <div class="card-header bg-success text-white"><i class="bi bi-cloud-arrow-up me-2"></i>REST Service</div>
-                                <div class="card-body small">Wrap any REST API as an MCP tool. Supports GET/POST/PUT/DELETE, JSON/CSV/XML responses, API Key and Basic Auth.</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-lg-4 mb-3">
-                            <div class="card h-100 border-warning">
-                                <div class="card-header bg-warning text-dark"><i class="bi bi-database me-2"></i>DB Query</div>
-                                <div class="card-body small">Parameterized SQL templates against DuckDB, SQLite, PostgreSQL, or MySQL.</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-lg-4 mb-3">
-                            <div class="card h-100 border-danger">
-                                <div class="card-header bg-danger text-white"><i class="bi bi-terminal me-2"></i>Script</div>
-                                <div class="card-body small">Execute Bash, Python, Node.js, Ruby, or Perl scripts with array-of-string arguments.</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-lg-4 mb-3">
-                            <div class="card h-100" style="border: 2px solid #f2c811;">
-                                <div class="card-header" style="background: #f2c811; color: #212529;"><i class="bi bi-bar-chart-fill me-2"></i>PowerBI Report</div>
-                                <div class="card-body small">Export PowerBI reports as PDF/PPTX/PNG via Azure AD Service Principal.</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-lg-4 mb-3">
-                            <div class="card h-100" style="border: 2px solid #00d4aa;">
-                                <div class="card-header" style="background: #00d4aa; color: #212529;"><i class="bi bi-braces me-2"></i>PowerBI DAX</div>
-                                <div class="card-body small">Execute EVALUATE DAX queries against PowerBI datasets with parameterized inputs.</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card mb-3" style="border: 2px solid #0077b6;">
-                        <div class="card-header" style="background: #0077b6; color: white;"><i class="bi bi-folder2-open me-2"></i>LiveLink (OpenText Content Server)</div>
-                        <div class="card-body small">Search, list, get metadata, and download documents from OpenText ECM. Supports Basic Auth, OAuth, and OTDS.</div>
-                    </div>
-
-                    <div class="alert alert-info mt-3 mb-0">
-                        <div class="row align-items-center">
-                            <div class="col-md-6">
-                                <i class="bi bi-info-circle me-2"></i>
-                                <strong>Tip:</strong> Use <code>{param}</code> in REST URLs, <code>{{ '{{param}}' }}</code> in SQL, <code>@param</code> in DAX.
-                            </div>
-                            <div class="col-md-6 text-md-end mt-2 mt-md-0">
-                                {% if user and user.roles and 'admin' in user.roles %}
-                                <div class="btn-group btn-group-sm flex-wrap">
-                                    <a href="{{ url_for('studio_home') }}" class="btn btn-primary"><i class="bi bi-magic me-1"></i>Studio</a>
-                                    <a href="{{ url_for('studio_rest') }}" class="btn btn-success"><i class="bi bi-cloud me-1"></i>REST</a>
-                                    <a href="{{ url_for('studio_dbquery') }}" class="btn btn-warning text-dark"><i class="bi bi-database me-1"></i>DB</a>
-                                    <a href="{{ url_for('studio_script') }}" class="btn btn-danger"><i class="bi bi-terminal me-1"></i>Script</a>
-                                </div>
-                                {% else %}
-                                <span class="badge bg-secondary"><i class="bi bi-lock me-1"></i>Admin Only</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Troubleshooting -->
-    <div class="row mb-4" id="troubleshooting">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-danger">
-                    <i class="bi bi-wrench me-2"></i>Troubleshooting
-                </div>
-                <div class="card-body">
-                    <div class="accordion" id="troubleshootingAccordion">
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#issue1">
-                                    <i class="bi bi-exclamation-triangle me-2 text-warning"></i>Cannot log in
-                                </button>
-                            </h2>
-                            <div id="issue1" class="accordion-collapse collapse show" data-bs-parent="#troubleshootingAccordion">
-                                <div class="accordion-body">
-                                    <ol>
-                                        <li>Verify the user exists in the database (or <code>config/users.json</code> for legacy import)</li>
-                                        <li>Check that the account is enabled</li>
-                                        <li>Clear browser cookies and retry</li>
-                                        <li>Check server console for auth errors</li>
-                                    </ol>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#issue2">
-                                    <i class="bi bi-exclamation-triangle me-2 text-warning"></i>Tool execution errors
-                                </button>
-                            </h2>
-                            <div id="issue2" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
-                                <div class="accordion-body">
-                                    <ol>
-                                        <li>Check that required API keys are set in <code>config/application.yml</code> (e.g., <code>fmp.api.key</code>, <code>fred.api.key</code>)</li>
-                                        <li>Verify the tool is enabled: <code>GET /api/tools/list</code></li>
-                                        <li>Check the tool's input schema: <code>GET /api/tools/{name}/schema</code></li>
-                                        <li>Review server logs for stack traces</li>
-                                    </ol>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#issue3">
-                                    <i class="bi bi-exclamation-triangle me-2 text-warning"></i>MCP client connection issues
-                                </button>
-                            </h2>
-                            <div id="issue3" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
-                                <div class="accordion-body">
-                                    <ol>
-                                        <li>HTTP POST transport: <code>POST http://localhost:3002/mcp</code></li>
-                                        <li>SSE transport: <code>GET /mcp/sse</code> for event stream, <code>POST /mcp/message</code> for messages</li>
-                                        <li>Verify auth token/API key is valid</li>
-                                        <li>Check <code>/health</code> endpoint for server status</li>
-                                    </ol>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Contact -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-primary">
-                    <i class="bi bi-envelope me-2"></i>Need Help?
-                </div>
-                <div class="card-body text-center py-4">
-                    <i class="bi bi-headset" style="font-size: 3rem; color: var(--sajha-primary);"></i>
-                    <h5 class="mt-3">Contact Support</h5>
-                    <p class="text-muted">For assistance, contact the system administrator.</p>
-                    <a href="mailto:{{ app_email }}" class="btn btn-primary"><i class="bi bi-envelope me-2"></i>{{ app_email }}</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ═══ v4.0.0 Feature Guides ═══ -->
-
-    <!-- AI Integration -->
-    <div class="row mb-4" id="ai-integration">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-primary"><i class="bi bi-cpu me-2"></i>AI Integration (v{{ app_version }})</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <div class="card h-100 border-primary">
-                                <div class="card-header bg-primary text-white"><i class="bi bi-cloud me-2"></i>LLM Gateway</div>
-                                <div class="card-body">
-                                    <p class="small">6 providers via official SDKs: Anthropic, OpenAI, AWS Bedrock, Together.ai, Ollama, Azure OpenAI. Registry-based factory — add custom providers with <code>register_provider_class()</code>.</p>
-                                    <p class="small mb-0"><strong>Config:</strong> Providers and models managed via DB tables (<code>llm_providers</code>, <code>llm_models</code>). Admin UI at <a href="/ai/settings">/ai/settings</a>.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card h-100 border-info">
-                                <div class="card-header bg-info text-white"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
-                                <div class="card-body">
-                                    <p class="small">Describe what you need in plain English — SAJHA finds the right tool. Vector embeddings of all 497 tool descriptions with cosine similarity search.</p>
-                                    <p class="small mb-0"><strong>Try it:</strong> Go to <a href="/ai/settings">AI Settings</a> → Semantic Tool Discovery → type "find companies with high debt".</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card h-100 border-success">
-                                <div class="card-header bg-success text-white"><i class="bi bi-person-gear me-2"></i>User Preferences</div>
-                                <div class="card-body">
-                                    <p class="small">Three-tier model resolution: explicit params → user preferences → system defaults. Each user can choose their preferred LLM provider and model.</p>
-                                    <p class="small mb-0"><strong>Set yours:</strong> <a href="/ai/settings">AI Settings</a> → My AI Preferences → choose provider, model, temperature, max tokens.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Composite Tools -->
-    <div class="row mb-4" id="composite-tools">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-warning text-dark"><i class="bi bi-boxes me-2"></i>Composite Tools</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <h6><i class="bi bi-arrow-left-right me-2 text-info"></i>Sibling Pattern (Parallel)</h6>
-                            <p class="small">Multiple tools run concurrently, results merged. Example: <code>market_snapshot</code> = yahoo_quote + fred_vix + fred_fed_rate — one call, three results.</p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6><i class="bi bi-diagram-3 me-2 text-warning"></i>Parent-Child Pattern (Fan-out)</h6>
-                            <p class="small">Master tool runs first, child executes per record. Example: <code>portfolio_dive</code> = duckdb_query → fmp_profile(each ticker).</p>
-                        </div>
-                    </div>
-                    <p class="small mt-2 mb-0"><strong>Build one:</strong> <a href="/composite/builder">Composite Builder</a> → pick master tool → add steps → preview schemas → save.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Transports -->
-    <div class="row mb-4" id="transports">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-success"><i class="bi bi-arrows-expand me-2"></i>Three MCP Transports</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <div class="card h-100 border-primary">
-                                <div class="card-header bg-primary text-white"><i class="bi bi-send me-2"></i>HTTP POST /mcp</div>
-                                <div class="card-body"><p class="small mb-0">Stateless. One request = one response. Best for automation scripts, CI/CD pipelines, simple tool calls.</p></div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card h-100 border-success">
-                                <div class="card-header bg-success text-white"><i class="bi bi-broadcast me-2"></i>SSE /mcp/sse</div>
-                                <div class="card-body"><p class="small mb-0">Server-push streaming. Persistent connection for long-running tools, progress updates, web UI real-time feeds.</p></div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card h-100 border-warning">
-                                <div class="card-header bg-warning text-dark"><i class="bi bi-lightning me-2"></i>WebSocket /mcp/ws</div>
-                                <div class="card-body"><p class="small mb-0">Full-duplex bidirectional. Server pushes notifications without polling. Best for interactive agents, real-time dashboards. Connect: <code>ws://host:3002/mcp/ws?token=jwt</code></p></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Observability & Operations -->
-    <div class="row mb-4" id="observability">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-secondary"><i class="bi bi-graph-up me-2"></i>Observability & Operations (v{{ app_version }})</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <h6><i class="bi bi-speedometer2 me-2 text-primary"></i>Metrics</h6>
-                            <p class="small mb-0">Per-tool p50/p95/p99 latency. <code>GET /api/metrics/tools</code> for all tools, <code>/api/metrics/tools/{name}</code> for one.</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h6><i class="bi bi-bell me-2 text-danger"></i>Alerts</h6>
-                            <p class="small mb-0">Error spike (>10/5min), high latency (p95 >5s). Custom rules with webhook support.</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h6><i class="bi bi-heart-pulse me-2 text-success"></i>Health Probes</h6>
-                            <p class="small mb-0"><code>/health</code> (liveness) and <code>/ready</code> (readiness). Kubernetes-ready.</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h6><i class="bi bi-gear me-2 text-info"></i>OpenTelemetry</h6>
-                            <p class="small mb-0">Optional OTEL SDK exports traces and metrics to Datadog, Grafana, Splunk, Jaeger.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Multi-tenancy & Plugins -->
-    <div class="row mb-4" id="enterprise">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header" style="background: #6f42c1; color: white;"><i class="bi bi-building me-2"></i>Enterprise Features (v{{ app_version }})</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-people me-2 text-primary"></i>Multi-Tenancy</h6>
-                            <p class="small">Tenant-isolated tool access, per-tenant quotas (daily/monthly), data isolation via directory prefixes, API key pools.</p>
-                            <p class="small mb-0"><strong>API:</strong> <code>GET/POST/PUT/DELETE /api/tenants</code></p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-puzzle me-2 text-success"></i>Plugin System</h6>
-                            <p class="small">Drop a plugin directory in <code>config/plugins/</code> with <code>plugin.json</code> manifest + tool configs. Auto-discovered, validated, loaded.</p>
-                            <p class="small mb-0"><strong>API:</strong> <code>GET /api/plugins</code>, <code>POST /api/plugins/{name}/load</code></p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-clock-history me-2 text-warning"></i>Tool Versioning</h6>
-                            <p class="small">Run v1 and v2 side-by-side. Deprecation lifecycle with sunset dates. Contract testing validates all tools.</p>
-                            <p class="small mb-0"><strong>API:</strong> <code>POST /api/contract-test</code> runs all 497 tools.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tutorials -->
-    <div class="row mb-4" id="tutorials">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-dark text-white"><i class="bi bi-mortarboard me-2"></i>Tutorials</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card h-100 border-primary"><div class="card-body">
-                                <h6><i class="bi bi-1-circle me-2 text-primary"></i>Create Your First Tool</h6>
-                                <ol class="small mb-0"><li>Go to <a href="/studio">MCP Studio</a></li><li>Choose "REST Service" creator</li><li>Enter name, URL, method, params</li><li>Click Test → Save</li><li>Tool appears in <a href="/tools">Tools</a> list immediately</li></ol>
-                            </div></div>
-                        </div>
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card h-100 border-success"><div class="card-body">
-                                <h6><i class="bi bi-2-circle me-2 text-success"></i>Build a Composite Tool</h6>
-                                <ol class="small mb-0"><li>Go to <a href="/composite/builder">Composite Builder</a></li><li>Choose arrangement: Sibling or Parent-Child</li><li>Select master tool</li><li>Add steps with param mappings</li><li>Preview schemas → Save</li></ol>
-                            </div></div>
-                        </div>
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card h-100 border-warning"><div class="card-body">
-                                <h6><i class="bi bi-3-circle me-2 text-warning"></i>Connect via WebSocket</h6>
-                                <pre class="small bg-light p-2 rounded mb-0"><code>from sajhaclient import MCPWebSocketClient, ApiKeyAuth
-ws = MCPWebSocketClient(auth=ApiKeyAuth("key"))
-ws.connect()
-ws.initialize()
-result = ws.call_tool("yahoo_quote", symbol="AAPL")
-ws.disconnect()</code></pre>
-                            </div></div>
-                        </div>
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card h-100 border-info"><div class="card-body">
-                                <h6><i class="bi bi-4-circle me-2 text-info"></i>Configure LLM Provider</h6>
-                                <ol class="small mb-0"><li>Go to <a href="/ai/settings">AI Settings</a></li><li>Click Edit on a provider card</li><li>Enter API key</li><li>Click Test to verify</li><li>Set as default if desired</li></ol>
-                            </div></div>
-                        </div>
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card h-100 border-danger"><div class="card-body">
-                                <h6><i class="bi bi-5-circle me-2 text-danger"></i>Install a Plugin</h6>
-                                <ol class="small mb-0"><li>Create <code>config/plugins/my-plugin/</code></li><li>Add <code>plugin.json</code> with name, version, tools</li><li>Add tool JSON configs in <code>tools/</code> subdirectory</li><li>POST <code>/api/plugins/discover</code></li><li>POST <code>/api/plugins/my-plugin/load</code></li></ol>
-                            </div></div>
-                        </div>
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card h-100" style="border-color: #6f42c1;"><div class="card-body">
-                                <h6><i class="bi bi-6-circle me-2" style="color: #6f42c1;"></i>Set Up Multi-Tenancy</h6>
-                                <ol class="small mb-0"><li>POST <code>/api/tenants</code> with id, name, tool_patterns</li><li>Set quotas: max_tool_calls_per_day, etc.</li><li>Create API keys scoped to tenant</li><li>Monitor usage via <code>GET /api/tenants/{id}</code></li><li>Data isolated in <code>data/{tenant_id}/</code></li></ol>
-                            </div></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <!-- Quick Links -->
+    <div class="card">
+        <div class="card-body py-3 text-center">
+            <span class="text-muted me-3">Quick links:</span>
+            <a href="/about" class="me-3"><i class="bi bi-info-circle me-1"></i>About</a>
+            <a href="/docs" class="me-3"><i class="bi bi-book me-1"></i>Docs</a>
+            <a href="/help/glossary" class="me-3"><i class="bi bi-journal-text me-1"></i>Glossary</a>
+            <a href="https://modelcontextprotocol.io" class="me-3" target="_blank"><i class="bi bi-box-arrow-up-right me-1"></i>MCP Spec</a>
+            <a href="{{ app_github_repo }}"><i class="bi bi-github me-1"></i>GitHub</a>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block page_glossary %}
-<div class="container-fluid mt-4">
-    <div class="card border-secondary">
-        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
-            <i class="bi bi-book me-2"></i>Page Glossary
-            <i class="bi bi-chevron-down float-end"></i>
-        </div>
-        <div class="collapse" id="pageGlossary">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>MCP:</strong> Model Context Protocol — a standardized interface for AI tool discovery and execution via JSON-RPC 2.0.</p>
-                        <p><strong>JSON-RPC 2.0:</strong> The protocol encoding used for MCP request/response communication.</p>
-                        <p><strong>SSE:</strong> Server-Sent Events — one of two MCP transports, alongside HTTP POST.</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>A2A:</strong> Agent-to-Agent protocol for multi-agent orchestration.</p>
-                        <p><strong>Hot-Reload:</strong> Automatic config reload without server restart.</p>
-                        <p><strong>API Key:</strong> An <code>X-API-Key</code> credential with tool-level permissions.</p>
-                    </div>
-                </div>
-                <div class="text-end mt-2">
-                    <a href="/docs/view/architecture/Glossary.md" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-book me-1"></i>Full Glossary
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
-
 {% block extra_js %}
 <script>
-$(document).ready(function() {
-    var searchTimeout;
-
-    $('#toolSearch').on('input', function() {
-        var query = $(this).val().trim();
-        if (searchTimeout) clearTimeout(searchTimeout);
-        if (query.length === 0) {
-            $('.tool-group-card').removeClass('d-none');
-            $('#toolSearchResults').addClass('d-none');
-            $('#noToolGroupResults').addClass('d-none');
-            return;
-        }
-        if (query.length < 2) return;
-        searchTimeout = setTimeout(function() {
-            var queryLower = query.toLowerCase();
-            var hasResults = false;
-            $('.tool-group-card').each(function() {
-                var groupName = $(this).data('group').toLowerCase();
-                var cardText = $(this).text().toLowerCase();
-                if (groupName.includes(queryLower) || cardText.includes(queryLower)) {
-                    $(this).removeClass('d-none');
-                    hasResults = true;
-                } else {
-                    $(this).addClass('d-none');
-                }
-            });
-            $('#noToolGroupResults').toggleClass('d-none', hasResults);
-        }, 200);
-    });
-
-    $('#clearToolSearch').on('click', function() { $('#toolSearch').val('').trigger('input'); });
-
-    $('.view-group-tools').on('click', function() {
-        var groupName = $(this).data('group');
-        $('#toolGroupModalLabel').html('<i class="bi bi-tools me-2"></i>' + groupName);
-        $('#toolGroupModalBody').html('<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>');
-        $.ajax({
-            url: '/api/tool-groups/' + encodeURIComponent(groupName),
-            success: function(data) {
-                var html = '<div class="table-responsive"><table class="table table-sm table-hover"><thead><tr><th>Tool</th><th>Description</th><th>Status</th></tr></thead><tbody>';
-                (data.tools || []).forEach(function(t) {
-                    html += '<tr><td><code>' + t.name + '</code></td><td><small>' + (t.description || '').substring(0, 100) + '</small></td>';
-                    html += '<td>' + (t.enabled ? '<span class="badge bg-success">On</span>' : '<span class="badge bg-secondary">Off</span>') + '</td></tr>';
-                });
-                html += '</tbody></table></div>';
-                $('#toolGroupModalBody').html(html);
-            },
-            error: function() { $('#toolGroupModalBody').html('<div class="alert alert-danger">Failed to load</div>'); }
+document.addEventListener('DOMContentLoaded', function() {
+    var hs = document.getElementById('helpSearch');
+    if (hs) hs.addEventListener('input', function() {
+        var q = this.value.toLowerCase();
+        document.querySelectorAll('#helpCards .col-md-4').forEach(function(el) {
+            el.style.display = (!q || el.textContent.toLowerCase().includes(q)) ? '' : 'none';
         });
-    });
-
-    $('a[href^="#"]').on('click', function(e) {
-        var target = $($(this).attr('href'));
-        if (target.length) { e.preventDefault(); $('html, body').animate({ scrollTop: target.offset().top - 80 }, 500); }
     });
 });
 </script>

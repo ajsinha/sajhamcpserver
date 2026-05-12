@@ -171,6 +171,15 @@ class SajhaMCPServerWebApp:
                 'message': 'The requested page does not exist',
             }, status_code=404)
 
+        @app.exception_handler(401)
+        async def unauthorized(request: Request, exc):
+            # API requests get JSON 401; browser requests redirect to landing page
+            if request.url.path.startswith('/api/') or request.url.path.startswith('/mcp'):
+                from fastapi.responses import JSONResponse
+                return JSONResponse({'error': 'Authentication required'}, status_code=401)
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url='/', status_code=302)
+
         @app.exception_handler(403)
         async def forbidden(request: Request, exc):
             return render(request, 'common/error.html', {
@@ -277,7 +286,7 @@ class SajhaMCPServerWebApp:
                 if isinstance(value, str):
                     value = json.loads(value)
                 return json.dumps(value, indent=2, default=str)
-            except Exception:
+            except Exception as e:
                 return str(value)
 
         templates.env.filters['dt'] = dt_filter
@@ -301,7 +310,7 @@ class SajhaMCPServerWebApp:
                 pc._properties.update(_CFG)  # Inject flattened YAML values
             logger.info(f'PropertiesConfigurator loaded with {len(_CFG)} values from YAML config')
         except Exception as e:
-            logger.warning(f'PropertiesConfigurator init failed: {e}')
+            logger.warning(f'PropertiesConfigurator init failed: {e}', exc_info=True)
 
         from sajha.tools.tools_registry import get_tools_registry
         from sajha.core.prompts_registry import get_prompts_registry
@@ -437,13 +446,13 @@ class SajhaMCPServerWebApp:
                     else:
                         logger.info('  Tool Resolver: initialized (index will build when embedding provider is configured)')
                 except Exception as e:
-                    logger.warning(f'  Tool Resolver: skipped ({e})')
+                    logger.warning(f'  Tool Resolver: skipped ({e})', exc_info=True)
             else:
                 logger.info('  LLM Gateway: no providers configured (set API keys in Admin > AI)')
         except ImportError:
             logger.info('  LLM Gateway: AI packages not installed (pip install anthropic openai)')
         except Exception as e:
-            logger.warning(f'  LLM Gateway: initialization failed ({e})')
+            logger.warning(f'  LLM Gateway: initialization failed ({e})', exc_info=True)
 
         # 5. Template globals
         self._register_template_globals()
@@ -461,7 +470,8 @@ class SajhaMCPServerWebApp:
             gw = get_gateway()
             if gw:
                 logger.info(f'  AI Gateway: {len(gw._providers)} providers, default={gw.config.default_provider}/{gw.config.default_model}')
-        except:
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=True)
             pass
         logger.info(f'  WebSocket: ws://{s.server_host}:{s.server_port}/mcp/ws')
         logger.info('=' * 70)

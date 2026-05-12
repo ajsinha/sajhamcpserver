@@ -178,7 +178,8 @@ class PeoplesBankOfChinaBaseTool(BaseMCPTool):
                                     'date': obs.get('date'),
                                     'value': float(value)
                                 })
-                            except ValueError:
+                            except ValueError as e:
+                                logger.debug(f"Handled: {e}")
                                 pass
                     
                     if recent_periods:

@@ -237,13 +237,13 @@ class BaseIRWebScraper(ABC):
                 return content
                 
         except urllib.error.HTTPError as e:
-            self.logger.error(f"HTTP Error fetching {url}: {e.code}")
+            self.logger.error(f"HTTP Error fetching {url}: {e.code}", exc_info=True)
             raise ValueError(f"Failed to fetch page: HTTP {e.code}")
         except urllib.error.URLError as e:
-            self.logger.error(f"URL Error fetching {url}: {e.reason}")
+            self.logger.error(f"URL Error fetching {url}: {e.reason}", exc_info=True)
             raise ValueError(f"Failed to fetch page: {e.reason}")
         except Exception as e:
-            self.logger.error(f"Error fetching {url}: {e}")
+            self.logger.error(f"Error fetching {url}: {e}", exc_info=True)
             raise ValueError(f"Failed to fetch page: {str(e)}")
     
     def extract_links(self, html_content: str, base_url: str = None) -> List[Dict]:
@@ -260,8 +260,8 @@ class BaseIRWebScraper(ABC):
         parser = LinkExtractor()
         try:
             parser.feed(html_content)
-        except:
-            self.logger.warning("Error parsing HTML content")
+        except Exception as e:
+            self.logger.warning("Error parsing HTML content", exc_info=True)
             return []
         
         links = []

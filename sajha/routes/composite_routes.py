@@ -41,7 +41,9 @@ async def api_get(name: str, auth: AuthContext = Depends(require_auth), db: Sess
                 if tool:
                     result['input_schema'] = tool.get_input_schema()
                     result['output_schema'] = tool.get_output_schema()
-    except: pass
+    except Exception as e:
+        logger.warning(f"Error handled: {e}", exc_info=True)
+        pass
     return JSONResponse(result)
 
 
@@ -85,7 +87,9 @@ async def api_delete(name: str, auth: AuthContext = Depends(require_admin), db: 
         try:
             from sajha.app import tools_registry
             if tools_registry: tools_registry.unregister_tool(name)
-        except: pass
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
+            pass
         return JSONResponse({'success': True})
     return JSONResponse({'error': 'Not found'}, status_code=404)
 
@@ -115,7 +119,9 @@ def _get_engine():
     try:
         from sajha.tools.composite_tool import _engine
         return _engine
-    except: return None
+    except Exception as e:
+        logger.warning(f"Error handled: {e}", exc_info=True)
+        return None
 
 
 def _rebuild_composite(db, name: str):
@@ -126,7 +132,7 @@ def _rebuild_composite(db, name: str):
         engine = CompositeToolEngine(tools_registry)
         engine.load_from_db(db)
     except Exception as e:
-        logger.warning(f"Failed to rebuild composite {name}: {e}")
+        logger.warning(f"Failed to rebuild composite {name}: {e}", exc_info=True)
 
 
 # ── Web UI Page ──────────────────────────────────────────────

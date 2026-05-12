@@ -2,7 +2,7 @@
   "name": "fmp_stock_news",
   "implementation": "sajha.tools.impl.fmp_tools.FMPStockNewsTool",
   "description": "Get latest stock market news from FMP \u2014 headlines, summaries, sources, sentiment for specific stocks or the broader market",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

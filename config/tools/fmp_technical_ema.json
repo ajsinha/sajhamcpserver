@@ -2,7 +2,7 @@
   "name": "fmp_technical_ema",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
   "description": "Get Exponential Moving Average from FMP technical indicator for a stock",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -229,7 +229,7 @@ class WBGetCountriesTool(WorldBankBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to get countries: {e}")
+            self.logger.error(f"Failed to get countries: {e}", exc_info=True)
             raise
 
 
@@ -341,7 +341,7 @@ class WBGetIndicatorsTool(WorldBankBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to get indicators: {e}")
+            self.logger.error(f"Failed to get indicators: {e}", exc_info=True)
             raise
 
 
@@ -474,7 +474,7 @@ class WBGetCountryDataTool(WorldBankBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to get country data: {e}")
+            self.logger.error(f"Failed to get country data: {e}", exc_info=True)
             raise
 
 
@@ -631,7 +631,7 @@ class WBGetIndicatorDataTool(WorldBankBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to get indicator data: {e}")
+            self.logger.error(f"Failed to get indicator data: {e}", exc_info=True)
             raise
 """
 World Bank MCP Tool Implementation - Part 2 (Remaining Tools)
@@ -765,7 +765,7 @@ class WBSearchIndicatorsTool(WorldBankBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to search indicators: {e}")
+            self.logger.error(f"Failed to search indicators: {e}", exc_info=True)
             raise
 
 
@@ -916,7 +916,7 @@ class WBCompareCountriesTool(WorldBankBaseTool):
                     })
                     
                 except Exception as e:
-                    self.logger.warning(f"Failed to get data for {country_code}: {e}")
+                    self.logger.warning(f"Failed to get data for {country_code}: {e}", exc_info=True)
                     countries_data.append({
                         'country': {
                             'id': country_code,
@@ -969,7 +969,7 @@ class WBCompareCountriesTool(WorldBankBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to compare countries: {e}")
+            self.logger.error(f"Failed to compare countries: {e}", exc_info=True)
             raise
 
 
@@ -1054,7 +1054,7 @@ class WBGetIncomeLevelsTool(WorldBankBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to get income levels: {e}")
+            self.logger.error(f"Failed to get income levels: {e}", exc_info=True)
             raise
 
 
@@ -1139,7 +1139,7 @@ class WBGetLendingTypesTool(WorldBankBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to get lending types: {e}")
+            self.logger.error(f"Failed to get lending types: {e}", exc_info=True)
             raise
 
 
@@ -1229,7 +1229,7 @@ class WBGetRegionsTool(WorldBankBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to get regions: {e}")
+            self.logger.error(f"Failed to get regions: {e}", exc_info=True)
             raise
 
 
@@ -1369,7 +1369,7 @@ class WBGetTopicIndicatorsTool(WorldBankBaseTool):
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to get topic indicators: {e}")
+            self.logger.error(f"Failed to get topic indicators: {e}", exc_info=True)
             raise
 
 

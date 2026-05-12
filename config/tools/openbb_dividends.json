@@ -2,7 +2,7 @@
   "name": "openbb_dividends",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBDividendsTool",
   "description": "Get dividend history via OpenBB \u2014 ex-date, payment date, amount, frequency for any stock",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

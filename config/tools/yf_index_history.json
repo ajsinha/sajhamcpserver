@@ -2,7 +2,7 @@
   "name": "yf_index_history",
   "implementation": "sajha.tools.impl.yfinance_tools.YFIndexHistoryTool",
   "description": "Get market index history from Yahoo Finance \u2014 S&P 500, NASDAQ, Dow Jones, Russell",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

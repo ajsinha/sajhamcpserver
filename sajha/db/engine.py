@@ -59,14 +59,15 @@ def init_db(settings) -> None:
                 import psycopg2  # noqa: F401
                 _driver_available = True
             except ImportError:
-                logger.warning('psycopg2 not installed, trying psycopg (v3)...')
+                logger.warning('psycopg2 not installed, trying psycopg (v3)...', exc_info=True)
                 driver = 'psycopg'
 
         if driver == 'psycopg' and not _driver_available:
             try:
                 import psycopg  # noqa: F401
                 _driver_available = True
-            except ImportError:
+            except ImportError as e:
+                logger.debug(f"Handled: {e}")
                 pass
 
         if not _driver_available:

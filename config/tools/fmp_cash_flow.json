@@ -2,7 +2,7 @@
   "name": "fmp_cash_flow",
   "implementation": "sajha.tools.impl.fmp_tools.FMPCashFlowTool",
   "description": "Get cash flow statement from FMP \u2014 operating, investing, and financing cash flows, free cash flow, capex, dividends paid",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "fred_prime_rate",
   "implementation": "sajha.tools.impl.fred_tools.FREDPrimeRateTool",
   "description": "Get US Bank Prime Loan Rate from FRED",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

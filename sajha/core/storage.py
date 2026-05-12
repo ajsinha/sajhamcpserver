@@ -157,7 +157,7 @@ class S3StorageBackend(StorageBackend):
           backend: s3
           s3:
             bucket: sajha-config-bucket
-            prefix: v4.0.0/
+            prefix: v4.5.0/
             region: us-east-1
             cache_dir: /tmp/sajha-cache
             sync_interval: 60
@@ -238,7 +238,8 @@ class S3StorageBackend(StorageBackend):
         try:
             self._s3.head_object(Bucket=self.bucket, Key=self._s3_key(path))
             return True
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
             return False
 
     def delete(self, path: str) -> bool:
@@ -248,7 +249,8 @@ class S3StorageBackend(StorageBackend):
             if cp.exists():
                 cp.unlink()
             return True
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
             return False
 
     def get_local_path(self, path: str) -> Path:
@@ -264,7 +266,7 @@ class S3StorageBackend(StorageBackend):
         try:
             response = self._s3.head_object(Bucket=self.bucket, Key=self._s3_key(path))
             return response['LastModified'].timestamp()
-        except Exception:
+        except Exception as e:
             return 0.0
 
     def _write_cache(self, path: str, data: bytes) -> None:
@@ -285,7 +287,7 @@ class S3StorageBackend(StorageBackend):
                 self.read_bytes(f)  # reads from S3, writes to cache
                 count += 1
             except Exception as e:
-                logger.warning(f"Failed to sync {f}: {e}")
+                logger.warning(f"Failed to sync {f}: {e}", exc_info=True)
         logger.info(f"S3 sync: {count} files from {prefix}")
         return count
 
@@ -347,7 +349,7 @@ class S3SyncManager:
                         logger.info(f"S3 changes detected in {prefix}: {len(changed)} files")
                         callback()
                 except Exception as e:
-                    logger.error(f"S3 sync error for {prefix}: {e}")
+                    logger.error(f"S3 sync error for {prefix}: {e}", exc_info=True)
 
     def _check_changes(self, prefix: str) -> List[str]:
         """Check for new/modified files under prefix."""

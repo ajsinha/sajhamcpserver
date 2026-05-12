@@ -129,5 +129,5 @@ docker compose up
 
 ---
 
-*SAJHA MCP Server v4.0.0 — AWS CDK Deployment*
+*SAJHA MCP Server v4.5.0 — AWS CDK Deployment*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

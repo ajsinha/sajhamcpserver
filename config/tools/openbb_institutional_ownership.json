@@ -2,7 +2,7 @@
   "name": "openbb_institutional_ownership",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBInstitutionalOwnershipTool",
   "description": "Get institutional ownership via OpenBB \u2014 major fund holders, shares held, changes from SEC 13F filings",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

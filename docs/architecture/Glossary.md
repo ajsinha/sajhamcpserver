@@ -1,6 +1,6 @@
 # SAJHA MCP Server — Glossary
 
-**Version:** 4.0.0 · **Last Updated:** May 2026
+**Version:** 4.5.0 · **Last Updated:** May 2026
 
 ---
 
@@ -110,5 +110,43 @@
 
 ---
 
-*SAJHA MCP Server v4.0.0 — Glossary*
+*SAJHA MCP Server v4.5.0 — Glossary*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*
+
+**ClientPipeline:** Client-side tool composition class in the SDK (`clientsdk/sajhaclient/mcp_client.py`). Chains `add_step()` calls with `$input.` / `$.` param mapping. `execute()` tracks confidence and entropy without server-side composite definitions.
+
+**Confidence Score:** A float 0.0–1.0 indicating a tool's reliability. 1.0 = deterministic (calculators), 0.95 = stable API (FRED), 0.80 = web crawl. Composite results compound scores: sequential multiplies, parallel takes min.
+
+## E
+
+**EntropyGuard:** Pre/post-execution uncertainty tracker (`sajha/core/composition.py`). Records per-step confidence, calculates cumulative Shannon entropy. Can refuse pipelines exceeding `max_entropy_bits`. Supports `begin_parallel()`/`end_parallel()` for weakest-link model.
+
+**Entropy (Shannon):** Information-theoretic measure of uncertainty in bits. `H = -p*log2(p) - (1-p)*log2(1-p)`. A deterministic result has 0 bits. Binary uncertainty (50/50) has 1 bit. Used by `EntropyGuard` to quantify pipeline uncertainty.
+
+## K
+
+**Kleisli Composition:** From category theory — composing functions that return monadic values. In SAJHA: every tool is a Kleisli arrow `Dict → StepResult`. Composition via `bind()`: error short-circuits, traces accumulate, confidence compounds.
+
+## P
+
+**ParamLens:** A lens (view/set pair) for parameter projection (`sajha/core/composition.py`). `view()` extracts child params from parent context using `$.field` / `$input.field` syntax. `set()` merges child result back. Ensures child tools see only mapped fields.
+
+**PipelineResult:** The final output of a composite pipeline. Contains merged tool outputs + `_composition` metadata block with confidence, entropy_bits, trace, guard_passed, steps_executed.
+
+**Plugin:** An extension package in `config/plugins/` with a `plugin.json` manifest. Contains tool configs and optionally Python classes. Flow: `discover()` → `validate()` (checksum) → `load_plugin()` (install deps, register tools).
+
+## S
+
+**StepResult:** The monadic result envelope (`sajha/core/composition.py`). Carries: value, error, trace, duration_ms, confidence, step_name. `pure()` lifts a value (confidence=1.0). `fail()` lifts an error (confidence=0.0). `bind()` chains with short-circuit on error.
+
+## T
+
+**Theme:** One of four visual styles applied via `data-theme` attribute on `<html>`. Light (white, blue accents), Dark (navy glass-morphism), Wall Street (black, amber, Consolas), Ubuntu (aubergine, orange). CSS uses `var(--t-*)` variables, 545 lines total.
+
+**TransportCoalgebra:** Abstract interface for MCP transport clients (`clientsdk/sajhaclient/mcp_client.py`). `step(method, params) → (result, new_state)`. Implementations: `HTTPTransport`, `SSETransport`, `WSTransport`. Enables `bisimilar()` equivalence testing.
+
+## W
+
+**Weakest-Link Model:** The confidence aggregation model for parallel (sibling) composite steps. `confidence = min(step_a, step_b, step_c)` rather than multiplying. Correct because parallel steps are independent — the composite is as reliable as its least reliable component.
+
+**WebSocket Transport:** Full-duplex MCP transport at `/mcp/ws`. Connect with `?token=jwt` or `?api_key=key`. Supports bidirectional messaging — server can push notifications without polling. `WSSession` tracks auth, init state, last activity.

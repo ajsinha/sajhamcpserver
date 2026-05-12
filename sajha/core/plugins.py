@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v4.0.0 — Plugin System
+SAJHA MCP Server v4.5.0 — Plugin System
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Standardized plugin format for tool packs.
@@ -20,7 +20,7 @@ Plugin manifest (plugin.json):
         "version": "1.0.0",
         "author": "Trading Desk",
         "description": "Bloomberg Terminal API tools",
-        "min_sajha_version": "4.0.0",
+        "min_sajha_version": "4.5.0",
         "dependencies": ["requests>=2.28"],
         "tools": ["bloomberg_quote", "bloomberg_news", "bloomberg_portfolio"],
         "config_keys": ["BLOOMBERG_API_KEY"],
@@ -48,7 +48,7 @@ class PluginManifest:
     version: str
     author: str = ''
     description: str = ''
-    min_sajha_version: str = '4.0.0'
+    min_sajha_version: str = '4.5.0'
     dependencies: List[str] = field(default_factory=list)
     tools: List[str] = field(default_factory=list)
     config_keys: List[str] = field(default_factory=list)
@@ -97,7 +97,8 @@ class PluginManager:
         try:
             from sajha.core.config import get_settings
             self.PLUGINS_DIR = get_settings().config_plugins_dir
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
             pass
 
     def discover(self) -> List[PluginManifest]:
@@ -118,7 +119,7 @@ class PluginManager:
                     manifest = PluginManifest(
                         name=data['name'], version=data.get('version', '0.0.0'),
                         author=data.get('author', ''), description=data.get('description', ''),
-                        min_sajha_version=data.get('min_sajha_version', '4.0.0'),
+                        min_sajha_version=data.get('min_sajha_version', '4.5.0'),
                         dependencies=data.get('dependencies', []),
                         tools=data.get('tools', []),
                         config_keys=data.get('config_keys', []),
@@ -128,7 +129,7 @@ class PluginManager:
                     plugins.append(manifest)
                     self._plugins[manifest.name] = manifest
                 except Exception as e:
-                    logger.warning(f"Failed to load plugin manifest {manifest_path}: {e}")
+                    logger.warning(f"Failed to load plugin manifest {manifest_path}: {e}", exc_info=True)
         return plugins
 
     def validate(self, manifest: PluginManifest) -> tuple:
@@ -180,7 +181,7 @@ class PluginManager:
                     'pip', 'install', '-r', req_file,
                     '--break-system-packages', '--quiet'])
             except Exception as e:
-                logger.warning(f"Failed to install plugin deps: {e}")
+                logger.warning(f"Failed to install plugin deps: {e}", exc_info=True)
 
         # Load tool JSON configs
         tools_dir = os.path.join(manifest.path, 'tools')
@@ -195,7 +196,7 @@ class PluginManager:
                     self._registry.load_tool_from_config(tool_name, tool_config)
                     tools_loaded += 1
                 except Exception as e:
-                    logger.warning(f"Failed to load plugin tool {fname}: {e}")
+                    logger.warning(f"Failed to load plugin tool {fname}: {e}", exc_info=True)
 
             elif fname.endswith('.py') and fname != '__init__.py':
                 try:
@@ -213,7 +214,7 @@ class PluginManager:
                             self._registry.register_tool(attr_name.lower(), instance)
                             tools_loaded += 1
                 except Exception as e:
-                    logger.warning(f"Failed to load plugin Python tool {fname}: {e}")
+                    logger.warning(f"Failed to load plugin Python tool {fname}: {e}", exc_info=True)
 
         status = PluginStatus(
             name=name, version=manifest.version, installed=True,
@@ -240,7 +241,8 @@ class PluginManager:
         for tool_name in manifest.tools:
             try:
                 self._registry.unregister_tool(tool_name)
-            except:
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}", exc_info=True)
                 pass
         self._status[name] = PluginStatus(
             name=name, version=manifest.version, installed=True, enabled=False)

@@ -2,7 +2,7 @@
   "name": "av_stock_daily",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVStockDailyTool",
   "description": "Get daily stock prices from Alpha Vantage \u2014 OHLCV time series",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -2,7 +2,7 @@
   "name": "fmp_dcf_valuation",
   "implementation": "sajha.tools.impl.fmp_tools.FMPDCFValuationTool",
   "description": "Get discounted cash flow valuation from FMP \u2014 DCF per share, stock price, and date for intrinsic value analysis",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

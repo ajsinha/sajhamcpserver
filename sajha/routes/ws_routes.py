@@ -98,7 +98,7 @@ async def broadcast_notification(method: str, params: Dict = None):
     for sid, session in _ws_sessions.items():
         try:
             await session.send_notification(method, params)
-        except Exception:
+        except Exception as e:
             dead.append(sid)
     for sid in dead:
         _ws_sessions.pop(sid, None)
@@ -140,7 +140,7 @@ async def mcp_websocket(ws: WebSocket):
         else:
             session.session_data = None
     except Exception as e:
-        logger.warning(f"WS auth failed: {e}")
+        logger.warning(f"WS auth failed: {e}", exc_info=True)
         session.session_data = None
     finally:
         db.close()
@@ -196,7 +196,8 @@ async def mcp_websocket(ws: WebSocket):
         logger.error(f"WebSocket error: {session_id}: {e}", exc_info=True)
         try:
             await ws.close(code=1011, reason=str(e)[:120])
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
             pass
     finally:
         _ws_sessions.pop(session_id, None)

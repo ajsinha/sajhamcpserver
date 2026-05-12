@@ -2,7 +2,7 @@
   "name": "fmp_stock_quote",
   "implementation": "sajha.tools.impl.fmp_tools.FMPStockQuoteTool",
   "description": "Get real-time stock quote from FMP \u2014 current price, change, volume, day high/low, 52-week range, market cap, PE ratio",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

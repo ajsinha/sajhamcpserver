@@ -281,10 +281,10 @@ class GoogleSearchTool(BaseMCPTool):
             elif e.code == 403:
                 raise ValueError("API key invalid or quota exceeded")
             else:
-                self.logger.error(f"Google Search API error: {e}")
+                self.logger.error(f"Google Search API error: {e}", exc_info=True)
                 raise ValueError(f"Search failed: HTTP {e.code}")
         except Exception as e:
-            self.logger.error(f"Google Search error: {e}")
+            self.logger.error(f"Google Search error: {e}", exc_info=True)
             raise ValueError(f"Search failed: {str(e)}")
     
     def _get_demo_results(self, query: str, arguments: Dict) -> Dict:

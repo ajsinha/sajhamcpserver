@@ -69,7 +69,7 @@ class GenericIRScraper(EnhancedBaseIRScraper):
                 self.logger.info(f"Found {len(documents)} documents from IR page")
                 return documents
         except Exception as e:
-            self.logger.warning(f"Error scraping IR page: {e}")
+            self.logger.warning(f"Error scraping IR page: {e}", exc_info=True)
         
         # Fall back to SEC EDGAR if enabled
         if self.use_sec_fallback and self.sec_client and self.company_config.cik:
@@ -79,7 +79,7 @@ class GenericIRScraper(EnhancedBaseIRScraper):
                 if documents:
                     self.logger.info(f"Found {len(documents)} documents from SEC EDGAR")
             except Exception as e:
-                self.logger.error(f"Error fetching from SEC: {e}")
+                self.logger.error(f"Error fetching from SEC: {e}", exc_info=True)
         
         return documents
     
@@ -151,7 +151,7 @@ class GenericIRScraper(EnhancedBaseIRScraper):
                     documents.append(doc)
                     
             except Exception as e:
-                self.logger.warning(f"Error scraping {url}: {e}")
+                self.logger.warning(f"Error scraping {url}: {e}", exc_info=True)
                 continue
         
         # Sort by year and quarter (most recent first)

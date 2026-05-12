@@ -2,7 +2,7 @@
   "name": "cg_exchange_rates",
   "implementation": "sajha.tools.impl.coingecko_tools.CGExchangeRatesTool",
   "description": "Get BTC exchange rates to all currencies from CoinGecko",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v4.0.0 — AWS CDK Stack
+SAJHA MCP Server v4.5.0 — AWS CDK Stack
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Single stack that creates everything needed to run SAJHA on AWS:

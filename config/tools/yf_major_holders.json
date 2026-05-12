@@ -2,7 +2,7 @@
   "name": "yf_major_holders",
   "implementation": "sajha.tools.impl.yfinance_tools.YFMajorHoldersTool",
   "description": "Get major holders breakdown from Yahoo Finance \u2014 insider vs institutional ownership percentages",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

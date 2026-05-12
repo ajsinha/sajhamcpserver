@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v4.0.0 — Multi-Tenancy
+SAJHA MCP Server v4.5.0 — Multi-Tenancy
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Tenant-isolated tool configs, per-tenant API key pools,
@@ -190,7 +190,7 @@ class TenantManager:
             logger.info(f"Loaded {count} tenants from database")
             return count
         except Exception as e:
-            logger.warning(f"Failed to load tenants from DB: {e}")
+            logger.warning(f"Failed to load tenants from DB: {e}", exc_info=True)
             return 0
 
 

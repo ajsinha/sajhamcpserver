@@ -47,10 +47,10 @@ def _to_records(result) -> List[Dict]:
             if hasattr(df[col], 'dt'):
                 df[col] = df[col].astype(str)
         return df.to_dict(orient='records')
-    except Exception:
+    except Exception as e:
         try:
             return result.to_dict() if hasattr(result, 'to_dict') else [{"data": str(result)}]
-        except Exception:
+        except Exception as e:
             return [{"data": str(result)}]
 
 

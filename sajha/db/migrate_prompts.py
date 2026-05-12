@@ -57,7 +57,7 @@ def migrate_prompts_from_json(db: Session, prompts_dir: str = 'config/prompts') 
                         if dao.import_from_json(item):
                             imported += 1
         except Exception as e:
-            logger.warning(f'Failed to import {json_file.name}: {e}')
+            logger.warning(f'Failed to import {json_file.name}: {e}', exc_info=True)
 
     logger.info(f'Prompt migration: {imported} prompts imported from {prompts_dir}')
     return imported

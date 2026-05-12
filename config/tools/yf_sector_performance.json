@@ -2,7 +2,7 @@
   "name": "yf_sector_performance",
   "implementation": "sajha.tools.impl.yfinance_tools.YFSectorPerformanceTool",
   "description": "Get sector ETF performance from Yahoo Finance \u2014 XLK, XLF, XLV, etc.",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

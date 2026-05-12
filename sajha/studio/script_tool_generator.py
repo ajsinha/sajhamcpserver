@@ -436,7 +436,7 @@ class {self._to_class_name(config.tool_name)}(BaseMCPTool):
             }}
             
         except subprocess.TimeoutExpired as e:
-            logger.error(f"Script timeout after {{self.timeout_seconds}}s: {{e}}")
+            logger.error(f"Script timeout after {{self.timeout_seconds}}s: {{e}}", exc_info=True)
             return {{
                 "stdout": "",
                 "stderr": f"Script timed out after {{self.timeout_seconds}} seconds",
@@ -444,7 +444,7 @@ class {self._to_class_name(config.tool_name)}(BaseMCPTool):
                 "success": False
             }}
         except FileNotFoundError as e:
-            logger.error(f"Script not found: {{e}}")
+            logger.error(f"Script not found: {{e}}", exc_info=True)
             return {{
                 "stdout": "",
                 "stderr": f"Script file not found: {{self.script_path}}",
@@ -452,7 +452,7 @@ class {self._to_class_name(config.tool_name)}(BaseMCPTool):
                 "success": False
             }}
         except Exception as e:
-            logger.error(f"Script execution error: {{e}}")
+            logger.error(f"Script execution error: {{e}}", exc_info=True)
             return {{
                 "stdout": "",
                 "stderr": str(e),
@@ -556,7 +556,7 @@ TOOL_CLASS = {self._to_class_name(config.tool_name)}
             }
             
         except Exception as e:
-            logger.error(f"Failed to generate script tool: {e}")
+            logger.error(f"Failed to generate script tool: {e}", exc_info=True)
             return {
                 'success': False,
                 'errors': [str(e)]

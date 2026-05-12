@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v4.0.0 — Tool Versioning & Quality
+SAJHA MCP Server v4.5.0 — Tool Versioning & Quality
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Versioned tools: v1 and v2 run side-by-side.
@@ -47,7 +47,8 @@ class ToolVersion:
             return False
         try:
             return date.fromisoformat(self.sunset_date) < date.today()
-        except:
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=True)
             return False
 
     def to_dict(self) -> Dict:
@@ -171,7 +172,8 @@ class ContractTestRunner:
         try:
             schema = tool.get_input_schema()
             input_valid = bool(schema and 'properties' in schema)
-        except:
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=True)
             input_valid = False
 
         # Execute with sample args
@@ -215,5 +217,6 @@ class ContractTestRunner:
                 elif spec.get('type') == 'integer':
                     args[prop] = 1
             return args
-        except:
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=True)
             return {}

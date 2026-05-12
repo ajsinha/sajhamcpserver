@@ -94,7 +94,7 @@ class ToolsRegistry:
             self._properties_configurator = PropertiesConfigurator()
             self.logger.debug("PropertiesConfigurator initialized for variable substitution")
         except Exception as e:
-            self.logger.warning(f"Could not initialize PropertiesConfigurator: {e}")
+            self.logger.warning(f"Could not initialize PropertiesConfigurator: {e}", exc_info=True)
             self._properties_configurator = None
     
     def _substitute_variables(self, obj: Any) -> Any:
@@ -123,7 +123,8 @@ class ToolsRegistry:
                 if self._properties_configurator:
                     try:
                         value = self._properties_configurator.get(key)
-                    except:
+                    except Exception as e:
+                        logger.error(f"Unexpected error: {e}", exc_info=True)
                         pass
                 
                 # If not found, try environment variable
@@ -161,7 +162,7 @@ class ToolsRegistry:
             try:
                 self.load_tool_from_config(config_file)
             except Exception as e:
-                self.logger.error(f"Error loading tool from {config_file}: {e}")
+                self.logger.error(f"Error loading tool from {config_file}: {e}", exc_info=True)
                 self.tool_errors[config_file.stem] = str(e)
     
     def load_tool_from_config(self, config_file: Path):
@@ -211,7 +212,7 @@ class ToolsRegistry:
                             del self.tool_errors[tool_name]
                             
                     except Exception as e:
-                        self.logger.error(f"Error loading built-in tool {tool_name}: {e}")
+                        self.logger.error(f"Error loading built-in tool {tool_name}: {e}", exc_info=True)
                         self.tool_errors[tool_name] = f"Failed to load: {str(e)}"
                 
                 elif 'implementation' in config:
@@ -233,7 +234,7 @@ class ToolsRegistry:
                             del self.tool_errors[tool_name]
                             
                     except Exception as e:
-                        self.logger.error(f"Error loading custom tool {tool_name}: {e}")
+                        self.logger.error(f"Error loading custom tool {tool_name}: {e}", exc_info=True)
                         self.tool_errors[tool_name] = f"Failed to load: {str(e)}"
                 
                 else:
@@ -242,10 +243,10 @@ class ToolsRegistry:
                     self.tool_errors[tool_name] = "No implementation specified"
                     
             except json.JSONDecodeError as e:
-                self.logger.error(f"Invalid JSON in {config_file}: {e}")
+                self.logger.error(f"Invalid JSON in {config_file}: {e}", exc_info=True)
                 self.tool_errors[config_file.stem] = f"Invalid JSON: {str(e)}"
             except Exception as e:
-                self.logger.error(f"Error loading tool from {config_file}: {e}")
+                self.logger.error(f"Error loading tool from {config_file}: {e}", exc_info=True)
                 self.tool_errors[config_file.stem] = str(e)
     
     def register_tool(self, tool: BaseMCPTool):
@@ -349,7 +350,7 @@ class ToolsRegistry:
                 json.dump(config, f, indent=2)
             self._file_timestamps[str(config_file)] = config_file.stat().st_mtime
         except Exception as e:
-            self.logger.error(f"Error saving tool config for {tool_name}: {e}")
+            self.logger.error(f"Error saving tool config for {tool_name}: {e}", exc_info=True)
     
     def get_tool_metrics(self) -> List[Dict]:
         """
@@ -443,7 +444,7 @@ class ToolsRegistry:
                 self._check_python_modules()
                     
             except Exception as e:
-                self.logger.error(f"Error in file monitoring: {e}")
+                self.logger.error(f"Error in file monitoring: {e}", exc_info=True)
     
     def _check_python_modules(self):
         """Check for changes in tool Python modules and reload if needed"""
@@ -472,7 +473,7 @@ class ToolsRegistry:
                     self._module_timestamps[file_path] = current_mtime
                     
         except Exception as e:
-            self.logger.error(f"Error checking Python modules: {e}")
+            self.logger.error(f"Error checking Python modules: {e}", exc_info=True)
     
     def _reload_module_and_tools(self, module_name: str):
         """Reload a Python module and all tools that depend on it"""
@@ -507,7 +508,7 @@ class ToolsRegistry:
                     self.load_tool_from_config(config_file)
                     
         except Exception as e:
-            self.logger.error(f"Error reloading module {module_name}: {e}")
+            self.logger.error(f"Error reloading module {module_name}: {e}", exc_info=True)
     
     def reload_all_tools(self):
         """Reload all tools from configuration"""

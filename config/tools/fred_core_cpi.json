@@ -2,7 +2,7 @@
   "name": "fred_core_cpi",
   "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
   "description": "Get US Core CPI (excluding food & energy) from FRED (series: CPILFESL)",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

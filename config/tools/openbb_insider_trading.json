@@ -2,7 +2,7 @@
   "name": "openbb_insider_trading",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBInsiderTradingTool",
   "description": "Get insider trading activity via OpenBB \u2014 officer/director buys and sells from SEC Form 4 filings",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

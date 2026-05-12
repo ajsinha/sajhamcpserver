@@ -2,7 +2,7 @@
   "name": "openbb_forex_historical",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBForexHistoricalTool",
   "description": "Get historical forex exchange rates via OpenBB \u2014 any currency pair (EURUSD, GBPJPY, etc.) with daily OHLCV data",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

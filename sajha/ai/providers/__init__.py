@@ -253,4 +253,4 @@ def _auto_register_builtins():
 try:
     _auto_register_builtins()
 except ImportError as e:
-    logger.warning(f"Some built-in LLM providers failed to register: {e}")
+    logger.warning(f"Some built-in LLM providers failed to register: {e}", exc_info=True)

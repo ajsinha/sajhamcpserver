@@ -1568,7 +1568,8 @@ class EDGARCompaniesBySICTool(EDGARBaseTool):
                         
                         if len(companies) >= limit:
                             break
-                except:
+                except Exception as e:
+                    logger.error(f"Unexpected error: {e}", exc_info=True)
                     continue
         
         return {
@@ -2497,7 +2498,7 @@ class EDGARXBRLFramesMultiConceptTool(EDGARBaseTool):
                     'data': data.get('data', [])
                 }
             except Exception as e:
-                self.logger.warning(f"Failed to get concept {concept}: {e}")
+                self.logger.warning(f"Failed to get concept {concept}: {e}", exc_info=True)
                 data_by_concept[concept] = {
                     'error': str(e)
                 }

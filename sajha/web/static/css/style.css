@@ -543,3 +543,7 @@ small, .small { color: inherit; }
 .btn-outline-dark:hover { background: var(--t-dd-hb) !important; }
 .btn-outline-light { color: var(--t-text) !important; border-color: var(--t-card-b) !important; }
 .btn-outline-light:hover { background: var(--t-dd-hb) !important; }
+
+/* Fix tool group card text overflow */
+.tool-group-desc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block; }
+.tool-group-card .card-body { overflow: hidden; }

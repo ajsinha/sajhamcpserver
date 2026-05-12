@@ -133,6 +133,7 @@ class SajhaClient:
                     continue
                 raise last_error
             except json.JSONDecodeError:
+                logger.debug("Non-JSON response received", exc_info=True)
                 return {}
 
         raise last_error or SajhaError("Request failed after retries")

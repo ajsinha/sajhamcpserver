@@ -2,7 +2,7 @@
   "name": "yf_actions",
   "implementation": "sajha.tools.impl.yfinance_tools.YFActionsTool",
   "description": "Get all corporate actions from Yahoo Finance \u2014 dividends and splits combined",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

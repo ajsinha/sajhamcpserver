@@ -2,7 +2,7 @@
   "name": "fmp_income_statement",
   "implementation": "sajha.tools.impl.fmp_tools.FMPIncomeStatementTool",
   "description": "Get income statement from FMP \u2014 revenue, cost of revenue, gross profit, operating expenses, EBITDA, net income, EPS",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

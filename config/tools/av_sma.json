@@ -2,7 +2,7 @@
   "name": "av_sma",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVSMATool",
   "description": "Get Simple Moving Average from Alpha Vantage",
-  "version": "4.0.0",
+  "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",

@@ -78,7 +78,8 @@ class OllamaProvider(LLMProvider):
                 )
                 for m in response.get('models', [])
             ]
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
             return []
 
     def health_check(self) -> bool:
@@ -86,5 +87,5 @@ class OllamaProvider(LLMProvider):
             self._client.list()
             return True
         except Exception as e:
-            logger.warning(f"Ollama health check failed: {e}")
+            logger.warning(f"Ollama health check failed: {e}", exc_info=True)
             return False
