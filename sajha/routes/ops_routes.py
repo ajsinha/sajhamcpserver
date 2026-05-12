@@ -67,8 +67,8 @@ async def api_deprecate_tool(tool_name: str, request: Request, auth: AuthContext
 @router.post('/api/contract-test/{tool_name}')
 async def api_test_tool(tool_name: str, request: Request, auth: AuthContext = Depends(require_admin)):
     from sajha.core.tool_versioning import ContractTestRunner
-    from sajha.tools.tools_registry import ToolsRegistry
-    runner = ContractTestRunner(ToolsRegistry.get_instance())
+    from sajha.app import tools_registry
+    runner = ContractTestRunner(tools_registry)
     data = await request.json() if request.headers.get('content-length', '0') != '0' else {}
     result = runner.test_tool(tool_name, data.get('arguments'))
     return JSONResponse(result.to_dict())
@@ -76,8 +76,8 @@ async def api_test_tool(tool_name: str, request: Request, auth: AuthContext = De
 @router.post('/api/contract-test')
 async def api_test_all(auth: AuthContext = Depends(require_admin)):
     from sajha.core.tool_versioning import ContractTestRunner
-    from sajha.tools.tools_registry import ToolsRegistry
-    runner = ContractTestRunner(ToolsRegistry.get_instance())
+    from sajha.app import tools_registry
+    runner = ContractTestRunner(tools_registry)
     results = runner.test_all()
     passed = sum(1 for r in results if r.passed)
     return JSONResponse({

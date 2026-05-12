@@ -33,7 +33,7 @@
                     <label class="form-label fw-bold small text-muted">SEARCH BY NAME OR DESCRIPTION</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" id="searchTools"
+                        <input type="text" class="form-control" id="searchTools" autofocus
                                placeholder="e.g. interest rate, stock quote, GDP, bitcoin...">
                         <button class="btn btn-outline-secondary" type="button" id="clearSearch"
                                 title="Clear search"><i class="bi bi-x-lg"></i></button>
@@ -57,6 +57,10 @@
                         <option value="group_asc">Group A-Z</option>
                     </select>
                 </div>
+            </div>
+            <!-- #10 Category quick-filter chips -->
+            <div class="mb-3" id="categoryChips">
+                <span class="filter-chip active" data-cat="all" onclick="filterCategory(this)">All</span>
             </div>
 
             <!-- Group Badges (clickable) -->
@@ -228,6 +232,23 @@ document.getElementById('sortBy').addEventListener('change', applyFilters);
 document.getElementById('rowsPerPage').addEventListener('change', e => { rowsPerPage = e.target.value==='all'?'all':parseInt(e.target.value); currentPage=1; renderTable(); });
 document.getElementById('clearSearch').addEventListener('click', () => { document.getElementById('searchTools').value=''; applyFilters(); });
 document.addEventListener('DOMContentLoaded', applyFilters);
+
+// #10 Category chips
+var chipGroups = [...new Set(toolsData.map(t => t.group))].sort();
+var chipContainer = document.getElementById('categoryChips');
+if (chipContainer) {
+    chipGroups.forEach(function(g) {
+        var count = toolsData.filter(function(t){return t.group===g}).length;
+        chipContainer.innerHTML += '<span class="filter-chip" data-cat="'+g+'" onclick="filterCategory(this)">'+g+' <small>('+count+')</small></span>';
+    });
+}
+function filterCategory(el) {
+    document.querySelectorAll('.filter-chip').forEach(function(c){c.classList.remove('active')});
+    el.classList.add('active');
+    var cat = el.getAttribute('data-cat');
+    if (cat !== 'all') { gs.value = cat; } else { gs.value = 'all'; }
+    applyFilters();
+}
 
 function setView(mode) {
     const table = document.querySelector('table').parentElement;

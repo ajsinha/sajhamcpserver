@@ -21,6 +21,29 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         </div>
     </div>
 
+    <!-- #12 Help Search -->
+    <div class="row mb-3">
+        <div class="col-md-6 mx-auto">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" id="helpSearch" placeholder="Search help topics..." autofocus>
+            </div>
+        </div>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var hs = document.getElementById('helpSearch');
+        if (hs) hs.addEventListener('input', function() {
+            var q = this.value.toLowerCase();
+            document.querySelectorAll('.card, .row.mb-4').forEach(function(el) {
+                if (el.closest('#helpSearch') || el.closest('.input-group')) return;
+                var match = !q || el.textContent.toLowerCase().includes(q);
+                el.style.display = match ? '' : 'none';
+            });
+        });
+    });
+    </script>
+
     <!-- Quick Navigation -->
     <div class="row mb-4">
         <div class="col-12">

@@ -1,0 +1,18 @@
+<!-- #15 Studio sub-navigation -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <nav class="d-flex flex-wrap gap-2 align-items-center">
+            <span class="text-muted small fw-bold me-2"><i class="bi bi-magic me-1"></i>STUDIO:</span>
+            <a href="{{ url_for('studio_home') }}" class="filter-chip {% if request.path == '/studio' %}active{% endif %}"><i class="bi bi-house me-1"></i>Home</a>
+            <a href="{{ url_for('studio_home') }}#python-creator" class="filter-chip"><i class="bi bi-code-slash me-1"></i>Python</a>
+            <a href="{{ url_for('studio_rest') }}" class="filter-chip {% if 'rest' in request.path %}active{% endif %}"><i class="bi bi-cloud-arrow-up me-1"></i>REST</a>
+            <a href="{{ url_for('studio_dbquery') }}" class="filter-chip {% if 'dbquery' in request.path %}active{% endif %}"><i class="bi bi-database me-1"></i>DB Query</a>
+            <a href="{{ url_for('studio_script') }}" class="filter-chip {% if 'script' in request.path %}active{% endif %}"><i class="bi bi-terminal me-1"></i>Script</a>
+            <a href="{{ url_for('studio_powerbi') }}" class="filter-chip {% if 'powerbi' in request.path and 'dax' not in request.path %}active{% endif %}"><i class="bi bi-bar-chart-fill me-1"></i>PowerBI</a>
+            <a href="{{ url_for('studio_powerbidax') }}" class="filter-chip {% if 'dax' in request.path %}active{% endif %}"><i class="bi bi-braces me-1"></i>DAX</a>
+            <a href="{{ url_for('studio_livelink') }}" class="filter-chip {% if 'livelink' in request.path %}active{% endif %}"><i class="bi bi-folder2-open me-1"></i>LiveLink</a>
+            <a href="{{ url_for('studio_olap') }}" class="filter-chip {% if 'olap' in request.path %}active{% endif %}"><i class="bi bi-graph-up-arrow me-1"></i>OLAP</a>
+            <a href="{{ url_for('composite_builder') }}" class="filter-chip {% if 'composite' in request.path %}active{% endif %}"><i class="bi bi-boxes me-1"></i>Composite</a>
+        </nav>
+    </div>
+</div>

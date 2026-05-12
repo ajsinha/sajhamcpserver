@@ -35,8 +35,8 @@ async def api_get(name: str, auth: AuthContext = Depends(require_auth), db: Sess
         if engine:
             defn = engine.get_definition(name)
             if defn:
-                from sajha.tools.tools_registry import ToolsRegistry
-                reg = ToolsRegistry.get_instance()
+                from sajha.app import tools_registry
+                reg = tools_registry
                 tool = reg.get_tool(name)
                 if tool:
                     result['input_schema'] = tool.get_input_schema()
@@ -83,8 +83,8 @@ async def api_delete(name: str, auth: AuthContext = Depends(require_admin), db: 
     from sajha.db.dao import CompositeToolDAO
     if CompositeToolDAO(db).delete(name):
         try:
-            from sajha.tools.tools_registry import ToolsRegistry
-            ToolsRegistry.get_instance().unregister_tool(name)
+            from sajha.app import tools_registry
+            if tools_registry: tools_registry.unregister_tool(name)
         except: pass
         return JSONResponse({'success': True})
     return JSONResponse({'error': 'Not found'}, status_code=404)
@@ -94,16 +94,15 @@ async def api_delete(name: str, auth: AuthContext = Depends(require_admin), db: 
 async def api_preview_schema(name: str, auth: AuthContext = Depends(require_auth), db: Session = Depends(get_db)):
     """Preview the auto-generated input/output schemas without registering."""
     from sajha.db.dao import CompositeToolDAO
-    from sajha.tools.tools_registry import ToolsRegistry
+    from sajha.app import tools_registry
     from sajha.tools.composite_tool import CompositeTool
     dao = CompositeToolDAO(db)
     rec = dao.get_by_name(name)
     if not rec:
         return JSONResponse({'error': 'Not found'}, status_code=404)
     defn = dao.to_dict(rec)
-    registry = ToolsRegistry.get_instance()
     try:
-        tool = CompositeTool(defn, registry)
+        tool = CompositeTool(defn, tools_registry)
         return JSONResponse({
             'input_schema': tool.get_input_schema(),
             'output_schema': tool.get_output_schema(),
@@ -122,10 +121,9 @@ def _get_engine():
 def _rebuild_composite(db, name: str):
     """Rebuild a single composite tool after create/update."""
     try:
-        from sajha.tools.tools_registry import ToolsRegistry
+        from sajha.app import tools_registry
         from sajha.tools.composite_tool import CompositeToolEngine
-        registry = ToolsRegistry.get_instance()
-        engine = CompositeToolEngine(registry)
+        engine = CompositeToolEngine(tools_registry)
         engine.load_from_db(db)
     except Exception as e:
         logger.warning(f"Failed to rebuild composite {name}: {e}")

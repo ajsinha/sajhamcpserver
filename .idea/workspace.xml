@@ -10,8 +10,27 @@
       <change beforePath="$PROJECT_DIR$/data/sajha.db-shm" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/logs/server.log" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/sajha/routes/composite_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/routes/composite_routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/routes/ops_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/routes/ops_routes.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sajha/web/static/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/static/css/style.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/admin_prompts.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/admin_prompts.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/admin_users.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/admin_users.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_dbquery.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_dbquery.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_home.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_home.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_livelink.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_livelink.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_olap.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_olap.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_powerbi.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_powerbi.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_powerbidax.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_powerbidax.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_rest.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_rest.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_script.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_script.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_sharepoint.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/admin/studio/studio_sharepoint.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/ai/ai_settings.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/ai/ai_settings.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sajha/web/templates/common/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/common/base.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/composite/builder.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/composite/builder.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/dashboard/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/dashboard/dashboard.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/help/help.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/help/help.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/reporting/reports_dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/reporting/reports_dashboard.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/tools/tool_execute.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/tools/tool_execute.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/tools/tools_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/tools/tools_list.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

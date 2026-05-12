@@ -82,7 +82,7 @@
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-muted text-center">No tool usage data yet. Execute some tools to see analytics.</p>
+                    <div class="empty-state"><i class="bi bi-bar-chart-line"></i><p>No tool usage data yet</p><a href="/tools" class="btn btn-primary btn-sm"><i class="bi bi-play-circle me-1"></i>Execute a tool to start tracking</a></div>
                     {% endif %}
                 </div>
             </div>
@@ -110,7 +110,7 @@
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-muted text-center">No user activity data yet.</p>
+                    <div class="empty-state"><i class="bi bi-people"></i><p>No user activity recorded yet</p></div>
                     {% endif %}
                 </div>
             </div>

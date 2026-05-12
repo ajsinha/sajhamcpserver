@@ -315,3 +315,231 @@ textarea.form-control::placeholder { color: var(--t-inp-ph) !important; }
 
 /* Alert variants — ensure readable in dark themes */
 [data-theme="dark"] .alert, [data-theme="wallstreet"] .alert, [data-theme="ubuntu"] .alert { border-width: 1px; }
+
+/* ═══ UX AUDIT — TIER 1: QUICK WINS ═══ */
+
+/* #1 Active nav highlighting */
+.navbar .nav-link.active-page { color: var(--t-link) !important; font-weight: 600; border-bottom: 2px solid var(--t-link); }
+
+/* #2 Button press feedback */
+.btn { transition: all 0.15s ease; }
+.btn:active { transform: scale(0.96) !important; }
+.btn:focus-visible { outline: 2px solid var(--t-link); outline-offset: 2px; }
+
+/* #5 Inline form animations */
+.slide-down { animation: slideDown 0.3s ease-out; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); max-height: 0; } to { opacity: 1; transform: translateY(0); max-height: 2000px; } }
+
+/* #6 Skip-to-content link */
+.skip-link { position: absolute; top: -40px; left: 0; background: var(--t-btn); color: var(--t-btn-t); padding: 8px 16px; z-index: 9999; border-radius: 0 0 var(--radius) 0; transition: top 0.2s; }
+.skip-link:focus { top: 0; }
+
+/* #7 Focus-visible outlines */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--t-link) !important; outline-offset: 2px !important; }
+
+/* #13 Loading skeletons */
+.skeleton { background: linear-gradient(90deg, var(--t-card-hdr) 25%, var(--t-card-b) 50%, var(--t-card-hdr) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius); }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.skeleton-text { height: 14px; margin: 8px 0; width: 80%; }
+.skeleton-title { height: 20px; margin: 10px 0; width: 50%; }
+.skeleton-card { height: 120px; }
+
+/* #3 Empty state styling */
+.empty-state { text-align: center; padding: 3rem 2rem; }
+.empty-state i { font-size: 3rem; color: var(--t-muted); margin-bottom: 1rem; display: block; }
+.empty-state p { color: var(--t-muted); font-size: 0.95rem; margin-bottom: 1.5rem; }
+
+/* ═══ UX AUDIT — TIER 2: MEDIUM EFFORT ═══ */
+
+/* #10 Category filter chips */
+.filter-chip { display: inline-block; padding: 0.3rem 0.8rem; border-radius: 20px; border: 1px solid var(--t-card-b); color: var(--t-muted); font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.15s ease; margin: 0.2rem; }
+.filter-chip:hover, .filter-chip.active { background: var(--t-link); color: var(--t-btn-t); border-color: var(--t-link); }
+
+/* #15 Studio sidebar */
+.studio-nav { list-style: none; padding: 0; }
+.studio-nav li a { display: block; padding: 0.6rem 1rem; border-radius: var(--radius); color: var(--t-text2); text-decoration: none; transition: all 0.15s ease; font-size: 0.9rem; }
+.studio-nav li a:hover { background: var(--t-dd-hb); color: var(--t-link); }
+.studio-nav li a.active { background: var(--t-dd-hb); color: var(--t-link); font-weight: 600; border-left: 3px solid var(--t-link); }
+
+/* #14 Sparkline container */
+.sparkline { display: inline-block; height: 30px; width: 80px; vertical-align: middle; }
+
+/* ═══ UX AUDIT — TIER 3: STRATEGIC ═══ */
+
+/* #22 Keyboard shortcut hint */
+.kbd { display: inline-block; padding: 2px 6px; font-family: monospace; font-size: 0.75rem; background: var(--t-card-hdr); border: 1px solid var(--t-card-b); border-radius: 3px; color: var(--t-muted); }
+
+/* #19 Mobile responsive fixes */
+@media (max-width: 768px) {
+    .welcome-banner, .welcome-bar { padding: 1rem; }
+    .welcome-banner h2, .welcome-bar h2 { font-size: 1.2rem; }
+    .metric-card { padding: 1rem; }
+    .metric-value { font-size: 1.6rem; }
+    .quick-action { padding: 0.5rem 0.75rem; }
+    .navbar-brand { font-size: 0.9rem; }
+}
+@media (max-width: 576px) {
+    .transport-badge { display: none; }
+    .metric-icon { width: 36px; height: 36px; font-size: 1rem; }
+}
+
+/* #20 Custom SAJHA icons */
+.sajha-icon { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -0.15em; fill: none; stroke: currentColor; }
+.sajha-icon-lg { width: 2em; height: 2em; }
+.sajha-icon-xl { width: 3em; height: 3em; }
+
+/* Fix all code textareas to fill width */
+.script-editor, .code-textarea, textarea.form-control {
+    width: 100% !important;
+    resize: vertical;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPREHENSIVE BOOTSTRAP OVERRIDE FOR ALL THEMES
+   Every Bootstrap class that hardcodes colors gets theme-aware values.
+   This block must remain at the END of the file (last wins).
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Pre / Code blocks ── */
+pre, code { color: var(--t-text) !important; }
+pre { background: var(--t-inp) !important; border: 1px solid var(--t-card-b) !important; border-radius: var(--radius) !important; padding: 1rem !important; }
+pre.bg-light { background: var(--t-inp) !important; color: var(--t-text) !important; }
+pre.bg-dark { background: #0a1628 !important; color: #e8ecf2 !important; }
+code { font-size: 0.875em; }
+
+/* ── bg-light / bg-dark / bg-white — remap to theme ── */
+.bg-light { background: var(--t-card-hdr) !important; color: var(--t-text) !important; }
+.bg-white { background: var(--t-card) !important; color: var(--t-text) !important; }
+.bg-dark { background: #0a1628 !important; color: #e8ecf2 !important; }
+
+/* ── text-dark / text-light — remap ── */
+.text-dark { color: var(--t-text) !important; }
+.text-light { color: var(--t-text) !important; }
+.text-white { color: #ffffff !important; }
+
+/* ── Alerts — readable in all themes ── */
+.alert { border-radius: var(--radius) !important; }
+.alert-success { background: rgba(40,167,69,0.15) !important; border-color: rgba(40,167,69,0.3) !important; color: var(--color-success) !important; }
+.alert-danger { background: rgba(220,53,69,0.15) !important; border-color: rgba(220,53,69,0.3) !important; color: var(--color-danger) !important; }
+.alert-warning { background: rgba(255,193,7,0.15) !important; border-color: rgba(255,193,7,0.3) !important; color: #b38600 !important; }
+.alert-info { background: rgba(23,162,184,0.15) !important; border-color: rgba(23,162,184,0.3) !important; color: var(--color-info) !important; }
+.alert-secondary { background: var(--t-card-hdr) !important; border-color: var(--t-card-b) !important; color: var(--t-text) !important; }
+[data-theme="light"] .alert-warning { color: #856404 !important; }
+[data-theme="light"] .alert-success { color: #155724 !important; }
+[data-theme="light"] .alert-danger { color: #721c24 !important; }
+[data-theme="light"] .alert-info { color: #0c5460 !important; }
+
+/* ── Input group addons ── */
+.input-group-text { background: var(--t-card-hdr) !important; border-color: var(--t-inp-b) !important; color: var(--t-muted) !important; }
+
+/* ── List group ── */
+.list-group-item { background: var(--t-card) !important; border-color: var(--t-card-b) !important; color: var(--t-text) !important; }
+.list-group-item-action:hover { background: var(--t-dd-hb) !important; color: var(--t-link) !important; }
+
+/* ── Breadcrumb ── */
+.breadcrumb { background: transparent !important; }
+.breadcrumb-item a { color: var(--t-link) !important; }
+.breadcrumb-item.active { color: var(--t-muted) !important; }
+
+/* ── Modal (if any remain) ── */
+.modal-content { background: var(--t-card) !important; color: var(--t-text) !important; border-color: var(--t-card-b) !important; }
+.modal-header { border-color: var(--t-card-b) !important; }
+.modal-footer { border-color: var(--t-card-b) !important; }
+
+/* ── Pagination ── */
+.page-link { background: var(--t-card) !important; border-color: var(--t-card-b) !important; color: var(--t-link) !important; }
+.page-item.active .page-link { background: var(--t-btn) !important; border-color: var(--t-btn) !important; color: var(--t-btn-t) !important; }
+.page-item.disabled .page-link { background: var(--t-card-hdr) !important; color: var(--t-muted) !important; }
+
+/* ── Progress bar ── */
+.progress { background: var(--t-card-hdr) !important; }
+
+/* ── Border utilities ── */
+.border { border-color: var(--t-card-b) !important; }
+.border-secondary { border-color: var(--t-card-b) !important; }
+
+/* ── Tooltip / Popover ── */
+.tooltip-inner { background: var(--t-dd) !important; color: var(--t-text) !important; }
+.popover { background: var(--t-dd) !important; border-color: var(--t-card-b) !important; }
+.popover-body { color: var(--t-text) !important; }
+
+/* ── Close button ── */
+.btn-close { filter: var(--t-close-filter, none); }
+[data-theme="dark"] .btn-close,
+[data-theme="wallstreet"] .btn-close,
+[data-theme="ubuntu"] .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+
+/* ── Spinner ── */
+.spinner-border { color: var(--t-link) !important; }
+
+/* ── Tab content panes ── */
+.tab-content { color: var(--t-text) !important; }
+
+/* ── HR dividers ── */
+hr { border-color: var(--t-card-b) !important; opacity: 0.5; }
+
+/* ── Small/muted text ── */
+small, .small { color: inherit; }
+.form-check-label { color: var(--t-text) !important; }
+.form-check-input { background-color: var(--t-inp) !important; border-color: var(--t-inp-b) !important; }
+
+/* ── Btn variants (outline) — ensure visibility ── */
+.btn-outline-secondary { color: var(--t-muted) !important; border-color: var(--t-card-b) !important; }
+.btn-outline-secondary:hover { background: var(--t-dd-hb) !important; color: var(--t-text) !important; }
+.btn-outline-success { color: var(--color-success) !important; border-color: var(--color-success) !important; }
+.btn-outline-danger { color: var(--color-danger) !important; border-color: var(--color-danger) !important; }
+.btn-outline-warning { color: #b38600 !important; border-color: #b38600 !important; }
+.btn-outline-info { color: var(--color-info) !important; border-color: var(--color-info) !important; }
+
+/* ── Ensure bg-primary/success/danger/info/warning keep white text ── */
+.bg-primary, .bg-success, .bg-danger, .bg-info, .bg-secondary { color: #ffffff !important; }
+.bg-warning { color: #1e293b !important; }
+.bg-primary *, .bg-success *, .bg-danger *, .bg-info *, .bg-secondary * { color: #ffffff !important; }
+.bg-warning * { color: #1e293b !important; }
+
+/* ── Placeholder text in dark themes ── */
+[data-theme="dark"] ::placeholder,
+[data-theme="wallstreet"] ::placeholder,
+[data-theme="ubuntu"] ::placeholder { color: var(--t-faint) !important; opacity: 1; }
+
+/* ── Selection highlight ── */
+::selection { background: var(--t-link); color: #ffffff; }
+
+/* ── Card text color inheritance for nested Bootstrap elements ── */
+.card .text-muted { color: var(--t-muted) !important; }
+.card small { color: var(--t-muted); }
+.card p { color: var(--t-text); }
+.card strong { color: var(--t-text); }
+.card label { color: var(--t-text); }
+
+/* ── Remaining Bootstrap color classes ── */
+
+/* Text colors — ensure readability on all backgrounds */
+.text-primary { color: var(--t-link) !important; }
+.text-success { color: var(--color-success) !important; }
+.text-danger { color: var(--color-danger) !important; }
+.text-warning { color: #b38600 !important; }
+.text-info { color: var(--color-info) !important; }
+.text-secondary { color: var(--t-muted) !important; }
+[data-theme="light"] .text-warning { color: #856404 !important; }
+
+/* Border colors */
+.border-primary { border-color: var(--t-link) !important; }
+.border-success { border-color: var(--color-success) !important; }
+.border-danger { border-color: var(--color-danger) !important; }
+.border-warning { border-color: #b38600 !important; }
+.border-info { border-color: var(--color-info) !important; }
+
+/* Btn solid variants */
+.btn-success { background: var(--color-success) !important; border-color: var(--color-success) !important; color: #fff !important; }
+.btn-danger { background: var(--color-danger) !important; border-color: var(--color-danger) !important; color: #fff !important; }
+.btn-warning { background: var(--color-warning) !important; border-color: var(--color-warning) !important; color: #1e293b !important; }
+.btn-info { background: var(--color-info) !important; border-color: var(--color-info) !important; color: #fff !important; }
+.btn-secondary { background: var(--t-card-hdr) !important; border-color: var(--t-card-b) !important; color: var(--t-text) !important; }
+.btn-light { background: var(--t-card-hdr) !important; border-color: var(--t-card-b) !important; color: var(--t-text) !important; }
+
+/* Btn outline remaining */
+.btn-outline-dark { color: var(--t-text) !important; border-color: var(--t-card-b) !important; }
+.btn-outline-dark:hover { background: var(--t-dd-hb) !important; }
+.btn-outline-light { color: var(--t-text) !important; border-color: var(--t-card-b) !important; }
+.btn-outline-light:hover { background: var(--t-dd-hb) !important; }

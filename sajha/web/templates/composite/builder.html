@@ -1,6 +1,7 @@
 {% extends "common/base.html" %}
 {% block title %}Composite Tool Builder — {{ app_name }}{% endblock %}
 {% block content %}
+{% include "admin/studio/_studio_nav.html" %}
 <div class="container-fluid mt-4">
     <div class="row mb-4">
         <div class="col-12">
@@ -23,7 +24,7 @@
                     <span><i class="bi bi-list-ul me-2"></i>Composite Tools</span>
                     <button class="btn btn-sm btn-outline-light" onclick="newComposite()"><i class="bi bi-plus-lg"></i></button>
                 </div>
-                <div class="card-body p-0" id="toolList"><div class="text-center py-4 text-muted">Loading...</div></div>
+                <div class="card-body p-0" id="toolList"><div class="text-center py-4 text-muted"><div class="skeleton skeleton-card mb-2"></div><small>Loading composites...</small></div></div>
             </div>
         </div>
         <!-- Right: Builder form -->
@@ -61,6 +62,14 @@
                         <button class="btn btn-sm btn-outline-success" onclick="addStep()"><i class="bi bi-plus-lg me-1"></i>Add Step</button>
                     </div>
                     <div id="stepsContainer"></div>
+
+                    <!-- #17 Visual Flow Diagram -->
+                    <div class="card mt-3" id="flowDiagram">
+                        <div class="card-header py-2"><i class="bi bi-diagram-3 me-2"></i>Flow Diagram</div>
+                        <div class="card-body p-2">
+                            <svg id="flowSvg" width="100%" height="120" style="min-height:80px"></svg>
+                        </div>
+                    </div>
                     <hr>
                     <div class="d-flex gap-2">
                         <button class="btn btn-primary" onclick="saveComposite()"><i class="bi bi-check-lg me-1"></i>Save</button>
@@ -96,6 +105,7 @@ function updateUI() {
     $('.exec-mode').each(function() {
         $(this).val(arr === 'parent_child' ? 'for_each_record' : 'parallel');
     });
+    updateFlowDiagram();
 }
 
 function addStep() {
@@ -114,6 +124,7 @@ function addStep() {
     html += '</div>';
     $('#stepsContainer').append(html);
     updateUI();
+    enableDragDrop();
 }
 
 function getSteps() {
@@ -185,9 +196,11 @@ function loadList() {
             html += '<small class="text-muted">Master: ' + t.master_tool + ' + ' + t.steps.length + ' steps</small>';
             html += '</a>';
         });
-        if (!d.tools || !d.tools.length) html += '<div class="p-3 text-center text-muted">No composite tools yet</div>';
+        if (!d.tools || !d.tools.length) html += '<div class="empty-state py-3"><i class="bi bi-boxes" style="font-size:2rem"></i><p class="mb-2">No composite tools yet</p><small class="text-muted">Use the form to create one →</small></div>';
         html += '</div>';
         $('#toolList').html(html);
+    }).fail(function(xhr) {
+        $('#toolList').html('<div class="p-3 text-center text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Failed to load: ' + (xhr.responseJSON?.error || xhr.statusText) + '</div>');
     });
 }
 
@@ -233,6 +246,120 @@ function newComposite() {
     $('#btnDelete').hide();
     $('#schemaCard').hide();
     updateUI();
+    updateFlowDiagram();
+}
+
+// #17 Visual Flow Diagram — renders live SVG as steps change
+function updateFlowDiagram() {
+    var svg = document.getElementById('flowSvg');
+    if (!svg) return;
+    var master = $('#ctMaster').val() || 'master';
+    var arr = $('#ctArrangement').val() || 'sibling';
+    var steps = [];
+    $('#stepsContainer .step-row').each(function() {
+        steps.push({
+            tool: $(this).find('.step-tool').val() || 'step',
+            key: $(this).find('.step-key').val() || 'output'
+        });
+    });
+
+    var isSibling = arr === 'sibling';
+    var boxW = 120, boxH = 36, gap = 30, arrowLen = 40, pad = 20;
+    var n = steps.length;
+    var totalW, totalH;
+
+    var html = '';
+    // Colors
+    var masterFill = 'var(--t-link, #0079C1)';
+    var stepFill = 'var(--color-success, #28A745)';
+    var textFill = '#ffffff';
+    var arrowFill = 'var(--t-muted, #8892a4)';
+    var labelFill = 'var(--t-text, #1e293b)';
+
+    if (isSibling) {
+        // Horizontal: master → [step1, step2, step3] in parallel
+        totalW = pad + boxW + arrowLen + (n > 0 ? (boxW + gap) * n - gap : 0) + pad;
+        totalH = Math.max(80, (boxH + 10) * Math.max(n, 1) + 20);
+        var mx = pad, my = totalH / 2 - boxH / 2;
+        // Master box
+        html += '<rect x="'+mx+'" y="'+my+'" width="'+boxW+'" height="'+boxH+'" rx="6" fill="'+masterFill+'"/>';
+        html += '<text x="'+(mx+boxW/2)+'" y="'+(my+boxH/2+4)+'" text-anchor="middle" fill="'+textFill+'" font-size="10" font-weight="bold">'+truncate(master,14)+'</text>';
+
+        if (n > 0) {
+            var sx = mx + boxW + arrowLen;
+            var stepStartY = (totalH - (n * (boxH + 10) - 10)) / 2;
+            for (var i = 0; i < n; i++) {
+                var sy = stepStartY + i * (boxH + 10);
+                // Arrow from master to step
+                html += '<line x1="'+(mx+boxW)+'" y1="'+(my+boxH/2)+'" x2="'+sx+'" y2="'+(sy+boxH/2)+'" stroke="'+arrowFill+'" stroke-width="1.5" marker-end="url(#arrowhead)"/>';
+                // Step box
+                html += '<rect x="'+sx+'" y="'+sy+'" width="'+boxW+'" height="'+boxH+'" rx="6" fill="'+stepFill+'"/>';
+                html += '<text x="'+(sx+boxW/2)+'" y="'+(sy+boxH/2+4)+'" text-anchor="middle" fill="'+textFill+'" font-size="9">'+truncate(steps[i].tool,14)+'</text>';
+                // Key label
+                html += '<text x="'+(sx+boxW+6)+'" y="'+(sy+boxH/2+3)+'" fill="'+labelFill+'" font-size="8" opacity="0.6">→ '+truncate(steps[i].key,10)+'</text>';
+            }
+            totalW = sx + boxW + 80;
+        }
+    } else {
+        // Vertical chain: master → step1 → step2 → step3
+        totalW = pad + boxW + 80;
+        totalH = pad + boxH + (n > 0 ? (arrowLen + boxH) * n : 0) + pad;
+        var cx = totalW / 2 - boxW / 2;
+        var cy = pad;
+        // Master box
+        html += '<rect x="'+cx+'" y="'+cy+'" width="'+boxW+'" height="'+boxH+'" rx="6" fill="'+masterFill+'"/>';
+        html += '<text x="'+(cx+boxW/2)+'" y="'+(cy+boxH/2+4)+'" text-anchor="middle" fill="'+textFill+'" font-size="10" font-weight="bold">'+truncate(master,14)+'</text>';
+        html += '<text x="'+(cx+boxW+8)+'" y="'+(cy+boxH/2+3)+'" fill="'+labelFill+'" font-size="8" opacity="0.6">for each →</text>';
+
+        for (var i = 0; i < n; i++) {
+            var ny = cy + boxH + arrowLen + i * (boxH + arrowLen);
+            // Arrow down
+            html += '<line x1="'+(cx+boxW/2)+'" y1="'+(cy+boxH + i*(boxH+arrowLen))+'" x2="'+(cx+boxW/2)+'" y2="'+ny+'" stroke="'+arrowFill+'" stroke-width="1.5" marker-end="url(#arrowhead)"/>';
+            // Step box
+            html += '<rect x="'+cx+'" y="'+ny+'" width="'+boxW+'" height="'+boxH+'" rx="6" fill="'+stepFill+'"/>';
+            html += '<text x="'+(cx+boxW/2)+'" y="'+(ny+boxH/2+4)+'" text-anchor="middle" fill="'+textFill+'" font-size="9">'+truncate(steps[i].tool,14)+'</text>';
+            html += '<text x="'+(cx+boxW+8)+'" y="'+(ny+boxH/2+3)+'" fill="'+labelFill+'" font-size="8" opacity="0.6">→ '+truncate(steps[i].key,10)+'</text>';
+        }
+        totalW = Math.max(totalW, 280);
+    }
+
+    // Arrowhead marker
+    var marker = '<defs><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="'+arrowFill+'"/></marker></defs>';
+    svg.setAttribute('viewBox', '0 0 ' + totalW + ' ' + totalH);
+    svg.setAttribute('height', Math.max(80, totalH));
+    svg.innerHTML = marker + html;
+}
+
+function truncate(s, n) { return s && s.length > n ? s.substring(0, n-1) + '…' : (s || ''); }
+
+// Update diagram when steps change
+$(document).on('change', '.step-tool, .step-key, #ctMaster, #ctArrangement', updateFlowDiagram);
+$(document).on('click', '.step-row .btn-outline-danger', function() { setTimeout(updateFlowDiagram, 100); });
+
+// Drag-and-drop reorder for steps
+function enableDragDrop() {
+    var container = document.getElementById('stepsContainer');
+    if (!container) return;
+    var rows = container.querySelectorAll('.step-row');
+    rows.forEach(function(row) {
+        row.setAttribute('draggable', 'true');
+        row.style.cursor = 'grab';
+        row.addEventListener('dragstart', function(e) { e.dataTransfer.setData('text/plain', ''); this.classList.add('opacity-50'); window._dragEl = this; });
+        row.addEventListener('dragend', function() { this.classList.remove('opacity-50'); });
+        row.addEventListener('dragover', function(e) { e.preventDefault(); this.style.borderTop = '3px solid var(--t-link)'; });
+        row.addEventListener('dragleave', function() { this.style.borderTop = ''; });
+        row.addEventListener('drop', function(e) {
+            e.preventDefault(); this.style.borderTop = '';
+            if (window._dragEl && window._dragEl !== this) {
+                container.insertBefore(window._dragEl, this);
+                // Renumber steps
+                container.querySelectorAll('.step-row').forEach(function(r, i) {
+                    r.querySelector('strong').textContent = 'Step ' + (i + 1);
+                });
+                updateFlowDiagram();
+            }
+        });
+    });
 }
 </script>
 {% endblock %}

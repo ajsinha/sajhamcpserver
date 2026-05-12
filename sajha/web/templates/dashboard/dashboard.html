@@ -21,6 +21,26 @@
 {% endblock %}
 {% block content %}
 <div class="container-fluid">
+    <!-- #11 Onboarding wizard (shows only until dismissed) -->
+    <div id="onboarding" class="card mb-3" style="display:none; border-left: 4px solid var(--sajha-blue);">
+        <div class="card-body py-3">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 class="mb-2"><i class="bi bi-rocket-takeoff me-2"></i>Get Started with SAJHA</h5>
+                    <div class="d-flex flex-wrap gap-3">
+                        <a href="/tools" class="text-decoration-none" id="ob1"><span class="badge bg-primary rounded-pill me-1">1</span> Browse 497 tools</a>
+                        <a href="/studio" class="text-decoration-none" id="ob2"><span class="badge bg-success rounded-pill me-1">2</span> Create your first tool</a>
+                        <a href="/ai/settings" class="text-decoration-none" id="ob3"><span class="badge bg-info rounded-pill me-1">3</span> Connect an LLM provider</a>
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" onclick="dismissOnboarding()" title="Dismiss" aria-label="Dismiss"><i class="bi bi-x-lg"></i></button>
+            </div>
+        </div>
+    </div>
+    <script>
+    if(!localStorage.getItem('sajha-onboarding-done')){document.getElementById('onboarding').style.display='block';}
+    function dismissOnboarding(){document.getElementById('onboarding').style.display='none';localStorage.setItem('sajha-onboarding-done','1');}
+    </script>
     <!-- Welcome Bar -->
     <div class="welcome-bar">
         <div>
@@ -72,10 +92,10 @@
             <div class="card h-100">
                 <div class="card-header card-header-primary"><i class="bi bi-lightning me-2"></i>Quick Actions</div>
                 <div class="card-body d-flex flex-column gap-2">
-                    <a href="/tools" class="quick-action"><i class="bi bi-search text-primary"></i><div><strong>Browse Tools</strong><br><small class="text-muted">Search and test {{ tools_count }} tools</small></div></a>
-                    <a href="/studio" class="quick-action"><i class="bi bi-magic text-purple" style="color:#8a2be2"></i><div><strong>MCP Studio</strong><br><small class="text-muted">Create new tools visually</small></div></a>
-                    <a href="/composite/builder" class="quick-action"><i class="bi bi-boxes text-warning"></i><div><strong>Composite Builder</strong><br><small class="text-muted">Chain tools together</small></div></a>
-                    <a href="/ai/settings" class="quick-action"><i class="bi bi-cpu text-info"></i><div><strong>AI Settings</strong><br><small class="text-muted">LLM providers and models</small></div></a>
+                    <a href="/tools" class="quick-action"><svg class="sajha-icon" style="color:var(--sajha-blue)"><use href="#icon-tool"/></svg><div><strong>Browse Tools</strong><br><small class="text-muted">Search and test {{ tools_count }} tools</small></div></a>
+                    <a href="/studio" class="quick-action"><svg class="sajha-icon" style="color:#8a2be2"><use href="#icon-mcp"/></svg><div><strong>MCP Studio</strong><br><small class="text-muted">Create new tools visually</small></div></a>
+                    <a href="/composite/builder" class="quick-action"><svg class="sajha-icon" style="color:var(--color-warning)"><use href="#icon-composite"/></svg><div><strong>Composite Builder</strong><br><small class="text-muted">Chain tools together</small></div></a>
+                    <a href="/ai/settings" class="quick-action"><svg class="sajha-icon" style="color:var(--color-info)"><use href="#icon-provider"/></svg><div><strong>AI Settings</strong><br><small class="text-muted">LLM providers and models</small></div></a>
                     <a href="/reports" class="quick-action"><i class="bi bi-bar-chart text-success"></i><div><strong>Reports</strong><br><small class="text-muted">Usage analytics and audit</small></div></a>
                     {% if is_admin %}
                     <a href="/admin/users" class="quick-action"><i class="bi bi-shield-lock text-danger"></i><div><strong>Admin Panel</strong><br><small class="text-muted">Users, roles, API keys</small></div></a>

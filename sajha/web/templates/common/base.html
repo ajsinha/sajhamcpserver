@@ -31,11 +31,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- #6 Skip-to-content link (A11y) -->
+    <a href="#main-content" class="skip-link">Skip to content</a>
+    {% include "common/_icons.html" ignore missing %}
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
-                <i class="bi bi-server"></i> SAJHA MCP Server
+            <a class="navbar-brand" style="display:flex;align-items:center;gap:6px" href="{{ url_for('dashboard') }}">
+                <svg class="sajha-icon" style="width:22px;height:22px"><use href="#icon-sajha"/></svg> SAJHA MCP Server
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -172,7 +175,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     </li>
                     <!-- Theme Selector -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" title="Theme">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" title="Theme" aria-label="Change theme">
                             <i class="bi bi-palette"></i>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
@@ -208,7 +211,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     </nav>
     
     <!-- Main Content -->
-    <main class="container-fluid py-4">
+    <main class="container-fluid py-4" id="main-content">
         {% block content %}{% endblock %}
     </main>
     
@@ -233,21 +236,63 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     
-    <!-- Theme Script -->
+    <!-- Theme + UX Scripts -->
     <script>
-        // Theme switcher — simple, no IIFE, works in all browsers
+        // Theme switcher
         function sajhaSetTheme(t) {
             document.documentElement.setAttribute('data-theme', t);
             localStorage.setItem('sajha-theme', t);
         }
-        // Apply saved theme immediately
         sajhaSetTheme(localStorage.getItem('sajha-theme') || 'light');
-        // Attach click handlers after DOM ready
+
         document.addEventListener('DOMContentLoaded', function() {
+            // Theme picker
             document.querySelectorAll('[data-theme-pick]').forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     sajhaSetTheme(this.getAttribute('data-theme-pick'));
                 });
+            });
+
+            // #1 Active nav highlighting
+            var path = window.location.pathname;
+            document.querySelectorAll('.navbar .nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                if (href && href !== '#' && path.startsWith(href) && href !== '/') {
+                    link.classList.add('active-page');
+                } else if (href === '/' && path === '/dashboard') {
+                    link.classList.add('active-page');
+                }
+            });
+            // Also highlight parent dropdown toggle
+            document.querySelectorAll('.dropdown-item').forEach(function(item) {
+                var href = item.getAttribute('href');
+                if (href && path.startsWith(href) && href !== '#') {
+                    var toggle = item.closest('.dropdown').querySelector('.dropdown-toggle');
+                    if (toggle) toggle.classList.add('active-page');
+                }
+            });
+
+            // #22 Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+                if (e.key === '/' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); var s=document.querySelector('[data-role="table-search"]'); if(s)s.focus(); }
+                if (e.key === '?' && e.shiftKey) { window.location.href='/help'; }
+            });
+
+            // #5 Slide-down animation for dynamically shown forms
+            var observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(m) {
+                    if (m.type === 'attributes' && m.attributeName === 'style') {
+                        var el = m.target;
+                        if (el.style.display !== 'none' && el.classList.contains('card') && !el.classList.contains('slide-down')) {
+                            el.classList.add('slide-down');
+                            setTimeout(function() { el.classList.remove('slide-down'); }, 400);
+                        }
+                    }
+                });
+            });
+            document.querySelectorAll('#addProviderForm, #editProviderForm, #addModelForm').forEach(function(el) {
+                observer.observe(el, { attributes: true, attributeFilter: ['style'] });
             });
         });
     </script>
