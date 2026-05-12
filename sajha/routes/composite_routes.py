@@ -134,11 +134,10 @@ def _rebuild_composite(db, name: str):
 # ── Web UI Page ──────────────────────────────────────────────
 from sajha.app import render
 
-@router.get('/composite/builder')
-async def composite_builder_page(request: Request, auth: AuthContext = Depends(require_admin)):
-    from sajha.tools.tools_registry import ToolsRegistry
-    reg = ToolsRegistry.get_instance()
-    tool_names = sorted(reg.tools.keys()) if reg else []
+@router.get('/composite/builder', name='composite_builder')
+async def composite_builder_page(request: Request, auth: AuthContext = Depends(require_auth)):
+    from sajha.app import tools_registry
+    tool_names = sorted(tools_registry.tools.keys()) if tools_registry else []
     return render(request, 'composite/builder.html', {
         'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
         'is_admin': auth.is_admin,

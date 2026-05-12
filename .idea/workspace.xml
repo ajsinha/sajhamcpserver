@@ -5,21 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9d1e1bcc-ba63-40dc-b00b-b5a14af3f586" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/config/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/config/application.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/duckdb/duckdb_analytics.db" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/data/sajha.db-shm" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/logs/server.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/core/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/core/mcp_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/mcp_handler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/core/plugins.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/plugins.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/routes/auth_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/routes/auth_routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/routes/tools_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/routes/tools_routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/web/templates/auth/login.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/auth/login.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/routes/composite_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/routes/composite_routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/static/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/static/css/style.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sajha/web/templates/common/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/common/base.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/web/templates/help/about.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/help/about.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/web/templates/help/help.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/help/help.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/web/templates/landing.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/landing.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
