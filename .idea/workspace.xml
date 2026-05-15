@@ -5,37 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9d1e1bcc-ba63-40dc-b00b-b5a14af3f586" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/clientsdk/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/clientsdk/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/clientsdk/sajhaclient/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/clientsdk/sajhaclient/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/clientsdk/sajhaclient/mcp_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/clientsdk/sajhaclient/mcp_client.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/duckdb/duckdb_analytics.db" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/data/sajha.db-shm" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/deployment/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deployment/aws/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/aws/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deployment/baremetal/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/baremetal/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deployment/hetzner/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/hetzner/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/API_Reference.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/API_Reference.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/Composition_Framework.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/Composition_Framework.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/architecture/Glossary.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/architecture/Glossary.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/architecture/SAJHA_MCP_Server_Architecture.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/architecture/SAJHA_MCP_Server_Architecture.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/Alpha_Vantage_Tools_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/Alpha_Vantage_Tools_Reference_Guide.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/CoinGecko_Tools_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/CoinGecko_Tools_Reference_Guide.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/FMP_Tools_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/FMP_Tools_Reference_Guide.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/FRED_Tools_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/FRED_Tools_Reference_Guide.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/Financial_Calculators_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/Financial_Calculators_Reference_Guide.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/MCP_Studio_Script_Tool_Creator_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/MCP_Studio_Script_Tool_Creator_Guide.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/MCP_Studio_User_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/MCP_Studio_User_Guide.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/OLAP_Analytics_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/OLAP_Analytics_MCP_Tool_Reference_Guide.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/OpenBB_Tools_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/OpenBB_Tools_Reference_Guide.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/SQL_Select_Search_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/SQL_Select_Search_MCP_Tool_Reference_Guide.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/Tavily_Search_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/Tavily_Search_MCP_Tool_Reference_Guide.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/United_Nations_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/United_Nations_MCP_Tool_Reference_Guide.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/World_Bank_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/World_Bank_MCP_Tool_Reference_Guide.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/userguides/Yahoo_Finance_Tools_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/Yahoo_Finance_Tools_Reference_Guide.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/logs/server.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/routes/mcp_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/routes/mcp_routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/help/about.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/help/about.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/landing.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/landing.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
