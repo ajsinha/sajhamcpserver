@@ -1,4 +1,4 @@
-# SAJHA MCP Server v4.5.0 — API Reference
+# SAJHA MCP Server v5.0.0 — API Reference
 
 Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
 
@@ -308,5 +308,5 @@ config:
 
 ---
 
-*SAJHA MCP Server v4.5.0 — API Reference*
+*SAJHA MCP Server v5.0.0 — API Reference*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

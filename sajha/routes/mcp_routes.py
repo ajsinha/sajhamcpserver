@@ -34,16 +34,37 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
     Sends 'endpoint' event with the URL for the client to POST JSON-RPC to.
     Then streams notifications (tools/list_changed, progress, etc.).
     """
+    # MCP 2025-11-25 Minor 3: Validate Origin header
+    from sajha.core.mcp_2025_11_25 import validate_origin
+    origin = request.headers.get('origin')
+    if not validate_origin(origin):
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"error": "Forbidden: invalid Origin"}, status_code=403)
+
     auth = AuthManager.authenticate_request(request, db)
     session_id = str(uuid.uuid4())
     _sse_sessions[session_id] = asyncio.Queue()
 
+    # MCP 2025-11-25 Minor 7: SSE event IDs for stream resumption
+    from sajha.core.mcp_2025_11_25 import SSEEventTracker
+    tracker = SSEEventTracker()
+    last_event_id = request.headers.get('Last-Event-ID')
+
     async def event_generator():
         try:
+            # Replay missed events if client reconnects with Last-Event-ID
+            if last_event_id:
+                for missed in tracker.get_events_after(last_event_id):
+                    yield {'id': missed['id'], 'event': missed['event'], 'data': missed['data']}
+
             # First event: tell the client where to POST
+            eid = tracker.next_id(session_id)
+            endpoint_data = f'/mcp/message?session={session_id}'
+            tracker.record_event(eid, 'endpoint', endpoint_data)
             yield {
+                'id': eid,
                 'event': 'endpoint',
-                'data': f'/mcp/message?session={session_id}',
+                'data': endpoint_data,
             }
 
             while True:
@@ -51,9 +72,13 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
                     break
                 try:
                     notification = _sse_sessions[session_id].get_nowait()
+                    eid = tracker.next_id(session_id)
+                    data = json.dumps(notification)
+                    tracker.record_event(eid, 'message', data)
                     yield {
+                        'id': eid,
                         'event': 'message',
-                        'data': json.dumps(notification),
+                        'data': data,
                     }
                 except asyncio.QueueEmpty:
                     # Keep-alive

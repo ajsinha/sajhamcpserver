@@ -289,5 +289,5 @@ Client pipelines use the same `$input.` / `$.` syntax as server composites, and 
 
 ---
 
-*SAJHA MCP Server v4.5.0 — Composition Framework*
+*SAJHA MCP Server v5.0.0 — Composition Framework*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

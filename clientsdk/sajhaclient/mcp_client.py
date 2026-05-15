@@ -86,7 +86,7 @@ class MCPClient:
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'User-Agent': 'sajhaclient-mcp/4.5.0',
+            'User-Agent': 'sajhaclient-mcp/5.0.0',
             **self._auth.get_headers(),
         }
 
@@ -113,7 +113,7 @@ class MCPClient:
 
     # ── MCP Protocol Methods ─────────────────────────────────────
 
-    def initialize(self, client_name: str = "sajhaclient", client_version: str = "4.5.0") -> Dict:
+    def initialize(self, client_name: str = "sajhaclient", client_version: str = "5.0.0") -> Dict:
         """
         Initialize the MCP session. Must be called first.
 
@@ -121,7 +121,9 @@ class MCPClient:
             Server capabilities dict (tools, prompts, resources, etc.)
         """
         result = self._rpc('initialize', {
-            'clientInfo': {'name': client_name, 'version': client_version}
+            'protocolVersion': '2025-11-25',
+            'clientInfo': {'name': client_name, 'version': client_version},
+            'capabilities': {},
         })
         self._server_info = result.get('serverInfo', {})
         self._capabilities = result.get('capabilities', {})
@@ -305,6 +307,68 @@ class MCPSSEClient:
     def connected(self) -> bool:
         return self._connected
 
+    def _rpc(self, method: str, params: Optional[Dict] = None) -> Any:
+        """Send JSON-RPC 2.0 request via the SSE message POST endpoint."""
+        if not self._message_url:
+            raise SajhaConnectionError("Not connected — call connect() first")
+        self._request_id += 1
+        payload = {
+            'jsonrpc': '2.0',
+            'method': method,
+            'params': params or {},
+            'id': self._request_id,
+        }
+        headers = {
+            'Content-Type': 'application/json',
+            'User-Agent': 'sajhaclient-sse/5.0.0',
+            **self._auth.get_headers(),
+        }
+        data = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(self._message_url, data=data, headers=headers, method='POST')
+        try:
+            with urllib.request.urlopen(req, timeout=self.config.timeout) as resp:
+                body = json.loads(resp.read().decode('utf-8'))
+                if 'error' in body:
+                    raise SajhaMCPError(body['error'].get('message', 'RPC error'), body['error'].get('code', -1))
+                return body.get('result')
+        except urllib.error.HTTPError as e:
+            raise SajhaMCPError(f"SSE RPC failed: HTTP {e.code}", e.code)
+        except Exception as e:
+            logger.error(f"SSE RPC error: {e}", exc_info=True)
+            raise SajhaConnectionError(f"SSE RPC failed: {e}")
+
+    def initialize(self, client_name: str = "sajhaclient-sse", client_version: str = "5.0.0") -> Dict:
+        """Initialize MCP session over SSE transport."""
+        if not self._connected:
+            self.connect()
+        result = self._rpc('initialize', {
+            'protocolVersion': '2025-11-25',
+            'clientInfo': {'name': client_name, 'version': client_version},
+            'capabilities': {},
+        })
+        return result or {}
+
+    def list_tools(self, cursor: str = None) -> List[Dict]:
+        """List available tools."""
+        params = {}
+        if cursor:
+            params['cursor'] = cursor
+        result = self._rpc('tools/list', params)
+        return result.get('tools', []) if isinstance(result, dict) else []
+
+    def call_tool(self, name: str, **arguments) -> Any:
+        """Execute a tool by name."""
+        return self._rpc('tools/call', {'name': name, 'arguments': arguments})
+
+    def ping(self) -> Dict:
+        """Ping the server."""
+        return self._rpc('ping', {}) or {}
+
+    def list_prompts(self) -> List[Dict]:
+        """List available prompts."""
+        result = self._rpc('prompts/list', {})
+        return result.get('prompts', []) if isinstance(result, dict) else []
+
 
 # ═════════════════════════════════════════════════════════════════
 # MCPWebSocketClient — Full-duplex WebSocket MCP transport
@@ -454,10 +518,10 @@ class MCPWebSocketClient:
 
         return response.get('result', {})
 
-    def initialize(self, client_name: str = 'sajhaclient-ws', client_version: str = '1.0.0') -> dict:
+    def initialize(self, client_name: str = 'sajhaclient-ws', client_version: str = '5.0.0') -> dict:
         """Send initialize request."""
         result = self._send_request('initialize', {
-            'protocolVersion': '2025-06-18',
+            'protocolVersion': '2025-11-25',
             'clientInfo': {'name': client_name, 'version': client_version},
             'capabilities': {},
         })

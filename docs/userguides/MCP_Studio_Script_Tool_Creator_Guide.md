@@ -1,5 +1,5 @@
 # MCP Studio Script Tool Creator Guide
-## SAJHA MCP Server v4.5.0
+## SAJHA MCP Server v5.0.0
 
 ## Overview
 
@@ -738,5 +738,5 @@ tail -f logs/sajha_mcp.log | grep "Script"
 
 ---
 
-*SAJHA MCP Server v4.5.0 - Script Tool Creator Guide*
+*SAJHA MCP Server v5.0.0 - Script Tool Creator Guide*
 *Copyright © 2025-2030 Ashutosh Sinha*

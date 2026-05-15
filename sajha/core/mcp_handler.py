@@ -38,11 +38,19 @@ class MCPHandler:
         self.prompts_registry = prompts_registry
         from sajha.core.config import get_settings
         _s = get_settings()
+
+        # MCP 2025-11-25 features
+        from sajha.core.mcp_2025_11_25 import TaskManager, ElicitationManager, SamplingManager
+        self.task_manager = TaskManager()
+        self.elicitation_manager = ElicitationManager()
+        self.sampling_manager = SamplingManager()
+
         self.server_info = {
-            "protocolVersion": "2025-06-18",
+            "protocolVersion": "2025-11-25",
             "serverInfo": {
                 "name": _s.app_name,
-                "version": _s.app_version
+                "version": _s.app_version,
+                "description": f"{_s.app_name} — Production MCP server with {len(tools_registry.tools) if tools_registry else 0} tools"
             },
             "capabilities": {
                 "tools": {
@@ -57,6 +65,19 @@ class MCPHandler:
                 },
                 "logging": {},
                 "completions": {},
+                "elicitation": {
+                    "form": {},
+                    "url": {}
+                },
+                "sampling": {
+                    "tools": True
+                },
+                "tasks": {
+                    "experimental": True
+                },
+                "jsonSchema": {
+                    "dialect": "https://json-schema.org/draft/2020-12/schema"
+                },
                 "websocket": {
                     "endpoint": "/mcp/ws",
                     "authMethods": ["token", "api_key"]
@@ -135,6 +156,22 @@ class MCPHandler:
             # ── MCP v3 additions: Logging ────────────────────────
             elif method == 'logging/setLevel':
                 result = self._handle_logging_set_level(params)
+
+            # ── MCP 2025-11-25: Tasks (SEP-1686) ────────────────
+            elif method == 'tasks/get':
+                result = self.task_manager.handle_tasks_get(params)
+            elif method == 'tasks/list':
+                result = self.task_manager.handle_tasks_list(params)
+            elif method == 'tasks/cancel':
+                result = self.task_manager.handle_tasks_cancel(params)
+
+            # ── MCP 2025-11-25: Elicitation (SEP-1330, SEP-1036) ─
+            elif method == 'elicitation/respond':
+                result = self.elicitation_manager.handle_elicitation_respond(params)
+
+            # ── MCP 2025-11-25: Notifications ────────────────────
+            elif method == 'notifications/cancelled':
+                result = self._handle_notification_cancelled(params)
 
             else:
                 return self._create_error_response(
@@ -319,7 +356,19 @@ class MCPHandler:
             start = 0
         
         page = all_tools[start:start + page_size]
-        result = {"tools": page}
+        
+        # MCP 2025-11-25: Add icon metadata if configured (SEP-973)
+        from sajha.core.mcp_2025_11_25 import add_tool_icon
+        enriched = []
+        for tool_dict in page:
+            tool_name = tool_dict.get('name', '')
+            tool_obj = self.tools_registry.get_tool(tool_name) if self.tools_registry else None
+            if tool_obj:
+                cfg = getattr(tool_obj, 'config', {}) or {}
+                tool_dict = add_tool_icon(tool_dict, cfg)
+            enriched.append(tool_dict)
+        
+        result = {"tools": enriched}
         if start + page_size < len(all_tools):
             result['nextCursor'] = str(start + page_size)
         
@@ -443,9 +492,24 @@ class MCPHandler:
             return {"content": result}
             
         except Exception as e:
+            # MCP 2025-11-25 Minor 5: Return as Tool Execution Error (isError: true)
+            # instead of Protocol Error — enables model self-correction
             self.logger.error(f"Error executing tool {tool_name}: {e}", exc_info=True)
-            raise ValueError(f"Tool execution failed: {str(e)}")
+            return {
+                "content": [{"type": "text", "text": f"Tool execution failed: {str(e)}"}],
+                "isError": True
+            }
     
+    def _handle_notification_cancelled(self, params: Dict) -> Dict:
+        """Handle notifications/cancelled — client cancels a pending request."""
+        request_id = params.get("requestId")
+        reason = params.get("reason", "")
+        self.logger.info(f"Request cancelled by client: {request_id} — {reason}")
+        # Cancel associated task if any
+        if request_id:
+            self.task_manager.cancel_task(request_id)
+        return {}
+
     def _handle_ping(self, params: Dict, session: Optional[Dict]) -> Dict:
         """Handle ping request"""
         return {

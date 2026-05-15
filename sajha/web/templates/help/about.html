@@ -44,7 +44,58 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 </div>
                 <div class="card-body">
                     <p>SAJHA MCP Server is a comprehensive Python implementation of the <strong>Model Context Protocol (MCP)</strong> built on <strong>FastAPI</strong>. It provides a standardized interface for AI tools and services, serving <strong>497 tools</strong> across financial markets, government data, search engines, analytics, and enterprise integrations through a single MCP-compliant endpoint.</p>
-                    <p class="mb-0">The server supports <strong>three transports</strong> (HTTP POST, SSE, WebSocket), includes an <strong>embedded LLM gateway</strong> with 6 AI providers, <strong>semantic tool discovery</strong>, <strong>composite tool orchestration</strong>, <strong>OpenTelemetry observability</strong>, <strong>multi-tenancy</strong>, a <strong>plugin system</strong>, and a full web UI with 12 interactive screens. Version 4.5.0 adds a category-theory-inspired composition framework (Kleisli arrows, ParamLens, EntropyGuard), 4 UI themes (Light, Dark, Wall Street, Ubuntu), a complete UX overhaul, and transport coalgebra in the client SDK.</p>
+                    <p class="mb-0">The server supports <strong>three transports</strong> (HTTP POST, SSE, WebSocket), includes an <strong>embedded LLM gateway</strong> with 6 AI providers, <strong>semantic tool discovery</strong>, <strong>composite tool orchestration</strong>, <strong>OpenTelemetry observability</strong>, <strong>multi-tenancy</strong>, a <strong>plugin system</strong>, and a full web UI with 12 interactive screens. Version 5.0.0 is fully compliant with <strong>MCP specification 2025-11-25</strong> — including Tasks (async tracking), Elicitation (form + URL modes), Sampling with tool calling, tool icons, and Origin validation for Streamable HTTP.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MCP Compliance Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-success"><i class="bi bi-patch-check me-2"></i>MCP Specification Compliance</div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="mb-0">Protocol Version: <strong>2025-11-25</strong> (latest)</h5>
+                            <small class="text-muted">Released November 25, 2025 by the MCP Steering Group</small>
+                        </div>
+                        <span class="badge bg-success px-3 py-2"><i class="bi bi-check-circle me-1"></i>Fully Compliant</span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <h6><i class="bi bi-clock-history me-2 text-primary"></i>Tasks (SEP-1686)</h6>
+                            <p class="small mb-0">Async tracking for long-running requests. Create, poll, cancel tasks. States: working → completed/failed/cancelled.</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6><i class="bi bi-input-cursor-text me-2 text-success"></i>Elicitation (SEP-1330)</h6>
+                            <p class="small mb-0">Server-initiated user input. Form mode (structured JSON Schema forms) and URL mode (redirect to OAuth/consent pages).</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6><i class="bi bi-cpu me-2 text-info"></i>Sampling + Tools (SEP-1577)</h6>
+                            <p class="small mb-0">Server-initiated LLM calls with tool definitions and toolChoice. Enables server-side agent loops.</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6><i class="bi bi-image me-2 text-warning"></i>Icons (SEP-973)</h6>
+                            <p class="small mb-0">Icon metadata for tools, resources, and prompts. Supports URL and emoji icon types for richer UI rendering.</p>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted small">TRANSPORT COMPLIANCE</h6>
+                            <p class="small mb-0">HTTP POST /mcp (stateless) · SSE /mcp/sse (Streamable HTTP with Origin validation, polling support) · WebSocket /mcp/ws (full-duplex). JSON-RPC 2.0 on all three. JSON Schema 2020-12 dialect.</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted small">SECURITY COMPLIANCE</h6>
+                            <p class="small mb-0">Tool errors return isError:true (not protocol errors) for model self-correction. Origin header validation (HTTP 403). PKCE support. OAuth 2.1 flows. RBAC + API key + JWT + OAuth SSO.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
                 </div>
             </div>
         </div>

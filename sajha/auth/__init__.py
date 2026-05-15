@@ -244,7 +244,7 @@ def require_auth(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Authentication required',
-            headers={'WWW-Authenticate': 'Bearer'},
+            headers={'WWW-Authenticate': 'Bearer realm="sajha", scope="tools:read tools:execute"'},
         )
     return auth
 

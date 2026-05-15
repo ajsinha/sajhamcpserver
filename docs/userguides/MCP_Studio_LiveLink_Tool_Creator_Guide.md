@@ -1,5 +1,5 @@
 # MCP Studio IBM LiveLink Tool Creator Guide
-## SAJHA MCP Server v4.5.0
+## SAJHA MCP Server v5.0.0
 
 ## Overview
 
@@ -624,5 +624,5 @@ curl -u username:password \
 
 ---
 
-*SAJHA MCP Server v4.5.0 - IBM LiveLink Tool Creator Guide*
+*SAJHA MCP Server v5.0.0 - IBM LiveLink Tool Creator Guide*
 *Copyright © 2025-2030 Ashutosh Sinha*

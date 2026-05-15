@@ -110,7 +110,7 @@
 
 ---
 
-*SAJHA MCP Server v4.5.0 — Glossary*
+*SAJHA MCP Server v5.0.0 — Glossary*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*
 
 **ClientPipeline:** Client-side tool composition class in the SDK (`clientsdk/sajhaclient/mcp_client.py`). Chains `add_step()` calls with `$input.` / `$.` param mapping. `execute()` tracks confidence and entropy without server-side composite definitions.

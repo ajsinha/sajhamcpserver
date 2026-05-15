@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-SAJHA MCP Server v4.5.0 is a production-grade Python implementation of the Model Context Protocol built on FastAPI. It serves 497 tools across financial, government, search, and enterprise data sources through a standards-compliant MCP interface (protocol version 2025-06-18), a REST API, and SSE transport. The system includes a full web UI, role-based access control, visual tool creation (MCP Studio), A2A agent interoperability, live reporting, and a zero-dependency Python client SDK.
+SAJHA MCP Server v5.0.0 is a production-grade Python implementation of the Model Context Protocol built on FastAPI. It serves 497 tools across financial, government, search, and enterprise data sources through a standards-compliant MCP interface (protocol version 2025-06-18), a REST API, and SSE transport. The system includes a full web UI, role-based access control, visual tool creation (MCP Studio), A2A agent interoperability, live reporting, and a zero-dependency Python client SDK.
 
 | Aspect | Detail |
 |--------|--------|
@@ -570,5 +570,5 @@ Or use the factory: `uvicorn sajha.app:create_app --factory`.
 
 ---
 
-*SAJHA MCP Server v4.5.0 — Architecture Document*
+*SAJHA MCP Server v5.0.0 — Architecture Document*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

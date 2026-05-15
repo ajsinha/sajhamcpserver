@@ -1,6 +1,6 @@
 # SAJHA MCP Server
 
-**Version 4.5.0** · FastAPI · Python 3.9+ · MCP Protocol 2025-06-18
+**Version 5.0.0** · FastAPI · Python 3.9+ · MCP Protocol 2025-06-18
 
 **Copyright © 2025–2030, Ashutosh Sinha** · ajsinha@gmail.com · [GitHub](https://github.com/ajsinha/sajhamcpserver)
 
@@ -27,7 +27,7 @@ Server starts at **http://localhost:3002**. Login: `admin` / `admin123`.
 
 ---
 
-## v4.5.0 Highlights
+## v5.0.0 Highlights
 
 | Feature | Description |
 |---------|-------------|
