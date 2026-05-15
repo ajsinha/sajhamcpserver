@@ -27,12 +27,20 @@ router = APIRouter(tags=['mcp'])
 _sse_sessions: dict[str, asyncio.Queue] = {}
 
 
+@router.get('/mcp')
 @router.get('/mcp/sse')
 async def mcp_sse(request: Request, db: Session = Depends(get_db)):
     """
-    SSE endpoint per MCP Streamable HTTP spec.
-    Sends 'endpoint' event with the URL for the client to POST JSON-RPC to.
-    Then streams notifications (tools/list_changed, progress, etc.).
+    MCP 2025-11-25 Streamable HTTP transport — GET endpoint.
+
+    Per spec: "The server MUST provide a single HTTP endpoint path
+    that supports both POST and GET methods."
+
+    GET /mcp opens an SSE stream for server → client notifications.
+    POST /mcp sends JSON-RPC requests (handled in api_routes.py).
+
+    The /mcp/sse path is kept for backwards compatibility with
+    2024-11-05 HTTP+SSE clients.
     """
     # MCP 2025-11-25 Minor 3: Validate Origin header
     from sajha.core.mcp_2025_11_25 import validate_origin
@@ -58,8 +66,10 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
                     yield {'id': missed['id'], 'event': missed['event'], 'data': missed['data']}
 
             # First event: tell the client where to POST
+            # 2025-11-25: POST to same /mcp endpoint (Streamable HTTP)
+            # Also include session for backwards compat with /mcp/message
             eid = tracker.next_id(session_id)
-            endpoint_data = f'/mcp/message?session={session_id}'
+            endpoint_data = f'/mcp?session={session_id}'
             tracker.record_event(eid, 'endpoint', endpoint_data)
             yield {
                 'id': eid,
@@ -93,7 +103,8 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
 @router.post('/mcp/message')
 async def mcp_message(request: Request, db: Session = Depends(get_db)):
     """
-    Receives JSON-RPC requests from MCP client (paired with SSE endpoint).
+    Backwards-compatible SSE message endpoint (2024-11-05 pattern).
+    New clients should POST to /mcp directly.
     """
     from sajha.app import mcp_handler
 

@@ -1,13 +1,13 @@
 # MCP Studio User Guide
 
-**Version: 4.5.0**  
+**Version: 5.0.0**  
 **Copyright © 2025-2030 Ashutosh Sinha, All Rights Reserved**
 
 ---
 
 ## Overview
 
-MCP Studio is a comprehensive visual tool creation platform that allows administrators to create custom MCP tools without manual coding. Version 4.5.0 includes **eight creation methods** with full dark theme support and enhanced OLAP capabilities:
+MCP Studio is a comprehensive visual tool creation platform that allows administrators to create custom MCP tools without manual coding. Version 5.0.0 includes **eight creation methods** with full dark theme support and enhanced OLAP capabilities:
 
 1. **Python Code Tool Creator** - Write Python functions with the `@sajhamcptool` decorator
 2. **REST Service Tool Creator** - Wrap any REST API endpoint as an MCP tool

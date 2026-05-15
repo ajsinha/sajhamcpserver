@@ -1,6 +1,6 @@
 # SAJHA MCP Server — Glossary
 
-**Version:** 4.5.0 · **Last Updated:** May 2026
+**Version:** 5.0.0 · **Last Updated:** May 2026
 
 ---
 
@@ -60,7 +60,7 @@
 
 ## M
 
-**MCP (Model Context Protocol):** A standardized protocol enabling AI systems to discover and invoke external tools. SAJHA implements version 2025-06-18.
+**MCP (Model Context Protocol):** A standardized protocol enabling AI systems to discover and invoke external tools. SAJHA implements version 2025-11-25 (latest), with full support for Tasks, Elicitation, Sampling, tool icons, and all authorization enhancements.
 
 **MCPHandler:** The class (`sajha/core/mcp_handler.py`) that routes and handles all 12 MCP JSON-RPC methods.
 
@@ -76,7 +76,7 @@
 
 **PropertiesConfigurator:** A singleton (`sajha/core/properties_configurator.py`) that resolves `${variable}` references in tool JSON configs using values from the flattened YAML config.
 
-**Protocol Version:** The MCP specification version declared during `initialize`. SAJHA uses `2025-06-18`.
+**Protocol Version:** The MCP specification version declared during `initialize`. SAJHA declares `2025-11-25` (latest). Includes Tasks, Elicitation, Sampling with tools, OIDC Discovery, CIMD, and PRM.
 
 ## R
 
@@ -150,3 +150,13 @@
 **Weakest-Link Model:** The confidence aggregation model for parallel (sibling) composite steps. `confidence = min(step_a, step_b, step_c)` rather than multiplying. Correct because parallel steps are independent — the composite is as reliable as its least reliable component.
 
 **WebSocket Transport:** Full-duplex MCP transport at `/mcp/ws`. Connect with `?token=jwt` or `?api_key=key`. Supports bidirectional messaging — server can push notifications without polling. `WSSession` tracks auth, init state, last activity.
+
+**MCPTask:** A trackable async operation in the MCP Tasks primitive (SEP-1686, 2025-11-25). States: working → input_required → completed → failed → cancelled. Clients poll via `tasks/get`. Server creates tasks for long-running tool executions.
+
+**Elicitation:** Server-initiated request for user input (SEP-1330, SEP-1036, 2025-11-25). Two modes: Form (structured JSON Schema fields) and URL (redirect to OAuth consent page). Client responds via `elicitation/respond`.
+
+**Sampling:** Server-initiated LLM completion request. 2025-11-25 adds tool calling support (SEP-1577): server can include `tools` and `toolChoice` parameters, enabling server-side agent loops where the LLM can call tools during sampling.
+
+**CIMD (Client ID Metadata Document):** OAuth client registration mechanism (SEP-991, 2025-11-25). Replaces Dynamic Client Registration. Served at `/.well-known/oauth-client/{client_id}`.
+
+**PRM (Protected Resource Metadata):** OAuth 2.0 resource discovery per RFC 9728. Served at `/.well-known/oauth-protected-resource`. Declares authorization servers, supported scopes, and bearer methods.

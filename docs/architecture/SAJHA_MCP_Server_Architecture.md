@@ -1,6 +1,6 @@
 # SAJHA MCP Server — System Architecture
 
-**Version:** 4.5.0
+**Version:** 5.0.0
 **Last Updated:** May 2026
 **Author:** Ashutosh Sinha (ajsinha@gmail.com)
 **Classification:** Technical Reference
@@ -9,13 +9,13 @@
 
 ## 1. Executive Summary
 
-SAJHA MCP Server v5.0.0 is a production-grade Python implementation of the Model Context Protocol built on FastAPI. It serves 497 tools across financial, government, search, and enterprise data sources through a standards-compliant MCP interface (protocol version 2025-06-18), a REST API, and SSE transport. The system includes a full web UI, role-based access control, visual tool creation (MCP Studio), A2A agent interoperability, live reporting, and a zero-dependency Python client SDK.
+SAJHA MCP Server v5.0.0 is a production-grade Python implementation of the Model Context Protocol built on FastAPI. It serves 497 tools across financial, government, search, and enterprise data sources through a standards-compliant MCP interface (protocol version 2025-11-25 (latest)), a REST API, and SSE transport. The system includes a full web UI, role-based access control, visual tool creation (MCP Studio), A2A agent interoperability, live reporting, and a zero-dependency Python client SDK.
 
 | Aspect | Detail |
 |--------|--------|
 | Framework | FastAPI (ASGI, Uvicorn) |
 | Language | Python 3.9+ |
-| Protocol | MCP 2025-06-18, JSON-RPC 2.0 |
+| Protocol | MCP 2025-11-25 (latest), JSON-RPC 2.0 |
 | Tools | 497 loaded from 501 JSON configs |
 | Transports | HTTP POST, SSE |
 | Database | SQLite (default), PostgreSQL |
@@ -278,7 +278,7 @@ def handle_request(self, request_data: Dict, session: Optional[Dict] = None) -> 
 
 ### 8.2 Protocol Version
 
-Declared protocol version: `2025-06-18` (latest stable).
+Declared protocol version: `2025-11-25` (latest). Full compliance including Tasks, Elicitation, Sampling with tools, OIDC Discovery, CIMD, PRM, tool icons, and Origin validation.
 
 ### 8.3 Capabilities
 
@@ -562,7 +562,7 @@ Or use the factory: `uvicorn sajha.app:create_app --factory`.
 | No Alembic | SQL scripts with `IF NOT EXISTS` — simpler deployment |
 | Direct bcrypt (not passlib) | passlib incompatible with bcrypt 4.x |
 | Starlette 1.0 TemplateResponse | `request` as positional param (not in context dict) |
-| MCP protocol 2025-06-18 | Latest stable; Nov 2025 async extensions are optional |
+| MCP protocol 2025-11-25 | Latest — fully implemented including all Major and Minor changes |
 | FMPGenericTool pattern | JSON-only tool creation — no Python needed for new endpoints |
 | Zero-dep client SDK | stdlib only for maximum portability |
 | Tool group = prefix before `_` | Simple, consistent, works for all 497 tools |

@@ -145,7 +145,7 @@ Click **Deploy Tool** to create the script tool.
 #!/usr/bin/env python3
 """
 MCP Tool Script: Data Processor
-Version: 4.5.0
+Version: 5.0.0
 """
 
 import json
@@ -268,7 +268,7 @@ Specify dependencies in your configuration:
 #!/bin/bash
 #
 # MCP Tool Script: File Processor
-# Version: 4.5.0
+# Version: 5.0.0
 #
 
 set -e  # Exit on error
@@ -339,7 +339,7 @@ EOF
 ```powershell
 #
 # MCP Tool Script: Azure Resource Manager
-# Version: 4.5.0
+# Version: 5.0.0
 #
 
 param(

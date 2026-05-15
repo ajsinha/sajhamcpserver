@@ -49,8 +49,8 @@ class SajhaConfig:
 
     @property
     def mcp_sse_url(self) -> str:
-        """MCP SSE transport endpoint."""
-        return f"{self.base_url}/mcp/sse"
+        """MCP Streamable HTTP endpoint (GET for SSE, POST for JSON-RPC). Per 2025-11-25 spec."""
+        return f"{self.base_url}/mcp"
 
     @property
     def a2a_url(self) -> str:

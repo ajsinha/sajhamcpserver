@@ -59,5 +59,5 @@ sudo ./install.sh
 
 ---
 
-*SAJHA MCP Server v4.5.0*
+*SAJHA MCP Server v5.0.0*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

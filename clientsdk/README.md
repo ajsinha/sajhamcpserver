@@ -1,6 +1,6 @@
 # SAJHA MCP Server — Python Client SDK
 
-**Version 5.0.0** · Zero dependencies (stdlib only) · Python 3.9+
+**Version 5.0.0** · Zero dependencies (stdlib only) · Python 3.9+ · **MCP 2025-11-25**
 
 ## Install
 

@@ -44,7 +44,7 @@ Response:
 # Initialize
 curl -X POST http://localhost:3002/mcp \
   -H "Content-Type: application/json" -H "X-API-Key: sja_key" \
-  -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"my-agent","version":"1.0"}},"id":1}'
+  -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"my-agent","version":"1.0"}},"id":1}'
 
 # Call a tool
 curl -X POST http://localhost:3002/mcp \
@@ -270,12 +270,78 @@ curl -X POST http://localhost:3002/api/entropy/pipeline \
 
 ---
 
+
+---
+
+## MCP 2025-11-25 — New Methods
+
+### Tasks (Async Tracking)
+
+```bash
+# Get task status
+curl -X POST http://localhost:3002/mcp \
+  -H "Content-Type: application/json" -H "X-API-Key: sja_key" \
+  -d '{"jsonrpc":"2.0","method":"tasks/get","params":{"taskId":"abc-123"},"id":1}'
+
+# List all tasks
+curl -X POST http://localhost:3002/mcp \
+  -H "Content-Type: application/json" -H "X-API-Key: sja_key" \
+  -d '{"jsonrpc":"2.0","method":"tasks/list","params":{},"id":2}'
+
+# Cancel a task
+curl -X POST http://localhost:3002/mcp \
+  -H "Content-Type: application/json" -H "X-API-Key: sja_key" \
+  -d '{"jsonrpc":"2.0","method":"tasks/cancel","params":{"taskId":"abc-123"},"id":3}'
+```
+
+### Elicitation (Server → User Input)
+
+```bash
+# Respond to an elicitation request
+curl -X POST http://localhost:3002/mcp \
+  -H "Content-Type: application/json" -H "X-API-Key: sja_key" \
+  -d '{"jsonrpc":"2.0","method":"elicitation/respond","params":{"requestId":"req-456","action":"submit","content":{"field1":"value1"}},"id":4}'
+```
+
+### OAuth Discovery Endpoints
+
+```bash
+# OpenID Connect Discovery (Major 1)
+curl http://localhost:3002/.well-known/openid-configuration
+
+# Protected Resource Metadata — RFC 9728 (Minor 8)
+curl http://localhost:3002/.well-known/oauth-protected-resource
+
+# Client ID Metadata Document — CIMD (Major 8)
+curl http://localhost:3002/.well-known/oauth-client/my-client-id
+```
+
+### All 15 MCP Methods
+
+| Method | Description | Since |
+|--------|-------------|-------|
+| `initialize` | Negotiate capabilities (2025-11-25) | 2024-11-05 |
+| `initialized` | Confirm init complete | 2024-11-05 |
+| `ping` | Health check | 2024-11-05 |
+| `tools/list` | List tools (100/page, with icons) | 2024-11-05 |
+| `tools/call` | Execute tool (isError on failure) | 2024-11-05 |
+| `resources/list` | List resources | 2024-11-05 |
+| `resources/read` | Read resource by URI | 2024-11-05 |
+| `prompts/list` | List prompts | 2024-11-05 |
+| `prompts/get` | Get prompt with vars | 2024-11-05 |
+| `completion/complete` | Auto-complete args | 2025-03-26 |
+| `logging/setLevel` | Set log level | 2025-03-26 |
+| `notifications/cancelled` | Cancel pending request | 2025-06-18 |
+| `tasks/get` | Get task status | **2025-11-25** |
+| `tasks/list` | List all tasks | **2025-11-25** |
+| `tasks/cancel` | Cancel a task | **2025-11-25** |
+
 ## Configuration — application.yml
 
 ```yaml
 app:
   name: SAJHA MCP Server
-  version: 4.5.0
+  version: 5.0.0
   author: Ashutosh Sinha
   email: ajsinha@gmail.com
 

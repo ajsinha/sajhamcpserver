@@ -1,6 +1,6 @@
 # SAJHA MCP Server — Composition Framework
 
-**Version 4.5.0** · Inspired by "On the Composability of Intelligence: A Category Theory Framework"
+**Version 5.0.0 · MCP 2025-11-25 Compliant** · Inspired by "On the Composability of Intelligence: A Category Theory Framework"
 
 Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
 

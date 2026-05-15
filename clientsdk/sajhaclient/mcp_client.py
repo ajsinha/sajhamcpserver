@@ -222,21 +222,19 @@ class MCPClient:
 
 class MCPSSEClient:
     """
-    MCP client using Server-Sent Events (SSE) transport.
+    MCP client using Streamable HTTP transport (SSE).
 
-    Connects to the SSE endpoint for streaming notifications,
-    while sending requests via the paired HTTP POST endpoint.
+    Per MCP 2025-11-25: connects to GET /mcp for SSE stream,
+    POSTs JSON-RPC requests to POST /mcp.
 
     Usage:
         sse = MCPSSEClient(config)
-        sse.connect()
+        sse.connect()       # GET /mcp → opens SSE stream
+        sse.initialize()    # POST /mcp → initialize handshake
 
-        # Send requests via the SSE message endpoint
-        result = sse.call_tool("wikipedia_search", query="Python")
+        result = sse.call_tool("yahoo_quote", symbol="AAPL")
 
-        # Listen for notifications
         sse.on_notification(lambda n: print(f"Notification: {n}"))
-
         sse.disconnect()
     """
 
