@@ -1,6 +1,6 @@
 # SAJHA MCP Server — Composition Framework
 
-**Version 5.1.0 · MCP 2025-11-25 Compliant** · Inspired by "On the Composability of Intelligence: A Category Theory Framework"
+**Version 5.2.0 · MCP 2025-11-25 Compliant** · Inspired by "On the Composability of Intelligence: A Category Theory Framework"
 
 Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
 
@@ -289,5 +289,5 @@ Client pipelines use the same `$input.` / `$.` syntax as server composites, and 
 
 ---
 
-*SAJHA MCP Server v5.1.0 — Composition Framework*
+*SAJHA MCP Server v5.2.0 — Composition Framework*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

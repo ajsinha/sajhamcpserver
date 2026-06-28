@@ -4,7 +4,7 @@
   "description": "List all available tables and views in the DuckDB database",
   "version": "2.9.8",
   "enabled": true,
-  "data_directory": "${data.duckdb.dir}",
+  "data_directory": "${data.duckdb.dir:./data/duckdb}",
   "inputSchema": {
     "type": "object",
     "properties": {

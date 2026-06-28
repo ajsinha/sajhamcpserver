@@ -3,7 +3,7 @@
 {% block title %}Reports — {{ app_name }}{% endblock %}
 
 {% block extra_css %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.js') }}"></script>
 {% endblock %}
 
 {% block content %}

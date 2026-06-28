@@ -1,0 +1,4 @@
+/* Ubuntu webfont (vendored from @fontsource/ubuntu 5.0.8) — latin 400/500/700 */
+@font-face{font-family:'Ubuntu';font-style:normal;font-weight:400;font-display:swap;src:url('./files/ubuntu-latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Ubuntu';font-style:normal;font-weight:500;font-display:swap;src:url('./files/ubuntu-latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Ubuntu';font-style:normal;font-weight:700;font-display:swap;src:url('./files/ubuntu-latin-700-normal.woff2') format('woff2');}

@@ -6,7 +6,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 {% block extra_css %}
 <!-- JSONEditor CSS -->
-<link href="https://cdn.jsdelivr.net/npm/jsoneditor@9.10.4/dist/jsoneditor.min.css" rel="stylesheet">
+<link href="{{ url_for('static', filename='vendor/jsoneditor/jsoneditor.min.css') }}" rel="stylesheet">
 <style>
     .config-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -122,7 +122,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header card-header-primary">
                     <h5 class="mb-0">
                         <i class="bi bi-card-text"></i> Description
                     </h5>
@@ -142,7 +142,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <div class="card-header card-header-success d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="bi bi-braces"></i> JSON Configuration
                     </h5>
@@ -203,7 +203,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-header bg-info text-white">
+                <div class="card-header card-header-info">
                     <h5 class="mb-0">
                         <i class="bi bi-book"></i> Configuration Guide
                     </h5>
@@ -243,7 +243,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 {% block page_glossary %}
 <div class="container-fluid mt-4">
     <div class="card border-secondary">
-        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
+        <div class="card-header card-header-secondary" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
             <i class="bi bi-book me-2"></i>Page Glossary
             <i class="bi bi-chevron-down float-end"></i>
         </div>
@@ -274,7 +274,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 {% block extra_js %}
 <!-- JSONEditor JS -->
-<script src="https://cdn.jsdelivr.net/npm/jsoneditor@9.10.4/dist/jsoneditor.min.js"></script>
+<script src="{{ url_for('static', filename='vendor/jsoneditor/jsoneditor.min.js') }}"></script>
 
 <script>
 const toolName = "{{ tool_name }}";

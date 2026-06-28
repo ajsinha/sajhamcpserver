@@ -108,9 +108,16 @@ class SajhaMCPServerWebApp:
     # ── Middleware ────────────────────────────────────────────────
 
     def _add_middleware(self, app: FastAPI):
+        # The server binds 0.0.0.0:3002 but browsers treat localhost / 127.0.0.1 /
+        # 0.0.0.0 as distinct origins. Default to all three loopback forms on the
+        # configured port so cross-origin XHR isn't rejected during local use;
+        # override with SAJHA_CORS_ORIGINS (comma-separated) in production.
+        _default_origins = ','.join(
+            f'http://{host}:3002' for host in ('localhost', '127.0.0.1', '0.0.0.0')
+        )
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=os.environ.get('SAJHA_CORS_ORIGINS', 'http://localhost:3002').split(','),
+            allow_origins=os.environ.get('SAJHA_CORS_ORIGINS', _default_origins).split(','),
             allow_credentials=True,
             allow_methods=['*'],
             allow_headers=['*'],
@@ -309,7 +316,7 @@ class SajhaMCPServerWebApp:
         # so tool configs can resolve ${var} (e.g. ${data.duckdb.dir} in duckdb_sql.json)
         try:
             from sajha.core.properties_configurator import PropertiesConfigurator
-            pc = PropertiesConfigurator(yaml_file='config/application.yml')  # YAML-native, no hack
+            pc = PropertiesConfigurator(yaml_file=os.environ.get('SAJHA_CONFIG_FILE', 'config/application.yml'))  # YAML-native, respects --config
             logger.info(f'PropertiesConfigurator loaded from application.yml ({len(pc.get_all_properties())} values)')
         except Exception as e:
             logger.warning(f'PropertiesConfigurator init failed: {e}', exc_info=True)

@@ -4,7 +4,7 @@
   "description": "Refresh materialized views or reload external data files into DuckDB",
   "version": "2.9.8",
   "enabled": true,
-  "data_directory": "${data.duckdb.dir}",
+  "data_directory": "${data.duckdb.dir:./data/duckdb}",
   "inputSchema": {
     "type": "object",
     "properties": {

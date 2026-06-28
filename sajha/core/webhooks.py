@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v5.1.0 — Webhook Notifications
+SAJHA MCP Server v5.2.0 — Webhook Notifications
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Sends POST notifications to registered callback URLs when:
@@ -65,7 +65,7 @@ class WebhookManager:
         }).encode('utf-8')
         headers = {
             'Content-Type': 'application/json',
-            'User-Agent': 'sajha-webhook/5.1.0',
+            'User-Agent': 'sajha-webhook/5.2.0',
             'X-Sajha-Event': event_type,
         }
         for attempt in range(1, self._max_retries + 1):

@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v5.1.0 — Structured Audit Log
+SAJHA MCP Server v5.2.0 — Structured Audit Log
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Records security-sensitive events to the audit_log DB table.

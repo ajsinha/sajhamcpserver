@@ -54,7 +54,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
     <!-- User Activity Chart -->
     <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header card-header-primary">
             <h5 class="mb-0"><i class="bi bi-activity"></i> User Activity (Last 30 Minutes)</h5>
         </div>
         <div class="card-body">
@@ -64,7 +64,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
     <!-- User Activity Table -->
     <div class="card">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header card-header-primary">
             <h5 class="mb-0"><i class="bi bi-table"></i> User Sessions (Total: {{ users|length }})</h5>
         </div>
         <div class="card-body">
@@ -168,7 +168,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 {% block page_glossary %}
 <div class="container-fluid mt-4">
     <div class="card border-secondary">
-        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
+        <div class="card-header card-header-secondary" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
             <i class="bi bi-book me-2"></i>Page Glossary
             <i class="bi bi-chevron-down float-end"></i>
         </div>
@@ -198,7 +198,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.js') }}"></script>
 <script>
 // Initialize activity chart
 const ctx = document.getElementById('activityChart').getContext('2d');

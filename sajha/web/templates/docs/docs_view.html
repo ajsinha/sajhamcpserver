@@ -5,7 +5,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 {% block title %}{{ doc_name }} — {{ app_name }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/highlight/styles/github-dark.min.css') }}">
 <style>
 .markdown-body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
@@ -187,15 +187,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+<script src="{{ url_for('static', filename='vendor/marked/marked.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/highlight/highlight.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/highlight/languages/python.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/highlight/languages/bash.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/highlight/languages/json.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/highlight/languages/yaml.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/highlight/languages/sql.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/highlight/languages/xml.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/highlight/languages/javascript.min.js') }}"></script>
 <script>
 function b64DecodeUnicode(str) {
     try {

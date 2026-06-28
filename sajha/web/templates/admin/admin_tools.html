@@ -13,7 +13,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Tool Errors -->
     {% if tool_errors %}
     <div class="card border-danger mb-4">
-        <div class="card-header bg-danger text-white">
+        <div class="card-header card-header-danger">
             <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Tool Loading Errors</h5>
         </div>
         <div class="card-body">
@@ -47,7 +47,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     
     <!-- Tools Metrics -->
     <div class="card">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header card-header-primary">
             <h5 class="mb-0"><i class="bi bi-graph-up"></i> Tool Metrics & Management (Total: {{ tools_metrics|length }})</h5>
         </div>
         <div class="card-body">
@@ -162,7 +162,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
     <!-- Actions -->
     <div class="card mt-4">
-        <div class="card-header bg-secondary text-white">
+        <div class="card-header card-header-secondary">
             <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
         </div>
         <div class="card-body">
@@ -186,7 +186,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 {% block page_glossary %}
 <div class="container-fluid mt-4">
     <div class="card border-secondary">
-        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
+        <div class="card-header card-header-secondary" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
             <i class="bi bi-book me-2"></i>Page Glossary
             <i class="bi bi-chevron-down float-end"></i>
         </div>

@@ -91,8 +91,14 @@ class ToolsRegistry:
         """Initialize reference to PropertiesConfigurator for variable substitution"""
         try:
             from sajha.core.properties_configurator import PropertiesConfigurator
-            self._properties_configurator = PropertiesConfigurator()
-            self.logger.debug("PropertiesConfigurator initialized for variable substitution")
+            # Load the SAME config the rest of the app uses, so ${...} references in
+            # tool JSON configs (e.g. ${data.duckdb.dir}) resolve against application.yml.
+            # Respects the --config / SAJHA_CONFIG_FILE override. Without a yaml_file the
+            # configurator is empty and every ${key} falls through to its literal text,
+            # which previously created directories literally named "${data.duckdb.dir}".
+            config_file = os.environ.get('SAJHA_CONFIG_FILE', 'config/application.yml')
+            self._properties_configurator = PropertiesConfigurator(yaml_file=config_file)
+            self.logger.debug(f"PropertiesConfigurator initialized from {config_file} for variable substitution")
         except Exception as e:
             self.logger.warning(f"Could not initialize PropertiesConfigurator: {e}", exc_info=True)
             self._properties_configurator = None

@@ -25,7 +25,7 @@
         <div class="col-md-8">
             <!-- Basic Information -->
             <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header card-header-primary">
                     <i class="bi bi-info-circle me-2"></i>Basic Information
                 </div>
                 <div class="card-body">
@@ -68,7 +68,7 @@
 
             <!-- Tool Access -->
             <div class="card mb-4">
-                <div class="card-header bg-warning text-dark">
+                <div class="card-header card-header-warning text-dark">
                     <i class="bi bi-shield-lock me-2"></i>Tool Access Control
                 </div>
                 <div class="card-body">
@@ -115,7 +115,7 @@
 
             <!-- Rate Limits -->
             <div class="card mb-4">
-                <div class="card-header bg-info text-white">
+                <div class="card-header card-header-info">
                     <i class="bi bi-speedometer me-2"></i>Rate Limits
                 </div>
                 <div class="card-body">
@@ -139,7 +139,7 @@
             <!-- Metadata -->
             {% if apikey.metadata %}
             <div class="card mb-4">
-                <div class="card-header bg-light">
+                <div class="card-header">
                     <i class="bi bi-person me-2"></i>Metadata
                 </div>
                 <div class="card-body">
@@ -162,7 +162,7 @@
         <div class="col-md-4">
             <!-- Usage Statistics -->
             <div class="card mb-4">
-                <div class="card-header bg-success text-white">
+                <div class="card-header card-header-success">
                     <i class="bi bi-bar-chart me-2"></i>Usage Statistics
                 </div>
                 <div class="card-body">
@@ -186,7 +186,7 @@
 
             <!-- Quick Actions -->
             <div class="card mb-4">
-                <div class="card-header bg-light">
+                <div class="card-header">
                     <i class="bi bi-lightning me-2"></i>Quick Actions
                 </div>
                 <div class="card-body">
@@ -214,7 +214,7 @@
 
             <!-- Usage Example -->
             <div class="card">
-                <div class="card-header bg-dark text-white">
+                <div class="card-header card-header-secondary">
                     <i class="bi bi-code me-2"></i>Quick Test
                 </div>
                 <div class="card-body">
@@ -230,7 +230,7 @@
 {% block page_glossary %}
 <div class="container-fluid mt-4">
     <div class="card border-secondary">
-        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
+        <div class="card-header card-header-secondary" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
             <i class="bi bi-book me-2"></i>Page Glossary
             <i class="bi bi-chevron-down float-end"></i>
         </div>

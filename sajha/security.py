@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v5.1.0 — Security Module
+SAJHA MCP Server v5.2.0 — Security Module
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Centralized security: password hashing, API key hashing, rate limiting,
@@ -142,14 +142,17 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers['X-XSS-Protection'] = '1; mode=block'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
-        # CSP: allow self, inline styles (Bootstrap), CDN scripts
+        # CSP: all JS/CSS/fonts are vendored under /static/vendor, so the policy
+        # stays self-only — no third-party origins to drift out of sync with.
+        # 'unsafe-inline' remains for inline <script>/<style> in templates; the
+        # upgrade path is per-request nonces. ws:/wss: is for the Socket.IO transport.
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
-            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; "
-            "font-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.gstatic.com; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "font-src 'self'; "
             "img-src 'self' data:; "
-            "connect-src 'self'"
+            "connect-src 'self' ws: wss:"
         )
         # HSTS only if request came over HTTPS
         if request.url.scheme == 'https':

@@ -1,69 +1,74 @@
-# SAJHA MCP Server v4.5.0 — Dependencies
+# SAJHA MCP Server v5.2.0 — Dependencies
 # Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 #
 # Install: pip install -r requirements.txt
+#
+# Version policy: lower bound = minimum tested; upper bound = next major, to keep
+# `pip install` reproducible and prevent a breaking major release from landing on a
+# fresh install. For fully reproducible builds, generate a lockfile from a tested
+# environment: `pip freeze > requirements.lock.txt`.
 
 # ── Core Framework ───────────────────────────────────────────
-fastapi>=0.110.0
-uvicorn[standard]>=0.27.0
-pydantic>=2.5.0
-pydantic-settings>=2.1.0
-python-multipart>=0.0.6
-jinja2>=3.1.0
+fastapi>=0.110.0,<1.0.0
+uvicorn[standard]>=0.27.0,<1.0.0
+pydantic>=2.5.0,<3.0.0
+pydantic-settings>=2.1.0,<3.0.0
+python-multipart>=0.0.6,<1.0.0
+jinja2>=3.1.0,<4.0.0
 
 # ── Database ─────────────────────────────────────────────────
-sqlalchemy>=2.0.25
+sqlalchemy>=2.0.25,<3.0.0
 
 # ── PostgreSQL Driver (needed when db.type=postgresql) ───────
-psycopg2-binary>=2.9.9
-# Alternative: psycopg[binary]>=3.1.0
+psycopg2-binary>=2.9.9,<3.0.0
+# Alternative: psycopg[binary]>=3.1.0,<4.0.0
 
 # ── MySQL Driver (needed for MCP Studio DB Query tools) ──────
-pymysql>=1.1.0
+pymysql>=1.1.0,<2.0.0
 
 # ── Authentication ───────────────────────────────────────────
-python-jose[cryptography]>=3.3.0
-bcrypt>=4.0.0
+python-jose[cryptography]>=3.3.0,<4.0.0
+bcrypt>=4.0.0,<5.0.0
 
 # ── MCP Transport (SSE) ─────────────────────────────────────
-sse-starlette>=1.8.0
+sse-starlette>=1.8.0,<3.0.0
 
 # ── HTTP Clients ─────────────────────────────────────────────
-httpx>=0.26.0
-requests>=2.31.0
+httpx>=0.26.0,<1.0.0
+requests>=2.31.0,<3.0.0
 
 # ── Schema, Config & Utilities ───────────────────────────────
-jsonschema>=4.19.0
-python-dotenv>=1.0.0
-pyyaml>=6.0
+jsonschema>=4.19.0,<5.0.0
+python-dotenv>=1.0.0,<2.0.0
+pyyaml>=6.0,<7.0
 
 # ── Analytics ────────────────────────────────────────────────
-duckdb>=1.0.0
+duckdb>=1.0.0,<2.0.0
 
 # ── Financial Data: Yahoo Finance (35 yfinance_* tools) ──────
-yfinance>=0.2.36
+yfinance>=0.2.36,<0.3.0
 
 # ── Financial Data: OpenBB Platform (70 openbb_* tools) ──────
 # Core SDK + data providers installed via extras.
 # Install all providers:
 #   pip install "openbb[all]"
 # Or pick specific ones:
-openbb[yfinance,fmp,fred,sec,ecb,imf,oecd,worldbank,alpha_vantage,benzinga,intrinio,polygon,tiingo,tradingeconomics,nasdaq]>=4.3.0
+openbb[yfinance,fmp,fred,sec,ecb,imf,oecd,worldbank,alpha_vantage,benzinga,intrinio,polygon,tiingo,tradingeconomics,nasdaq]>=4.3.0,<5.0.0
 
 # ── Testing ──────────────────────────────────────────────────
-pytest>=7.4.0
-pytest-asyncio>=0.23.0
+pytest>=7.4.0,<9.0.0
+pytest-asyncio>=0.23.0,<1.0.0
 
 # ── AI Integration: LLM Provider SDKs ────────────────────────
-anthropic>=0.39.0                   # Claude API (official SDK)
-openai>=1.50.0                      # OpenAI GPT + embeddings (official SDK)
-together>=1.3.0                     # Together.ai open-source models
-ollama>=0.4.0                       # Ollama local models
+anthropic>=0.39.0,<1.0.0            # Claude API (official SDK)
+openai>=1.50.0,<2.0.0              # OpenAI GPT + embeddings (official SDK)
+together>=1.3.0,<2.0.0             # Together.ai open-source models
+ollama>=0.4.0,<1.0.0              # Ollama local models
 # boto3 already listed above for AWS/S3 — also covers Bedrock
 
 # ── v4.5.0: Observability (optional — falls back to built-in metrics) ─
-# opentelemetry-api>=1.20.0
-# opentelemetry-sdk>=1.20.0
-# opentelemetry-exporter-otlp>=1.20.0
+# opentelemetry-api>=1.20.0,<2.0.0
+# opentelemetry-sdk>=1.20.0,<2.0.0
+# opentelemetry-exporter-otlp>=1.20.0,<2.0.0
 # Uncomment above for OTEL trace/metric export to Datadog/Grafana/Splunk
-psutil>=5.9.0  # System monitoring (optional)
+psutil>=5.9.0,<8.0.0  # System monitoring (optional)

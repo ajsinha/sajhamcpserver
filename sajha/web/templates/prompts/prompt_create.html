@@ -49,7 +49,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="col-md-8">
                     <!-- Basic Information -->
                     <div class="card mb-4">
-                        <div class="card-header bg-primary text-white">
+                        <div class="card-header card-header-primary">
                             <h5 class="mb-0"><i class="bi bi-info-circle"></i> Basic Information</h5>
                         </div>
                         <div class="card-body">
@@ -105,7 +105,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
                     <!-- Prompt Template -->
                     <div class="card mb-4">
-                        <div class="card-header bg-success text-white">
+                        <div class="card-header card-header-success">
                             <h5 class="mb-0"><i class="bi bi-file-text"></i> Prompt Template</h5>
                         </div>
                         <div class="card-body">
@@ -129,7 +129,7 @@ Provide feedback on:
 
                     <!-- Arguments -->
                     <div class="card mb-4">
-                        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                        <div class="card-header card-header-info d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="bi bi-list-check"></i> Arguments</h5>
                             <button type="button" class="btn btn-sm btn-light" onclick="addArgument()">
                                 <i class="bi bi-plus"></i> Add Argument
@@ -147,7 +147,7 @@ Provide feedback on:
                 <div class="col-md-4">
                     <!-- Actions -->
                     <div class="card mb-4 sticky-top" style="top: 20px;">
-                        <div class="card-header bg-dark text-white">
+                        <div class="card-header card-header-secondary">
                             <h6 class="mb-0"><i class="bi bi-lightning"></i> Actions</h6>
                         </div>
                         <div class="card-body">
@@ -167,7 +167,7 @@ Provide feedback on:
 
                     <!-- Tips -->
                     <div class="card">
-                        <div class="card-header bg-warning">
+                        <div class="card-header card-header-warning">
                             <h6 class="mb-0"><i class="bi bi-lightbulb"></i> Tips</h6>
                         </div>
                         <div class="card-body">
@@ -189,7 +189,7 @@ Provide feedback on:
     <!-- JSON Mode -->
     <div id="jsonModeContainer" style="display: none;">
         <div class="card">
-            <div class="card-header bg-dark text-white">
+            <div class="card-header card-header-secondary">
                 <h5 class="mb-0"><i class="bi bi-code-square"></i> JSON Editor</h5>
             </div>
             <div class="card-body">
@@ -234,7 +234,7 @@ Provide feedback on:
 
 <!-- Preview Section (replaced modal) -->
 <div id="previewSection" class="card mt-3 d-none">
-    <div class="card-header bg-info text-white d-flex justify-content-between"><span><i class="bi bi-eye me-2"></i>Prompt Preview (JSON)</span><button class="btn btn-sm btn-outline-light" onclick="this.closest('.card').classList.add('d-none')">Close</button></div>
+    <div class="card-header card-header-info d-flex justify-content-between"><span><i class="bi bi-eye me-2"></i>Prompt Preview (JSON)</span><button class="btn btn-sm btn-outline-light" onclick="this.closest('.card').classList.add('d-none')">Close</button></div>
     <div class="card-body"><pre id="previewContent" class="bg-dark text-light p-3 rounded" style="max-height:400px;overflow:auto"></pre></div>
 </div>
 
@@ -243,7 +243,7 @@ Provide feedback on:
 {% block page_glossary %}
 <div class="container-fluid mt-4">
     <div class="card border-secondary">
-        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
+        <div class="card-header card-header-secondary" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
             <i class="bi bi-book me-2"></i>Page Glossary
             <i class="bi bi-chevron-down float-end"></i>
         </div>

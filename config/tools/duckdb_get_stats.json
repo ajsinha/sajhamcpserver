@@ -4,7 +4,7 @@
   "description": "Get statistical summary for numeric columns in a table (count, mean, std, min, max, percentiles)",
   "version": "2.9.8",
   "enabled": true,
-  "data_directory": "${data.duckdb.dir}",
+  "data_directory": "${data.duckdb.dir:./data/duckdb}",
   "inputSchema": {
     "type": "object",
     "properties": {

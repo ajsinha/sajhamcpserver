@@ -1,33 +1,99 @@
 {% extends "common/base.html" %}
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+About page — single-pass, theme-driven (var(--t-*) surfaces, card-header-* helpers).
+Each section appears exactly once. No hardcoded structural colors.
 -->
 {% block title %}About - SAJHA MCP Server{% endblock %}
 
 {% block content %}
 <div class="container py-4">
-    <!-- Page Header -->
+
+    <!-- ── Hero ───────────────────────────────────────────────── -->
     <div class="row mb-4">
-        <div class="col-12">
-            <div class="welcome-banner">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-info-circle-fill me-3" style="font-size: 2.5rem;"></i>
+        <div class="col-12 text-center">
+            <i class="bi bi-diagram-3" style="font-size:2.75rem;color:var(--t-link)"></i>
+            <h1 class="mt-2 mb-1" style="color:var(--t-heading)">About SAJHA MCP Server</h1>
+            <p class="text-muted mb-2">A Production-Grade Model Context Protocol Implementation</p>
+            <div>
+                <span class="badge text-bg-success">v{{ app_version }} · Stable</span>
+                <span class="badge text-bg-primary">FastAPI</span>
+                <span class="badge text-bg-info">MCP 2025-11-25</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Overview + Meaning of SAJHA ────────────────────────── -->
+    <div class="row mb-4 g-4">
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header card-header-primary"><i class="bi bi-journal-text me-2"></i>Overview</div>
+                <div class="card-body">
+                    <p>SAJHA MCP Server is a comprehensive Python implementation of the <strong>Model Context Protocol (MCP)</strong> built on <strong>FastAPI</strong>. It serves <strong>497 tools</strong> across financial markets, government data, search engines, analytics, and enterprise integrations through a single MCP-compliant endpoint.</p>
+                    <p class="mb-0">The server supports <strong>three transports</strong> (HTTP POST, SSE, WebSocket), an <strong>embedded LLM gateway</strong> with 6 providers, <strong>semantic tool discovery</strong>, <strong>composite tool orchestration</strong>, <strong>OpenTelemetry</strong>, <strong>multi-tenancy</strong>, and a <strong>plugin system</strong>. Version {{ app_version }} is fully compliant with <strong>MCP 2025-11-25</strong> — Tasks, Elicitation, Sampling with tool calling, tool icons, and Origin validation for Streamable HTTP.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header card-header-info"><i class="bi bi-translate me-2"></i>The Meaning of SAJHA</div>
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle d-none d-sm-inline-flex align-items-center justify-content-center me-3 flex-shrink-0" style="width:84px;height:84px;background:var(--t-card-hdr)">
+                        <span style="font-size:2rem;font-family:'Noto Sans Devanagari',sans-serif;color:var(--t-link)">साझा</span>
+                    </div>
                     <div>
-                        <h2 class="mb-1">About SAJHA MCP Server</h2>
-                        <p class="mb-0 opacity-75">A Production-Grade Model Context Protocol Implementation</p>
+                        <p class="small mb-2"><strong>SAJHA</strong> (Hindi: साझा, Urdu: ساجھا) means <em>"shared," "common," "mutual,"</em> or <em>"collaborative."</em></p>
+                        <p class="small mb-0">True to its name, SAJHA is a <em>shared bridge</em> between AI systems and the world's data — democratizing access to hundreds of tools through one standardized protocol, with collaborative tool creation via MCP Studio.</p>
                     </div>
                 </div>
             </div>
-        
-    
-    
-    <!-- AI & Enterprise Competitive Advantages -->
+        </div>
+    </div>
+
+    <!-- ── Core Capabilities ──────────────────────────────────── -->
     <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-secondary"><i class="bi bi-lightning-charge me-2"></i>Core Capabilities</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% set caps = [
+                            ('bi-check2-all','text-success','Full MCP Compliance','15 MCP methods, protocol version 2025-11-25, 8 capabilities declared, JSON-RPC 2.0.'),
+                            ('bi-arrows-angle-contract','text-info','Three Transports','HTTP POST (/mcp), SSE (/mcp/sse), and WebSocket (/mcp/ws) — full-duplex bidirectional.'),
+                            ('bi-tools','text-warning','497 Built-in Tools','FMP, OpenBB, FRED, Yahoo Finance, Alpha Vantage, CoinGecko, SEC EDGAR, central banks, and more.'),
+                            ('bi-robot','text-primary','A2A Protocol','Agent-to-Agent interoperability with auto-generated agent card and task lifecycle.'),
+                            ('bi-display','text-info','Web Interface','Full admin UI with four themes, dashboards, reporting, and docs viewer.'),
+                            ('bi-arrow-repeat','text-success','Hot-Reload','Zero-restart config updates for tools, prompts, users, and API keys.'),
+                            ('bi-shield-lock','text-danger','Multi-Layer Auth','JWT, API Key, Session Cookie, and OAuth (Azure AD, Okta, Auth0, Keycloak).'),
+                            ('bi-magic','text-primary','MCP Studio','9 visual tool creators: Python, REST, DB Query, Script, PowerBI, DAX, LiveLink, SharePoint, OLAP.'),
+                            ('bi-bar-chart-line','text-success','Reporting','6 report APIs, Chart.js dashboard, usage heatmaps, and audit logs.'),
+                            ('bi-cpu','text-info','LLM Gateway','6 AI providers (Anthropic, OpenAI, Bedrock, Together, Ollama, Azure). Registry factory.'),
+                            ('bi-boxes','text-warning','Composite Tools','Sibling (parallel) and Parent-Child (fan-out) patterns. Visual builder. Dynamic schemas.'),
+                            ('bi-graph-up','text-danger','OpenTelemetry','Per-tool p50/p95/p99 latency. Error spike alerts. Health probes. Optional OTEL export.'),
+                            ('bi-people','text-primary','Multi-Tenancy','Tenant-isolated tools, per-tenant quotas, data isolation, API key pools.'),
+                            ('bi-puzzle','text-success','Plugin System','Standardized plugin.json manifest. Drop directory → discover → validate → load.')
+                        ] %}
+                        {% for icon, color, title, desc in caps %}
+                        <div class="col-md-6 col-lg-3">
+                            <div class="h-100 p-2">
+                                <h6 class="mb-1"><i class="bi {{ icon }} me-2 {{ color }}"></i>{{ title }}</h6>
+                                <p class="text-muted small mb-0">{{ desc }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Four Differentiators ───────────────────────────────── -->
+    <div class="row mb-4 g-4">
         <div class="col-md-6">
             <div class="card h-100">
                 <div class="card-header card-header-info"><i class="bi bi-cpu me-2"></i>AI/LLM Gateway — 6 Providers</div>
                 <div class="card-body">
-                    <p class="small">The only MCP server with a built-in multi-provider LLM gateway:</p>
+                    <p class="small">A built-in multi-provider LLM gateway:</p>
                     <div class="row g-1 small">
                         <div class="col-6"><i class="bi bi-check text-success"></i> Anthropic (Claude)</div>
                         <div class="col-6"><i class="bi bi-check text-success"></i> OpenAI (GPT-4o)</div>
@@ -42,28 +108,24 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         </div>
         <div class="col-md-6">
             <div class="card h-100">
-                <div class="card-header" style="background:rgba(111,66,193,0.15);color:var(--t-heading)"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
+                <div class="card-header card-header-secondary"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
                 <div class="card-body">
                     <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
-                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace">
+                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace;color:var(--t-text)">
                         "find companies with high debt ratios"<br>
                         → fmp_key_metrics (0.89)<br>
                         → fmp_financial_ratios (0.85)<br>
                         → fmp_balance_sheet (0.82)
                     </div>
-                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search. No need to know exact tool names.</p>
+                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search.</p>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- MCP Studio & Composite Builder -->
-    <div class="row mb-4">
         <div class="col-md-6">
             <div class="card h-100">
                 <div class="card-header card-header-primary"><i class="bi bi-palette me-2"></i>MCP Studio — Visual Tool Designer</div>
                 <div class="card-body">
-                    <p class="small">The only MCP server with a visual tool creation platform. Create tools without writing JSON configs:</p>
+                    <p class="small">A visual tool creation platform — build tools without writing JSON configs:</p>
                     <div class="row g-2">
                         <div class="col-6"><small><i class="bi bi-code-slash me-1 text-primary"></i> Python functions</small></div>
                         <div class="col-6"><small><i class="bi bi-globe me-1 text-success"></i> REST API wrappers</small></div>
@@ -82,1303 +144,171 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="card h-100">
                 <div class="card-header card-header-warning"><i class="bi bi-boxes me-2"></i>Composite Builder — Visual Pipeline Designer</div>
                 <div class="card-body">
-                    <p class="small">The only MCP server where you can visually compose tool pipelines with mathematical confidence guarantees:</p>
+                    <p class="small">Visually compose tool pipelines with mathematical confidence guarantees:</p>
                     <ol class="small mb-0">
                         <li class="mb-1"><strong>Choose arrangement</strong> — Sibling (parallel) or Parent-Child (fan-out)</li>
                         <li class="mb-1"><strong>Set master tool</strong> — runs first, output feeds steps</li>
                         <li class="mb-1"><strong>Add steps</strong> — drag-and-drop ordering, <code>$.field</code> param mapping</li>
                         <li class="mb-1"><strong>Live flow diagram</strong> — SVG visualization updates in real-time</li>
-                        <li class="mb-1"><strong>Preview schemas</strong> — auto-generated input/output</li>
                         <li class="mb-1"><strong>Confidence preview</strong> — estimated entropy from EntropyGuard</li>
-                        <li><strong>Save & deploy</strong> — live on all transports in seconds, no restart</li>
+                        <li><strong>Save &amp; deploy</strong> — live on all transports in seconds, no restart</li>
                     </ol>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Production Features Card (v5.1.0) -->
+    <!-- ── Production Features ────────────────────────────────── -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v5.1.0)</div>
+                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v{{ app_version }})</div>
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-database me-2 text-info"></i>Tool Output Caching</h6>
-                            <p class="small mb-0">Per-tool opt-in via <code>cache_ttl</code> in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.</p>
+                        {% set feats = [
+                            ('bi-database','text-info','Tool Output Caching','Per-tool opt-in via cache_ttl in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.'),
+                            ('bi-lightning','text-warning','Circuit Breakers','16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.'),
+                            ('bi-bell','text-primary','Webhooks','Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.'),
+                            ('bi-skip-backward','text-success','Execution Replay','Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.'),
+                            ('bi-shield-check','text-danger','Structured Audit Log','11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.'),
+                            ('bi-terminal','text-secondary','Shell Tools (Sandboxed)','Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Disabled by default.'),
+                            ('bi-skip-forward-circle','text-primary','Async Execution','Background execution with an 8-thread worker pool. Delivery via webhook, Kafka, or filesystem. Bounded queue.'),
+                            ('bi-speedometer2','text-info','Rate Limiting','Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).')
+                        ] %}
+                        {% for icon, color, title, desc in feats %}
+                        <div class="col-md-6 col-lg-3">
+                            <h6 class="mb-1"><i class="bi {{ icon }} me-2 {{ color }}"></i>{{ title }}</h6>
+                            <p class="small mb-0">{{ desc }}</p>
                         </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-lightning me-2 text-warning"></i>Circuit Breakers</h6>
-                            <p class="small mb-0">16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-bell me-2 text-primary"></i>Webhooks</h6>
-                            <p class="small mb-0">Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-skip-backward me-2 text-success"></i>Execution Replay</h6>
-                            <p class="small mb-0">Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-shield-check me-2 text-danger"></i>Structured Audit Log</h6>
-                            <p class="small mb-0">11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-terminal me-2 text-dark"></i>Shell Tools (Sandboxed)</h6>
-                            <p class="small mb-0">Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Every execution audit-logged. Disabled by default.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Async Execution</h6>
-                            <p class="small mb-0">Submit tools for background execution. 8-thread worker pool. Result delivery via webhook, Kafka, or filesystem. Bounded queue with backpressure.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-speedometer2 me-2 text-info"></i>Rate Limiting</h6>
-                            <p class="small mb-0">Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).</p>
-                        </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Version & Overview -->
-    <div class="row mb-4">
-        <div class="col-md-4 mb-4">
-            <div class="card h-100 text-center">
-                <div class="card-body py-4">
-                    <i class="bi bi-gear-wide-connected" style="font-size: 3rem; color: var(--t-link);"></i>
-                    <h3 class="mt-3 mb-1">Version {{ app_version }}</h3>
-                    <p class="text-muted mb-0">Current Release</p>
-                </div>
-                <div class="card-footer bg-transparent">
-                    <span class="badge bg-success">Stable</span>
-                    <span class="badge bg-primary">FastAPI</span>
-                    <span class="badge bg-info">MCP 2025-11-25</span>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-8 mb-4">
-            <div class="card h-100">
-                <div class="card-header card-header-primary">
-                    <i class="bi bi-journal-text me-2"></i>Overview
-                </div>
-                <div class="card-body">
-                    <p>SAJHA MCP Server is a comprehensive Python implementation of the <strong>Model Context Protocol (MCP)</strong> built on <strong>FastAPI</strong>. It provides a standardized interface for AI tools and services, serving <strong>497 tools</strong> across financial markets, government data, search engines, analytics, and enterprise integrations through a single MCP-compliant endpoint.</p>
-                    <p class="mb-0">The server supports <strong>three transports</strong> (HTTP POST, SSE, WebSocket), includes an <strong>embedded LLM gateway</strong> with 6 AI providers, <strong>semantic tool discovery</strong>, <strong>composite tool orchestration</strong>, <strong>OpenTelemetry observability</strong>, <strong>multi-tenancy</strong>, a <strong>plugin system</strong>, and a full web UI with 12 interactive screens. Version 5.1.0 is fully compliant with <strong>MCP specification 2025-11-25</strong> — including Tasks (async tracking), Elicitation (form + URL modes), Sampling with tool calling, tool icons, and Origin validation for Streamable HTTP.</p>
-                </div>
-            </div>
-        
-    
-    
-    <!-- AI & Enterprise Competitive Advantages -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-info"><i class="bi bi-cpu me-2"></i>AI/LLM Gateway — 6 Providers</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server with a built-in multi-provider LLM gateway:</p>
-                    <div class="row g-1 small">
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Anthropic (Claude)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> OpenAI (GPT-4o)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> AWS Bedrock</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Together.ai</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Ollama (local)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Azure OpenAI</div>
-                    </div>
-                    <p class="small mt-2 mb-0">DB-managed models. User preferences. Registry-based factory for custom providers.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header" style="background:rgba(111,66,193,0.15);color:var(--t-heading)"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
-                <div class="card-body">
-                    <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
-                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace">
-                        "find companies with high debt ratios"<br>
-                        → fmp_key_metrics (0.89)<br>
-                        → fmp_financial_ratios (0.85)<br>
-                        → fmp_balance_sheet (0.82)
-                    </div>
-                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search. No need to know exact tool names.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MCP Studio & Composite Builder -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-primary"><i class="bi bi-palette me-2"></i>MCP Studio — Visual Tool Designer</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server with a visual tool creation platform. Create tools without writing JSON configs:</p>
-                    <div class="row g-2">
-                        <div class="col-6"><small><i class="bi bi-code-slash me-1 text-primary"></i> Python functions</small></div>
-                        <div class="col-6"><small><i class="bi bi-globe me-1 text-success"></i> REST API wrappers</small></div>
-                        <div class="col-6"><small><i class="bi bi-database me-1 text-info"></i> DB Query tools</small></div>
-                        <div class="col-6"><small><i class="bi bi-terminal me-1 text-warning"></i> Shell scripts</small></div>
-                        <div class="col-6"><small><i class="bi bi-bar-chart me-1 text-danger"></i> PowerBI / DAX</small></div>
-                        <div class="col-6"><small><i class="bi bi-folder me-1 text-secondary"></i> SharePoint / LiveLink</small></div>
-                        <div class="col-6"><small><i class="bi bi-hdd me-1 text-info"></i> OLAP / DuckDB</small></div>
-                        <div class="col-6"><small><i class="bi bi-lightbulb me-1 text-warning"></i> Examples gallery</small></div>
-                    </div>
-                    <p class="small mt-2 mb-0"><strong>9 creator types.</strong> Auto-schema generation. Live testing. Zero-restart deployment.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-warning"><i class="bi bi-boxes me-2"></i>Composite Builder — Visual Pipeline Designer</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server where you can visually compose tool pipelines with mathematical confidence guarantees:</p>
-                    <ol class="small mb-0">
-                        <li class="mb-1"><strong>Choose arrangement</strong> — Sibling (parallel) or Parent-Child (fan-out)</li>
-                        <li class="mb-1"><strong>Set master tool</strong> — runs first, output feeds steps</li>
-                        <li class="mb-1"><strong>Add steps</strong> — drag-and-drop ordering, <code>$.field</code> param mapping</li>
-                        <li class="mb-1"><strong>Live flow diagram</strong> — SVG visualization updates in real-time</li>
-                        <li class="mb-1"><strong>Preview schemas</strong> — auto-generated input/output</li>
-                        <li class="mb-1"><strong>Confidence preview</strong> — estimated entropy from EntropyGuard</li>
-                        <li><strong>Save & deploy</strong> — live on all transports in seconds, no restart</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Production Features Card (v5.1.0) -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v5.1.0)</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-database me-2 text-info"></i>Tool Output Caching</h6>
-                            <p class="small mb-0">Per-tool opt-in via <code>cache_ttl</code> in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-lightning me-2 text-warning"></i>Circuit Breakers</h6>
-                            <p class="small mb-0">16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-bell me-2 text-primary"></i>Webhooks</h6>
-                            <p class="small mb-0">Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-skip-backward me-2 text-success"></i>Execution Replay</h6>
-                            <p class="small mb-0">Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-shield-check me-2 text-danger"></i>Structured Audit Log</h6>
-                            <p class="small mb-0">11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-terminal me-2 text-dark"></i>Shell Tools (Sandboxed)</h6>
-                            <p class="small mb-0">Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Every execution audit-logged. Disabled by default.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Async Execution</h6>
-                            <p class="small mb-0">Submit tools for background execution. 8-thread worker pool. Result delivery via webhook, Kafka, or filesystem. Bounded queue with backpressure.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-speedometer2 me-2 text-info"></i>Rate Limiting</h6>
-                            <p class="small mb-0">Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MCP Compliance Card -->
+    <!-- ── MCP Compliance ─────────────────────────────────────── -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header card-header-success"><i class="bi bi-patch-check me-2"></i>MCP Specification Compliance</div>
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                         <div>
                             <h5 class="mb-0">Protocol Version: <strong>2025-11-25</strong> (latest)</h5>
                             <small class="text-muted">Released November 25, 2025 by the MCP Steering Group</small>
                         </div>
-                        <span class="badge bg-success px-3 py-2"><i class="bi bi-check-circle me-1"></i>Fully Compliant</span>
+                        <span class="badge text-bg-success px-3 py-2"><i class="bi bi-check-circle me-1"></i>Fully Compliant</span>
                     </div>
                     <div class="row g-3">
-                        <div class="col-md-3">
-                            <h6><i class="bi bi-clock-history me-2 text-primary"></i>Tasks (SEP-1686)</h6>
-                            <p class="small mb-0">Async tracking for long-running requests. Create, poll, cancel tasks. States: working → completed/failed/cancelled.</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h6><i class="bi bi-input-cursor-text me-2 text-success"></i>Elicitation (SEP-1330)</h6>
-                            <p class="small mb-0">Server-initiated user input. Form mode (structured JSON Schema forms) and URL mode (redirect to OAuth/consent pages).</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h6><i class="bi bi-cpu me-2 text-info"></i>Sampling + Tools (SEP-1577)</h6>
-                            <p class="small mb-0">Server-initiated LLM calls with tool definitions and toolChoice. Enables server-side agent loops.</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h6><i class="bi bi-image me-2 text-warning"></i>Icons (SEP-973)</h6>
-                            <p class="small mb-0">Icon metadata for tools, resources, and prompts. Supports URL and emoji icon types for richer UI rendering.</p>
-                        </div>
+                        <div class="col-md-3"><h6><i class="bi bi-clock-history me-2 text-primary"></i>Tasks (SEP-1686)</h6><p class="small mb-0">Async tracking for long-running requests. Create, poll, cancel. States: working → completed/failed/cancelled.</p></div>
+                        <div class="col-md-3"><h6><i class="bi bi-input-cursor-text me-2 text-success"></i>Elicitation (SEP-1330)</h6><p class="small mb-0">Server-initiated user input. Form mode (JSON Schema forms) and URL mode (OAuth/consent redirects).</p></div>
+                        <div class="col-md-3"><h6><i class="bi bi-cpu me-2 text-info"></i>Sampling + Tools (SEP-1577)</h6><p class="small mb-0">Server-initiated LLM calls with tool definitions and toolChoice. Enables server-side agent loops.</p></div>
+                        <div class="col-md-3"><h6><i class="bi bi-image me-2 text-warning"></i>Icons (SEP-973)</h6><p class="small mb-0">Icon metadata for tools, resources, and prompts. URL and emoji icon types for richer UI rendering.</p></div>
                     </div>
                     <hr>
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            <h6 class="text-muted small">TRANSPORT COMPLIANCE</h6>
-                            <p class="small mb-0">HTTP POST /mcp (stateless) · SSE /mcp/sse (Streamable HTTP with Origin validation, polling support) · WebSocket /mcp/ws (full-duplex). JSON-RPC 2.0 on all three. JSON Schema 2020-12 dialect.</p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-muted small">SECURITY COMPLIANCE</h6>
-                            <p class="small mb-0">Tool errors return isError:true (not protocol errors) for model self-correction. Origin header validation (HTTP 403). PKCE support. OAuth 2.1 flows. RBAC + API key + JWT + OAuth SSO.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-                </div>
-            </div>
-        
-    
-    
-    <!-- AI & Enterprise Competitive Advantages -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-info"><i class="bi bi-cpu me-2"></i>AI/LLM Gateway — 6 Providers</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server with a built-in multi-provider LLM gateway:</p>
-                    <div class="row g-1 small">
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Anthropic (Claude)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> OpenAI (GPT-4o)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> AWS Bedrock</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Together.ai</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Ollama (local)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Azure OpenAI</div>
-                    </div>
-                    <p class="small mt-2 mb-0">DB-managed models. User preferences. Registry-based factory for custom providers.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header" style="background:rgba(111,66,193,0.15);color:var(--t-heading)"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
-                <div class="card-body">
-                    <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
-                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace">
-                        "find companies with high debt ratios"<br>
-                        → fmp_key_metrics (0.89)<br>
-                        → fmp_financial_ratios (0.85)<br>
-                        → fmp_balance_sheet (0.82)
-                    </div>
-                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search. No need to know exact tool names.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MCP Studio & Composite Builder -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-primary"><i class="bi bi-palette me-2"></i>MCP Studio — Visual Tool Designer</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server with a visual tool creation platform. Create tools without writing JSON configs:</p>
-                    <div class="row g-2">
-                        <div class="col-6"><small><i class="bi bi-code-slash me-1 text-primary"></i> Python functions</small></div>
-                        <div class="col-6"><small><i class="bi bi-globe me-1 text-success"></i> REST API wrappers</small></div>
-                        <div class="col-6"><small><i class="bi bi-database me-1 text-info"></i> DB Query tools</small></div>
-                        <div class="col-6"><small><i class="bi bi-terminal me-1 text-warning"></i> Shell scripts</small></div>
-                        <div class="col-6"><small><i class="bi bi-bar-chart me-1 text-danger"></i> PowerBI / DAX</small></div>
-                        <div class="col-6"><small><i class="bi bi-folder me-1 text-secondary"></i> SharePoint / LiveLink</small></div>
-                        <div class="col-6"><small><i class="bi bi-hdd me-1 text-info"></i> OLAP / DuckDB</small></div>
-                        <div class="col-6"><small><i class="bi bi-lightbulb me-1 text-warning"></i> Examples gallery</small></div>
-                    </div>
-                    <p class="small mt-2 mb-0"><strong>9 creator types.</strong> Auto-schema generation. Live testing. Zero-restart deployment.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-warning"><i class="bi bi-boxes me-2"></i>Composite Builder — Visual Pipeline Designer</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server where you can visually compose tool pipelines with mathematical confidence guarantees:</p>
-                    <ol class="small mb-0">
-                        <li class="mb-1"><strong>Choose arrangement</strong> — Sibling (parallel) or Parent-Child (fan-out)</li>
-                        <li class="mb-1"><strong>Set master tool</strong> — runs first, output feeds steps</li>
-                        <li class="mb-1"><strong>Add steps</strong> — drag-and-drop ordering, <code>$.field</code> param mapping</li>
-                        <li class="mb-1"><strong>Live flow diagram</strong> — SVG visualization updates in real-time</li>
-                        <li class="mb-1"><strong>Preview schemas</strong> — auto-generated input/output</li>
-                        <li class="mb-1"><strong>Confidence preview</strong> — estimated entropy from EntropyGuard</li>
-                        <li><strong>Save & deploy</strong> — live on all transports in seconds, no restart</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Production Features Card (v5.1.0) -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v5.1.0)</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-database me-2 text-info"></i>Tool Output Caching</h6>
-                            <p class="small mb-0">Per-tool opt-in via <code>cache_ttl</code> in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-lightning me-2 text-warning"></i>Circuit Breakers</h6>
-                            <p class="small mb-0">16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-bell me-2 text-primary"></i>Webhooks</h6>
-                            <p class="small mb-0">Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-skip-backward me-2 text-success"></i>Execution Replay</h6>
-                            <p class="small mb-0">Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-shield-check me-2 text-danger"></i>Structured Audit Log</h6>
-                            <p class="small mb-0">11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-terminal me-2 text-dark"></i>Shell Tools (Sandboxed)</h6>
-                            <p class="small mb-0">Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Every execution audit-logged. Disabled by default.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Async Execution</h6>
-                            <p class="small mb-0">Submit tools for background execution. 8-thread worker pool. Result delivery via webhook, Kafka, or filesystem. Bounded queue with backpressure.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-speedometer2 me-2 text-info"></i>Rate Limiting</h6>
-                            <p class="small mb-0">Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).</p>
-                        </div>
+                        <div class="col-md-6"><h6 class="text-muted small">TRANSPORT COMPLIANCE</h6><p class="small mb-0">HTTP POST /mcp (stateless) · SSE /mcp/sse (Streamable HTTP with Origin validation) · WebSocket /mcp/ws (full-duplex). JSON-RPC 2.0 on all three. JSON Schema 2020-12 dialect.</p></div>
+                        <div class="col-md-6"><h6 class="text-muted small">SECURITY COMPLIANCE</h6><p class="small mb-0">Tool errors return isError:true (not protocol errors) for model self-correction. Origin header validation (HTTP 403). PKCE. OAuth 2.1. RBAC + API key + JWT + OAuth SSO.</p></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- The Meaning of SAJHA -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-info">
-                <div class="card-header bg-info text-white">
-                    <i class="bi bi-translate me-2"></i>The Meaning of SAJHA (साझा / ساجھا)
-                </div>
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-2 text-center mb-3 mb-md-0">
-                            <div class="rounded-circle bg-info bg-opacity-10 d-inline-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
-                                <span style="font-size: 2.5rem; font-family: 'Noto Sans Devanagari', sans-serif; color: #0dcaf0;">साझा</span>
-                            </div>
-                        </div>
-                        <div class="col-md-10">
-                            <h5 class="text-info mb-3"><strong>SAJHA</strong> (Hindi: साझा, Urdu: ساجھا) — "Shared" or "Common"</h5>
-                            <p><strong>SAJHA</strong> is a word from Hindi and Urdu meaning <em>"shared," "common," "mutual,"</em> or <em>"collaborative."</em> It embodies collective ownership, partnership, and working together. In South Asian cultures, <em>sajha</em> represents the spirit of community cooperation where resources and knowledge are shared for mutual benefit.</p>
-                            <p class="mb-0"><strong>How SAJHA MCP Server embodies this spirit:</strong> True to its name, SAJHA creates a <em>shared bridge</em> between AI systems and the world's data. It democratizes access to 497 financial, government, and enterprise tools through a single, standardized protocol. The server enables <em>collaborative tool creation</em> through MCP Studio, where teams can build and share custom integrations without deep coding. By providing hot-reload configuration, role-based access, and a zero-dependency client SDK, SAJHA fosters a <em>communal environment</em> where knowledge and capabilities flow freely between humans and AI.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        
-    
-    
-    <!-- AI & Enterprise Competitive Advantages -->
-    <div class="row mb-4">
-        <div class="col-md-6">
+    <!-- ── Tech Stack + System Stats ──────────────────────────── -->
+    <div class="row mb-4 g-4">
+        <div class="col-lg-6">
             <div class="card h-100">
-                <div class="card-header card-header-info"><i class="bi bi-cpu me-2"></i>AI/LLM Gateway — 6 Providers</div>
+                <div class="card-header card-header-secondary"><i class="bi bi-cpu me-2"></i>Technical Stack</div>
                 <div class="card-body">
-                    <p class="small">The only MCP server with a built-in multi-provider LLM gateway:</p>
-                    <div class="row g-1 small">
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Anthropic (Claude)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> OpenAI (GPT-4o)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> AWS Bedrock</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Together.ai</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Ollama (local)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Azure OpenAI</div>
-                    </div>
-                    <p class="small mt-2 mb-0">DB-managed models. User preferences. Registry-based factory for custom providers.</p>
+                    {% set stack = [
+                        ('Python 3.9+','Async-capable with modern type hints'),
+                        ('FastAPI + Uvicorn (ASGI)','High-performance async web framework'),
+                        ('Bootstrap 5 + Chart.js','Responsive UI with data visualization'),
+                        ('JSON-RPC 2.0 + SSE','MCP protocol communication'),
+                        ('SQLAlchemy + SQLite/PostgreSQL','ORM with pluggable database backends'),
+                        ('YAML Configuration','Single application.yml with env var substitution')
+                    ] %}
+                    {% for name, desc in stack %}
+                    <div class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>{{ name }}</strong><br><span class="text-muted small ms-4">{{ desc }}</span></div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-lg-6">
             <div class="card h-100">
-                <div class="card-header" style="background:rgba(111,66,193,0.15);color:var(--t-heading)"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
-                <div class="card-body">
-                    <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
-                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace">
-                        "find companies with high debt ratios"<br>
-                        → fmp_key_metrics (0.89)<br>
-                        → fmp_financial_ratios (0.85)<br>
-                        → fmp_balance_sheet (0.82)
-                    </div>
-                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search. No need to know exact tool names.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MCP Studio & Composite Builder -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-primary"><i class="bi bi-palette me-2"></i>MCP Studio — Visual Tool Designer</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server with a visual tool creation platform. Create tools without writing JSON configs:</p>
-                    <div class="row g-2">
-                        <div class="col-6"><small><i class="bi bi-code-slash me-1 text-primary"></i> Python functions</small></div>
-                        <div class="col-6"><small><i class="bi bi-globe me-1 text-success"></i> REST API wrappers</small></div>
-                        <div class="col-6"><small><i class="bi bi-database me-1 text-info"></i> DB Query tools</small></div>
-                        <div class="col-6"><small><i class="bi bi-terminal me-1 text-warning"></i> Shell scripts</small></div>
-                        <div class="col-6"><small><i class="bi bi-bar-chart me-1 text-danger"></i> PowerBI / DAX</small></div>
-                        <div class="col-6"><small><i class="bi bi-folder me-1 text-secondary"></i> SharePoint / LiveLink</small></div>
-                        <div class="col-6"><small><i class="bi bi-hdd me-1 text-info"></i> OLAP / DuckDB</small></div>
-                        <div class="col-6"><small><i class="bi bi-lightbulb me-1 text-warning"></i> Examples gallery</small></div>
-                    </div>
-                    <p class="small mt-2 mb-0"><strong>9 creator types.</strong> Auto-schema generation. Live testing. Zero-restart deployment.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-warning"><i class="bi bi-boxes me-2"></i>Composite Builder — Visual Pipeline Designer</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server where you can visually compose tool pipelines with mathematical confidence guarantees:</p>
-                    <ol class="small mb-0">
-                        <li class="mb-1"><strong>Choose arrangement</strong> — Sibling (parallel) or Parent-Child (fan-out)</li>
-                        <li class="mb-1"><strong>Set master tool</strong> — runs first, output feeds steps</li>
-                        <li class="mb-1"><strong>Add steps</strong> — drag-and-drop ordering, <code>$.field</code> param mapping</li>
-                        <li class="mb-1"><strong>Live flow diagram</strong> — SVG visualization updates in real-time</li>
-                        <li class="mb-1"><strong>Preview schemas</strong> — auto-generated input/output</li>
-                        <li class="mb-1"><strong>Confidence preview</strong> — estimated entropy from EntropyGuard</li>
-                        <li><strong>Save & deploy</strong> — live on all transports in seconds, no restart</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Production Features Card (v5.1.0) -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v5.1.0)</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-database me-2 text-info"></i>Tool Output Caching</h6>
-                            <p class="small mb-0">Per-tool opt-in via <code>cache_ttl</code> in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-lightning me-2 text-warning"></i>Circuit Breakers</h6>
-                            <p class="small mb-0">16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-bell me-2 text-primary"></i>Webhooks</h6>
-                            <p class="small mb-0">Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-skip-backward me-2 text-success"></i>Execution Replay</h6>
-                            <p class="small mb-0">Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-shield-check me-2 text-danger"></i>Structured Audit Log</h6>
-                            <p class="small mb-0">11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-terminal me-2 text-dark"></i>Shell Tools (Sandboxed)</h6>
-                            <p class="small mb-0">Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Every execution audit-logged. Disabled by default.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Async Execution</h6>
-                            <p class="small mb-0">Submit tools for background execution. 8-thread worker pool. Result delivery via webhook, Kafka, or filesystem. Bounded queue with backpressure.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-speedometer2 me-2 text-info"></i>Rate Limiting</h6>
-                            <p class="small mb-0">Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Core Capabilities -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-success">
-                    <i class="bi bi-lightning-charge me-2"></i>Core Capabilities
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-check2-all text-primary" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h5>Full MCP Compliance</h5>
-                                    <p class="text-muted small mb-0">15 MCP methods, protocol version 2025-11-25, 8 capabilities declared, JSON-RPC 2.0.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-arrows-angle-contract text-success" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h5>Three Transports</h5>
-                                    <p class="text-muted small mb-0">HTTP POST (<code>/mcp</code>), SSE (<code>/mcp/sse</code>), and WebSocket (<code>/mcp/ws</code>) — full-duplex bidirectional.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-tools text-warning" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h5>497 Built-in Tools</h5>
-                                    <p class="text-muted small mb-0">FMP, OpenBB, FRED, Yahoo Finance, Alpha Vantage, CoinGecko, SEC EDGAR, central banks, and more.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="rounded-circle bg-info bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-robot text-info" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h5>A2A Protocol</h5>
-                                    <p class="text-muted small mb-0">Agent-to-Agent interoperability with auto-generated agent card and task lifecycle.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-display text-danger" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h5>Web Interface</h5>
-                                    <p class="text-muted small mb-0">Full admin UI with light/dark themes, dashboards, reporting, and docs viewer.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="rounded-circle bg-secondary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-arrow-repeat text-secondary" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h5>Hot-Reload</h5>
-                                    <p class="text-muted small mb-0">Zero-restart config updates for tools, prompts, users, and API keys.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-shield-lock text-primary" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h5>Multi-Layer Auth</h5>
-                                    <p class="text-muted small mb-0">JWT, API Key, Session Cookie, and OAuth (Azure AD, Okta, Auth0, Keycloak).</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px; background: rgba(138, 43, 226, 0.1);">
-                                        <i class="bi bi-magic" style="font-size: 2rem; color: #8a2be2;"></i>
-                                    </div>
-                                    <h5>MCP Studio</h5>
-                                    <p class="text-muted small mb-0">7 visual tool creators: Python, REST, DB Query, Script, PowerBI Report, PowerBI DAX, LiveLink.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-bar-chart-line text-success" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h5>Reporting</h5>
-                                    <p class="text-muted small mb-0">6 report APIs, Chart.js dashboard, usage heatmaps, and audit logs.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="rounded-circle bg-info bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-cpu text-info" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h5>LLM Gateway</h5>
-                                    <p class="text-muted small mb-0">6 AI providers (Anthropic, OpenAI, Bedrock, Together, Ollama, Azure). Registry factory. DB-managed models.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-boxes text-warning" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h5>Composite Tools</h5>
-                                    <p class="text-muted small mb-0">Sibling (parallel) and Parent-Child (fan-out) patterns. Visual builder. Dynamic schemas.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-graph-up text-danger" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h5>OpenTelemetry</h5>
-                                    <p class="text-muted small mb-0">Per-tool p50/p95/p99 latency. Error spike alerts. Health probes. Optional OTEL SDK export.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-people text-primary" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h5>Multi-Tenancy</h5>
-                                    <p class="text-muted small mb-0">Tenant-isolated tools, per-tenant quotas, data isolation, API key pools.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-puzzle text-success" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h5>Plugin System</h5>
-                                    <p class="text-muted small mb-0">Standardized plugin.json manifest. Drop directory → discover → validate → load.</p>
-                                </div>
-                            </div>
-                        </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        
-    
-    
-    <!-- AI & Enterprise Competitive Advantages -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-info"><i class="bi bi-cpu me-2"></i>AI/LLM Gateway — 6 Providers</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server with a built-in multi-provider LLM gateway:</p>
-                    <div class="row g-1 small">
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Anthropic (Claude)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> OpenAI (GPT-4o)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> AWS Bedrock</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Together.ai</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Ollama (local)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Azure OpenAI</div>
-                    </div>
-                    <p class="small mt-2 mb-0">DB-managed models. User preferences. Registry-based factory for custom providers.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header" style="background:rgba(111,66,193,0.15);color:var(--t-heading)"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
-                <div class="card-body">
-                    <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
-                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace">
-                        "find companies with high debt ratios"<br>
-                        → fmp_key_metrics (0.89)<br>
-                        → fmp_financial_ratios (0.85)<br>
-                        → fmp_balance_sheet (0.82)
-                    </div>
-                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search. No need to know exact tool names.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MCP Studio & Composite Builder -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-primary"><i class="bi bi-palette me-2"></i>MCP Studio — Visual Tool Designer</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server with a visual tool creation platform. Create tools without writing JSON configs:</p>
-                    <div class="row g-2">
-                        <div class="col-6"><small><i class="bi bi-code-slash me-1 text-primary"></i> Python functions</small></div>
-                        <div class="col-6"><small><i class="bi bi-globe me-1 text-success"></i> REST API wrappers</small></div>
-                        <div class="col-6"><small><i class="bi bi-database me-1 text-info"></i> DB Query tools</small></div>
-                        <div class="col-6"><small><i class="bi bi-terminal me-1 text-warning"></i> Shell scripts</small></div>
-                        <div class="col-6"><small><i class="bi bi-bar-chart me-1 text-danger"></i> PowerBI / DAX</small></div>
-                        <div class="col-6"><small><i class="bi bi-folder me-1 text-secondary"></i> SharePoint / LiveLink</small></div>
-                        <div class="col-6"><small><i class="bi bi-hdd me-1 text-info"></i> OLAP / DuckDB</small></div>
-                        <div class="col-6"><small><i class="bi bi-lightbulb me-1 text-warning"></i> Examples gallery</small></div>
-                    </div>
-                    <p class="small mt-2 mb-0"><strong>9 creator types.</strong> Auto-schema generation. Live testing. Zero-restart deployment.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-warning"><i class="bi bi-boxes me-2"></i>Composite Builder — Visual Pipeline Designer</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server where you can visually compose tool pipelines with mathematical confidence guarantees:</p>
-                    <ol class="small mb-0">
-                        <li class="mb-1"><strong>Choose arrangement</strong> — Sibling (parallel) or Parent-Child (fan-out)</li>
-                        <li class="mb-1"><strong>Set master tool</strong> — runs first, output feeds steps</li>
-                        <li class="mb-1"><strong>Add steps</strong> — drag-and-drop ordering, <code>$.field</code> param mapping</li>
-                        <li class="mb-1"><strong>Live flow diagram</strong> — SVG visualization updates in real-time</li>
-                        <li class="mb-1"><strong>Preview schemas</strong> — auto-generated input/output</li>
-                        <li class="mb-1"><strong>Confidence preview</strong> — estimated entropy from EntropyGuard</li>
-                        <li><strong>Save & deploy</strong> — live on all transports in seconds, no restart</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Production Features Card (v5.1.0) -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v5.1.0)</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-database me-2 text-info"></i>Tool Output Caching</h6>
-                            <p class="small mb-0">Per-tool opt-in via <code>cache_ttl</code> in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-lightning me-2 text-warning"></i>Circuit Breakers</h6>
-                            <p class="small mb-0">16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-bell me-2 text-primary"></i>Webhooks</h6>
-                            <p class="small mb-0">Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-skip-backward me-2 text-success"></i>Execution Replay</h6>
-                            <p class="small mb-0">Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-shield-check me-2 text-danger"></i>Structured Audit Log</h6>
-                            <p class="small mb-0">11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-terminal me-2 text-dark"></i>Shell Tools (Sandboxed)</h6>
-                            <p class="small mb-0">Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Every execution audit-logged. Disabled by default.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Async Execution</h6>
-                            <p class="small mb-0">Submit tools for background execution. 8-thread worker pool. Result delivery via webhook, Kafka, or filesystem. Bounded queue with backpressure.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-speedometer2 me-2 text-info"></i>Rate Limiting</h6>
-                            <p class="small mb-0">Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Technical Specifications -->
-    <div class="row mb-4">
-        <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header card-header-secondary">
-                    <i class="bi bi-cpu me-2"></i>Technical Stack
-                </div>
-                <div class="card-body">
-                    <ul class="list-unstyled mb-0">
-                        <li class="mb-3">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                <strong>Python 3.9+</strong>
-                            </div>
-                            <small class="text-muted ms-4">Async-capable with modern type hints</small>
-                        </li>
-                        <li class="mb-3">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                <strong>FastAPI + Uvicorn (ASGI)</strong>
-                            </div>
-                            <small class="text-muted ms-4">High-performance async web framework</small>
-                        </li>
-                        <li class="mb-3">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                <strong>Bootstrap 5 + Chart.js</strong>
-                            </div>
-                            <small class="text-muted ms-4">Responsive UI with data visualization</small>
-                        </li>
-                        <li class="mb-3">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                <strong>JSON-RPC 2.0 + SSE</strong>
-                            </div>
-                            <small class="text-muted ms-4">MCP protocol communication</small>
-                        </li>
-                        <li class="mb-3">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                <strong>SQLAlchemy + SQLite/PostgreSQL</strong>
-                            </div>
-                            <small class="text-muted ms-4">ORM with pluggable database backends</small>
-                        </li>
-                        <li class="mb-0">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                <strong>YAML Configuration</strong>
-                            </div>
-                            <small class="text-muted ms-4">Single <code>application.yml</code> with env var substitution</small>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header card-header-info">
-                    <i class="bi bi-diagram-3 me-2"></i>System Stats
-                </div>
-                <div class="card-body">
+                <div class="card-header card-header-info"><i class="bi bi-diagram-3 me-2"></i>System Stats</div>
+                <div class="card-body p-0">
                     <table class="table table-sm mb-0">
                         <tbody>
                             <tr><td>Tools loaded</td><td class="text-end"><strong>497</strong></td></tr>
                             <tr><td>Tool JSON configs</td><td class="text-end"><strong>501</strong></td></tr>
                             <tr><td>Route modules</td><td class="text-end"><strong>13</strong></td></tr>
                             <tr><td>API endpoints</td><td class="text-end"><strong>79+</strong></td></tr>
-                            <tr><td>MCP methods</td><td class="text-end"><strong>12</strong></td></tr>
-                            <tr><td>Templates</td><td class="text-end"><strong>39</strong></td></tr>
-                            <tr><td>ORM models</td><td class="text-end"><strong>8</strong></td></tr>
-                            <tr><td>DAO classes</td><td class="text-end"><strong>7</strong></td></tr>
-                            <tr><td>Database tables</td><td class="text-end"><strong>9</strong></td></tr>
-                            <tr><td>Tests</td><td class="text-end"><strong>120</strong></td></tr>
-                            <tr><td>Studio creators</td><td class="text-end"><strong>7</strong></td></tr>
+                            <tr><td>MCP methods</td><td class="text-end"><strong>15</strong></td></tr>
+                            <tr><td>Studio creators</td><td class="text-end"><strong>9</strong></td></tr>
                             <tr><td>Auth methods</td><td class="text-end"><strong>4</strong></td></tr>
+                            <tr><td>CSS themes</td><td class="text-end"><strong>4</strong></td></tr>
+                            <tr><td>Tests</td><td class="text-end"><strong>120</strong></td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-        
-    
-    
-    <!-- AI & Enterprise Competitive Advantages -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-info"><i class="bi bi-cpu me-2"></i>AI/LLM Gateway — 6 Providers</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server with a built-in multi-provider LLM gateway:</p>
-                    <div class="row g-1 small">
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Anthropic (Claude)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> OpenAI (GPT-4o)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> AWS Bedrock</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Together.ai</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Ollama (local)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Azure OpenAI</div>
-                    </div>
-                    <p class="small mt-2 mb-0">DB-managed models. User preferences. Registry-based factory for custom providers.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header" style="background:rgba(111,66,193,0.15);color:var(--t-heading)"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
-                <div class="card-body">
-                    <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
-                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace">
-                        "find companies with high debt ratios"<br>
-                        → fmp_key_metrics (0.89)<br>
-                        → fmp_financial_ratios (0.85)<br>
-                        → fmp_balance_sheet (0.82)
-                    </div>
-                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search. No need to know exact tool names.</p>
-                </div>
-            </div>
         </div>
     </div>
 
-    <!-- MCP Studio & Composite Builder -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-primary"><i class="bi bi-palette me-2"></i>MCP Studio — Visual Tool Designer</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server with a visual tool creation platform. Create tools without writing JSON configs:</p>
-                    <div class="row g-2">
-                        <div class="col-6"><small><i class="bi bi-code-slash me-1 text-primary"></i> Python functions</small></div>
-                        <div class="col-6"><small><i class="bi bi-globe me-1 text-success"></i> REST API wrappers</small></div>
-                        <div class="col-6"><small><i class="bi bi-database me-1 text-info"></i> DB Query tools</small></div>
-                        <div class="col-6"><small><i class="bi bi-terminal me-1 text-warning"></i> Shell scripts</small></div>
-                        <div class="col-6"><small><i class="bi bi-bar-chart me-1 text-danger"></i> PowerBI / DAX</small></div>
-                        <div class="col-6"><small><i class="bi bi-folder me-1 text-secondary"></i> SharePoint / LiveLink</small></div>
-                        <div class="col-6"><small><i class="bi bi-hdd me-1 text-info"></i> OLAP / DuckDB</small></div>
-                        <div class="col-6"><small><i class="bi bi-lightbulb me-1 text-warning"></i> Examples gallery</small></div>
-                    </div>
-                    <p class="small mt-2 mb-0"><strong>9 creator types.</strong> Auto-schema generation. Live testing. Zero-restart deployment.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-warning"><i class="bi bi-boxes me-2"></i>Composite Builder — Visual Pipeline Designer</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server where you can visually compose tool pipelines with mathematical confidence guarantees:</p>
-                    <ol class="small mb-0">
-                        <li class="mb-1"><strong>Choose arrangement</strong> — Sibling (parallel) or Parent-Child (fan-out)</li>
-                        <li class="mb-1"><strong>Set master tool</strong> — runs first, output feeds steps</li>
-                        <li class="mb-1"><strong>Add steps</strong> — drag-and-drop ordering, <code>$.field</code> param mapping</li>
-                        <li class="mb-1"><strong>Live flow diagram</strong> — SVG visualization updates in real-time</li>
-                        <li class="mb-1"><strong>Preview schemas</strong> — auto-generated input/output</li>
-                        <li class="mb-1"><strong>Confidence preview</strong> — estimated entropy from EntropyGuard</li>
-                        <li><strong>Save & deploy</strong> — live on all transports in seconds, no restart</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Production Features Card (v5.1.0) -->
+    <!-- ── Competitive Analysis ───────────────────────────────── -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v5.1.0)</div>
+                <div class="card-header card-header-warning"><i class="bi bi-bar-chart-line me-2"></i>Competitive Analysis</div>
                 <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-database me-2 text-info"></i>Tool Output Caching</h6>
-                            <p class="small mb-0">Per-tool opt-in via <code>cache_ttl</code> in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-lightning me-2 text-warning"></i>Circuit Breakers</h6>
-                            <p class="small mb-0">16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-bell me-2 text-primary"></i>Webhooks</h6>
-                            <p class="small mb-0">Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-skip-backward me-2 text-success"></i>Execution Replay</h6>
-                            <p class="small mb-0">Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-shield-check me-2 text-danger"></i>Structured Audit Log</h6>
-                            <p class="small mb-0">11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-terminal me-2 text-dark"></i>Shell Tools (Sandboxed)</h6>
-                            <p class="small mb-0">Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Every execution audit-logged. Disabled by default.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Async Execution</h6>
-                            <p class="small mb-0">Submit tools for background execution. 8-thread worker pool. Result delivery via webhook, Kafka, or filesystem. Bounded queue with backpressure.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-speedometer2 me-2 text-info"></i>Rate Limiting</h6>
-                            <p class="small mb-0">Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Competitive Analysis -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-warning">
-                    <i class="bi bi-bar-chart-line me-2"></i>Competitive Analysis
-                </div>
-                <div class="card-body">
-                    <p class="mb-4">SAJHA MCP Server in the MCP ecosystem:</p>
-                    <div class="table-responsive mb-4">
-                        <table class="table table-bordered table-hover">
-                            <thead class="table-primary">
-                                <tr>
-                                    <th>Feature</th>
-                                    <th class="text-center"><i class="bi bi-star-fill text-warning"></i> SAJHA v{{ app_version }}</th>
-                                    <th class="text-center">Typical MCP Servers</th>
-                                    <th class="text-center">Claude Desktop</th>
-                                </tr>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-3">
+                            <thead>
+                                <tr><th>Feature</th><th><i class="bi bi-star-fill text-warning me-1"></i>SAJHA v{{ app_version }}</th><th>Typical MCP Server</th></tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td><strong>Framework</strong></td>
-                                    <td class="text-center"><span class="badge bg-success">FastAPI (ASGI)</span></td>
-                                    <td class="text-center"><span class="badge bg-secondary">Varies</span></td>
-                                    <td class="text-center"><span class="badge bg-secondary">Desktop App</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Built-in Tools</strong></td>
-                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> 497 Tools</td>
-                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> 1–10</td>
-                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> External Only</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>MCP Protocol</strong></td>
-                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> 15 methods, v2025-11-25</td>
-                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> Partial</td>
-                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Client-side</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>A2A Protocol</strong></td>
-                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Agent card + Tasks</td>
-                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i></td>
-                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Web UI</strong></td>
-                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Full Admin UI</td>
-                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i></td>
-                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> Limited</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Visual Tool Creator</strong></td>
-                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> 7 Creator Types</td>
-                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i></td>
-                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Authentication</strong></td>
-                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> JWT + Key + OAuth</td>
-                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> Basic</td>
-                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> System-level</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Hot-Reload</strong></td>
-                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> All configs</td>
-                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> Restart</td>
-                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i> Restart</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Reporting</strong></td>
-                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Dashboard + 7 APIs</td>
-                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i></td>
-                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Client SDK</strong></td>
-                                    <td class="text-center text-success"><i class="bi bi-check-circle-fill"></i> Zero-dep Python</td>
-                                    <td class="text-center text-warning"><i class="bi bi-dash-circle"></i> Varies</td>
-                                    <td class="text-center text-danger"><i class="bi bi-x-circle"></i></td>
-                                </tr>
+                                {% set rows = [
+                                    ('Framework','FastAPI (ASGI)','Varies'),
+                                    ('Built-in Tools','497 Tools','1–10'),
+                                    ('MCP Protocol','15 methods, v2025-11-25','Partial'),
+                                    ('A2A Protocol','Agent card + Tasks','✗'),
+                                    ('Web UI','Full Admin UI','Limited'),
+                                    ('Visual Tool Creator','9 Creator Types','✗'),
+                                    ('Authentication','JWT + Key + OAuth','Basic'),
+                                    ('Hot-Reload','All configs','Restart required'),
+                                    ('Reporting','Dashboard + 7 APIs','✗'),
+                                    ('Client SDK','Zero-dep Python','Varies')
+                                ] %}
+                                {% for feature, sajha, typical in rows %}
+                                <tr><td><strong>{{ feature }}</strong></td><td><i class="bi bi-check-circle-fill text-success me-1"></i>{{ sajha }}</td><td class="text-muted">{{ typical }}</td></tr>
+                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
-
-                    <div class="alert alert-info mb-0">
-                        <i class="bi bi-lightbulb me-2"></i>
-                        <strong>Summary:</strong> SAJHA MCP Server is built for organizations that need a <em>production-grade, multi-user</em> MCP server with broad data coverage (497 tools), visual tool creation (MCP Studio), and enterprise auth — deployed from a single <code>python run_server.py</code> command.
-                    </div>
-                </div>
-            </div>
-        
-    
-    
-    <!-- AI & Enterprise Competitive Advantages -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-info"><i class="bi bi-cpu me-2"></i>AI/LLM Gateway — 6 Providers</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server with a built-in multi-provider LLM gateway:</p>
-                    <div class="row g-1 small">
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Anthropic (Claude)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> OpenAI (GPT-4o)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> AWS Bedrock</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Together.ai</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Ollama (local)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Azure OpenAI</div>
-                    </div>
-                    <p class="small mt-2 mb-0">DB-managed models. User preferences. Registry-based factory for custom providers.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header" style="background:rgba(111,66,193,0.15);color:var(--t-heading)"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
-                <div class="card-body">
-                    <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
-                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace">
-                        "find companies with high debt ratios"<br>
-                        → fmp_key_metrics (0.89)<br>
-                        → fmp_financial_ratios (0.85)<br>
-                        → fmp_balance_sheet (0.82)
-                    </div>
-                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search. No need to know exact tool names.</p>
+                    <p class="small mb-0"><i class="bi bi-lightbulb text-warning me-1"></i><strong>Summary:</strong> SAJHA is built for organizations that need a <em>production-grade, multi-user</em> MCP server with broad data coverage (497 tools), visual tool creation (MCP Studio), and enterprise auth — deployed from a single <code>python run_server.py</code> command.</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MCP Studio & Composite Builder -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-primary"><i class="bi bi-palette me-2"></i>MCP Studio — Visual Tool Designer</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server with a visual tool creation platform. Create tools without writing JSON configs:</p>
-                    <div class="row g-2">
-                        <div class="col-6"><small><i class="bi bi-code-slash me-1 text-primary"></i> Python functions</small></div>
-                        <div class="col-6"><small><i class="bi bi-globe me-1 text-success"></i> REST API wrappers</small></div>
-                        <div class="col-6"><small><i class="bi bi-database me-1 text-info"></i> DB Query tools</small></div>
-                        <div class="col-6"><small><i class="bi bi-terminal me-1 text-warning"></i> Shell scripts</small></div>
-                        <div class="col-6"><small><i class="bi bi-bar-chart me-1 text-danger"></i> PowerBI / DAX</small></div>
-                        <div class="col-6"><small><i class="bi bi-folder me-1 text-secondary"></i> SharePoint / LiveLink</small></div>
-                        <div class="col-6"><small><i class="bi bi-hdd me-1 text-info"></i> OLAP / DuckDB</small></div>
-                        <div class="col-6"><small><i class="bi bi-lightbulb me-1 text-warning"></i> Examples gallery</small></div>
-                    </div>
-                    <p class="small mt-2 mb-0"><strong>9 creator types.</strong> Auto-schema generation. Live testing. Zero-restart deployment.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-warning"><i class="bi bi-boxes me-2"></i>Composite Builder — Visual Pipeline Designer</div>
-                <div class="card-body">
-                    <p class="small">The only MCP server where you can visually compose tool pipelines with mathematical confidence guarantees:</p>
-                    <ol class="small mb-0">
-                        <li class="mb-1"><strong>Choose arrangement</strong> — Sibling (parallel) or Parent-Child (fan-out)</li>
-                        <li class="mb-1"><strong>Set master tool</strong> — runs first, output feeds steps</li>
-                        <li class="mb-1"><strong>Add steps</strong> — drag-and-drop ordering, <code>$.field</code> param mapping</li>
-                        <li class="mb-1"><strong>Live flow diagram</strong> — SVG visualization updates in real-time</li>
-                        <li class="mb-1"><strong>Preview schemas</strong> — auto-generated input/output</li>
-                        <li class="mb-1"><strong>Confidence preview</strong> — estimated entropy from EntropyGuard</li>
-                        <li><strong>Save & deploy</strong> — live on all transports in seconds, no restart</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Production Features Card (v5.1.0) -->
-    <div class="row mb-4">
+    <!-- ── Contact ────────────────────────────────────────────── -->
+    <div class="row mb-2">
         <div class="col-12">
             <div class="card">
-                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v5.1.0)</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-database me-2 text-info"></i>Tool Output Caching</h6>
-                            <p class="small mb-0">Per-tool opt-in via <code>cache_ttl</code> in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-lightning me-2 text-warning"></i>Circuit Breakers</h6>
-                            <p class="small mb-0">16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-bell me-2 text-primary"></i>Webhooks</h6>
-                            <p class="small mb-0">Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-skip-backward me-2 text-success"></i>Execution Replay</h6>
-                            <p class="small mb-0">Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-shield-check me-2 text-danger"></i>Structured Audit Log</h6>
-                            <p class="small mb-0">11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-terminal me-2 text-dark"></i>Shell Tools (Sandboxed)</h6>
-                            <p class="small mb-0">Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Every execution audit-logged. Disabled by default.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Async Execution</h6>
-                            <p class="small mb-0">Submit tools for background execution. 8-thread worker pool. Result delivery via webhook, Kafka, or filesystem. Bounded queue with backpressure.</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6><i class="bi bi-speedometer2 me-2 text-info"></i>Rate Limiting</h6>
-                            <p class="small mb-0">Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).</p>
-                        </div>
-                    </div>
+                <div class="card-header card-header-secondary"><i class="bi bi-c-circle me-2"></i>Copyright &amp; Contact</div>
+                <div class="card-body text-center">
+                    <p class="mb-1">Copyright © {{ app_copyright_years }} {{ app_author }}</p>
+                    <p class="text-muted small mb-3">All rights reserved. SAJHA MCP Server is proprietary software.</p>
+                    <a href="mailto:ajsinha@gmail.com" class="btn btn-sm btn-outline-primary me-2"><i class="bi bi-envelope me-1"></i>ajsinha@gmail.com</a>
+                    <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-box-arrow-up-right me-1"></i>MCP Spec</a>
+                    <a href="/docs" class="btn btn-sm btn-outline-secondary"><i class="bi bi-code-slash me-1"></i>OpenAPI Docs</a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Copyright & Contact -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-primary">
-                    <i class="bi bi-c-circle me-2"></i>Copyright & Contact
-                </div>
-                <div class="card-body text-center py-4">
-                    <h5 class="mb-3">Copyright © {{ app_copyright_years }} {{ app_author }}</h5>
-                    <p class="text-muted mb-4">All rights reserved. SAJHA MCP Server is proprietary software.</p>
-                    <div class="d-flex justify-content-center gap-3 flex-wrap">
-                        <a href="mailto:{{ app_email }}" class="btn btn-outline-primary">
-                            <i class="bi bi-envelope me-2"></i>{{ app_email }}
-                        </a>
-                        <a href="{{ app_github_repo }}" target="_blank" class="btn btn-outline-dark">
-                            <i class="bi bi-github me-2"></i>GitHub
-                        </a>
-                        <a href="https://modelcontextprotocol.io" target="_blank" class="btn btn-outline-secondary">
-                            <i class="bi bi-box-arrow-up-right me-2"></i>MCP Spec
-                        </a>
-                        <a href="/api/docs" target="_blank" class="btn btn-outline-info">
-                            <i class="bi bi-code-slash me-2"></i>OpenAPI Docs
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block page_glossary %}
-<div class="container-fluid mt-4">
-    <div class="card border-secondary">
-        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
-            <i class="bi bi-book me-2"></i>Page Glossary
-            <i class="bi bi-chevron-down float-end"></i>
-        </div>
-        <div class="collapse" id="pageGlossary">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>SAJHA:</strong> Hindi/Urdu word meaning "shared" or "collaborative." The name of this MCP server.</p>
-                        <p><strong>MCP (Model Context Protocol):</strong> A standardized protocol enabling AI systems to interact with external tools via JSON-RPC 2.0.</p>
-                        <p><strong>FastAPI:</strong> The async Python web framework powering SAJHA v3, replacing Flask from v2.</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>SSE (Server-Sent Events):</strong> One of two MCP transports supported, alongside HTTP POST.</p>
-                        <p><strong>A2A:</strong> Agent-to-Agent protocol for multi-agent orchestration.</p>
-                        <p><strong>MCP Studio:</strong> Visual tool creation platform with 7 creator types.</p>
-                    </div>
-                </div>
-                <div class="text-end mt-2">
-                    <a href="/docs/view/architecture/Glossary.md" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-book me-1"></i>View Full Glossary
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 {% endblock %}

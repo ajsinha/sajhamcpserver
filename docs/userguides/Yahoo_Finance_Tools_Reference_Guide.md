@@ -1,6 +1,6 @@
 # Yahoo Finance (yfinance) — Tool Reference Guide
 
-**Version:** 5.1.0 · **Tools:** 35 · **API Key Required:** No (free)
+**Version:** 5.2.0 · **Tools:** 35 · **API Key Required:** No (free)
 
 ---
 

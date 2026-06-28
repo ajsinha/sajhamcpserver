@@ -10,7 +10,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="sajhaclient",
-    version="5.1.0",
+    version="5.2.0",
     author="Ashutosh Sinha",
     author_email="ajsinha@gmail.com",
     description="Python Client SDK for SAJHA MCP Server — REST, MCP, and A2A protocols",

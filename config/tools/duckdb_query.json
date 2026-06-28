@@ -4,7 +4,7 @@
   "description": "Execute SQL queries on CSV, Parquet, and JSON files using DuckDB analytics engine. Query the customers, orders, and products tables directly with SQL.",
   "version": "2.9.8",
   "enabled": true,
-  "data_directory": "${data.duckdb.dir}",
+  "data_directory": "${data.duckdb.dir:./data/duckdb}",
   "auto_refresh_enabled": true,
   "auto_refresh_interval": 300,
   "inputSchema": {

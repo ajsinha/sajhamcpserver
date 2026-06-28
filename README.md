@@ -1,6 +1,6 @@
 # SAJHA MCP Server
 
-**Version 5.1.0** · FastAPI · Python 3.9+ · **MCP Protocol 2025-11-25** (latest)
+**Version 5.2.0** · FastAPI · Python 3.9+ · **MCP Protocol 2025-11-25** (latest)
 
 **Copyright © 2025–2030, Ashutosh Sinha** · ajsinha@gmail.com · [GitHub](https://github.com/ajsinha/sajhamcpserver)
 
@@ -171,7 +171,7 @@ assert bisimilar(HTTPTransport(config, auth), WSTransport(config, auth),
 | [Glossary](docs/architecture/Glossary.md) | 30+ terms defined |
 | [UX Audit](docs/UX_Audit_Report.md) | 22 recommendations (all implemented) |
 | [SDK User Guide](clientsdk/docs/USER_GUIDE.md) | Complete client SDK reference |
-| [Changelog](CHANGELOG.md) | v3.1.0 → v4.0.0 → v4.5.0 → v5.1.0 |
+| [Changelog](CHANGELOG.md) | v3.1.0 → v4.0.0 → v4.5.0 → v5.2.0 |
 | [Deployment](deployment/README.md) | AWS CDK, Hetzner, Bare Metal guides |
 
 50 markdown files, 45,000+ lines of documentation.

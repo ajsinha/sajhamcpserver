@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v5.1.0 — Authentication Manager
+SAJHA MCP Server v5.2.0 — Authentication Manager
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Database-backed authentication with bcrypt password hashing,

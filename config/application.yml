@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 5.1.0
+  version: 5.2.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   email: ajsinha@gmail.com

@@ -41,7 +41,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <!-- View Mode -->
             <div id="viewMode">
                 <div class="card mb-4">
-                    <div class="card-header bg-primary text-white">
+                    <div class="card-header card-header-primary">
                         <h5 class="mb-0"><i class="bi bi-info-circle"></i> Prompt Information</h5>
                     </div>
                     <div class="card-body">
@@ -91,7 +91,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
                 <!-- Template -->
                 <div class="card mb-4">
-                    <div class="card-header bg-success text-white">
+                    <div class="card-header card-header-success">
                         <h5 class="mb-0"><i class="bi bi-file-text"></i> Prompt Template</h5>
                     </div>
                     <div class="card-body">
@@ -101,7 +101,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
                 <!-- Arguments -->
                 <div class="card mb-4">
-                    <div class="card-header bg-info text-white">
+                    <div class="card-header card-header-info">
                         <h5 class="mb-0"><i class="bi bi-list-check"></i> Arguments ({{ prompt.arguments|length }})</h5>
                     </div>
                     <div class="card-body">
@@ -145,7 +145,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             {% if user and user.roles and 'admin' in user.roles %}
             <div id="editMode" style="display: none;">
                 <div class="card">
-                    <div class="card-header bg-warning">
+                    <div class="card-header card-header-warning">
                         <h5 class="mb-0"><i class="bi bi-pencil"></i> Edit Prompt JSON</h5>
                     </div>
                     <div class="card-body">
@@ -176,7 +176,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-4">
             <!-- Quick Stats -->
             <div class="card mb-4">
-                <div class="card-header bg-light">
+                <div class="card-header">
                     <h6 class="mb-0"><i class="bi bi-bar-chart"></i> Statistics</h6>
                 </div>
                 <div class="card-body">
@@ -201,7 +201,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
             <!-- Full JSON View -->
             <div class="card mb-4">
-                <div class="card-header bg-dark text-white">
+                <div class="card-header card-header-secondary">
                     <h6 class="mb-0"><i class="bi bi-code-square"></i> Full JSON</h6>
                 </div>
                 <div class="card-body">
@@ -214,7 +214,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
             <!-- Actions -->
             <div class="card">
-                <div class="card-header bg-light">
+                <div class="card-header">
                     <h6 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h6>
                 </div>
                 <div class="card-body">
@@ -242,7 +242,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 {% block page_glossary %}
 <div class="container-fluid mt-4">
     <div class="card border-secondary">
-        <div class="card-header bg-secondary text-white" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
+        <div class="card-header card-header-secondary" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
             <i class="bi bi-book me-2"></i>Page Glossary
             <i class="bi bi-chevron-down float-end"></i>
         </div>

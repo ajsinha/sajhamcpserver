@@ -1,8 +1,8 @@
-# SAJHA MCP Server v5.1.0 — MCP 2025-11-25 Compliance Report
+# SAJHA MCP Server v5.2.0 — MCP 2025-11-25 Compliance Report
 
 **Date:** May 2026
 **Protocol Version:** 2025-11-25 (latest released)
-**Server Version:** 5.1.0
+**Server Version:** 5.2.0
 **Verdict:** Fully Compliant — 18/18 items implemented
 
 Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
@@ -11,7 +11,7 @@ Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
 
 ## Summary
 
-SAJHA MCP Server v5.1.0 implements every Major and Minor change introduced in MCP specification version 2025-11-25 (released November 25, 2025). This document provides evidence for each compliance item, including the source files, line numbers, and verification methods.
+SAJHA MCP Server v5.2.0 implements every Major and Minor change introduced in MCP specification version 2025-11-25 (released November 25, 2025). This document provides evidence for each compliance item, including the source files, line numbers, and verification methods.
 
 | # | Feature | SEP | Status |
 |---|---------|-----|:------:|
@@ -440,5 +440,5 @@ curl -s -X POST http://localhost:3002/mcp -H "Content-Type: application/json" \
 
 ---
 
-*SAJHA MCP Server v5.1.0 — MCP 2025-11-25 Compliance Report*
+*SAJHA MCP Server v5.2.0 — MCP 2025-11-25 Compliance Report*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

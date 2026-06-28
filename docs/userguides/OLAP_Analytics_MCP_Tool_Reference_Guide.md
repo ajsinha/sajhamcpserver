@@ -2,7 +2,7 @@
 
 **Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com**
 
-## Version 5.1.0
+## Version 5.2.0
 
 ---
 
@@ -541,7 +541,7 @@ Pareto analysis with A/B/C classification.
 
 ## Cohort Analysis
 
-Cohort analysis is a powerful technique for understanding how groups of users behave over time. Version 5.1.0 includes two specialized tools for cohort and retention analysis.
+Cohort analysis is a powerful technique for understanding how groups of users behave over time. Version 5.2.0 includes two specialized tools for cohort and retention analysis.
 
 ### olap_cohort_analysis
 
@@ -633,7 +633,7 @@ Analyze what percentage of users from each cohort remain active in subsequent pe
 
 ## Sample Data Generator
 
-Version 5.1.0 includes a sample data generator for creating realistic demo datasets.
+Version 5.2.0 includes a sample data generator for creating realistic demo datasets.
 
 ### olap_generate_sample_data
 
@@ -842,5 +842,5 @@ See full API documentation at `/api/docs` or use the MCP Studio interface for in
 
 ---
 
-*Document Version: 5.1.0*
+*Document Version: 5.2.0*
 *Last Updated: February 2026*

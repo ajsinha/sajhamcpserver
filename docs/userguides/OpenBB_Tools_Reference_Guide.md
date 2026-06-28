@@ -1,6 +1,6 @@
 # OpenBB Platform — Tool Reference Guide
 
-**Version:** 5.1.0 · **Tools:** 70 · **API Key Required:** No (SDK-based, providers may need keys)
+**Version:** 5.2.0 · **Tools:** 70 · **API Key Required:** No (SDK-based, providers may need keys)
 
 ---
 

@@ -5,7 +5,7 @@
     "version": "2.9.8",
     "enabled": true,
     "implementation": "sajha.tools.impl.duckdb_olap_advanced.CustomerOLAPTool",
-    "data_directory": "${data.duckdb.dir}",
+    "data_directory": "${data.duckdb.dir:./data/duckdb}",
     "inputSchema": {
         "type": "object",
         "properties": {
