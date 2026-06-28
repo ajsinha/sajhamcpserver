@@ -35,7 +35,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <a href="#main-content" class="skip-link">Skip to content</a>
     {% include "common/_icons.html" ignore missing %}
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
             <a class="navbar-brand" style="display:flex;align-items:center;gap:6px" href="{{ url_for('dashboard') }}">
                 <svg class="sajha-icon" style="width:22px;height:22px"><use href="#icon-sajha"/></svg> SAJHA MCP Server
@@ -155,6 +155,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <li><a class="dropdown-item" href="{{ url_for('admin_prompts') }}"><i class="bi bi-chat-square-text me-2"></i>Manage Prompts</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin_apikeys') }}"><i class="bi bi-key me-2"></i>API Keys</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/admin/system-monitor"><i class="bi bi-activity me-2"></i>System Monitor</a></li>
+                            <li><a class="dropdown-item" href="/admin/async-tasks"><i class="bi bi-skip-forward-circle me-2"></i>Async Tasks</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('ai_settings') }}"><i class="bi bi-cpu me-2"></i>AI Providers & Models</a></li>
                         </ul>

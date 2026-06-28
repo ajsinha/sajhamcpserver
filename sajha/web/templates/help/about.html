@@ -18,6 +18,127 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     </div>
                 </div>
             </div>
+        
+    
+    
+    <!-- AI & Enterprise Competitive Advantages -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-info"><i class="bi bi-cpu me-2"></i>AI/LLM Gateway — 6 Providers</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server with a built-in multi-provider LLM gateway:</p>
+                    <div class="row g-1 small">
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Anthropic (Claude)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> OpenAI (GPT-4o)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> AWS Bedrock</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Together.ai</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Ollama (local)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Azure OpenAI</div>
+                    </div>
+                    <p class="small mt-2 mb-0">DB-managed models. User preferences. Registry-based factory for custom providers.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header" style="background:rgba(111,66,193,0.15);color:var(--t-heading)"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
+                <div class="card-body">
+                    <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
+                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace">
+                        "find companies with high debt ratios"<br>
+                        → fmp_key_metrics (0.89)<br>
+                        → fmp_financial_ratios (0.85)<br>
+                        → fmp_balance_sheet (0.82)
+                    </div>
+                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search. No need to know exact tool names.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MCP Studio & Composite Builder -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-primary"><i class="bi bi-palette me-2"></i>MCP Studio — Visual Tool Designer</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server with a visual tool creation platform. Create tools without writing JSON configs:</p>
+                    <div class="row g-2">
+                        <div class="col-6"><small><i class="bi bi-code-slash me-1 text-primary"></i> Python functions</small></div>
+                        <div class="col-6"><small><i class="bi bi-globe me-1 text-success"></i> REST API wrappers</small></div>
+                        <div class="col-6"><small><i class="bi bi-database me-1 text-info"></i> DB Query tools</small></div>
+                        <div class="col-6"><small><i class="bi bi-terminal me-1 text-warning"></i> Shell scripts</small></div>
+                        <div class="col-6"><small><i class="bi bi-bar-chart me-1 text-danger"></i> PowerBI / DAX</small></div>
+                        <div class="col-6"><small><i class="bi bi-folder me-1 text-secondary"></i> SharePoint / LiveLink</small></div>
+                        <div class="col-6"><small><i class="bi bi-hdd me-1 text-info"></i> OLAP / DuckDB</small></div>
+                        <div class="col-6"><small><i class="bi bi-lightbulb me-1 text-warning"></i> Examples gallery</small></div>
+                    </div>
+                    <p class="small mt-2 mb-0"><strong>9 creator types.</strong> Auto-schema generation. Live testing. Zero-restart deployment.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-warning"><i class="bi bi-boxes me-2"></i>Composite Builder — Visual Pipeline Designer</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server where you can visually compose tool pipelines with mathematical confidence guarantees:</p>
+                    <ol class="small mb-0">
+                        <li class="mb-1"><strong>Choose arrangement</strong> — Sibling (parallel) or Parent-Child (fan-out)</li>
+                        <li class="mb-1"><strong>Set master tool</strong> — runs first, output feeds steps</li>
+                        <li class="mb-1"><strong>Add steps</strong> — drag-and-drop ordering, <code>$.field</code> param mapping</li>
+                        <li class="mb-1"><strong>Live flow diagram</strong> — SVG visualization updates in real-time</li>
+                        <li class="mb-1"><strong>Preview schemas</strong> — auto-generated input/output</li>
+                        <li class="mb-1"><strong>Confidence preview</strong> — estimated entropy from EntropyGuard</li>
+                        <li><strong>Save & deploy</strong> — live on all transports in seconds, no restart</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Production Features Card (v5.1.0) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v5.1.0)</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-database me-2 text-info"></i>Tool Output Caching</h6>
+                            <p class="small mb-0">Per-tool opt-in via <code>cache_ttl</code> in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-lightning me-2 text-warning"></i>Circuit Breakers</h6>
+                            <p class="small mb-0">16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-bell me-2 text-primary"></i>Webhooks</h6>
+                            <p class="small mb-0">Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-skip-backward me-2 text-success"></i>Execution Replay</h6>
+                            <p class="small mb-0">Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-shield-check me-2 text-danger"></i>Structured Audit Log</h6>
+                            <p class="small mb-0">11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-terminal me-2 text-dark"></i>Shell Tools (Sandboxed)</h6>
+                            <p class="small mb-0">Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Every execution audit-logged. Disabled by default.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Async Execution</h6>
+                            <p class="small mb-0">Submit tools for background execution. 8-thread worker pool. Result delivery via webhook, Kafka, or filesystem. Bounded queue with backpressure.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-speedometer2 me-2 text-info"></i>Rate Limiting</h6>
+                            <p class="small mb-0">Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -44,7 +165,128 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 </div>
                 <div class="card-body">
                     <p>SAJHA MCP Server is a comprehensive Python implementation of the <strong>Model Context Protocol (MCP)</strong> built on <strong>FastAPI</strong>. It provides a standardized interface for AI tools and services, serving <strong>497 tools</strong> across financial markets, government data, search engines, analytics, and enterprise integrations through a single MCP-compliant endpoint.</p>
-                    <p class="mb-0">The server supports <strong>three transports</strong> (HTTP POST, SSE, WebSocket), includes an <strong>embedded LLM gateway</strong> with 6 AI providers, <strong>semantic tool discovery</strong>, <strong>composite tool orchestration</strong>, <strong>OpenTelemetry observability</strong>, <strong>multi-tenancy</strong>, a <strong>plugin system</strong>, and a full web UI with 12 interactive screens. Version 5.0.0 is fully compliant with <strong>MCP specification 2025-11-25</strong> — including Tasks (async tracking), Elicitation (form + URL modes), Sampling with tool calling, tool icons, and Origin validation for Streamable HTTP.</p>
+                    <p class="mb-0">The server supports <strong>three transports</strong> (HTTP POST, SSE, WebSocket), includes an <strong>embedded LLM gateway</strong> with 6 AI providers, <strong>semantic tool discovery</strong>, <strong>composite tool orchestration</strong>, <strong>OpenTelemetry observability</strong>, <strong>multi-tenancy</strong>, a <strong>plugin system</strong>, and a full web UI with 12 interactive screens. Version 5.1.0 is fully compliant with <strong>MCP specification 2025-11-25</strong> — including Tasks (async tracking), Elicitation (form + URL modes), Sampling with tool calling, tool icons, and Origin validation for Streamable HTTP.</p>
+                </div>
+            </div>
+        
+    
+    
+    <!-- AI & Enterprise Competitive Advantages -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-info"><i class="bi bi-cpu me-2"></i>AI/LLM Gateway — 6 Providers</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server with a built-in multi-provider LLM gateway:</p>
+                    <div class="row g-1 small">
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Anthropic (Claude)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> OpenAI (GPT-4o)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> AWS Bedrock</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Together.ai</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Ollama (local)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Azure OpenAI</div>
+                    </div>
+                    <p class="small mt-2 mb-0">DB-managed models. User preferences. Registry-based factory for custom providers.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header" style="background:rgba(111,66,193,0.15);color:var(--t-heading)"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
+                <div class="card-body">
+                    <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
+                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace">
+                        "find companies with high debt ratios"<br>
+                        → fmp_key_metrics (0.89)<br>
+                        → fmp_financial_ratios (0.85)<br>
+                        → fmp_balance_sheet (0.82)
+                    </div>
+                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search. No need to know exact tool names.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MCP Studio & Composite Builder -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-primary"><i class="bi bi-palette me-2"></i>MCP Studio — Visual Tool Designer</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server with a visual tool creation platform. Create tools without writing JSON configs:</p>
+                    <div class="row g-2">
+                        <div class="col-6"><small><i class="bi bi-code-slash me-1 text-primary"></i> Python functions</small></div>
+                        <div class="col-6"><small><i class="bi bi-globe me-1 text-success"></i> REST API wrappers</small></div>
+                        <div class="col-6"><small><i class="bi bi-database me-1 text-info"></i> DB Query tools</small></div>
+                        <div class="col-6"><small><i class="bi bi-terminal me-1 text-warning"></i> Shell scripts</small></div>
+                        <div class="col-6"><small><i class="bi bi-bar-chart me-1 text-danger"></i> PowerBI / DAX</small></div>
+                        <div class="col-6"><small><i class="bi bi-folder me-1 text-secondary"></i> SharePoint / LiveLink</small></div>
+                        <div class="col-6"><small><i class="bi bi-hdd me-1 text-info"></i> OLAP / DuckDB</small></div>
+                        <div class="col-6"><small><i class="bi bi-lightbulb me-1 text-warning"></i> Examples gallery</small></div>
+                    </div>
+                    <p class="small mt-2 mb-0"><strong>9 creator types.</strong> Auto-schema generation. Live testing. Zero-restart deployment.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-warning"><i class="bi bi-boxes me-2"></i>Composite Builder — Visual Pipeline Designer</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server where you can visually compose tool pipelines with mathematical confidence guarantees:</p>
+                    <ol class="small mb-0">
+                        <li class="mb-1"><strong>Choose arrangement</strong> — Sibling (parallel) or Parent-Child (fan-out)</li>
+                        <li class="mb-1"><strong>Set master tool</strong> — runs first, output feeds steps</li>
+                        <li class="mb-1"><strong>Add steps</strong> — drag-and-drop ordering, <code>$.field</code> param mapping</li>
+                        <li class="mb-1"><strong>Live flow diagram</strong> — SVG visualization updates in real-time</li>
+                        <li class="mb-1"><strong>Preview schemas</strong> — auto-generated input/output</li>
+                        <li class="mb-1"><strong>Confidence preview</strong> — estimated entropy from EntropyGuard</li>
+                        <li><strong>Save & deploy</strong> — live on all transports in seconds, no restart</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Production Features Card (v5.1.0) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v5.1.0)</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-database me-2 text-info"></i>Tool Output Caching</h6>
+                            <p class="small mb-0">Per-tool opt-in via <code>cache_ttl</code> in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-lightning me-2 text-warning"></i>Circuit Breakers</h6>
+                            <p class="small mb-0">16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-bell me-2 text-primary"></i>Webhooks</h6>
+                            <p class="small mb-0">Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-skip-backward me-2 text-success"></i>Execution Replay</h6>
+                            <p class="small mb-0">Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-shield-check me-2 text-danger"></i>Structured Audit Log</h6>
+                            <p class="small mb-0">11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-terminal me-2 text-dark"></i>Shell Tools (Sandboxed)</h6>
+                            <p class="small mb-0">Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Every execution audit-logged. Disabled by default.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Async Execution</h6>
+                            <p class="small mb-0">Submit tools for background execution. 8-thread worker pool. Result delivery via webhook, Kafka, or filesystem. Bounded queue with backpressure.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-speedometer2 me-2 text-info"></i>Rate Limiting</h6>
+                            <p class="small mb-0">Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -98,6 +340,127 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     </div>
                 </div>
             </div>
+        
+    
+    
+    <!-- AI & Enterprise Competitive Advantages -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-info"><i class="bi bi-cpu me-2"></i>AI/LLM Gateway — 6 Providers</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server with a built-in multi-provider LLM gateway:</p>
+                    <div class="row g-1 small">
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Anthropic (Claude)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> OpenAI (GPT-4o)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> AWS Bedrock</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Together.ai</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Ollama (local)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Azure OpenAI</div>
+                    </div>
+                    <p class="small mt-2 mb-0">DB-managed models. User preferences. Registry-based factory for custom providers.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header" style="background:rgba(111,66,193,0.15);color:var(--t-heading)"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
+                <div class="card-body">
+                    <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
+                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace">
+                        "find companies with high debt ratios"<br>
+                        → fmp_key_metrics (0.89)<br>
+                        → fmp_financial_ratios (0.85)<br>
+                        → fmp_balance_sheet (0.82)
+                    </div>
+                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search. No need to know exact tool names.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MCP Studio & Composite Builder -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-primary"><i class="bi bi-palette me-2"></i>MCP Studio — Visual Tool Designer</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server with a visual tool creation platform. Create tools without writing JSON configs:</p>
+                    <div class="row g-2">
+                        <div class="col-6"><small><i class="bi bi-code-slash me-1 text-primary"></i> Python functions</small></div>
+                        <div class="col-6"><small><i class="bi bi-globe me-1 text-success"></i> REST API wrappers</small></div>
+                        <div class="col-6"><small><i class="bi bi-database me-1 text-info"></i> DB Query tools</small></div>
+                        <div class="col-6"><small><i class="bi bi-terminal me-1 text-warning"></i> Shell scripts</small></div>
+                        <div class="col-6"><small><i class="bi bi-bar-chart me-1 text-danger"></i> PowerBI / DAX</small></div>
+                        <div class="col-6"><small><i class="bi bi-folder me-1 text-secondary"></i> SharePoint / LiveLink</small></div>
+                        <div class="col-6"><small><i class="bi bi-hdd me-1 text-info"></i> OLAP / DuckDB</small></div>
+                        <div class="col-6"><small><i class="bi bi-lightbulb me-1 text-warning"></i> Examples gallery</small></div>
+                    </div>
+                    <p class="small mt-2 mb-0"><strong>9 creator types.</strong> Auto-schema generation. Live testing. Zero-restart deployment.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-warning"><i class="bi bi-boxes me-2"></i>Composite Builder — Visual Pipeline Designer</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server where you can visually compose tool pipelines with mathematical confidence guarantees:</p>
+                    <ol class="small mb-0">
+                        <li class="mb-1"><strong>Choose arrangement</strong> — Sibling (parallel) or Parent-Child (fan-out)</li>
+                        <li class="mb-1"><strong>Set master tool</strong> — runs first, output feeds steps</li>
+                        <li class="mb-1"><strong>Add steps</strong> — drag-and-drop ordering, <code>$.field</code> param mapping</li>
+                        <li class="mb-1"><strong>Live flow diagram</strong> — SVG visualization updates in real-time</li>
+                        <li class="mb-1"><strong>Preview schemas</strong> — auto-generated input/output</li>
+                        <li class="mb-1"><strong>Confidence preview</strong> — estimated entropy from EntropyGuard</li>
+                        <li><strong>Save & deploy</strong> — live on all transports in seconds, no restart</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Production Features Card (v5.1.0) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v5.1.0)</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-database me-2 text-info"></i>Tool Output Caching</h6>
+                            <p class="small mb-0">Per-tool opt-in via <code>cache_ttl</code> in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-lightning me-2 text-warning"></i>Circuit Breakers</h6>
+                            <p class="small mb-0">16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-bell me-2 text-primary"></i>Webhooks</h6>
+                            <p class="small mb-0">Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-skip-backward me-2 text-success"></i>Execution Replay</h6>
+                            <p class="small mb-0">Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-shield-check me-2 text-danger"></i>Structured Audit Log</h6>
+                            <p class="small mb-0">11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-terminal me-2 text-dark"></i>Shell Tools (Sandboxed)</h6>
+                            <p class="small mb-0">Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Every execution audit-logged. Disabled by default.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Async Execution</h6>
+                            <p class="small mb-0">Submit tools for background execution. 8-thread worker pool. Result delivery via webhook, Kafka, or filesystem. Bounded queue with backpressure.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-speedometer2 me-2 text-info"></i>Rate Limiting</h6>
+                            <p class="small mb-0">Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -119,6 +482,127 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <h5 class="text-info mb-3"><strong>SAJHA</strong> (Hindi: साझा, Urdu: ساجھا) — "Shared" or "Common"</h5>
                             <p><strong>SAJHA</strong> is a word from Hindi and Urdu meaning <em>"shared," "common," "mutual,"</em> or <em>"collaborative."</em> It embodies collective ownership, partnership, and working together. In South Asian cultures, <em>sajha</em> represents the spirit of community cooperation where resources and knowledge are shared for mutual benefit.</p>
                             <p class="mb-0"><strong>How SAJHA MCP Server embodies this spirit:</strong> True to its name, SAJHA creates a <em>shared bridge</em> between AI systems and the world's data. It democratizes access to 497 financial, government, and enterprise tools through a single, standardized protocol. The server enables <em>collaborative tool creation</em> through MCP Studio, where teams can build and share custom integrations without deep coding. By providing hot-reload configuration, role-based access, and a zero-dependency client SDK, SAJHA fosters a <em>communal environment</em> where knowledge and capabilities flow freely between humans and AI.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+    
+    
+    <!-- AI & Enterprise Competitive Advantages -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-info"><i class="bi bi-cpu me-2"></i>AI/LLM Gateway — 6 Providers</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server with a built-in multi-provider LLM gateway:</p>
+                    <div class="row g-1 small">
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Anthropic (Claude)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> OpenAI (GPT-4o)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> AWS Bedrock</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Together.ai</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Ollama (local)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Azure OpenAI</div>
+                    </div>
+                    <p class="small mt-2 mb-0">DB-managed models. User preferences. Registry-based factory for custom providers.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header" style="background:rgba(111,66,193,0.15);color:var(--t-heading)"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
+                <div class="card-body">
+                    <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
+                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace">
+                        "find companies with high debt ratios"<br>
+                        → fmp_key_metrics (0.89)<br>
+                        → fmp_financial_ratios (0.85)<br>
+                        → fmp_balance_sheet (0.82)
+                    </div>
+                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search. No need to know exact tool names.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MCP Studio & Composite Builder -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-primary"><i class="bi bi-palette me-2"></i>MCP Studio — Visual Tool Designer</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server with a visual tool creation platform. Create tools without writing JSON configs:</p>
+                    <div class="row g-2">
+                        <div class="col-6"><small><i class="bi bi-code-slash me-1 text-primary"></i> Python functions</small></div>
+                        <div class="col-6"><small><i class="bi bi-globe me-1 text-success"></i> REST API wrappers</small></div>
+                        <div class="col-6"><small><i class="bi bi-database me-1 text-info"></i> DB Query tools</small></div>
+                        <div class="col-6"><small><i class="bi bi-terminal me-1 text-warning"></i> Shell scripts</small></div>
+                        <div class="col-6"><small><i class="bi bi-bar-chart me-1 text-danger"></i> PowerBI / DAX</small></div>
+                        <div class="col-6"><small><i class="bi bi-folder me-1 text-secondary"></i> SharePoint / LiveLink</small></div>
+                        <div class="col-6"><small><i class="bi bi-hdd me-1 text-info"></i> OLAP / DuckDB</small></div>
+                        <div class="col-6"><small><i class="bi bi-lightbulb me-1 text-warning"></i> Examples gallery</small></div>
+                    </div>
+                    <p class="small mt-2 mb-0"><strong>9 creator types.</strong> Auto-schema generation. Live testing. Zero-restart deployment.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-warning"><i class="bi bi-boxes me-2"></i>Composite Builder — Visual Pipeline Designer</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server where you can visually compose tool pipelines with mathematical confidence guarantees:</p>
+                    <ol class="small mb-0">
+                        <li class="mb-1"><strong>Choose arrangement</strong> — Sibling (parallel) or Parent-Child (fan-out)</li>
+                        <li class="mb-1"><strong>Set master tool</strong> — runs first, output feeds steps</li>
+                        <li class="mb-1"><strong>Add steps</strong> — drag-and-drop ordering, <code>$.field</code> param mapping</li>
+                        <li class="mb-1"><strong>Live flow diagram</strong> — SVG visualization updates in real-time</li>
+                        <li class="mb-1"><strong>Preview schemas</strong> — auto-generated input/output</li>
+                        <li class="mb-1"><strong>Confidence preview</strong> — estimated entropy from EntropyGuard</li>
+                        <li><strong>Save & deploy</strong> — live on all transports in seconds, no restart</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Production Features Card (v5.1.0) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v5.1.0)</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-database me-2 text-info"></i>Tool Output Caching</h6>
+                            <p class="small mb-0">Per-tool opt-in via <code>cache_ttl</code> in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-lightning me-2 text-warning"></i>Circuit Breakers</h6>
+                            <p class="small mb-0">16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-bell me-2 text-primary"></i>Webhooks</h6>
+                            <p class="small mb-0">Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-skip-backward me-2 text-success"></i>Execution Replay</h6>
+                            <p class="small mb-0">Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-shield-check me-2 text-danger"></i>Structured Audit Log</h6>
+                            <p class="small mb-0">11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-terminal me-2 text-dark"></i>Shell Tools (Sandboxed)</h6>
+                            <p class="small mb-0">Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Every execution audit-logged. Disabled by default.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Async Execution</h6>
+                            <p class="small mb-0">Submit tools for background execution. 8-thread worker pool. Result delivery via webhook, Kafka, or filesystem. Bounded queue with backpressure.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-speedometer2 me-2 text-info"></i>Rate Limiting</h6>
+                            <p class="small mb-0">Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).</p>
                         </div>
                     </div>
                 </div>
@@ -295,6 +779,127 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     </div>
                 </div>
             </div>
+        
+    
+    
+    <!-- AI & Enterprise Competitive Advantages -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-info"><i class="bi bi-cpu me-2"></i>AI/LLM Gateway — 6 Providers</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server with a built-in multi-provider LLM gateway:</p>
+                    <div class="row g-1 small">
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Anthropic (Claude)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> OpenAI (GPT-4o)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> AWS Bedrock</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Together.ai</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Ollama (local)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Azure OpenAI</div>
+                    </div>
+                    <p class="small mt-2 mb-0">DB-managed models. User preferences. Registry-based factory for custom providers.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header" style="background:rgba(111,66,193,0.15);color:var(--t-heading)"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
+                <div class="card-body">
+                    <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
+                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace">
+                        "find companies with high debt ratios"<br>
+                        → fmp_key_metrics (0.89)<br>
+                        → fmp_financial_ratios (0.85)<br>
+                        → fmp_balance_sheet (0.82)
+                    </div>
+                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search. No need to know exact tool names.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MCP Studio & Composite Builder -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-primary"><i class="bi bi-palette me-2"></i>MCP Studio — Visual Tool Designer</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server with a visual tool creation platform. Create tools without writing JSON configs:</p>
+                    <div class="row g-2">
+                        <div class="col-6"><small><i class="bi bi-code-slash me-1 text-primary"></i> Python functions</small></div>
+                        <div class="col-6"><small><i class="bi bi-globe me-1 text-success"></i> REST API wrappers</small></div>
+                        <div class="col-6"><small><i class="bi bi-database me-1 text-info"></i> DB Query tools</small></div>
+                        <div class="col-6"><small><i class="bi bi-terminal me-1 text-warning"></i> Shell scripts</small></div>
+                        <div class="col-6"><small><i class="bi bi-bar-chart me-1 text-danger"></i> PowerBI / DAX</small></div>
+                        <div class="col-6"><small><i class="bi bi-folder me-1 text-secondary"></i> SharePoint / LiveLink</small></div>
+                        <div class="col-6"><small><i class="bi bi-hdd me-1 text-info"></i> OLAP / DuckDB</small></div>
+                        <div class="col-6"><small><i class="bi bi-lightbulb me-1 text-warning"></i> Examples gallery</small></div>
+                    </div>
+                    <p class="small mt-2 mb-0"><strong>9 creator types.</strong> Auto-schema generation. Live testing. Zero-restart deployment.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-warning"><i class="bi bi-boxes me-2"></i>Composite Builder — Visual Pipeline Designer</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server where you can visually compose tool pipelines with mathematical confidence guarantees:</p>
+                    <ol class="small mb-0">
+                        <li class="mb-1"><strong>Choose arrangement</strong> — Sibling (parallel) or Parent-Child (fan-out)</li>
+                        <li class="mb-1"><strong>Set master tool</strong> — runs first, output feeds steps</li>
+                        <li class="mb-1"><strong>Add steps</strong> — drag-and-drop ordering, <code>$.field</code> param mapping</li>
+                        <li class="mb-1"><strong>Live flow diagram</strong> — SVG visualization updates in real-time</li>
+                        <li class="mb-1"><strong>Preview schemas</strong> — auto-generated input/output</li>
+                        <li class="mb-1"><strong>Confidence preview</strong> — estimated entropy from EntropyGuard</li>
+                        <li><strong>Save & deploy</strong> — live on all transports in seconds, no restart</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Production Features Card (v5.1.0) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v5.1.0)</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-database me-2 text-info"></i>Tool Output Caching</h6>
+                            <p class="small mb-0">Per-tool opt-in via <code>cache_ttl</code> in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-lightning me-2 text-warning"></i>Circuit Breakers</h6>
+                            <p class="small mb-0">16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-bell me-2 text-primary"></i>Webhooks</h6>
+                            <p class="small mb-0">Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-skip-backward me-2 text-success"></i>Execution Replay</h6>
+                            <p class="small mb-0">Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-shield-check me-2 text-danger"></i>Structured Audit Log</h6>
+                            <p class="small mb-0">11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-terminal me-2 text-dark"></i>Shell Tools (Sandboxed)</h6>
+                            <p class="small mb-0">Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Every execution audit-logged. Disabled by default.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Async Execution</h6>
+                            <p class="small mb-0">Submit tools for background execution. 8-thread worker pool. Result delivery via webhook, Kafka, or filesystem. Bounded queue with backpressure.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-speedometer2 me-2 text-info"></i>Rate Limiting</h6>
+                            <p class="small mb-0">Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -375,6 +980,127 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <tr><td>Auth methods</td><td class="text-end"><strong>4</strong></td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        
+    
+    
+    <!-- AI & Enterprise Competitive Advantages -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-info"><i class="bi bi-cpu me-2"></i>AI/LLM Gateway — 6 Providers</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server with a built-in multi-provider LLM gateway:</p>
+                    <div class="row g-1 small">
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Anthropic (Claude)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> OpenAI (GPT-4o)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> AWS Bedrock</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Together.ai</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Ollama (local)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Azure OpenAI</div>
+                    </div>
+                    <p class="small mt-2 mb-0">DB-managed models. User preferences. Registry-based factory for custom providers.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header" style="background:rgba(111,66,193,0.15);color:var(--t-heading)"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
+                <div class="card-body">
+                    <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
+                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace">
+                        "find companies with high debt ratios"<br>
+                        → fmp_key_metrics (0.89)<br>
+                        → fmp_financial_ratios (0.85)<br>
+                        → fmp_balance_sheet (0.82)
+                    </div>
+                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search. No need to know exact tool names.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MCP Studio & Composite Builder -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-primary"><i class="bi bi-palette me-2"></i>MCP Studio — Visual Tool Designer</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server with a visual tool creation platform. Create tools without writing JSON configs:</p>
+                    <div class="row g-2">
+                        <div class="col-6"><small><i class="bi bi-code-slash me-1 text-primary"></i> Python functions</small></div>
+                        <div class="col-6"><small><i class="bi bi-globe me-1 text-success"></i> REST API wrappers</small></div>
+                        <div class="col-6"><small><i class="bi bi-database me-1 text-info"></i> DB Query tools</small></div>
+                        <div class="col-6"><small><i class="bi bi-terminal me-1 text-warning"></i> Shell scripts</small></div>
+                        <div class="col-6"><small><i class="bi bi-bar-chart me-1 text-danger"></i> PowerBI / DAX</small></div>
+                        <div class="col-6"><small><i class="bi bi-folder me-1 text-secondary"></i> SharePoint / LiveLink</small></div>
+                        <div class="col-6"><small><i class="bi bi-hdd me-1 text-info"></i> OLAP / DuckDB</small></div>
+                        <div class="col-6"><small><i class="bi bi-lightbulb me-1 text-warning"></i> Examples gallery</small></div>
+                    </div>
+                    <p class="small mt-2 mb-0"><strong>9 creator types.</strong> Auto-schema generation. Live testing. Zero-restart deployment.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-warning"><i class="bi bi-boxes me-2"></i>Composite Builder — Visual Pipeline Designer</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server where you can visually compose tool pipelines with mathematical confidence guarantees:</p>
+                    <ol class="small mb-0">
+                        <li class="mb-1"><strong>Choose arrangement</strong> — Sibling (parallel) or Parent-Child (fan-out)</li>
+                        <li class="mb-1"><strong>Set master tool</strong> — runs first, output feeds steps</li>
+                        <li class="mb-1"><strong>Add steps</strong> — drag-and-drop ordering, <code>$.field</code> param mapping</li>
+                        <li class="mb-1"><strong>Live flow diagram</strong> — SVG visualization updates in real-time</li>
+                        <li class="mb-1"><strong>Preview schemas</strong> — auto-generated input/output</li>
+                        <li class="mb-1"><strong>Confidence preview</strong> — estimated entropy from EntropyGuard</li>
+                        <li><strong>Save & deploy</strong> — live on all transports in seconds, no restart</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Production Features Card (v5.1.0) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v5.1.0)</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-database me-2 text-info"></i>Tool Output Caching</h6>
+                            <p class="small mb-0">Per-tool opt-in via <code>cache_ttl</code> in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-lightning me-2 text-warning"></i>Circuit Breakers</h6>
+                            <p class="small mb-0">16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-bell me-2 text-primary"></i>Webhooks</h6>
+                            <p class="small mb-0">Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-skip-backward me-2 text-success"></i>Execution Replay</h6>
+                            <p class="small mb-0">Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-shield-check me-2 text-danger"></i>Structured Audit Log</h6>
+                            <p class="small mb-0">11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-terminal me-2 text-dark"></i>Shell Tools (Sandboxed)</h6>
+                            <p class="small mb-0">Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Every execution audit-logged. Disabled by default.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Async Execution</h6>
+                            <p class="small mb-0">Submit tools for background execution. 8-thread worker pool. Result delivery via webhook, Kafka, or filesystem. Bounded queue with backpressure.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-speedometer2 me-2 text-info"></i>Rate Limiting</h6>
+                            <p class="small mb-0">Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -467,6 +1193,127 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div class="alert alert-info mb-0">
                         <i class="bi bi-lightbulb me-2"></i>
                         <strong>Summary:</strong> SAJHA MCP Server is built for organizations that need a <em>production-grade, multi-user</em> MCP server with broad data coverage (497 tools), visual tool creation (MCP Studio), and enterprise auth — deployed from a single <code>python run_server.py</code> command.
+                    </div>
+                </div>
+            </div>
+        
+    
+    
+    <!-- AI & Enterprise Competitive Advantages -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-info"><i class="bi bi-cpu me-2"></i>AI/LLM Gateway — 6 Providers</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server with a built-in multi-provider LLM gateway:</p>
+                    <div class="row g-1 small">
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Anthropic (Claude)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> OpenAI (GPT-4o)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> AWS Bedrock</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Together.ai</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Ollama (local)</div>
+                        <div class="col-6"><i class="bi bi-check text-success"></i> Azure OpenAI</div>
+                    </div>
+                    <p class="small mt-2 mb-0">DB-managed models. User preferences. Registry-based factory for custom providers.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header" style="background:rgba(111,66,193,0.15);color:var(--t-heading)"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
+                <div class="card-body">
+                    <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
+                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace">
+                        "find companies with high debt ratios"<br>
+                        → fmp_key_metrics (0.89)<br>
+                        → fmp_financial_ratios (0.85)<br>
+                        → fmp_balance_sheet (0.82)
+                    </div>
+                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search. No need to know exact tool names.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MCP Studio & Composite Builder -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-primary"><i class="bi bi-palette me-2"></i>MCP Studio — Visual Tool Designer</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server with a visual tool creation platform. Create tools without writing JSON configs:</p>
+                    <div class="row g-2">
+                        <div class="col-6"><small><i class="bi bi-code-slash me-1 text-primary"></i> Python functions</small></div>
+                        <div class="col-6"><small><i class="bi bi-globe me-1 text-success"></i> REST API wrappers</small></div>
+                        <div class="col-6"><small><i class="bi bi-database me-1 text-info"></i> DB Query tools</small></div>
+                        <div class="col-6"><small><i class="bi bi-terminal me-1 text-warning"></i> Shell scripts</small></div>
+                        <div class="col-6"><small><i class="bi bi-bar-chart me-1 text-danger"></i> PowerBI / DAX</small></div>
+                        <div class="col-6"><small><i class="bi bi-folder me-1 text-secondary"></i> SharePoint / LiveLink</small></div>
+                        <div class="col-6"><small><i class="bi bi-hdd me-1 text-info"></i> OLAP / DuckDB</small></div>
+                        <div class="col-6"><small><i class="bi bi-lightbulb me-1 text-warning"></i> Examples gallery</small></div>
+                    </div>
+                    <p class="small mt-2 mb-0"><strong>9 creator types.</strong> Auto-schema generation. Live testing. Zero-restart deployment.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header card-header-warning"><i class="bi bi-boxes me-2"></i>Composite Builder — Visual Pipeline Designer</div>
+                <div class="card-body">
+                    <p class="small">The only MCP server where you can visually compose tool pipelines with mathematical confidence guarantees:</p>
+                    <ol class="small mb-0">
+                        <li class="mb-1"><strong>Choose arrangement</strong> — Sibling (parallel) or Parent-Child (fan-out)</li>
+                        <li class="mb-1"><strong>Set master tool</strong> — runs first, output feeds steps</li>
+                        <li class="mb-1"><strong>Add steps</strong> — drag-and-drop ordering, <code>$.field</code> param mapping</li>
+                        <li class="mb-1"><strong>Live flow diagram</strong> — SVG visualization updates in real-time</li>
+                        <li class="mb-1"><strong>Preview schemas</strong> — auto-generated input/output</li>
+                        <li class="mb-1"><strong>Confidence preview</strong> — estimated entropy from EntropyGuard</li>
+                        <li><strong>Save & deploy</strong> — live on all transports in seconds, no restart</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Production Features Card (v5.1.0) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v5.1.0)</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-database me-2 text-info"></i>Tool Output Caching</h6>
+                            <p class="small mb-0">Per-tool opt-in via <code>cache_ttl</code> in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-lightning me-2 text-warning"></i>Circuit Breakers</h6>
+                            <p class="small mb-0">16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-bell me-2 text-primary"></i>Webhooks</h6>
+                            <p class="small mb-0">Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-skip-backward me-2 text-success"></i>Execution Replay</h6>
+                            <p class="small mb-0">Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-shield-check me-2 text-danger"></i>Structured Audit Log</h6>
+                            <p class="small mb-0">11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-terminal me-2 text-dark"></i>Shell Tools (Sandboxed)</h6>
+                            <p class="small mb-0">Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Every execution audit-logged. Disabled by default.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Async Execution</h6>
+                            <p class="small mb-0">Submit tools for background execution. 8-thread worker pool. Result delivery via webhook, Kafka, or filesystem. Bounded queue with backpressure.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-speedometer2 me-2 text-info"></i>Rate Limiting</h6>
+                            <p class="small mb-0">Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).</p>
+                        </div>
                     </div>
                 </div>
             </div>

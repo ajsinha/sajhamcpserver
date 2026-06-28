@@ -1,730 +1,399 @@
 """
-Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Authentication and Authorization Manager v2.3.0
+SAJHA MCP Server v5.1.0 — Authentication Manager
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha
+
+Database-backed authentication with bcrypt password hashing,
+session token hashing, account lockout, and rate limiting.
 """
-
-import json
-import secrets
 import logging
-import hashlib
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple
-from pathlib import Path
-import threading
+import time
+import uuid
+from datetime import datetime, timezone, timedelta
+from threading import RLock
+from typing import Optional, Dict, List, Tuple
 
-from .apikey_manager import get_api_key_manager, reset_api_key_manager
+from sqlalchemy.orm import Session
 
-# Default path relative to project root
-DEFAULT_USERS_PATH = 'config/users.json'
-DEFAULT_APIKEYS_PATH = 'config/apikeys.json'
+from sajha.security import (
+    hash_password, verify_password, generate_session_token,
+    hash_token, check_account_locked, get_lockout_time,
+    MAX_FAILED_ATTEMPTS,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class AuthManager:
     """
-    Manages authentication and authorization for the MCP server
-    Supports both session-based authentication and API key authentication
+    Database-backed authentication manager.
+
+    All credentials stored hashed:
+      - Passwords: bcrypt (12 rounds)
+      - Session tokens: SHA-256
+      - API keys: SHA-256 (handled by ApiKeyManager)
+
+    Features:
+      - Account lockout after 5 failed attempts (15 min)
+      - Session expiry (configurable, default 1 hour)
+      - DB-persisted sessions (survive restarts)
     """
-    
-    # Username field aliases accepted in API requests
-    USERNAME_ALIASES = ['uid', 'username', 'user_name', 'user_id', 'userid']
-    
-    def __init__(self, users_config_path: str = None, apikeys_config_path: str = None):
-        """
-        Initialize the AuthManager
-        
-        Args:
-            users_config_path: Path to users configuration file (relative to project root or absolute)
-            apikeys_config_path: Path to API keys configuration file (relative to project root or absolute)
-        """
+
+    def __init__(self, settings=None):
+        self.settings = settings or {}
+        self._lock = RLock()
+        self.session_ttl = int(self.settings.get('session_ttl', 3600))
         self.logger = logging.getLogger(__name__)
-        
-        # Handle users config path
-        if users_config_path is None:
-            users_config_path = DEFAULT_USERS_PATH
-        
-        self.users_config_path = Path(users_config_path)
-        if not self.users_config_path.is_absolute():
-            self.users_config_path = Path.cwd() / self.users_config_path
-        
-        # Handle apikeys config path
-        if apikeys_config_path is None:
-            apikeys_config_path = DEFAULT_APIKEYS_PATH
-        
-        apikeys_path = Path(apikeys_config_path)
-        if not apikeys_path.is_absolute():
-            apikeys_path = Path.cwd() / apikeys_path
-        
-        self.users: Dict[str, Dict] = {}
-        self.sessions: Dict[str, Dict] = {}
-        self.failed_attempts: Dict[str, List[datetime]] = {}
-        self._lock = threading.RLock()
-        
-        self.logger.info(f"AuthManager initializing:")
-        self.logger.info(f"  Users config: {self.users_config_path} (exists: {self.users_config_path.exists()})")
-        self.logger.info(f"  APIKeys config: {apikeys_path} (exists: {apikeys_path.exists()})")
-        
-        # Initialize API Key Manager with explicit path (force reinit to ensure correct path)
-        self.apikey_manager = get_api_key_manager(str(apikeys_path), force_reinit=True)
-        
-        # Load users configuration
-        self.load_users()
-        
-        # Session configuration
-        self.session_timeout_minutes = 60
-        self.max_login_attempts = 5
-        self.lockout_duration_minutes = 5
-    
-    def load_users(self):
-        """Load users from configuration file"""
+
+    def _get_db(self) -> Session:
+        """Get a DB session for imperative use."""
+        from sajha.db.engine import get_db_session
+        return get_db_session()
+
+    # ── User Authentication ──────────────────────────────────────
+
+    def authenticate(self, user_id: str, password: str, ip_address: str = None) -> Optional[str]:
+        """
+        Authenticate user with user_id and password.
+        Returns raw session token on success, None on failure.
+        """
+        db = self._get_db()
         try:
-            if self.users_config_path.exists():
-                with open(self.users_config_path, 'r') as f:
-                    config = json.load(f)
-                    self.users = {user['user_id']: user for user in config.get('users', [])}
-                    self.logger.info(f"Loaded {len(self.users)} users from {self.users_config_path}")
-            else:
-                # Create default admin user if no config exists
-                self.logger.warning(f"Users config not found at {self.users_config_path}, creating default")
-                default_config = {
-                    "users": [
-                        {
-                            "user_id": "admin",
-                            "user_name": "Administrator",
-                            "password": "admin123",
-                            "roles": ["admin"],
-                            "tools": ["*"],
-                            "enabled": True,
-                            "email": "admin@example.com",
-                            "created_at": datetime.now().isoformat() + "Z"
-                        }
-                    ]
-                }
-                self.users_config_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(self.users_config_path, 'w') as f:
-                    json.dump(default_config, f, indent=2)
-                self.users = {user['user_id']: user for user in default_config['users']}
-                self.logger.info("Created default admin user configuration")
-        except Exception as e:
-            self.logger.error(f"Error loading users configuration: {e}", exc_info=True)
-            self.users = {}
-    
-    def authenticate(self, user_id: str, password: str) -> Optional[str]:
-        """
-        Authenticate a user and create a session
-        
-        Args:
-            user_id: User identifier
-            password: User password
-            
-        Returns:
-            Session token if successful, None otherwise
-        """
-        with self._lock:
-            # Check if user is locked out
-            if self.is_user_locked_out(user_id):
-                self.logger.warning(f"Login attempt for locked out user: {user_id}")
+            from sajha.db.models import User
+            user = db.query(User).filter(User.user_id == user_id).first()
+
+            if not user:
+                self.logger.warning(f"Login attempt for unknown user: {user_id}")
                 return None
-            
-            # Check if user exists and is enabled
-            user = self.users.get(user_id)
-            if not user or not user.get('enabled', True):
-                self.record_failed_attempt(user_id)
-                self.logger.warning(f"Login attempt for invalid/disabled user: {user_id}")
+
+            if not user.enabled:
+                self.logger.warning(f"Login attempt for disabled user: {user_id}")
                 return None
-            
-            # Verify password
-            if user.get('password') != password:
-                self.record_failed_attempt(user_id)
+
+            # Check account lockout
+            locked_until = user.locked_until.timestamp() if user.locked_until else None
+            if check_account_locked(user.failed_attempts or 0, locked_until):
+                self.logger.warning(f"Account locked: {user_id}")
+                return None
+
+            # Verify password (bcrypt)
+            if not verify_password(password, user.password_hash):
+                user.failed_attempts = (user.failed_attempts or 0) + 1
+                if user.failed_attempts >= MAX_FAILED_ATTEMPTS:
+                    user.locked_until = datetime.fromtimestamp(get_lockout_time(), tz=timezone.utc)
+                    self.logger.warning(f"Account locked after {MAX_FAILED_ATTEMPTS} failures: {user_id}")
+                db.commit()
                 self.logger.warning(f"Invalid password for user: {user_id}")
                 return None
-            
-            # Create session
-            session_token = secrets.token_urlsafe(32)
-            session_data = {
-                'user_id': user_id,
-                'user_name': user.get('user_name', user_id),
-                'roles': user.get('roles', []),
-                'tools': user.get('tools', []),
-                'created_at': datetime.now(),
-                'last_activity': datetime.now()
-            }
-            
-            self.sessions[session_token] = session_data
-            
-            # Update last login
-            self.update_last_login(user_id)
 
-            # Clear failed attempts
-            if user_id in self.failed_attempts:
-                del self.failed_attempts[user_id]
+            # Success — reset failed attempts, update last_login
+            user.failed_attempts = 0
+            user.locked_until = None
+            user.last_login = datetime.now(timezone.utc)
+            db.commit()
 
-            self.logger.info(f"User authenticated successfully: {user_id}")
-            return session_token
+            # Create DB-persisted session
+            raw_token, token_hash = generate_session_token()
+            from sajha.db.models import UserSession
+            session = UserSession(
+                id=str(uuid.uuid4()),
+                token_hash=token_hash,
+                user_id=user.id,
+                expires_at=datetime.now(timezone.utc) + timedelta(seconds=self.session_ttl),
+                ip_address=ip_address,
+            )
+            db.add(session)
+            db.commit()
+
+            self.logger.info(f"User authenticated: {user_id}")
+            return raw_token
+
+        except Exception as e:
+            self.logger.error(f"Authentication error: {e}", exc_info=True)
+            db.rollback()
+            return None
+        finally:
+            db.close()
 
     def validate_session(self, token: str) -> Optional[Dict]:
-        """
-        Validate a session token
-
-        Args:
-            token: Session token
-
-        Returns:
-            Session data if valid, None otherwise
-        """
-        with self._lock:
-            session = self.sessions.get(token)
+        """Validate a session token. Returns user data dict or None."""
+        if not token:
+            return None
+        token_h = hash_token(token)
+        db = self._get_db()
+        try:
+            from sajha.db.models import UserSession, User
+            session = db.query(UserSession).filter(UserSession.token_hash == token_h).first()
             if not session:
                 return None
-
-            # Check session timeout
-            timeout = timedelta(minutes=self.session_timeout_minutes)
-            if datetime.now() - session['last_activity'] > timeout:
-                del self.sessions[token]
-                self.logger.info(f"Session expired for user: {session['user_id']}")
+            if session.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+                db.delete(session)
+                db.commit()
                 return None
-
             # Update last activity
-            session['last_activity'] = datetime.now()
-            return session
+            session.last_activity = datetime.now(timezone.utc)
+            db.commit()
+
+            user = db.query(User).filter(User.id == session.user_id).first()
+            if not user or not user.enabled:
+                return None
+            return {
+                'user_id': user.user_id,
+                'user_name': user.user_name,
+                'roles': user.role_names,
+                'is_admin': user.is_admin,
+                'email': user.email,
+            }
+        except Exception as e:
+            self.logger.error(f"Session validation error: {e}", exc_info=True)
+            return None
+        finally:
+            db.close()
 
     def logout(self, token: str) -> bool:
-        """
-        Logout a user by invalidating their session
-
-        Args:
-            token: Session token
-
-        Returns:
-            True if successful
-        """
-        with self._lock:
-            if token in self.sessions:
-                user_id = self.sessions[token]['user_id']
-                del self.sessions[token]
-                self.logger.info(f"User logged out: {user_id}")
+        """Invalidate a session token."""
+        if not token:
+            return False
+        token_h = hash_token(token)
+        db = self._get_db()
+        try:
+            from sajha.db.models import UserSession
+            session = db.query(UserSession).filter(UserSession.token_hash == token_h).first()
+            if session:
+                db.delete(session)
+                db.commit()
                 return True
             return False
-
-    def has_tool_access(self, session: Dict, tool_name: str) -> bool:
-        """
-        Check if a session has access to a specific tool
-
-        Args:
-            session: Session data
-            tool_name: Name of the tool
-
-        Returns:
-            True if user has access to the tool
-        """
-        tools = session.get('tools', [])
-        if '*' in tools or tool_name in tools:
-            return True
-
-        # Check if user has admin role
-        if 'admin' in session.get('roles', []):
-            return True
-
-        return False
-
-    def is_admin(self, session: Dict) -> bool:
-        """
-        Check if a session has admin privileges
-
-        Args:
-            session: Session data
-
-        Returns:
-            True if user is admin
-        """
-        return 'admin' in session.get('roles', [])
-
-    def get_user_accessible_tools(self, session: Dict) -> List[str]:
-        """
-        Get list of tools accessible to a user
-
-        Args:
-            session: Session data
-
-        Returns:
-            List of accessible tool names
-        """
-        tools = session.get('tools', [])
-        if '*' in tools or self.is_admin(session):
-            return ['*']  # All tools
-        return tools
-
-    def record_failed_attempt(self, user_id: str):
-        """Record a failed login attempt"""
-        with self._lock:
-            if user_id not in self.failed_attempts:
-                self.failed_attempts[user_id] = []
-
-            self.failed_attempts[user_id].append(datetime.now())
-
-            # Clean up old attempts
-            cutoff = datetime.now() - timedelta(minutes=self.lockout_duration_minutes)
-            self.failed_attempts[user_id] = [
-                attempt for attempt in self.failed_attempts[user_id]
-                if attempt > cutoff
-            ]
-
-    def is_user_locked_out(self, user_id: str) -> bool:
-        """Check if a user is locked out due to too many failed attempts"""
-        with self._lock:
-            if user_id not in self.failed_attempts:
-                return False
-
-            # Clean up old attempts
-            cutoff = datetime.now() - timedelta(minutes=self.lockout_duration_minutes)
-            recent_attempts = [
-                attempt for attempt in self.failed_attempts[user_id]
-                if attempt > cutoff
-            ]
-
-            return len(recent_attempts) >= self.max_login_attempts
-
-    def save_users(self):
-        """Save users configuration to file"""
-        try:
-            config = {"users": list(self.users.values())}
-            config_path = Path(self.users_config_path)
-            config_path.parent.mkdir(parents=True, exist_ok=True)
-
-            with open(config_path, 'w') as f:
-                json.dump(config, f, indent=2)
-
-            self.logger.info(f"Saved {len(self.users)} users to configuration")
         except Exception as e:
-            self.logger.error(f"Error saving users configuration: {e}", exc_info=True)
+            self.logger.error(f"Logout error: {e}", exc_info=True)
+            return False
+        finally:
+            db.close()
 
-    # =========================================================================
-    # User Management Methods (for Admin UI)
-    # =========================================================================
+    # ── User CRUD ────────────────────────────────────────────────
 
     def get_user(self, user_id: str) -> Optional[Dict]:
-        """
-        Get user by ID
-
-        Args:
-            user_id: User identifier
-
-        Returns:
-            User data dictionary or None
-        """
-        with self._lock:
-            return self.users.get(user_id)
+        """Get user by user_id (never returns password hash)."""
+        db = self._get_db()
+        try:
+            from sajha.db.models import User
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if not user:
+                return None
+            return {
+                'id': user.id,
+                'user_id': user.user_id,
+                'user_name': user.user_name,
+                'email': user.email,
+                'enabled': user.enabled,
+                'roles': user.role_names,
+                'is_admin': user.is_admin,
+                'created_at': str(user.created_at),
+                'last_login': str(user.last_login) if user.last_login else None,
+            }
+        except Exception as e:
+            self.logger.error(f"Get user error: {e}", exc_info=True)
+            return None
+        finally:
+            db.close()
 
     def get_all_users(self) -> List[Dict]:
-        """
-        Get all users (includes passwords for admin editing)
-
-        Returns:
-            List of user dictionaries
-        """
-        with self._lock:
-            return list(self.users.values())
+        """Get all users (NEVER returns password hashes)."""
+        db = self._get_db()
+        try:
+            from sajha.db.models import User
+            users = db.query(User).all()
+            return [{
+                'id': u.id,
+                'user_id': u.user_id,
+                'user_name': u.user_name,
+                'email': u.email,
+                'enabled': u.enabled,
+                'roles': u.role_names,
+                'is_admin': u.is_admin,
+                'created_at': str(u.created_at),
+                'last_login': str(u.last_login) if u.last_login else None,
+            } for u in users]
+        except Exception as e:
+            self.logger.error(f"Get all users error: {e}", exc_info=True)
+            return []
+        finally:
+            db.close()
 
     def create_user(self, user_data: Dict) -> bool:
-        """
-        Create a new user
-
-        Args:
-            user_data: User configuration dictionary
-
-        Returns:
-            True if successful
-        """
-        with self._lock:
-            try:
-                user_id = user_data.get('user_id')
-
-                if not user_id:
-                    self.logger.error("Cannot create user: user_id is required")
-                    return False
-
-                if user_id in self.users:
-                    self.logger.error(f"Cannot create user: {user_id} already exists")
-                    return False
-
-                # Set creation timestamp if not provided
-                if 'created_at' not in user_data:
-                    user_data['created_at'] = datetime.now().isoformat() + 'Z'
-
-                # Set defaults
-                user_data.setdefault('enabled', True)
-                user_data.setdefault('roles', ['user'])
-                user_data.setdefault('tools', ['*'])
-
-                # Add user to memory
-                self.users[user_id] = user_data
-
-                # Save to file
-                self.save_users()
-
-                self.logger.info(f"User created: {user_id}")
-                return True
-
-            except Exception as e:
-                self.logger.error(f"Error creating user: {e}", exc_info=True)
+        """Create a new user with bcrypt-hashed password."""
+        db = self._get_db()
+        try:
+            from sajha.db.models import User, Role
+            existing = db.query(User).filter(User.user_id == user_data['user_id']).first()
+            if existing:
                 return False
+            user = User(
+                id=str(uuid.uuid4()),
+                user_id=user_data['user_id'],
+                user_name=user_data.get('user_name', user_data['user_id']),
+                email=user_data.get('email'),
+                password_hash=hash_password(user_data['password']),
+                enabled=user_data.get('enabled', True),
+            )
+            # Assign roles
+            role_names = user_data.get('roles', ['user'])
+            for rn in role_names:
+                role = db.query(Role).filter(Role.name == rn).first()
+                if role:
+                    user.roles.append(role)
+            db.add(user)
+            db.commit()
+            self.logger.info(f"User created: {user_data['user_id']}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Create user error: {e}", exc_info=True)
+            db.rollback()
+            return False
+        finally:
+            db.close()
 
     def update_user(self, user_id: str, user_data: Dict) -> bool:
-        """
-        Update existing user
-
-        Args:
-            user_id: User identifier
-            user_data: Updated user configuration
-
-        Returns:
-            True if successful
-        """
-        with self._lock:
-            try:
-                if user_id not in self.users:
-                    self.logger.error(f"User {user_id} not found")
-                    return False
-
-                # Keep original created_at if not provided
-                if 'created_at' not in user_data and 'created_at' in self.users[user_id]:
-                    user_data['created_at'] = self.users[user_id]['created_at']
-
-                # If password is empty or None, keep the old password
-                if not user_data.get('password'):
-                    user_data['password'] = self.users[user_id].get('password', '')
-
-                # Update user in memory (replace entire user object)
-                self.users[user_id] = user_data
-
-                # Save to file
-                self.save_users()
-
-                self.logger.info(f"User updated: {user_id}")
-                return True
-
-            except Exception as e:
-                self.logger.error(f"Error updating user: {e}", exc_info=True)
+        """Update user. If password provided, re-hash with bcrypt."""
+        db = self._get_db()
+        try:
+            from sajha.db.models import User
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if not user:
                 return False
+            if user_data.get('user_name'):
+                user.user_name = user_data['user_name']
+            if user_data.get('email'):
+                user.email = user_data['email']
+            if user_data.get('password'):
+                user.password_hash = hash_password(user_data['password'])
+            if 'enabled' in user_data:
+                user.enabled = user_data['enabled']
+            db.commit()
+            self.logger.info(f"User updated: {user_id}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Update user error: {e}", exc_info=True)
+            db.rollback()
+            return False
+        finally:
+            db.close()
 
     def delete_user(self, user_id: str) -> bool:
-        """
-        Delete a user
-
-        Args:
-            user_id: User identifier
-
-        Returns:
-            True if successful
-        """
-        with self._lock:
-            try:
-                # Prevent deleting admin
-                if user_id == 'admin':
-                    self.logger.error("Cannot delete admin user")
-                    return False
-
-                if user_id not in self.users:
-                    self.logger.error(f"User {user_id} not found")
-                    return False
-
-                # Remove from memory
-                del self.users[user_id]
-
-                # Save to file
-                self.save_users()
-
-                # Invalidate all sessions for this user
-                tokens_to_remove = [
-                    token for token, session in self.sessions.items()
-                    if session['user_id'] == user_id
-                ]
-                for token in tokens_to_remove:
-                    del self.sessions[token]
-
-                self.logger.info(f"User deleted: {user_id}")
-                return True
-
-            except Exception as e:
-                self.logger.error(f"Error deleting user: {e}", exc_info=True)
-                return False
-
-    def enable_user(self, user_id: str) -> bool:
-        """
-        Enable a user account
-
-        Args:
-            user_id: User identifier
-
-        Returns:
-            True if successful
-        """
-        with self._lock:
-            try:
-                if user_id not in self.users:
-                    self.logger.error(f"User {user_id} not found")
-                    return False
-
-                self.users[user_id]['enabled'] = True
-                self.save_users()
-
-                self.logger.info(f"User enabled: {user_id}")
-                return True
-
-            except Exception as e:
-                self.logger.error(f"Error enabling user: {e}", exc_info=True)
-                return False
-
-    def disable_user(self, user_id: str) -> bool:
-        """
-        Disable a user account
-
-        Args:
-            user_id: User identifier
-
-        Returns:
-            True if successful
-        """
-        with self._lock:
-            try:
-                # Prevent disabling admin
-                if user_id == 'admin':
-                    self.logger.error("Cannot disable admin user")
-                    return False
-
-                if user_id not in self.users:
-                    self.logger.error(f"User {user_id} not found")
-                    return False
-
-                self.users[user_id]['enabled'] = False
-                self.save_users()
-
-                # Invalidate all active sessions for this user
-                tokens_to_remove = [
-                    token for token, session in self.sessions.items()
-                    if session['user_id'] == user_id
-                ]
-                for token in tokens_to_remove:
-                    del self.sessions[token]
-
-                self.logger.info(f"User disabled: {user_id}")
-                return True
-
-            except Exception as e:
-                self.logger.error(f"Error disabling user: {e}", exc_info=True)
-                return False
-
-    def update_last_login(self, user_id: str):
-        """
-        Update user's last login timestamp
-
-        Args:
-            user_id: User identifier
-        """
+        """Delete a user and all associated sessions/keys."""
+        db = self._get_db()
         try:
-            if user_id in self.users:
-                self.users[user_id]['last_login'] = datetime.now().isoformat() + 'Z'
-                self.save_users()
+            from sajha.db.models import User
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if not user:
+                return False
+            db.delete(user)
+            db.commit()
+            self.logger.info(f"User deleted: {user_id}")
+            return True
         except Exception as e:
-            self.logger.error(f"Error updating last login: {e}", exc_info=True)
+            self.logger.error(f"Delete user error: {e}", exc_info=True)
+            db.rollback()
+            return False
+        finally:
+            db.close()
 
-    # =========================================================================
-    # Legacy Methods (for backward compatibility)
-    # =========================================================================
+    # ── Request Authentication ───────────────────────────────────
 
-    def add_user(self, user_data: Dict) -> bool:
+    @staticmethod
+    def authenticate_request(request, db=None):
         """
-        Add a new user (legacy method, use create_user instead)
+        Authenticate an incoming request. Checks (in order):
+        1. Authorization: Bearer <token>
+        2. X-API-Key header
+        3. ?api_key= query param
+        4. sajha_token cookie
+        """
+        from sajha.auth import AuthContext
 
-        Args:
-            user_data: User data dictionary
-
-        Returns:
-            True if successful
-        """
-        return self.create_user(user_data)
-
-    # =========================================================================
-    # API Key Authentication Methods
-    # =========================================================================
-
-    def extract_username_from_request(self, data: Dict) -> Optional[str]:
-        """
-        Extract username from request data using various field aliases.
-        
-        Args:
-            data: Request data dictionary
-            
-        Returns:
-            Username if found, None otherwise
-        """
-        for alias in self.USERNAME_ALIASES:
-            if alias in data:
-                return data[alias]
-        return None
-
-    def authenticate_basic(self, data: Dict) -> Tuple[bool, Optional[str], str]:
-        """
-        Authenticate using basic credentials (username/password).
-        Returns a session token for subsequent requests.
-        
-        Args:
-            data: Dictionary containing username (various aliases) and password
-            
-        Returns:
-            Tuple of (success, token, message)
-        """
-        # Extract username using aliases
-        user_id = self.extract_username_from_request(data)
-        password = data.get('password')
-        
-        if not user_id:
-            return False, None, "Username not provided. Use one of: uid, username, user_name, user_id"
-        
-        if not password:
-            return False, None, "Password not provided"
-        
-        # Use existing authenticate method
-        token = self.authenticate(user_id, password)
-        
-        if token:
-            return True, token, "Authentication successful"
-        else:
-            if self.is_user_locked_out(user_id):
-                return False, None, "Account locked due to too many failed attempts"
-            return False, None, "Invalid credentials"
-
-    def validate_api_key(self, api_key: str) -> Tuple[bool, Optional[Dict], str]:
-        """
-        Validate an API key.
-        
-        Args:
-            api_key: The API key to validate
-            
-        Returns:
-            Tuple of (is_valid, key_data, message)
-        """
-        return self.apikey_manager.validate_key(api_key)
-
-    def check_api_key_tool_access(self, api_key: str, tool_name: str) -> Tuple[bool, str]:
-        """
-        Check if an API key has access to a specific tool.
-        
-        Args:
-            api_key: The API key
-            tool_name: Name of the tool
-            
-        Returns:
-            Tuple of (has_access, message)
-        """
-        return self.apikey_manager.check_tool_access(api_key, tool_name)
-
-    def authenticate_request(self, headers: Dict, data: Dict = None) -> Tuple[bool, Optional[Dict], str]:
-        """
-        Authenticate an API request using either Bearer token or API key.
-        
-        Args:
-            headers: Request headers
-            data: Request body data (for basic auth)
-            
-        Returns:
-            Tuple of (is_authenticated, auth_context, message)
-            auth_context contains: type ('session' or 'apikey'), data (session or key data)
-        """
-        # Check for Authorization header
-        auth_header = headers.get('Authorization', headers.get('authorization', ''))
-        
-        # Check for API key in header
-        api_key = headers.get('X-API-Key', headers.get('x-api-key', ''))
-        
-        # Option 1: Bearer token authentication
+        # 1. Bearer token
+        auth_header = request.headers.get('authorization', '')
         if auth_header.startswith('Bearer '):
             token = auth_header[7:]
-            session = self.validate_session(token)
-            if session:
-                return True, {'type': 'session', 'data': session}, "Session valid"
-            else:
-                return False, None, "Invalid or expired session token"
-        
-        # Option 2: API key in X-API-Key header
+            mgr = _get_auth_manager()
+            user_data = mgr.validate_session(token)
+            if user_data:
+                return AuthContext(
+                    authenticated=True,
+                    method='bearer',
+                    user_id=user_data['user_id'],
+                    user_name=user_data['user_name'],
+                    roles=user_data['roles'],
+                )
+
+        # 2. API Key
+        api_key = request.headers.get('x-api-key', '') or request.query_params.get('api_key', '')
         if api_key:
-            is_valid, key_data, msg = self.validate_api_key(api_key)
-            if is_valid:
-                self.apikey_manager.record_usage(api_key)
-                return True, {'type': 'apikey', 'data': key_data, 'key': api_key}, msg
-            else:
-                return False, None, msg
-        
-        # Option 3: API key in Authorization header (without Bearer prefix)
-        if auth_header and auth_header.startswith('sja_'):
-            is_valid, key_data, msg = self.validate_api_key(auth_header)
-            if is_valid:
-                self.apikey_manager.record_usage(auth_header)
-                return True, {'type': 'apikey', 'data': key_data, 'key': auth_header}, msg
-            else:
-                return False, None, msg
-        
-        return False, None, "No valid authentication provided"
+            from sajha.core.apikey_manager import get_api_key_manager
+            km = get_api_key_manager()
+            valid, key_data, msg = km.validate_key(api_key)
+            if valid and key_data:
+                return AuthContext(
+                    authenticated=True,
+                    method='api_key',
+                    user_id=key_data.get('owner_user_id', 'api_user'),
+                    user_name=key_data.get('name', 'API Key User'),
+                    roles=key_data.get('roles', ['user']),
+                    api_key_name=key_data.get('name'),
+                )
 
-    def check_tool_access_for_auth_context(self, auth_context: Dict, tool_name: str) -> Tuple[bool, str]:
-        """
-        Check if an authentication context has access to a specific tool.
-        
-        Args:
-            auth_context: Authentication context from authenticate_request
-            tool_name: Name of the tool
-            
-        Returns:
-            Tuple of (has_access, message)
-        """
-        if not auth_context:
-            return False, "Not authenticated"
-        
-        auth_type = auth_context.get('type')
-        
-        if auth_type == 'session':
-            session = auth_context.get('data', {})
-            if self.has_tool_access(session, tool_name):
-                return True, "Access granted"
-            return False, f"User does not have access to tool '{tool_name}'"
-        
-        elif auth_type == 'apikey':
-            api_key = auth_context.get('key')
-            return self.check_api_key_tool_access(api_key, tool_name)
-        
-        return False, "Unknown authentication type"
+        # 3. Session cookie
+        token = request.cookies.get('sajha_token', '')
+        if token:
+            mgr = _get_auth_manager()
+            user_data = mgr.validate_session(token)
+            if user_data:
+                return AuthContext(
+                    authenticated=True,
+                    method='cookie',
+                    user_id=user_data['user_id'],
+                    user_name=user_data['user_name'],
+                    roles=user_data['roles'],
+                )
 
-    # =========================================================================
-    # API Key Management (Admin Operations)
-    # =========================================================================
+        return AuthContext(authenticated=False)
 
-    def create_api_key(self, **kwargs) -> Tuple[bool, str, Optional[Dict]]:
-        """Create a new API key (wrapper for admin operations)"""
-        return self.apikey_manager.create_key(**kwargs)
+    # ── Cleanup ──────────────────────────────────────────────────
 
-    def update_api_key(self, key: str, updates: Dict) -> Tuple[bool, str]:
-        """Update an API key"""
-        return self.apikey_manager.update_key(key, updates)
+    def cleanup_expired_sessions(self):
+        """Remove expired sessions from DB."""
+        db = self._get_db()
+        try:
+            from sajha.db.models import UserSession
+            expired = db.query(UserSession).filter(
+                UserSession.expires_at < datetime.now(timezone.utc)
+            ).all()
+            for s in expired:
+                db.delete(s)
+            db.commit()
+            if expired:
+                self.logger.info(f"Cleaned up {len(expired)} expired sessions")
+        except Exception as e:
+            self.logger.error(f"Session cleanup error: {e}", exc_info=True)
+        finally:
+            db.close()
 
-    def delete_api_key(self, key: str) -> Tuple[bool, str]:
-        """Delete an API key"""
-        return self.apikey_manager.delete_key(key)
 
-    def list_api_keys(self, include_key: bool = False) -> List[Dict]:
-        """List all API keys"""
-        return self.apikey_manager.list_keys(include_key)
+# Module-level singleton
+_auth_manager: Optional[AuthManager] = None
 
-    def get_api_key(self, key: str, include_full_key: bool = False) -> Optional[Dict]:
-        """Get a specific API key's data"""
-        return self.apikey_manager.get_key(key, include_full_key)
 
-    def enable_api_key(self, key: str) -> Tuple[bool, str]:
-        """Enable an API key"""
-        return self.apikey_manager.enable_key(key)
+def get_auth_manager() -> AuthManager:
+    global _auth_manager
+    if _auth_manager is None:
+        _auth_manager = AuthManager()
+    return _auth_manager
 
-    def disable_api_key(self, key: str) -> Tuple[bool, str]:
-        """Disable an API key"""
-        return self.apikey_manager.disable_key(key)
 
-    def get_api_key_statistics(self) -> Dict:
-        """Get API key statistics"""
-        return self.apikey_manager.get_statistics()
+def init_auth_manager(settings=None) -> AuthManager:
+    global _auth_manager
+    _auth_manager = AuthManager(settings)
+    return _auth_manager
+
+
+def _get_auth_manager() -> AuthManager:
+    return get_auth_manager()

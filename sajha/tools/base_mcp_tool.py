@@ -145,7 +145,24 @@ class BaseMCPTool(ABC):
         # Validate arguments
         self.validate_arguments(arguments)
         
-        # Track execution
+        # ── Cache check (only if tool has cache_ttl in config) ──
+        from sajha.core.cache import get_tool_cache, get_tool_ttl
+        cache = get_tool_cache()
+        tool_ttl = get_tool_ttl(self.name, self.config if hasattr(self, 'config') else None)
+        if tool_ttl > 0:
+            cached = cache.get(self.name, arguments)
+            if cached is not None:
+                self.logger.debug(f"Cache hit: {self.name}")
+                return cached
+
+        # ── Circuit breaker check ────────────────────────────
+        from sajha.core.circuit_breaker import get_circuit_registry
+        breaker = get_circuit_registry().get_breaker(self.name)
+        if breaker and not breaker.can_execute():
+            self.logger.warning(f"Circuit open: {self.name} — returning degraded error")
+            raise RuntimeError(f"Service temporarily unavailable for {self.name} (circuit breaker open)")
+
+        # ── Execute ──────────────────────────────────────────
         start_time = datetime.now()
         try:
             result = self.execute(arguments)
@@ -155,11 +172,42 @@ class BaseMCPTool(ABC):
             self._execution_count += 1
             self._last_execution = datetime.now()
             self._total_execution_time += execution_time
-            
+
+            # Record success in circuit breaker
+            if breaker:
+                breaker.record_success()
+
+            # Cache the result (only if tool has cache_ttl in its config)
+            from sajha.core.cache import get_tool_ttl
+            tool_ttl = get_tool_ttl(self.name, self.config if hasattr(self, 'config') else None)
+            if tool_ttl > 0:
+                cache.put(self.name, arguments, result, ttl=tool_ttl)
+
+            # Record for replay
+            from sajha.core.tool_health import get_replay_store
+            get_replay_store().record(
+                self.name, arguments, result,
+                duration_ms=execution_time * 1000, success=True)
+
             self.logger.info(f"Tool executed successfully: {self.name} ({execution_time:.2f}s)")
             return result
             
         except Exception as e:
+            execution_time = (datetime.now() - start_time).total_seconds()
+
+            # Record failure in circuit breaker
+            if breaker:
+                breaker.record_failure()
+
+            # Record for replay
+            try:
+                from sajha.core.tool_health import get_replay_store
+                get_replay_store().record(
+                    self.name, arguments, {'error': str(e)},
+                    duration_ms=execution_time * 1000, success=False)
+            except Exception:
+                pass
+
             self.logger.error(f"Tool execution failed: {self.name} - {str(e)}", exc_info=True)
             raise
     

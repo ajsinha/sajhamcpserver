@@ -53,6 +53,10 @@ class User(Base):
     oauth_provider = Column(String(50), nullable=True)
     oauth_subject = Column(String(255), nullable=True)
 
+    # Account lockout
+    failed_attempts = Column(Integer, default=0, nullable=False)
+    locked_until = Column(DateTime, nullable=True)
+
     # Relationships
     roles = relationship('Role', secondary=user_roles, back_populates='users', lazy='joined')
     api_keys = relationship('ApiKey', back_populates='owner', cascade='all, delete-orphan')
@@ -182,7 +186,7 @@ class ToolUsageEvent(Base):
     tool_name = Column(String(255), nullable=False, index=True)
     user_id = Column(String(100), nullable=True, index=True)
     auth_type = Column(String(20), nullable=True)   # session, apikey, oauth, anonymous
-    timestamp = Column(DateTime, nullable=False, default=_utcnow, index=True)
+    created_at = Column(DateTime, nullable=False, default=_utcnow, index=True)
     duration_ms = Column(Integer, nullable=True)
     success = Column(Boolean, default=True, nullable=False)
     error_message = Column(Text, nullable=True)
@@ -192,8 +196,8 @@ class ToolUsageEvent(Base):
     user_agent = Column(String(500), nullable=True)
 
     __table_args__ = (
-        Index('ix_tool_usage_tool_time', 'tool_name', 'timestamp'),
-        Index('ix_tool_usage_user_time', 'user_id', 'timestamp'),
+        Index('ix_tool_usage_tool_time', 'tool_name', 'created_at'),
+        Index('ix_tool_usage_user_time', 'user_id', 'created_at'),
     )
 
     def __repr__(self):
@@ -207,16 +211,16 @@ class AuditLog(Base):
     __tablename__ = 'audit_log'
 
     id = Column(String(36), primary_key=True, default=_uuid)
-    timestamp = Column(DateTime, nullable=False, default=_utcnow, index=True)
-    actor_id = Column(String(100), nullable=True)
+    created_at = Column(DateTime, nullable=False, default=_utcnow, index=True)
+    user_id = Column(String(100), nullable=True)
     action = Column(String(100), nullable=False, index=True)
     resource_type = Column(String(50), nullable=True)
     resource_id = Column(String(255), nullable=True)
-    details = Column(Text, nullable=True)   # JSON with before/after
+    details = Column(Text, nullable=True)
     ip_address = Column(String(45), nullable=True)
 
     def __repr__(self):
-        return f'<AuditLog {self.action} by {self.actor_id}>'
+        return f'<AuditLog {self.action} by {self.user_id}>'
 
 
 # ── A2A Task ─────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 """
 MCP 2025-11-25 Features — Tasks, Elicitation, Sampling
-SAJHA MCP Server v5.0.0
+SAJHA MCP Server v5.1.0
 Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
 
 Implements the new primitives from MCP spec 2025-11-25:

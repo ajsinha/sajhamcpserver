@@ -1,6 +1,6 @@
 # SAJHA MCP Server — Glossary
 
-**Version:** 5.0.0 · **Last Updated:** May 2026
+**Version:** 5.1.0 · **Last Updated:** May 2026
 
 ---
 
@@ -110,7 +110,7 @@
 
 ---
 
-*SAJHA MCP Server v5.0.0 — Glossary*
+*SAJHA MCP Server v5.1.0 — Glossary*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*
 
 **ClientPipeline:** Client-side tool composition class in the SDK (`clientsdk/sajhaclient/mcp_client.py`). Chains `add_step()` calls with `$input.` / `$.` param mapping. `execute()` tracks confidence and entropy without server-side composite definitions.
@@ -160,3 +160,36 @@
 **CIMD (Client ID Metadata Document):** OAuth client registration mechanism (SEP-991, 2025-11-25). Replaces Dynamic Client Registration. Served at `/.well-known/oauth-client/{client_id}`.
 
 **PRM (Protected Resource Metadata):** OAuth 2.0 resource discovery per RFC 9728. Served at `/.well-known/oauth-protected-resource`. Declares authorization servers, supported scopes, and bearer methods.
+
+## New in v5.1.0
+
+**ToolCache:** File-based cache with per-tool TTL for tool output results (`sajha/core/cache.py`). Each entry is a JSON file on disk: `data/cache/{tool_name}/{md5_hash}.json`. Default: no caching. Tools opt in via `cache_ttl` in their JSON config. Max 50,000 files with oldest-file eviction. Survives server restarts. Zero memory overhead.
+
+**CircuitBreaker:** Per-provider failure tracking (`sajha/core/circuit_breaker.py`). States: CLOSED (normal) → OPEN (after 5 consecutive failures, 60s recovery) → HALF_OPEN (one probe request allowed). Prevents cascading failures when external APIs go down. Registry maps 16 providers to circuit breakers.
+
+**WebhookManager:** Event notification system (`sajha/core/webhooks.py`). Subscribers register callback URLs for events (tool.completed, task.failed, circuit.opened). Delivery with 3 retries and exponential backoff. Fire-and-forget in background threads.
+
+**ExecutionReplayStore:** Stores last 20 executions per tool (`sajha/core/tool_health.py`). Each entry: tool_name, arguments, result preview, duration_ms, timestamp, user_id, success. Enables replay for debugging and regression testing.
+
+**AuditLogger:** Structured security event logging (`sajha/core/audit.py`). Writes to `audit_log` DB table. Events: login_success, login_failed, logout, user_create, user_delete, apikey_create, apikey_revoke, tool_execute, config_change, permission_change, account_locked.
+
+**ProviderHealth:** Aggregates circuit breaker state with tool dependency graph (`sajha/core/tool_health.py`). Maps 497 tools → 16 providers → external API endpoints. Status per provider: healthy (circuit closed), degraded (half_open), down (open).
+
+
+**AsyncExecutor:** Background tool execution engine (`sajha/core/async_executor.py`). Bounded work queue (`queue.Queue(maxsize=1000)`) with daemon worker pool (configurable, default 8 threads). Workers call `execute_with_tracking()` for cache/circuit/replay integration. Supports backpressure (HTTP 503 when full).
+
+**AsyncTask:** A background tool execution unit. Lifecycle: queued → running → completed/failed → delivered. Tracks task_id, tool_name, arguments, delivery type/destination, result, duration, timestamps.
+
+**DeliveryRouter:** Routes completed async task results to the configured destination: webhook (POST with retry), Kafka (produce to topic), or file (atomic write via rename). Lazy Kafka import — only loaded if Kafka delivery is used.
+
+
+**ShellExecutor:** Unified sandboxed execution interface (`sajha/core/shell_executor.py`). Three tiers: Python sandbox (restricted imports, 30s timeout, 256MB), Bash sandbox (allowlisted commands, 15s timeout), Unrestricted (admin-only, disabled by default). Every execution audit-logged.
+
+**SecurityValidator:** Pre-execution code/command validator. Python: blocks `os`, `subprocess`, `socket`, `exec()`, `eval()`, file operations. Bash: allowlist of safe commands (cat, grep, awk, etc.), blocks `rm`, `sudo`, `ssh`, pipe-to-shell, command chaining.
+
+**PythonSandbox:** Executes Python in a subprocess with restricted PATH, no PYTHONPATH, limited env vars. Allowed imports: json, math, csv, statistics, re, datetime, pandas, numpy. Temp file written to scratch dir, deleted after execution.
+
+
+**Semantic Tool Discovery:** Natural-language tool search via vector embeddings (`sajha/core/resolver.py`). All 497 tool descriptions are embedded as vectors. User queries are embedded and compared via cosine similarity. Returns ranked tool list with relevance scores. API: `POST /api/ai/resolve-tool`. No other MCP server has this capability.
+
+**LLM Gateway:** Multi-provider AI inference layer (`sajha/ai/`). 6 providers: Anthropic, OpenAI, AWS Bedrock, Together.ai, Ollama, Azure OpenAI. All via official SDKs. Providers and models managed in DB tables. Three-tier model resolution: explicit → user prefs → system defaults. Registry-based factory supports custom provider classes.

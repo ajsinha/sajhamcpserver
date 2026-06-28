@@ -289,6 +289,12 @@ document.getElementById('toolExecuteForm').addEventListener('submit', function(e
                     <span><i class="bi bi-check-circle-fill me-2"></i>Execution Successful ${execTime ? '<span class="badge bg-light text-dark ms-2">' + execTime + '</span>' : ''}</span>
                     <button class="btn btn-sm btn-outline-success" onclick="document.getElementById('executeBtn').click()"><i class="bi bi-arrow-repeat me-1"></i>Run Again</button>
                 </div>
+                <div class="d-flex gap-3 mb-2 small text-muted">
+                    <span><i class="bi bi-clock me-1"></i>${execTime || '—'}</span>
+                    <span id="cacheStatusBadge"><i class="bi bi-database me-1"></i>Fresh</span>
+                    <span id="providerStatusBadge"><i class="bi bi-cloud-check me-1 text-success"></i>Provider healthy</span>
+                    <a href="#" onclick="loadReplayHistory();return false"><i class="bi bi-skip-backward me-1"></i>View execution history</a>
+                </div>
                 ${summary ? '<div class="card mb-3"><div class="card-body py-2"><i class="bi bi-lightbulb me-2 text-warning"></i><strong>Summary:</strong> ' + summary + '</div></div>' : ''}
                 <pre class="bg-dark text-light p-3" style="border-radius: 5px; white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(data.result, null, 2)}</pre>
                 <small class="text-muted">Executed at: ${timestamp}</small>
@@ -362,6 +368,28 @@ function clearForm() {
 function getSessionToken() {
     // This would typically get the token from session storage or cookie
     return '{{ session.token }}' || '';
+}
+
+// Replay history
+function loadReplayHistory() {
+    var toolName = '{{ tool_name }}';
+    fetch('/api/replay/tool/' + toolName, {credentials:'same-origin'})
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            var execs = d.executions || [];
+            if (execs.length === 0) { alert('No execution history for ' + toolName); return; }
+            var html = '<div class="card mb-3"><div class="card-header"><i class="bi bi-skip-backward me-2"></i>Execution History (' + execs.length + ' runs)</div>';
+            html += '<div class="card-body p-0"><table class="table table-sm mb-0"><thead><tr><th>Time</th><th>Duration</th><th>Status</th><th>Result Preview</th></tr></thead><tbody>';
+            execs.forEach(function(e) {
+                var t = new Date(e.timestamp * 1000).toLocaleTimeString();
+                var st = e.success ? '<span class="badge bg-success">OK</span>' : '<span class="badge bg-danger">FAIL</span>';
+                html += '<tr><td>' + t + '</td><td>' + e.duration_ms + 'ms</td><td>' + st + '</td>';
+                html += '<td class="small" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (e.result_preview || '—') + '</td></tr>';
+            });
+            html += '</tbody></table></div></div>';
+            document.getElementById('results').insertAdjacentHTML('afterbegin', html);
+        })
+        .catch(function(e) { console.error('Replay error:', e); });
 }
 
 // Initialize

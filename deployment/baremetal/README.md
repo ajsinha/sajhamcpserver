@@ -150,5 +150,5 @@ The systemd service includes:
 
 ---
 
-*SAJHA MCP Server v5.0.0 — Bare Metal Deployment*
+*SAJHA MCP Server v5.1.0 — Bare Metal Deployment*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

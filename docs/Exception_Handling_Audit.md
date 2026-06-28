@@ -1,4 +1,4 @@
-# SAJHA MCP Server v5.0.0 — Exception Handling Audit
+# SAJHA MCP Server v5.1.0 — Exception Handling Audit
 
 **Date:** May 12, 2026
 **Auditor:** Code Quality Review
@@ -123,5 +123,5 @@ except Exception as e:
 
 ---
 
-*SAJHA MCP Server v5.0.0 — Exception Handling Audit*
+*SAJHA MCP Server v5.1.0 — Exception Handling Audit*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

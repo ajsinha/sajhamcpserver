@@ -1,4 +1,4 @@
-# SAJHA MCP Server v5.0.0 — API Reference
+# SAJHA MCP Server v5.1.0 — API Reference
 
 Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
 
@@ -341,7 +341,7 @@ curl http://localhost:3002/.well-known/oauth-client/my-client-id
 ```yaml
 app:
   name: SAJHA MCP Server
-  version: 5.0.0
+  version: 5.1.0
   author: Ashutosh Sinha
   email: ajsinha@gmail.com
 
@@ -374,5 +374,235 @@ config:
 
 ---
 
-*SAJHA MCP Server v5.0.0 — API Reference*
+*SAJHA MCP Server v5.1.0 — API Reference*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*
+
+---
+
+## REST API — Cache (v5.1.0)
+
+### GET /api/cache/stats
+
+```bash
+curl -H "X-API-Key: sja_key" http://localhost:3002/api/cache/stats
+```
+
+Response:
+```json
+{"type": "file", "cache_dir": "data/cache", "size": 142, "size_bytes": 284600, "size_human": "277.9 KB", "max_files": 50000, "tools_cached": 8, "hits": 1203, "misses": 456, "writes": 1659, "hit_rate": 72.5}
+```
+
+### POST /api/cache/invalidate
+
+```bash
+# Invalidate specific tool cache
+curl -X POST http://localhost:3002/api/cache/invalidate \
+  -H "Content-Type: application/json" -H "X-API-Key: sja_key" \
+  -d '{"tool_name": "yahoo_quote"}'
+
+# Invalidate all
+curl -X POST http://localhost:3002/api/cache/invalidate \
+  -H "Content-Type: application/json" -H "X-API-Key: sja_key" -d '{}'
+```
+
+---
+
+## REST API — Circuit Breakers (v5.1.0)
+
+### GET /api/circuits
+
+```bash
+curl -H "X-API-Key: sja_key" http://localhost:3002/api/circuits
+```
+
+Response:
+```json
+{
+  "circuits": [
+    {"name": "FMP", "state": "closed", "failure_count": 0, "failure_threshold": 5},
+    {"name": "Yahoo Finance", "state": "open", "failure_count": 7, "recovery_timeout": 60}
+  ]
+}
+```
+
+---
+
+## REST API — Provider Health (v5.1.0)
+
+### GET /api/providers/health
+
+```bash
+curl -H "X-API-Key: sja_key" http://localhost:3002/api/providers/health
+```
+
+Response:
+```json
+{
+  "providers": [
+    {"provider": "FMP", "registered_tools": 100, "api_endpoint": "https://financialmodelingprep.com/api", "status": "healthy", "circuit_state": "closed"},
+    {"provider": "Yahoo Finance", "registered_tools": 35, "status": "degraded", "circuit_state": "half_open"}
+  ]
+}
+```
+
+### GET /api/providers/graph
+
+Full dependency graph: tools → providers → API endpoints.
+
+---
+
+## REST API — Execution Replay (v5.1.0)
+
+### GET /api/replay/recent
+
+```bash
+curl -H "X-API-Key: sja_key" http://localhost:3002/api/replay/recent
+```
+
+### GET /api/replay/tool/{name}
+
+```bash
+curl -H "X-API-Key: sja_key" http://localhost:3002/api/replay/tool/yahoo_quote
+```
+
+Response:
+```json
+{
+  "tool": "yahoo_quote",
+  "executions": [
+    {"id": "yahoo_quote:a1b2c3:1716000000", "arguments": {"symbol": "AAPL"}, "result_preview": "{\"symbol\":\"AAPL\",\"price\":198.42,...}", "duration_ms": 230.1, "success": true, "timestamp": 1716000000}
+  ]
+}
+```
+
+---
+
+## REST API — Webhooks (v5.1.0)
+
+### POST /api/webhooks/subscribe
+
+```bash
+curl -X POST http://localhost:3002/api/webhooks/subscribe \
+  -H "Content-Type: application/json" -H "X-API-Key: sja_key" \
+  -d '{"event": "tool.completed", "url": "https://my-app.com/webhook"}'
+```
+
+Events: `tool.completed`, `tool.failed`, `task.completed`, `task.failed`, `circuit.opened`, `circuit.closed`, `health.degraded`
+
+### GET /api/webhooks
+
+Lists all subscriptions and delivery statistics.
+
+---
+
+## REST API — Audit Log (v5.1.0)
+
+### GET /api/audit
+
+```bash
+curl -H "X-API-Key: sja_key" "http://localhost:3002/api/audit?action=login_failed&limit=20"
+```
+
+Params: `action`, `user_id`, `limit` (max 500).
+
+Actions: `login_success`, `login_failed`, `logout`, `user_create`, `user_delete`, `apikey_create`, `apikey_revoke`, `tool_execute`, `config_change`, `permission_change`, `account_locked`
+
+
+---
+
+## REST API — Async Tool Execution (v5.1.0)
+
+### POST /api/tools/{name}/execute-async
+
+Submit a tool for background execution with result delivery.
+
+```bash
+# Webhook delivery
+curl -X POST http://localhost:3002/api/tools/fmp_stock_screener/execute-async \
+  -H "Content-Type: application/json" -H "X-API-Key: sja_key" \
+  -d '{"marketCapMoreThan": 1000000000, "async": {"delivery": "webhook", "destination": "https://my-app.com/results"}}'
+
+# Kafka delivery
+curl -X POST http://localhost:3002/api/tools/fred_gdp/execute-async \
+  -H "Content-Type: application/json" -H "X-API-Key: sja_key" \
+  -d '{"async": {"delivery": "kafka", "destination": "sajha.results", "kafka_key": "gdp-daily"}}'
+
+# File delivery
+curl -X POST http://localhost:3002/api/tools/yahoo_quote/execute-async \
+  -H "Content-Type: application/json" -H "X-API-Key: sja_key" \
+  -d '{"symbol": "AAPL", "async": {"delivery": "file", "destination": "quote-aapl.json"}}'
+```
+
+Response (immediate, ~50ms):
+```json
+{"task_id": "t-a1b2c3d4e5f6", "status": "queued", "tool_name": "fmp_stock_screener", "delivery": "webhook", "poll_url": "/api/async/tasks/t-a1b2c3d4e5f6"}
+```
+
+### GET /api/async/tasks
+
+```bash
+curl -H "X-API-Key: sja_key" "http://localhost:3002/api/async/tasks?status=running"
+```
+
+### GET /api/async/tasks/{task_id}
+
+```bash
+curl -H "X-API-Key: sja_key" http://localhost:3002/api/async/tasks/t-a1b2c3d4e5f6
+```
+
+### POST /api/async/tasks/{task_id}/cancel
+
+### POST /api/async/tasks/{task_id}/retry
+
+### GET /api/async/stats
+
+```json
+{"workers": 8, "queue_size": 3, "queue_max": 1000, "submitted": 847, "completed": 830, "failed": 4, "delivered": 826, "cancelled": 2}
+```
+
+---
+
+## REST API — Shell Execution (v5.1.0)
+
+**DISABLED BY DEFAULT.** Requires `shell.enabled: true` in `config/application.yml`.
+
+### POST /api/shell/python
+
+```bash
+curl -X POST http://localhost:3002/api/shell/python \
+  -H "Content-Type: application/json" -H "X-API-Key: sja_key" \
+  -d '{"code": "import json\ndata = {\"pi\": 3.14159, \"e\": 2.71828}\nprint(json.dumps(data, indent=2))"}'
+```
+
+Response:
+```json
+{"execution_id": "py-a1b2c3d4", "type": "python", "tier": "sandbox", "success": true, "stdout": "{\n  \"pi\": 3.14159,\n  \"e\": 2.71828\n}", "stderr": "", "exit_code": 0, "duration_ms": 45.2}
+```
+
+Blocked example:
+```json
+{"code": "import os; os.system('ls')"}
+→ {"success": false, "blocked_reason": "Blocked import: os (security policy)"}
+```
+
+### POST /api/shell/bash
+
+```bash
+curl -X POST http://localhost:3002/api/shell/bash \
+  -H "Content-Type: application/json" -H "X-API-Key: sja_key" \
+  -d '{"command": "echo hello | wc -c"}'
+```
+
+Blocked example:
+```json
+{"command": "rm -rf /"}
+→ {"success": false, "blocked_reason": "Blocked: command matches security pattern 'rm'"}
+```
+
+### GET /api/shell/capabilities
+
+Returns what's enabled and the full security policy (allowed/blocked imports and commands).
+
+### GET /api/shell/history
+
+Admin-only. Last 50 shell executions with code, output, and timing.

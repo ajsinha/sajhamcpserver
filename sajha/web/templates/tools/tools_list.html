@@ -126,7 +126,8 @@ const toolsData = [
       executeUrl: "{{ url_for('tool_execute', tool_name=tool.name) }}",
       requiredParams: {% if tool.inputSchema and tool.inputSchema.required %}{{ tool.inputSchema.required|length }}{% else %}0{% endif %},
       totalParams: {% if tool.inputSchema and tool.inputSchema.properties %}{{ tool.inputSchema.properties|length }}{% else %}0{% endif %},
-      group: "{{ tool.name.split('_')[0] if '_' in tool.name else 'unknown' }}"
+      group: "{{ tool.name.split('_')[0] if '_' in tool.name else 'unknown' }}",
+      cacheTtl: {{ tool.config.get('cache_ttl', 0) if tool.config else 0 }}
     }{% if not loop.last %},{% endif %}
     {% endfor %}
 ];
@@ -197,9 +198,10 @@ function renderTable() {
     filteredData.slice(s, e).forEach(t => {
         const c = GC[t.group]||'#6c757d';
         const pBadge = t.totalParams > 0 ? `<span class="badge bg-secondary">${t.totalParams}</span>` : '<span class="badge bg-light text-dark">0</span>';
+        const cacheBadge = t.cacheTtl > 0 ? `<span class="badge bg-info" title="Cached ${t.cacheTtl}s"><i class="bi bi-database me-1"></i>${t.cacheTtl >= 3600 ? Math.round(t.cacheTtl/3600)+'h' : t.cacheTtl >= 60 ? Math.round(t.cacheTtl/60)+'m' : t.cacheTtl+'s'}</span>` : '';
         tbody.innerHTML += `<tr>
             <td><span class="badge" style="background:${c}">${t.group.toUpperCase()}</span></td>
-            <td><strong>${search ? hl(t.name, search) : t.name}</strong></td>
+            <td><strong>${search ? hl(t.name, search) : t.name}</strong> ${cacheBadge}</td>
             <td class="small">${search ? hl(t.description, search) : t.description}</td>
             <td>${pBadge}</td>
             <td><div class="btn-group btn-group-sm">

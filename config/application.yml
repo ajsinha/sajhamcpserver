@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 5.0.0
+  version: 5.1.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   email: ajsinha@gmail.com
@@ -189,3 +189,58 @@ ai:
   azure_openai:
     api_key: ${AZURE_OPENAI_API_KEY:}
     endpoint: ${AZURE_OPENAI_ENDPOINT:}
+
+# ── Tool Output Cache ────────────────────────────────────────────────────────
+# File-based cache for tool results. Each entry is a JSON file on disk.
+# Default: disabled per tool. Tools opt in via "cache_ttl" in their JSON config.
+
+cache:
+  enabled: ${CACHE_ENABLED:true}          # Master switch — false disables all caching
+  dir: ${CACHE_DIR:data/cache}            # Directory for cache files
+  max_files: ${CACHE_MAX_FILES:50000}     # Maximum number of cache files before eviction
+  max_file_size_kb: ${CACHE_MAX_FILE_KB:512}  # Skip caching results larger than this (KB)
+  cleanup_interval_seconds: 300           # How often to purge expired files (0 = disabled)
+  # Per-tool TTL is set in each tool's JSON config: "cache_ttl": 3600
+  # Setting cache_ttl: 0 or omitting it means no caching for that tool.
+
+# ── Async Tool Execution ─────────────────────────────────────────────────────
+# Background execution with result delivery via webhook, Kafka, or filesystem.
+# Client gets task_id immediately; result delivered when ready.
+
+async:
+  enabled: ${ASYNC_ENABLED:true}
+  workers: ${ASYNC_WORKERS:8}             # Daemon threads in worker pool
+  queue_size: ${ASYNC_QUEUE_SIZE:1000}    # Max pending tasks (503 on overflow)
+  task_ttl_hours: ${ASYNC_TASK_TTL:24}    # Retain completed tasks for N hours
+  delivery:
+    webhook:
+      timeout: 10
+      max_retries: 3
+    kafka:
+      bootstrap_servers: ${KAFKA_BROKERS:localhost:9092}
+    file:
+      base_dir: ${ASYNC_FILE_DIR:data/async_results}
+      max_size_mb: 50
+
+# ── Shell Execution (DISABLED BY DEFAULT) ────────────────────────────────────
+# Sandboxed Python and Bash execution for AI agents.
+# SECURITY: Disabled by default. Enable only in trusted environments.
+
+shell:
+  enabled: ${SHELL_ENABLED:false}           # Master switch — DISABLED by default
+  mode: sandbox                              # sandbox | unrestricted (admin-only)
+  scratch_dir: data/shell_scratch            # Working directory for scripts
+  python:
+    enabled: true                            # Python sandbox (when shell.enabled=true)
+    timeout_seconds: 30                      # Max execution time
+    memory_limit_mb: 256                     # Max memory per execution
+    # Allowed imports: json, math, csv, statistics, re, datetime, collections,
+    #   itertools, functools, decimal, pandas, numpy
+    # Blocked: os, sys, subprocess, socket, http, requests, ctypes, pickle
+  bash:
+    enabled: false                           # Bash sandbox — extra opt-in required
+    timeout_seconds: 15
+    max_output_bytes: 1048576                # 1 MB output cap
+    # Allowed commands: cat, grep, awk, sed, sort, uniq, wc, jq, head, tail,
+    #   ls, find, echo, date, base64, md5sum
+    # Blocked: rm, chmod, sudo, ssh, wget, python, docker, pipe-to-shell

@@ -50,6 +50,7 @@ async def login_form(
         value=token,
         httponly=True,
         samesite='lax',
+        secure=request.url.scheme == 'https',
         max_age=3600,
     )
     return response
@@ -57,6 +58,10 @@ async def login_form(
 
 @router.post('/api/auth/login')
 async def api_login(request: Request, db: Session = Depends(get_db)):
+    from sajha.security import check_auth_rate_limit
+    if not check_auth_rate_limit(request):
+        from fastapi.responses import JSONResponse
+        return JSONResponse({'error': 'Too many login attempts. Try again in 60 seconds.'}, status_code=429)
     """API login endpoint — returns JWT token."""
     data = await request.json()
     user_id = data.get('user_id') or data.get('username') or data.get('uid')
@@ -84,7 +89,7 @@ async def api_login(request: Request, db: Session = Depends(get_db)):
 @router.get('/logout')
 async def logout(request: Request):
     """Logout — clear session cookie."""
-    response = RedirectResponse(url='/login', status_code=302)
+    response = RedirectResponse(url='/', status_code=302)
     response.delete_cookie('sajha_token')
     return response
 

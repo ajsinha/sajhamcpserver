@@ -133,7 +133,7 @@ class ToolEmbeddingIndex:
             return len(self._embeddings)
 
         except Exception as e:
-            logger.error(f"Failed to build tool embeddings: {e}", exc_info=True)
+            logger.warning(f"Tool embeddings not available (no embedding provider): {e}", exc_info=True)
             return 0
 
     def search(self, query_embedding: List[float], top_k: int = 5) -> List[ToolMatch]:

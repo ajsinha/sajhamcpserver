@@ -140,7 +140,12 @@ def _run_sql_scripts(settings) -> None:
     """
     from pathlib import Path
 
+    # Use db-type-specific scripts if available
     scripts_dir = Path(settings.db_scripts_dir)
+    db_specific_dir = scripts_dir / settings.db_type
+    if db_specific_dir.is_dir():
+        scripts_dir = db_specific_dir
+        logger.info(f'Using {settings.db_type}-specific SQL scripts from {scripts_dir}')
     if not scripts_dir.is_absolute():
         scripts_dir = Path.cwd() / scripts_dir
 

@@ -110,11 +110,16 @@ class SajhaMCPServerWebApp:
     def _add_middleware(self, app: FastAPI):
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=['*'],
+            allow_origins=os.environ.get('SAJHA_CORS_ORIGINS', 'http://localhost:3002').split(','),
             allow_credentials=True,
             allow_methods=['*'],
             allow_headers=['*'],
         )
+
+        # Security headers middleware
+        from sajha.security import SecurityHeadersMiddleware, RequestSizeLimitMiddleware
+        app.add_middleware(SecurityHeadersMiddleware)
+        app.add_middleware(RequestSizeLimitMiddleware, max_body_size=10 * 1024 * 1024)
 
     # ── Static Files ─────────────────────────────────────────────
 
@@ -304,11 +309,8 @@ class SajhaMCPServerWebApp:
         # so tool configs can resolve ${var} (e.g. ${data.duckdb.dir} in duckdb_sql.json)
         try:
             from sajha.core.properties_configurator import PropertiesConfigurator
-            from sajha.core.config import _CFG
-            pc = PropertiesConfigurator()  # Singleton, no files
-            with pc._properties_lock:
-                pc._properties.update(_CFG)  # Inject flattened YAML values
-            logger.info(f'PropertiesConfigurator loaded with {len(_CFG)} values from YAML config')
+            pc = PropertiesConfigurator(yaml_file='config/application.yml')  # YAML-native, no hack
+            logger.info(f'PropertiesConfigurator loaded from application.yml ({len(pc.get_all_properties())} values)')
         except Exception as e:
             logger.warning(f'PropertiesConfigurator init failed: {e}', exc_info=True)
 
@@ -423,11 +425,9 @@ class SajhaMCPServerWebApp:
             from sajha.ai.gateway import init_gateway, get_gateway
             from sajha.ai.tool_resolver import init_resolver
             from sajha.db.engine import get_db_session
+            from sajha.core.config import _CFG
 
-            ai_config = {k: getattr(s, k.replace('.', '_'), '')
-                         for k in ['ai.default_provider', 'ai.default_model',
-                                   'ai.embedding_provider', 'ai.embedding_model',
-                                   'ai.cache.enabled', 'ai.cache.ttl_seconds']}
+            ai_config = _CFG  # Pass full flattened YAML config — gateway reads 'ai.*' keys
 
             db = get_db_session()
             try:

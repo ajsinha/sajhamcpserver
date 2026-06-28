@@ -321,7 +321,7 @@ class MsDocReadExcelTool(MsDocBaseTool):
                 "include_formulas": {
                     "type": "boolean",
                     "description": "Include cell formulas",
-                    "default": false
+                    "default": False
                 }
             },
             "required": ["filename"]

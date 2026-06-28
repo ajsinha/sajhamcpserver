@@ -75,6 +75,7 @@ class APIKeyManager:
                 
                 # Index by key for fast lookup
                 self._apikeys = {}
+                self._apikeys_by_hash = {}
                 for key_data in data.get('apikeys', []):
                     key = key_data.get('key')
                     if key:
@@ -86,6 +87,7 @@ class APIKeyManager:
                 logger.error(f"Error loading API keys from {self.config_path}: {e}", exc_info=True)
                 self._apikeys = {}
                 self._settings = {}
+        self._apikeys_by_hash = {k: v for k, v in self._apikeys.items()}
     
     def _create_default_config(self):
         """Create default apikeys.json file"""
@@ -249,7 +251,34 @@ class APIKeyManager:
             return False, None, "Invalid API key format"
         
         with self._lock:
+            # Look up by raw key (legacy config-based storage)
+            # For DB-backed keys, lookup is by hash via ApiKey model
             key_data = self._apikeys.get(key)
+            
+            if not key_data:
+                # Try DB lookup by hash
+                try:
+                    from sajha.security import hash_api_key
+                    from sajha.db.engine import get_db_session
+                    from sajha.db.models import ApiKey
+                    db = get_db_session()
+                    key_h = hash_api_key(key)
+                    db_key = db.query(ApiKey).filter(ApiKey.key_hash == key_h, ApiKey.enabled == True).first()
+                    if db_key:
+                        key_data = {
+                            'name': db_key.name,
+                            'enabled': db_key.enabled,
+                            'owner_user_id': db_key.owner_id,
+                            'tool_access_mode': db_key.tool_access_mode,
+                            'tool_access_list': db_key.tool_access_list,
+                            'expires_at': str(db_key.expires_at) if db_key.expires_at else None,
+                        }
+                        db_key.last_used = datetime.now(timezone.utc)
+                        db_key.usage_count = (db_key.usage_count or 0) + 1
+                        db.commit()
+                    db.close()
+                except Exception as e:
+                    logger.debug(f"DB key lookup: {e}", exc_info=True)
             
             if not key_data:
                 return False, None, "API key not found"

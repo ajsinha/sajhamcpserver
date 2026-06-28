@@ -1,6 +1,6 @@
 # Alpha Vantage — Tool Reference Guide
 
-**Version:** 5.0.0 · **Tools:** 35 · **API Key Required:** Yes (`alpha_vantage.api.key` in `config/application.yml`)
+**Version:** 5.1.0 · **Tools:** 35 · **API Key Required:** Yes (`alpha_vantage.api.key` in `config/application.yml`)
 
 ---
 

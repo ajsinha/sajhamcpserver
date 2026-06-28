@@ -1,8 +1,112 @@
 # SAJHA MCP Server — Changelog
 
+## v5.1.0 (May 2026) — Security Hardening + System Monitor
+
+### Configuration System Overhaul
+
+- **YAML-only config**: `config/application.yml` is the single source of truth. No `.properties` files.
+- **`--config` CLI argument**: `python run_server.py --config /path/to/custom.yml` — override config file path.
+- **`SAJHA_CONFIG_FILE` env var**: Set config path via environment for containerized deployments.
+- **PropertiesConfigurator enhanced**: Native YAML loading via `yaml_file` param. Properly flattens nested keys (`a.b.c.d`). No more `_properties.update(_CFG)` hack.
+- **Config `get()` semantics fixed**: Default kicks in if and only if key is NOT defined. Empty string IS a valid value. `None` values excluded from flattened dict.
+- **`_int()` / `_bool()` safe**: Handle empty strings gracefully — no more `int('')` crashes.
+- **Gateway config fixed**: Receives `_CFG` directly instead of broken `getattr` mapping.
+
+### Competitive Positioning Update
+
+- **18 competitive advantages** identified and documented — no other MCP server has more than 2 of these.
+- **AI/LLM Gateway**: Highlighted as unique — 6 providers via official SDKs, DB-managed models, registry factory. No other MCP server has embedded LLM access.
+- **Semantic Tool Discovery**: Highlighted as unique — vector embeddings of 497 tool descriptions, cosine similarity search from natural language. No other MCP server has this.
+- **Enterprise features**: Multi-tenancy, plugin system, tool versioning, OpenTelemetry — all unique to SAJHA.
+- Updated About page with AI Gateway + Semantic Discovery cards.
+- README competitive table expanded from 12 to 18 rows, organized into 5 categories.
+
+### MCP Studio + Composite Builder — Competitive Differentiators
+
+- **MCP Studio**: Highlighted as unique competitive advantage. 9 visual tool creator types (Python, REST, DB Query, Script, PowerBI, DAX, LiveLink, SharePoint, OLAP). No other MCP server has visual tool creation.
+- **Composite Builder**: Highlighted as unique competitive advantage. Visual pipeline designer with live SVG flow diagram, drag-and-drop step ordering, ParamLens param mapping, EntropyGuard confidence preview, auto-generated schemas, zero-restart deployment.
+- Updated README competitive analysis table: MCP Studio and Composite Builder now top-2 differentiators.
+- Added detailed sections in README: MCP Studio (9 creator types table), Composite Builder (7-step workflow).
+- Updated About page with dedicated MCP Studio + Composite Builder cards.
+
+### Sandboxed Shell Tools (NEW)
+
+- **ShellExecutor** (`sajha/core/shell_executor.py`, 420 lines): Three-tier execution model. Python sandbox (restricted imports, subprocess isolation, 30s/256MB limits), Bash sandbox (allowlisted commands, no write/network), Unrestricted (admin-only, disabled).
+- **SecurityValidator**: Pre-execution code analysis. Python: blocks 30+ dangerous imports (os, subprocess, socket, ctypes, pickle), 10+ dangerous builtins (exec, eval, open, __import__), filesystem access patterns. Bash: allowlist of 30 safe commands, 25+ blocked patterns (rm, sudo, ssh, pipe-to-shell, command chaining, backtick substitution).
+- **Audit logging**: Every execution recorded to audit_log DB table regardless of outcome. Code preview, user_id, result status, duration.
+- **MCP tool schemas**: `shell_python` and `shell_bash` registered as MCP tools for agent use.
+- **API endpoints**: `POST /api/shell/python`, `POST /api/shell/bash`, `GET /api/shell/capabilities`, `GET /api/shell/history`.
+- **Configuration**: Disabled by default. `shell.enabled: false` in application.yml. Python sandbox enabled when master switch is on; Bash requires additional `shell.bash.enabled: true`.
+- **Security first**: No tool has both network and filesystem access. No command chaining. No shell metacharacter injection. Every blocked attempt logged.
+
+### Async Tool Execution (NEW)
+
+- **AsyncExecutor** (`sajha/core/async_executor.py`, 320 lines): Background execution engine with bounded work queue (`queue.Queue(maxsize=1000)`) and daemon worker pool (default 8 threads). Workers reuse `execute_with_tracking()` for cache/circuit/replay integration.
+- **DeliveryRouter**: Three delivery backends — webhook (POST with 3 retries + exponential backoff), Kafka (lazy import, produce to topic with key), filesystem (atomic write via temp file + rename).
+- **Task lifecycle**: queued → running → completed/failed → delivered/cancelled. All state tracked in memory with configurable TTL cleanup.
+- **Backpressure**: Bounded queue returns HTTP 503 when full — prevents memory exhaustion.
+- **API endpoints**: `POST /api/tools/{name}/execute-async`, `GET /api/async/tasks`, `GET /api/async/tasks/{id}`, `POST .../cancel`, `POST .../retry`, `GET /api/async/stats`.
+- **Admin UI page**: `/admin/async-tasks` — stats cards (queued/running/completed/failed/delivered/cancelled), filterable task table, cancel/retry/view actions, detail panel with arguments + result, auto-refresh (3s/10s/30s).
+- **Configuration**: `config/application.yml` → `async:` section with workers, queue_size, task_ttl_hours, delivery config per backend.
+- **Competitive advantage**: No other MCP server offers async execution with delivery routing.
+
+### Production Enhancements
+
+- **Tool Output Caching** (`sajha/core/cache.py`): LRU cache with configurable TTL per tool. Default TTLs: FRED 3600s, FMP 300s, Yahoo 30s, calculators disabled. Cache key = tool_name + MD5(sorted args). Max 10,000 entries. APIs: GET /api/cache/stats, POST /api/cache/invalidate.
+- **Circuit Breakers** (`sajha/core/circuit_breaker.py`): Per-provider failure tracking. CLOSED → OPEN (5 failures) → HALF_OPEN (probe after 60s recovery). 16 providers mapped. API: GET /api/circuits.
+- **Webhook Notifications** (`sajha/core/webhooks.py`): Event-driven callbacks. Events: tool.completed, tool.failed, task.completed, circuit.opened. 3 retries with exponential backoff. APIs: POST /api/webhooks/subscribe, GET /api/webhooks.
+- **Tool Health Dashboard** (`sajha/core/tool_health.py`): Dependency graph (497 tools → 16 providers → API endpoints). Per-provider health aggregating circuit breaker state. APIs: GET /api/providers/health, GET /api/providers/graph.
+- **Execution Replay** (`sajha/core/tool_health.py`): Last 20 executions stored per tool with arguments, result preview, duration, success/failure. APIs: GET /api/replay/recent, GET /api/replay/tool/{name}.
+- **Structured Audit Log** (`sajha/core/audit.py`): Security events to DB audit_log table: login, logout, user/key CRUD, permission changes, account lockout. API: GET /api/audit with action/user_id/limit filters.
+- **Per-User API Rate Limiting**: 100 calls/min per user, 200 calls/min per API key (on top of existing 5/min/IP auth rate limit).
+- **Startup Schema Validation**: Lightweight contract test on boot — validates all tool input schemas without making API calls. Failed tools logged as warnings.
+- **Base tool execute_with_tracking**: Now integrates cache check → circuit breaker check → execute → cache put → replay record → circuit breaker update in a single execution flow.
+
+### Cybersecurity Overhaul
+
+- **bcrypt password hashing** (12 rounds) — replaces plaintext comparison
+- **SHA-256 API key hashing** — keys stored as hashes, never plaintext
+- **DB-persisted sessions** — user_sessions table with hashed tokens
+- **Account lockout** — 5 failed attempts → 15 minute lock
+- **Rate limiting** — 5 login attempts per minute per IP (HTTP 429)
+- **Security headers middleware** — X-Frame-Options, CSP, HSTS, XSS-Protection, Referrer-Policy, Permissions-Policy
+- **CORS restricted** — configurable via SAJHA_CORS_ORIGINS env var (no more wildcard)
+- **Cookie hardening** — HttpOnly + SameSite=lax + Secure (auto-detect HTTPS)
+- **Request body limit** — 10 MB via RequestSizeLimitMiddleware
+- **DuckDB SQL allowlist** — only SELECT/WITH/EXPLAIN permitted (comment-stripping)
+- **Passwords never returned** — get_all_users() excludes password_hash
+- **No hardcoded credentials** — admin password is bcrypt hash in seed SQL
+
+### Database
+
+- **Dual schema files** — db/scripts/sqlite/ and db/scripts/postgres/
+- **SQLite**: auto-created on startup (IF NOT EXISTS)
+- **PostgreSQL**: schema must pre-exist (TIMESTAMPTZ, BOOLEAN, DOUBLE PRECISION)
+- **Engine auto-selects** script directory based on db.type config
+- **SQLAlchemy ORM** for all user/role/apikey/session operations
+- **Account lockout columns** — users.failed_attempts + users.locked_until
+
+### System Monitor
+
+- **Admin page** at /admin/system-monitor with auto-refresh
+- **CPU** — usage %, model, cores, load avg, context switches, interrupts
+- **Memory** — total/used/available/cached/buffers, swap
+- **Disk** — mount point, filesystem, total/used/free, DB file size
+- **Network** — bytes/packets sent/received, errors, active connections
+- **SAJHA Process** — PID, CPU%, memory%, RSS, VMS, threads, open FDs
+- **Runtime** — Python version, platform, hostname, SAJHA version, MCP protocol, tools loaded, DB type
+- **Top Processes** — top 15 by CPU with PID, user, status, command
+- **psutil** for comprehensive metrics, /proc fallback for basic Linux
+
+### Documentation
+
+- **docs/Cybersecurity_Assessment.md** (491 lines) — 31 controls across 7 categories with OWASP mapping
+- **docs/MCP_2025_11_25_Compliance.md** (293 lines) — 18 items with code evidence and curl verification
+- **Logout redirects to landing page** (not login page)
+
 ---
 
-## v5.0.0 (May 2026) — Composition Framework + UX Overhaul
+## v5.1.0 (May 2026) — Composition Framework + UX Overhaul
 
 Category-theory-inspired composition, 4 UI themes, full UX redesign, CSS rewrite.
 
@@ -56,6 +160,110 @@ Category-theory-inspired composition, 4 UI themes, full UX redesign, CSS rewrite
 - Navbar dropdown z-index: `z-index: 1050` prevents dropdown hiding behind page content.
 - `color-scheme: dark` for dark themes fixes native `<select>` dropdown colors.
 
+## v5.1.0 (May 2026) — Security Hardening + System Monitor
+
+### Configuration System Overhaul
+
+- **YAML-only config**: `config/application.yml` is the single source of truth. No `.properties` files.
+- **`--config` CLI argument**: `python run_server.py --config /path/to/custom.yml` — override config file path.
+- **`SAJHA_CONFIG_FILE` env var**: Set config path via environment for containerized deployments.
+- **PropertiesConfigurator enhanced**: Native YAML loading via `yaml_file` param. Properly flattens nested keys (`a.b.c.d`). No more `_properties.update(_CFG)` hack.
+- **Config `get()` semantics fixed**: Default kicks in if and only if key is NOT defined. Empty string IS a valid value. `None` values excluded from flattened dict.
+- **`_int()` / `_bool()` safe**: Handle empty strings gracefully — no more `int('')` crashes.
+- **Gateway config fixed**: Receives `_CFG` directly instead of broken `getattr` mapping.
+
+### Competitive Positioning Update
+
+- **18 competitive advantages** identified and documented — no other MCP server has more than 2 of these.
+- **AI/LLM Gateway**: Highlighted as unique — 6 providers via official SDKs, DB-managed models, registry factory. No other MCP server has embedded LLM access.
+- **Semantic Tool Discovery**: Highlighted as unique — vector embeddings of 497 tool descriptions, cosine similarity search from natural language. No other MCP server has this.
+- **Enterprise features**: Multi-tenancy, plugin system, tool versioning, OpenTelemetry — all unique to SAJHA.
+- Updated About page with AI Gateway + Semantic Discovery cards.
+- README competitive table expanded from 12 to 18 rows, organized into 5 categories.
+
+### MCP Studio + Composite Builder — Competitive Differentiators
+
+- **MCP Studio**: Highlighted as unique competitive advantage. 9 visual tool creator types (Python, REST, DB Query, Script, PowerBI, DAX, LiveLink, SharePoint, OLAP). No other MCP server has visual tool creation.
+- **Composite Builder**: Highlighted as unique competitive advantage. Visual pipeline designer with live SVG flow diagram, drag-and-drop step ordering, ParamLens param mapping, EntropyGuard confidence preview, auto-generated schemas, zero-restart deployment.
+- Updated README competitive analysis table: MCP Studio and Composite Builder now top-2 differentiators.
+- Added detailed sections in README: MCP Studio (9 creator types table), Composite Builder (7-step workflow).
+- Updated About page with dedicated MCP Studio + Composite Builder cards.
+
+### Sandboxed Shell Tools (NEW)
+
+- **ShellExecutor** (`sajha/core/shell_executor.py`, 420 lines): Three-tier execution model. Python sandbox (restricted imports, subprocess isolation, 30s/256MB limits), Bash sandbox (allowlisted commands, no write/network), Unrestricted (admin-only, disabled).
+- **SecurityValidator**: Pre-execution code analysis. Python: blocks 30+ dangerous imports (os, subprocess, socket, ctypes, pickle), 10+ dangerous builtins (exec, eval, open, __import__), filesystem access patterns. Bash: allowlist of 30 safe commands, 25+ blocked patterns (rm, sudo, ssh, pipe-to-shell, command chaining, backtick substitution).
+- **Audit logging**: Every execution recorded to audit_log DB table regardless of outcome. Code preview, user_id, result status, duration.
+- **MCP tool schemas**: `shell_python` and `shell_bash` registered as MCP tools for agent use.
+- **API endpoints**: `POST /api/shell/python`, `POST /api/shell/bash`, `GET /api/shell/capabilities`, `GET /api/shell/history`.
+- **Configuration**: Disabled by default. `shell.enabled: false` in application.yml. Python sandbox enabled when master switch is on; Bash requires additional `shell.bash.enabled: true`.
+- **Security first**: No tool has both network and filesystem access. No command chaining. No shell metacharacter injection. Every blocked attempt logged.
+
+### Async Tool Execution (NEW)
+
+- **AsyncExecutor** (`sajha/core/async_executor.py`, 320 lines): Background execution engine with bounded work queue (`queue.Queue(maxsize=1000)`) and daemon worker pool (default 8 threads). Workers reuse `execute_with_tracking()` for cache/circuit/replay integration.
+- **DeliveryRouter**: Three delivery backends — webhook (POST with 3 retries + exponential backoff), Kafka (lazy import, produce to topic with key), filesystem (atomic write via temp file + rename).
+- **Task lifecycle**: queued → running → completed/failed → delivered/cancelled. All state tracked in memory with configurable TTL cleanup.
+- **Backpressure**: Bounded queue returns HTTP 503 when full — prevents memory exhaustion.
+- **API endpoints**: `POST /api/tools/{name}/execute-async`, `GET /api/async/tasks`, `GET /api/async/tasks/{id}`, `POST .../cancel`, `POST .../retry`, `GET /api/async/stats`.
+- **Admin UI page**: `/admin/async-tasks` — stats cards (queued/running/completed/failed/delivered/cancelled), filterable task table, cancel/retry/view actions, detail panel with arguments + result, auto-refresh (3s/10s/30s).
+- **Configuration**: `config/application.yml` → `async:` section with workers, queue_size, task_ttl_hours, delivery config per backend.
+- **Competitive advantage**: No other MCP server offers async execution with delivery routing.
+
+### Production Enhancements
+
+- **Tool Output Caching** (`sajha/core/cache.py`): LRU cache with configurable TTL per tool. Default TTLs: FRED 3600s, FMP 300s, Yahoo 30s, calculators disabled. Cache key = tool_name + MD5(sorted args). Max 10,000 entries. APIs: GET /api/cache/stats, POST /api/cache/invalidate.
+- **Circuit Breakers** (`sajha/core/circuit_breaker.py`): Per-provider failure tracking. CLOSED → OPEN (5 failures) → HALF_OPEN (probe after 60s recovery). 16 providers mapped. API: GET /api/circuits.
+- **Webhook Notifications** (`sajha/core/webhooks.py`): Event-driven callbacks. Events: tool.completed, tool.failed, task.completed, circuit.opened. 3 retries with exponential backoff. APIs: POST /api/webhooks/subscribe, GET /api/webhooks.
+- **Tool Health Dashboard** (`sajha/core/tool_health.py`): Dependency graph (497 tools → 16 providers → API endpoints). Per-provider health aggregating circuit breaker state. APIs: GET /api/providers/health, GET /api/providers/graph.
+- **Execution Replay** (`sajha/core/tool_health.py`): Last 20 executions stored per tool with arguments, result preview, duration, success/failure. APIs: GET /api/replay/recent, GET /api/replay/tool/{name}.
+- **Structured Audit Log** (`sajha/core/audit.py`): Security events to DB audit_log table: login, logout, user/key CRUD, permission changes, account lockout. API: GET /api/audit with action/user_id/limit filters.
+- **Per-User API Rate Limiting**: 100 calls/min per user, 200 calls/min per API key (on top of existing 5/min/IP auth rate limit).
+- **Startup Schema Validation**: Lightweight contract test on boot — validates all tool input schemas without making API calls. Failed tools logged as warnings.
+- **Base tool execute_with_tracking**: Now integrates cache check → circuit breaker check → execute → cache put → replay record → circuit breaker update in a single execution flow.
+
+### Cybersecurity Overhaul
+
+- **bcrypt password hashing** (12 rounds) — replaces plaintext comparison
+- **SHA-256 API key hashing** — keys stored as hashes, never plaintext
+- **DB-persisted sessions** — user_sessions table with hashed tokens
+- **Account lockout** — 5 failed attempts → 15 minute lock
+- **Rate limiting** — 5 login attempts per minute per IP (HTTP 429)
+- **Security headers middleware** — X-Frame-Options, CSP, HSTS, XSS-Protection, Referrer-Policy, Permissions-Policy
+- **CORS restricted** — configurable via SAJHA_CORS_ORIGINS env var (no more wildcard)
+- **Cookie hardening** — HttpOnly + SameSite=lax + Secure (auto-detect HTTPS)
+- **Request body limit** — 10 MB via RequestSizeLimitMiddleware
+- **DuckDB SQL allowlist** — only SELECT/WITH/EXPLAIN permitted (comment-stripping)
+- **Passwords never returned** — get_all_users() excludes password_hash
+- **No hardcoded credentials** — admin password is bcrypt hash in seed SQL
+
+### Database
+
+- **Dual schema files** — db/scripts/sqlite/ and db/scripts/postgres/
+- **SQLite**: auto-created on startup (IF NOT EXISTS)
+- **PostgreSQL**: schema must pre-exist (TIMESTAMPTZ, BOOLEAN, DOUBLE PRECISION)
+- **Engine auto-selects** script directory based on db.type config
+- **SQLAlchemy ORM** for all user/role/apikey/session operations
+- **Account lockout columns** — users.failed_attempts + users.locked_until
+
+### System Monitor
+
+- **Admin page** at /admin/system-monitor with auto-refresh
+- **CPU** — usage %, model, cores, load avg, context switches, interrupts
+- **Memory** — total/used/available/cached/buffers, swap
+- **Disk** — mount point, filesystem, total/used/free, DB file size
+- **Network** — bytes/packets sent/received, errors, active connections
+- **SAJHA Process** — PID, CPU%, memory%, RSS, VMS, threads, open FDs
+- **Runtime** — Python version, platform, hostname, SAJHA version, MCP protocol, tools loaded, DB type
+- **Top Processes** — top 15 by CPU with PID, user, status, command
+- **psutil** for comprehensive metrics, /proc fallback for basic Linux
+
+### Documentation
+
+- **docs/Cybersecurity_Assessment.md** (491 lines) — 31 controls across 7 categories with OWASP mapping
+- **docs/MCP_2025_11_25_Compliance.md** (293 lines) — 18 items with code evidence and curl verification
+- **Logout redirects to landing page** (not login page)
+
 ---
 
 ## v4.0.0 (May 2026) — Production Hardening
@@ -66,14 +274,222 @@ WebSocket transport, OpenTelemetry, tool versioning, multi-tenancy, plugin syste
 
 Complete rewrite from Flask to FastAPI. See git history.
 
+## v5.1.0 (May 2026) — Security Hardening + System Monitor
+
+### Configuration System Overhaul
+
+- **YAML-only config**: `config/application.yml` is the single source of truth. No `.properties` files.
+- **`--config` CLI argument**: `python run_server.py --config /path/to/custom.yml` — override config file path.
+- **`SAJHA_CONFIG_FILE` env var**: Set config path via environment for containerized deployments.
+- **PropertiesConfigurator enhanced**: Native YAML loading via `yaml_file` param. Properly flattens nested keys (`a.b.c.d`). No more `_properties.update(_CFG)` hack.
+- **Config `get()` semantics fixed**: Default kicks in if and only if key is NOT defined. Empty string IS a valid value. `None` values excluded from flattened dict.
+- **`_int()` / `_bool()` safe**: Handle empty strings gracefully — no more `int('')` crashes.
+- **Gateway config fixed**: Receives `_CFG` directly instead of broken `getattr` mapping.
+
+### Competitive Positioning Update
+
+- **18 competitive advantages** identified and documented — no other MCP server has more than 2 of these.
+- **AI/LLM Gateway**: Highlighted as unique — 6 providers via official SDKs, DB-managed models, registry factory. No other MCP server has embedded LLM access.
+- **Semantic Tool Discovery**: Highlighted as unique — vector embeddings of 497 tool descriptions, cosine similarity search from natural language. No other MCP server has this.
+- **Enterprise features**: Multi-tenancy, plugin system, tool versioning, OpenTelemetry — all unique to SAJHA.
+- Updated About page with AI Gateway + Semantic Discovery cards.
+- README competitive table expanded from 12 to 18 rows, organized into 5 categories.
+
+### MCP Studio + Composite Builder — Competitive Differentiators
+
+- **MCP Studio**: Highlighted as unique competitive advantage. 9 visual tool creator types (Python, REST, DB Query, Script, PowerBI, DAX, LiveLink, SharePoint, OLAP). No other MCP server has visual tool creation.
+- **Composite Builder**: Highlighted as unique competitive advantage. Visual pipeline designer with live SVG flow diagram, drag-and-drop step ordering, ParamLens param mapping, EntropyGuard confidence preview, auto-generated schemas, zero-restart deployment.
+- Updated README competitive analysis table: MCP Studio and Composite Builder now top-2 differentiators.
+- Added detailed sections in README: MCP Studio (9 creator types table), Composite Builder (7-step workflow).
+- Updated About page with dedicated MCP Studio + Composite Builder cards.
+
+### Sandboxed Shell Tools (NEW)
+
+- **ShellExecutor** (`sajha/core/shell_executor.py`, 420 lines): Three-tier execution model. Python sandbox (restricted imports, subprocess isolation, 30s/256MB limits), Bash sandbox (allowlisted commands, no write/network), Unrestricted (admin-only, disabled).
+- **SecurityValidator**: Pre-execution code analysis. Python: blocks 30+ dangerous imports (os, subprocess, socket, ctypes, pickle), 10+ dangerous builtins (exec, eval, open, __import__), filesystem access patterns. Bash: allowlist of 30 safe commands, 25+ blocked patterns (rm, sudo, ssh, pipe-to-shell, command chaining, backtick substitution).
+- **Audit logging**: Every execution recorded to audit_log DB table regardless of outcome. Code preview, user_id, result status, duration.
+- **MCP tool schemas**: `shell_python` and `shell_bash` registered as MCP tools for agent use.
+- **API endpoints**: `POST /api/shell/python`, `POST /api/shell/bash`, `GET /api/shell/capabilities`, `GET /api/shell/history`.
+- **Configuration**: Disabled by default. `shell.enabled: false` in application.yml. Python sandbox enabled when master switch is on; Bash requires additional `shell.bash.enabled: true`.
+- **Security first**: No tool has both network and filesystem access. No command chaining. No shell metacharacter injection. Every blocked attempt logged.
+
+### Async Tool Execution (NEW)
+
+- **AsyncExecutor** (`sajha/core/async_executor.py`, 320 lines): Background execution engine with bounded work queue (`queue.Queue(maxsize=1000)`) and daemon worker pool (default 8 threads). Workers reuse `execute_with_tracking()` for cache/circuit/replay integration.
+- **DeliveryRouter**: Three delivery backends — webhook (POST with 3 retries + exponential backoff), Kafka (lazy import, produce to topic with key), filesystem (atomic write via temp file + rename).
+- **Task lifecycle**: queued → running → completed/failed → delivered/cancelled. All state tracked in memory with configurable TTL cleanup.
+- **Backpressure**: Bounded queue returns HTTP 503 when full — prevents memory exhaustion.
+- **API endpoints**: `POST /api/tools/{name}/execute-async`, `GET /api/async/tasks`, `GET /api/async/tasks/{id}`, `POST .../cancel`, `POST .../retry`, `GET /api/async/stats`.
+- **Admin UI page**: `/admin/async-tasks` — stats cards (queued/running/completed/failed/delivered/cancelled), filterable task table, cancel/retry/view actions, detail panel with arguments + result, auto-refresh (3s/10s/30s).
+- **Configuration**: `config/application.yml` → `async:` section with workers, queue_size, task_ttl_hours, delivery config per backend.
+- **Competitive advantage**: No other MCP server offers async execution with delivery routing.
+
+### Production Enhancements
+
+- **Tool Output Caching** (`sajha/core/cache.py`): LRU cache with configurable TTL per tool. Default TTLs: FRED 3600s, FMP 300s, Yahoo 30s, calculators disabled. Cache key = tool_name + MD5(sorted args). Max 10,000 entries. APIs: GET /api/cache/stats, POST /api/cache/invalidate.
+- **Circuit Breakers** (`sajha/core/circuit_breaker.py`): Per-provider failure tracking. CLOSED → OPEN (5 failures) → HALF_OPEN (probe after 60s recovery). 16 providers mapped. API: GET /api/circuits.
+- **Webhook Notifications** (`sajha/core/webhooks.py`): Event-driven callbacks. Events: tool.completed, tool.failed, task.completed, circuit.opened. 3 retries with exponential backoff. APIs: POST /api/webhooks/subscribe, GET /api/webhooks.
+- **Tool Health Dashboard** (`sajha/core/tool_health.py`): Dependency graph (497 tools → 16 providers → API endpoints). Per-provider health aggregating circuit breaker state. APIs: GET /api/providers/health, GET /api/providers/graph.
+- **Execution Replay** (`sajha/core/tool_health.py`): Last 20 executions stored per tool with arguments, result preview, duration, success/failure. APIs: GET /api/replay/recent, GET /api/replay/tool/{name}.
+- **Structured Audit Log** (`sajha/core/audit.py`): Security events to DB audit_log table: login, logout, user/key CRUD, permission changes, account lockout. API: GET /api/audit with action/user_id/limit filters.
+- **Per-User API Rate Limiting**: 100 calls/min per user, 200 calls/min per API key (on top of existing 5/min/IP auth rate limit).
+- **Startup Schema Validation**: Lightweight contract test on boot — validates all tool input schemas without making API calls. Failed tools logged as warnings.
+- **Base tool execute_with_tracking**: Now integrates cache check → circuit breaker check → execute → cache put → replay record → circuit breaker update in a single execution flow.
+
+### Cybersecurity Overhaul
+
+- **bcrypt password hashing** (12 rounds) — replaces plaintext comparison
+- **SHA-256 API key hashing** — keys stored as hashes, never plaintext
+- **DB-persisted sessions** — user_sessions table with hashed tokens
+- **Account lockout** — 5 failed attempts → 15 minute lock
+- **Rate limiting** — 5 login attempts per minute per IP (HTTP 429)
+- **Security headers middleware** — X-Frame-Options, CSP, HSTS, XSS-Protection, Referrer-Policy, Permissions-Policy
+- **CORS restricted** — configurable via SAJHA_CORS_ORIGINS env var (no more wildcard)
+- **Cookie hardening** — HttpOnly + SameSite=lax + Secure (auto-detect HTTPS)
+- **Request body limit** — 10 MB via RequestSizeLimitMiddleware
+- **DuckDB SQL allowlist** — only SELECT/WITH/EXPLAIN permitted (comment-stripping)
+- **Passwords never returned** — get_all_users() excludes password_hash
+- **No hardcoded credentials** — admin password is bcrypt hash in seed SQL
+
+### Database
+
+- **Dual schema files** — db/scripts/sqlite/ and db/scripts/postgres/
+- **SQLite**: auto-created on startup (IF NOT EXISTS)
+- **PostgreSQL**: schema must pre-exist (TIMESTAMPTZ, BOOLEAN, DOUBLE PRECISION)
+- **Engine auto-selects** script directory based on db.type config
+- **SQLAlchemy ORM** for all user/role/apikey/session operations
+- **Account lockout columns** — users.failed_attempts + users.locked_until
+
+### System Monitor
+
+- **Admin page** at /admin/system-monitor with auto-refresh
+- **CPU** — usage %, model, cores, load avg, context switches, interrupts
+- **Memory** — total/used/available/cached/buffers, swap
+- **Disk** — mount point, filesystem, total/used/free, DB file size
+- **Network** — bytes/packets sent/received, errors, active connections
+- **SAJHA Process** — PID, CPU%, memory%, RSS, VMS, threads, open FDs
+- **Runtime** — Python version, platform, hostname, SAJHA version, MCP protocol, tools loaded, DB type
+- **Top Processes** — top 15 by CPU with PID, user, status, command
+- **psutil** for comprehensive metrics, /proc fallback for basic Linux
+
+### Documentation
+
+- **docs/Cybersecurity_Assessment.md** (491 lines) — 31 controls across 7 categories with OWASP mapping
+- **docs/MCP_2025_11_25_Compliance.md** (293 lines) — 18 items with code evidence and curl verification
+- **Logout redirects to landing page** (not login page)
+
 ---
 
 *SAJHA MCP Server — Changelog*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*
 
+## v5.1.0 (May 2026) — Security Hardening + System Monitor
+
+### Configuration System Overhaul
+
+- **YAML-only config**: `config/application.yml` is the single source of truth. No `.properties` files.
+- **`--config` CLI argument**: `python run_server.py --config /path/to/custom.yml` — override config file path.
+- **`SAJHA_CONFIG_FILE` env var**: Set config path via environment for containerized deployments.
+- **PropertiesConfigurator enhanced**: Native YAML loading via `yaml_file` param. Properly flattens nested keys (`a.b.c.d`). No more `_properties.update(_CFG)` hack.
+- **Config `get()` semantics fixed**: Default kicks in if and only if key is NOT defined. Empty string IS a valid value. `None` values excluded from flattened dict.
+- **`_int()` / `_bool()` safe**: Handle empty strings gracefully — no more `int('')` crashes.
+- **Gateway config fixed**: Receives `_CFG` directly instead of broken `getattr` mapping.
+
+### Competitive Positioning Update
+
+- **18 competitive advantages** identified and documented — no other MCP server has more than 2 of these.
+- **AI/LLM Gateway**: Highlighted as unique — 6 providers via official SDKs, DB-managed models, registry factory. No other MCP server has embedded LLM access.
+- **Semantic Tool Discovery**: Highlighted as unique — vector embeddings of 497 tool descriptions, cosine similarity search from natural language. No other MCP server has this.
+- **Enterprise features**: Multi-tenancy, plugin system, tool versioning, OpenTelemetry — all unique to SAJHA.
+- Updated About page with AI Gateway + Semantic Discovery cards.
+- README competitive table expanded from 12 to 18 rows, organized into 5 categories.
+
+### MCP Studio + Composite Builder — Competitive Differentiators
+
+- **MCP Studio**: Highlighted as unique competitive advantage. 9 visual tool creator types (Python, REST, DB Query, Script, PowerBI, DAX, LiveLink, SharePoint, OLAP). No other MCP server has visual tool creation.
+- **Composite Builder**: Highlighted as unique competitive advantage. Visual pipeline designer with live SVG flow diagram, drag-and-drop step ordering, ParamLens param mapping, EntropyGuard confidence preview, auto-generated schemas, zero-restart deployment.
+- Updated README competitive analysis table: MCP Studio and Composite Builder now top-2 differentiators.
+- Added detailed sections in README: MCP Studio (9 creator types table), Composite Builder (7-step workflow).
+- Updated About page with dedicated MCP Studio + Composite Builder cards.
+
+### Sandboxed Shell Tools (NEW)
+
+- **ShellExecutor** (`sajha/core/shell_executor.py`, 420 lines): Three-tier execution model. Python sandbox (restricted imports, subprocess isolation, 30s/256MB limits), Bash sandbox (allowlisted commands, no write/network), Unrestricted (admin-only, disabled).
+- **SecurityValidator**: Pre-execution code analysis. Python: blocks 30+ dangerous imports (os, subprocess, socket, ctypes, pickle), 10+ dangerous builtins (exec, eval, open, __import__), filesystem access patterns. Bash: allowlist of 30 safe commands, 25+ blocked patterns (rm, sudo, ssh, pipe-to-shell, command chaining, backtick substitution).
+- **Audit logging**: Every execution recorded to audit_log DB table regardless of outcome. Code preview, user_id, result status, duration.
+- **MCP tool schemas**: `shell_python` and `shell_bash` registered as MCP tools for agent use.
+- **API endpoints**: `POST /api/shell/python`, `POST /api/shell/bash`, `GET /api/shell/capabilities`, `GET /api/shell/history`.
+- **Configuration**: Disabled by default. `shell.enabled: false` in application.yml. Python sandbox enabled when master switch is on; Bash requires additional `shell.bash.enabled: true`.
+- **Security first**: No tool has both network and filesystem access. No command chaining. No shell metacharacter injection. Every blocked attempt logged.
+
+### Async Tool Execution (NEW)
+
+- **AsyncExecutor** (`sajha/core/async_executor.py`, 320 lines): Background execution engine with bounded work queue (`queue.Queue(maxsize=1000)`) and daemon worker pool (default 8 threads). Workers reuse `execute_with_tracking()` for cache/circuit/replay integration.
+- **DeliveryRouter**: Three delivery backends — webhook (POST with 3 retries + exponential backoff), Kafka (lazy import, produce to topic with key), filesystem (atomic write via temp file + rename).
+- **Task lifecycle**: queued → running → completed/failed → delivered/cancelled. All state tracked in memory with configurable TTL cleanup.
+- **Backpressure**: Bounded queue returns HTTP 503 when full — prevents memory exhaustion.
+- **API endpoints**: `POST /api/tools/{name}/execute-async`, `GET /api/async/tasks`, `GET /api/async/tasks/{id}`, `POST .../cancel`, `POST .../retry`, `GET /api/async/stats`.
+- **Admin UI page**: `/admin/async-tasks` — stats cards (queued/running/completed/failed/delivered/cancelled), filterable task table, cancel/retry/view actions, detail panel with arguments + result, auto-refresh (3s/10s/30s).
+- **Configuration**: `config/application.yml` → `async:` section with workers, queue_size, task_ttl_hours, delivery config per backend.
+- **Competitive advantage**: No other MCP server offers async execution with delivery routing.
+
+### Production Enhancements
+
+- **Tool Output Caching** (`sajha/core/cache.py`): LRU cache with configurable TTL per tool. Default TTLs: FRED 3600s, FMP 300s, Yahoo 30s, calculators disabled. Cache key = tool_name + MD5(sorted args). Max 10,000 entries. APIs: GET /api/cache/stats, POST /api/cache/invalidate.
+- **Circuit Breakers** (`sajha/core/circuit_breaker.py`): Per-provider failure tracking. CLOSED → OPEN (5 failures) → HALF_OPEN (probe after 60s recovery). 16 providers mapped. API: GET /api/circuits.
+- **Webhook Notifications** (`sajha/core/webhooks.py`): Event-driven callbacks. Events: tool.completed, tool.failed, task.completed, circuit.opened. 3 retries with exponential backoff. APIs: POST /api/webhooks/subscribe, GET /api/webhooks.
+- **Tool Health Dashboard** (`sajha/core/tool_health.py`): Dependency graph (497 tools → 16 providers → API endpoints). Per-provider health aggregating circuit breaker state. APIs: GET /api/providers/health, GET /api/providers/graph.
+- **Execution Replay** (`sajha/core/tool_health.py`): Last 20 executions stored per tool with arguments, result preview, duration, success/failure. APIs: GET /api/replay/recent, GET /api/replay/tool/{name}.
+- **Structured Audit Log** (`sajha/core/audit.py`): Security events to DB audit_log table: login, logout, user/key CRUD, permission changes, account lockout. API: GET /api/audit with action/user_id/limit filters.
+- **Per-User API Rate Limiting**: 100 calls/min per user, 200 calls/min per API key (on top of existing 5/min/IP auth rate limit).
+- **Startup Schema Validation**: Lightweight contract test on boot — validates all tool input schemas without making API calls. Failed tools logged as warnings.
+- **Base tool execute_with_tracking**: Now integrates cache check → circuit breaker check → execute → cache put → replay record → circuit breaker update in a single execution flow.
+
+### Cybersecurity Overhaul
+
+- **bcrypt password hashing** (12 rounds) — replaces plaintext comparison
+- **SHA-256 API key hashing** — keys stored as hashes, never plaintext
+- **DB-persisted sessions** — user_sessions table with hashed tokens
+- **Account lockout** — 5 failed attempts → 15 minute lock
+- **Rate limiting** — 5 login attempts per minute per IP (HTTP 429)
+- **Security headers middleware** — X-Frame-Options, CSP, HSTS, XSS-Protection, Referrer-Policy, Permissions-Policy
+- **CORS restricted** — configurable via SAJHA_CORS_ORIGINS env var (no more wildcard)
+- **Cookie hardening** — HttpOnly + SameSite=lax + Secure (auto-detect HTTPS)
+- **Request body limit** — 10 MB via RequestSizeLimitMiddleware
+- **DuckDB SQL allowlist** — only SELECT/WITH/EXPLAIN permitted (comment-stripping)
+- **Passwords never returned** — get_all_users() excludes password_hash
+- **No hardcoded credentials** — admin password is bcrypt hash in seed SQL
+
+### Database
+
+- **Dual schema files** — db/scripts/sqlite/ and db/scripts/postgres/
+- **SQLite**: auto-created on startup (IF NOT EXISTS)
+- **PostgreSQL**: schema must pre-exist (TIMESTAMPTZ, BOOLEAN, DOUBLE PRECISION)
+- **Engine auto-selects** script directory based on db.type config
+- **SQLAlchemy ORM** for all user/role/apikey/session operations
+- **Account lockout columns** — users.failed_attempts + users.locked_until
+
+### System Monitor
+
+- **Admin page** at /admin/system-monitor with auto-refresh
+- **CPU** — usage %, model, cores, load avg, context switches, interrupts
+- **Memory** — total/used/available/cached/buffers, swap
+- **Disk** — mount point, filesystem, total/used/free, DB file size
+- **Network** — bytes/packets sent/received, errors, active connections
+- **SAJHA Process** — PID, CPU%, memory%, RSS, VMS, threads, open FDs
+- **Runtime** — Python version, platform, hostname, SAJHA version, MCP protocol, tools loaded, DB type
+- **Top Processes** — top 15 by CPU with PID, user, status, command
+- **psutil** for comprehensive metrics, /proc fallback for basic Linux
+
+### Documentation
+
+- **docs/Cybersecurity_Assessment.md** (491 lines) — 31 controls across 7 categories with OWASP mapping
+- **docs/MCP_2025_11_25_Compliance.md** (293 lines) — 18 items with code evidence and curl verification
+- **Logout redirects to landing page** (not login page)
+
 ---
 
-## v5.0.0 (May 2026) — MCP 2025-11-25 Full Compliance
+## v5.1.0 (May 2026) — MCP 2025-11-25 Full Compliance
 
 Upgraded from MCP protocol version 2025-06-18 to 2025-11-25. All 19 spec changes implemented.
 

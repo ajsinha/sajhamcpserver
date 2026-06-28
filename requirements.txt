@@ -66,3 +66,4 @@ ollama>=0.4.0                       # Ollama local models
 # opentelemetry-sdk>=1.20.0
 # opentelemetry-exporter-otlp>=1.20.0
 # Uncomment above for OTEL trace/metric export to Datadog/Grafana/Splunk
+psutil>=5.9.0  # System monitoring (optional)

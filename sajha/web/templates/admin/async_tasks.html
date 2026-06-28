@@ -1,0 +1,175 @@
+{% extends "common/base.html" %}
+{% block title %}Async Tasks - Admin - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.task-stat{text-align:center;padding:1rem;border-radius:var(--radius-lg);background:var(--t-card);border:1px solid var(--t-card-b)}
+.task-stat .h2{margin:0;font-weight:700}
+.task-stat small{color:var(--t-muted)}
+.task-table{font-size:0.85rem;width:100%}
+.task-table th{background:var(--t-card-hdr);color:var(--t-text2);font-weight:600;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;padding:0.5rem 0.75rem;position:sticky;top:0}
+.task-table td{padding:0.4rem 0.75rem;border-bottom:1px solid var(--t-card-b);color:var(--t-text);vertical-align:middle}
+.task-table tr:hover{background:var(--t-dd-hb)}
+.badge-queued{background:#6c757d;color:white}
+.badge-running{background:var(--color-info);color:white}
+.badge-completed,.badge-delivered{background:var(--color-success);color:white}
+.badge-failed{background:var(--color-danger);color:white}
+.badge-cancelled{background:var(--color-warning);color:black}
+.detail-panel{background:var(--t-card-hdr);border-radius:var(--radius-lg);padding:1rem;margin-top:0.5rem;font-size:0.8rem;display:none}
+.detail-panel pre{background:var(--t-inp);color:var(--t-text);padding:0.75rem;border-radius:6px;font-size:0.75rem;max-height:200px;overflow-y:auto}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h3 mb-0"><i class="bi bi-skip-forward-circle me-2"></i>Async Tasks</h1>
+            <small class="text-muted">Background tool executions with result delivery</small>
+        </div>
+        <div>
+            <select id="statusFilter" class="form-select form-select-sm d-inline-block" style="width:auto" onchange="loadTasks()">
+                <option value="">All Status</option>
+                <option value="queued">Queued</option>
+                <option value="running">Running</option>
+                <option value="completed">Completed</option>
+                <option value="delivered">Delivered</option>
+                <option value="failed">Failed</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+            <select id="refreshRate" class="form-select form-select-sm d-inline-block ms-1" style="width:auto">
+                <option value="0">Manual</option>
+                <option value="3" selected>3s</option>
+                <option value="10">10s</option>
+                <option value="30">30s</option>
+            </select>
+            <button class="btn btn-sm btn-outline-primary ms-1" onclick="loadTasks()"><i class="bi bi-arrow-clockwise"></i></button>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="row g-3 mb-3">
+        <div class="col"><div class="task-stat"><div class="h2" id="stQueued">—</div><small>Queued</small></div></div>
+        <div class="col"><div class="task-stat"><div class="h2" id="stRunning" style="color:var(--color-info)">—</div><small>Running</small></div></div>
+        <div class="col"><div class="task-stat"><div class="h2" id="stCompleted" style="color:var(--color-success)">—</div><small>Completed</small></div></div>
+        <div class="col"><div class="task-stat"><div class="h2" id="stDelivered" style="color:var(--color-success)">—</div><small>Delivered</small></div></div>
+        <div class="col"><div class="task-stat"><div class="h2" id="stFailed" style="color:var(--color-danger)">—</div><small>Failed</small></div></div>
+        <div class="col"><div class="task-stat"><div class="h2" id="stCancelled">—</div><small>Cancelled</small></div></div>
+    </div>
+
+    <!-- Workers & Queue Info -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <div class="card"><div class="card-body py-2 d-flex justify-content-around text-center small">
+                <div><strong id="stWorkers">—</strong><br><span class="text-muted">Workers</span></div>
+                <div><strong id="stQueueSize">—</strong><br><span class="text-muted">In Queue</span></div>
+                <div><strong id="stQueueMax">—</strong><br><span class="text-muted">Queue Max</span></div>
+                <div><strong id="stTotal">—</strong><br><span class="text-muted">Total Tasks</span></div>
+            </div></div>
+        </div>
+        <div class="col-md-6">
+            <div class="card"><div class="card-body py-2 small">
+                <strong>Submit async:</strong>
+                <code class="ms-1">POST /api/tools/{name}/execute-async</code>
+                <br><span class="text-muted">Body: <code>{"symbol":"AAPL", "async":{"delivery":"webhook","destination":"https://..."}}</code></span>
+            </div></div>
+        </div>
+    </div>
+
+    <!-- Tasks Table -->
+    <div class="card">
+        <div class="card-body p-0" style="max-height:500px;overflow-y:auto">
+            <table class="task-table">
+                <thead><tr>
+                    <th>Task ID</th><th>Tool</th><th>Status</th><th>Delivery</th>
+                    <th>Destination</th><th>Duration</th><th>Submitted</th><th>Actions</th>
+                </tr></thead>
+                <tbody id="taskRows"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Detail Panel -->
+    <div id="detailPanel" class="detail-panel">
+        <div class="d-flex justify-content-between mb-2">
+            <strong id="detailTitle">Task Detail</strong>
+            <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('detailPanel').style.display='none'"><i class="bi bi-x"></i></button>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-6"><strong>Arguments:</strong><pre id="detailArgs">{}</pre></div>
+            <div class="col-md-6"><strong>Result:</strong><pre id="detailResult">{}</pre></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+var refreshTimer = null;
+
+function loadTasks() {
+    var status = document.getElementById('statusFilter').value;
+    var url = '/api/async/tasks' + (status ? '?status=' + status : '');
+    fetch(url, {credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d) {
+        var st = d.stats || {};
+        document.getElementById('stQueued').textContent = st.submitted - (st.completed||0) - (st.failed||0) - (st.cancelled||0) - (st.delivered||0);
+        document.getElementById('stRunning').textContent = '~';
+        document.getElementById('stCompleted').textContent = st.completed || 0;
+        document.getElementById('stDelivered').textContent = st.delivered || 0;
+        document.getElementById('stFailed').textContent = st.failed || 0;
+        document.getElementById('stCancelled').textContent = st.cancelled || 0;
+        document.getElementById('stWorkers').textContent = st.workers || 0;
+        document.getElementById('stQueueSize').textContent = st.queue_size || 0;
+        document.getElementById('stQueueMax').textContent = st.queue_max || 0;
+        document.getElementById('stTotal').textContent = st.total_tasks || 0;
+
+        var tasks = d.tasks || [];
+        var html = '';
+        if (tasks.length === 0) {
+            html = '<tr><td colspan="8" class="text-center text-muted py-4">No async tasks. Submit one via POST /api/tools/{name}/execute-async</td></tr>';
+        }
+        tasks.forEach(function(t) {
+            var bc = 'badge-' + t.status;
+            var dur = t.duration_ms ? t.duration_ms.toFixed(0) + 'ms' : '—';
+            var time = t.created_at ? new Date(t.created_at * 1000).toLocaleTimeString() : '—';
+            var dest = (t.delivery_destination || '').length > 30 ? t.delivery_destination.substring(0,30)+'...' : t.delivery_destination;
+            var actions = '';
+            if (t.status === 'queued') actions = '<button class="btn btn-sm btn-outline-warning" onclick="cancelTask(\''+t.task_id+'\')"><i class="bi bi-x-circle"></i></button>';
+            else if (t.status === 'failed' || t.status === 'cancelled') actions = '<button class="btn btn-sm btn-outline-primary" onclick="retryTask(\''+t.task_id+'\')"><i class="bi bi-arrow-repeat"></i></button>';
+            else if (t.status === 'completed' || t.status === 'delivered') actions = '<button class="btn btn-sm btn-outline-info" onclick="viewTask(\''+t.task_id+'\')"><i class="bi bi-eye"></i></button>';
+            html += '<tr>';
+            html += '<td><code class="small">'+t.task_id+'</code></td>';
+            html += '<td><strong>'+t.tool_name+'</strong></td>';
+            html += '<td><span class="badge '+bc+'">'+t.status+'</span></td>';
+            html += '<td><span class="badge bg-secondary">'+t.delivery_type+'</span></td>';
+            html += '<td title="'+(t.delivery_destination||'')+'" class="small">'+dest+'</td>';
+            html += '<td>'+dur+'</td>';
+            html += '<td class="small">'+time+'</td>';
+            html += '<td>'+actions+'</td>';
+            html += '</tr>';
+        });
+        document.getElementById('taskRows').innerHTML = html;
+    }).catch(function(e){console.error('Tasks load error:',e)});
+}
+
+function cancelTask(id) {
+    fetch('/api/async/tasks/'+id+'/cancel',{method:'POST',credentials:'same-origin'}).then(function(){loadTasks()});
+}
+function retryTask(id) {
+    fetch('/api/async/tasks/'+id+'/retry',{method:'POST',credentials:'same-origin'}).then(function(){loadTasks()});
+}
+function viewTask(id) {
+    fetch('/api/async/tasks/'+id,{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
+        document.getElementById('detailTitle').textContent = 'Task: '+d.task_id+' — '+d.tool_name;
+        document.getElementById('detailArgs').textContent = JSON.stringify(d.arguments||{},null,2);
+        document.getElementById('detailResult').textContent = JSON.stringify(d.result||d.error||'—',null,2);
+        document.getElementById('detailPanel').style.display = 'block';
+    });
+}
+
+document.getElementById('refreshRate').addEventListener('change', function(){
+    clearInterval(refreshTimer);
+    var s = parseInt(this.value);
+    if (s > 0) refreshTimer = setInterval(loadTasks, s*1000);
+});
+loadTasks();
+refreshTimer = setInterval(loadTasks, 3000);
+</script>
+{% endblock %}

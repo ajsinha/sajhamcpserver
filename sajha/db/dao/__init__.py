@@ -281,7 +281,7 @@ class ToolUsageDAO(BaseDAO[ToolUsageEvent]):
             func.sum(case((ToolUsageEvent.success == True, 1), else_=0)).label('success_count'),  # noqa
             func.sum(case((ToolUsageEvent.success == False, 1), else_=0)).label('error_count'),  # noqa
         ).filter(
-            ToolUsageEvent.timestamp.between(since, until)
+            ToolUsageEvent.created_at.between(since, until)
         ).group_by(ToolUsageEvent.tool_name).order_by(desc('total_calls')).all()
 
         return [
@@ -300,9 +300,9 @@ class ToolUsageDAO(BaseDAO[ToolUsageEvent]):
             ToolUsageEvent.user_id,
             func.count().label('total_calls'),
             func.count(func.distinct(ToolUsageEvent.tool_name)).label('tools_used'),
-            func.max(ToolUsageEvent.timestamp).label('last_active'),
+            func.max(ToolUsageEvent.created_at).label('last_active'),
         ).filter(
-            ToolUsageEvent.timestamp.between(since, until),
+            ToolUsageEvent.created_at.between(since, until),
             ToolUsageEvent.user_id.isnot(None),
         ).group_by(ToolUsageEvent.user_id).order_by(desc('total_calls')).all()
 
@@ -319,17 +319,17 @@ class ToolUsageDAO(BaseDAO[ToolUsageEvent]):
     def get_overview(self, period_hours: int = 24) -> dict:
         since = datetime.now(timezone.utc) - timedelta(hours=period_hours)
         total = self.db.query(func.count()).filter(
-            ToolUsageEvent.timestamp >= since
+            ToolUsageEvent.created_at >= since
         ).scalar() or 0
         errors = self.db.query(func.count()).filter(
-            ToolUsageEvent.timestamp >= since,
+            ToolUsageEvent.created_at >= since,
             ToolUsageEvent.success == False,  # noqa
         ).scalar() or 0
         avg_dur = self.db.query(func.avg(ToolUsageEvent.duration_ms)).filter(
-            ToolUsageEvent.timestamp >= since,
+            ToolUsageEvent.created_at >= since,
         ).scalar() or 0
         active_users = self.db.query(func.count(func.distinct(ToolUsageEvent.user_id))).filter(
-            ToolUsageEvent.timestamp >= since,
+            ToolUsageEvent.created_at >= since,
         ).scalar() or 0
 
         return {
@@ -345,8 +345,8 @@ class ToolUsageDAO(BaseDAO[ToolUsageEvent]):
         since = datetime.now(timezone.utc) - timedelta(days=days)
         events = self.db.query(ToolUsageEvent).filter(
             ToolUsageEvent.tool_name == tool_name,
-            ToolUsageEvent.timestamp >= since,
-        ).order_by(ToolUsageEvent.timestamp.desc()).limit(500).all()
+            ToolUsageEvent.created_at >= since,
+        ).order_by(ToolUsageEvent.created_at.desc()).limit(500).all()
 
         durations = [e.duration_ms for e in events if e.duration_ms is not None]
         durations.sort()
@@ -363,7 +363,7 @@ class ToolUsageDAO(BaseDAO[ToolUsageEvent]):
             'p95_ms': p95,
             'p99_ms': p99,
             'recent_errors': [
-                {'timestamp': e.timestamp.isoformat(), 'message': e.error_message}
+                {'timestamp': e.created_at.isoformat(), 'message': e.error_message}
                 for e in events if not e.success
             ][:10],
         }
@@ -371,10 +371,10 @@ class ToolUsageDAO(BaseDAO[ToolUsageEvent]):
     def get_hourly_heatmap(self, days: int = 30, tool_name: Optional[str] = None) -> list[dict]:
         since = datetime.now(timezone.utc) - timedelta(days=days)
         q = self.db.query(
-            extract('dow', ToolUsageEvent.timestamp).label('day_of_week'),
-            extract('hour', ToolUsageEvent.timestamp).label('hour'),
+            extract('dow', ToolUsageEvent.created_at).label('day_of_week'),
+            extract('hour', ToolUsageEvent.created_at).label('hour'),
             func.count().label('call_count'),
-        ).filter(ToolUsageEvent.timestamp >= since)
+        ).filter(ToolUsageEvent.created_at >= since)
 
         if tool_name:
             q = q.filter(ToolUsageEvent.tool_name == tool_name)
@@ -395,7 +395,7 @@ class AuditDAO(BaseDAO[AuditLog]):
     def log(
         self,
         action: str,
-        actor_id: Optional[str] = None,
+        user_id: Optional[str] = None,
         resource_type: Optional[str] = None,
         resource_id: Optional[str] = None,
         details: Optional[dict] = None,
@@ -403,7 +403,7 @@ class AuditDAO(BaseDAO[AuditLog]):
     ) -> AuditLog:
         entry = AuditLog(
             action=action,
-            actor_id=actor_id,
+            user_id=user_id,
             resource_type=resource_type,
             resource_id=resource_id,
             details=json.dumps(details) if details else None,
@@ -415,7 +415,7 @@ class AuditDAO(BaseDAO[AuditLog]):
         q = self.db.query(AuditLog)
         if action:
             q = q.filter(AuditLog.action == action)
-        return q.order_by(AuditLog.timestamp.desc()).limit(limit).all()
+        return q.order_by(AuditLog.created_at.desc()).limit(limit).all()
 
 
 # ── A2A Task DAO ─────────────────────────────────────────────────
@@ -445,7 +445,7 @@ class PromptDAO(BaseDAO[Prompt]):
     """Data access for prompts. Replaces JSON file-based storage."""
 
     def __init__(self, db: Session):
-        super().__init__(db, Prompt)
+        super().__init__(Prompt, db)
 
     def get_by_name(self, name: str) -> Optional[Prompt]:
         return self.db.query(Prompt).filter(Prompt.name == name).first()
@@ -561,7 +561,7 @@ class PromptDAO(BaseDAO[Prompt]):
 
 class LLMProviderDAO(BaseDAO[LLMProviderRecord]):
     def __init__(self, db: Session):
-        super().__init__(db, LLMProviderRecord)
+        super().__init__(LLMProviderRecord, db)
 
     def get_by_type(self, provider_type: str) -> Optional[LLMProviderRecord]:
         return self.db.query(LLMProviderRecord).filter(LLMProviderRecord.provider_type == provider_type).first()
@@ -599,7 +599,7 @@ class LLMProviderDAO(BaseDAO[LLMProviderRecord]):
 
 class LLMModelDAO(BaseDAO[LLMModelRecord]):
     def __init__(self, db: Session):
-        super().__init__(db, LLMModelRecord)
+        super().__init__(LLMModelRecord, db)
 
     def get_by_model_id(self, model_id: str) -> Optional[LLMModelRecord]:
         return self.db.query(LLMModelRecord).filter(LLMModelRecord.model_id == model_id).first()

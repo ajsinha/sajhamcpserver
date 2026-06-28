@@ -48,8 +48,8 @@ def print_banner():
    ███████║██║  ██║╚█████╔╝██║  ██║██║  ██║    ██║ ╚═╝ ██║╚██████╗██║
    ╚══════╝╚═╝  ╚═╝ ╚════╝ ╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝     ╚═╝ ╚═════╝╚═╝
 
-              Model Context Protocol Server  v3.0
-         FastAPI · SQLAlchemy · JWT · SSE · A2A
+              Model Context Protocol Server  v5.1.0
+         FastAPI · SQLAlchemy · MCP 2025-11-25 · SSE · A2A
 ================================================================================
 """)
 
@@ -60,13 +60,18 @@ def signal_handler(signum, frame):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='SAJHA MCP Server v3')
+    parser = argparse.ArgumentParser(description='SAJHA MCP Server v5.1.0')
+    parser.add_argument('--config', default=None, help='Path to YAML config file (default: config/application.yml)')
     parser.add_argument('--host', default=None, help='Host to bind to')
     parser.add_argument('--port', type=int, default=None, help='Port to listen on')
     parser.add_argument('--reload', action='store_true', help='Enable auto-reload (dev mode)')
     parser.add_argument('--workers', type=int, default=1, help='Number of workers')
     parser.add_argument('--log-level', default=None, help='Log level')
     args = parser.parse_args()
+
+    # Set config file path BEFORE importing settings
+    if args.config:
+        os.environ['SAJHA_CONFIG_FILE'] = args.config
 
     # Ensure directories exist
     for d in ['logs', 'config', 'config/tools', 'config/prompts', 'data', 'temp']:

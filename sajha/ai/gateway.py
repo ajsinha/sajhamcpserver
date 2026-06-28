@@ -322,7 +322,7 @@ def init_gateway(config: Dict[str, Any], db_session=None) -> LLMGateway:
         default_embedding_provider=config.get('ai.embedding_provider', 'openai'),
         default_embedding_model=config.get('ai.embedding_model', 'text-embedding-3-small'),
         cache_enabled=config.get('ai.cache.enabled', True),
-        cache_ttl_seconds=int(config.get('ai.cache.ttl_seconds', 3600)),
+        cache_ttl_seconds=int(config.get('ai.cache.ttl_seconds', 3600) or 3600),
     )
     _gateway = LLMGateway(gc)
 

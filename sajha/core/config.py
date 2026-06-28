@@ -25,7 +25,7 @@ from pydantic import Field
 logger = logging.getLogger(__name__)
 
 _VAR_PATTERN = re.compile(r'\$\{([^}:]+)(?::([^}]*))?\}')
-_CONFIG_FILE = 'config/application.yml'
+_CONFIG_FILE = os.environ.get('SAJHA_CONFIG_FILE', 'config/application.yml')
 
 
 def _substitute_vars(value: str) -> str:
@@ -35,16 +35,24 @@ def _substitute_vars(value: str) -> str:
     return _VAR_PATTERN.sub(_replace, value)
 
 
-def _flatten(data: dict, prefix: str = '') -> dict[str, str]:
-    """Flatten nested dict to dot-notation keys with env var substitution."""
+def _flatten(data: dict, prefix: str = '') -> dict:
+    """
+    Flatten nested YAML dict to dot-notation keys.
+
+    Rules:
+      - Nested dicts are recursed: {a: {b: 1}} → {'a.b': '1'}
+      - None values are EXCLUDED (key not in dict → default kicks in)
+      - Empty string '' IS a valid value (key defined, value intentionally empty)
+      - All non-None values are stringified and ${VAR:default} substituted
+    """
     flat: dict[str, str] = {}
     for key, value in data.items():
         full_key = f'{prefix}.{key}' if prefix else key
         if isinstance(value, dict):
             flat.update(_flatten(value, full_key))
-        else:
-            s = str(value) if value is not None else ''
-            flat[full_key] = _substitute_vars(s)
+        elif value is not None:
+            flat[full_key] = _substitute_vars(str(value))
+        # value is None → key is NOT added to flat dict → default kicks in
     return flat
 
 
@@ -85,21 +93,41 @@ _CFG = load_yaml_config()
 
 
 def _get(key: str, default: str = '') -> str:
-    """Get config value: SAJHA_ env var → YAML → default."""
+    """
+    Get config value. Resolution order: SAJHA_ env var → YAML → default.
+
+    Default kicks in if and only if the key is NOT defined anywhere.
+    An empty string IS a valid value (key defined, intentionally empty).
+
+    Examples:
+      YAML has 'db.port: 5432'     → _get('db.port', '3306')    → '5432'
+      YAML has 'db.port: '         → _get('db.port', '3306')    → ''  (intentionally empty)
+      YAML has no 'db.port'        → _get('db.port', '3306')    → '3306'  (default)
+      ENV has SAJHA_DB_PORT=9999   → _get('db.port', '3306')    → '9999'  (env wins)
+    """
+    # 1. Environment variable (highest priority)
     env_key = 'SAJHA_' + key.replace('.', '_').upper()
     env_val = os.environ.get(env_key)
     if env_val is not None:
         return env_val
-    return _CFG.get(key, default)
+
+    # 2. YAML config (key must exist — None values are excluded by _flatten)
+    if key in _CFG:
+        return _CFG[key]
+
+    # 3. Default (key not defined anywhere)
+    return default
 
 
 def _bool(key: str, default: bool = False) -> bool:
-    return _get(key, str(default)).lower() in ('true', '1', 'yes')
+    val = _get(key, str(default))
+    return val.lower() in ('true', '1', 'yes') if val else default
 
 
 def _int(key: str, default: int = 0) -> int:
+    val = _get(key, str(default))
     try:
-        return int(_get(key, str(default)))
+        return int(val) if val != '' else default
     except (ValueError, TypeError):
         return default
 
@@ -111,7 +139,7 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = Field(default_factory=lambda: _get('app.name', 'SAJHA MCP Server'))
-    app_version: str = Field(default_factory=lambda: _get('app.version', '5.0.0'))
+    app_version: str = Field(default_factory=lambda: _get('app.version', '5.1.0'))
     app_description: str = Field(default_factory=lambda: _get('app.description', 'Model Context Protocol Server'))
     app_author: str = Field(default_factory=lambda: _get('app.author', 'Ashutosh Sinha'))
     app_email: str = Field(default_factory=lambda: _get('app.email', 'ajsinha@gmail.com'))
@@ -174,6 +202,13 @@ class Settings(BaseSettings):
     data_duckdb_dir: str = Field(default_factory=lambda: _get('data.duckdb.dir', './data/duckdb'))
     data_sqlselect_dir: str = Field(default_factory=lambda: _get('data.sqlselect.dir', './data/sqlselect'))
     data_dir: str = Field(default_factory=lambda: _get('data.dir', './data'))
+
+    # Cache settings
+    cache_enabled: bool = Field(default_factory=lambda: _bool('cache.enabled', True))
+    cache_dir: str = Field(default_factory=lambda: _get('cache.dir', 'data/cache'))
+    cache_max_files: int = Field(default_factory=lambda: _int('cache.max_files', 50000))
+    cache_max_file_size_kb: int = Field(default_factory=lambda: _int('cache.max_file_size_kb', 512))
+    cache_cleanup_interval: int = Field(default_factory=lambda: _int('cache.cleanup_interval_seconds', 300))
     config_plugins_dir: str = Field(default_factory=lambda: _get('config.plugins.dir', 'config/plugins'))
     log_level: str = Field(default_factory=lambda: _get('logging.level', 'INFO'))
     log_dir: str = Field(default_factory=lambda: _get('logging.dir', './logs'))
@@ -186,7 +221,7 @@ class Settings(BaseSettings):
     tavily_api_key: str = Field(default_factory=lambda: _get('tavily.api.key', ''))
 
     # Config source (for startup banner)
-    config_source: str = Field(default_factory=lambda: 'application.yml' if _CFG else 'defaults')
+    config_source: str = Field(default_factory=lambda: _CONFIG_FILE if _CFG else 'defaults')
     @property
     def database_url(self) -> str:
         if self.db_url:
@@ -211,3 +246,19 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
+
+    # Async execution settings
+    async_enabled: bool = Field(default_factory=lambda: _bool('async.enabled', True))
+    async_workers: int = Field(default_factory=lambda: _int('async.workers', 8))
+    async_queue_size: int = Field(default_factory=lambda: _int('async.queue_size', 1000))
+    async_task_ttl_hours: int = Field(default_factory=lambda: _int('async.task_ttl_hours', 24))
+
+    # Shell execution settings
+    shell_enabled: bool = Field(default_factory=lambda: _bool('shell.enabled', False))
+    shell_mode: str = Field(default_factory=lambda: _get('shell.mode', 'sandbox'))
+    shell_scratch_dir: str = Field(default_factory=lambda: _get('shell.scratch_dir', 'data/shell_scratch'))
+    shell_python_enabled: bool = Field(default_factory=lambda: _bool('shell.python.enabled', True))
+    shell_python_timeout: int = Field(default_factory=lambda: _int('shell.python.timeout_seconds', 30))
+    shell_python_memory_mb: int = Field(default_factory=lambda: _int('shell.python.memory_limit_mb', 256))
+    shell_bash_enabled: bool = Field(default_factory=lambda: _bool('shell.bash.enabled', False))
+    shell_bash_timeout: int = Field(default_factory=lambda: _int('shell.bash.timeout_seconds', 15))

@@ -120,6 +120,70 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-database me-2 text-info"></i>Configure Tool Caching</div>
+                <div class="card-body">
+                    <ol class="small mb-0">
+                        <li class="mb-2">Open the tool's JSON config file in <code>config/tools/{provider}/</code>.</li>
+                        <li class="mb-2">Add <code>"cache_ttl": 300</code> (seconds) to the config object. Use 3600 for FRED, 300 for FMP, 30 for Yahoo.</li>
+                        <li class="mb-2">Restart the server or wait for hot-reload to pick up the change.</li>
+                        <li class="mb-2">Check cache stats at <a href="/admin/system-monitor">System Monitor</a> → Cache Statistics.</li>
+                        <li class="mb-2">To invalidate: <code>POST /api/cache/invalidate</code> with <code>{"tool_name": "fred_gdp"}</code>.</li>
+                        <li>Tools without <code>cache_ttl</code> are never cached (default behavior).</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Submit Async Tool Execution</div>
+                <div class="card-body">
+                    <ol class="small mb-0">
+                        <li class="mb-2">Choose a tool and prepare its arguments as JSON.</li>
+                        <li class="mb-2">Add an <code>async</code> block with <code>delivery</code> (webhook/kafka/file) and <code>destination</code> (URL/topic/path).</li>
+                        <li class="mb-2"><code>POST /api/tools/{name}/execute-async</code> — returns task_id in ~50ms.</li>
+                        <li class="mb-2">Poll status: <code>GET /api/async/tasks/{task_id}</code> or wait for delivery.</li>
+                        <li class="mb-2">Monitor all tasks at <a href="/admin/async-tasks">Admin → Async Tasks</a>.</li>
+                        <li>Cancel queued tasks, retry failed ones, view results from the UI.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-terminal me-2 text-dark"></i>Use the Shell Sandbox</div>
+                <div class="card-body">
+                    <ol class="small mb-0">
+                        <li class="mb-2">Enable in config: set <code>shell.enabled: true</code> in <code>application.yml</code>.</li>
+                        <li class="mb-2">For Bash, also set <code>shell.bash.enabled: true</code>.</li>
+                        <li class="mb-2">Python: <code>POST /api/shell/python</code> with <code>{"code": "import json\nprint(json.dumps({'pi': 3.14}))"}</code></li>
+                        <li class="mb-2">Bash: <code>POST /api/shell/bash</code> with <code>{"command": "echo hello | wc -c"}</code></li>
+                        <li class="mb-2">Check what's allowed: <code>GET /api/shell/capabilities</code></li>
+                        <li>View execution history: <code>GET /api/shell/history</code> (admin only).</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-file-earmark-code me-2 text-info"></i>Custom Configuration</div>
+                <div class="card-body">
+                    <ol class="small mb-0">
+                        <li class="mb-2">Copy <code>config/application.yml</code> to a new file (e.g., <code>config/production.yml</code>).</li>
+                        <li class="mb-2">Edit settings: DB, ports, CORS, cache, auth, etc.</li>
+                        <li class="mb-2">Start with custom config: <code>python run_server.py --config config/production.yml</code></li>
+                        <li class="mb-2">Or via env var: <code>export SAJHA_CONFIG_FILE=config/production.yml</code></li>
+                        <li class="mb-2">Use <code>${ENV_VAR:default}</code> in YAML for environment-specific values.</li>
+                        <li>Nested keys are flattened: <code>db.host</code>, <code>ai.cache.ttl_seconds</code>.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

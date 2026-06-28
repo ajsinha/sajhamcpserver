@@ -1,0 +1,436 @@
+{% extends "common/base.html" %}
+{% block title %}System Monitor - Admin - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.monitor-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+.monitor-card { background: var(--t-card); border: 1px solid var(--t-card-b); border-radius: 12px; padding: 1.25rem; position: relative; overflow: hidden; }
+.monitor-card .mc-icon { position: absolute; top: 1rem; right: 1rem; font-size: 2rem; opacity: 0.15; }
+.monitor-card .mc-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--t-muted); margin-bottom: 0.25rem; }
+.monitor-card .mc-value { font-size: 1.75rem; font-weight: 700; color: var(--t-heading); line-height: 1.2; }
+.monitor-card .mc-sub { font-size: 0.8rem; color: var(--t-text2); margin-top: 0.25rem; }
+.usage-bar { height: 8px; background: var(--t-card-hdr); border-radius: 4px; overflow: hidden; margin-top: 0.5rem; }
+.usage-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+.usage-ok { background: var(--color-success); }
+.usage-warn { background: var(--color-warning); }
+.usage-crit { background: var(--color-danger); }
+.stat-table { width: 100%; font-size: 0.85rem; }
+.stat-table td { padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--t-card-b); color: var(--t-text); }
+.stat-table td:first-child { color: var(--t-muted); width: 40%; white-space: nowrap; }
+.stat-table td:last-child { font-family: 'SFMono-Regular', Consolas, monospace; text-align: right; }
+.process-table { font-size: 0.8rem; }
+.process-table th { background: var(--t-card-hdr); color: var(--t-text2); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.5rem 0.75rem; position: sticky; top: 0; }
+.process-table td { padding: 0.35rem 0.75rem; border-bottom: 1px solid var(--t-card-b); color: var(--t-text); font-family: 'SFMono-Regular', Consolas, monospace; }
+.badge-online { background: var(--color-success); color: white; }
+.badge-degraded { background: var(--color-warning); color: black; }
+.pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--color-success); margin-right: 6px; animation: pulse-anim 2s infinite; }
+@keyframes pulse-anim { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.refresh-btn { cursor: pointer; transition: transform 0.3s; }
+.refresh-btn:hover { transform: rotate(180deg); }
+#lastRefresh { font-size: 0.75rem; color: var(--t-muted); }
+@media (max-width: 992px) { .monitor-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 576px) { .monitor-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h3 mb-0"><i class="bi bi-activity me-2"></i>System Monitor</h1>
+            <span id="lastRefresh">Last refresh: —</span>
+        </div>
+        <div>
+            <span class="pulse"></span><span id="statusBadge" class="badge badge-online me-2">Online</span>
+            <select id="refreshInterval" class="form-select form-select-sm d-inline-block" style="width:auto">
+                <option value="0">Manual</option>
+                <option value="5" selected>5s</option>
+                <option value="15">15s</option>
+                <option value="30">30s</option>
+                <option value="60">60s</option>
+            </select>
+            <button class="btn btn-sm btn-outline-primary ms-1 refresh-btn" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i></button>
+        </div>
+    </div>
+
+    <!-- Top Metrics -->
+    <div class="monitor-grid" id="topMetrics">
+        <div class="monitor-card">
+            <i class="bi bi-cpu mc-icon"></i>
+            <div class="mc-label">CPU Usage</div>
+            <div class="mc-value" id="cpuUsage">—%</div>
+            <div class="mc-sub" id="cpuCores">— cores</div>
+            <div class="usage-bar"><div class="usage-bar-fill usage-ok" id="cpuBar" style="width:0%"></div></div>
+        </div>
+        <div class="monitor-card">
+            <i class="bi bi-memory mc-icon"></i>
+            <div class="mc-label">Memory Usage</div>
+            <div class="mc-value" id="memUsage">—%</div>
+            <div class="mc-sub" id="memDetail">— / — GB</div>
+            <div class="usage-bar"><div class="usage-bar-fill usage-ok" id="memBar" style="width:0%"></div></div>
+        </div>
+        <div class="monitor-card">
+            <i class="bi bi-hdd mc-icon"></i>
+            <div class="mc-label">Disk Usage</div>
+            <div class="mc-value" id="diskUsage">—%</div>
+            <div class="mc-sub" id="diskDetail">— / — GB</div>
+            <div class="usage-bar"><div class="usage-bar-fill usage-ok" id="diskBar" style="width:0%"></div></div>
+        </div>
+        <div class="monitor-card">
+            <i class="bi bi-clock-history mc-icon"></i>
+            <div class="mc-label">Server Uptime</div>
+            <div class="mc-value" id="uptime">—</div>
+            <div class="mc-sub" id="uptimeSince">Since —</div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <!-- CPU Details -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-cpu me-2"></i>CPU</div>
+                <div class="card-body p-0">
+                    <table class="stat-table" id="cpuTable">
+                        <tr><td>Model</td><td id="cpuModel">—</td></tr>
+                        <tr><td>Physical Cores</td><td id="cpuPhysical">—</td></tr>
+                        <tr><td>Logical Cores</td><td id="cpuLogical">—</td></tr>
+                        <tr><td>Architecture</td><td id="cpuArch">—</td></tr>
+                        <tr><td>Load (1m/5m/15m)</td><td id="cpuLoad">—</td></tr>
+                        <tr><td>Context Switches</td><td id="cpuCtxSw">—</td></tr>
+                        <tr><td>Interrupts</td><td id="cpuInterrupts">—</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Memory Details -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-memory me-2"></i>Memory</div>
+                <div class="card-body p-0">
+                    <table class="stat-table" id="memTable">
+                        <tr><td>Total RAM</td><td id="memTotal">—</td></tr>
+                        <tr><td>Used</td><td id="memUsed">—</td></tr>
+                        <tr><td>Available</td><td id="memAvail">—</td></tr>
+                        <tr><td>Cached</td><td id="memCached">—</td></tr>
+                        <tr><td>Buffers</td><td id="memBuffers">—</td></tr>
+                        <tr><td>Swap Total</td><td id="swapTotal">—</td></tr>
+                        <tr><td>Swap Used</td><td id="swapUsed">—</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disk Details -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-hdd me-2"></i>Disk</div>
+                <div class="card-body p-0">
+                    <table class="stat-table" id="diskTable">
+                        <tr><td>Mount Point</td><td id="diskMount">—</td></tr>
+                        <tr><td>Filesystem</td><td id="diskFs">—</td></tr>
+                        <tr><td>Total Size</td><td id="diskTotal">—</td></tr>
+                        <tr><td>Used</td><td id="diskUsedAbs">—</td></tr>
+                        <tr><td>Free</td><td id="diskFree">—</td></tr>
+                        <tr><td>Inodes Used</td><td id="diskInodes">—</td></tr>
+                        <tr><td>DB File Size</td><td id="dbSize">—</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <!-- Network -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-ethernet me-2"></i>Network I/O</div>
+                <div class="card-body p-0">
+                    <table class="stat-table" id="netTable">
+                        <tr><td>Bytes Sent</td><td id="netSent">—</td></tr>
+                        <tr><td>Bytes Received</td><td id="netRecv">—</td></tr>
+                        <tr><td>Packets Sent</td><td id="netPktSent">—</td></tr>
+                        <tr><td>Packets Received</td><td id="netPktRecv">—</td></tr>
+                        <tr><td>Errors In</td><td id="netErrIn">—</td></tr>
+                        <tr><td>Errors Out</td><td id="netErrOut">—</td></tr>
+                        <tr><td>Connections</td><td id="netConns">—</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SAJHA Process -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-gear me-2"></i>SAJHA Process</div>
+                <div class="card-body p-0">
+                    <table class="stat-table">
+                        <tr><td>PID</td><td id="procPid">—</td></tr>
+                        <tr><td>Process CPU</td><td id="procCpu">—</td></tr>
+                        <tr><td>Process Memory</td><td id="procMem">—</td></tr>
+                        <tr><td>RSS</td><td id="procRss">—</td></tr>
+                        <tr><td>VMS</td><td id="procVms">—</td></tr>
+                        <tr><td>Threads</td><td id="procThreads">—</td></tr>
+                        <tr><td>Open FDs</td><td id="procFds">—</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Python / Server -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-braces mc-icon" style="font-size:1rem;opacity:1;position:static;margin-right:0.5rem"></i>Runtime</div>
+                <div class="card-body p-0">
+                    <table class="stat-table">
+                        <tr><td>Python Version</td><td id="pyVersion">—</td></tr>
+                        <tr><td>Platform</td><td id="platform">—</td></tr>
+                        <tr><td>Hostname</td><td id="hostname">—</td></tr>
+                        <tr><td>SAJHA Version</td><td id="sajhaVersion">—</td></tr>
+                        <tr><td>MCP Protocol</td><td id="mcpVersion">—</td></tr>
+                        <tr><td>Tools Loaded</td><td id="toolsLoaded">—</td></tr>
+                        <tr><td>DB Type</td><td id="dbType">—</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Processes -->
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-list-task me-2"></i>Top Processes (by CPU)</span>
+            <span class="badge bg-secondary" id="procCount">— processes</span>
+        </div>
+        <div class="card-body p-0" style="max-height:300px;overflow-y:auto">
+            <table class="table table-sm mb-0 process-table">
+                <thead><tr><th>PID</th><th>User</th><th>CPU%</th><th>MEM%</th><th>RSS</th><th>Status</th><th style="width:40%">Command</th></tr></thead>
+                <tbody id="processRows"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Cache Statistics -->
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-database me-2"></i>Tool Cache</span>
+            <button class="btn btn-sm btn-outline-danger" onclick="invalidateCache()"><i class="bi bi-trash me-1"></i>Invalidate All</button>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 text-center">
+                <div class="col-md-3"><div class="h3 mb-0" id="cacheHitRate2">—%</div><small class="text-muted">Hit Rate</small></div>
+                <div class="col-md-3"><div class="h3 mb-0" id="cacheSize2">—</div><small class="text-muted">Cached Items</small></div>
+                <div class="col-md-3"><div class="h3 mb-0" id="cacheHits2">—</div><small class="text-muted">Total Hits</small></div>
+                <div class="col-md-3"><div class="h3 mb-0" id="cacheMisses2">—</div><small class="text-muted">Total Misses</small></div>
+            </div>
+            <div class="row g-3 mt-2 text-center">
+                <div class="col-md-4"><small class="text-muted">Disk Usage:</small> <strong id="cacheDiskSize">—</strong></div>
+                <div class="col-md-4"><small class="text-muted">Tools Cached:</small> <strong id="cacheToolCount">—</strong></div>
+                <div class="col-md-4"><small class="text-muted">Total Writes:</small> <strong id="cacheWrites">—</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Provider Health -->
+    <div class="card mb-3">
+        <div class="card-header"><i class="bi bi-cloud-check me-2"></i>Provider Health</div>
+        <div class="card-body p-0" style="max-height:400px;overflow-y:auto">
+            <table class="table table-sm mb-0 process-table">
+                <thead><tr><th>Provider</th><th>Tools</th><th>API Endpoint</th><th>Circuit</th><th>Failures</th><th>Status</th></tr></thead>
+                <tbody id="providerRows"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Audit Events -->
+    <div class="card mb-3">
+        <div class="card-header"><i class="bi bi-shield-check me-2"></i>Recent Audit Events</div>
+        <div class="card-body p-0" style="max-height:300px;overflow-y:auto">
+            <table class="table table-sm mb-0 process-table">
+                <thead><tr><th>Time</th><th>Action</th><th>User</th><th>Resource</th><th>IP</th></tr></thead>
+                <tbody id="auditRows"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+var refreshTimer = null;
+
+function usageClass(pct) {
+    if (pct >= 90) return 'usage-crit';
+    if (pct >= 70) return 'usage-warn';
+    return 'usage-ok';
+}
+
+function fmtBytes(b) {
+    if (b >= 1073741824) return (b/1073741824).toFixed(1) + ' GB';
+    if (b >= 1048576) return (b/1048576).toFixed(1) + ' MB';
+    if (b >= 1024) return (b/1024).toFixed(1) + ' KB';
+    return b + ' B';
+}
+
+function fmtNum(n) {
+    if (n >= 1e9) return (n/1e9).toFixed(1) + 'B';
+    if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+    if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+    return n.toString();
+}
+
+function fmtUptime(secs) {
+    var d = Math.floor(secs/86400), h = Math.floor((secs%86400)/3600), m = Math.floor((secs%3600)/60);
+    if (d > 0) return d + 'd ' + h + 'h ' + m + 'm';
+    if (h > 0) return h + 'h ' + m + 'm';
+    return m + 'm ' + Math.floor(secs%60) + 's';
+}
+
+function refreshData() {
+    fetch('/api/admin/system-monitor', {credentials: 'same-origin'})
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            document.getElementById('lastRefresh').textContent = 'Last refresh: ' + new Date().toLocaleTimeString();
+
+            // CPU
+            var cpu = d.cpu || {};
+            document.getElementById('cpuUsage').textContent = (cpu.percent || 0).toFixed(1) + '%';
+            document.getElementById('cpuCores').textContent = (cpu.logical_cores || 0) + ' cores (' + (cpu.physical_cores || 0) + ' physical)';
+            document.getElementById('cpuBar').style.width = (cpu.percent || 0) + '%';
+            document.getElementById('cpuBar').className = 'usage-bar-fill ' + usageClass(cpu.percent || 0);
+            document.getElementById('cpuModel').textContent = cpu.model || '—';
+            document.getElementById('cpuPhysical').textContent = cpu.physical_cores || '—';
+            document.getElementById('cpuLogical').textContent = cpu.logical_cores || '—';
+            document.getElementById('cpuArch').textContent = cpu.architecture || '—';
+            document.getElementById('cpuLoad').textContent = (cpu.load_avg || []).map(function(v){return v.toFixed(2)}).join(' / ') || '—';
+            document.getElementById('cpuCtxSw').textContent = fmtNum(cpu.ctx_switches || 0);
+            document.getElementById('cpuInterrupts').textContent = fmtNum(cpu.interrupts || 0);
+
+            // Memory
+            var mem = d.memory || {};
+            document.getElementById('memUsage').textContent = (mem.percent || 0).toFixed(1) + '%';
+            document.getElementById('memDetail').textContent = fmtBytes(mem.used || 0) + ' / ' + fmtBytes(mem.total || 0);
+            document.getElementById('memBar').style.width = (mem.percent || 0) + '%';
+            document.getElementById('memBar').className = 'usage-bar-fill ' + usageClass(mem.percent || 0);
+            document.getElementById('memTotal').textContent = fmtBytes(mem.total || 0);
+            document.getElementById('memUsed').textContent = fmtBytes(mem.used || 0);
+            document.getElementById('memAvail').textContent = fmtBytes(mem.available || 0);
+            document.getElementById('memCached').textContent = fmtBytes(mem.cached || 0);
+            document.getElementById('memBuffers').textContent = fmtBytes(mem.buffers || 0);
+            document.getElementById('swapTotal').textContent = fmtBytes(mem.swap_total || 0);
+            document.getElementById('swapUsed').textContent = fmtBytes(mem.swap_used || 0);
+
+            // Disk
+            var disk = d.disk || {};
+            document.getElementById('diskUsage').textContent = (disk.percent || 0).toFixed(1) + '%';
+            document.getElementById('diskDetail').textContent = fmtBytes(disk.used || 0) + ' / ' + fmtBytes(disk.total || 0);
+            document.getElementById('diskBar').style.width = (disk.percent || 0) + '%';
+            document.getElementById('diskBar').className = 'usage-bar-fill ' + usageClass(disk.percent || 0);
+            document.getElementById('diskMount').textContent = disk.mount_point || '—';
+            document.getElementById('diskFs').textContent = disk.filesystem || '—';
+            document.getElementById('diskTotal').textContent = fmtBytes(disk.total || 0);
+            document.getElementById('diskUsedAbs').textContent = fmtBytes(disk.used || 0);
+            document.getElementById('diskFree').textContent = fmtBytes(disk.free || 0);
+            document.getElementById('diskInodes').textContent = disk.inodes_used || '—';
+            document.getElementById('dbSize').textContent = fmtBytes(disk.db_file_size || 0);
+
+            // Uptime
+            document.getElementById('uptime').textContent = fmtUptime(d.uptime_seconds || 0);
+            document.getElementById('uptimeSince').textContent = 'Since ' + (d.boot_time || '—');
+
+            // Network
+            var net = d.network || {};
+            document.getElementById('netSent').textContent = fmtBytes(net.bytes_sent || 0);
+            document.getElementById('netRecv').textContent = fmtBytes(net.bytes_recv || 0);
+            document.getElementById('netPktSent').textContent = fmtNum(net.packets_sent || 0);
+            document.getElementById('netPktRecv').textContent = fmtNum(net.packets_recv || 0);
+            document.getElementById('netErrIn').textContent = fmtNum(net.errin || 0);
+            document.getElementById('netErrOut').textContent = fmtNum(net.errout || 0);
+            document.getElementById('netConns').textContent = net.connections || '—';
+
+            // Process
+            var proc = d.process || {};
+            document.getElementById('procPid').textContent = proc.pid || '—';
+            document.getElementById('procCpu').textContent = (proc.cpu_percent || 0).toFixed(1) + '%';
+            document.getElementById('procMem').textContent = (proc.memory_percent || 0).toFixed(1) + '%';
+            document.getElementById('procRss').textContent = fmtBytes(proc.rss || 0);
+            document.getElementById('procVms').textContent = fmtBytes(proc.vms || 0);
+            document.getElementById('procThreads').textContent = proc.threads || '—';
+            document.getElementById('procFds').textContent = proc.open_fds || '—';
+
+            // Runtime
+            document.getElementById('pyVersion').textContent = d.python_version || '—';
+            document.getElementById('platform').textContent = d.platform || '—';
+            document.getElementById('hostname').textContent = d.hostname || '—';
+            document.getElementById('sajhaVersion').textContent = d.sajha_version || '—';
+            document.getElementById('mcpVersion').textContent = d.mcp_protocol_version || '—';
+            document.getElementById('toolsLoaded').textContent = d.tools_loaded || '—';
+            document.getElementById('dbType').textContent = d.db_type || '—';
+
+            // Top processes
+            var rows = d.top_processes || [];
+            document.getElementById('procCount').textContent = (d.total_processes || rows.length) + ' processes';
+            var html = '';
+            rows.forEach(function(p) {
+                html += '<tr><td>' + p.pid + '</td><td>' + (p.user||'—') + '</td><td>' + (p.cpu||0).toFixed(1) + '</td><td>' + (p.mem||0).toFixed(1) + '</td><td>' + fmtBytes(p.rss||0) + '</td><td>' + (p.status||'—') + '</td><td title="' + (p.cmd||'').replace(/"/g,'&quot;') + '" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (p.cmd||'—') + '</td></tr>';
+            });
+            document.getElementById('processRows').innerHTML = html;
+        })
+        .catch(function(e) {
+            document.getElementById('statusBadge').className = 'badge badge-degraded';
+            document.getElementById('statusBadge').textContent = 'Error';
+        });
+
+    // Fetch cache stats
+    fetch('/api/cache/stats',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
+        document.getElementById('cacheHitRate2').textContent=(d.hit_rate||0)+'%';
+        document.getElementById('cacheSize2').textContent=d.size||0;
+        document.getElementById('cacheHits2').textContent=fmtNum(d.hits||0);
+        document.getElementById('cacheMisses2').textContent=fmtNum(d.misses||0);
+        document.getElementById('cacheDiskSize').textContent=d.size_human||'0 B';
+        document.getElementById('cacheToolCount').textContent=d.tools_cached||0;
+        document.getElementById('cacheWrites').textContent=fmtNum(d.writes||0);
+    }).catch(function(){});
+
+    // Fetch provider health
+    fetch('/api/providers/health',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
+        var html='';
+        (d.providers||[]).forEach(function(p){
+            var stBadge = p.status==='healthy' ? 'badge bg-success' : (p.status==='degraded' ? 'badge bg-warning text-dark' : 'badge bg-danger');
+            var circBadge = p.circuit_state==='closed' ? 'text-success' : (p.circuit_state==='half_open' ? 'text-warning' : 'text-danger');
+            html+='<tr><td><strong>'+p.provider+'</strong></td><td>'+p.registered_tools+'</td>';
+            html+='<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+p.api_endpoint+'">'+p.api_endpoint+'</td>';
+            html+='<td><i class="bi bi-circle-fill '+circBadge+'" style="font-size:0.6rem"></i> '+p.circuit_state+'</td>';
+            html+='<td>'+(p.failure_count||0)+'</td>';
+            html+='<td><span class="'+stBadge+'">'+p.status+'</span></td></tr>';
+        });
+        document.getElementById('providerRows').innerHTML=html;
+    }).catch(function(){});
+
+    // Fetch audit log
+    fetch('/api/audit?limit=20',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
+        var html='';
+        (d.entries||[]).forEach(function(e){
+            var t = e.created_at ? new Date(e.created_at).toLocaleTimeString() : '—';
+            html+='<tr><td>'+t+'</td><td><span class="badge bg-secondary">'+e.action+'</span></td>';
+            html+='<td>'+(e.user_id||'—')+'</td>';
+            html+='<td>'+(e.resource_type||'')+':'+(e.resource_id||'')+'</td>';
+            html+='<td>'+(e.ip_address||'—')+'</td></tr>';
+        });
+        document.getElementById('auditRows').innerHTML=html||'<tr><td colspan="5" class="text-center text-muted py-3">No audit events yet</td></tr>';
+    }).catch(function(){});
+}
+
+document.getElementById('refreshInterval').addEventListener('change', function() {
+    clearInterval(refreshTimer);
+    var secs = parseInt(this.value);
+    if (secs > 0) refreshTimer = setInterval(refreshData, secs * 1000);
+});
+
+refreshData();
+refreshTimer = setInterval(refreshData, 5000);
+
+function invalidateCache() {
+    if (!confirm('Clear all cached tool results?')) return;
+    fetch('/api/cache/invalidate',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'})
+        .then(function(){refreshData();});
+}
+</script>
+{% endblock %}

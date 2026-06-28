@@ -112,7 +112,7 @@ class AuthManager:
         # Audit
         AuditDAO(db).log(
             action='user.login',
-            actor_id=user.user_id,
+            user_id=user.user_id,
             resource_type='user',
             resource_id=user.user_id,
         )

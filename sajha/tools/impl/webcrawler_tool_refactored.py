@@ -185,22 +185,22 @@ class CrawlURLTool(WebCrawlerBaseTool):
                 "follow_external": {
                     "type": "boolean",
                     "description": "Follow links to external domains",
-                    "default": false
+                    "default": False
                 },
                 "respect_robots": {
                     "type": "boolean",
                     "description": "Respect robots.txt rules",
-                    "default": true
+                    "default": True
                 },
                 "extract_images": {
                     "type": "boolean",
                     "description": "Extract image URLs from pages",
-                    "default": true
+                    "default": True
                 },
                 "extract_text": {
                     "type": "boolean",
                     "description": "Extract text content previews",
-                    "default": true
+                    "default": True
                 },
                 "delay": {
                     "type": "number",
@@ -441,12 +441,12 @@ class ExtractLinksTool(WebCrawlerBaseTool):
                 "normalize": {
                     "type": "boolean",
                     "description": "Convert relative URLs to absolute URLs",
-                    "default": true
+                    "default": True
                 },
                 "internal_only": {
                     "type": "boolean",
                     "description": "Return only internal (same-domain) links",
-                    "default": false
+                    "default": False
                 }
             },
             "required": ["url"]
@@ -573,12 +573,12 @@ class ExtractContentTool(WebCrawlerBaseTool):
                 "extract_images": {
                     "type": "boolean",
                     "description": "Extract image URLs and metadata",
-                    "default": true
+                    "default": True
                 },
                 "extract_text": {
                     "type": "boolean",
                     "description": "Extract text content",
-                    "default": true
+                    "default": True
                 },
                 "text_max_length": {
                     "type": "integer",

@@ -86,6 +86,39 @@
         </div>
     </div>
 
+    <!-- Operational Metrics (v5.1.0) -->
+    <div class="row g-3 mb-4" id="opsMetrics">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="d-flex justify-content-between"><small class="text-muted">CACHE</small><i class="bi bi-database" style="color:var(--color-info)"></i></div>
+                <div class="h3 mb-0" id="cacheHitRate">—%</div>
+                <small class="text-muted" id="cacheDetail">— hits / — misses</small>
+                <div class="usage-bar mt-2" style="height:4px;background:var(--t-card-hdr);border-radius:2px"><div id="cacheBar" style="width:0%;height:100%;background:var(--color-info);border-radius:2px"></div></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="d-flex justify-content-between"><small class="text-muted">PROVIDERS</small><i class="bi bi-cloud-check" style="color:var(--color-success)"></i></div>
+                <div class="h3 mb-0" id="providerSummary">—</div>
+                <small class="text-muted" id="providerDetail">— healthy · — degraded · — down</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="d-flex justify-content-between"><small class="text-muted">RECENT RUNS</small><i class="bi bi-play-circle" style="color:var(--color-warning)"></i></div>
+                <div class="h3 mb-0" id="replayCount">—</div>
+                <small class="text-muted" id="replayDetail">last 5 min</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="d-flex justify-content-between"><small class="text-muted">AUDIT</small><i class="bi bi-shield-check" style="color:var(--color-success)"></i></div>
+                <div class="h3 mb-0" id="auditCount">—</div>
+                <small class="text-muted" id="auditDetail">security events today</small>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-3">
         <!-- Quick Actions -->
         <div class="col-lg-4">
@@ -179,4 +212,24 @@
         </div>
     </div>
 </div>
+<script>
+function loadOpsMetrics() {
+    fetch('/api/cache/stats',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
+        document.getElementById('cacheHitRate').textContent=(d.hit_rate||0)+'%';
+        document.getElementById('cacheDetail').textContent=(d.hits||0)+' hits / '+(d.misses||0)+' misses ('+(d.size||0)+' cached)';
+        document.getElementById('cacheBar').style.width=(d.hit_rate||0)+'%';
+    }).catch(function(){});
+    fetch('/api/providers/health',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
+        var p=d.providers||[],h=0,dg=0,dn=0;
+        p.forEach(function(x){if(x.status==='healthy')h++;else if(x.status==='degraded')dg++;else dn++;});
+        document.getElementById('providerSummary').textContent=h+'/'+p.length+' healthy';
+        document.getElementById('providerDetail').textContent=h+' healthy · '+dg+' degraded · '+dn+' down';
+    }).catch(function(){});
+    fetch('/api/replay/stats',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
+        document.getElementById('replayCount').textContent=d.total_recorded||0;
+        document.getElementById('replayDetail').textContent=(d.tools_tracked||0)+' tools tracked';
+    }).catch(function(){});
+}
+loadOpsMetrics();
+</script>
 {% endblock %}

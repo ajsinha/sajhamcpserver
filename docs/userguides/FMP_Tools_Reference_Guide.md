@@ -1,6 +1,6 @@
 # FMP (Financial Modeling Prep) — Tool Reference Guide
 
-**Version:** 5.0.0 · **Tools:** 100 · **API Key Required:** Yes (`fmp.api.key` in `config/application.yml`)
+**Version:** 5.1.0 · **Tools:** 100 · **API Key Required:** Yes (`fmp.api.key` in `config/application.yml`)
 
 ---
 

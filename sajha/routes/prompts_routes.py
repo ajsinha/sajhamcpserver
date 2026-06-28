@@ -132,3 +132,15 @@ async def api_prompt_create(request: Request, auth: AuthContext = Depends(requir
     if result:
         return JSONResponse({'success': True, 'prompt': result})
     return JSONResponse({'error': 'Failed to create prompt'}, status_code=400)
+
+
+@router.get('/admin/prompts')
+async def admin_prompts(request: Request, auth: AuthContext = Depends(require_admin)):
+    """Admin prompts management page."""
+    from sajha.app import render, prompts_registry
+    prompts = prompts_registry.get_all_prompts() if prompts_registry else []
+    return render(request, 'admin/admin_prompts.html', {
+        'prompts': prompts,
+        'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
+        'is_admin': auth.is_admin,
+    })

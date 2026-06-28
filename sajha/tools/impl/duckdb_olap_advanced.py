@@ -1475,15 +1475,17 @@ class DuckDBSQLTool(BaseMCPTool):
                     "error": "SQL query is required"
                 }
             
-            # Check for dangerous operations
-            sql_upper = sql.upper()
-            forbidden = ['DROP', 'DELETE', 'TRUNCATE', 'ALTER', 'INSERT', 'UPDATE', 'CREATE TABLE']
-            for keyword in forbidden:
-                if keyword in sql_upper:
-                    return {
-                        "success": False,
-                        "error": f"Operation not allowed: {keyword}. Only SELECT queries are permitted."
-                    }
+            # SECURITY: Allowlist approach — only SELECT/WITH/EXPLAIN allowed
+            import re
+            sql_normalized = re.sub(r'/\*.*?\*/', ' ', sql, flags=re.DOTALL)  # Strip comments
+            sql_normalized = re.sub(r'--[^\n]*', ' ', sql_normalized)  # Strip line comments
+            sql_normalized = sql_normalized.strip()
+            first_keyword = sql_normalized.split()[0].upper() if sql_normalized.split() else ''
+            if first_keyword not in ('SELECT', 'WITH', 'EXPLAIN', 'DESCRIBE', 'SHOW', 'PRAGMA'):
+                return {
+                    "success": False,
+                    "error": f"Only SELECT/WITH/EXPLAIN queries are permitted. Got: {first_keyword}"
+                }
             
             # Add LIMIT if not present
             if 'LIMIT' not in sql_upper:

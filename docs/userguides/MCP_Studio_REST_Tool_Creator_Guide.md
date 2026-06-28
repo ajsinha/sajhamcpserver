@@ -1,5 +1,5 @@
 # MCP Studio REST Tool Creator Guide
-## SAJHA MCP Server v5.0.0
+## SAJHA MCP Server v5.1.0
 
 ## Overview
 
@@ -632,5 +632,5 @@ tail -f logs/sajha_mcp.log | grep "REST"
 
 ---
 
-*SAJHA MCP Server v5.0.0 - REST Tool Creator Guide*
+*SAJHA MCP Server v5.1.0 - REST Tool Creator Guide*
 *Copyright © 2025-2030 Ashutosh Sinha*

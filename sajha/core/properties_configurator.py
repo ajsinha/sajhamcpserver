@@ -10,6 +10,9 @@ import threading
 import time
 from typing import Optional, List, Union, Dict, Any
 from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PropertiesConfigurator:
@@ -32,18 +35,25 @@ class PropertiesConfigurator:
                     cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, properties_files: Union[str, List[str]] = None, reload_interval: int = 300):
+    def __init__(self, properties_files: Union[str, List[str]] = None,
+                 yaml_file: str = None, reload_interval: int = 300):
         """
-        Initialize the PropertiesConfigurator
+        Initialize the PropertiesConfigurator.
+
+        Supports both .properties files AND YAML files:
+          - .properties: key=value format, one per line
+          - .yml/.yaml: nested structure, flattened to dot-notation (a.b.c)
 
         Args:
-            properties_files: List of property file paths OR comma-delimited string of file paths
-            reload_interval: Interval in seconds for auto-reload (default: 300 seconds = 5 minutes)
+            properties_files: List of .properties file paths (legacy)
+            yaml_file: Path to YAML config file (recommended — uses dot-notation keys)
+            reload_interval: Auto-reload interval in seconds (default: 300)
         """
         if hasattr(self, '_initialized'):
             return
 
         self._initialized = True
+        self._yaml_file = yaml_file
 
         # Parse properties_files - handle both string and list
         self._properties_files = self._parse_file_paths(properties_files)
@@ -117,7 +127,14 @@ class PropertiesConfigurator:
             new_properties = {}
             new_sources = {}
 
-            # Process files in order (left to right)
+            # Load YAML file first (lowest precedence among file sources)
+            if self._yaml_file:
+                yaml_props = self._load_yaml_file(self._yaml_file)
+                for k, v in yaml_props.items():
+                    new_properties[k] = v
+                    new_sources[k] = 'yaml'
+
+            # Process .properties files in order (left to right)
             # Later files will overwrite earlier ones, giving rightmost highest precedence
             for file_path in self._properties_files:
                 if not os.path.exists(file_path):
@@ -270,6 +287,46 @@ class PropertiesConfigurator:
                 value = value[:match.start()] + replacement + value[match.end():]
 
         return value
+
+    def _load_yaml_file(self, filepath: str) -> Dict[str, str]:
+        """
+        Load a YAML file, flatten nested keys to dot-notation.
+
+        Example: {db: {host: localhost, port: 5432}}
+          → {'db.host': 'localhost', 'db.port': '5432'}
+
+        None values are excluded (key not in dict → default kicks in).
+        ${VAR:default} patterns are substituted from env vars.
+        """
+        import yaml as _yaml
+        path = Path(filepath)
+        if not path.exists():
+            return {}
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = _yaml.safe_load(f) or {}
+            self._file_timestamps[filepath] = os.path.getmtime(filepath)
+            return self._flatten_yaml(data)
+        except Exception as e:
+            print(f"Error loading YAML from {filepath}: {e}")
+            return {}
+
+    @staticmethod
+    def _flatten_yaml(data: dict, prefix: str = '') -> Dict[str, str]:
+        """Flatten nested dict to dot-notation keys with env var substitution."""
+        flat: Dict[str, str] = {}
+        var_pattern = re.compile(r'\$\{([^}:]+)(?::([^}]*))?\}')
+        for key, value in data.items():
+            full_key = f'{prefix}.{key}' if prefix else key
+            if isinstance(value, dict):
+                flat.update(PropertiesConfigurator._flatten_yaml(value, full_key))
+            elif value is not None:
+                s = str(value)
+                # Substitute ${VAR:default} patterns
+                def _replace(m):
+                    return os.environ.get(m.group(1), m.group(2) if m.group(2) is not None else '')
+                flat[full_key] = var_pattern.sub(_replace, s)
+        return flat
 
     def _auto_reload_worker(self):
         """Worker thread for auto-reloading properties"""

@@ -1,5 +1,5 @@
 # MCP Studio Script Tool Creator Guide
-## SAJHA MCP Server v5.0.0
+## SAJHA MCP Server v5.1.0
 
 ## Overview
 
@@ -145,7 +145,7 @@ Click **Deploy Tool** to create the script tool.
 #!/usr/bin/env python3
 """
 MCP Tool Script: Data Processor
-Version: 5.0.0
+Version: 5.1.0
 """
 
 import json
@@ -268,7 +268,7 @@ Specify dependencies in your configuration:
 #!/bin/bash
 #
 # MCP Tool Script: File Processor
-# Version: 5.0.0
+# Version: 5.1.0
 #
 
 set -e  # Exit on error
@@ -339,7 +339,7 @@ EOF
 ```powershell
 #
 # MCP Tool Script: Azure Resource Manager
-# Version: 5.0.0
+# Version: 5.1.0
 #
 
 param(
@@ -738,5 +738,5 @@ tail -f logs/sajha_mcp.log | grep "Script"
 
 ---
 
-*SAJHA MCP Server v5.0.0 - Script Tool Creator Guide*
+*SAJHA MCP Server v5.1.0 - Script Tool Creator Guide*
 *Copyright © 2025-2030 Ashutosh Sinha*

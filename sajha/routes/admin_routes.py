@@ -65,3 +65,17 @@ async def admin_tools_page(request: Request, auth: AuthContext = Depends(require
         'metrics': metrics,
         'is_admin': True,
     })
+
+
+# ═══════════════════════════════════════════════════
+# System Monitor — Admin Page + API
+# ═══════════════════════════════════════════════════
+
+@router.get('/system-monitor')
+async def admin_system_monitor_page(request: Request, auth: AuthContext = Depends(require_admin)):
+    return render(request, 'admin/system_monitor.html', {
+        'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
+        'is_admin': auth.is_admin,
+    })
+
+

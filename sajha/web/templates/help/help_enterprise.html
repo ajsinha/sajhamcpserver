@@ -89,5 +89,38 @@
             </div>
         </div>
     </div>
+
+    <!-- Operations (v5.1.0) -->
+    <div class="card mb-4">
+        <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Operations (v5.1.0)</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <h6><i class="bi bi-database me-2 text-info"></i>Tool Caching</h6>
+                    <p class="small mb-0">Per-tool output cache with configurable TTL via <code>cache_ttl</code> in tool JSON config. LRU eviction, automatic expiry. API: <code>GET /api/cache/stats</code></p>
+                </div>
+                <div class="col-md-3">
+                    <h6><i class="bi bi-lightning me-2 text-warning"></i>Circuit Breakers</h6>
+                    <p class="small mb-0">Per-provider failure tracking. CLOSED → OPEN (5 failures) → HALF_OPEN (60s recovery probe). API: <code>GET /api/circuits</code></p>
+                </div>
+                <div class="col-md-3">
+                    <h6><i class="bi bi-bell me-2 text-primary"></i>Webhooks</h6>
+                    <p class="small mb-0">Event-driven notifications: tool.completed, task.failed, circuit.opened. 3 retries with backoff. API: <code>POST /api/webhooks/subscribe</code></p>
+                </div>
+                <div class="col-md-3">
+                    <h6><i class="bi bi-terminal me-2 text-dark"></i>Shell Tools</h6>
+                    <p class="small mb-0">Sandboxed Python + Bash. Allowlisted imports/commands, resource limits, full audit trail. Disabled by default. <code>shell.enabled: true</code></p>
+                </div>
+                <div class="col-md-3">
+                    <h6><i class="bi bi-skip-forward-circle me-2 text-primary"></i>Async Execution</h6>
+                    <p class="small mb-0">Background tool execution with delivery routing. Worker pool, bounded queue, webhook/Kafka/file delivery. API: <code>POST /api/tools/{name}/execute-async</code></p>
+                </div>
+                <div class="col-md-3">
+                    <h6><i class="bi bi-shield-check me-2 text-danger"></i>Audit Log</h6>
+                    <p class="small mb-0">Structured security events to DB. 11 event types. Queryable: <code>GET /api/audit?action=login_failed</code></p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

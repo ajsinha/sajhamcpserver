@@ -1,5 +1,5 @@
 # MCP Studio SharePoint Tool Creator Guide
-## SAJHA MCP Server v5.0.0
+## SAJHA MCP Server v5.1.0
 
 ## Overview
 
@@ -666,5 +666,5 @@ curl -H "Authorization: Bearer {access_token}" \
 
 ---
 
-*SAJHA MCP Server v5.0.0 - SharePoint Tool Creator Guide*
+*SAJHA MCP Server v5.1.0 - SharePoint Tool Creator Guide*
 *Copyright © 2025-2030 Ashutosh Sinha*
