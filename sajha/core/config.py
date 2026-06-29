@@ -139,7 +139,7 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = Field(default_factory=lambda: _get('app.name', 'SAJHA MCP Server'))
-    app_version: str = Field(default_factory=lambda: _get('app.version', '5.2.0'))
+    app_version: str = Field(default_factory=lambda: _get('app.version', '5.3.0'))
     app_description: str = Field(default_factory=lambda: _get('app.description', 'Model Context Protocol Server'))
     app_author: str = Field(default_factory=lambda: _get('app.author', 'Ashutosh Sinha'))
     app_email: str = Field(default_factory=lambda: _get('app.email', 'ajsinha@gmail.com'))

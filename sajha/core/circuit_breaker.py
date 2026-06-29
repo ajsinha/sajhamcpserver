@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v5.2.0 — Circuit Breaker
+SAJHA MCP Server v5.3.0 — Circuit Breaker
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Prevents cascading failures when external APIs are down.

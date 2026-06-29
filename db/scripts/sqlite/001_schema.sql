@@ -242,6 +242,31 @@ CREATE TABLE IF NOT EXISTS rate_limit_log (
 );
 CREATE INDEX IF NOT EXISTS ix_ratelimit ON rate_limit_log(rate_key, endpoint, created_at);
 
+-- ── LLM Usage (per-call token + cost tracking) ──
+CREATE TABLE IF NOT EXISTS llm_usage (
+    id              VARCHAR(36)  PRIMARY KEY,
+    user_id         VARCHAR(100) NOT NULL,
+    provider        VARCHAR(50)  NOT NULL,
+    model           VARCHAR(255) NOT NULL,
+    input_tokens    INTEGER      NOT NULL DEFAULT 0,
+    output_tokens   INTEGER      NOT NULL DEFAULT 0,
+    cost_usd        REAL         NOT NULL DEFAULT 0.0,
+    latency_ms      INTEGER      NOT NULL DEFAULT 0,
+    timestamp       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS ix_llm_usage_user ON llm_usage(user_id);
+CREATE INDEX IF NOT EXISTS ix_llm_usage_time ON llm_usage(timestamp);
+
+-- ── User AI Preferences (per-user model overrides) ──
+CREATE TABLE IF NOT EXISTS user_ai_preferences (
+    user_id         VARCHAR(100) PRIMARY KEY,
+    provider        VARCHAR(50),
+    model           VARCHAR(255),
+    temperature     REAL,
+    max_tokens      INTEGER,
+    updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ── Indexes ──
 CREATE INDEX IF NOT EXISTS ix_users_user_id ON users(user_id);
 CREATE INDEX IF NOT EXISTS ix_users_email ON users(email);

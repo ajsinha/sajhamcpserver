@@ -360,9 +360,9 @@ class ToolCodeGenerator:
                 return False, f"Generated Python has syntax error on line {e.lineno}: {e.msg}", None, None
             
             # Save JSON config
-            with open(json_path, 'w', encoding='utf-8') as f:
-                f.write(json_content)
-            logger.info(f"Saved tool JSON: {json_path}")
+            from sajha.core.storage import write_tool_config
+            write_tool_config(json_path, json_content)
+            logger.info(f"Saved tool JSON via storage backend: {json_path}")
             
             # Save Python implementation
             with open(python_path, 'w', encoding='utf-8') as f:

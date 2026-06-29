@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v5.2.0 — File-Based Tool Output Cache
+SAJHA MCP Server v5.3.0 — File-Based Tool Output Cache
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 File-based cache with configurable TTL per tool. Each cache entry is a

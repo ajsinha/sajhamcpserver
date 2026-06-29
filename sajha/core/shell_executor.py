@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v5.2.0 — Sandboxed Shell & Python Executor
+SAJHA MCP Server v5.3.0 — Sandboxed Shell & Python Executor
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Three-tier execution model:

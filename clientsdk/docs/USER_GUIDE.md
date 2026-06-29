@@ -608,7 +608,7 @@ print(f"Staging tools: {len(staging.list_tools())}")
 
 ---
 
-## WebSocket Client (v5.2.0)
+## WebSocket Client (v5.3.0)
 
 Full-duplex bidirectional MCP communication. Requires: `pip install websockets`
 
@@ -691,7 +691,7 @@ with MCPWebSocketClient(config, auth=ApiKeyAuth("sja_key")) as ws:
 
 ---
 
-## Client-Side Composition (v5.2.0)
+## Client-Side Composition (v5.3.0)
 
 Chain multiple tool calls client-side with Kleisli semantics.
 
@@ -742,7 +742,7 @@ print(f"Bisimilar: {result['passed']}")  # True = safe to swap
 
 ---
 
-## Transport Coalgebra (v5.2.0)
+## Transport Coalgebra (v5.3.0)
 
 All three MCP transports implement the same coalgebraic interface: `step(method, params) → (result, new_state)`. This means they're interchangeable.
 
@@ -806,7 +806,7 @@ result, _ = transport.step('tools/call', {'name': 'fred_gdp'})
 
 ---
 
-## Client-Side Pipelines (v5.2.0)
+## Client-Side Pipelines (v5.3.0)
 
 Build tool chains client-side with confidence tracking:
 

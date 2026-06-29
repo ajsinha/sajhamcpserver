@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v5.2.0 — Tool Health & Execution Replay
+SAJHA MCP Server v5.3.0 — Tool Health & Execution Replay
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Tool Dependency Graph: maps tools → providers → external APIs

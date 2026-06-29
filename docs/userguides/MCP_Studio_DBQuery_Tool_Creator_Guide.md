@@ -1,5 +1,5 @@
 # MCP Studio Database Query Tool Creator Guide
-## SAJHA MCP Server v5.2.0
+## SAJHA MCP Server v5.3.0
 
 ## Overview
 
@@ -629,5 +629,5 @@ mysql -h hostname -u username -p database -e "SELECT 1"
 
 ---
 
-*SAJHA MCP Server v5.2.0 - Database Query Tool Creator Guide*
+*SAJHA MCP Server v5.3.0 - Database Query Tool Creator Guide*
 *Copyright © 2025-2030 Ashutosh Sinha*

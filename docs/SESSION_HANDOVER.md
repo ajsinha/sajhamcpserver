@@ -1,7 +1,7 @@
 # SAJHA MCP Server — Session Handover Document
 
 **Date:** June 28, 2026
-**Version:** 5.2.0
+**Version:** 5.3.0
 **Owner:** Ashutosh Sinha (ajsinha@gmail.com)
 **GitHub:** ajsinha/sajhamcpserver
 
@@ -13,7 +13,7 @@ SAJHA (Hindi: साझा — "shared, collaborative") is a production-grade Mo
 
 ---
 
-## Current State (v5.2.0)
+## Current State (v5.3.0)
 
 ### Architecture
 
@@ -181,7 +181,7 @@ run_server.py → SajhaMCPServerWebApp (FastAPI)
 | Document | Lines | Content |
 |----------|------:|---------|
 | README.md | 282 | Quick start, features, competitive analysis, architecture |
-| CHANGELOG.md | 535 | v3.1.0 → v4.0.0 → v4.5.0 → v5.0.0 → v5.2.0 |
+| CHANGELOG.md | 535 | v3.1.0 → v4.0.0 → v4.5.0 → v5.0.0 → v5.3.0 |
 | docs/API_Reference.md | 608 | 179 endpoints with curl examples |
 | docs/Cybersecurity_Assessment.md | 547 | 42 controls, OWASP mapping, verification checklist |
 | docs/MCP_2025_11_25_Compliance.md | 293 | 18 items with code evidence |
@@ -193,9 +193,9 @@ run_server.py → SajhaMCPServerWebApp (FastAPI)
 
 ## Code Archive
 
-**Latest:** `sajha-5.2.0.tar.gz` in `/mnt/user-data/outputs/`
+**Latest:** `sajha-5.3.0.tar.gz` in `/mnt/user-data/outputs/`
 
-**Extract:** `tar xzf sajha-5.2.0.tar.gz`
+**Extract:** `tar xzf sajha-5.3.0.tar.gz`
 
 **Run:** `rm data/sajha.db && python run_server.py`
 

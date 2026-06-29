@@ -318,6 +318,16 @@ class SajhaMCPServerWebApp:
             from sajha.core.properties_configurator import PropertiesConfigurator
             pc = PropertiesConfigurator(yaml_file=os.environ.get('SAJHA_CONFIG_FILE', 'config/application.yml'))  # YAML-native, respects --config
             logger.info(f'PropertiesConfigurator loaded from application.yml ({len(pc.get_all_properties())} values)')
+            # Initialize the storage backend (local | s3) from config BEFORE tools/prompts
+            # load, so any reader using get_storage() resolves against the right backend.
+            # Default 'local' is a transparent filesystem wrapper — no behaviour change on-prem.
+            try:
+                from sajha.core.storage import init_storage
+                backend = init_storage(pc)
+                logger.info(f'Storage backend initialized: {type(backend).__name__}')
+                self._storage_sync_interval = int(pc.get('storage.s3.sync_interval', 60) or 60)
+            except Exception as se:
+                logger.warning(f'Storage backend init failed, falling back to local filesystem: {se}', exc_info=True)
         except Exception as e:
             logger.warning(f'PropertiesConfigurator init failed: {e}', exc_info=True)
 
@@ -335,6 +345,31 @@ class SajhaMCPServerWebApp:
             prompts_config_dir=s.config_prompts_dir, force_reinit=True,
         )
         logger.info(f'Prompts registry: {len(prompts_registry.prompts)} prompts')
+
+        # ── Cloud hot-reload (item 4) ────────────────────────────────────────
+        # Object stores (s3/azure/gcs) have no inotify, so the local file watcher
+        # cannot see changes. For a cloud backend we start the object-store sync
+        # manager, which polls the bucket, mirrors changed objects into the local
+        # cache, and fires the same reload paths the local watcher uses. For the
+        # local backend this is skipped — the registry's own poller handles it.
+        self._sync_mgr = None
+        try:
+            from sajha.core.storage import get_storage, LocalStorageBackend, S3SyncManager
+            _storage = get_storage()
+            if not isinstance(_storage, LocalStorageBackend):
+                interval = getattr(self, '_storage_sync_interval', 60)
+                sync_mgr = S3SyncManager(_storage, interval=interval)
+                if tools_registry is not None:
+                    sync_mgr.watch(tools_registry._config_prefix, tools_registry.reload_all_tools)
+                if prompts_registry is not None:
+                    sync_mgr.watch(getattr(prompts_registry, '_prompts_prefix', 'config/prompts'),
+                                   prompts_registry.reload)
+                sync_mgr.start()
+                self._sync_mgr = sync_mgr
+                logger.info(f'Object-store sync manager active for {type(_storage).__name__} '
+                            f'(interval={interval}s) — watching config/tools + config/prompts')
+        except Exception as e:
+            logger.warning(f'Object-store sync manager init failed: {e}', exc_info=True)
 
         mcp_handler = MCPHandler(
             tools_registry=tools_registry,

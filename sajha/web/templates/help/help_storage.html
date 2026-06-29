@@ -1,0 +1,167 @@
+{% extends "common/base.html" %}
+{% block title %}Storage Management - Help - {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="mb-4">
+        <h1 class="h3 mb-1"><i class="bi bi-hdd-stack me-2"></i>Storage Management</h1>
+        <a href="/help" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Back to Help</a>
+    </div>
+
+    <!-- Overview -->
+    <div class="card mb-4">
+        <div class="card-header card-header-info"><i class="bi bi-diagram-3 me-2"></i>One Interface, Four Backends</div>
+        <div class="card-body">
+            <p>{{ app_name }} routes all configuration and asset IO through a single storage
+            abstraction (<code>sajha.core.storage</code>). The same build runs unchanged on a
+            laptop, on-prem, or in any cloud — you only change one config value.</p>
+            <div class="row g-3">
+                <div class="col-md-3"><div class="card h-100 border-secondary"><div class="card-body text-center">
+                    <i class="bi bi-folder2-open d-block mb-2" style="font-size:2rem;color:var(--t-link)"></i>
+                    <h6 class="mb-1">local</h6><p class="small mb-0">Filesystem — laptop disk, EBS, or an EFS mount</p>
+                </div></div></div>
+                <div class="col-md-3"><div class="card h-100 border-warning"><div class="card-body text-center">
+                    <i class="bi bi-bucket d-block mb-2" style="font-size:2rem;color:#ff9900"></i>
+                    <h6 class="mb-1">s3</h6><p class="small mb-0">AWS S3 (and S3-compatible: MinIO, R2, Wasabi)</p>
+                </div></div></div>
+                <div class="col-md-3"><div class="card h-100 border-info"><div class="card-body text-center">
+                    <i class="bi bi-cloud d-block mb-2" style="font-size:2rem;color:#0078d4"></i>
+                    <h6 class="mb-1">azure</h6><p class="small mb-0">Azure Blob Storage</p>
+                </div></div></div>
+                <div class="col-md-3"><div class="card h-100 border-success"><div class="card-body text-center">
+                    <i class="bi bi-google d-block mb-2" style="font-size:2rem;color:#34a853"></i>
+                    <h6 class="mb-1">gcs</h6><p class="small mb-0">Google Cloud Storage</p>
+                </div></div></div>
+            </div>
+            <p class="small text-muted mt-3 mb-0">Select a backend with <code>storage.backend</code> in
+            <code>config/application.yml</code> (or the <code>SAJHA_STORAGE_BACKEND</code> environment
+            variable). The default is <strong>local</strong>. Cloud SDKs are imported lazily, so the
+            default install pulls none of them.</p>
+        </div>
+    </div>
+
+    <!-- Read-mostly vs mutable state -->
+    <div class="card mb-4">
+        <div class="card-header card-header-warning"><i class="bi bi-exclamation-triangle me-2"></i>What Belongs on Object Storage</div>
+        <div class="card-body">
+            <p>Object stores (S3, Azure, GCS) are ideal for <strong>read-mostly assets</strong> but are
+            <strong>not a filesystem</strong>. Place data by class:</p>
+            <table class="table table-sm align-middle">
+                <thead><tr><th>Data</th><th>Examples</th><th>Where</th></tr></thead>
+                <tbody>
+                    <tr><td><span class="badge text-bg-success">Read-mostly</span></td>
+                        <td>tool JSON configs, prompts, docs, reference CSVs, DuckDB source data</td>
+                        <td>Object store (s3/azure/gcs) — fine</td></tr>
+                    <tr><td><span class="badge text-bg-danger">Mutable state</span></td>
+                        <td>SQLite <code>sajha.db</code>, audit log, output cache, sessions</td>
+                        <td>EFS path or a managed service (RDS / DynamoDB) — <strong>never object storage</strong></td></tr>
+                </tbody>
+            </table>
+            <p class="small text-muted mb-0">Object stores have no atomic append/rename, so running SQLite
+            on them corrupts. Keep the database on a real filesystem (EFS) or switch <code>db.type</code> to
+            <code>postgresql</code> (RDS).</p>
+        </div>
+    </div>
+
+    <!-- local + EFS -->
+    <div class="card mb-4">
+        <div class="card-header card-header-secondary"><i class="bi bi-folder2-open me-2"></i>local &amp; EFS</div>
+        <div class="card-body">
+            <p>The <code>local</code> backend reads and writes ordinary filesystem paths. It is the default
+            and needs no cloud SDK. The path can be backed by a laptop disk, an EBS volume, or an
+            <strong>Amazon EFS mount</strong> — to the application they are identical, because
+            <em>EFS is just a path, not a separate backend</em>.</p>
+            <pre class="bg-body-tertiary p-3 rounded small mb-3"><code>storage:
+  backend: local
+  base_dir: "."            # or an EFS mount, e.g. /mnt/efs/sajha</code></pre>
+            <p class="small mb-1"><strong>When to use EFS:</strong> a shared, POSIX, multi-instance filesystem
+            on AWS — ideal for the mutable state that cannot live on S3 (the SQLite DB, audit log, cache) and
+            for Studio-generated Python implementations that every instance must import.</p>
+            <p class="small text-muted mb-0">Mount EFS (e.g. at <code>/mnt/efs/sajha</code>) and point
+            <code>base_dir</code> (or the specific <code>db.path</code> / data dirs) at it. No code changes.</p>
+        </div>
+    </div>
+
+    <!-- S3 -->
+    <div class="card mb-4">
+        <div class="card-header card-header-warning"><i class="bi bi-bucket me-2"></i>Amazon S3 (and S3-compatible)</div>
+        <div class="card-body">
+            <pre class="bg-body-tertiary p-3 rounded small mb-3"><code>storage:
+  backend: s3
+  s3:
+    bucket: my-sajha-config
+    prefix: sajha/
+    region: us-east-1
+    endpoint_url: ""        # set for MinIO / Cloudflare R2 / Wasabi
+    cache_dir: /tmp/sajha-cache
+    sync_interval: 60</code></pre>
+            <p class="small mb-1"><strong>Auth:</strong> the default boto3 credential chain. On EC2/ECS/EKS,
+            attach an <strong>IAM role</strong> — no keys in config. Locally, standard
+            <code>AWS_*</code> env vars or <code>~/.aws</code> work.</p>
+            <p class="small mb-1"><strong>S3-compatible:</strong> set <code>endpoint_url</code> to target
+            MinIO, Cloudflare R2, or Wasabi with the same code.</p>
+            <p class="small text-muted mb-0"><strong>Install:</strong> <code>pip install boto3</code></p>
+        </div>
+    </div>
+
+    <!-- Azure -->
+    <div class="card mb-4">
+        <div class="card-header card-header-info"><i class="bi bi-cloud me-2"></i>Azure Blob Storage</div>
+        <div class="card-body">
+            <pre class="bg-body-tertiary p-3 rounded small mb-3"><code>storage:
+  backend: azure
+  azure:
+    container: sajha-config
+    account_url: https://&lt;account&gt;.blob.core.windows.net   # managed identity
+    connection_string: ""   # alternative auth (keep in env, not here)
+    prefix: sajha/
+    cache_dir: /tmp/sajha-cache</code></pre>
+            <p class="small mb-1"><strong>Auth precedence:</strong> a connection string
+            (<code>AZURE_STORAGE_CONNECTION_STRING</code>), otherwise <code>account_url</code> +
+            <strong>DefaultAzureCredential</strong> (managed identity — no secrets in config).</p>
+            <p class="small text-muted mb-0"><strong>Install:</strong>
+            <code>pip install azure-storage-blob azure-identity</code></p>
+        </div>
+    </div>
+
+    <!-- GCS -->
+    <div class="card mb-4">
+        <div class="card-header card-header-success"><i class="bi bi-google me-2"></i>Google Cloud Storage</div>
+        <div class="card-body">
+            <pre class="bg-body-tertiary p-3 rounded small mb-3"><code>storage:
+  backend: gcs
+  gcs:
+    bucket: my-sajha-config
+    project: my-gcp-project    # GOOGLE_CLOUD_PROJECT
+    prefix: sajha/
+    cache_dir: /tmp/sajha-cache</code></pre>
+            <p class="small mb-1"><strong>Auth:</strong> Application Default Credentials — the attached
+            service account / workload identity on GCE/GKE/Cloud Run. No keys in config.</p>
+            <p class="small text-muted mb-0"><strong>Install:</strong>
+            <code>pip install google-cloud-storage</code></p>
+        </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="card mb-4">
+        <div class="card-header card-header-plain"><i class="bi bi-gear me-2"></i>How It Works</div>
+        <div class="card-body">
+            <ul class="mb-0">
+                <li class="mb-2"><strong>Local read-through cache.</strong> Cloud backends mirror fetched
+                objects into <code>cache_dir</code>, so anything that needs a real file (e.g. <code>importlib</code>)
+                still works.</li>
+                <li class="mb-2"><strong>Hot-reload.</strong> On <code>local</code>, a filesystem poller watches
+                tool configs. On a cloud backend (no inotify), a sync manager polls the bucket every
+                <code>sync_interval</code> seconds, mirrors changes to the cache, and reloads tools &amp; prompts.</li>
+                <li class="mb-2"><strong>Tool implementations.</strong> Tool JSON configs live in the chosen
+                backend; the Python implementation classes ship with the package and import locally. Studio-generated
+                <code>.py</code> files are written locally for <code>importlib</code> — on multi-instance cloud
+                deployments, place that directory on shared EFS so every instance can import them.</li>
+                <li><strong>Migrating data.</strong> To move from local to a bucket, copy
+                <code>config/</code> and <code>docs/</code> under the configured <code>prefix</code>
+                (e.g. <code>aws s3 sync ./config s3://my-sajha-config/sajha/config</code>), then switch
+                <code>storage.backend</code>.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

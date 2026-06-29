@@ -48,7 +48,7 @@ def print_banner():
    ███████║██║  ██║╚█████╔╝██║  ██║██║  ██║    ██║ ╚═╝ ██║╚██████╗██║
    ╚══════╝╚═╝  ╚═╝ ╚════╝ ╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝     ╚═╝ ╚═════╝╚═╝
 
-              Model Context Protocol Server  v5.2.0
+              Model Context Protocol Server  v5.3.0
          FastAPI · SQLAlchemy · MCP 2025-11-25 · SSE · A2A
 ================================================================================
 """)
@@ -60,7 +60,7 @@ def signal_handler(signum, frame):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='SAJHA MCP Server v5.2.0')
+    parser = argparse.ArgumentParser(description='SAJHA MCP Server v5.3.0')
     parser.add_argument('--config', default=None, help='Path to YAML config file (default: config/application.yml)')
     parser.add_argument('--host', default=None, help='Host to bind to')
     parser.add_argument('--port', type=int, default=None, help='Port to listen on')

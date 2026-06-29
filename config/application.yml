@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 5.2.0
+  version: 5.3.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   email: ajsinha@gmail.com
@@ -27,8 +27,10 @@ server:
 
 # ── Database ─────────────────────────────────────────────────────────────────
 # SAJHA uses SQL scripts only — no migrations, no Alembic, no ORM auto-create.
-#   Schema: db/scripts/001_schema.sql  (CREATE TABLE IF NOT EXISTS — safe to re-run)
-#   Seed:   db/scripts/002_seed.sql    (INSERT OR IGNORE — safe to re-run)
+# Scripts are dialect-specific; the engine runs db/scripts/<db.type>/ in sorted order:
+#   db/scripts/sqlite/      001_schema.sql + 002_seed.sql   (db.type: sqlite)
+#   db/scripts/postgresql/  001_schema.sql + 002_seed.sql   (db.type: postgresql)
+# Both are idempotent (CREATE TABLE IF NOT EXISTS / INSERT ... safe to re-run).
 #
 # Default: SQLite (zero config, single file, good for dev/small production).
 # For production: uncomment the PostgreSQL block below and comment out SQLite.
@@ -142,6 +144,35 @@ data:
     dir: ./data/duckdb
   sqlselect:
     dir: ./data/sqlselect
+
+# ── Storage backend (filesystem abstraction: local on-prem, S3 on AWS) ───────
+# Routes read/write IO through sajha.core.storage. 'local' is a no-op wrapper
+# over the filesystem (works for laptop disk, EBS, or an EFS mount — EFS is just
+# a path, not a separate backend). 's3' reads/writes an object-storage bucket
+# with a local read-through cache. Mutable state (the SQLite DB, audit log,
+# cache) is NOT an S3 candidate — keep it on a real filesystem (EFS) or a
+# managed service (RDS). See docs/STORAGE_ROADMAP.md.
+storage:
+  backend: local                           # local | s3 | azure | gcs  (env: SAJHA_STORAGE_BACKEND)
+  base_dir: "."                            # base dir for the local backend
+  s3:
+    bucket: ""                            # env: SAJHA_S3_BUCKET
+    prefix: "sajha/"                       # key prefix within the bucket
+    region: us-east-1                        # env: AWS_DEFAULT_REGION
+    endpoint_url: ""                         # optional: MinIO / Cloudflare R2 / Wasabi
+    cache_dir: /tmp/sajha-cache              # local mirror for importlib / real-file needs
+    sync_interval: 60                        # S3SyncManager poll seconds (hot-reload equivalent)
+  azure:                                     # backend: azure  (azure-storage-blob)
+    container: ""                         # env: SAJHA_AZURE_CONTAINER
+    account_url: ""                        # https://<acct>.blob.core.windows.net — uses managed identity (env: SAJHA_AZURE_ACCOUNT_URL)
+    connection_string: ""                  # alternative auth (env: AZURE_STORAGE_CONNECTION_STRING) — keep secrets in env, not here
+    prefix: "sajha/"
+    cache_dir: /tmp/sajha-cache
+  gcs:                                       # backend: gcs  (google-cloud-storage)
+    bucket: ""                            # env: SAJHA_GCS_BUCKET
+    project: ""                           # env: GOOGLE_CLOUD_PROJECT — uses Application Default Credentials / workload identity
+    prefix: "sajha/"
+    cache_dir: /tmp/sajha-cache
 
 # ── External API Keys ───────────────────────────────────────────────────────
 

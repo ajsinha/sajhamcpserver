@@ -1,4 +1,4 @@
-# SAJHA MCP Server v5.2.0 — Cybersecurity & Data Safety Assessment
+# SAJHA MCP Server v5.3.0 — Cybersecurity & Data Safety Assessment
 
 **Date:** May 2026
 **Scope:** Full application stack — authentication, authorization, transport, data storage, input handling, HTTP security
@@ -11,7 +11,7 @@ Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
 
 ## Executive Summary
 
-SAJHA MCP Server v5.2.0 implements 31 security controls across 7 categories: authentication, cookie security, API key management, HTTP security headers, CORS policy, input validation, and database schema hardening. All credentials (passwords, API keys, session tokens) are stored as cryptographic hashes — never in plaintext. The application enforces account lockout, rate limiting, session expiry, request size limits, and SQL allowlisting. A full security headers middleware provides defense-in-depth against XSS, clickjacking, MIME sniffing, and protocol downgrade attacks.
+SAJHA MCP Server v5.3.0 implements 31 security controls across 7 categories: authentication, cookie security, API key management, HTTP security headers, CORS policy, input validation, and database schema hardening. All credentials (passwords, API keys, session tokens) are stored as cryptographic hashes — never in plaintext. The application enforces account lockout, rate limiting, session expiry, request size limits, and SQL allowlisting. A full security headers middleware provides defense-in-depth against XSS, clickjacking, MIME sniffing, and protocol downgrade attacks.
 
 This document catalogs every security control with its implementation details, source file locations, and verification methods.
 
@@ -487,12 +487,12 @@ curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3002/mcp \
 
 ---
 
-*SAJHA MCP Server v5.2.0 — Cybersecurity & Data Safety Assessment*
+*SAJHA MCP Server v5.3.0 — Cybersecurity & Data Safety Assessment*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*
 
 ---
 
-## Addendum: v5.2.0 Security Enhancements
+## Addendum: v5.3.0 Security Enhancements
 
 ### SC-NEW-1: Per-User API Rate Limiting
 

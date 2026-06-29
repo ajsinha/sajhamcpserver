@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v5.2.0 — Security Module
+SAJHA MCP Server v5.3.0 — Security Module
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Centralized security: password hashing, API key hashing, rate limiting,

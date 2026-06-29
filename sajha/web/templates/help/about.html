@@ -301,8 +301,9 @@ Each section appears exactly once. No hardcoded structural colors.
                 <div class="card-header card-header-secondary"><i class="bi bi-c-circle me-2"></i>Copyright &amp; Contact</div>
                 <div class="card-body text-center">
                     <p class="mb-1">Copyright © {{ app_copyright_years }} {{ app_author }}</p>
-                    <p class="text-muted small mb-3">All rights reserved. SAJHA MCP Server is proprietary software.</p>
-                    <a href="mailto:ajsinha@gmail.com" class="btn btn-sm btn-outline-primary me-2"><i class="bi bi-envelope me-1"></i>ajsinha@gmail.com</a>
+                    <p class="text-muted small mb-3">All rights reserved. {{ app_name }} is proprietary software.</p>
+                    <a href="mailto:{{ app_email }}" class="btn btn-sm btn-outline-primary me-2"><i class="bi bi-envelope me-1"></i>{{ app_email }}</a>
+                    <a href="{{ app_github_repo }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-github me-1"></i>{{ app_github_repo_name }}</a>
                     <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-box-arrow-up-right me-1"></i>MCP Spec</a>
                     <a href="/docs" class="btn btn-sm btn-outline-secondary"><i class="bi bi-code-slash me-1"></i>OpenAPI Docs</a>
                 </div>

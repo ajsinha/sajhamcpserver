@@ -1,5 +1,68 @@
 # SAJHA MCP Server — Changelog
 
+## v5.3.0 (June 2026) — Storage-Backed Registries, Studio & Cloud Hot-Reload
+
+Builds on the v5.2.0 multi-cloud storage abstraction by routing the live subsystems
+through it: tool configs, prompts, and Studio output can now live on local disk, S3,
+Azure Blob, or GCS, with cloud hot-reload. Default backend remains **local**.
+
+### Tool registry → storage backend
+- **`tools_registry` reads migrated.** `load_all_tools()` enumerates via
+  `get_storage().list_files('config/tools', '*.json')` and reads each config through
+  `get_storage().read_json()`. The loader (`load_tool_from_config`) now accepts a logical
+  path (storage-relative string, `Path`, or filename) instead of a filesystem `Path`, and
+  is normalized internally — so **tool configs can live in S3/Azure/GCS**. Verified end to
+  end: real tool configs uploaded to a mocked S3 bucket load and instantiate correctly.
+- **`register_tool_from_dict(config, source)` extracted** as the shared register path for
+  the file loader and the plugin loader. This fixes a latent bug where `plugins.py` called
+  `load_tool_from_config(name, config)` with two arguments against a one-arg method.
+- **Implementation classes stay package-local.** Tool `.py` implementations are resolved by
+  dotted module path via `importlib` and ship with the package, so they import locally
+  regardless of where the JSON config lives.
+- **Config writes migrated** (`_save_tool_config`) to `get_storage().write_json()`; the
+  admin reload route (`api_routes`) uses the storage-backed path.
+
+### Prompts registry → storage backend
+- **Reads and writes migrated.** `_load_all_prompts_internal` lists/reads through storage;
+  `create_prompt` / `update_prompt` write via `write_json()`; `delete_prompt` via
+  `delete()`. Time-based auto-refresh now reloads from whichever backend is active.
+
+### MCP Studio → storage backend
+- **All eight tool generators** (code, REST, DB-query, script, SharePoint, LiveLink,
+  PowerBI, PowerBI-DAX) write their JSON config through a shared
+  `write_tool_config()` storage helper. Generated `.py` implementations are still written
+  locally because `importlib` needs a real module on the path — on multi-instance cloud
+  deployments, place that directory on shared EFS.
+
+### Cloud hot-reload (no inotify on object stores)
+- **`S3SyncManager` activated for cloud backends** at startup: it polls the bucket every
+  `sync_interval` seconds, mirrors changed objects into the local cache, and fires the same
+  reload paths (`tools_registry.reload_all_tools`, `prompts_registry.reload`). On the
+  `local` backend the registry's filesystem poller is used and the sync manager is skipped,
+  so exactly one mechanism runs per deployment. Verified via mocked S3: initial sync
+  materializes the cache and a new object triggers the reload callback.
+
+### Database scripts cleanup
+- **Removed obsolete top-level `db/scripts/001_schema.sql` + `002_seed.sql`.** The engine runs
+  the dialect-specific `db/scripts/<db.type>/` directory; the top-level scripts were bypassed
+  for SQLite and only reached as a buggy fallback (below).
+- **Renamed `db/scripts/postgres/` → `db/scripts/postgresql/`** to match `db.type: postgresql`.
+  Previously the engine looked for `db/scripts/postgresql/` (the `db.type` value), didn't find
+  it, and silently fell back to the top-level scripts — so a Postgres deployment never used its
+  own schema. Now `db/scripts/sqlite/` and `db/scripts/postgresql/` are the single source of
+  truth per dialect.
+- **Reconciled schema drift:** `llm_usage` and `user_ai_preferences` (previously only in the
+  top-level file) are now defined in **both** dialect schemas alongside `rate_limit_log` and
+  `tenant_users`, so SQLite and Postgres create an identical table set. Verified: SQLite boot
+  creates all tables; both `db.type` values select the correct script directory.
+
+### Documentation
+- **New Storage Management help page** (`/help/storage`) with sections on local, EFS, S3,
+  Azure Blob, and GCS — backend selection, auth, the read-mostly-vs-mutable-state rule, and
+  how hot-reload works. Linked from the Help index.
+- **README, ARCHITECTURE, and STORAGE_ROADMAP updated** to describe the storage-backed
+  registries and cloud hot-reload. Version bumped to **5.3.0**.
+
 ## v5.2.0 (June 2026) — Offline Assets, Self-Only CSP & UI Polish
 
 ### Front-End Vendoring (offline-capable, no CDNs)
@@ -18,6 +81,18 @@
 - **`${data.duckdb.dir}` / `${data.sqlselect.dir}` now resolve correctly.** Root cause: `tools_registry` constructed `PropertiesConfigurator()` with no `yaml_file`, so it loaded nothing and every `${key}` fell through to its literal text — which created directories literally named `${data.duckdb.dir}`. The registry now loads the same config the app uses (respecting `SAJHA_CONFIG_FILE` / `--config`).
 - `app.py` PropertiesConfigurator load also respects `SAJHA_CONFIG_FILE` instead of hardcoding the path.
 - All 15 affected tool configs given `:default` fallbacks (e.g. `${data.duckdb.dir:./data/duckdb}`) as defense-in-depth.
+
+### Storage Abstraction (on-prem ↔ cloud)
+
+- **Pluggable storage backend** wired into startup: `storage:` config block (`backend: local|s3|azure|gcs`), `init_storage()` called before tools/prompts load, `get_storage()` available app-wide. Default `local` is a transparent filesystem wrapper — no behaviour change on-prem, and it needs none of the cloud SDKs.
+- **Four backends behind one `StorageBackend` interface**: `LocalStorageBackend` (default) plus three object stores — **S3** (boto3, now with `endpoint_url` for MinIO/R2/Wasabi), **Azure Blob** (azure-storage-blob; connection-string or managed-identity auth), and **GCS** (google-cloud-storage; ADC/workload-identity auth). The three object stores share an `_ObjectStorageBackend` base (app-prefix namespacing, local read-through cache, recursive listing, `get_local_path` materialization); each implements only six small primitives. Cloud SDKs are lazy-imported, so only the selected backend's SDK is required.
+- **Docs viewer migrated** to read through the backend (listing + content), so docs can be served from any backend; added a path-traversal guard.
+- **`list_files` contract aligned** across local and object backends (recursive listing, filename-pattern match).
+- Validated: S3 against a `moto`-mocked bucket; Azure + GCS against the real SDK surfaces (API-method introspection) plus injected-client logic tests; and the local default proven to boot with all cloud SDKs blocked. Remaining adoption (tools/prompts/studio, mutable-state placement, cloud hot-reload) tracked in `docs/STORAGE_ROADMAP.md`.
+
+### Config-Driven UI Metadata
+
+- Version, author, copyright, email, and GitHub URL/repo-name are all surfaced on the UI from `application.yml` via Jinja globals. Closed the two remaining hardcoded spots (About-page email, an Enterprise help version literal) and added a GitHub link to the About page.
 
 ### UI / Theming
 

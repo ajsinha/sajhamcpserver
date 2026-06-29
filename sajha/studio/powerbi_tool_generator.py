@@ -510,8 +510,8 @@ __all__ = ['PowerBI{class_name}Tool']
             # Generate JSON config
             json_config = self.generate_tool_config(config)
             json_path = os.path.join(self.config_dir, f"{config.tool_name}.json")
-            with open(json_path, 'w') as f:
-                json.dump(json_config, f, indent=2)
+            from sajha.core.storage import write_tool_config
+            write_tool_config(json_path, json_config)
             created_files['json_config'] = json_path
             
             # Generate Python wrapper

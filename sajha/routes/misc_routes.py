@@ -166,6 +166,12 @@ async def help_glossary_page(request: Request, auth: AuthContext = Depends(get_c
     return render(request, 'help/help_glossary.html', ctx)
 
 
+@router.get('/help/storage')
+async def help_storage_page(request: Request, auth: AuthContext = Depends(get_current_user)):
+    ctx = _build_tool_context(auth)
+    return render(request, 'help/help_storage.html', ctx)
+
+
 @router.get('/about')
 async def about_page(request: Request, auth: AuthContext = Depends(get_current_user)):
     from sajha.app import tools_registry, prompts_registry, VERSION
@@ -187,22 +193,26 @@ async def about_page(request: Request, auth: AuthContext = Depends(get_current_u
 @router.get('/docs')
 @router.get('/docs/')
 async def docs_list(request: Request, auth: AuthContext = Depends(get_current_user)):
-    docs_dir = Path('docs')
+    from sajha.core.storage import get_storage
+    storage = get_storage()
     sections = {}  # folder_name -> list of docs
     top_level = []
 
-    if docs_dir.is_dir():
-        for f in sorted(docs_dir.rglob('*.md')):
-            rel = f.relative_to(docs_dir)
-            entry = {
-                'name': f.stem.replace('_', ' ').replace('-', ' ').title(),
-                'path': str(rel),
-            }
-            if len(rel.parts) > 1:
-                folder = rel.parts[0].replace('_', ' ').title()
-                sections.setdefault(folder, []).append(entry)
-            else:
-                top_level.append(entry)
+    # list_files returns paths relative to the backend base (e.g. 'docs/foo.md');
+    # works for both the local filesystem and S3 object listing.
+    for rel in storage.list_files('docs', '*.md'):
+        relpath = rel[len('docs/'):] if rel.startswith('docs/') else rel
+        parts = Path(relpath).parts
+        entry = {
+            'name': Path(relpath).stem.replace('_', ' ').replace('-', ' ').title(),
+            'path': relpath,
+        }
+        if len(parts) > 1:
+            folder = parts[0].replace('_', ' ').title()
+            sections.setdefault(folder, []).append(entry)
+        else:
+            top_level.append(entry)
+    top_level.sort(key=lambda e: e['path'])
 
     return render(request, 'docs/docs_list.html', {
         'user': {'user_id': auth.user_id or 'guest', 'user_name': auth.user_name or 'Guest', 'roles': auth.roles or []},
@@ -215,16 +225,29 @@ async def docs_list(request: Request, auth: AuthContext = Depends(get_current_us
 @router.get('/docs/view/{doc_path:path}')
 async def docs_view(doc_path: str, request: Request, auth: AuthContext = Depends(get_current_user)):
     import base64
-    docs_path = Path('docs') / doc_path
-    if not docs_path.exists() or not docs_path.is_file():
+    from sajha.core.storage import get_storage
+
+    def _not_found():
         return render(request, 'common/error.html', {
             'error': 'Document Not Found',
             'message': f'Document "{doc_path}" does not exist',
         }, status_code=404)
 
-    content = docs_path.read_text(encoding='utf-8')
+    # Reject path traversal before it reaches the backend (works for local and S3).
+    if '..' in Path(doc_path).parts:
+        return _not_found()
+
+    storage = get_storage()
+    storage_path = f'docs/{doc_path}'
+    if not storage.exists(storage_path):
+        return _not_found()
+    try:
+        content = storage.read_text(storage_path)
+    except (FileNotFoundError, IsADirectoryError, OSError):
+        return _not_found()
+
     content_b64 = base64.b64encode(content.encode('utf-8')).decode('ascii')
-    display_name = docs_path.stem.replace('_', ' ').replace('-', ' ').title()
+    display_name = Path(doc_path).stem.replace('_', ' ').replace('-', ' ').title()
 
     # Build breadcrumb from path parts
     parts = Path(doc_path).parts

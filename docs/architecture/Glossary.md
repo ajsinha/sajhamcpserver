@@ -1,6 +1,6 @@
 # SAJHA MCP Server — Glossary
 
-**Version:** 5.2.0 · **Last Updated:** May 2026
+**Version:** 5.3.0 · **Last Updated:** May 2026
 
 ---
 
@@ -110,7 +110,7 @@
 
 ---
 
-*SAJHA MCP Server v5.2.0 — Glossary*
+*SAJHA MCP Server v5.3.0 — Glossary*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*
 
 **ClientPipeline:** Client-side tool composition class in the SDK (`clientsdk/sajhaclient/mcp_client.py`). Chains `add_step()` calls with `$input.` / `$.` param mapping. `execute()` tracks confidence and entropy without server-side composite definitions.
@@ -161,7 +161,7 @@
 
 **PRM (Protected Resource Metadata):** OAuth 2.0 resource discovery per RFC 9728. Served at `/.well-known/oauth-protected-resource`. Declares authorization servers, supported scopes, and bearer methods.
 
-## New in v5.2.0
+## New in v5.3.0
 
 **ToolCache:** File-based cache with per-tool TTL for tool output results (`sajha/core/cache.py`). Each entry is a JSON file on disk: `data/cache/{tool_name}/{md5_hash}.json`. Default: no caching. Tools opt in via `cache_ttl` in their JSON config. Max 50,000 files with oldest-file eviction. Survives server restarts. Zero memory overhead.
 

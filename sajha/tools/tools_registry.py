@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Any
 from pathlib import Path
 from datetime import datetime
 from .base_mcp_tool import BaseMCPTool
+from sajha.core.storage import get_storage
 
 # Default path relative to project root
 DEFAULT_TOOLS_DIR = 'config/tools'
@@ -52,6 +53,14 @@ class ToolsRegistry:
         self.tools_config_dir = Path(tools_config_dir)
         if not self.tools_config_dir.is_absolute():
             self.tools_config_dir = Path.cwd() / self.tools_config_dir
+
+        # Logical prefix for tool configs *relative to the storage backend base*
+        # (e.g. 'config/tools'). All tool-config IO flows through get_storage()
+        # using this prefix, so configs can live on local disk, S3, Azure, or GCS.
+        try:
+            self._config_prefix = str(self.tools_config_dir.relative_to(Path.cwd())).replace('\\', '/')
+        except ValueError:
+            self._config_prefix = 'config/tools'
         
         self.tools: Dict[str, BaseMCPTool] = {}
         self.tool_configs: Dict[str, Dict] = {}
@@ -156,104 +165,107 @@ class ToolsRegistry:
         else:
             return obj
     
+    def _config_rel(self, ref) -> str:
+        """Normalize any reference (storage path / Path / bare filename) to the
+        storage-relative tool-config path, e.g. 'config/tools/foo.json'."""
+        name = Path(str(ref)).name
+        if not name.endswith('.json'):
+            name = f'{name}.json'
+        return f"{self._config_prefix}/{name}"
+
     def load_all_tools(self):
-        """Load all tools from configuration directory"""
-        self.logger.info(f"Loading tools from {self.tools_config_dir}")
-        
-        # Create directory if it doesn't exist
-        self.tools_config_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Scan for JSON configuration files
-        for config_file in self.tools_config_dir.glob('*.json'):
+        """Load all tools from the configured store (local | s3 | azure | gcs)."""
+        storage = get_storage()
+        self.logger.info(f"Loading tools from '{self._config_prefix}' via {type(storage).__name__}")
+        for rel in storage.list_files(self._config_prefix, '*.json'):
             try:
-                self.load_tool_from_config(config_file)
+                self.load_tool_from_config(rel)
             except Exception as e:
-                self.logger.error(f"Error loading tool from {config_file}: {e}", exc_info=True)
-                self.tool_errors[config_file.stem] = str(e)
-    
-    def load_tool_from_config(self, config_file: Path):
+                self.logger.error(f"Error loading tool from {rel}: {e}", exc_info=True)
+                self.tool_errors[Path(rel).stem] = str(e)
+
+    def load_tool_from_config(self, config_ref):
         """
-        Load a tool from a JSON configuration file
-        
+        Load a tool from its JSON configuration, read through the storage backend.
+
         Args:
-            config_file: Path to the configuration file
+            config_ref: a storage-relative path, a Path, or a bare filename. All are
+                        normalized to 'config/tools/<name>.json' and read via get_storage().
+        """
+        rel = self._config_rel(config_ref)
+        storage = get_storage()
+        with self._tools_lock:
+            try:
+                self._file_timestamps[rel] = storage.get_modified_time(rel)
+                config = storage.read_json(rel)
+            except FileNotFoundError:
+                self.logger.error(f"Tool config not found: {rel}")
+                self.tool_errors[Path(rel).stem] = "Config not found"
+                return
+            except json.JSONDecodeError as e:
+                self.logger.error(f"Invalid JSON in {rel}: {e}", exc_info=True)
+                self.tool_errors[Path(rel).stem] = f"Invalid JSON: {str(e)}"
+                return
+            except Exception as e:
+                self.logger.error(f"Error reading tool config {rel}: {e}", exc_info=True)
+                self.tool_errors[Path(rel).stem] = str(e)
+                return
+            self.register_tool_from_dict(config, source=rel)
+
+    def register_tool_from_dict(self, config: dict, source: str = ''):
+        """
+        Register a tool from an already-parsed config dict.
+
+        Shared by the file loader (load_tool_from_config) and the plugin loader,
+        which parses its own JSON. Implementation classes are resolved by dotted
+        module path via importlib — those modules ship with the package, so they
+        are always available locally regardless of where the JSON config lives.
         """
         with self._tools_lock:
             try:
-                # Track file timestamp
-                self._file_timestamps[str(config_file)] = config_file.stat().st_mtime
-                
-                # Load configuration
-                with open(config_file, 'r') as f:
-                    config = json.load(f)
-                
-                # Substitute ${key} variables with values from PropertiesConfigurator
                 config = self._substitute_variables(config)
-                
+
                 tool_name = config.get('name')
                 if not tool_name:
                     raise ValueError("Tool configuration missing 'name' field")
-                
-                # Store configuration
+
                 self.tool_configs[tool_name] = config
-                
-                # Check if it's a built-in tool
+
                 tool_type = config.get('type')
                 if tool_type in self.builtin_tools:
-                    # Load built-in tool
                     tool_class_path = self.builtin_tools[tool_type]
                     module_path, class_name = tool_class_path.rsplit('.', 1)
-                    
                     try:
                         module = importlib.import_module(module_path)
                         tool_class = getattr(module, class_name)
-                        tool_instance = tool_class(config)
-                        
-                        # Register the tool
-                        self.register_tool(tool_instance)
+                        self.register_tool(tool_class(config))
                         self.logger.info(f"Loaded built-in tool: {tool_name} ({tool_type})")
-                        
-                        # Clear any previous errors
-                        if tool_name in self.tool_errors:
-                            del self.tool_errors[tool_name]
-                            
+                        self.tool_errors.pop(tool_name, None)
                     except Exception as e:
                         self.logger.error(f"Error loading built-in tool {tool_name}: {e}", exc_info=True)
                         self.tool_errors[tool_name] = f"Failed to load: {str(e)}"
-                
+
                 elif 'implementation' in config:
-                    # Load custom tool implementation
                     impl_path = config['implementation']
                     module_path, class_name = impl_path.rsplit('.', 1)
-                    
                     try:
                         module = importlib.import_module(module_path)
                         tool_class = getattr(module, class_name)
-                        tool_instance = tool_class(config)
-                        
-                        # Register the tool
-                        self.register_tool(tool_instance)
+                        self.register_tool(tool_class(config))
                         self.logger.info(f"Loaded custom tool: {tool_name}")
-                        
-                        # Clear any previous errors
-                        if tool_name in self.tool_errors:
-                            del self.tool_errors[tool_name]
-                            
+                        self.tool_errors.pop(tool_name, None)
                     except Exception as e:
                         self.logger.error(f"Error loading custom tool {tool_name}: {e}", exc_info=True)
                         self.tool_errors[tool_name] = f"Failed to load: {str(e)}"
-                
+
                 else:
-                    # Generic tool configuration without implementation
                     self.logger.warning(f"Tool {tool_name} has no implementation specified")
                     self.tool_errors[tool_name] = "No implementation specified"
-                    
-            except json.JSONDecodeError as e:
-                self.logger.error(f"Invalid JSON in {config_file}: {e}", exc_info=True)
-                self.tool_errors[config_file.stem] = f"Invalid JSON: {str(e)}"
+
             except Exception as e:
-                self.logger.error(f"Error loading tool from {config_file}: {e}", exc_info=True)
-                self.tool_errors[config_file.stem] = str(e)
+                label = (config.get('name') if isinstance(config, dict) else None) or (Path(source).stem if source else 'unknown')
+                self.logger.error(f"Error registering tool {label}: {e}", exc_info=True)
+                self.tool_errors[label] = str(e)
     
     def register_tool(self, tool: BaseMCPTool):
         """
@@ -344,17 +356,16 @@ class ToolsRegistry:
             return False
     
     def _save_tool_config(self, tool_name: str):
-        """Save tool configuration to file"""
+        """Save tool configuration through the storage backend (local | s3 | azure | gcs)."""
         if tool_name not in self.tool_configs:
             return
-        
+
         config = self.tool_configs[tool_name]
-        config_file = Path(self.tools_config_dir) / f"{tool_name}.json"
-        
+        rel = self._config_rel(tool_name)
         try:
-            with open(config_file, 'w') as f:
-                json.dump(config, f, indent=2)
-            self._file_timestamps[str(config_file)] = config_file.stat().st_mtime
+            storage = get_storage()
+            storage.write_json(rel, config)
+            self._file_timestamps[rel] = storage.get_modified_time(rel)
         except Exception as e:
             self.logger.error(f"Error saving tool config for {tool_name}: {e}", exc_info=True)
     
@@ -379,7 +390,17 @@ class ToolsRegistry:
             return self.tool_errors.copy()
     
     def start_monitoring(self):
-        """Start monitoring configuration files for changes"""
+        """Start monitoring tool configs for changes.
+
+        The built-in poller watches the *local* filesystem (mtime polling). For cloud
+        backends (s3/azure/gcs) there is no inotify, so reload is driven by the
+        object-store sync manager wired at app startup instead — we skip the local
+        poller to avoid acting on a stale or empty local config dir."""
+        from sajha.core.storage import LocalStorageBackend
+        if not isinstance(get_storage(), LocalStorageBackend):
+            self.logger.info("Tool config monitor: cloud backend detected — local poller disabled "
+                             "(reload handled by the object-store sync manager)")
+            return
         if not self._monitor_thread or not self._monitor_thread.is_alive():
             self._stop_monitor.clear()
             self._monitor_thread = threading.Thread(target=self._monitor_files, daemon=True)

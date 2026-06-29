@@ -543,8 +543,9 @@ conn.close()'''
         try:
             # Generate and save JSON config
             json_content = self.generate_json_config(definition)
-            json_path.write_text(json_content, encoding='utf-8')
-            logger.info(f"Saved tool config: {json_path}")
+            from sajha.core.storage import write_tool_config
+            write_tool_config(json_path, json_content)
+            logger.info(f"Saved tool config via storage backend: {json_path}")
             
             # Generate and save Python implementation
             python_content = self.generate_python_implementation(definition)

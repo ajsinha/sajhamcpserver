@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v5.2.0 — Async Tool Executor
+SAJHA MCP Server v5.3.0 — Async Tool Executor
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Background execution engine for long-running tool calls.
@@ -151,7 +151,7 @@ class DeliveryRouter:
         body = json.dumps(self._build_payload(task), default=str).encode('utf-8')
         headers = {
             'Content-Type': 'application/json',
-            'User-Agent': 'sajha-async/5.2.0',
+            'User-Agent': 'sajha-async/5.3.0',
             'X-Sajha-Task-Id': task.task_id,
         }
         # Merge custom headers from delivery config

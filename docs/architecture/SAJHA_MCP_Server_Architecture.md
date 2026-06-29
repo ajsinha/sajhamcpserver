@@ -1,6 +1,6 @@
 # SAJHA MCP Server — System Architecture
 
-**Version:** 5.2.0
+**Version:** 5.3.0
 **Last Updated:** May 2026
 **Author:** Ashutosh Sinha (ajsinha@gmail.com)
 **Classification:** Technical Reference
@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-SAJHA MCP Server v5.2.0 is a production-grade Python implementation of the Model Context Protocol built on FastAPI. It serves 497 tools across financial, government, search, and enterprise data sources through a standards-compliant MCP interface (protocol version 2025-11-25 (latest)), a REST API, and SSE transport. The system includes a full web UI, role-based access control, visual tool creation (MCP Studio), A2A agent interoperability, live reporting, and a zero-dependency Python client SDK.
+SAJHA MCP Server v5.3.0 is a production-grade Python implementation of the Model Context Protocol built on FastAPI. It serves 497 tools across financial, government, search, and enterprise data sources through a standards-compliant MCP interface (protocol version 2025-11-25 (latest)), a REST API, and SSE transport. The system includes a full web UI, role-based access control, visual tool creation (MCP Studio), A2A agent interoperability, live reporting, and a zero-dependency Python client SDK.
 
 | Aspect | Detail |
 |--------|--------|
@@ -180,6 +180,48 @@ A singleton that injects flattened YAML values so tool configs can resolve `${va
 - `server.properties` — merged into `application.yml`
 - All `.properties` fallback code and parsers
 
+### 5.5 Storage Layer (`sajha/core/storage.py`)
+
+All configuration and asset IO flows through a single storage abstraction, so the same
+build runs unchanged on local disk, on-prem, or any cloud. `init_storage(config)` runs at
+startup (before tools/prompts load) and `get_storage()` is the app-wide accessor.
+
+```
+StorageBackend (ABC)
+ ├── LocalStorageBackend            backend: local (default) — filesystem / EFS, no SDK
+ └── _ObjectStorageBackend          shared object-store base
+       ├── S3StorageBackend         backend: s3     (boto3; endpoint_url → MinIO/R2/Wasabi)
+       ├── AzureBlobStorageBackend  backend: azure  (azure-storage-blob)
+       └── GCSStorageBackend        backend: gcs    (google-cloud-storage)
+S3SyncManager                       cloud hot-reload (poll → cache → reload callbacks)
+```
+
+Design points:
+
+- **Six primitives.** Each object store implements only `_fetch_bytes`, `_store_bytes`,
+  `_object_exists`, `_delete_object`, `_list_keys`, `_object_mtime`. The shared base layers
+  on prefix namespacing, a local read-through cache, recursive listing with filename-pattern
+  matching, JSON helpers, and prefix sync.
+- **Lazy SDKs.** Cloud SDKs import inside each backend, so the default `local` path requires
+  none of them.
+- **Read-through cache.** Cloud reads mirror objects into `cache_dir`, giving `importlib`
+  and other real-file consumers a concrete file.
+- **Subsystems on storage.** `tools_registry` (config reads/writes), `prompts_registry`
+  (reads/writes/delete), the docs viewer, and all MCP Studio generators read/write through
+  `get_storage()`. Tool/Studio `.py` implementations remain package-local because `importlib`
+  needs a module on the path.
+- **Read-mostly vs mutable state.** Object stores hold configs/prompts/docs; the SQLite DB
+  and audit log must stay on a real filesystem (EFS) or a managed service.
+
+```yaml
+storage:
+  backend: local        # local | s3 | azure | gcs
+  base_dir: "."
+  s3:   { bucket: "", prefix: "sajha/", region: us-east-1, endpoint_url: "", sync_interval: 60 }
+  azure:{ container: "", account_url: "", connection_string: "", prefix: "sajha/" }
+  gcs:  { bucket: "", project: "", prefix: "sajha/" }
+```
+
 ---
 
 ## 6. Database Layer
@@ -187,7 +229,8 @@ A singleton that injects flattened YAML values so tool configs can resolve `${va
 ### 6.1 Engine (`sajha/db/engine.py`)
 
 - SQLAlchemy engine creation (SQLite or PostgreSQL)
-- SQL script runner for `db/scripts/001_schema.sql` and `002_seed.sql`
+- SQL script runner for the dialect-specific `db/scripts/<db.type>/` directory
+  (`sqlite/` or `postgresql/`), each with `001_schema.sql` + `002_seed.sql`
 - `CREATE TABLE IF NOT EXISTS` — no migrations needed
 - Session factory via `get_db_session()`
 
@@ -318,10 +361,13 @@ class BaseMCPTool:
 
 ### 9.2 ToolsRegistry (`sajha/tools/tools_registry.py`)
 
-- Loads all JSON configs from `config/tools/`
-- Dynamically imports and instantiates tool classes via `implementation` path
+- Enumerates and reads JSON configs through `get_storage()` (local | s3 | azure | gcs)
+- Dynamically imports and instantiates tool classes via `implementation` dotted path
+  (implementation modules ship with the package and import locally)
+- `register_tool_from_dict()` is the shared register path for the file loader and plugins
+- Config writes go through `get_storage().write_json()`
 - Singleton pattern via `get_tools_registry()`
-- Supports hot-reload via file monitoring
+- Hot-reload: filesystem poller on `local`, `S3SyncManager` on cloud backends
 
 ### 9.3 Tool Configuration (JSON)
 
@@ -438,6 +484,12 @@ The `HotReloadManager` monitors config directories for changes and reloads regis
 Interval is configurable via `hot_reload.interval_seconds` in `application.yml`.
 
 Force immediate reload: `POST /api/admin/tools/reload`.
+
+**Cloud backends.** Object stores have no inotify. When `storage.backend` is `s3`/`azure`/`gcs`,
+`S3SyncManager` runs instead of the filesystem poller: it polls the bucket every
+`storage.*.sync_interval` seconds, mirrors changed objects into the local cache, and fires the
+same reload callbacks (`tools_registry.reload_all_tools`, `prompts_registry.reload`). Exactly
+one mechanism runs per deployment — the registry's local poller is skipped on cloud backends.
 
 ---
 
@@ -570,5 +622,5 @@ Or use the factory: `uvicorn sajha.app:create_app --factory`.
 
 ---
 
-*SAJHA MCP Server v5.2.0 — Architecture Document*
+*SAJHA MCP Server v5.3.0 — Architecture Document*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

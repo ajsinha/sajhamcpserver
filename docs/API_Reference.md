@@ -1,4 +1,4 @@
-# SAJHA MCP Server v5.2.0 — API Reference
+# SAJHA MCP Server v5.3.0 — API Reference
 
 Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
 
@@ -341,7 +341,7 @@ curl http://localhost:3002/.well-known/oauth-client/my-client-id
 ```yaml
 app:
   name: SAJHA MCP Server
-  version: 5.2.0
+  version: 5.3.0
   author: Ashutosh Sinha
   email: ajsinha@gmail.com
 
@@ -374,12 +374,12 @@ config:
 
 ---
 
-*SAJHA MCP Server v5.2.0 — API Reference*
+*SAJHA MCP Server v5.3.0 — API Reference*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*
 
 ---
 
-## REST API — Cache (v5.2.0)
+## REST API — Cache (v5.3.0)
 
 ### GET /api/cache/stats
 
@@ -407,7 +407,7 @@ curl -X POST http://localhost:3002/api/cache/invalidate \
 
 ---
 
-## REST API — Circuit Breakers (v5.2.0)
+## REST API — Circuit Breakers (v5.3.0)
 
 ### GET /api/circuits
 
@@ -427,7 +427,7 @@ Response:
 
 ---
 
-## REST API — Provider Health (v5.2.0)
+## REST API — Provider Health (v5.3.0)
 
 ### GET /api/providers/health
 
@@ -451,7 +451,7 @@ Full dependency graph: tools → providers → API endpoints.
 
 ---
 
-## REST API — Execution Replay (v5.2.0)
+## REST API — Execution Replay (v5.3.0)
 
 ### GET /api/replay/recent
 
@@ -477,7 +477,7 @@ Response:
 
 ---
 
-## REST API — Webhooks (v5.2.0)
+## REST API — Webhooks (v5.3.0)
 
 ### POST /api/webhooks/subscribe
 
@@ -495,7 +495,7 @@ Lists all subscriptions and delivery statistics.
 
 ---
 
-## REST API — Audit Log (v5.2.0)
+## REST API — Audit Log (v5.3.0)
 
 ### GET /api/audit
 
@@ -510,7 +510,7 @@ Actions: `login_success`, `login_failed`, `logout`, `user_create`, `user_delete`
 
 ---
 
-## REST API — Async Tool Execution (v5.2.0)
+## REST API — Async Tool Execution (v5.3.0)
 
 ### POST /api/tools/{name}/execute-async
 
@@ -562,7 +562,7 @@ curl -H "X-API-Key: sja_key" http://localhost:3002/api/async/tasks/t-a1b2c3d4e5f
 
 ---
 
-## REST API — Shell Execution (v5.2.0)
+## REST API — Shell Execution (v5.3.0)
 
 **DISABLED BY DEFAULT.** Requires `shell.enabled: true` in `config/application.yml`.
 

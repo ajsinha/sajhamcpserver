@@ -193,7 +193,7 @@ class PluginManager:
                     with open(fpath, 'r') as f:
                         tool_config = json.load(f)
                     tool_name = tool_config.get('name', fname.replace('.json', ''))
-                    self._registry.load_tool_from_config(tool_name, tool_config)
+                    self._registry.register_tool_from_dict(tool_config, source=fname)
                     tools_loaded += 1
                 except Exception as e:
                     logger.warning(f"Failed to load plugin tool {fname}: {e}", exc_info=True)

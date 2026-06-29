@@ -528,10 +528,9 @@ TOOL_CLASS = {self._to_class_name(config.tool_name)}
             tool_config = self.generate_tool_config(config)
             config_path = os.path.join(self.config_dir, f"{config.tool_name}.json")
             
-            with open(config_path, 'w', encoding='utf-8') as f:
-                json.dump(tool_config, f, indent=2)
-            
-            logger.info(f"Generated tool config: {config_path}")
+            from sajha.core.storage import write_tool_config
+            write_tool_config(config_path, tool_config)
+            logger.info(f"Generated tool config via storage backend: {config_path}")
             
             # Save script file
             script_path = self.save_script_file(config)

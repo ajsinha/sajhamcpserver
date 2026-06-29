@@ -1,6 +1,6 @@
 # SAJHA MCP Server
 
-**Version 5.2.0** · FastAPI · Python 3.9+ · **MCP Protocol 2025-11-25** (latest)
+**Version 5.3.0** · FastAPI · Python 3.9+ · **MCP Protocol 2025-11-25** (latest)
 
 **Copyright © 2025–2030, Ashutosh Sinha** · ajsinha@gmail.com · [GitHub](https://github.com/ajsinha/sajhamcpserver)
 
@@ -107,6 +107,8 @@ run_server.py → SajhaMCPServerWebApp (FastAPI)
   │     ├── ParamLens (parameter projection)
   │     └── EntropyGuard (confidence tracking)
   ├── LLM Gateway (6 providers, DB-managed)
+  ├── StorageBackend (local | s3 | azure | gcs)
+  │     └── S3SyncManager (cloud hot-reload)
   ├── OpenTelemetry (metrics, alerts, health)
   ├── TenantManager (multi-tenant isolation)
   ├── PluginManager (discover → validate → load)
@@ -124,6 +126,45 @@ Pillar 2 (Coalgebra): TransportCoalgebra — step() interface, bisimilar() testi
 Pillar 3 (Lenses):    ParamLens — $.field / $input.field projection
 Pillar 4 (Giry):      EntropyGuard — sequential multiply, parallel min (weakest-link)
 ```
+
+---
+
+## Storage Backends
+
+SAJHA routes configuration and asset IO through one storage abstraction
+(`sajha.core.storage`), so the same build runs unchanged on a laptop, on-prem, or in any
+cloud. Tool configs, prompts, MCP Studio output, and docs all read and write through the
+selected backend.
+
+| Backend  | `storage.backend` | Auth | SDK |
+|----------|-------------------|------|-----|
+| Local / EFS | `local` (default) | — | none |
+| AWS S3 (+ MinIO / R2 / Wasabi) | `s3` | IAM role / boto3 chain | `boto3` |
+| Azure Blob | `azure` | managed identity or connection string | `azure-storage-blob` |
+| Google Cloud Storage | `gcs` | Application Default Credentials | `google-cloud-storage` |
+
+```yaml
+# config/application.yml — default is local; switch one value to go cloud
+storage:
+  backend: local          # local | s3 | azure | gcs
+  base_dir: "."           # local: laptop disk, EBS, or an EFS mount
+  s3:
+    bucket: my-sajha-config
+    prefix: sajha/
+    region: us-east-1
+    endpoint_url: ""       # MinIO / R2 / Wasabi
+    sync_interval: 60      # cloud hot-reload poll seconds
+```
+
+- **Lazy SDKs.** Cloud SDKs import only when their backend is selected — the default `local`
+  install pulls none of them.
+- **Read-through cache.** Cloud backends mirror objects into `cache_dir` so `importlib` and
+  other real-file consumers keep working.
+- **Hot-reload.** `local` uses a filesystem poller; cloud backends use `S3SyncManager`, which
+  polls the bucket and reloads tools/prompts on change.
+- **Read-mostly vs mutable state.** Object stores suit configs/prompts/docs, **not** the
+  SQLite database or audit log — keep those on EFS or a managed service (RDS). See the
+  in-app **Storage Management** help page (`/help/storage`).
 
 ---
 
@@ -168,10 +209,12 @@ assert bisimilar(HTTPTransport(config, auth), WSTransport(config, auth),
 | [API Reference](docs/API_Reference.md) | 79+ endpoints with curl examples |
 | [Composition Framework](docs/Composition_Framework.md) | Kleisli, Lenses, EntropyGuard deep-dive |
 | [Architecture](docs/architecture/SAJHA_MCP_Server_Architecture.md) | Full system architecture |
+| [Storage Management](docs/Storage_Management.md) | local / EFS / S3 / Azure / GCS backends, auth, hot-reload |
+| [Storage Roadmap](docs/STORAGE_ROADMAP.md) | Storage abstraction design + remaining work |
 | [Glossary](docs/architecture/Glossary.md) | 30+ terms defined |
 | [UX Audit](docs/UX_Audit_Report.md) | 22 recommendations (all implemented) |
 | [SDK User Guide](clientsdk/docs/USER_GUIDE.md) | Complete client SDK reference |
-| [Changelog](CHANGELOG.md) | v3.1.0 → v4.0.0 → v4.5.0 → v5.2.0 |
+| [Changelog](CHANGELOG.md) | v3.1.0 → v4.0.0 → v4.5.0 → v5.3.0 |
 | [Deployment](deployment/README.md) | AWS CDK, Hetzner, Bare Metal guides |
 
 50 markdown files, 45,000+ lines of documentation.

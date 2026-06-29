@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Any
+from sajha.core.storage import get_storage
 
 
 class Prompt:
@@ -169,6 +170,13 @@ class PromptsRegistry:
             self.prompts_config_dir = Path(prompts_config_dir)
             if not self.prompts_config_dir.is_absolute():
                 self.prompts_config_dir = Path.cwd() / self.prompts_config_dir
+
+            # Storage-relative prefix (e.g. 'config/prompts') — prompt IO flows
+            # through get_storage(), so prompts can live on local/S3/Azure/GCS.
+            try:
+                self._prompts_prefix = str(self.prompts_config_dir.relative_to(Path.cwd())).replace('\\', '/')
+            except ValueError:
+                self._prompts_prefix = 'config/prompts'
             
             self.prompts: Dict[str, Prompt] = {}
             self.prompt_errors: List[Dict[str, str]] = []
@@ -357,21 +365,17 @@ class PromptsRegistry:
         Internal method to load prompts without locking.
         Used during initialization to avoid deadlock.
         """
-        if not self.prompts_config_dir.exists():
-            logging.warning(f"Prompts config directory not found: {self.prompts_config_dir}")
-            return
-        
+        storage = get_storage()
         # Create temporary storage for new prompts
         new_prompts: Dict[str, Prompt] = {}
         new_errors: List[Dict[str, str]] = []
-        
-        # Load all JSON files
-        for config_file in self.prompts_config_dir.glob("*.json"):
+
+        # Load all JSON files through the storage backend (local | s3 | azure | gcs)
+        for rel in storage.list_files(self._prompts_prefix, "*.json"):
             try:
-                with open(config_file, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-                
-                prompt_name = config.get('name', config_file.stem)
+                config = storage.read_json(rel)
+
+                prompt_name = config.get('name', Path(rel).stem)
                 
                 # Validate required fields
                 if 'prompt_template' not in config:
@@ -384,10 +388,10 @@ class PromptsRegistry:
                 logging.debug(f"Loaded prompt: {prompt_name}")
                 
             except Exception as e:
-                error_msg = f"Error loading prompt from {config_file.name}: {str(e)}"
+                error_msg = f"Error loading prompt from {Path(rel).name}: {str(e)}"
                 logging.error(error_msg)
                 new_errors.append({
-                    'file': config_file.name,
+                    'file': Path(rel).name,
                     'error': str(e)
                 })
         
@@ -522,9 +526,7 @@ class PromptsRegistry:
             
             # Save to file
             config['name'] = name
-            config_file = self.prompts_config_dir / f"{name}.json"
-            with open(config_file, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=2)
+            get_storage().write_json(f"{self._prompts_prefix}/{name}.json", config)
             
             logging.info(f"Created prompt: {name}")
             return True, f"Prompt '{name}' created successfully"
@@ -564,9 +566,7 @@ class PromptsRegistry:
             
             # Save to file
             config['name'] = name
-            config_file = self.prompts_config_dir / f"{name}.json"
-            with open(config_file, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=2)
+            get_storage().write_json(f"{self._prompts_prefix}/{name}.json", config)
             
             logging.info(f"Updated prompt: {name}")
             return True, f"Prompt '{name}' updated successfully"
@@ -594,10 +594,8 @@ class PromptsRegistry:
             # Remove from registry
             del self.prompts[name]
             
-            # Delete file
-            config_file = self.prompts_config_dir / f"{name}.json"
-            if config_file.exists():
-                config_file.unlink()
+            # Delete through the storage backend
+            get_storage().delete(f"{self._prompts_prefix}/{name}.json")
             
             logging.info(f"Deleted prompt: {name}")
             return True, f"Prompt '{name}' deleted successfully"

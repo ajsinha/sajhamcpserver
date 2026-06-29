@@ -1,5 +1,5 @@
 # MCP Studio Python Code Tool Creator Guide
-## SAJHA MCP Server v5.2.0
+## SAJHA MCP Server v5.3.0
 
 ## Overview
 
@@ -826,5 +826,5 @@ gc.collect()
 
 ---
 
-*SAJHA MCP Server v5.2.0 - Python Code Tool Creator Guide*
+*SAJHA MCP Server v5.3.0 - Python Code Tool Creator Guide*
 *Copyright © 2025-2030 Ashutosh Sinha*

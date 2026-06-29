@@ -86,7 +86,7 @@ class MCPClient:
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'User-Agent': 'sajhaclient-mcp/5.2.0',
+            'User-Agent': 'sajhaclient-mcp/5.3.0',
             **self._auth.get_headers(),
         }
 
@@ -113,7 +113,7 @@ class MCPClient:
 
     # ── MCP Protocol Methods ─────────────────────────────────────
 
-    def initialize(self, client_name: str = "sajhaclient", client_version: str = "5.2.0") -> Dict:
+    def initialize(self, client_name: str = "sajhaclient", client_version: str = "5.3.0") -> Dict:
         """
         Initialize the MCP session. Must be called first.
 
@@ -318,7 +318,7 @@ class MCPSSEClient:
         }
         headers = {
             'Content-Type': 'application/json',
-            'User-Agent': 'sajhaclient-sse/5.2.0',
+            'User-Agent': 'sajhaclient-sse/5.3.0',
             **self._auth.get_headers(),
         }
         data = json.dumps(payload).encode('utf-8')
@@ -335,7 +335,7 @@ class MCPSSEClient:
             logger.error(f"SSE RPC error: {e}", exc_info=True)
             raise SajhaConnectionError(f"SSE RPC failed: {e}")
 
-    def initialize(self, client_name: str = "sajhaclient-sse", client_version: str = "5.2.0") -> Dict:
+    def initialize(self, client_name: str = "sajhaclient-sse", client_version: str = "5.3.0") -> Dict:
         """Initialize MCP session over SSE transport."""
         if not self._connected:
             self.connect()
@@ -516,7 +516,7 @@ class MCPWebSocketClient:
 
         return response.get('result', {})
 
-    def initialize(self, client_name: str = 'sajhaclient-ws', client_version: str = '5.2.0') -> dict:
+    def initialize(self, client_name: str = 'sajhaclient-ws', client_version: str = '5.3.0') -> dict:
         """Send initialize request."""
         result = self._send_request('initialize', {
             'protocolVersion': '2025-11-25',

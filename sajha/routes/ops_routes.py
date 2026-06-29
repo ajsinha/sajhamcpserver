@@ -209,7 +209,7 @@ async def api_pipeline_entropy(request: Request, auth: AuthContext = Depends(req
 
 
 # ═══════════════════════════════════════════════════════════════════
-# v5.2.0 Operations APIs — Cache, Circuit Breakers, Health, Replay, Webhooks
+# v5.3.0 Operations APIs — Cache, Circuit Breakers, Health, Replay, Webhooks
 # ═══════════════════════════════════════════════════════════════════
 
 @router.get('/api/cache/stats')
@@ -336,7 +336,7 @@ async def audit_log(request: Request, auth: AuthContext = Depends(require_admin)
 
 
 # ═══════════════════════════════════════════════════════════════════
-# ASYNC TOOL EXECUTION (v5.2.0)
+# ASYNC TOOL EXECUTION (v5.3.0)
 # ═══════════════════════════════════════════════════════════════════
 
 @router.post('/api/tools/{tool_name}/execute-async')
@@ -436,7 +436,7 @@ async def admin_async_tasks_page(request: Request, auth: AuthContext = Depends(r
 
 
 # ═══════════════════════════════════════════════════════════════════
-# SHELL EXECUTION — Sandboxed Python & Bash (v5.2.0)
+# SHELL EXECUTION — Sandboxed Python & Bash (v5.3.0)
 # ═══════════════════════════════════════════════════════════════════
 
 @router.post('/api/shell/python')
@@ -494,7 +494,7 @@ async def admin_system_monitor_api(auth: AuthContext = Depends(require_admin)):
         'platform': f"{platform.system()} {platform.release()} ({platform.machine()})",
         'hostname': socket.gethostname(),
         'mcp_protocol_version': '2025-11-25',
-        'sajha_version': '5.2.0',
+        'sajha_version': '5.3.0',
         'db_type': 'unknown',
         'tools_loaded': 0,
     }

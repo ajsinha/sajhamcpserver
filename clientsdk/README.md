@@ -1,6 +1,6 @@
 # SAJHA MCP Server — Python Client SDK
 
-**Version 5.2.0** · Zero dependencies (stdlib only) · Python 3.9+ · **MCP 2025-11-25**
+**Version 5.3.0** · Zero dependencies (stdlib only) · Python 3.9+ · **MCP 2025-11-25**
 
 ## Install
 
@@ -31,7 +31,7 @@ client = SajhaClient(
 result = client.execute_tool("yahoo_quote", symbol="AAPL")
 ```
 
-## Client-Side Pipeline (v5.2.0)
+## Client-Side Pipeline (v5.3.0)
 
 ```python
 from sajhaclient import ClientPipeline
@@ -45,7 +45,7 @@ print(result['_composition']['confidence'])  # 0.85
 print(result['_composition']['entropy_bits'])  # 0.61
 ```
 
-## Transport Coalgebra (v5.2.0)
+## Transport Coalgebra (v5.3.0)
 
 ```python
 from sajhaclient import HTTPTransport, WSTransport, bisimilar

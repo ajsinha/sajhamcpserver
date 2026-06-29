@@ -174,9 +174,7 @@ async def api_save_tool_config(tool_name: str, request: Request, auth: AuthConte
 
     if tool_name in tools_registry.tools:
         tools_registry.unregister_tool(tool_name)
-    config_file = Path(tools_registry.tools_config_dir) / f'{tool_name}.json'
-    if config_file.exists():
-        tools_registry.load_tool_from_config(config_file)
+    tools_registry.load_tool_from_config(f'{tool_name}.json')
 
     AuditDAO(db).log('tool.config_update', auth.user_id, 'tool', tool_name)
     return JSONResponse({'success': True, 'message': 'Configuration saved'})
