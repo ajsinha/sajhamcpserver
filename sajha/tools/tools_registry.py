@@ -426,7 +426,9 @@ class ToolsRegistry:
                 
                 # Check for new or modified JSON config files
                 for config_file in config_path.glob('*.json'):
-                    file_path = str(config_file)
+                    # Key by the storage-relative path so it matches the timestamps
+                    # recorded by load_tool_from_config (which is storage-backed).
+                    file_path = self._config_rel(config_file)
                     current_mtime = config_file.stat().st_mtime
                     
                     if file_path not in self._file_timestamps:
@@ -445,9 +447,9 @@ class ToolsRegistry:
                         # Reload tool
                         self.load_tool_from_config(config_file)
                 
-                # Check for deleted JSON files
+                # Check for deleted JSON files (compare on the same relative keys)
                 tracked_files = set(self._file_timestamps.keys())
-                existing_files = {str(f) for f in config_path.glob('*.json')}
+                existing_files = {self._config_rel(f) for f in config_path.glob('*.json')}
                 
                 for deleted_file in tracked_files - existing_files:
                     self.logger.info(f"Tool configuration deleted: {Path(deleted_file).name}")
@@ -548,6 +550,23 @@ class ToolsRegistry:
             
             # Reload all
             self.load_all_tools()
+
+        # Notify listeners (e.g. the semantic search index) outside the lock
+        self._notify_reload()
+
+    def add_reload_listener(self, callback):
+        """Register a no-arg callback fired after tools are reloaded (add/remove/modify).
+        Used by the semantic tool index to re-sync embeddings incrementally."""
+        if not hasattr(self, '_reload_listeners'):
+            self._reload_listeners = []
+        self._reload_listeners.append(callback)
+
+    def _notify_reload(self):
+        for cb in getattr(self, '_reload_listeners', []):
+            try:
+                cb()
+            except Exception as e:
+                self.logger.error(f"Reload listener error: {e}", exc_info=True)
     
     @classmethod
     def reset_instance(cls):

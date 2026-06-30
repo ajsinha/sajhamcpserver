@@ -204,6 +204,12 @@ ai:
   default_model: ${AI_DEFAULT_MODEL:claude-sonnet-4-20250514}
   embedding_provider: ${AI_EMBEDDING_PROVIDER:openai}
   embedding_model: ${AI_EMBEDDING_MODEL:text-embedding-3-small}
+  # Semantic tool search — natural-language query → top-k matching tools.
+  tool_search:
+    enabled: true
+    embedder: ${AI_TOOL_SEARCH_EMBEDDER:bm25}   # bm25 (lexical, default, no deps) | gateway (API embeddings)
+    persist: true                                # persist the vector index (gateway mode) via storage
+    top_k: 5
   cache:
     enabled: true
     ttl_seconds: 3600

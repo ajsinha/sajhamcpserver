@@ -480,21 +480,43 @@ class SajhaMCPServerWebApp:
 
             # Build semantic tool index (non-blocking — logs warning if no embedding provider)
             if gw and gw._providers:
-                try:
-                    resolver = init_resolver(gw, tools_registry)
-                    count = resolver.build_index()
-                    if count:
-                        logger.info(f'  Tool Resolver: {count} tools indexed for semantic search')
-                    else:
-                        logger.info('  Tool Resolver: initialized (index will build when embedding provider is configured)')
-                except Exception as e:
-                    logger.warning(f'  Tool Resolver: skipped ({e})', exc_info=True)
+                logger.info(f'  LLM Gateway: {len(gw._providers)} provider(s) ready')
             else:
                 logger.info('  LLM Gateway: no providers configured (set API keys in Admin > AI)')
         except ImportError:
             logger.info('  LLM Gateway: AI packages not installed (pip install anthropic openai)')
         except Exception as e:
             logger.warning(f'  LLM Gateway: initialization failed ({e})', exc_info=True)
+
+        # 4b. Semantic Tool Search (independent of the gateway — default is lexical BM25/TF-IDF)
+        try:
+            if _CFG.get('ai.tool_search.enabled', True):
+                from sajha.ai.embedders import get_embedder
+                from sajha.ai.tool_resolver import init_resolver, get_resolver
+                try:
+                    gw_for_extract = get_gateway()
+                except Exception:
+                    gw_for_extract = None
+                embedder = get_embedder(_CFG, gateway=gw_for_extract)
+                persist = bool(_CFG.get('ai.tool_search.persist', True))
+                resolver = init_resolver(embedder, tools_registry, gateway=gw_for_extract, persist=persist)
+                # Keep the index accurate as tools change — NEVER block the reload path:
+                # run the re-sync off a background thread. Tool loading is already complete.
+                import threading as _t
+                def _bg_resync():
+                    _t.Thread(target=resolver.sync, name='tool-index-resync', daemon=True).start()
+                tools_registry.add_reload_listener(_bg_resync)
+                # BM25 lexical tier (default) — build now, instant and dependency-free.
+                lex = resolver.refresh_lexical()
+                if embedder is not None:
+                    # Optional API-driven vector index builds off the boot path.
+                    _t.Thread(target=resolver.build_index, name='tool-index-build', daemon=True).start()
+                    logger.info(f'  Semantic Tool Search: {lex} tools (BM25 ready; '
+                                f'vector indexing in background via {embedder.name})')
+                else:
+                    logger.info(f'  Semantic Tool Search: {lex} tools indexed (lexical BM25/TF-IDF)')
+        except Exception as e:
+            logger.warning(f'  Semantic Tool Search: unavailable ({e})', exc_info=True)
 
         # 5. Template globals
         self._register_template_globals()

@@ -96,6 +96,14 @@ class SharePointBaseTool(BaseMCPTool):
         auth_config = self.config.get('authentication', {})
         if auth_config:
             self.authenticator = SharePointAuthenticator(auth_config)
+
+    def get_input_schema(self) -> Dict:
+        """JSON schema for tool inputs (from the tool's config 'inputSchema')."""
+        return self._input_schema
+
+    def get_output_schema(self) -> Dict:
+        """JSON schema for tool outputs (from the tool's config 'outputSchema')."""
+        return self._output_schema
     
     def _get_headers(self) -> Dict[str, str]:
         """Get request headers with authentication."""

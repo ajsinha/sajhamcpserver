@@ -5,11 +5,72 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9d1e1bcc-ba63-40dc-b00b-b5a14af3f586" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/${data.duckdb.dir}/duckdb_analytics.db" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/clientsdk/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/clientsdk/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/clientsdk/docs/USER_GUIDE.md" beforeDir="false" afterPath="$PROJECT_DIR$/clientsdk/docs/USER_GUIDE.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/clientsdk/sajhaclient/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/clientsdk/sajhaclient/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/clientsdk/sajhaclient/mcp_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/clientsdk/sajhaclient/mcp_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/clientsdk/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/clientsdk/setup.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/config/application.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/duckdb/duckdb_analytics.db" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/data/sajha.db-shm" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/db/scripts/002_seed.sql" beforeDir="false" afterPath="$PROJECT_DIR$/db/scripts/002_seed.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/aws/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/aws/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/baremetal/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/baremetal/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/hetzner/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/hetzner/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/API_Reference.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/API_Reference.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/Composition_Framework.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/Composition_Framework.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/Exception_Handling_Audit.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/Exception_Handling_Audit.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/UX_Audit_Report.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/UX_Audit_Report.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/architecture/Glossary.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/architecture/Glossary.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/architecture/SAJHA_MCP_Server_Architecture.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/architecture/SAJHA_MCP_Server_Architecture.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/Alpha_Vantage_Tools_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/Alpha_Vantage_Tools_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/CoinGecko_Tools_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/CoinGecko_Tools_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/FMP_Tools_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/FMP_Tools_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/FRED_Tools_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/FRED_Tools_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/Financial_Calculators_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/Financial_Calculators_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/MCP_Studio_DBQuery_Tool_Creator_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/MCP_Studio_DBQuery_Tool_Creator_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/MCP_Studio_LiveLink_Tool_Creator_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/MCP_Studio_LiveLink_Tool_Creator_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/MCP_Studio_OLAP_Tool_Creator_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/MCP_Studio_OLAP_Tool_Creator_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/MCP_Studio_PowerBI_DAX_Tool_Creator_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/MCP_Studio_PowerBI_DAX_Tool_Creator_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/MCP_Studio_PowerBI_Tool_Creator_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/MCP_Studio_PowerBI_Tool_Creator_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/MCP_Studio_Python_Code_Tool_Creator_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/MCP_Studio_Python_Code_Tool_Creator_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/MCP_Studio_REST_Tool_Creator_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/MCP_Studio_REST_Tool_Creator_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/MCP_Studio_Script_Tool_Creator_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/MCP_Studio_Script_Tool_Creator_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/MCP_Studio_SharePoint_Tool_Creator_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/MCP_Studio_SharePoint_Tool_Creator_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/MCP_Studio_User_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/MCP_Studio_User_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/OLAP_Analytics_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/OLAP_Analytics_MCP_Tool_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/OpenBB_Tools_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/OpenBB_Tools_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/SQL_Select_Search_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/SQL_Select_Search_MCP_Tool_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/Tavily_Search_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/Tavily_Search_MCP_Tool_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/United_Nations_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/United_Nations_MCP_Tool_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/World_Bank_MCP_Tool_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/World_Bank_MCP_Tool_Reference_Guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/userguides/Yahoo_Finance_Tools_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/Yahoo_Finance_Tools_Reference_Guide.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/logs/server.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/run_server.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/core/apikey_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/apikey_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/core/auth_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/auth_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/core/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/core/mcp_2025_11_25.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/mcp_2025_11_25.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/db/engine.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/db/engine.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/db/models/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/db/models/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/routes/admin_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/routes/admin_routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/routes/auth_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/routes/auth_routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/routes/ops_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/routes/ops_routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/tools/base_mcp_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/base_mcp_tool.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/tools/impl/duckdb_olap_advanced.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/tools/impl/duckdb_olap_advanced.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/common/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/common/base.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/dashboard/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/dashboard/dashboard.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sajha/web/templates/help/about.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/help/about.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sajha/web/templates/landing.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/landing.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/help/help_enterprise.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/help/help_enterprise.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/help/help_tutorials.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/help/help_tutorials.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/tools/tool_execute.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/tools/tool_execute.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sajha/web/templates/tools/tools_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/web/templates/tools/tools_list.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -28,25 +89,26 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.run.executor&quot;: &quot;Run&quot;,
-    &quot;Python.run_server.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.run.executor": "Run",
+    "Python.run_server.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/ashutosh/PycharmProjects/sajhamcpserver",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Python.run_server">
     <configuration name="run" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="sajhamcpserver" />
@@ -106,7 +168,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-024ed6589d45-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.23567.174" />
+        <option value="bundled-python-sdk-c59985aa861c-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.24374.152" />
       </set>
     </attachedChunks>
   </component>

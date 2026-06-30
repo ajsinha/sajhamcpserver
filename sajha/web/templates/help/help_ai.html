@@ -32,8 +32,20 @@
     <div class="card mb-4">
         <div class="card-header card-header-info"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
         <div class="card-body">
-            <p>Describe what you need in plain English. SAJHA finds the best matching tools using vector embeddings of all {{ tool_stats.total_tools }} tool descriptions with cosine similarity search.</p>
-            <p class="mb-0"><strong>Try it:</strong> Go to <a href="/ai/settings">AI → LLM</a> → Semantic Search tab → type "find companies with high debt-to-equity ratios".</p>
+            <p>Describe what you need in plain English and SAJHA returns the top matching tools by
+            vector similarity, embedding each tool's name, description, parameters, tags, and an
+            optional <code>literature</code> field. Query <code>POST /api/ai/resolve-tool</code>
+            with <code>{ "query": "...", "top_k": 5 }</code>.</p>
+            <p class="small mb-2"><strong>Ranking (configurable — <code>ai.tool_search.embedder</code>):</strong>
+            <code>bm25</code> (default — a dependency-free lexical BM25/TF-IDF ranker; no model, no key,
+            no network) or <code>gateway</code> (vector similarity via the LLM gateway's embedding
+            provider, e.g. OpenAI, for paraphrase matching). Switch with one config value.</p>
+            <p class="small mb-2"><strong>Always accurate &amp; never empty:</strong> the index re-syncs
+            on every tool add / edit / delete. In gateway mode only changed tools are re-embedded and
+            the vector index persists through the storage backend; BM25 stays available as the
+            fallback, so results are never empty.</p>
+            <p class="mb-0"><strong>Try it:</strong> <a href="/ai/settings">AI → LLM</a> → Semantic
+            Search tab → type "find companies with high debt-to-equity ratios".</p>
         </div>
     </div>
 

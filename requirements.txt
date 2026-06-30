@@ -66,6 +66,10 @@ together>=1.3.0,<2.0.0             # Together.ai open-source models
 ollama>=0.4.0,<1.0.0              # Ollama local models
 # boto3 already listed above for AWS/S3 — also covers Bedrock
 
+# Semantic tool search uses a dependency-free BM25 ranker by default (no extra packages).
+# For optional API-driven vector search set ai.tool_search.embedder: gateway (uses the
+# already-configured LLM embedding provider, e.g. OpenAI).
+
 # ── Cloud storage backends (optional — only for storage.backend != local) ────
 # All lazy-imported in sajha/core/storage.py, so the default 'local' install
 # pulls none of these. Install only the SDK for the backend you select.

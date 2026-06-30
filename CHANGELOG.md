@@ -42,7 +42,45 @@ Azure Blob, or GCS, with cloud hot-reload. Default backend remains **local**.
   so exactly one mechanism runs per deployment. Verified via mocked S3: initial sync
   materializes the cache and a new object triggers the reload callback.
 
+### Semantic tool search (pluggable embedder)
+- **Natural-language tool discovery** at `/api/ai/resolve-tool`: a query like "discount future
+  cash flows to today" returns the top-k matching tools by vector similarity. The index
+  embeds each tool's name + description + parameter names + tags + an optional `literature`
+  field.
+- **Configurable ranking** via `ai.tool_search.embedder`:
+  - `bm25` (default) — a dependency-free lexical BM25/TF-IDF ranker (no model, no key, no
+    network), built over the same rich text (name + description + parameters + tags + literature).
+  - `gateway` — optional API-driven vector similarity via the LLM gateway's embedding provider
+    (e.g. OpenAI) for paraphrase matching. Switch with one config value; no code change.
+  - Decoupled from the LLM gateway — semantic search needs no provider in the default mode.
+- **Accurate on change.** The index does incremental, content-hash-based sync: only tools
+  whose embedding text changed are re-embedded, removed tools are dropped, unchanged tools
+  keep their vectors. It hooks the registry's reload path (`add_reload_listener`), so adds /
+  edits / deletes — local or via the cloud sync manager — keep embeddings current.
+- **Persisted via the storage backend** (local | s3 | azure | gcs) with a header recording the
+  embedder + dimension; a restart reloads vectors (no re-embedding) and a changed embedder
+  forces a clean rebuild (vectors from different models aren't comparable).
+- **Non-blocking + graceful.** The initial index builds in a background thread so startup is
+  never blocked; until it's ready (or if no embedder is available) search falls back to
+  keyword matching. In-memory numpy cosine search — a `VectorIndex` seam is left for FAISS /
+  Chroma if scale ever demands it.
+
 ### Database scripts cleanup
+- **Fixed a critical regression where the file monitor unloaded all tools every 5s.** The
+  storage migration changed `load_tool_from_config` to key `_file_timestamps` by
+  storage-relative paths (`config/tools/foo.json`), but the registry's `_monitor_files`
+  poller still compared against absolute paths — so every tool looked simultaneously "new"
+  and "deleted" each cycle and the delete branch unregistered them all, leaving the registry
+  empty. The monitor now keys on the same relative paths (`_config_rel`), so new/modified/
+  deleted detection works correctly and legitimate hot-reload is preserved. Semantic tool
+  search was also made fully non-blocking on reload, so the optional feature can never affect
+  core tool loading.
+- **Fixed SharePoint tools failing to load.** `SharePointBaseTool` never implemented the
+  `get_input_schema` / `get_output_schema` abstract methods from `BaseMCPTool`, so all three
+  SharePoint tools (documents, lists, search) raised "Can't instantiate abstract class …" at
+  load. Added both getters to the base (returning the config's `inputSchema` / `outputSchema`,
+  matching every other tool), making all four SharePoint classes concrete. Tool count
+  496 → 499.
 - **Removed obsolete top-level `db/scripts/001_schema.sql` + `002_seed.sql`.** The engine runs
   the dialect-specific `db/scripts/<db.type>/` directory; the top-level scripts were bypassed
   for SQLite and only reached as a buggy fallback (below).
