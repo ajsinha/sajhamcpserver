@@ -40,7 +40,10 @@
         "default": false
       }
     },
-    "required": ["state", "offense_type"]
+    "required": [
+      "state",
+      "offense_type"
+    ]
   },
   "outputSchema": {
     "type": "object",
@@ -100,12 +103,23 @@
         }
       }
     },
-    "required": ["state", "offense_type", "year", "state_data"]
+    "required": [
+      "state",
+      "offense_type",
+      "year",
+      "state_data"
+    ]
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Crime Statistics",
-    "tags": ["crime", "fbi", "statistics", "state", "ucr"],
+    "tags": [
+      "crime",
+      "fbi",
+      "statistics",
+      "state",
+      "ucr"
+    ],
     "rateLimit": 120,
     "cacheTTL": 3600,
     "note": "Retrieves state-level crime statistics with national comparison",
@@ -128,5 +142,6 @@
         }
       }
     ]
-  }
+  },
+  "api_key": "${fbi.api.key:}"
 }

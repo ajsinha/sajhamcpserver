@@ -21,7 +21,6 @@ Each tool has a JSON definition in `config/tools/<tool_name>.json`; the `inputSc
 6. [Workflows](#workflows)
 7. [Troubleshooting](#troubleshooting)
 8. [Quick reference](#quick-reference)
-9. [Page glossary](#page-glossary)
 
 ---
 
@@ -594,18 +593,7 @@ SEC data is public-domain information provided by the U.S. Securities and Exchan
 
 ---
 
-## Page glossary
-
-- **EDGAR**: the SEC's Electronic Data Gathering, Analysis, and Retrieval system.
-- **CIK**: Central Index Key, the SEC's 10-digit company identifier.
-- **Accession number**: the unique ID of one filing (`0000320193-23-000077`).
-- **XBRL**: eXtensible Business Reporting Language, the structured financial data attached to filings.
-- **Concept / tag**: one XBRL line item, such as `Assets`.
-- **Frame**: one concept across all filers for a calendar period (`CY2023`, `CY2023Q1`).
-- **SIC code**: Standard Industrial Classification industry code.
-- **Form type**: the category of filing (10-K, 8-K, DEF 14A, ...).
-
-For more terms, see the [Glossary](../../../GLOSSARY.md).
+*Terms used in this guide are defined in the [Glossary](../../../GLOSSARY.md).*
 
 ---
 

@@ -133,6 +133,45 @@ class PipelineResult:
 # PILLAR 3: Lenses — Surgical Param Projection
 # ═══════════════════════════════════════════════════════════════
 
+_MISSING = object()
+
+
+def _dig(data: Any, path: str) -> Any:
+    """Strict dot-path lookup ('a.b.0.c'); _MISSING if any part is absent."""
+    for key in path.split('.'):
+        if isinstance(data, dict) and key in data:
+            data = data[key]
+        elif isinstance(data, list) and key.isdigit() and int(key) < len(data):
+            data = data[int(key)]
+        else:
+            return _MISSING
+    return data
+
+
+def resolve_source(source_expr: Any, master_input: Dict = None, record: Any = None) -> Any:
+    """Resolve one composite param-mapping expression (see ParamLens.view)."""
+    if not isinstance(source_expr, str):
+        return source_expr
+    if source_expr.startswith('$input.'):
+        value = _dig(master_input or {}, source_expr[len('$input.'):])
+    elif source_expr.startswith('$.input.'):
+        value = _dig(master_input or {}, source_expr[len('$.input.'):])
+    elif source_expr.startswith('$.'):
+        value = _dig(record if record is not None else {}, source_expr[2:])
+    else:
+        return source_expr
+    return '' if value is _MISSING else value
+
+
+def input_field_of(source_expr: Any) -> Optional[str]:
+    """The composite-input field a mapping expression reads, if any."""
+    if isinstance(source_expr, str):
+        for prefix in ('$input.', '$.input.'):
+            if source_expr.startswith(prefix):
+                return source_expr[len(prefix):].split('.', 1)[0] or None
+    return None
+
+
 @dataclass(frozen=True)
 class ParamLens:
     """
@@ -154,17 +193,19 @@ class ParamLens:
         """
         Extract child params from parent context.
         This is the 'get' half of the lens — projects only what the child needs.
+
+        Source expressions:
+          "$input.x" and "$.input.x"  → master_input["x"]
+          "$.x" (or "$.x.y")          → field of ``record`` (Parent → Child: the
+                                        current master record; Sibling: the
+                                        master's output), else of parent_output
+          anything else               → a literal value
+        A missing field resolves to "".
         """
         params = dict(self.static_params)
         for target_key, source_expr in self.mapping.items():
-            if isinstance(source_expr, str) and source_expr.startswith('$.'):
-                field_name = source_expr[2:]
-                if field_name.startswith('input.'):
-                    params[target_key] = (master_input or {}).get(field_name[6:], '')
-                else:
-                    params[target_key] = (record or {}).get(field_name, '')
-            else:
-                params[target_key] = source_expr
+            params[target_key] = resolve_source(source_expr, master_input=master_input,
+                                                record=record if record is not None else parent_output)
         return params
 
     def set(self, whole: Dict, child_result: Any) -> Dict:

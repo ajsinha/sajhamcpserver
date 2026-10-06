@@ -36,7 +36,10 @@ from typing import Optional, Dict, Any, List, Callable
 
 from sajhaclient.config import SajhaConfig
 from sajhaclient.auth import AuthProvider, NoAuth, ApiKeyAuth, JWTAuth
-from sajhaclient.exceptions import SajhaMCPError, SajhaConnectionError, SajhaAuthError
+from sajhaclient._version import __version__
+from sajhaclient.exceptions import (
+    SajhaError, SajhaMCPError, SajhaConnectionError, SajhaAuthError, SajhaTimeoutError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +94,7 @@ class MCPClient:
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'User-Agent': 'sajhaclient-mcp/5.3.0',
+            'User-Agent': f'sajhaclient-mcp/{__version__}',
             **self._auth.get_headers(),
         }
 
@@ -118,7 +121,7 @@ class MCPClient:
 
     # ── MCP Protocol Methods ─────────────────────────────────────
 
-    def initialize(self, client_name: str = "sajhaclient", client_version: str = "5.3.0") -> Dict:
+    def initialize(self, client_name: str = "sajhaclient", client_version: Optional[str] = None) -> Dict:
         """
         Initialize the MCP session. Must be called first.
 
@@ -127,7 +130,7 @@ class MCPClient:
         """
         result = self._rpc('initialize', {
             'protocolVersion': '2025-11-25',
-            'clientInfo': {'name': client_name, 'version': client_version},
+            'clientInfo': {'name': client_name, 'version': client_version or __version__},
             'capabilities': {},
         })
         self._server_info = result.get('serverInfo', {})
@@ -329,7 +332,7 @@ class MCPSSEClient:
         }
         headers = {
             'Content-Type': 'application/json',
-            'User-Agent': 'sajhaclient-sse/5.3.0',
+            'User-Agent': f'sajhaclient-sse/{__version__}',
             **self._auth.get_headers(),
         }
         data = json.dumps(payload).encode('utf-8')
@@ -338,21 +341,24 @@ class MCPSSEClient:
             with urllib.request.urlopen(req, timeout=self.config.timeout) as resp:
                 body = json.loads(resp.read().decode('utf-8'))
                 if 'error' in body:
-                    raise SajhaMCPError(body['error'].get('message', 'RPC error'), body['error'].get('code', -1))
+                    err = body['error']
+                    raise SajhaMCPError(err.get('code', -1), err.get('message', 'RPC error'), err.get('data'))
                 return body.get('result')
         except urllib.error.HTTPError as e:
-            raise SajhaMCPError(f"SSE RPC failed: HTTP {e.code}", e.code)
+            raise SajhaMCPError(-32000, f"SSE RPC failed: HTTP {e.code}")
+        except SajhaError:
+            raise
         except Exception as e:
             logger.error(f"SSE RPC error: {e}", exc_info=True)
             raise SajhaConnectionError(f"SSE RPC failed: {e}")
 
-    def initialize(self, client_name: str = "sajhaclient-sse", client_version: str = "5.3.0") -> Dict:
+    def initialize(self, client_name: str = "sajhaclient-sse", client_version: Optional[str] = None) -> Dict:
         """Initialize MCP session over SSE transport."""
         if not self._connected:
             self.connect()
         result = self._rpc('initialize', {
             'protocolVersion': '2025-11-25',
-            'clientInfo': {'name': client_name, 'version': client_version},
+            'clientInfo': {'name': client_name, 'version': client_version or __version__},
             'capabilities': {},
         })
         return result or {}
@@ -523,15 +529,15 @@ class MCPWebSocketClient:
 
         if 'error' in response:
             err = response['error']
-            raise SajhaError(f"[{err.get('code')}] {err.get('message')}")
+            raise SajhaMCPError(err.get('code', -1), err.get('message', 'Unknown error'), err.get('data'))
 
         return response.get('result', {})
 
-    def initialize(self, client_name: str = 'sajhaclient-ws', client_version: str = '5.3.0') -> dict:
+    def initialize(self, client_name: str = 'sajhaclient-ws', client_version: Optional[str] = None) -> dict:
         """Send initialize request."""
         result = self._send_request('initialize', {
             'protocolVersion': '2025-11-25',
-            'clientInfo': {'name': client_name, 'version': client_version},
+            'clientInfo': {'name': client_name, 'version': client_version or __version__},
             'capabilities': {},
         })
         self._initialized = True
@@ -648,6 +654,14 @@ class TransportCoalgebra:
         return result
 
 
+def _tools_call_params(params: Optional[Dict]) -> Dict:
+    """Normalise step('tools/call', {...}) params to the MCP tools/call shape."""
+    params = params or {}
+    if 'name' not in params:
+        raise ValueError("step('tools/call') needs params={'name': ..., 'arguments': {...}}")
+    return {'name': params['name'], 'arguments': params.get('arguments') or {}}
+
+
 class HTTPTransport(TransportCoalgebra):
     """HTTP POST transport as a coalgebra."""
 
@@ -664,7 +678,7 @@ class HTTPTransport(TransportCoalgebra):
         elif method == 'tools/list':
             result = self._client.list_tools()
         elif method == 'tools/call':
-            result = self._client.call_tool(params['name'], params.get('arguments', {}))
+            result = self._client._rpc('tools/call', _tools_call_params(params))
         elif method == 'ping':
             result = self._client.ping()
         else:
@@ -688,7 +702,7 @@ class SSETransport(TransportCoalgebra):
         elif method == 'tools/list':
             result = self._client.list_tools()
         elif method == 'tools/call':
-            result = self._client.call_tool(params['name'], params.get('arguments', {}))
+            result = self._client._rpc('tools/call', _tools_call_params(params))
         elif method == 'ping':
             result = self._client.ping()
         else:
@@ -713,11 +727,11 @@ class WSTransport(TransportCoalgebra):
         elif method == 'tools/list':
             result = self._client.list_tools()
         elif method == 'tools/call':
-            result = self._client.call_tool(params['name'], params.get('arguments', {}))
+            result = self._client._send_request('tools/call', _tools_call_params(params))
         elif method == 'ping':
             result = self._client.ping()
         else:
-            result = self._client._send_rpc(method, params)
+            result = self._client._send_request(method, params)
         return result, self.state
 
 

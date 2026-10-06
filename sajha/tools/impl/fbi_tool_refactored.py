@@ -4,6 +4,7 @@ FBI Crime Data Explorer MCP Tool Implementation - Refactored with Individual Too
 """
 
 import json
+import os
 import urllib.parse
 import urllib.request
 from typing import Dict, Any, List, Optional
@@ -21,8 +22,10 @@ class FBIBaseTool(BaseMCPTool):
         """Initialize FBI base tool"""
         super().__init__(config)
         
-        # FBI Crime Data Explorer API endpoint
+        # FBI Crime Data Explorer API endpoint (served through api.data.gov, which
+        # requires an API key on every request)
         self.api_url = "https://api.usa.gov/crime/fbi/cde"
+        self.api_key = self._resolve_api_key()
         
         # Offense type mapping to API codes
         self.offense_codes = {
@@ -55,6 +58,17 @@ class FBIBaseTool(BaseMCPTool):
             'WI': 'Wisconsin', 'WY': 'Wyoming', 'DC': 'District of Columbia'
         }
     
+    def _resolve_api_key(self) -> str:
+        """api.data.gov key: tool config ``api_key`` (``${fbi.api.key}`` in the shipped
+        configs, i.e. FBI_API_KEY), then FBI_API_KEY / DATA_GOV_API_KEY env vars, then
+        api.data.gov's rate-limited ``DEMO_KEY``."""
+        for candidate in (self.config.get('api_key'),
+                          os.environ.get('FBI_API_KEY'),
+                          os.environ.get('DATA_GOV_API_KEY')):
+            if candidate and isinstance(candidate, str) and not candidate.startswith('${'):
+                return candidate
+        return 'DEMO_KEY'
+
     def _make_api_request(self, endpoint: str, params: Dict = None) -> Dict:
         """
         Make API request to FBI Crime Data Explorer
@@ -74,7 +88,9 @@ class FBIBaseTool(BaseMCPTool):
         try:
             headers = {
                 'User-Agent': 'Mozilla/5.0',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                # api.data.gov accepts the key as a header (keeps it out of URLs/logs)
+                'X-Api-Key': self.api_key,
             }
             
             req = urllib.request.Request(url, headers=headers)

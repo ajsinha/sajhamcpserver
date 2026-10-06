@@ -140,22 +140,9 @@
         "sales_analysis": {
             "name": "sales_analysis",
             "display_name": "Sales Analysis",
-            "description": "Comprehensive sales data for multi-dimensional analysis including revenue, quantity, profit, and customer metrics",
+            "description": "Comprehensive sales data for multi-dimensional analysis including revenue, quantity, profit, and customer metrics. Source: the denormalized sales_data view (sample data is generated automatically when no OLAP database is configured)",
             "source_table": "sales_data",
-            "joins": [
-                {
-                    "table": "customer_data",
-                    "type": "LEFT",
-                    "on": "sales_data.customer_id = customer_data.id",
-                    "alias": "customers"
-                },
-                {
-                    "table": "inventory_data",
-                    "type": "LEFT",
-                    "on": "sales_data.product_id = inventory_data.product_id",
-                    "alias": "products"
-                }
-            ],
+            "joins": [],
             "dimensions": [
                 "order_date",
                 "region",

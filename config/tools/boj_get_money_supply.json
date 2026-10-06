@@ -10,7 +10,11 @@
       "aggregate": {
         "type": "string",
         "description": "Money stock aggregate",
-        "enum": ["m1", "m2", "m3"],
+        "enum": [
+          "m1",
+          "m2",
+          "m3"
+        ],
         "default": "m2"
       },
       "start_date": {
@@ -29,22 +33,39 @@
         "default": 10
       }
     },
-    "required": ["aggregate"]
+    "required": [
+      "aggregate"
+    ]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "series_code": {"type": "string"},
-      "label": {"type": "string"},
-      "unit": {"type": "string"},
-      "observation_count": {"type": "integer"},
+      "series_code": {
+        "type": "string"
+      },
+      "label": {
+        "type": "string"
+      },
+      "unit": {
+        "type": "string"
+      },
+      "observation_count": {
+        "type": "integer"
+      },
       "observations": {
         "type": "array",
         "items": {
           "type": "object",
           "properties": {
-            "date": {"type": "string"},
-            "value": {"type": ["number", "null"]}
+            "date": {
+              "type": "string"
+            },
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
           }
         }
       }
@@ -53,8 +74,16 @@
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Monetary Data",
-    "tags": ["money supply", "m1", "m2", "m3", "japan", "monetary aggregates"],
+    "tags": [
+      "money supply",
+      "m1",
+      "m2",
+      "m3",
+      "japan",
+      "monetary aggregates"
+    ],
     "rateLimit": 120,
     "cacheTTL": 3600
-  }
+  },
+  "api_key": "${fred.api.key}"
 }

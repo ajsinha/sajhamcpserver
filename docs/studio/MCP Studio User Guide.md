@@ -26,8 +26,8 @@ All Studio pages are server-rendered under `/studio` (see `sajha/routes/studio_r
 How to get there in the UI:
 
 - **Top navigation → MCP Studio** (shown to administrators). It lists Studio home, the Python, REST, DB query and script creators, the PowerBI, PowerBI DAX, LiveLink and OLAP creators, and the Composite builder.
-- **Studio sub-navigation**: a row of chips at the top of each Studio page (Home, Python, REST, DB Query, Script, PowerBI, DAX, LiveLink, OLAP, Composite).
-- **Studio home cards**: one card per creator. The SharePoint creator is reached from its card on Studio home; it is not in the top navigation or the sub-navigation.
+- **Studio sub-navigation**: a row of chips at the top of each Studio page (Home, Python, REST, DB Query, Script, PowerBI, DAX, LiveLink, SharePoint, OLAP, Composite).
+- **Studio home cards**: one card per creator. The SharePoint creator is not in the top navigation menu; use its card, its sub-navigation chip or the direct URL.
 - The **Dashboard** quick actions also link to `/studio`.
 
 The Composite builder (`/composite/builder`) appears in the Studio menus but is a separate feature; see [Composition Framework](../architecture/Composition%20Framework.md).
@@ -45,18 +45,26 @@ Every creator follows the same shape:
 5. **Registration.** The tools registry picks the new config up without a restart (see [Hot reload and registration](#hot-reload-and-registration)). The tool then appears under **Tools** and in MCP `tools/list`.
 6. **Test.** Run the tool from its page under **Tools** (`/tools/<tool_name>/execute`) before pointing an AI client at it.
 
-To change a deployed tool, edit and deploy again under the same name (the Python creator has **Delete if Exists** for this), or edit the generated files directly.
+Deploy refuses a name that is already in use. To change a deployed tool, delete it (the Python creator's **Delete if Exists** button, or `POST /admin/studio/delete`) and deploy again under the same name, or edit the generated files directly.
 
-### Known limitation: Studio action endpoints
+### Action endpoints: deploy, load and delete
 
-The Studio pages render in this release, but their action buttons (Analyze, Preview, Deploy, Delete if Exists) post to `/admin/studio/...` endpoints, and the server does not register those endpoints. The buttons therefore fail. The SharePoint page posts to `/studio.deploy_sharepoint_tool`, which no route handles either. Until the endpoints return, you have two options:
+The page buttons post JSON to admin-only endpoints under `/admin/studio/`:
 
-- **Call the generators directly from Python.** The generator classes in `sajha.studio` (`ToolCodeGenerator`, `RESTToolGenerator`, `DBQueryToolGenerator`, `ScriptToolGenerator`, `PowerBIToolGenerator`, `PowerBIDAXToolGenerator`, `LiveLinkToolGenerator`, and `SharePointToolGenerator` in `sajha.studio.sharepoint_tool_generator`) write the same files that Deploy would. The module docstring in `sajha/studio/__init__.py` has a usage example for each one.
-- **Write the files by hand.** Use the layout in the next section.
+| Creator | Endpoints |
+|---------|-----------|
+| Python code | `analyze`, `deploy`, `validate-name` |
+| REST, DB query, Script, PowerBI, PowerBI DAX, LiveLink, SharePoint | `<creator>/preview`, `<creator>/deploy` (`rest`, `dbquery`, `script`, `powerbi`, `powerbidax`, `livelink`, `sharepoint`) |
+| OLAP dataset | `olap/deploy`, `olap/delete` (body `{"name": ...}`) |
+| Any tool Studio generated | `delete` (body `{"tool_name": ...}`) |
 
-The OLAP creator has no generator class. For OLAP datasets, edit `config/olap/` directly (see the [OLAP creator guide](MCP%20Studio%20OLAP%20Tool%20Creator%20Guide.md)).
+All of them need an administrator session or an admin bearer token. Each answers `{"success": true, ...}` or `{"success": false, "error": "..."}`.
 
-There is also a known issue with generated script tools: the config sets `implementation` to an object, but the registry expects a dotted class path, so the tool does not load. The [Script creator guide](MCP%20Studio%20Script%20Tool%20Creator%20Guide.md) gives a manual workaround.
+- **Deploy** validates the name (3 to 64 characters: a lowercase letter, then lowercase letters, digits or underscores; not already a tool), writes the generated module and, last, the JSON config, then loads the tool into the running registry. The tool is in MCP `tools/list` and callable as soon as the response arrives. If the generated tool fails to load, its files are removed and the load error is returned.
+- **Delete** unregisters the tool and removes the files Studio generated for it: the JSON config, the generated module and, for script tools, the script. It refuses (HTTP 403) any tool Studio did not generate, so shipped tools cannot be deleted from here.
+- **OLAP deploy** adds the dataset to `config/olap/datasets.json`, adds any new dimension and measure definitions from the page to `dimensions.json` and `measures.json`, and re-creates the OLAP tools so they see the dataset. **OLAP delete** removes only datasets Studio created, together with the definitions it added for them.
+
+The generator classes in `sajha.studio` (`ToolCodeGenerator`, `RESTToolGenerator`, `DBQueryToolGenerator`, `ScriptToolGenerator`, `PowerBIToolGenerator`, `PowerBIDAXToolGenerator`, `LiveLinkToolGenerator`, and `SharePointToolGenerator` in `sajha.studio.sharepoint_tool_generator`) can also be called from Python; the module docstring in `sajha/studio/__init__.py` has a usage example for each. Files written that way are picked up by the registry's config watcher rather than loaded at once.
 
 ---
 
@@ -83,15 +91,15 @@ Tool configs are written through the storage layer (`write_tool_config` in `sajh
 - With the local storage backend, the tools registry (`sajha/tools/tools_registry.py`) polls `config/tools/*.json` every few seconds. It loads new configs, reloads changed ones and unregisters deleted ones. It also tracks changes to the modules in `sajha/tools/impl/`.
 - With a cloud storage backend the local poller is disabled. Reloads come from the object-store sync manager instead (the backend's `sync_interval` under `storage` in `config/application.yml`).
 - The separate hot-reload manager (`hot_reload` in `config/application.yml`) also watches tool configs and implementation modules.
-- OLAP dataset definitions in `config/olap/` are not hot-reloaded. Use **Reload All** on the Tools admin page, or restart the server.
+- OLAP dataset definitions in `config/olap/` are not watched. A Studio OLAP deploy or delete re-creates the OLAP tools itself; after editing the files by hand, use **Reload All** on the Tools admin page, or restart the server.
 - When the registry changes, connected MCP clients that support it get a `tools/list_changed` notification.
 
 ---
 
 ## Permissions
 
-- Every `/studio` page requires a signed-in user (`require_auth`).
-- The **MCP Studio** menu in the top navigation is shown only to administrators. In practice, Studio is an administrator feature.
+- Every `/studio` page and every `/admin/studio/` action endpoint requires an administrator (`require_admin`). Other signed-in users get *Access Forbidden*.
+- The **MCP Studio** menu in the top navigation is shown only to administrators.
 - The permission model (`sajha/db/models`) uses a `studio` resource type, for example a `studio_dev` role, only as an illustration. The Studio routes do not check it.
 - Deploying writes to `config/tools/`, `sajha/tools/impl/` and, for scripts, `config/scripts/`. The server process needs write access to those paths, and to the configured storage backend.
 

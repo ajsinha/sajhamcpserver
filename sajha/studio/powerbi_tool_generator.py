@@ -197,7 +197,7 @@ class PowerBI{class_name}Tool(BaseMCPTool):
     """
     
     NAME = "{config.tool_name}"
-    DESCRIPTION = """{config.description}"""
+    DESCRIPTION = {config.description!r}
     VERSION = "{config.version}"
     CATEGORY = "PowerBI"
     TAGS = {config.tags if config.tags else ["powerbi", "report", "pdf", "analytics", "generated"]}
@@ -212,7 +212,7 @@ class PowerBI{class_name}Tool(BaseMCPTool):
     EXPORT_FORMAT = "{config.export_format}"
     PAGE_NAME = "{config.page_name}"
     TIMEOUT_SECONDS = {config.timeout_seconds}
-    DEFAULT_FILTERS = {json.dumps(config.default_filters)}
+    DEFAULT_FILTERS = {config.default_filters!r}
     
     # PowerBI API endpoints
     AUTH_URL = "https://login.microsoftonline.com/{{tenant_id}}/oauth2/v2.0/token"
@@ -280,9 +280,10 @@ To use, ensure the following environment variables are set:
 - {config.client_secret_env}: Azure AD client secret
 Or configure service principal with PowerBI API access."""
     
-    def __init__(self):
-        """Initialize the PowerBI tool."""
-        super().__init__()
+    def __init__(self, config: Optional[Dict] = None):
+        """Initialize the PowerBI tool (the registry passes the JSON config)."""
+        super().__init__(config or {{"name": self.NAME, "description": self.DESCRIPTION,
+                                     "version": self.VERSION}})
         self._access_token = None
         self._token_expires = 0
     
@@ -444,7 +445,17 @@ Or configure service principal with PowerBI API access."""
                 "export_time_seconds": round(export_time, 2)
             }}
     
-    async def execute(self, report_name: Optional[str] = None, 
+    def get_input_schema(self) -> Dict:
+        return self.INPUT_SCHEMA
+
+    def get_output_schema(self) -> Dict:
+        return self.OUTPUT_SCHEMA
+
+    def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """MCP entry point: the registry passes one arguments dict."""
+        return self._execute_impl(**(arguments or {{}}))
+
+    def _execute_impl(self, report_name: Optional[str] = None, 
                      page_name: Optional[str] = None,
                      filters: Optional[Dict] = None,
                      **kwargs) -> Dict[str, Any]:
@@ -507,19 +518,20 @@ __all__ = ['PowerBI{class_name}Tool']
         try:
             created_files = {}
             
+            # Generate Python wrapper
+            python_code = self.generate_python_wrapper(config)
+            python_path = os.path.join(self.impl_dir, f"powerbi_{config.tool_name}.py")
+            compile(python_code, python_path, 'exec')
+            with open(python_path, 'w') as f:
+                f.write(python_code)
+            created_files['python_impl'] = python_path
+
             # Generate JSON config
             json_config = self.generate_tool_config(config)
             json_path = os.path.join(self.config_dir, f"{config.tool_name}.json")
             from sajha.core.storage import write_tool_config
             write_tool_config(json_path, json_config)
             created_files['json_config'] = json_path
-            
-            # Generate Python wrapper
-            python_code = self.generate_python_wrapper(config)
-            python_path = os.path.join(self.impl_dir, f"powerbi_{config.tool_name}.py")
-            with open(python_path, 'w') as f:
-                f.write(python_code)
-            created_files['python_impl'] = python_path
             
             logger.info(f"Successfully created PowerBI tool: {config.tool_name}")
             

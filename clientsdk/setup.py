@@ -6,11 +6,18 @@ Develop: pip install -e .
 Build:   python -m build
 """
 
+import os
+import re
+
 from setuptools import setup, find_packages
+
+_here = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(_here, "sajhaclient", "_version.py")) as _f:
+    VERSION = re.search(r'__version__ = "([^"]+)"', _f.read()).group(1)
 
 setup(
     name="sajhaclient",
-    version="6.0.0",
+    version=VERSION,
     author="Ashutosh Sinha",
     author_email="ajsinha@gmail.com",
     description="Python Client SDK for SAJHA MCP Server — REST, MCP, and A2A protocols",

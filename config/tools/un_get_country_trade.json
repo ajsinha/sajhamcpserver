@@ -18,7 +18,9 @@
         "maximum": 2030
       }
     },
-    "required": ["country_code"]
+    "required": [
+      "country_code"
+    ]
   },
   "outputSchema": {
     "type": "object",
@@ -36,7 +38,10 @@
         "description": "Export data summary",
         "properties": {
           "total_value": {
-            "type": ["number", "null"],
+            "type": [
+              "number",
+              "null"
+            ],
             "description": "Total export value in USD"
           },
           "top_partners": {
@@ -45,8 +50,12 @@
             "items": {
               "type": "object",
               "properties": {
-                "country": {"type": "string"},
-                "value": {"type": "number"}
+                "country": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "number"
+                }
               }
             }
           },
@@ -61,7 +70,10 @@
         "description": "Import data summary",
         "properties": {
           "total_value": {
-            "type": ["number", "null"],
+            "type": [
+              "number",
+              "null"
+            ],
             "description": "Total import value in USD"
           },
           "top_partners": {
@@ -70,8 +82,12 @@
             "items": {
               "type": "object",
               "properties": {
-                "country": {"type": "string"},
-                "value": {"type": "number"}
+                "country": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "number"
+                }
               }
             }
           },
@@ -82,7 +98,10 @@
         }
       },
       "trade_balance": {
-        "type": ["number", "null"],
+        "type": [
+          "number",
+          "null"
+        ],
         "description": "Net trade balance (exports - imports) in USD"
       },
       "note": {
@@ -90,15 +109,25 @@
         "description": "Data access and availability note"
       }
     },
-    "required": ["country_code", "year"]
+    "required": [
+      "country_code",
+      "year"
+    ]
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Global Statistics",
-    "tags": ["un", "comtrade", "trade summary", "country trade", "imports", "exports"],
+    "tags": [
+      "un",
+      "comtrade",
+      "trade summary",
+      "country trade",
+      "imports",
+      "exports"
+    ],
     "rateLimit": 60,
     "cacheTTL": 3600,
-    "note": "Provides a comprehensive trade overview for a country including total trade volumes, major partners, and commodity breakdowns. Requires UN Comtrade API authentication for full data access.",
+    "note": "Provides a trade overview for a country: total exports and imports (partner World), the trade balance, and the top 10 partners per flow. Data comes from the keyless UN Comtrade public preview API (annual HS goods trade, USD); set COMTRADE_API_KEY to use the full data API.",
     "examples": [
       {
         "description": "Get comprehensive trade data for United States in 2022",
@@ -128,5 +157,6 @@
       "Partner country identification",
       "Trade policy evaluation"
     ]
-  }
+  },
+  "comtrade_api_key": "${COMTRADE_API_KEY:}"
 }

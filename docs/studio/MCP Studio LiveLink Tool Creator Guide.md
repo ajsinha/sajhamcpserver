@@ -48,7 +48,7 @@ The IBM LiveLink Document Tool Creator (`/studio/livelink`) builds an MCP tool f
 | Timeout (seconds) | 60 | 10–300 |
 | Max File Size (MB) | 50 | 1–500. Larger downloads are refused. |
 
-The **Live Preview** panel shows the config as you type. **Preview** and **Deploy Tool** call `POST /admin/studio/livelink/preview` and `POST /admin/studio/livelink/deploy`. See [Known limitation: Studio action endpoints](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints): these endpoints are not registered in this release.
+The **Live Preview** panel shows the config as you type. **Preview** and **Deploy Tool** call `POST /admin/studio/livelink/preview` and `POST /admin/studio/livelink/deploy`. A successful deploy loads the tool at once; see [Action endpoints](MCP%20Studio%20User%20Guide.md#action-endpoints-deploy-load-and-delete).
 
 ---
 

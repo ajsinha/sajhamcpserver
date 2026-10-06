@@ -26,7 +26,10 @@
       "scope": {
         "type": "string",
         "description": "Geographic scope of data",
-        "enum": ["national", "state"]
+        "enum": [
+          "national",
+          "state"
+        ]
       },
       "state": {
         "type": "string",
@@ -83,12 +86,22 @@
         }
       }
     },
-    "required": ["scope", "year", "participation_data"]
+    "required": [
+      "scope",
+      "year",
+      "participation_data"
+    ]
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Crime Statistics",
-    "tags": ["crime", "fbi", "participation", "reporting", "ucr"],
+    "tags": [
+      "crime",
+      "fbi",
+      "participation",
+      "reporting",
+      "ucr"
+    ],
     "rateLimit": 120,
     "cacheTTL": 3600,
     "note": "Assess data quality and coverage by examining agency participation rates",
@@ -107,5 +120,6 @@
         }
       }
     ]
-  }
+  },
+  "api_key": "${fbi.api.key:}"
 }

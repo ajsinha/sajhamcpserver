@@ -15,7 +15,6 @@ The tools are implemented in `sajha/tools/impl/investor_relations_tool_refactore
 5. [Workflows](#workflows)
 6. [Limitations](#limitations)
 7. [Troubleshooting](#troubleshooting)
-8. [Page glossary](#page-glossary)
 
 ---
 
@@ -245,14 +244,7 @@ Call `ir_get_latest_earnings` for each ticker (for example `JPM`, `GS`, `BAC`). 
 
 ---
 
-## Page glossary
-
-- **Investor relations (IR) page**: the part of a company website that publishes reports, presentations and filings for investors.
-- **Earnings presentation**: the slide deck that accompanies a quarterly earnings call.
-- **10-K / 10-Q**: SEC annual and quarterly reports.
-- **SEC fallback**: when scraping finds nothing, the tools retrieve matching filings from SEC EDGAR by CIK.
-
-For more terms, see the [Glossary](../../../GLOSSARY.md).
+*Terms used in this guide are defined in the [Glossary](../../../GLOSSARY.md).*
 
 ---
 

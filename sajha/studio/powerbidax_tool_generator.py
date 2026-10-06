@@ -228,7 +228,7 @@ class PowerBIDAX{class_name}Tool(BaseMCPTool):
     """
     
     NAME = "{config.tool_name}"
-    DESCRIPTION = """{config.description}"""
+    DESCRIPTION = {config.description!r}
     VERSION = "{config.version}"
     CATEGORY = "PowerBI"
     TAGS = {config.tags if config.tags else ["powerbi", "dax", "query", "analytics", "generated"]}
@@ -250,7 +250,7 @@ class PowerBIDAX{class_name}Tool(BaseMCPTool):
     AUTH_URL = "https://login.microsoftonline.com/{{tenant_id}}/oauth2/v2.0/token"
     POWERBI_API_BASE = "https://api.powerbi.com/v1.0/myorg"
     
-    INPUT_SCHEMA = {json.dumps(input_schema, indent=8)}
+    INPUT_SCHEMA = {input_schema!r}
     
     OUTPUT_SCHEMA = {{
         "type": "object",
@@ -292,9 +292,10 @@ Returns structured data from PowerBI's analytical engine using Data Analysis Exp
 Requires Azure AD authentication with appropriate PowerBI permissions.
 The query must start with EVALUATE and return a table result."""
     
-    def __init__(self):
-        """Initialize the PowerBI DAX tool."""
-        super().__init__()
+    def __init__(self, config: Optional[Dict] = None):
+        """Initialize the PowerBI DAX tool (the registry passes the JSON config)."""
+        super().__init__(config or {{"name": self.NAME, "description": self.DESCRIPTION,
+                                     "version": self.VERSION}})
         self._access_token = None
         self._token_expires = 0
     
@@ -346,7 +347,7 @@ The query must start with EVALUATE and return a table result."""
             # Handle string values with proper DAX escaping
             if isinstance(value, str):
                 escaped_value = value.replace('"', '""')
-                result = result.replace(placeholder, f'"{escaped_value}"')
+                result = result.replace(placeholder, f'"{{escaped_value}}"')
             else:
                 result = result.replace(placeholder, str(value))
         return result
@@ -441,7 +442,7 @@ The query must start with EVALUATE and return a table result."""
                     if 'error' in error_data:
                         error_msg = error_data['error'].get('message', error_msg)
             except Exception as e:
-                logger.error(f"Unexpected error: {e}", exc_info=True)
+                logger.error(f"Unexpected error: {{e}}", exc_info=True)
                 pass
             
             logger.error(f"DAX query error: {{error_msg}}")
@@ -451,7 +452,17 @@ The query must start with EVALUATE and return a table result."""
                 "query_time_seconds": round(query_time, 3)
             }}
     
-    async def execute(self, **kwargs) -> Dict[str, Any]:
+    def get_input_schema(self) -> Dict:
+        return self.INPUT_SCHEMA
+
+    def get_output_schema(self) -> Dict:
+        return self.OUTPUT_SCHEMA
+
+    def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """MCP entry point: the registry passes one arguments dict."""
+        return self._execute_impl(**(arguments or {{}}))
+
+    def _execute_impl(self, **kwargs) -> Dict[str, Any]:
         """
         Execute the DAX query.
         
@@ -509,19 +520,20 @@ __all__ = ['PowerBIDAX{class_name}Tool']
         try:
             created_files = {}
             
+            # Generate Python wrapper
+            python_code = self.generate_python_wrapper(config)
+            python_path = os.path.join(self.impl_dir, f"powerbidax_{config.tool_name}.py")
+            compile(python_code, python_path, 'exec')
+            with open(python_path, 'w') as f:
+                f.write(python_code)
+            created_files['python_impl'] = python_path
+
             # Generate JSON config
             json_config = self.generate_tool_config(config)
             json_path = os.path.join(self.config_dir, f"{config.tool_name}.json")
             from sajha.core.storage import write_tool_config
             write_tool_config(json_path, json_config)
             created_files['json_config'] = json_path
-            
-            # Generate Python wrapper
-            python_code = self.generate_python_wrapper(config)
-            python_path = os.path.join(self.impl_dir, f"powerbidax_{config.tool_name}.py")
-            with open(python_path, 'w') as f:
-                f.write(python_code)
-            created_files['python_impl'] = python_path
             
             logger.info(f"Successfully created PowerBI DAX tool: {config.tool_name}")
             

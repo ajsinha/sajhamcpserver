@@ -718,25 +718,7 @@ Data is provided for information and research only and is not investment advice.
 
 ---
 
-## Page Glossary
-
-**Key terms referenced in this document:**
-
-- **Banque de France**: France's central bank, part of the Eurosystem implementing ECB monetary policy.
-
-- **EUR (Euro)**: The official currency of France and the Eurozone.
-
-- **Eurosystem**: The monetary authority of the Eurozone comprising the ECB and national central banks.
-
-- **OAT (Obligations Assimilables du Trésor)**: French government bonds.
-
-- **INSEE**: France's National Institute of Statistics and Economic Studies, source for economic data.
-
-- **HICP (Harmonised Index of Consumer Prices)**: The inflation measure used by the ECB.
-
-- **Refinancing Rate**: The ECB's main policy rate applicable to French banks.
-
-*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+*Terms used in this guide are defined in the [Glossary](../../../GLOSSARY.md).*
 
 ---
 

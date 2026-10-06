@@ -12,7 +12,6 @@
 8. [MCP Access](#mcp-access)
 9. [Creating a Prompt](#creating-a-prompt)
 10. [Troubleshooting](#troubleshooting)
-11. [Page Glossary](#page-glossary)
 
 ---
 
@@ -238,13 +237,7 @@ Guidelines:
 
 ---
 
-## Page Glossary
-
-- **Prompt template**: Text with `{argument}` placeholders that is filled in at render time.
-- **Prompts registry**: The server component that loads, reloads, renders and saves prompts.
-- **Render**: Substituting argument values into a template to produce the final prompt text.
-
-*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+*Terms used in this guide are defined in the [Glossary](../../../GLOSSARY.md).*
 
 ---
 

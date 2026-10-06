@@ -51,7 +51,11 @@
         "default": true
       }
     },
-    "required": ["offense_type", "start_year", "end_year"]
+    "required": [
+      "offense_type",
+      "start_year",
+      "end_year"
+    ]
   },
   "outputSchema": {
     "type": "object",
@@ -63,7 +67,11 @@
       "scope": {
         "type": "string",
         "description": "Geographic scope of analysis",
-        "enum": ["national", "state", "agency"]
+        "enum": [
+          "national",
+          "state",
+          "agency"
+        ]
       },
       "time_period": {
         "type": "object",
@@ -121,7 +129,11 @@
           "direction": {
             "type": "string",
             "description": "Overall trend direction",
-            "enum": ["increasing", "decreasing", "stable"]
+            "enum": [
+              "increasing",
+              "decreasing",
+              "stable"
+            ]
           },
           "peak_year": {
             "type": "integer",
@@ -134,17 +146,33 @@
           "volatility": {
             "type": "string",
             "description": "Measure of trend stability",
-            "enum": ["high", "medium", "low"]
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
           }
         }
       }
     },
-    "required": ["offense_type", "scope", "time_period", "time_series", "trend_analysis"]
+    "required": [
+      "offense_type",
+      "scope",
+      "time_period",
+      "time_series",
+      "trend_analysis"
+    ]
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Crime Statistics",
-    "tags": ["crime", "fbi", "trend", "analysis", "time series"],
+    "tags": [
+      "crime",
+      "fbi",
+      "trend",
+      "analysis",
+      "time series"
+    ],
     "rateLimit": 120,
     "cacheTTL": 3600,
     "note": "Analyze historical crime trends with statistical analysis over specified time periods",
@@ -168,5 +196,6 @@
         }
       }
     ]
-  }
+  },
+  "api_key": "${fbi.api.key:}"
 }

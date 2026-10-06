@@ -7,8 +7,17 @@
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Central Bank",
-    "tags": ["china", "pboc", "gdp", "unemployment", "industrial", "trade", "economic"],
+    "tags": [
+      "china",
+      "pboc",
+      "gdp",
+      "unemployment",
+      "industrial",
+      "trade",
+      "economic"
+    ],
     "rateLimit": 60,
     "cacheTTL": 3600
-  }
+  },
+  "api_key": "${fred.api.key}"
 }

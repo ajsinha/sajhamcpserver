@@ -28,6 +28,7 @@ import urllib.error
 import logging
 from typing import Optional, Dict, Any, List
 
+from sajhaclient._version import __version__
 from sajhaclient.config import SajhaConfig
 from sajhaclient.auth import AuthProvider, NoAuth, ApiKeyAuth, JWTAuth
 from sajhaclient.exceptions import (
@@ -89,7 +90,7 @@ class SajhaClient:
 
         headers = {
             'Accept': 'application/json',
-            'User-Agent': 'sajhaclient/3.0.0',
+            'User-Agent': f'sajhaclient/{__version__}',
             **self.config.headers,
             **self._auth.get_headers(),
         }

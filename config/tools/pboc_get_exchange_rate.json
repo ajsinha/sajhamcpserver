@@ -7,8 +7,13 @@
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Economic Data",
-    "tags": ["china", "pboc", "economic data"],
+    "tags": [
+      "china",
+      "pboc",
+      "economic data"
+    ],
     "rateLimit": 120,
     "cacheTTL": 3600
-  }
+  },
+  "api_key": "${fred.api.key}"
 }

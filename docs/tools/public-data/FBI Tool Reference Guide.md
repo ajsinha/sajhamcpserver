@@ -206,11 +206,9 @@ The tools parse this structure and enrich it with:
 
 ## Authentication & API Keys
 
-### How the Key Is Supplied (currently: it is not)
+### How the Key Is Supplied
 
-The tools call `https://api.usa.gov/crime/fbi/cde` with only `User-Agent` and `Accept` headers. The implementation sends **no API key**: the `fbi_` tool configs have no `api_key` field, `FBIBaseTool` reads none, and `config/application.yml` has no FBI entry.
-
-The CDE API is served through the api.data.gov gateway, which normally requires a free key (passed as the `API_KEY` query parameter) and rejects keyless requests. Expect the tools to return an "API request failed" error until key support is added to the implementation. A key can be requested at [api.data.gov/signup](https://api.data.gov/signup/). See the [Configuration Reference](../../getting-started/Configuration%20Reference.md) for how other providers' keys are configured.
+The CDE API is served through the api.data.gov gateway, which requires a key on every request. Each `fbi_` tool config carries `"api_key": "${fbi.api.key:}"`, and `config/application.yml` binds `fbi.api.key` to the `FBI_API_KEY` environment variable. `FBIBaseTool` sends the key in the `X-Api-Key` header. Resolution order: the config value, then the `FBI_API_KEY` or `DATA_GOV_API_KEY` environment variables, then api.data.gov's shared `DEMO_KEY` (heavily rate limited). Request a free key at [api.data.gov/signup](https://api.data.gov/signup/). See the [Configuration Reference](../../getting-started/Configuration%20Reference.md) for how other providers' keys are configured.
 
 ### Rate Limiting and Caching
 
@@ -1353,27 +1351,7 @@ The **Uniform Crime Reporting (UCR) Program** is a nationwide, cooperative stati
 
 ---
 
-## Page Glossary
-
-**Key terms referenced in this document:**
-
-- **FBI (Federal Bureau of Investigation)**: The U.S. federal law enforcement and intelligence agency.
-
-- **UCR (Uniform Crime Reporting)**: The FBI's program for collecting crime statistics from law enforcement agencies nationwide.
-
-- **Crime Statistics**: Quantitative data on criminal offenses. FBI provides national, state, and local crime data.
-
-- **NIBRS (National Incident-Based Reporting System)**: A detailed crime data collection system replacing summary UCR reporting.
-
-- **Violent Crime**: Offenses involving force or threat of force (murder, assault, robbery, rape).
-
-- **Property Crime**: Offenses involving taking property without force (burglary, theft, motor vehicle theft, arson).
-
-- **Crime Rate**: Number of crimes per 100,000 population. Allows comparison across areas of different sizes.
-
-- **ORI (Originating Agency Identifier)**: A unique code identifying law enforcement agencies in FBI databases.
-
-*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+*Terms used in this guide are defined in the [Glossary](../../../GLOSSARY.md).*
 
 ---
 

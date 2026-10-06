@@ -5,7 +5,7 @@
 1. [Overview](#overview)
 2. [Data Source and API Key](#data-source-and-api-key)
 3. [Tools](#tools)
-4. [Advertised Schema vs Implementation](#advertised-schema-vs-implementation)
+4. [Advertised Schema](#advertised-schema)
 5. [Tool Reference](#tool-reference)
 6. [Response Format](#response-format)
 7. [Calling the Tools](#calling-the-tools)
@@ -26,7 +26,7 @@ The tools do **not** call the Bank of Japan's Time-Series Data Search. Every ser
 
 All data tools need a FRED API key (free at [fred.stlouisfed.org](https://fred.stlouisfed.org/docs/api/api_key.html)). The SAJHA config key for FRED is `fred.api.key`, bound to the `FRED_API_KEY` environment variable in `config/application.yml`; see the [Configuration Reference](../../getting-started/Configuration%20Reference.md).
 
-> **Caution:** In this release the `boj_` tools do not read `fred.api.key`. Their key lookup (`_get_api_key`) imports `sajha.config.get_api_key_manager`, a module that does not exist, so every data tool currently returns an error instead of data. `boj_list_series` works because it makes no API call. Until this is fixed, use [`fred_custom_series`](../market-data/FRED%20Tool%20Reference%20Guide.md) with the FRED codes listed by `boj_list_series`; it uses the same FRED API and the configured key.
+Each `boj_` tool config carries `"api_key": "${fred.api.key}"`; the tools also fall back to the `FRED_API_KEY` environment variable. Without a key, the data tools return "FRED API key not configured". `boj_list_series` needs no key because it makes no API call.
 
 Caching is opt-in per tool: add a top-level `"cache_ttl": <seconds>` to a tool's JSON config. The `metadata.rateLimit` and `metadata.cacheTTL` fields in the `boj_` configs are informational and are not enforced.
 
@@ -40,7 +40,7 @@ Caching is opt-in per tool: add a top-level `"cache_ttl": <seconds>` to a tool's
 | `boj_get_policy_rate` | Call-money and discount rates | `rate_type`: `call_money`, `discount` |
 | `boj_get_exchange_rate` | Yen exchange rates | `currency_pair`: `usd_jpy`, `eur_jpy` |
 | `boj_get_money_supply` | Monetary aggregates | `aggregate`: `m1`, `m2`, `m3` |
-| `boj_get_inflation` | Consumer and producer prices | `measure`: `cpi`, `core_cpi`, `ppi` |
+| `boj_get_inflation` | Consumer and producer prices | `index_type`: `cpi`, `core_cpi`, `ppi` |
 | `boj_get_economic_indicator` | Macro indicators | `indicator`: `gdp`, `unemployment`, `industrial_production`, `trade_balance` |
 | `boj_list_series` | List the series these tools can fetch | `category`: `rates`, `fx`, `money`, `prices`, `economy`, `all` |
 
@@ -54,19 +54,19 @@ Caching is opt-in per tool: add a top-level `"cache_ttl": <seconds>` to a tool's
 
 ---
 
-## Advertised Schema vs Implementation
+## Advertised Schema
 
-The JSON configs for five `boj_` tools (`config/tools/boj_*.json`) carry an `inputSchema` that is what `tools/list` advertises, and it does not match what the implementation reads. The server only checks that the config's **required** parameters are present; it then passes the arguments to the implementation, which uses its own names and values.
+The `inputSchema` in each `config/tools/boj_*.json` is what `tools/list` advertises, and it matches what the implementation reads:
 
-| Tool | Advertised (config) | Implementation reads | What to send |
-|------|---------------------|----------------------|--------------|
-| `boj_get_jgb_yield` | `bond_term` (required): `2y`, `5y`, `10y`, `30y` | `bond_term`: `10y`, `3m` | `bond_term` = `10y` or `3m`; other values return "Unsupported bond term" |
-| `boj_get_policy_rate` | `rate_type` (required): `policy_rate`, `discount_rate` | `rate_type`: `call_money`, `discount` | `rate_type` = `call_money` or `discount`; the advertised values return "Unsupported rate type" |
-| `boj_get_exchange_rate` | `currency_pair` (required): `usd_jpy`, `eur_jpy`, `gbp_jpy`, `cny_jpy` | `currency_pair`: `usd_jpy`, `eur_jpy` | `usd_jpy` or `eur_jpy` |
-| `boj_get_money_supply` | `aggregate` (required): `m1`, `m2`, `m3` | same | as advertised |
-| `boj_get_inflation` | `index_type` (required): `cpi`, `core_cpi`, `ppi` | `measure`: `cpi`, `core_cpi`, `ppi` | send **both**: `index_type` (to pass the required check; ignored) and `measure` (selects the series; default `cpi`) |
+| Tool | Parameter and values |
+|------|----------------------|
+| `boj_get_jgb_yield` | `bond_term` (required): `10y`, `3m` (FRED publishes only these maturities for Japan) |
+| `boj_get_policy_rate` | `rate_type` (required): `call_money`, `discount` (`policy_rate` and `discount_rate` are accepted as aliases) |
+| `boj_get_exchange_rate` | `currency_pair` (required): `usd_jpy`, `eur_jpy` (EUR/JPY is derived from FRED's `DEXJPUS` x `DEXUSEU`, matched by date) |
+| `boj_get_money_supply` | `aggregate` (required): `m1`, `m2`, `m3` |
+| `boj_get_inflation` | `index_type` (required): `cpi`, `core_cpi`, `ppi` (`measure` is accepted as an alias) |
 
-`boj_get_economic_indicator` and `boj_list_series` have no config schema, so the implementation's own schema is advertised and matches.
+`boj_get_economic_indicator` and `boj_list_series` have no config schema, so the implementation's own schema is advertised.
 
 ---
 
@@ -91,7 +91,7 @@ The JSON configs for five `boj_` tools (`config/tools/boj_*.json`) carry an `inp
 | `currency_pair` | FRED series |
 |-----------------|-------------|
 | `usd_jpy` (default) | `DEXJPUS` (JPY per USD, daily) |
-| `eur_jpy` | `EXJPEU` |
+| `eur_jpy` | derived: `DEXJPUS` x `DEXUSEU` (FRED has no direct EUR/JPY series) |
 
 ### boj_get_money_supply
 
@@ -103,7 +103,7 @@ The JSON configs for five `boj_` tools (`config/tools/boj_*.json`) carry an `inp
 
 ### boj_get_inflation
 
-| `measure` | FRED series |
+| `index_type` | FRED series |
 |-----------|-------------|
 | `cpi` (default) | `JPNCPIALLMINMEI` (CPI, all items) |
 | `core_cpi` | `JPNCPICORMINMEI` (CPI less food and energy) |
@@ -157,7 +157,7 @@ Every tool can be called over MCP (a `tools/call` request on `POST /mcp`) or ove
 
 ```json
 {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
- "params": {"name": "boj_get_inflation", "arguments": {"index_type": "cpi", "measure": "cpi", "recent_periods": 12}}}
+ "params": {"name": "boj_get_inflation", "arguments": {"index_type": "cpi", "recent_periods": 12}}}
 ```
 
 **REST**
@@ -165,7 +165,7 @@ Every tool can be called over MCP (a `tools/call` request on `POST /mcp`) or ove
 ```bash
 curl -X POST http://localhost:3002/api/tools/execute \
   -H "X-API-Key: sja_your_key" -H "Content-Type: application/json" \
-  -d '{"tool": "boj_get_inflation", "arguments": {"index_type": "cpi", "measure": "cpi", "recent_periods": 12}}'
+  -d '{"tool": "boj_get_inflation", "arguments": {"index_type": "cpi", "recent_periods": 12}}'
 ```
 
 **Python client SDK**
@@ -174,7 +174,7 @@ curl -X POST http://localhost:3002/api/tools/execute \
 from sajhaclient import SajhaClient, SajhaConfig
 
 client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
-result = client.execute_tool("boj_get_inflation", index_type="cpi", measure="cpi", recent_periods=12)
+result = client.execute_tool("boj_get_inflation", index_type="cpi", recent_periods=12)
 ```
 
 
@@ -184,8 +184,8 @@ result = client.execute_tool("boj_get_inflation", index_type="cpi", measure="cpi
 
 | Symptom | Cause / fix |
 |---------|-------------|
-| `No module named 'sajha.config'` or "FRED API key not configured" | Key lookup issue described under [Data Source and API Key](#data-source-and-api-key); use `fred_custom_series` meanwhile. |
-| `Missing required parameter: index_type` (or `rate_type`, `bond_term`, ...) | The advertised schema requires it; see [Advertised Schema vs Implementation](#advertised-schema-vs-implementation). |
+| "FRED API key not configured" | Set `FRED_API_KEY` (see [Data Source and API Key](#data-source-and-api-key)). |
+| `Missing required parameter: index_type` (or `rate_type`, `bond_term`, ...) | The advertised schema requires it; see [Advertised Schema](#advertised-schema). |
 | `Unsupported ...` error | The value is outside what the implementation accepts (tables above). |
 | `Invalid series or parameters` / `Series not found` | FRED rejected the series or date range; check dates are `YYYY-MM-DD`. Some OECD series for Japan are discontinued or updated with a lag. |
 | Empty `observations` | No data in the requested range; widen the dates or use `recent_periods`. |
@@ -198,17 +198,7 @@ Data is provided for information and research only and is not investment advice.
 
 ---
 
-## Page Glossary
-
-**Key terms referenced in this document:**
-
-- **BoJ (Bank of Japan)**: Japan's central bank.
-- **JGB (Japanese Government Bond)**: Debt securities issued by the Japanese government.
-- **Call money rate**: The uncollateralized overnight interbank rate, the BoJ's main operating target.
-- **M2 / M3**: Broad measures of money supply.
-- **FRED API**: Federal Reserve Economic Data API, the source of all `boj_` data.
-
-*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+*Terms used in this guide are defined in the [Glossary](../../../GLOSSARY.md).*
 
 ---
 

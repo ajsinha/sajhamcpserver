@@ -51,7 +51,7 @@ The PowerBI Report Tool Creator (`/studio/powerbi`) builds an MCP tool that expo
 | Timeout (seconds) | 120 | 30–600 |
 | Author | (none) | If you leave it empty, the metadata author is set to `MCP Studio - PowerBI Generator`. |
 
-The right-hand **Live Preview** panel shows the JSON configuration as you type. **Preview Configuration** and **Deploy Tool** send the form to `POST /admin/studio/powerbi/preview` and `POST /admin/studio/powerbi/deploy`. See [Known limitation: Studio action endpoints](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints): these endpoints are not registered in this release.
+The right-hand **Live Preview** panel shows the JSON configuration as you type. **Preview Configuration** and **Deploy Tool** send the form to `POST /admin/studio/powerbi/preview` and `POST /admin/studio/powerbi/deploy`. A successful deploy loads the tool at once; see [Action endpoints](MCP%20Studio%20User%20Guide.md#action-endpoints-deploy-load-and-delete).
 
 ---
 

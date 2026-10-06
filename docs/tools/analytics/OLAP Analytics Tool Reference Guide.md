@@ -191,7 +191,7 @@ Output includes current and previous period values, absolute change and percenta
 }
 ```
 
-> **Known issue.** `olap_pivot_table` and `olap_time_series` are served by the multi-operation `DuckDBOLAPAdvancedTool`. Their config files declare the parameters above under `parameters` rather than `inputSchema`, so `tools/list` advertises only a generic schema (`dataset`, `tool_name`); the class selects its operation from a `_tool_name` argument (defaulting to dataset listing) and its synchronous `execute` wrapper depends on an asyncio event loop that is not present in the server's worker context. Until this is fixed, prefer `customer_olap_pivot` or `duckdb_sql` for production use.
+> **How these tools run.** `olap_pivot_table` and `olap_time_series` are served by the multi-operation `DuckDBOLAPAdvancedTool`; the registered tool name selects the operation and `tools/list` advertises that operation's schema. The semantic layer is read from `config/olap/`. When no OLAP database file is present, the tool loads a deterministic sample star schema (`customers`, `products`, `orders` and the denormalized `sales_data` view) into an in-memory DuckDB, so `sales_analysis` and `financial_metrics` work out of the box; `customer_analytics` and `inventory_analysis` reference tables (`customer_data`, `inventory_data`) that the sample schema does not create.
 
 ---
 

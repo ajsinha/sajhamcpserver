@@ -449,14 +449,30 @@ function updatePreview() {
 
 function buildConfig() {
     const dimensions = [];
+    const dimensionDefinitions = [];
     document.querySelectorAll('.dimension-row').forEach(row => {
         const name = row.querySelector('.dim-name').value;
-        if (name) dimensions.push(name);
+        if (!name) return;
+        dimensions.push(name);
+        dimensionDefinitions.push({
+            name: name,
+            column: row.querySelector('.dim-column').value || name,
+            type: row.querySelector('.dim-type').value || 'standard'
+        });
     });
     const measures = [];
+    const measureDefinitions = [];
     document.querySelectorAll('.measure-row').forEach(row => {
         const name = row.querySelector('.measure-name').value;
-        if (name) measures.push(name);
+        if (!name) return;
+        measures.push(name);
+        const expr = row.querySelector('.measure-expr').value;
+        if (expr) measureDefinitions.push({
+            name: name,
+            expression: expr,
+            format: row.querySelector('.measure-format').value || 'number',
+            description: row.querySelector('.measure-desc').value || ''
+        });
     });
     const joins = [];
     document.querySelectorAll('.join-row').forEach(row => {
@@ -474,7 +490,10 @@ function buildConfig() {
         joins: joins,
         dimensions: dimensions,
         measures: measures,
-        default_time_dimension: document.getElementById('defaultTimeDimension').value || null
+        default_time_dimension: document.getElementById('defaultTimeDimension').value || null,
+        // New dimensions/measures are added to dimensions.json / measures.json on deploy
+        dimension_definitions: dimensionDefinitions,
+        measure_definitions: measureDefinitions
     };
 }
 

@@ -20,7 +20,15 @@
       "agency_type": {
         "type": "string",
         "description": "Filter by type of agency",
-        "enum": ["city", "county", "state", "federal", "tribal", "university", "all"]
+        "enum": [
+          "city",
+          "county",
+          "state",
+          "federal",
+          "tribal",
+          "university",
+          "all"
+        ]
       },
       "limit": {
         "type": "integer",
@@ -30,7 +38,9 @@
         "default": 20
       }
     },
-    "required": ["agency_name"]
+    "required": [
+      "agency_name"
+    ]
   },
   "outputSchema": {
     "type": "object",
@@ -82,16 +92,30 @@
               "description": "Population served by agency"
             }
           },
-          "required": ["ori", "agency_name", "state"]
+          "required": [
+            "ori",
+            "agency_name",
+            "state"
+          ]
         }
       }
     },
-    "required": ["search_query", "total_results", "agencies"]
+    "required": [
+      "search_query",
+      "total_results",
+      "agencies"
+    ]
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Crime Statistics",
-    "tags": ["crime", "fbi", "agency", "search", "ori"],
+    "tags": [
+      "crime",
+      "fbi",
+      "agency",
+      "search",
+      "ori"
+    ],
     "rateLimit": 120,
     "cacheTTL": 3600,
     "note": "Search and discover law enforcement agencies to find their ORI codes for detailed queries",
@@ -118,5 +142,6 @@
         }
       }
     ]
-  }
+  },
+  "api_key": "${fbi.api.key:}"
 }

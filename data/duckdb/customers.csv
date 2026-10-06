@@ -1,0 +1,51 @@
+customer_id,customer_name,email,country,region,city,customer_segment,customer_tier,signup_date,age_group,gender,acquisition_channel,is_active
+C001,John Smith,john.smith@email.com,USA,North,New York,Consumer,Gold,2023-01-15,25-34,M,Organic,true
+C002,Emma Johnson,emma.j@email.com,USA,South,Miami,Consumer,Silver,2023-01-22,35-44,F,Paid Ads,true
+C003,Michael Brown,m.brown@email.com,USA,East,Boston,Enterprise,Platinum,2023-02-05,45-54,M,Referral,true
+C004,Sarah Davis,sarah.d@email.com,USA,West,Los Angeles,Small Business,Gold,2023-02-18,25-34,F,Organic,true
+C005,David Wilson,d.wilson@email.com,Canada,North,Toronto,Consumer,Bronze,2023-03-01,18-24,M,Social Media,true
+C006,Lisa Anderson,lisa.a@email.com,USA,Central,Chicago,Enterprise,Platinum,2023-03-12,35-44,F,Paid Ads,true
+C007,James Martinez,james.m@email.com,Mexico,South,Mexico City,Small Business,Silver,2023-03-25,45-54,M,Referral,true
+C008,Jennifer Taylor,jen.t@email.com,USA,North,Philadelphia,Consumer,Bronze,2023-04-08,25-34,F,Organic,false
+C009,Robert Thomas,rob.t@email.com,Canada,East,Montreal,Government,Gold,2023-04-20,55-64,M,Organic,true
+C010,Emily White,emily.w@email.com,USA,West,San Francisco,Enterprise,Platinum,2023-05-02,35-44,F,Paid Ads,true
+C011,William Harris,w.harris@email.com,USA,South,Houston,Consumer,Silver,2023-05-15,25-34,M,Social Media,true
+C012,Jessica Clark,jess.c@email.com,USA,Central,Denver,Small Business,Gold,2023-05-28,45-54,F,Referral,true
+C013,Christopher Lee,chris.l@email.com,USA,North,Seattle,Consumer,Bronze,2023-06-10,18-24,M,Paid Ads,true
+C014,Amanda Lewis,amanda.l@email.com,Canada,West,Vancouver,Enterprise,Platinum,2023-06-22,35-44,F,Organic,true
+C015,Daniel Walker,dan.w@email.com,USA,East,Atlanta,Government,Gold,2023-07-05,55-64,M,Referral,true
+C016,Michelle Hall,michelle.h@email.com,USA,South,Dallas,Consumer,Silver,2023-07-18,25-34,F,Social Media,true
+C017,Matthew Young,matt.y@email.com,USA,West,Phoenix,Small Business,Bronze,2023-07-30,35-44,M,Paid Ads,false
+C018,Stephanie King,steph.k@email.com,USA,Central,Minneapolis,Consumer,Gold,2023-08-12,45-54,F,Organic,true
+C019,Andrew Wright,andrew.w@email.com,Canada,North,Calgary,Enterprise,Platinum,2023-08-25,25-34,M,Referral,true
+C020,Nicole Scott,nicole.s@email.com,USA,North,Detroit,Consumer,Silver,2023-09-06,35-44,F,Paid Ads,true
+C021,Joshua Green,josh.g@email.com,USA,South,Charlotte,Small Business,Bronze,2023-09-19,18-24,M,Social Media,true
+C022,Lauren Adams,lauren.a@email.com,USA,East,Washington,Government,Gold,2023-10-01,55-64,F,Organic,true
+C023,Ryan Baker,ryan.b@email.com,USA,West,Portland,Consumer,Silver,2023-10-14,25-34,M,Paid Ads,true
+C024,Megan Nelson,megan.n@email.com,Mexico,Central,Guadalajara,Enterprise,Platinum,2023-10-27,35-44,F,Referral,true
+C025,Kevin Carter,kevin.c@email.com,USA,North,Pittsburgh,Consumer,Bronze,2023-11-08,45-54,M,Social Media,false
+C026,Rachel Mitchell,rachel.m@email.com,USA,South,Nashville,Small Business,Gold,2023-11-21,25-34,F,Organic,true
+C027,Brian Roberts,brian.r@email.com,Canada,East,Ottawa,Consumer,Silver,2023-12-03,35-44,M,Paid Ads,true
+C028,Samantha Turner,sam.t@email.com,USA,West,Las Vegas,Enterprise,Platinum,2023-12-16,55-64,F,Referral,true
+C029,Justin Phillips,justin.p@email.com,USA,Central,St. Louis,Government,Gold,2023-12-29,25-34,M,Organic,true
+C030,Tiffany Campbell,tiff.c@email.com,USA,North,Cleveland,Consumer,Bronze,2024-01-10,18-24,F,Social Media,true
+C031,Brandon Parker,brandon.p@email.com,USA,South,Orlando,Small Business,Silver,2024-01-23,35-44,M,Paid Ads,true
+C032,Christina Evans,chris.e@email.com,USA,East,Raleigh,Consumer,Gold,2024-02-05,45-54,F,Referral,true
+C033,Eric Edwards,eric.e@email.com,Canada,West,Edmonton,Enterprise,Platinum,2024-02-18,25-34,M,Organic,true
+C034,Melissa Collins,mel.c@email.com,USA,Central,Milwaukee,Consumer,Bronze,2024-03-01,35-44,F,Paid Ads,true
+C035,Tyler Stewart,tyler.s@email.com,USA,North,Baltimore,Government,Silver,2024-03-14,55-64,M,Social Media,true
+C036,Heather Sanchez,heather.s@email.com,Mexico,South,Monterrey,Small Business,Gold,2024-03-27,25-34,F,Referral,true
+C037,Derek Morris,derek.m@email.com,USA,West,San Diego,Consumer,Bronze,2024-04-09,18-24,M,Organic,true
+C038,Vanessa Rogers,van.r@email.com,USA,East,Tampa,Enterprise,Platinum,2024-04-22,35-44,F,Paid Ads,true
+C039,Aaron Reed,aaron.r@email.com,USA,South,San Antonio,Consumer,Silver,2024-05-05,45-54,M,Social Media,true
+C040,Kimberly Cook,kim.c@email.com,Canada,Central,Winnipeg,Small Business,Gold,2024-05-18,25-34,F,Referral,true
+C041,Patrick Morgan,pat.m@email.com,USA,North,Buffalo,Consumer,Bronze,2024-05-31,35-44,M,Organic,false
+C042,Angela Bell,angela.b@email.com,USA,West,Sacramento,Government,Silver,2024-06-13,55-64,F,Paid Ads,true
+C043,Sean Murphy,sean.m@email.com,USA,South,Memphis,Enterprise,Platinum,2024-06-26,25-34,M,Social Media,true
+C044,Crystal Bailey,crystal.b@email.com,USA,East,Jacksonville,Consumer,Gold,2024-07-09,35-44,F,Referral,true
+C045,Jeremy Rivera,jeremy.r@email.com,Mexico,Central,Puebla,Small Business,Bronze,2024-07-22,18-24,M,Organic,true
+C046,Brittany Cooper,brit.c@email.com,USA,North,Hartford,Consumer,Silver,2024-08-04,45-54,F,Paid Ads,true
+C047,Marcus Richardson,marcus.r@email.com,Canada,West,Victoria,Enterprise,Platinum,2024-08-17,25-34,M,Social Media,true
+C048,Diana Cox,diana.c@email.com,USA,South,Louisville,Government,Gold,2024-08-30,35-44,F,Referral,true
+C049,Shane Howard,shane.h@email.com,USA,East,Richmond,Consumer,Bronze,2024-09-12,55-64,M,Organic,true
+C050,Natalie Ward,nat.w@email.com,USA,West,Tucson,Small Business,Silver,2024-09-25,25-34,F,Paid Ads,true

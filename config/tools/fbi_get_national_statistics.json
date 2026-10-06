@@ -35,7 +35,9 @@
         "default": false
       }
     },
-    "required": ["offense_type"]
+    "required": [
+      "offense_type"
+    ]
   },
   "outputSchema": {
     "type": "object",
@@ -87,12 +89,22 @@
         }
       }
     },
-    "required": ["offense_type", "year", "national_data"]
+    "required": [
+      "offense_type",
+      "year",
+      "national_data"
+    ]
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Crime Statistics",
-    "tags": ["crime", "fbi", "statistics", "national", "ucr"],
+    "tags": [
+      "crime",
+      "fbi",
+      "statistics",
+      "national",
+      "ucr"
+    ],
     "rateLimit": 120,
     "cacheTTL": 3600,
     "note": "Retrieves nationwide crime statistics from FBI UCR data",
@@ -113,5 +125,6 @@
         }
       }
     ]
-  }
+  },
+  "api_key": "${fbi.api.key:}"
 }

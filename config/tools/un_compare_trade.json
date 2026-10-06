@@ -10,14 +10,21 @@
       "country_codes": {
         "type": "array",
         "description": "List of ISO3 country codes to compare (minimum 2, maximum 10 countries)",
-        "items": {"type": "string"},
+        "items": {
+          "type": "string"
+        },
         "minItems": 2,
         "maxItems": 10
       },
       "trade_flow": {
         "type": "string",
         "description": "Trade flow to compare across countries",
-        "enum": ["export", "import", "re_export", "re_import"],
+        "enum": [
+          "export",
+          "import",
+          "re_export",
+          "re_import"
+        ],
         "default": "export"
       },
       "year": {
@@ -27,7 +34,9 @@
         "maximum": 2030
       }
     },
-    "required": ["country_codes"]
+    "required": [
+      "country_codes"
+    ]
   },
   "outputSchema": {
     "type": "object",
@@ -55,7 +64,10 @@
               "description": "Country name"
             },
             "total_value": {
-              "type": ["number", "null"],
+              "type": [
+                "number",
+                "null"
+              ],
               "description": "Total trade value in USD"
             },
             "rank": {
@@ -84,20 +96,37 @@
         }
       }
     },
-    "required": ["trade_flow", "year", "countries"]
+    "required": [
+      "trade_flow",
+      "year",
+      "countries"
+    ]
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Global Statistics",
-    "tags": ["un", "comtrade", "comparison", "benchmarking", "multi-country", "trade analysis"],
+    "tags": [
+      "un",
+      "comtrade",
+      "comparison",
+      "benchmarking",
+      "multi-country",
+      "trade analysis"
+    ],
     "rateLimit": 60,
     "cacheTTL": 3600,
-    "note": "Compare trade performance across multiple countries. Useful for regional analysis, competitive positioning, and identifying trade leaders. Requires UN Comtrade API authentication.",
+    "note": "Compare trade performance across multiple countries (one Comtrade query per country, ranked by value). Useful for regional analysis, competitive positioning, and identifying trade leaders. Uses the keyless UN Comtrade public preview API; set COMTRADE_API_KEY to use the full data API.",
     "examples": [
       {
         "description": "Compare exports among BRICS countries in 2022",
         "input": {
-          "country_codes": ["BRA", "RUS", "IND", "CHN", "ZAF"],
+          "country_codes": [
+            "BRA",
+            "RUS",
+            "IND",
+            "CHN",
+            "ZAF"
+          ],
           "trade_flow": "export",
           "year": 2022
         }
@@ -105,7 +134,12 @@
       {
         "description": "Compare imports for major Asian economies",
         "input": {
-          "country_codes": ["CHN", "JPN", "IND", "KOR"],
+          "country_codes": [
+            "CHN",
+            "JPN",
+            "IND",
+            "KOR"
+          ],
           "trade_flow": "import",
           "year": 2023
         }
@@ -113,7 +147,15 @@
       {
         "description": "Compare exports across G7 countries",
         "input": {
-          "country_codes": ["USA", "CAN", "GBR", "FRA", "DEU", "ITA", "JPN"],
+          "country_codes": [
+            "USA",
+            "CAN",
+            "GBR",
+            "FRA",
+            "DEU",
+            "ITA",
+            "JPN"
+          ],
           "trade_flow": "export"
         }
       }
@@ -125,5 +167,6 @@
       "Trade policy impact assessment",
       "Market opportunity identification"
     ]
-  }
+  },
+  "comtrade_api_key": "${COMTRADE_API_KEY:}"
 }

@@ -96,7 +96,7 @@ The sidebar has four examples you can click to load into the form: **Sales by Re
 
 ### Preview and Deploy
 
-**Preview** shows the generated JSON, the Python implementation and the input and output schemas in tabs. **Deploy** becomes available after a successful preview. Both buttons send POST requests to `/admin/studio/dbquery/preview` and `/admin/studio/dbquery/deploy`. See [Known limitation: Studio action endpoints](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints) for the current status of those endpoints.
+**Preview** shows the generated JSON, the Python implementation and the input and output schemas in tabs. **Deploy** becomes available after a successful preview. Both buttons send POST requests to `/admin/studio/dbquery/preview` and `/admin/studio/dbquery/deploy`. A successful deploy loads the tool at once; see [Action endpoints](MCP%20Studio%20User%20Guide.md#action-endpoints-deploy-load-and-delete).
 
 ---
 

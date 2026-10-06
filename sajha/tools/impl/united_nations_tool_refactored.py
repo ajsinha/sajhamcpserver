@@ -4,6 +4,11 @@ United Nations MCP Tool Implementation - Refactored with Individual Tools
 """
 
 import json
+import os
+import re
+import threading
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from typing import Dict, Any, List, Optional
@@ -69,6 +74,130 @@ class UnitedNationsBaseTool(BaseMCPTool):
             'optical_instruments': '90-92'
         }
     
+    # ── UN Comtrade ──────────────────────────────────────────────────────
+    # Public preview API (no key; max 500 records per call, rate limited):
+    #   https://comtradeapi.un.org/public/v1/preview/C/A/HS?reporterCode=842&period=2022&...
+    # With a subscription key (tool config ``comtrade_api_key`` / env COMTRADE_API_KEY)
+    # the full data API (https://comtradeapi.un.org/data/v1/get/C/A/HS) is used instead.
+    COMTRADE_PREVIEW_URL = "https://comtradeapi.un.org/public/v1/preview/C/A/HS"
+    COMTRADE_DATA_URL = "https://comtradeapi.un.org/data/v1/get/C/A/HS"
+    COMTRADE_REFERENCE_URL = "https://comtradeapi.un.org/files/v1/app/reference"
+
+    # Comtrade area codes (M49-based; note Comtrade's own codes for USA=842,
+    # FRA=251, IND=699, CHE=757, NOR=579). Other ISO3 codes are resolved from the
+    # Comtrade reference files on first use.
+    COMTRADE_AREAS = {
+        'USA': 842, 'CHN': 156, 'DEU': 276, 'JPN': 392, 'GBR': 826, 'FRA': 251,
+        'IND': 699, 'ITA': 380, 'CAN': 124, 'KOR': 410, 'MEX': 484, 'BRA': 76,
+        'RUS': 643, 'AUS': 36, 'ESP': 724, 'NLD': 528, 'CHE': 757, 'SAU': 682,
+        'TUR': 792, 'IDN': 360, 'BEL': 56, 'SWE': 752, 'POL': 616, 'NOR': 579,
+        'ARG': 32, 'ZAF': 710, 'SGP': 702, 'MYS': 458, 'THA': 764, 'VNM': 704,
+        'ARE': 784, 'IRL': 372, 'AUT': 40, 'DNK': 208, 'FIN': 246, 'NZL': 554,
+        'CHL': 152, 'ISR': 376, 'EGY': 818, 'NGA': 566, 'PHL': 608, 'PAK': 586,
+        'BGD': 50, 'COL': 170, 'PER': 604, 'PRT': 620, 'GRC': 300, 'CZE': 203,
+        'HUN': 348, 'ROU': 642, 'UKR': 804, 'HKG': 344,
+    }
+    COMTRADE_RETRIES = 3
+    COMTRADE_BACKOFF_SECONDS = 1.5
+    _reference_cache: Dict[str, Dict[str, int]] = {}
+    _reference_lock = threading.Lock()
+
+    def _comtrade_api_key(self) -> Optional[str]:
+        for candidate in (self.config.get('comtrade_api_key'), os.environ.get('COMTRADE_API_KEY')):
+            if candidate and isinstance(candidate, str) and not candidate.startswith('${'):
+                return candidate
+        return None
+
+    def _load_reference(self, kind: str) -> Dict[str, int]:
+        """ISO3 -> Comtrade code from the reference file ('Reporters' or 'partnerAreas'),
+        preferring current (non-expired) entries. Cached per process."""
+        with self._reference_lock:
+            if kind in self._reference_cache:
+                return self._reference_cache[kind]
+        mapping: Dict[str, int] = {}
+        try:
+            data = self._http_get_json(f"{self.COMTRADE_REFERENCE_URL}/{kind}.json")
+            for row in data.get('results', []):
+                iso3 = row.get('reporterCodeIsoAlpha3') or row.get('PartnerCodeIsoAlpha3')
+                code = row.get('reporterCode', row.get('PartnerCode', row.get('id')))
+                if not iso3 or code is None or row.get('entryExpiredDate'):
+                    continue
+                mapping.setdefault(iso3.upper(), int(code))
+        except Exception as e:
+            self.logger.warning(f"Could not load Comtrade reference {kind}: {e}")
+        with self._reference_lock:
+            self._reference_cache[kind] = mapping
+        return mapping
+
+    def _resolve_area(self, code: Any, partner: bool = False) -> int:
+        """Accept a numeric Comtrade code, an ISO3 code, or 'all'/'world' (partner only)."""
+        if code is None or (isinstance(code, str) and code.strip().lower() in ('', 'all', 'world', 'w00', 'wld')):
+            if partner:
+                return 0
+            raise ValueError("A reporter country code is required")
+        if isinstance(code, int) or (isinstance(code, str) and code.strip().isdigit()):
+            return int(code)
+        iso3 = str(code).strip().upper()
+        if iso3 in self.COMTRADE_AREAS:
+            return self.COMTRADE_AREAS[iso3]
+        found = self._load_reference('partnerAreas' if partner else 'Reporters').get(iso3)
+        if found is None:
+            raise ValueError(f"Unknown country code for UN Comtrade: {code} (use ISO3, e.g. 'USA', or a numeric Comtrade code)")
+        return found
+
+    def _commodity_codes(self, commodity: str) -> str:
+        """'all' -> TOTAL; a group such as 'agricultural' (HS 01-24) -> '01,02,...,24';
+        anything else is passed through as an HS code list."""
+        value = self.commodity_groups.get(commodity, commodity) or 'TOTAL'
+        m = re.fullmatch(r'(\d{2})-(\d{2})', value)
+        if m:
+            lo, hi = int(m.group(1)), int(m.group(2))
+            return ','.join(f"{n:02d}" for n in range(lo, hi + 1))
+        return value
+
+    def _http_get_json(self, url: str, headers: Optional[Dict[str, str]] = None) -> Any:
+        req = urllib.request.Request(url, headers={
+            'User-Agent': 'SAJHA-MCP-Server', 'Accept': 'application/json', **(headers or {})})
+        with urllib.request.urlopen(req, timeout=30) as response:
+            return safe_json_response(response, ENCODINGS_ALL)
+
+    def _comtrade_query(self, reporter: int, year: int, flows: str = 'X,M',
+                        partner: Optional[int] = 0, cmd: str = 'TOTAL') -> List[Dict]:
+        """Query annual HS goods trade. ``partner=None`` returns every partner."""
+        params = {'reporterCode': reporter, 'period': year, 'flowCode': flows,
+                  'cmdCode': cmd, 'includeDesc': 'true'}
+        if partner is not None:
+            params['partnerCode'] = partner
+        key = self._comtrade_api_key()
+        base = self.COMTRADE_DATA_URL if key else self.COMTRADE_PREVIEW_URL
+        headers = {'Ocp-Apim-Subscription-Key': key} if key else None
+        url = f"{base}?{urllib.parse.urlencode(params)}"
+        data = None
+        for attempt in range(self.COMTRADE_RETRIES + 1):
+            try:
+                data = self._http_get_json(url, headers)
+                break
+            except urllib.error.HTTPError as e:
+                if e.code != 429:
+                    raise ValueError(f"UN Comtrade API error: HTTP {e.code}")
+                if attempt == self.COMTRADE_RETRIES:
+                    raise ValueError("UN Comtrade rate limit reached (public preview API); retry shortly "
+                                     "or configure a COMTRADE_API_KEY subscription key")
+                # The keyless preview API allows roughly one call per second
+                time.sleep(self.COMTRADE_BACKOFF_SECONDS * (attempt + 1))
+        if isinstance(data, dict) and data.get('error'):
+            raise ValueError(f"UN Comtrade API error: {data['error']}")
+        rows = (data or {}).get('data') or []
+        # Partner 2 / customs / mode-of-transport breakdowns would double count totals
+        return [r for r in rows if r.get('partner2Code', 0) in (0, None)
+                and str(r.get('customsCode', 'C00')) in ('C00', 'None')
+                and r.get('motCode', 0) in (0, None)]
+
+    @staticmethod
+    def _sum_value(rows: List[Dict], flow: str) -> Optional[float]:
+        values = [r.get('primaryValue') for r in rows if r.get('flowCode') == flow and r.get('primaryValue') is not None]
+        return float(sum(values)) if values else None
+
     def _fetch_sdg_api(self, endpoint: str) -> List:
         """Fetch data from UN SDG API"""
         try:
@@ -660,27 +789,41 @@ class UNGetTradeDataTool(UnitedNationsBaseTool):
         }
     
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        """Execute get trade data operation"""
+        """Execute get trade data operation (UN Comtrade, annual HS goods trade)"""
         reporter_code = arguments.get('reporter_code')
         partner_code = arguments.get('partner_code', 'all')
         trade_flow = arguments.get('trade_flow', 'export')
         commodity_code = arguments.get('commodity_code', 'all')
-        year = arguments.get('year', datetime.now().year - 1)
-        
-        # Convert trade flow to code
+        year = int(arguments.get('year') or datetime.now().year - 2)
+
         flow_code = self.trade_flows.get(trade_flow, 'X')
-        
-        # Convert commodity group to code
-        commodity = self.commodity_groups.get(commodity_code, commodity_code)
-        
+        commodity = self._commodity_codes(commodity_code)
+        reporter = self._resolve_area(reporter_code)
+        partner = self._resolve_area(partner_code, partner=True)
+
+        rows = self._comtrade_query(reporter, year, flows=flow_code, partner=partner, cmd=commodity)
+        data = [{
+            'partner_code': r.get('partnerCode'),
+            'partner': r.get('partnerDesc'),
+            'commodity_code': r.get('cmdCode'),
+            'commodity': r.get('cmdDesc'),
+            'trade_value': r.get('primaryValue'),
+            'quantity': r.get('qty'),
+            'quantity_unit': r.get('qtyUnitAbbr'),
+            'net_weight_kg': r.get('netWgt'),
+        } for r in rows]
         return {
             'reporter': reporter_code,
+            'reporter_comtrade_code': reporter,
             'partner': partner_code,
             'trade_flow': trade_flow,
-            'commodity': commodity,
+            'commodity': commodity_code,
             'year': year,
-            'note': 'UN Comtrade API requires authentication. This is a placeholder implementation.',
-            'data': []
+            'total_value': self._sum_value(rows, flow_code),
+            'record_count': len(data),
+            'data': data,
+            'note': 'Source: UN Comtrade (annual goods trade, HS, values in USD).'
+                    + ('' if data else ' No records were returned for this query; the reporter may not have filed data for that year yet.'),
         }
 
 
@@ -746,24 +889,36 @@ class UNGetCountryTradeTool(UnitedNationsBaseTool):
         }
     
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        """Execute get country trade operation"""
+        """Execute get country trade operation (totals and top partners from UN Comtrade)"""
         country_code = arguments.get('country_code')
-        year = arguments.get('year', datetime.now().year - 1)
-        
+        year = int(arguments.get('year') or datetime.now().year - 2)
+        reporter = self._resolve_area(country_code)
+
+        # Every partner (incl. World = 0) for both flows in one call (under the 500-row cap)
+        rows = self._comtrade_query(reporter, year, flows='X,M', partner=None)
+
+        def summary(flow: str) -> Dict[str, Any]:
+            world = [r for r in rows if r.get('flowCode') == flow and r.get('partnerCode') == 0]
+            partners = sorted(
+                (r for r in rows if r.get('flowCode') == flow and r.get('partnerCode') not in (0, None)),
+                key=lambda r: r.get('primaryValue') or 0, reverse=True)
+            return {
+                'total_value': self._sum_value(world, flow),
+                'top_partners': [{'partner_code': r.get('partnerCode'), 'partner': r.get('partnerDesc'),
+                                  'value': r.get('primaryValue')} for r in partners[:10]],
+            }
+
+        exports, imports = summary('X'), summary('M')
+        balance = (exports['total_value'] - imports['total_value']
+                   if exports['total_value'] is not None and imports['total_value'] is not None else None)
         return {
             'country_code': country_code,
             'year': year,
-            'exports': {
-                'total_value': None,
-                'top_partners': [],
-                'note': 'Requires UN Comtrade authentication'
-            },
-            'imports': {
-                'total_value': None,
-                'top_partners': [],
-                'note': 'Requires UN Comtrade authentication'
-            },
-            'note': 'UN Comtrade API requires authentication for full data access.'
+            'exports': exports,
+            'imports': imports,
+            'trade_balance': balance,
+            'note': 'Source: UN Comtrade (annual goods trade, HS, values in USD).'
+                    + ('' if rows else ' No data returned; the country may not have reported for that year yet.'),
         }
 
 
@@ -846,21 +1001,24 @@ class UNGetTradeBalanceTool(UnitedNationsBaseTool):
         }
     
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        """Execute trade balance calculation"""
+        """Execute trade balance calculation (UN Comtrade exports minus imports)"""
         country_code = arguments.get('country_code')
         partner_code = arguments.get('partner_code', 'all')
-        year = arguments.get('year', datetime.now().year - 1)
-        
+        year = int(arguments.get('year') or datetime.now().year - 2)
+        reporter = self._resolve_area(country_code)
+        partner = self._resolve_area(partner_code, partner=True)
+
+        rows = self._comtrade_query(reporter, year, flows='X,M', partner=partner)
+        exports = self._sum_value(rows, 'X')
+        imports = self._sum_value(rows, 'M')
+        balance = exports - imports if exports is not None and imports is not None else None
         return {
             'country_code': country_code,
             'partner_code': partner_code,
             'year': year,
-            'note': 'Trade balance calculation requires full Comtrade API access.',
-            'data': {
-                'exports': None,
-                'imports': None,
-                'balance': None
-            }
+            'data': {'exports': exports, 'imports': imports, 'balance': balance},
+            'note': 'Source: UN Comtrade (annual goods trade, values in USD, as reported by the reporter country).'
+                    + ('' if rows else ' No data returned for this query.'),
         }
 
 
@@ -938,24 +1096,28 @@ class UNCompareCountryTradeTool(UnitedNationsBaseTool):
         }
     
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        """Execute trade comparison"""
+        """Execute trade comparison (one UN Comtrade query per country)"""
         country_codes = arguments.get('country_codes', [])
         trade_flow = arguments.get('trade_flow', 'export')
-        year = arguments.get('year', datetime.now().year - 1)
-        
-        comparison = {
-            'trade_flow': trade_flow,
-            'year': year,
-            'countries': []
-        }
-        
+        year = int(arguments.get('year') or datetime.now().year - 2)
+        flow_code = self.trade_flows.get(trade_flow, 'X')
+
+        comparison = {'trade_flow': trade_flow, 'year': year, 'countries': []}
         for country_code in country_codes:
-            comparison['countries'].append({
-                'country_code': country_code,
-                'total_value': None,
-                'note': 'Requires UN Comtrade authentication'
-            })
-        
+            entry: Dict[str, Any] = {'country_code': country_code, 'total_value': None}
+            try:
+                rows = self._comtrade_query(self._resolve_area(country_code), year, flows=flow_code, partner=0)
+                entry['total_value'] = self._sum_value(rows, flow_code)
+                if entry['total_value'] is None:
+                    entry['note'] = 'No data reported for this year'
+            except ValueError as e:
+                entry['error'] = str(e)
+            comparison['countries'].append(entry)
+
+        ranked = [c for c in comparison['countries'] if c.get('total_value') is not None]
+        for rank, c in enumerate(sorted(ranked, key=lambda c: c['total_value'], reverse=True), 1):
+            c['rank'] = rank
+        comparison['note'] = 'Source: UN Comtrade (annual goods trade, values in USD).'
         return comparison
 
 

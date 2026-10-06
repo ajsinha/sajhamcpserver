@@ -76,7 +76,7 @@ Click **Add Measure**. Each row has **Name**, **Expression** (for example `SUM(a
 - **Reset**: clears the form.
 - **Deploy Dataset**: validates, then posts the configuration to `/admin/studio/olap/deploy`.
 
-> **Deploy in 6.0.0:** `/admin/studio/olap/deploy` is not registered by the server, so deploying from this page fails. See [Known limitation: Studio action endpoints](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints). Use the page to build and validate a definition, then add it by hand as described in [Adding a dataset by hand](#adding-a-dataset-by-hand).
+> Deploy adds the dataset to `config/olap/datasets.json`, adds the page's new dimension and measure definitions to `dimensions.json` and `measures.json`, and re-creates the OLAP tools, so the dataset can be queried at once. It refuses a dataset name that already exists. `POST /admin/studio/olap/delete` with `{"name": ...}` removes a dataset Studio created, and the definitions it added. See [Action endpoints](MCP%20Studio%20User%20Guide.md#action-endpoints-deploy-load-and-delete).
 
 ---
 
@@ -96,17 +96,24 @@ The **Configuration Preview** panel shows the exact body that **Deploy Dataset**
   ],
   "dimensions": ["order_date", "region", "customer_segment"],
   "measures": ["revenue", "order_count"],
-  "default_time_dimension": "order_date"
+  "default_time_dimension": "order_date",
+  "dimension_definitions": [
+    { "name": "order_date", "column": "order_date", "type": "time" },
+    { "name": "region", "column": "region", "type": "standard" }
+  ],
+  "measure_definitions": [
+    { "name": "revenue", "expression": "SUM(amount)", "format": "currency", "description": "" }
+  ]
 }
 ```
 
-Only the **names** of dimensions and measures go into the body. Values typed into a dimension's Column and Type fields, or a measure's Expression, Format and Description fields, are not included. Those definitions belong in `dimensions.json` and `measures.json` (see below).
+The dataset itself lists dimensions and measures by **name**. The Column and Type of each dimension, and the Expression, Format and Description of each measure (rows without an expression are skipped), travel in `dimension_definitions` and `measure_definitions`. On deploy, a definition whose name is not yet in `dimensions.json` or `measures.json` is added there; an existing definition of the same name is kept unchanged.
 
 ---
 
 ## How datasets are stored and loaded
 
-There is no OLAP generator in `sajha/studio/`. The semantic layer (`sajha/olap/semantic_layer.py`) reads three files from `config/olap/`:
+There is no OLAP generator class in `sajha/studio/`; Studio's deploy endpoint edits these files directly. The semantic layer (`sajha/olap/semantic_layer.py`) reads three files from `config/olap/`:
 
 | File | Top-level key | Contents |
 |------|---------------|----------|
@@ -166,7 +173,7 @@ Use the shipped entries in `config/olap/*.json`, such as `sales_analysis`, as wo
 
 | Symptom | Likely cause | What to check |
 |---------|--------------|---------------|
-| **Deploy Dataset** reports a deployment error | The endpoint is not registered | See [Known limitation](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints) and add the dataset by hand. |
+| **Deploy Dataset** reports a deployment error | The name is taken, or a required field is missing | The status message says which. Pick another name, or delete the Studio-created dataset first. |
 | Dataset name rejected by the browser | Pattern `[a-z_]+` | No digits, capitals or hyphens. |
 | New dataset not visible to the OLAP tools | Semantic layer not reloaded | Use **Reload All** on **Admin → Tools**, or restart the server. |
 | A measure aggregates the wrong thing | No definition in `measures.json`, so it fell back to `SUM(<name>)` | Add the measure definition. |

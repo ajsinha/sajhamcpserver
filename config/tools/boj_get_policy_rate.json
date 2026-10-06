@@ -9,9 +9,12 @@
     "properties": {
       "rate_type": {
         "type": "string",
-        "description": "Type of policy rate",
-        "enum": ["policy_rate", "discount_rate"],
-        "default": "policy_rate"
+        "description": "Policy rate series: call_money (uncollateralized overnight call rate) or discount (basic discount/loan rate)",
+        "enum": [
+          "call_money",
+          "discount"
+        ],
+        "default": "call_money"
       },
       "start_date": {
         "type": "string",
@@ -29,21 +32,36 @@
         "default": 10
       }
     },
-    "required": ["rate_type"]
+    "required": [
+      "rate_type"
+    ]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "series_code": {"type": "string"},
-      "label": {"type": "string"},
-      "observation_count": {"type": "integer"},
+      "series_code": {
+        "type": "string"
+      },
+      "label": {
+        "type": "string"
+      },
+      "observation_count": {
+        "type": "integer"
+      },
       "observations": {
         "type": "array",
         "items": {
           "type": "object",
           "properties": {
-            "date": {"type": "string"},
-            "value": {"type": ["number", "null"]}
+            "date": {
+              "type": "string"
+            },
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
           }
         }
       }
@@ -52,8 +70,15 @@
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Monetary Policy",
-    "tags": ["interest rates", "policy rate", "japan", "boj", "monetary policy"],
+    "tags": [
+      "interest rates",
+      "policy rate",
+      "japan",
+      "boj",
+      "monetary policy"
+    ],
     "rateLimit": 120,
     "cacheTTL": 3600
-  }
+  },
+  "api_key": "${fred.api.key}"
 }

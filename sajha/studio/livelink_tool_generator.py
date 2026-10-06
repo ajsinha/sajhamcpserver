@@ -187,7 +187,7 @@ class LiveLink{class_name}Tool(BaseMCPTool):
     """
     
     NAME = "{config.tool_name}"
-    DESCRIPTION = """{config.description}"""
+    DESCRIPTION = {config.description!r}
     VERSION = "{config.version}"
     CATEGORY = "Document Management"
     TAGS = {config.tags if config.tags else ["livelink", "opentext", "document", "ecm", "generated"]}
@@ -296,9 +296,10 @@ Downloaded documents are returned as base64 encoded data.
 Actions: search (find by query), get (metadata), download (content), list (folder contents).
 Requires LiveLink credentials via environment variables."""
     
-    def __init__(self):
-        """Initialize the LiveLink tool."""
-        super().__init__()
+    def __init__(self, config: Optional[Dict] = None):
+        """Initialize the LiveLink tool (the registry passes the JSON config)."""
+        super().__init__(config or {{"name": self.NAME, "description": self.DESCRIPTION,
+                                     "version": self.VERSION}})
         self._auth_ticket = None
         self._ticket_expires = 0
     
@@ -554,7 +555,17 @@ Requires LiveLink credentials via environment variables."""
         except requests.RequestException as e:
             return {{"success": False, "error": f"Download failed: {{str(e)}}"}}
     
-    async def execute(self, action: str = "search", document_id: str = None,
+    def get_input_schema(self) -> Dict:
+        return self.INPUT_SCHEMA
+
+    def get_output_schema(self) -> Dict:
+        return self.OUTPUT_SCHEMA
+
+    def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """MCP entry point: the registry passes one arguments dict."""
+        return self._execute_impl(**(arguments or {{}}))
+
+    def _execute_impl(self, action: str = "search", document_id: str = None,
                      query: str = None, parent_id: str = None,
                      document_name: str = None, max_results: int = 25,
                      **kwargs) -> Dict[str, Any]:
@@ -622,19 +633,20 @@ __all__ = ['LiveLink{class_name}Tool']
         try:
             created_files = {}
             
+            # Generate Python wrapper
+            python_code = self.generate_python_wrapper(config)
+            python_path = os.path.join(self.impl_dir, f"livelink_{config.tool_name}.py")
+            compile(python_code, python_path, 'exec')
+            with open(python_path, 'w') as f:
+                f.write(python_code)
+            created_files['python_impl'] = python_path
+
             # Generate JSON config
             json_config = self.generate_tool_config(config)
             json_path = os.path.join(self.config_dir, f"{config.tool_name}.json")
             from sajha.core.storage import write_tool_config
             write_tool_config(json_path, json_config)
             created_files['json_config'] = json_path
-            
-            # Generate Python wrapper
-            python_code = self.generate_python_wrapper(config)
-            python_path = os.path.join(self.impl_dir, f"livelink_{config.tool_name}.py")
-            with open(python_path, 'w') as f:
-                f.write(python_code)
-            created_files['python_impl'] = python_path
             
             logger.info(f"Successfully created LiveLink tool: {config.tool_name}")
             

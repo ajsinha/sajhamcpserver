@@ -174,9 +174,9 @@ _APP_URL = re.compile(r'`(?:(?:GET|POST|PUT|PATCH|DELETE|WS)\s+)?(/(?:api|admin|
 _NOT_A_ROUTE = re.compile(r'\.\.\.|\*|<|…|\[')
 #: A URL on a line that says it is not served is documented as absent, which is correct.
 _SAYS_ABSENT = re.compile(r'404|not registered|no route|not served|Removed', re.I)
-#: Known, documented gaps: "Known limitation: Studio action endpoints" in the MCP Studio
-#: User Guide. The Studio pages post to these and the server does not register them.
-KNOWN_UNSERVED = ('/admin/studio/', '/studio.deploy_sharepoint_tool')
+#: Known, documented gaps: URLs the docs name that the server does not serve. None at
+#: present (the Studio action endpoints under /admin/studio/ are registered again).
+KNOWN_UNSERVED = ()
 
 
 @pytest.mark.parametrize('doc', DOCS, ids=IDS)
@@ -212,5 +212,5 @@ def test_the_router_is_actually_being_read():
 
 
 def test_the_exclusions_are_narrow():
-    assert len(WRITTEN_BY_READER) <= 10 and len(RUNTIME_DIRS) <= 3 and len(KNOWN_UNSERVED) <= 2
+    assert len(WRITTEN_BY_READER) <= 10 and len(RUNTIME_DIRS) <= 3 and len(KNOWN_UNSERVED) <= 1
     assert len(STALE) >= 3

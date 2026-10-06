@@ -27,6 +27,7 @@ import urllib.request
 import logging
 from typing import Optional, Dict, Any, List
 
+from sajhaclient._version import __version__
 from sajhaclient.config import SajhaConfig
 from sajhaclient.auth import AuthProvider, NoAuth, ApiKeyAuth, JWTAuth
 from sajhaclient.exceptions import SajhaA2AError, SajhaConnectionError
@@ -75,7 +76,7 @@ class A2AClient:
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'User-Agent': 'sajhaclient-a2a/3.0.0',
+            'User-Agent': f'sajhaclient-a2a/{__version__}',
             **self._auth.get_headers(),
         }
 

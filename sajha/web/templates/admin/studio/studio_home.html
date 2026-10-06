@@ -861,6 +861,17 @@
 let analysisComplete = false;
 let existingTools = {{ existing_tools | tojson }};
 
+// "Use this example" on the Examples page hands its code over in sessionStorage
+document.addEventListener('DOMContentLoaded', function() {
+    let stored = null;
+    try { stored = sessionStorage.getItem('studioCode'); sessionStorage.removeItem('studioCode'); } catch (e) {}
+    const editor = document.getElementById('codeEditor');
+    if (stored && editor) {
+        editor.value = stored;
+        editor.dispatchEvent(new Event('input'));
+    }
+});
+
 // Validate tool name on input
 document.getElementById('toolName').addEventListener('input', function() {
     validateToolName(this.value);

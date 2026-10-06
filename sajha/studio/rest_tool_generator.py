@@ -155,7 +155,6 @@ import logging
 import requests
 from typing import Dict, Any, Optional, List
 from sajha.tools.base_mcp_tool import BaseMCPTool
-from sajha.tools.http_utils import safe_json_response, safe_decode_response, ENCODINGS_DEFAULT
 
 logger = logging.getLogger(__name__)
 
@@ -175,8 +174,8 @@ class {class_name}(BaseMCPTool):
         """Initialize the REST tool."""
         super().__init__(config or {{}})
         self._name = "{definition.name}"
-        self._description = """{definition.description}"""
-        self._endpoint = "{definition.endpoint}"
+        self._description = {definition.description!r}
+        self._endpoint = {definition.endpoint!r}
         self._method = "{definition.method}"
         self._timeout = {definition.timeout}
         self._content_type = "{definition.content_type}"
@@ -203,11 +202,11 @@ class {class_name}(BaseMCPTool):
     
     def get_input_schema(self) -> Dict:
         """Return the JSON Schema for input validation."""
-        return {json.dumps(input_schema, indent=8)}
+        return {input_schema!r}
     
     def get_output_schema(self) -> Dict:
         """Return the JSON Schema for output."""
-        return {json.dumps(output_schema, indent=8)}
+        return {output_schema!r}
     
     def execute(self, arguments: Dict) -> Dict:
         """
@@ -331,7 +330,7 @@ class {class_name}(BaseMCPTool):
         path_params = re.findall(r'\\{{(\\w+)\\}}', url)
         for param in path_params:
             if param in arguments:
-                url = url.replace(f'{{{{{param}}}}}', str(arguments[param]))
+                url = url.replace('{{' + param + '}}', str(arguments[param]))
         
         return url
     
@@ -393,14 +392,14 @@ class {class_name}(BaseMCPTool):
         lines = []
         
         if definition.api_key:
-            lines.append(f'self._api_key = "{definition.api_key}"')
-            lines.append(f'self._api_key_header = "{definition.api_key_header}"')
+            lines.append(f'self._api_key = {definition.api_key!r}')
+            lines.append(f'self._api_key_header = {definition.api_key_header!r}')
         else:
             lines.append('self._api_key = None')
             lines.append('self._api_key_header = "X-API-Key"')
         
         if definition.basic_auth_username and definition.basic_auth_password:
-            lines.append(f'self._auth = ("{definition.basic_auth_username}", "{definition.basic_auth_password}")')
+            lines.append(f'self._auth = ({definition.basic_auth_username!r}, {definition.basic_auth_password!r})')
         else:
             lines.append('self._auth = None')
         
@@ -429,7 +428,7 @@ class {class_name}(BaseMCPTool):
         """Generate response parsing code based on response format."""
         if definition.response_format == 'csv':
             return '''# Parse CSV response
-text = safe_decode_response(response, ENCODINGS_DEFAULT)
+text = response.text
 result = self._parse_csv_response(text)
 
 return {
@@ -444,7 +443,7 @@ return {
 }'''
         elif definition.response_format == 'xml':
             return '''# Parse XML response (return as text with structure info)
-text = safe_decode_response(response, ENCODINGS_DEFAULT)
+text = response.text
 # Basic XML parsing - convert to dict-like structure
 try:
     import xml.etree.ElementTree as ET
@@ -464,7 +463,7 @@ return {
 }'''
         elif definition.response_format == 'text':
             return '''# Return plain text response
-text = safe_decode_response(response, ENCODINGS_DEFAULT)
+text = response.text
 
 return {
     "success": True,
@@ -478,7 +477,7 @@ return {
         else:  # json (default)
             return '''# Parse JSON response
 try:
-    result = safe_json_response(response, ENCODINGS_DEFAULT)
+    result = response.json()
 except Exception as e:
     logger.error(f"Unexpected error: {e}", exc_info=True)
     result = {"raw_response": response.text}
@@ -610,16 +609,18 @@ return {
                 return (False, f"Tool implementation already exists: {python_path}", "", "")
         
         try:
-            # Generate and save JSON config
+            # Generate everything first, so a generator error leaves no partial tool
             json_content = self.generate_json_config(definition)
+            python_content = self.generate_python_implementation(definition)
+            compile(python_content, str(python_path), 'exec')
+
+            # Python first: the registry's config watcher may load the JSON at once
+            python_path.write_text(python_content, encoding='utf-8')
+            logger.info(f"Saved tool implementation: {python_path}")
+
             from sajha.core.storage import write_tool_config
             write_tool_config(json_path, json_content)
             logger.info(f"Saved tool config via storage backend: {json_path}")
-            
-            # Generate and save Python implementation
-            python_content = self.generate_python_implementation(definition)
-            python_path.write_text(python_content, encoding='utf-8')
-            logger.info(f"Saved tool implementation: {python_path}")
             
             return (True, f"Tool '{definition.name}' saved successfully", str(json_path), str(python_path))
             

@@ -27,6 +27,21 @@ from sajha.olap.sample_data_generator import SampleDataGenerator
 logger = logging.getLogger(__name__)
 
 
+def _json_safe(value):
+    """DuckDB returns Decimal / date / datetime values; make results JSON-serializable."""
+    import datetime as _dt
+    from decimal import Decimal
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, (_dt.date, _dt.datetime)):
+        return value.isoformat()
+    return value
+
+
 class DuckDBOLAPAdvancedTool(BaseMCPTool):
     """
     Advanced OLAP analytics tool for DuckDB.
@@ -51,7 +66,7 @@ class DuckDBOLAPAdvancedTool(BaseMCPTool):
         # Handle both dict config (from tools_registry) and string path
         if isinstance(config, dict):
             self.config = config
-            self.config_path = config.get('config_path') or self._default_config_path()
+            self.config_path = self._resolve_config_path(config.get('config_path'))
         elif isinstance(config, str):
             self.config = {}
             self.config_path = config
@@ -74,10 +89,52 @@ class DuckDBOLAPAdvancedTool(BaseMCPTool):
         self.stats_engine = StatsEngine(self.semantic, self.conn)
         self.cohort_engine = CohortEngine(self.semantic, self.conn)
         self.sample_generator = SampleDataGenerator(self.conn)
-    
+        self._ensure_demo_data()
+
+    @staticmethod
+    def _project_root() -> Path:
+        # sajha/tools/impl/<this file> -> project root
+        return Path(__file__).resolve().parents[3]
+
     def _default_config_path(self) -> str:
-        """Get default config path."""
-        return str(Path(__file__).parent.parent.parent / "config" / "olap")
+        """Get default config path (<project root>/config/olap)."""
+        return str(self._project_root() / "config" / "olap")
+
+    def _resolve_config_path(self, configured: Optional[str]) -> str:
+        if not configured or str(configured).startswith('${'):
+            return self._default_config_path()
+        p = Path(configured)
+        if not p.is_absolute():
+            p = self._project_root() / p
+        return str(p)
+
+    def _table_exists(self, table: str) -> bool:
+        try:
+            self.conn.execute(f"SELECT 1 FROM {table} LIMIT 0")
+            return True
+        except Exception:
+            return False
+
+    def _ensure_demo_data(self):
+        """When no OLAP database is configured (in-memory connection), load the
+        sample star schema so the shipped datasets (sales_analysis, ...) can be
+        queried out of the box. Skipped when the source tables already exist."""
+        if self.config.get('generate_sample_data', True) is False:
+            return
+        if self._table_exists('sales_data'):
+            return
+        try:
+            import random
+            state = random.getstate()
+            random.seed(42)  # deterministic demo data
+            try:
+                result = self.sample_generator.generate_all_sample_data(num_customers=200, num_orders=2000)
+            finally:
+                random.setstate(state)
+            if not result.get('success'):
+                logger.warning(f"OLAP sample data generation failed: {result.get('error')}")
+        except Exception as e:
+            logger.warning(f"OLAP sample data generation failed: {e}")
     
     def _init_connection(self):
         """Initialize DuckDB connection."""
@@ -1066,11 +1123,25 @@ ORDER BY {self._safe_alias(measure)} DESC
         This is a synchronous wrapper for the async call_tool method.
         """
         import asyncio
-        tool_name = arguments.get('_tool_name', 'olap_list_datasets')
-        return asyncio.get_event_loop().run_until_complete(self.call_tool(tool_name, arguments))
-    
+        arguments = dict(arguments or {})
+        # Each config (olap_pivot_table, olap_time_series, ...) registers this class
+        # under its own name; that name selects the handler.
+        tool_name = arguments.pop('_tool_name', None) or self.name
+        coro = self.call_tool(tool_name, arguments)
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return _json_safe(asyncio.run(coro))
+        # Called from inside a running event loop: run on a private loop in a worker thread
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            return _json_safe(pool.submit(asyncio.run, coro).result())
+
     def get_input_schema(self) -> Dict:
-        """Get combined input schema for all OLAP tools."""
+        """Input schema of the OLAP operation this instance is registered as."""
+        for tool in self.get_tools():
+            if tool.get('name') == self.name:
+                return tool.get('inputSchema', {"type": "object", "properties": {}})
         return {
             "type": "object",
             "properties": {
@@ -1441,6 +1512,10 @@ class DuckDBSQLTool(BaseMCPTool):
             csv_files = ['customers', 'orders', 'products']
             for table_name in csv_files:
                 file_path = f"{self.data_dir}/{table_name}.csv"
+                if not os.path.exists(file_path):
+                    # Missing sample file: the tool still loads; queries on that table fail clearly
+                    logger.warning(f"DuckDBSQLTool: {file_path} not found; table '{table_name}' unavailable")
+                    continue
                 create_view = f"""
                     CREATE OR REPLACE VIEW {table_name} AS 
                     SELECT * FROM read_csv_auto('{file_path}')
@@ -1487,9 +1562,11 @@ class DuckDBSQLTool(BaseMCPTool):
                     "error": f"Only SELECT/WITH/EXPLAIN queries are permitted. Got: {first_keyword}"
                 }
             
-            # Add LIMIT if not present
-            if 'LIMIT' not in sql_upper:
-                sql = f"{sql.rstrip(';')} LIMIT {limit}"
+            # Add LIMIT if not present (row-returning queries only: DESCRIBE/SHOW/PRAGMA/EXPLAIN
+            # do not accept a trailing LIMIT clause)
+            sql_upper = sql_normalized.upper()
+            if first_keyword in ('SELECT', 'WITH') and not re.search(r'\bLIMIT\b', sql_upper):
+                sql = f"{sql_normalized.rstrip().rstrip(';')} LIMIT {int(limit)}"
             
             # Execute query
             result = self.conn.execute(sql)

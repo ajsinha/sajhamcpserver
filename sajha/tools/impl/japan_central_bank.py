@@ -7,12 +7,16 @@ FRED provides reliable access to Bank of Japan and Japanese economic data.
 """
 
 import json
+import logging
+import os
 import urllib.parse
 import urllib.request
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.http_utils import safe_json_response, ENCODINGS_DEFAULT
+
+logger = logging.getLogger(__name__)
 
 
 class BankOfJapanBaseTool(BaseMCPTool):
@@ -47,7 +51,7 @@ class BankOfJapanBaseTool(BaseMCPTool):
             
             # Exchange Rates
             'usd_jpy': 'DEXJPUS',  # Japanese Yen to US Dollar
-            'eur_jpy': 'EXJPEU',  # Japanese Yen to Euro (inverted)
+            'eur_jpy': 'DEXJPUS*DEXUSEU',  # derived: JPY per USD x USD per EUR (FRED has no direct EUR/JPY)
             
             # Monetary Aggregates
             'm1': 'MYAGM1JPM189S',  # M1 Money Stock
@@ -87,23 +91,25 @@ class BankOfJapanBaseTool(BaseMCPTool):
         }
     
     def _get_api_key(self) -> str:
-        """Get FRED API key from configuration"""
+        """Get the FRED API key.
+
+        Resolution order: the tool config's ``api_key`` (configs carry
+        ``"api_key": "${fred.api.key}"``, which the registry resolves from
+        application.yml / the FRED_API_KEY env var), then the FRED_API_KEY
+        environment variable directly.
+        """
         if self.fred_api_key:
             return self.fred_api_key
-            
-        # Try to get from config
-        from sajha.config import get_api_key_manager
-        api_key_manager = get_api_key_manager()
-        
-        # Try multiple possible key names
-        for key_name in ['fred_api_key', 'FRED_API_KEY', 'fred']:
-            api_key = api_key_manager.get_api_key(key_name)
-            if api_key:
-                self.fred_api_key = api_key
-                return api_key
-        
+
+        for candidate in (self.config.get('api_key'), os.environ.get('FRED_API_KEY')):
+            # An unresolved placeholder (e.g. "${fred.api.key}") means "not configured"
+            if candidate and isinstance(candidate, str) and not candidate.startswith('${'):
+                self.fred_api_key = candidate
+                return candidate
+
         raise ValueError(
-            "FRED API key not configured. Please add 'fred_api_key' to config/apikeys.json. "
+            "FRED API key not configured. Set the FRED_API_KEY environment variable "
+            "(application.yml: fred.api.key). "
             "Get a free API key at https://fred.stlouisfed.org/docs/api/api_key.html"
         )
     
@@ -368,7 +374,10 @@ class BoJGetPolicyRateTool(BankOfJapanBaseTool):
         
         type_mapping = {
             'call_money': 'policy_rate',
-            'discount': 'discount_rate'
+            'discount': 'discount_rate',
+            # aliases (older configs advertised the series ids directly)
+            'policy_rate': 'policy_rate',
+            'discount_rate': 'discount_rate',
         }
         
         series_id = type_mapping.get(rate_type)
@@ -439,9 +448,30 @@ class BoJGetExchangeRateTool(BankOfJapanBaseTool):
         recent_periods = arguments.get('recent_periods')
         
         if currency_pair not in ['usd_jpy', 'eur_jpy']:
-            return {"error": f"Unsupported currency pair: {currency_pair}"}
-        
-        return self._fetch_series(currency_pair, start_date, end_date, recent_periods)
+            return {"error": f"Unsupported currency pair: {currency_pair}. Supported: usd_jpy, eur_jpy"}
+
+        if currency_pair == 'usd_jpy':
+            return self._fetch_series(currency_pair, start_date, end_date, recent_periods)
+
+        # EUR/JPY is not published on FRED: cross it from JPY per USD (DEXJPUS)
+        # and USD per EUR (DEXUSEU), matched on observation date.
+        usd_jpy = self._fetch_series('DEXJPUS', start_date, end_date, recent_periods)
+        usd_eur = self._fetch_series('DEXUSEU', start_date, end_date, recent_periods)
+        eur_by_date = {o['date']: o['value'] for o in usd_eur['observations']}
+        observations = [
+            {'date': o['date'], 'value': round(o['value'] * eur_by_date[o['date']], 4)}
+            for o in usd_jpy['observations'] if o['date'] in eur_by_date
+        ]
+        return {
+            'series_code': 'DEXJPUS*DEXUSEU',
+            'series_id': 'eur_jpy',
+            'label': self.series_labels['eur_jpy'],
+            'source': 'FRED (Federal Reserve Economic Data), derived cross rate',
+            'frequency': usd_jpy.get('frequency', 'Daily'),
+            'units': 'Japanese Yen per Euro',
+            'observation_count': len(observations),
+            'observations': observations,
+        }
 
 
 class BoJGetMoneySupplyTool(BankOfJapanBaseTool):
@@ -530,7 +560,7 @@ class BoJGetInflationTool(BankOfJapanBaseTool):
         return {
             "type": "object",
             "properties": {
-                "measure": {
+                "index_type": {
                     "type": "string",
                     "description": "Inflation measure",
                     "enum": ["cpi", "core_cpi", "ppi"],
@@ -565,7 +595,8 @@ class BoJGetInflationTool(BankOfJapanBaseTool):
     
     def execute(self, arguments: Dict[str, Any]) -> Dict:
         """Execute inflation data retrieval"""
-        measure = arguments.get('measure', 'cpi')
+        # 'index_type' is the name the tool config advertises; 'measure' kept for compatibility
+        measure = arguments.get('index_type') or arguments.get('measure', 'cpi')
         start_date = arguments.get('start_date')
         end_date = arguments.get('end_date')
         recent_periods = arguments.get('recent_periods')

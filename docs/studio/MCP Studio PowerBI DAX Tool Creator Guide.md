@@ -45,7 +45,7 @@ The PowerBI DAX Query Tool Creator (`/studio/powerbidax`) builds an MCP tool tha
 | Timeout (seconds) | No | Default 60. The page allows 10–300. |
 | Max Rows | No | Default 10000. The page allows 100–100000. |
 
-The **Live Preview** panel shows the config as you type. **Preview** and **Deploy Tool** call `POST /admin/studio/powerbidax/preview` and `POST /admin/studio/powerbidax/deploy`. See [Known limitation: Studio action endpoints](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints): these endpoints are not registered in this release.
+The **Live Preview** panel shows the config as you type. **Preview** and **Deploy Tool** call `POST /admin/studio/powerbidax/preview` and `POST /admin/studio/powerbidax/deploy`. A successful deploy loads the tool at once; see [Action endpoints](MCP%20Studio%20User%20Guide.md#action-endpoints-deploy-load-and-delete).
 
 ---
 

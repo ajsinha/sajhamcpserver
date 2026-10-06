@@ -11,6 +11,7 @@
             <a href="{{ url_for('studio_powerbi') }}" class="filter-chip {% if 'powerbi' in request.path and 'dax' not in request.path %}active{% endif %}"><i class="bi bi-bar-chart-fill me-1"></i>PowerBI</a>
             <a href="{{ url_for('studio_powerbidax') }}" class="filter-chip {% if 'dax' in request.path %}active{% endif %}"><i class="bi bi-braces me-1"></i>DAX</a>
             <a href="{{ url_for('studio_livelink') }}" class="filter-chip {% if 'livelink' in request.path %}active{% endif %}"><i class="bi bi-folder2-open me-1"></i>LiveLink</a>
+            <a href="{{ url_for('studio_sharepoint') }}" class="filter-chip {% if 'sharepoint' in request.path %}active{% endif %}"><i class="bi bi-microsoft me-1"></i>SharePoint</a>
             <a href="{{ url_for('studio_olap') }}" class="filter-chip {% if 'olap' in request.path %}active{% endif %}"><i class="bi bi-graph-up-arrow me-1"></i>OLAP</a>
             <a href="{{ url_for('composite_builder') }}" class="filter-chip {% if 'composite' in request.path %}active{% endif %}"><i class="bi bi-boxes me-1"></i>Composite</a>
         </nav>

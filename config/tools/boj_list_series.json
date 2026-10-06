@@ -7,8 +7,15 @@
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Central Bank",
-    "tags": ["japan", "boj", "series", "list", "catalog"],
+    "tags": [
+      "japan",
+      "boj",
+      "series",
+      "list",
+      "catalog"
+    ],
     "rateLimit": 120,
     "cacheTTL": 86400
-  }
+  },
+  "api_key": "${fred.api.key}"
 }

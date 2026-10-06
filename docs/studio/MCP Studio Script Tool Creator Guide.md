@@ -60,7 +60,7 @@ The sidebar has four examples you can load: **System Information** (Bash), **Fil
 
 ### Preview and Deploy
 
-**Preview Tool** shows the generated config and the Python wrapper. **Deploy Tool** creates the files. Both buttons send POST requests to `/admin/studio/script/preview` and `/admin/studio/script/deploy`. See [Known limitation: Studio action endpoints](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints) for the current status of those endpoints.
+**Preview Tool** shows the generated config and the Python wrapper. **Deploy Tool** creates the files. Both buttons send POST requests to `/admin/studio/script/preview` and `/admin/studio/script/deploy`. A successful deploy loads the tool at once; see [Action endpoints](MCP%20Studio%20User%20Guide.md#action-endpoints-deploy-load-and-delete).
 
 ---
 
@@ -118,9 +118,9 @@ Every argument is converted to a string before the script runs. If the generator
 
 If you want structured data, print JSON to STDOUT and let the caller parse it.
 
-### Known issue: the config format does not match the registry
+### Config format
 
-The generated config stores `implementation` as an object (`{"type": "script", "script_type": ..., "script_file": ..., ...}`). The tools registry expects `implementation` to be a dotted class path, for example `sajha.tools.impl.<tool_name>_script_tool.<ToolName>ScriptTool`. As generated, the config does not load. Change `implementation` to the wrapper's class path by hand before you rely on the tool.
+The generated config sets `implementation` to the wrapper's dotted class path, `sajha.tools.impl.<tool_name>_script_tool.<ToolName>ScriptTool`, like every other tool, and keeps the script settings under `script`. Configs written by earlier releases, where `implementation` was an object, still load: the registry maps them to the same wrapper module.
 
 ---
 

@@ -25,7 +25,7 @@ The tools do **not** call PBoC systems. Every series comes from the St. Louis Fe
 
 All data tools need a FRED API key (free at [fred.stlouisfed.org](https://fred.stlouisfed.org/docs/api/api_key.html)). The SAJHA config key for FRED is `fred.api.key`, bound to the `FRED_API_KEY` environment variable in `config/application.yml`; see the [Configuration Reference](../../getting-started/Configuration%20Reference.md).
 
-> **Caution:** In this release the `pboc_` tools do not read `fred.api.key`. Their key lookup (`_get_api_key`) imports `sajha.config.get_api_key_manager`, a module that does not exist, so every data tool currently returns an error instead of data. `pboc_list_series` works because it makes no API call. Until this is fixed, use [`fred_custom_series`](../market-data/FRED%20Tool%20Reference%20Guide.md) with the FRED codes listed by `pboc_list_series`; it uses the same FRED API and the configured key.
+Each `pboc_` tool config carries `"api_key": "${fred.api.key}"`; the tools also fall back to the `FRED_API_KEY` environment variable. Without a key, the data tools return "FRED API key not configured". `pboc_list_series` needs no key because it makes no API call.
 
 Caching is opt-in per tool: add a top-level `"cache_ttl": <seconds>` to a tool's JSON config. The `metadata.rateLimit` and `metadata.cacheTTL` fields in the `pboc_` configs are informational and are not enforced.
 
@@ -170,7 +170,7 @@ result = client.execute_tool("pboc_get_money_supply", aggregate="m2", recent_per
 
 | Symptom | Cause / fix |
 |---------|-------------|
-| `No module named 'sajha.config'` or "FRED API key not configured" | Key lookup issue described under [Data Source and API Key](#data-source-and-api-key); use `fred_custom_series` meanwhile. |
+| "FRED API key not configured" | Set `FRED_API_KEY` (see [Data Source and API Key](#data-source-and-api-key)). |
 | `Unsupported ...` error | The argument value is outside the lists above. |
 | `Invalid series or parameters` / `Series not found` | FRED rejected the series or date range; check dates are `YYYY-MM-DD`. Some OECD/IMF series for China are discontinued or updated with long lags. |
 | Empty `observations` | No data in the requested range; widen the dates or use `recent_periods`. |
@@ -185,18 +185,7 @@ Data is provided for information and research only and is not investment advice.
 
 ---
 
-## Page Glossary
-
-**Key terms referenced in this document:**
-
-- **PBoC (People's Bank of China)**: China's central bank, responsible for monetary policy and financial regulation.
-- **CNY/RMB (Chinese Yuan/Renminbi)**: China's official currency.
-- **LPR (Loan Prime Rate)**: China's benchmark lending rate for banks (not available through these tools).
-- **CGB (Chinese Government Bond)**: Debt securities issued by the Chinese government.
-- **M2 Money Supply**: A measure of money supply including cash, checking deposits, and easily convertible near-money.
-- **FRED API**: Federal Reserve Economic Data API, the source of all `pboc_` data.
-
-*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+*Terms used in this guide are defined in the [Glossary](../../../GLOSSARY.md).*
 
 ---
 

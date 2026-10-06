@@ -7,12 +7,16 @@ FRED provides reliable access to Chinese economic data from official sources.
 """
 
 import json
+import logging
+import os
 import urllib.parse
 import urllib.request
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.http_utils import safe_json_response, ENCODINGS_DEFAULT
+
+logger = logging.getLogger(__name__)
 
 
 class PeoplesBankOfChinaBaseTool(BaseMCPTool):
@@ -104,21 +108,25 @@ class PeoplesBankOfChinaBaseTool(BaseMCPTool):
         }
     
     def _get_api_key(self) -> str:
-        """Get FRED API key from configuration"""
+        """Get the FRED API key.
+
+        Resolution order: the tool config's ``api_key`` (configs carry
+        ``"api_key": "${fred.api.key}"``, which the registry resolves from
+        application.yml / the FRED_API_KEY env var), then the FRED_API_KEY
+        environment variable directly.
+        """
         if self.fred_api_key:
             return self.fred_api_key
-            
-        from sajha.config import get_api_key_manager
-        api_key_manager = get_api_key_manager()
-        
-        for key_name in ['fred_api_key', 'FRED_API_KEY', 'fred']:
-            api_key = api_key_manager.get_api_key(key_name)
-            if api_key:
-                self.fred_api_key = api_key
-                return api_key
-        
+
+        for candidate in (self.config.get('api_key'), os.environ.get('FRED_API_KEY')):
+            # An unresolved placeholder (e.g. "${fred.api.key}") means "not configured"
+            if candidate and isinstance(candidate, str) and not candidate.startswith('${'):
+                self.fred_api_key = candidate
+                return candidate
+
         raise ValueError(
-            "FRED API key not configured. Please add 'fred_api_key' to config/apikeys.json. "
+            "FRED API key not configured. Set the FRED_API_KEY environment variable "
+            "(application.yml: fred.api.key). "
             "Get a free API key at https://fred.stlouisfed.org/docs/api/api_key.html"
         )
     

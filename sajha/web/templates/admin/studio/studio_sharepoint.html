@@ -693,7 +693,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         try {
-            const response = await fetch('{{ url_for("studio.deploy_sharepoint_tool") }}', {
+            const response = await fetch('/admin/studio/sharepoint/deploy', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -704,8 +704,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await response.json();
             
             if (result.success) {
-                alert('Tool deployed successfully!\\n\\nTool: ' + result.tool_name + '\\nFile: ' + result.config_file);
-                window.location.href = '{{ url_for("tools.list_tools") }}';
+                alert('Tool deployed successfully!\n\nTool: ' + result.tool_name + '\nFile: ' + result.config_file);
+                window.location.href = '{{ url_for("tools_list") }}';
             } else {
                 alert('Error: ' + (result.error || 'Unknown error'));
             }

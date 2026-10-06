@@ -20,7 +20,7 @@ Where Studio lives, the common create → preview → deploy workflow, where gen
 
 ## Opening the creator
 
-The page is served at `/studio/sharepoint`. To reach it, use the **SharePoint** card on the Studio home page (`/studio`). SharePoint has no entry in the top-bar **MCP Studio** menu or in the Studio sub-navigation chips, so you need the home card or the direct URL.
+The page is served at `/studio/sharepoint`. To reach it, use the **SharePoint** card on the Studio home page (`/studio`) or the **SharePoint** chip in the Studio sub-navigation. It has no entry in the top-bar **MCP Studio** menu.
 
 ---
 
@@ -88,7 +88,7 @@ The page submits every ticked checkbox, including those in the hidden groups for
 - **Preview Configuration**: refreshes the JSON preview panel and scrolls to it. The preview also updates as you type. The preview is a summary built in the browser. It is not the full file the generator writes.
 - **Deploy Tool**: submits the form. See the note below.
 
-> **Deploy in 6.0.0:** The SharePoint page posts to `url_for("studio.deploy_sharepoint_tool")`. That name is not in the server's URL map, so the template helper turns it into the literal path `/studio.deploy_sharepoint_tool`, which has no handler. See [Known limitation: Studio action endpoints](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints). Until the endpoint is restored, generate the config with `SharePointToolGenerator` from Python, or write the JSON by hand in the format shown under [Generated configuration](#generated-configuration).
+> Deploy posts to `/admin/studio/sharepoint/deploy`, loads the tool at once and then opens the Tools list. `/admin/studio/sharepoint/preview` returns the generated config with the client secret masked. See [Action endpoints](MCP%20Studio%20User%20Guide.md#action-endpoints-deploy-load-and-delete).
 
 ---
 
@@ -301,7 +301,7 @@ These notes come from `sajha/tools/impl/sharepoint_tool.py`:
 
 | Symptom | Likely cause | What to check |
 |---------|--------------|---------------|
-| Deploy shows an error or 404 | The deploy endpoint is not registered | See [Known limitation](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints) and use the Python generator. |
+| Deploy shows an error | The name is taken or invalid, or a required field is missing | The alert gives the validation message. Fix the field, or delete the existing Studio tool first. |
 | `Tenant ID required for client credentials auth` | Validation failed | Set Tenant ID and Client ID, or use their variables. |
 | `NotImplementedError: Certificate auth not yet implemented` | A non-client-credentials auth path was used | Use client credentials. |
 | HTTP 401 or 403 from `/_api/` | Token or permissions problem | Check the tenant, client ID, secret and granted API permissions. |

@@ -247,10 +247,17 @@ class ToolsRegistry:
 
                 elif 'implementation' in config:
                     impl_path = config['implementation']
-                    module_path, class_name = impl_path.rsplit('.', 1)
                     try:
-                        module = importlib.import_module(module_path)
-                        tool_class = getattr(module, class_name)
+                        if isinstance(impl_path, dict):
+                            # Legacy Studio script-tool config: the implementation was
+                            # written as an object; its wrapper module is
+                            # sajha.tools.impl.<name>_script_tool, exporting TOOL_CLASS.
+                            module = importlib.import_module(f'sajha.tools.impl.{tool_name}_script_tool')
+                            tool_class = _script_tool_compat(getattr(module, 'TOOL_CLASS'))
+                        else:
+                            module_path, class_name = impl_path.rsplit('.', 1)
+                            module = importlib.import_module(module_path)
+                            tool_class = getattr(module, class_name)
                         self.register_tool(tool_class(config))
                         self.logger.info(f"Loaded custom tool: {tool_name}")
                         self.tool_errors.pop(tool_name, None)
@@ -499,7 +506,7 @@ class ToolsRegistry:
                         self._module_timestamps[file_path] = current_mtime
                         
                         # Reload the module and affected tools
-                        module_name = f'tools.impl.{py_file.stem}'
+                        module_name = f'sajha.tools.impl.{py_file.stem}'
                         self._reload_module_and_tools(module_name)
                 else:
                     # First time seeing this file
@@ -598,6 +605,30 @@ class ToolsRegistry:
             
             # Reload all tools
             self.reload_all_tools()
+
+
+def _script_tool_compat(tool_class):
+    """Wrappers written by older Studio script generators left the schema methods
+    abstract and made execute() async; fill both in so the tool can load and run."""
+    import asyncio
+    import inspect
+    if not getattr(tool_class, '__abstractmethods__', None) and \
+            not inspect.iscoroutinefunction(tool_class.execute):
+        return tool_class
+
+    class _Compat(tool_class):
+        def get_input_schema(self):
+            return self.config.get('inputSchema') or self.config.get('input_schema') or {'type': 'object'}
+
+        def get_output_schema(self):
+            return self.config.get('outputSchema') or self.config.get('output_schema') or {}
+
+        def execute(self, arguments):
+            result = super().execute(arguments)
+            return asyncio.run(result) if inspect.iscoroutine(result) else result
+
+    _Compat.__name__ = tool_class.__name__
+    return _Compat
 
 
 def _publish_tools_changed():

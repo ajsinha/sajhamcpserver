@@ -21,7 +21,7 @@
 
 The United Nations tools (prefix `un_`, implementation `sajha/tools/impl/united_nations_tool_refactored.py`) cover two UN data sources: Sustainable Development Goals (SDG) statistics from the UN SDG API, and international trade from UN Comtrade. The live catalog in the app (Tools page, or `tools/list`) is authoritative.
 
-> **Trade tools are placeholders.** The four Comtrade tools (`un_get_trade_data`, `un_get_country_trade`, `un_get_trade_balance`, `un_compare_trade`) do not call Comtrade yet: they validate and echo their arguments and return empty data (`data: []`, `total_value: null`) with a note that Comtrade authentication is required. Only the five SDG tools return live data.
+> **Trade data source.** The four Comtrade tools (`un_get_trade_data`, `un_get_country_trade`, `un_get_trade_balance`, `un_compare_trade`) call the keyless UN Comtrade public preview API (annual goods trade, HS classification, values in USD). The preview API returns at most 500 records per call and is rate limited (HTTP 429 is reported as a clear error). Set `COMTRADE_API_KEY` (a Comtrade subscription key) to switch to the full data API. Countries are given as ISO3 codes (`USA`, `DEU`) or numeric Comtrade codes; `partner_code` `all` means World. Recent years can be empty until the reporter files its data (typically a 1-2 year lag).
 
 ### Key Features
 
@@ -148,7 +148,8 @@ BaseMCPTool (Abstract Base)
 
 **API Endpoints:**
 ```python
-self.comtrade_url = "https://comtradeapi.un.org/data/v1"
+COMTRADE_PREVIEW_URL = "https://comtradeapi.un.org/public/v1/preview/C/A/HS"  # keyless
+COMTRADE_DATA_URL = "https://comtradeapi.un.org/data/v1/get/C/A/HS"         # with COMTRADE_API_KEY
 self.sdg_url = "https://unstats.un.org/sdgapi/v1/sdg"
 ```
 
@@ -203,9 +204,9 @@ User-Agent: Mozilla/5.0
 Accept: application/json
 ```
 
-**Comtrade API Endpoint:** `https://comtradeapi.un.org/data/v1`
+**Comtrade API Endpoint:** `https://comtradeapi.un.org/public/v1/preview/C/A/HS` (keyless), or `https://comtradeapi.un.org/data/v1/get/C/A/HS` when a subscription key is configured.
 
-**Authentication:** Comtrade requires a subscription key; it is not wired up, and the trade tools do not call this endpoint yet.
+**Authentication:** none for the preview API. Set `COMTRADE_API_KEY` (tool config `comtrade_api_key`) to send `Ocp-Apim-Subscription-Key` and use the full data API.
 
 ---
 
@@ -234,7 +235,7 @@ from sajha.tools.base_mcp_tool import BaseMCPTool
 
 ### External Services
 - **UN SDG API**: Publicly accessible, no authentication
-- **UN Comtrade API**: Requires registration and API key
+- **UN Comtrade API**: Public preview API, no key (optional subscription key for the full API)
 - **No web scraping**: All data via official APIs
 - **No local data**: Results come from UN servers
 
@@ -1593,27 +1594,7 @@ This tool uses UN data services:
 
 ---
 
-## Page Glossary
-
-**Key terms referenced in this document:**
-
-- **United Nations (UN)**: An international organization promoting peace, security, and cooperation among nations.
-
-- **UN Data**: The United Nations Statistics Division's data portal providing access to statistical databases.
-
-- **SDG (Sustainable Development Goals)**: The UN's 17 global goals for sustainable development by 2030.
-
-- **UNSD (United Nations Statistics Division)**: The UN body responsible for compiling and disseminating global statistics.
-
-- **Country Code**: ISO standard codes for countries. Required for UN data queries.
-
-- **Indicator**: A specific measurable value tracked over time (e.g., literacy rate, life expectancy).
-
-- **Treaty**: A formal agreement between nations. UN maintains databases of international treaties.
-
-- **Human Development Index (HDI)**: A composite index measuring average achievement in health, education, and income.
-
-*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+*Terms used in this guide are defined in the [Glossary](../../../GLOSSARY.md).*
 
 ---
 

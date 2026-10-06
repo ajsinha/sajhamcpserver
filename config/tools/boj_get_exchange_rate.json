@@ -1,7 +1,7 @@
 {
   "name": "boj_get_exchange_rate",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJGetExchangeRateTool",
-  "description": "Retrieve Japanese Yen exchange rates against major currencies (USD, EUR, GBP, CNY).",
+  "description": "Retrieve Japanese Yen exchange rates against the US dollar and the euro (USD/JPY; EUR/JPY derived from FRED cross rates).",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -10,7 +10,10 @@
       "currency_pair": {
         "type": "string",
         "description": "Currency pair (foreign currency per JPY)",
-        "enum": ["usd_jpy", "eur_jpy", "gbp_jpy", "cny_jpy"],
+        "enum": [
+          "usd_jpy",
+          "eur_jpy"
+        ],
         "default": "usd_jpy"
       },
       "start_date": {
@@ -29,7 +32,9 @@
         "default": 10
       }
     },
-    "required": ["currency_pair"]
+    "required": [
+      "currency_pair"
+    ]
   },
   "outputSchema": {
     "type": "object",
@@ -56,7 +61,10 @@
               "description": "Date of observation"
             },
             "value": {
-              "type": ["number", "null"],
+              "type": [
+                "number",
+                "null"
+              ],
               "description": "Exchange rate value"
             }
           }
@@ -67,7 +75,13 @@
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Foreign Exchange",
-    "tags": ["forex", "exchange rates", "jpy", "japan", "currency"],
+    "tags": [
+      "forex",
+      "exchange rates",
+      "jpy",
+      "japan",
+      "currency"
+    ],
     "rateLimit": 120,
     "cacheTTL": 1800,
     "examples": [
@@ -79,5 +93,6 @@
         }
       }
     ]
-  }
+  },
+  "api_key": "${fred.api.key}"
 }

@@ -304,7 +304,7 @@ class ToolCodeGenerator:
     
     def _format_schema(self, schema: Dict) -> str:
         """Format a schema dictionary as Python code."""
-        return json.dumps(schema, indent=8).replace('true', 'True').replace('false', 'False').replace('null', 'None')
+        return repr(schema)
     
     def _to_class_name(self, tool_name: str) -> str:
         """Convert tool_name to ClassName format."""

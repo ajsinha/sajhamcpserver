@@ -48,19 +48,13 @@ def _map_params(record: Dict, mapping: Dict, static: Dict, master_input: Dict) -
 
     Mapping syntax:
       {"symbol": "$.ticker"}        → record['ticker']
-      {"symbol": "$input.symbol"}   → master_input['symbol']
+      {"symbol": "$input.symbol"}   → master_input['symbol']  (also "$.input.symbol")
       {"limit": 5}                  → static value
     """
+    from sajha.core.composition import resolve_source
     params = dict(static) if static else {}
     for target_key, source_expr in (mapping or {}).items():
-        if isinstance(source_expr, str) and source_expr.startswith('$.'):
-            field = source_expr[2:]
-            if field.startswith('input.'):
-                params[target_key] = master_input.get(field[6:], '')
-            else:
-                params[target_key] = record.get(field, '') if record else ''
-        else:
-            params[target_key] = source_expr
+        params[target_key] = resolve_source(source_expr, master_input=master_input, record=record or {})
     return params
 
 
@@ -99,12 +93,13 @@ class CompositeTool(BaseMCPTool):
         else:
             self._input_schema = {'type': 'object', 'properties': {}, 'required': []}
 
-        # Add optional params from sibling steps that need extra inputs
+        # Add optional params from steps that read extra composite inputs
+        from sajha.core.composition import input_field_of
         for step in d.get('steps', []):
             mapping = step.get('param_mapping') or {}
             for target, source in mapping.items():
-                if isinstance(source, str) and source.startswith('$input.'):
-                    field = source[7:]
+                field = input_field_of(source)
+                if field:
                     if field not in self._input_schema.get('properties', {}):
                         self._input_schema.setdefault('properties', {})[field] = {
                             'type': 'string',
@@ -217,7 +212,7 @@ class CompositeTool(BaseMCPTool):
             # Sibling = parallel: use weakest-link confidence model
             guard.begin_parallel()
             sibling_output, sibling_results = self._execute_sibling_composed(
-                arguments, steps, guard)
+                arguments, steps, guard, master_output=master_result.value)
             guard.end_parallel()
             output.update(sibling_output)
             all_step_results.extend(sibling_results)
@@ -241,8 +236,11 @@ class CompositeTool(BaseMCPTool):
         return pr.to_dict()
 
     def _execute_sibling_composed(self, master_input: Dict, steps: List[Dict],
-                                    guard) -> tuple:
-        """Run sibling steps in parallel with composition tracking."""
+                                    guard, master_output: Any = None) -> tuple:
+        """Run sibling steps in parallel with composition tracking.
+
+        Mapped params: "$input.x" / "$.input.x" read the composite input,
+        "$.x" reads the master tool's output."""
         from sajha.core.composition import execute_step, ParamLens
 
         result = {}
@@ -255,7 +253,8 @@ class CompositeTool(BaseMCPTool):
                 return step['output_key'], StepResult.fail(
                     f'Tool not found: {step["tool_name"]}', step['tool_name'])
             lens = ParamLens.from_step_definition(step)
-            params = lens.view(master_input, master_input=master_input)
+            record = master_output if isinstance(master_output, (dict, list)) else {}
+            params = lens.view(master_input, master_input=master_input, record=record)
             merged = {**master_input, **params}
             return step['output_key'], execute_step(tool, merged, step['tool_name'])
 
@@ -315,8 +314,16 @@ class CompositeToolEngine:
     """
 
     def __init__(self, tools_registry):
+        global _engine
         self._registry = tools_registry
         self._composite_tools: Dict[str, CompositeTool] = {}
+        _engine = self
+        # ToolsRegistry.reload_all_tools() clears every tool, composites included;
+        # put them back afterwards. One listener per registry (the latest engine).
+        if tools_registry is not None and hasattr(tools_registry, 'add_reload_listener'):
+            if not getattr(tools_registry, '_composite_listener_added', False):
+                tools_registry.add_reload_listener(_reregister_composites)
+                tools_registry._composite_listener_added = True
 
     def load_from_db(self, db_session) -> int:
         """Load all enabled composite tools from DB, build and register them."""
@@ -356,13 +363,32 @@ class CompositeToolEngine:
 
             try:
                 tool = CompositeTool(definition, self._registry)
-                self._registry.register_tool(rec.name, tool)
+                self._registry.register_tool(tool)
                 self._composite_tools[rec.name] = tool
                 count += 1
                 logger.info(f"Composite tool registered: {rec.name} ({rec.arrangement}, {len(definition['steps'])} steps)")
             except Exception as e:
                 logger.warning(f"Failed to build composite tool {rec.name}: {e}", exc_info=True)
 
+        return count
+
+    def forget(self, name: str) -> None:
+        """Unregister one composite (e.g. after it is deleted from the DB)."""
+        self._composite_tools.pop(name, None)
+        if self._registry is not None:
+            self._registry.unregister_tool(name)
+
+    def reregister(self) -> int:
+        """Rebuild and re-register the composites this engine knows (after a registry reload)."""
+        count = 0
+        for name, old in list(self._composite_tools.items()):
+            try:
+                tool = CompositeTool(old._definition, self._registry)
+                self._registry.register_tool(tool)
+                self._composite_tools[name] = tool
+                count += 1
+            except Exception as e:
+                logger.warning(f"Failed to re-register composite tool {name}: {e}", exc_info=True)
         return count
 
     def get_definition(self, name: str) -> Optional[Dict]:
@@ -375,3 +401,22 @@ class CompositeToolEngine:
             self._registry.unregister_tool(name)
         self._composite_tools.clear()
         return self.load_from_db(db_session)
+
+
+#: The engine built at startup (or most recently); composite routes reuse it.
+_engine: Optional[CompositeToolEngine] = None
+
+
+def get_engine(tools_registry=None) -> Optional[CompositeToolEngine]:
+    """The live composite engine, created on first use for ``tools_registry``."""
+    global _engine
+    if _engine is None or (tools_registry is not None and _engine._registry is not tools_registry):
+        if tools_registry is None:
+            return _engine
+        CompositeToolEngine(tools_registry)
+    return _engine
+
+
+def _reregister_composites():
+    if _engine is not None:
+        _engine.reregister()

@@ -1231,23 +1231,7 @@ for indicator in ['gdp', 'unemployment', 'inflation']:
 
 ---
 
-## Page Glossary
-
-**Key terms referenced in this document:**
-
-- **FRED (Federal Reserve Economic Data)**: A comprehensive database of economic data maintained by the Federal Reserve Bank of St. Louis. SAJHA's Fed tools use the FRED API.
-
-- **API Key**: A unique identifier for authenticating API requests. FRED API requires a free API key available at fred.stlouisfed.org.
-
-- **Time Series**: A sequence of data points indexed by time. FRED provides economic time series data like GDP, inflation, and interest rates.
-
-- **Federal Funds Rate**: The interest rate at which banks lend reserves to each other overnight. A key monetary policy tool tracked in FRED.
-
-- **Treasury Yield**: The return on U.S. government debt securities. Available in multiple maturities (3-month, 2-year, 10-year, 30-year).
-
-- **Economic Indicator**: A statistic about economic activity. FRED provides thousands of indicators including GDP, unemployment, and inflation.
-
-*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+*Terms used in this guide are defined in the [Glossary](../../../GLOSSARY.md).*
 
 ---
 

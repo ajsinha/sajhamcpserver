@@ -273,12 +273,12 @@ class {class_name}(BaseMCPTool):
         """Initialize the DB Query tool."""
         super().__init__(config or {{}})
         self._name = "{definition.name}"
-        self._description = """{definition.description}"""
-        self._db_type = "{definition.db_type}"
-        self._connection_string = """{definition.connection_string}"""
+        self._description = {definition.description!r}
+        self._db_type = {definition.db_type!r}
+        self._connection_string = {definition.connection_string!r}
         self._timeout = {definition.timeout}
         self._max_rows = {definition.max_rows}
-        self._query_template = """{definition.query_template}"""
+        self._query_template = {definition.query_template!r}
         
         logger.info(f"Initialized DB Query tool: {{self._name}}")
     
@@ -292,11 +292,11 @@ class {class_name}(BaseMCPTool):
     
     def get_input_schema(self) -> Dict:
         """Return the JSON Schema for input validation."""
-        return {json.dumps(input_schema, indent=8)}
+        return {input_schema!r}
     
     def get_output_schema(self) -> Dict:
         """Return the JSON Schema for output."""
-        return {json.dumps(output_schema, indent=8)}
+        return {output_schema!r}
     
     def execute(self, arguments: Dict) -> Dict:
         """
@@ -353,7 +353,7 @@ class {class_name}(BaseMCPTool):
         
         # Replace placeholders with parameter values
         for key, value in arguments.items():
-            placeholder = f"{{{{{{key}}}}}}"
+            placeholder = "{{{{" + str(key) + "}}}}"
             if placeholder in query:
                 # Escape string values to prevent SQL injection
                 if isinstance(value, str):
@@ -541,16 +541,18 @@ conn.close()'''
                 return (False, f"Tool implementation already exists: {python_path}", "", "")
         
         try:
-            # Generate and save JSON config
+            # Generate everything first, so a generator error leaves no partial tool
             json_content = self.generate_json_config(definition)
+            python_content = self.generate_python_implementation(definition)
+            compile(python_content, str(python_path), 'exec')
+
+            # Python first: the registry's config watcher may load the JSON at once
+            python_path.write_text(python_content, encoding='utf-8')
+            logger.info(f"Saved tool implementation: {python_path}")
+
             from sajha.core.storage import write_tool_config
             write_tool_config(json_path, json_content)
             logger.info(f"Saved tool config via storage backend: {json_path}")
-            
-            # Generate and save Python implementation
-            python_content = self.generate_python_implementation(definition)
-            python_path.write_text(python_content, encoding='utf-8')
-            logger.info(f"Saved tool implementation: {python_path}")
             
             return (True, f"Tool '{definition.name}' saved successfully", str(json_path), str(python_path))
             

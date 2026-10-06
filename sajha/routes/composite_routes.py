@@ -85,8 +85,12 @@ async def api_delete(name: str, auth: AuthContext = Depends(require_admin), db: 
     from sajha.db.dao import CompositeToolDAO
     if CompositeToolDAO(db).delete(name):
         try:
-            from sajha.app import tools_registry
-            if tools_registry: tools_registry.unregister_tool(name)
+            engine = _get_engine()
+            if engine:
+                engine.forget(name)
+            else:
+                from sajha.app import tools_registry
+                if tools_registry: tools_registry.unregister_tool(name)
         except Exception as e:
             logger.warning(f"Error handled: {e}", exc_info=True)
             pass
@@ -117,20 +121,20 @@ async def api_preview_schema(name: str, auth: AuthContext = Depends(require_auth
 
 def _get_engine():
     try:
-        from sajha.tools.composite_tool import _engine
-        return _engine
+        from sajha.app import tools_registry
+        from sajha.tools.composite_tool import get_engine
+        return get_engine(tools_registry)
     except Exception as e:
         logger.warning(f"Error handled: {e}", exc_info=True)
         return None
 
 
 def _rebuild_composite(db, name: str):
-    """Rebuild a single composite tool after create/update."""
+    """Re-register the composites after a create/update (a disabled one is dropped)."""
     try:
-        from sajha.app import tools_registry
-        from sajha.tools.composite_tool import CompositeToolEngine
-        engine = CompositeToolEngine(tools_registry)
-        engine.load_from_db(db)
+        engine = _get_engine()
+        if engine:
+            engine.reload(db)
     except Exception as e:
         logger.warning(f"Failed to rebuild composite {name}: {e}", exc_info=True)
 

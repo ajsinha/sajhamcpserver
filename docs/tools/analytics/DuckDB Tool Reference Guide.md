@@ -168,7 +168,7 @@ Returns `refreshed_views` (`view_name`, `status`, `row_count`, `refresh_time_ms`
 
 Only statements starting with `SELECT`, `WITH`, `EXPLAIN`, `DESCRIBE`, `SHOW` or `PRAGMA` are accepted. Returns `success`, `columns`, `data`, `row_count`, `sql`, `execution_time_ms`, `tables_available`.
 
-> **Known issue.** In the current implementation `DuckDBSQLTool.execute` references an undefined variable (`sql_upper`) when deciding whether to append `LIMIT`, so every accepted query returns `{"success": false, "error": "name 'sql_upper' is not defined"}`. Use `duckdb_query` until this is fixed.
+`LIMIT <limit>` is appended to `SELECT`/`WITH` queries that have no `LIMIT` clause of their own; other statement types are run as written. A CSV file missing from the data directory leaves that view undefined (logged as a warning) instead of failing the tool.
 
 ---
 

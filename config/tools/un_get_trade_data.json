@@ -19,15 +19,29 @@
       "trade_flow": {
         "type": "string",
         "description": "Type of trade flow to retrieve",
-        "enum": ["export", "import", "re_export", "re_import"],
+        "enum": [
+          "export",
+          "import",
+          "re_export",
+          "re_import"
+        ],
         "default": "export"
       },
       "commodity_code": {
         "type": "string",
         "description": "HS (Harmonized System) commodity code or predefined group",
         "enum": [
-          "all", "agricultural", "mineral", "chemicals", "plastics_rubber",
-          "textiles", "footwear", "metals", "machinery", "vehicles", "optical_instruments"
+          "all",
+          "agricultural",
+          "mineral",
+          "chemicals",
+          "plastics_rubber",
+          "textiles",
+          "footwear",
+          "metals",
+          "machinery",
+          "vehicles",
+          "optical_instruments"
         ],
         "default": "all"
       },
@@ -38,7 +52,9 @@
         "maximum": 2030
       }
     },
-    "required": ["reporter_code"]
+    "required": [
+      "reporter_code"
+    ]
   },
   "outputSchema": {
     "type": "object",
@@ -89,15 +105,27 @@
         "description": "API access note and data availability information"
       }
     },
-    "required": ["reporter", "partner", "trade_flow", "year"]
+    "required": [
+      "reporter",
+      "partner",
+      "trade_flow",
+      "year"
+    ]
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Global Statistics",
-    "tags": ["un", "comtrade", "trade", "imports", "exports", "bilateral"],
+    "tags": [
+      "un",
+      "comtrade",
+      "trade",
+      "imports",
+      "exports",
+      "bilateral"
+    ],
     "rateLimit": 60,
     "cacheTTL": 3600,
-    "note": "UN Comtrade is the world's largest trade database. Full access requires authentication. Data is typically available with 1-2 year lag. Commodity groups use HS (Harmonized System) classification.",
+    "note": "UN Comtrade is the world's largest trade database. Data comes from the keyless public preview API (max 500 records per call, rate limited); set COMTRADE_API_KEY to use the full data API. Data is typically available with a 1-2 year lag. Commodity groups use HS (Harmonized System) classification.",
     "examples": [
       {
         "description": "Get US exports to China in 2022",
@@ -136,5 +164,6 @@
       "Economic forecasting",
       "Trade balance calculations"
     ]
-  }
+  },
+  "comtrade_api_key": "${COMTRADE_API_KEY:}"
 }

@@ -48,6 +48,11 @@ class SajhaMCPError(SajhaError):
         super().__init__(f"MCP Error {code}: {message}")
 
 
+class SajhaTimeoutError(SajhaError):
+    """No response arrived within the configured timeout."""
+    pass
+
+
 class SajhaA2AError(SajhaError):
     """A2A protocol error."""
     pass

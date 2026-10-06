@@ -163,7 +163,7 @@ The **Quick Examples** sidebar fills the form with a working configuration:
 4. Click **Preview Tool** to see the generated JSON and the start of the Python file. **Deploy Tool** is enabled after a successful preview.
 5. Click **Deploy Tool** and confirm.
 
-> In 6.0.0 the Preview and Deploy buttons call server endpoints that are not registered. See [Known limitation: Studio action endpoints](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints).
+> The buttons post to `/admin/studio/rest/preview` and `/admin/studio/rest/deploy`. A successful deploy loads the tool at once; see [Action endpoints](MCP%20Studio%20User%20Guide.md#action-endpoints-deploy-load-and-delete).
 
 ---
 

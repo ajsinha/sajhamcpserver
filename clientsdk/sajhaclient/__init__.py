@@ -32,7 +32,7 @@ Standard MCP client (official MCP Python SDK; pip install sajhaclient[mcp]):
         tools = await mcp.list_all_tools()
 """
 
-__version__ = "6.0.0"
+from sajhaclient._version import __version__  # noqa: E402
 __author__ = "Ashutosh Sinha"
 __email__ = "ajsinha@gmail.com"
 
@@ -49,6 +49,7 @@ from sajhaclient.standard import SajhaMCPClient, SajhaMCPSyncClient
 from sajhaclient.exceptions import (
     SajhaError, SajhaConnectionError, SajhaAuthError,
     SajhaPermissionError, SajhaNotFoundError, SajhaMCPError, SajhaA2AError,
+    SajhaTimeoutError,
 )
 
 __all__ = [
@@ -62,4 +63,6 @@ __all__ = [
     # Exceptions
     'SajhaError', 'SajhaConnectionError', 'SajhaAuthError',
     'SajhaPermissionError', 'SajhaNotFoundError', 'SajhaMCPError', 'SajhaA2AError',
+    'SajhaTimeoutError',
+    '__version__',
 ]

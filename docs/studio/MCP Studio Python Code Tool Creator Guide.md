@@ -91,10 +91,10 @@ Generated input schema:
 2. **Code editor** – paste a function decorated with `@sajhamcptool(...)`.
 3. **Analyze Code** – shows the description, category, function name and parameter badges (required/optional, with defaults), and fills the two preview panes with the generated JSON config and Python file.
 4. **Deploy Tool** – enabled only after a successful analysis; asks for confirmation, then writes the two files.
-5. **Delete if Exists** – after two confirmations, deletes `config/tools/<name>.json` and `sajha/tools/impl/studio_<name>.py` so the name can be reused.
+5. **Delete if Exists** – after two confirmations, unregisters the tool and deletes `config/tools/<name>.json` and its generated module (`sajha/tools/impl/studio_<name>.py`, or the module of whichever creator made it) so the name can be reused. It refuses tools that Studio did not generate.
 6. **Clear** – resets the form.
 
-> In 6.0.0 the Analyze, Deploy and Delete buttons call server endpoints that are not registered. See [Known limitation: Studio action endpoints](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints).
+> The buttons post to `/admin/studio/analyze`, `/admin/studio/deploy` and `/admin/studio/delete`. A successful deploy loads the tool at once; see [Action endpoints](MCP%20Studio%20User%20Guide.md#action-endpoints-deploy-load-and-delete).
 
 ### What gets generated
 
