@@ -28,7 +28,7 @@
                 <div>
                     <h5 class="mb-2"><i class="bi bi-rocket-takeoff me-2"></i>Get Started with SAJHA</h5>
                     <div class="d-flex flex-wrap gap-3">
-                        <a href="/tools" class="text-decoration-none" id="ob1"><span class="badge bg-primary rounded-pill me-1">1</span> Browse 497 tools</a>
+                        <a href="/tools" class="text-decoration-none" id="ob1"><span class="badge bg-primary rounded-pill me-1">1</span> Browse {{ tools_count }} tools</a>
                         <a href="/studio" class="text-decoration-none" id="ob2"><span class="badge bg-success rounded-pill me-1">2</span> Create your first tool</a>
                         <a href="/ai/settings" class="text-decoration-none" id="ob3"><span class="badge bg-info rounded-pill me-1">3</span> Connect an LLM provider</a>
                     </div>
@@ -86,7 +86,7 @@
         </div>
     </div>
 
-    <!-- Operational Metrics (v5.3.0) -->
+    <!-- Operational Metrics -->
     <div class="row g-3 mb-4" id="opsMetrics">
         <div class="col-md-3">
             <div class="metric-card">
@@ -172,7 +172,7 @@
                     <div class="small text-muted">
                         <i class="bi bi-heart-pulse text-success me-1"></i> <a href="/health" class="text-decoration-none">Health</a> ·
                         <a href="/ready" class="text-decoration-none">Readiness</a> ·
-                        <a href="/docs" class="text-decoration-none">API Docs</a>
+                        <a href="/api/docs" class="text-decoration-none">API Docs</a>
                     </div>
                 </div>
             </div>

@@ -1,311 +1,141 @@
 {% extends "common/base.html" %}
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-About page — single-pass, theme-driven (var(--t-*) surfaces, card-header-* helpers).
-Each section appears exactly once. No hardcoded structural colors.
+About: what SAJHA is, and what this server is running now. Every number on this page is
+read from the running server (tools registry, prompts registry, protocol version lists in
+sajha/core); every claim links to the guide that owns it. Nothing is counted by hand.
 -->
-{% block title %}About - SAJHA MCP Server{% endblock %}
+{% block title %}About - {{ app_name }}{% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<div class="container py-2">
 
-    <!-- ── Hero ───────────────────────────────────────────────── -->
     <div class="about-hero">
-        <i class="bi bi-diagram-3 d-block mb-2" style="font-size:2.75rem;position:relative"></i>
+        <i class="bi bi-diagram-3 d-block mb-2" style="font-size:2.75rem;position:relative" aria-hidden="true"></i>
         <h1>SAJHA</h1>
-        <p>About SAJHA MCP Server: a production-grade Model Context Protocol implementation</p>
-        <span class="version-badge">v{{ app_version }} · Stable · FastAPI · MCP 2025-11-25</span>
+        <p>A Model Context Protocol server for data and utility tools, prompts, and the people who run them</p>
+        <span class="version-badge">{{ app_version }} · MCP {{ modern_versions|join(', ') }} and {{ handshake_versions[0] }}</span>
     </div>
 
-    <!-- ── Overview + Meaning of SAJHA ────────────────────────── -->
     <div class="row mb-4 g-4">
         <div class="col-lg-7">
             <div class="card h-100">
-                <div class="card-header card-header-primary"><i class="bi bi-journal-text me-2"></i>Overview</div>
+                <div class="card-header card-header-primary"><i class="bi bi-journal-text me-2" aria-hidden="true"></i>What SAJHA is</div>
                 <div class="card-body">
-                    <p>SAJHA MCP Server is a comprehensive Python implementation of the <strong>Model Context Protocol (MCP)</strong> built on <strong>FastAPI</strong>. It serves <strong>497 tools</strong> across financial markets, government data, search engines, analytics, and enterprise integrations through a single MCP-compliant endpoint.</p>
-                    <p class="mb-0">The server supports <strong>three transports</strong> (HTTP POST, SSE, WebSocket), an <strong>embedded LLM gateway</strong> with 6 providers, <strong>semantic tool discovery</strong>, <strong>composite tool orchestration</strong>, <strong>OpenTelemetry</strong>, <strong>multi-tenancy</strong>, and a <strong>plugin system</strong>. Version {{ app_version }} is fully compliant with <strong>MCP 2025-11-25</strong> — Tasks, Elicitation, Sampling with tool calling, tool icons, and Origin validation for Streamable HTTP.</p>
+                    <p>SAJHA turns a catalog of data and utility tools (market data, central banks, public
+                        statistics, filings, search, analytics, calculators) and reusable prompts into something
+                        any MCP client can discover and call: an AI assistant, an agent framework or a script.</p>
+                    <p class="mb-0">Around that core it adds what running such a server needs: a web console, users
+                        and roles, API keys, OAuth 2.1 on <code>/mcp</code>, a visual tool builder, tool composition,
+                        caching, circuit breakers, observability and pluggable storage.
+                        <a href="{{ guide_url('How SAJHA Fits Together.md') }}">How SAJHA fits together</a>.</p>
                 </div>
             </div>
         </div>
         <div class="col-lg-5">
             <div class="card h-100">
-                <div class="card-header card-header-info"><i class="bi bi-translate me-2"></i>The Meaning of SAJHA</div>
+                <div class="card-header card-header-info"><i class="bi bi-translate me-2" aria-hidden="true"></i>The name</div>
                 <div class="card-body d-flex align-items-center">
                     <div class="rounded-circle d-none d-sm-inline-flex align-items-center justify-content-center me-3 flex-shrink-0" style="width:84px;height:84px;background:var(--sajha-crimson-tint)">
                         <span style="font-size:2rem;font-family:'Noto Sans Devanagari',sans-serif;color: var(--t-accent-text)">साझा</span>
                     </div>
-                    <div>
-                        <p class="small mb-2"><strong>SAJHA</strong> (Hindi: साझा, Urdu: ساجھا) means <em>"shared," "common," "mutual,"</em> or <em>"collaborative."</em></p>
-                        <p class="small mb-0">True to its name, SAJHA is a <em>shared bridge</em> between AI systems and the world's data — democratizing access to hundreds of tools through one standardized protocol, with collaborative tool creation via MCP Studio.</p>
-                    </div>
+                    <p class="small mb-0"><strong>SAJHA</strong> (Hindi: साझा, Urdu: ساجھا) means <em>shared</em>, <em>common</em>
+                        or <em>collaborative</em>: one server whose tools many clients share.</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ── Core Capabilities ──────────────────────────────────── -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-secondary"><i class="bi bi-lightning-charge me-2"></i>Core Capabilities</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        {% set caps = [
-                            ('bi-check2-all','text-success','Full MCP Compliance','15 MCP methods, protocol version 2025-11-25, 8 capabilities declared, JSON-RPC 2.0.'),
-                            ('bi-arrows-angle-contract','text-info','Three Transports','HTTP POST (/mcp), SSE (/mcp/sse), and WebSocket (/mcp/ws) — full-duplex bidirectional.'),
-                            ('bi-tools','text-warning','497 Built-in Tools','FMP, OpenBB, FRED, Yahoo Finance, Alpha Vantage, CoinGecko, SEC EDGAR, central banks, and more.'),
-                            ('bi-robot','text-primary','A2A Protocol','Agent-to-Agent interoperability with auto-generated agent card and task lifecycle.'),
-                            ('bi-display','text-info','Web Interface','Full admin UI with four themes, dashboards, reporting, and docs viewer.'),
-                            ('bi-arrow-repeat','text-success','Hot-Reload','Zero-restart config updates for tools, prompts, users, and API keys.'),
-                            ('bi-shield-lock','text-danger','Multi-Layer Auth','JWT, API Key, Session Cookie, and OAuth (Azure AD, Okta, Auth0, Keycloak).'),
-                            ('bi-magic','text-primary','MCP Studio','9 visual tool creators: Python, REST, DB Query, Script, PowerBI, DAX, LiveLink, SharePoint, OLAP.'),
-                            ('bi-bar-chart-line','text-success','Reporting','6 report APIs, Chart.js dashboard, usage heatmaps, and audit logs.'),
-                            ('bi-cpu','text-info','LLM Gateway','6 AI providers (Anthropic, OpenAI, Bedrock, Together, Ollama, Azure). Registry factory.'),
-                            ('bi-boxes','text-warning','Composite Tools','Sibling (parallel) and Parent-Child (fan-out) patterns. Visual builder. Dynamic schemas.'),
-                            ('bi-graph-up','text-danger','OpenTelemetry','Per-tool p50/p95/p99 latency. Error spike alerts. Health probes. Optional OTEL export.'),
-                            ('bi-people','text-primary','Multi-Tenancy','Tenant-isolated tools, per-tenant quotas, data isolation, API key pools.'),
-                            ('bi-puzzle','text-success','Plugin System','Standardized plugin.json manifest. Drop directory → discover → validate → load.')
-                        ] %}
-                        {% for icon, color, title, desc in caps %}
-                        <div class="col-md-6 col-lg-3">
-                            <div class="h-100 p-2">
-                                <h6 class="mb-1"><i class="bi {{ icon }} me-2 {{ color }}"></i>{{ title }}</h6>
-                                <p class="text-muted small mb-0">{{ desc }}</p>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
+    <h2 class="h5 mb-3"><i class="bi bi-activity me-2" aria-hidden="true"></i>Running now</h2>
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3"><a class="stat-tile text-decoration-none" href="/help/tools">
+            <span class="ico"><i class="bi bi-tools" aria-hidden="true"></i></span>
+            <span><span class="num d-block">{{ catalog_live.total_tools }}</span><span class="lbl">Tools loaded</span></span></a></div>
+        <div class="col-sm-6 col-lg-3"><a class="stat-tile text-decoration-none" href="/help/tools">
+            <span class="ico"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i></span>
+            <span><span class="num d-block">{{ catalog_live.total_groups }}</span><span class="lbl">Tool groups</span></span></a></div>
+        <div class="col-sm-6 col-lg-3"><div class="stat-tile">
+            <span class="ico"><i class="bi bi-chat-square-text" aria-hidden="true"></i></span>
+            <span><span class="num d-block">{{ prompts_count }}</span><span class="lbl">Prompts</span></span></div></div>
+        <div class="col-sm-6 col-lg-3"><div class="stat-tile">
+            <span class="ico"><i class="bi bi-diagram-3" aria-hidden="true"></i></span>
+            <span><span class="num d-block">{{ (modern_versions + handshake_versions)|length }}</span><span class="lbl">Protocol versions</span></span></div></div>
     </div>
 
-    <!-- ── Four Differentiators ───────────────────────────────── -->
-    <div class="row mb-4 g-4">
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-info"><i class="bi bi-cpu me-2"></i>AI/LLM Gateway — 6 Providers</div>
-                <div class="card-body">
-                    <p class="small">A built-in multi-provider LLM gateway:</p>
-                    <div class="row g-1 small">
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Anthropic (Claude)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> OpenAI (GPT-4o)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> AWS Bedrock</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Together.ai</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Ollama (local)</div>
-                        <div class="col-6"><i class="bi bi-check text-success"></i> Azure OpenAI</div>
-                    </div>
-                    <p class="small mt-2 mb-0">DB-managed models. User preferences. Registry-based factory for custom providers.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-secondary"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
-                <div class="card-body">
-                    <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
-                    <div class="small" style="background:var(--sajha-canvas);border:1px solid var(--sajha-border);border-radius:6px;padding:0.5rem;font-family:monospace;color:var(--sajha-ink)">
-                        "find companies with high debt ratios"<br>
-                        → fmp_key_metrics (0.89)<br>
-                        → fmp_financial_ratios (0.85)<br>
-                        → fmp_balance_sheet (0.82)
-                    </div>
-                    <p class="small mt-2 mb-0">497 tool descriptions as vector embeddings. Cosine similarity search.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-primary"><i class="bi bi-palette me-2"></i>MCP Studio — Visual Tool Designer</div>
-                <div class="card-body">
-                    <p class="small">A visual tool creation platform — build tools without writing JSON configs:</p>
-                    <div class="row g-2">
-                        <div class="col-6"><small><i class="bi bi-code-slash me-1 text-primary"></i> Python functions</small></div>
-                        <div class="col-6"><small><i class="bi bi-globe me-1 text-success"></i> REST API wrappers</small></div>
-                        <div class="col-6"><small><i class="bi bi-database me-1 text-info"></i> DB Query tools</small></div>
-                        <div class="col-6"><small><i class="bi bi-terminal me-1 text-warning"></i> Shell scripts</small></div>
-                        <div class="col-6"><small><i class="bi bi-bar-chart me-1 text-danger"></i> PowerBI / DAX</small></div>
-                        <div class="col-6"><small><i class="bi bi-folder me-1 text-secondary"></i> SharePoint / LiveLink</small></div>
-                        <div class="col-6"><small><i class="bi bi-hdd me-1 text-info"></i> OLAP / DuckDB</small></div>
-                        <div class="col-6"><small><i class="bi bi-lightbulb me-1 text-warning"></i> Examples gallery</small></div>
-                    </div>
-                    <p class="small mt-2 mb-0"><strong>9 creator types.</strong> Auto-schema generation. Live testing. Zero-restart deployment.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header card-header-warning"><i class="bi bi-boxes me-2"></i>Composite Builder — Visual Pipeline Designer</div>
-                <div class="card-body">
-                    <p class="small">Visually compose tool pipelines with mathematical confidence guarantees:</p>
-                    <ol class="small mb-0">
-                        <li class="mb-1"><strong>Choose arrangement</strong> — Sibling (parallel) or Parent-Child (fan-out)</li>
-                        <li class="mb-1"><strong>Set master tool</strong> — runs first, output feeds steps</li>
-                        <li class="mb-1"><strong>Add steps</strong> — drag-and-drop ordering, <code>$.field</code> param mapping</li>
-                        <li class="mb-1"><strong>Live flow diagram</strong> — SVG visualization updates in real-time</li>
-                        <li class="mb-1"><strong>Confidence preview</strong> — estimated entropy from EntropyGuard</li>
-                        <li><strong>Save &amp; deploy</strong> — live on all transports in seconds, no restart</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── Production Features ────────────────────────────────── -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-info"><i class="bi bi-gear-wide-connected me-2"></i>Production Features (v{{ app_version }})</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        {% set feats = [
-                            ('bi-database','text-info','Tool Output Caching','Per-tool opt-in via cache_ttl in JSON config. LRU eviction, automatic TTL expiry, cache stats API. Default: no caching.'),
-                            ('bi-lightning','text-warning','Circuit Breakers','16 providers monitored. 5 failures → circuit opens (60s recovery). Prevents cascading failures in composite tools.'),
-                            ('bi-bell','text-primary','Webhooks','Subscribe callback URLs to 7 event types. Async delivery with 3 retries + exponential backoff.'),
-                            ('bi-skip-backward','text-success','Execution Replay','Last 20 executions stored per tool. View arguments, results, timing. Replay for debugging.'),
-                            ('bi-shield-check','text-danger','Structured Audit Log','11 security event types: login, logout, user/key CRUD, permission changes. DB-persisted, queryable API.'),
-                            ('bi-terminal','text-secondary','Shell Tools (Sandboxed)','Python + Bash sandbox for AI agents. Allowlisted imports/commands. Memory/time limits. Disabled by default.'),
-                            ('bi-skip-forward-circle','text-primary','Async Execution','Background execution with an 8-thread worker pool. Delivery via webhook, Kafka, or filesystem. Bounded queue.'),
-                            ('bi-speedometer2','text-info','Rate Limiting','Auth: 5/min/IP. API: 100/min/user, 200/min/key. Account lockout after 5 failures (15 min).')
-                        ] %}
-                        {% for icon, color, title, desc in feats %}
-                        <div class="col-md-6 col-lg-3">
-                            <h6 class="mb-1"><i class="bi {{ icon }} me-2 {{ color }}"></i>{{ title }}</h6>
-                            <p class="small mb-0">{{ desc }}</p>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── MCP Compliance ─────────────────────────────────────── -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-success"><i class="bi bi-patch-check me-2"></i>MCP Specification Compliance</div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                        <div>
-                            <h5 class="mb-0">Protocol Versions: <strong>2026-07-28</strong> and <strong>2025-11-25</strong></h5>
-                            <small class="text-muted">Released November 25, 2025 by the MCP Steering Group</small>
-                        </div>
-                        <span class="badge bg-success px-3 py-2"><i class="bi bi-check-circle me-1"></i>Conformance verified</span>
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-md-3"><h6><i class="bi bi-clock-history me-2 text-primary"></i>Tasks (SEP-1686)</h6><p class="small mb-0">Async tracking for long-running requests. Create, poll, cancel. States: working → completed/failed/cancelled.</p></div>
-                        <div class="col-md-3"><h6><i class="bi bi-input-cursor-text me-2 text-success"></i>Elicitation (SEP-1330)</h6><p class="small mb-0">Server-initiated user input. Form mode (JSON Schema forms) and URL mode (OAuth/consent redirects).</p></div>
-                        <div class="col-md-3"><h6><i class="bi bi-cpu me-2 text-info"></i>Sampling + Tools (SEP-1577)</h6><p class="small mb-0">Server-initiated LLM calls with tool definitions and toolChoice. Enables server-side agent loops.</p></div>
-                        <div class="col-md-3"><h6><i class="bi bi-image me-2 text-warning"></i>Icons (SEP-973)</h6><p class="small mb-0">Icon metadata for tools, resources, and prompts. URL and emoji icon types for richer UI rendering.</p></div>
-                    </div>
-                    <hr>
-                    <div class="row g-3">
-                        <div class="col-md-6"><h6 class="text-muted small">TRANSPORT COMPLIANCE</h6><p class="small mb-0">HTTP POST /mcp (stateless) · SSE /mcp/sse (Streamable HTTP with Origin validation) · WebSocket /mcp/ws (full-duplex). JSON-RPC 2.0 on all three. JSON Schema 2020-12 dialect.</p></div>
-                        <div class="col-md-6"><h6 class="text-muted small">SECURITY COMPLIANCE</h6><p class="small mb-0">Tool errors return isError:true (not protocol errors) for model self-correction. Origin header validation (HTTP 403). PKCE. OAuth 2.1. RBAC + API key + JWT + OAuth SSO.</p></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── Tech Stack + System Stats ──────────────────────────── -->
-    <div class="row mb-4 g-4">
+    <div class="row g-4 mb-4">
         <div class="col-lg-6">
             <div class="card h-100">
-                <div class="card-header card-header-secondary"><i class="bi bi-cpu me-2"></i>Technical Stack</div>
+                <div class="card-header card-header-success"><i class="bi bi-diagram-3 me-2" aria-hidden="true"></i>Protocol</div>
                 <div class="card-body">
-                    {% set stack = [
-                        ('Python 3.9+','Async-capable with modern type hints'),
-                        ('FastAPI + Uvicorn (ASGI)','High-performance async web framework'),
-                        ('Bootstrap 5 + Chart.js','Responsive UI with data visualization'),
-                        ('JSON-RPC 2.0 + SSE','MCP protocol communication'),
-                        ('SQLAlchemy + SQLite/PostgreSQL','ORM with pluggable database backends'),
-                        ('YAML Configuration','Single application.yml with env var substitution')
-                    ] %}
-                    <ul class="cap-list">
-                    {% for name, desc in stack %}
-                    <li><strong>{{ name }}</strong><br><span class="text-muted small">{{ desc }}</span></li>
-                    {% endfor %}
+                    <p class="small">One <code>/mcp</code> endpoint serves both eras, chosen per request:</p>
+                    <ul class="cap-list small">
+                        <li><strong>Stateless</strong> ({{ modern_versions|join(', ') }}): no handshake and no session; every request is complete in itself.</li>
+                        <li><strong>Session-based</strong> ({{ handshake_versions|join(', ') }}): <code>initialize</code> first, then requests on the session.</li>
                     </ul>
+                    <p class="small mb-0">How it works: the <a href="{{ guide_url('MCP Protocol Guide.md') }}">MCP Protocol Guide</a>.
+                        What was tested, with the conformance-suite results and known limits:
+                        <a href="{{ guide_url('MCP 2026-07-28 Compliance.md') }}">2026-07-28</a> and
+                        <a href="{{ guide_url('MCP 2025-11-25 Compliance.md') }}">2025-11-25</a> compliance reports.</p>
                 </div>
             </div>
         </div>
         <div class="col-lg-6">
             <div class="card h-100">
-                <div class="card-header card-header-info"><i class="bi bi-diagram-3 me-2"></i>System Stats</div>
-                <div class="card-body p-0">
-                    <table class="table table-sm mb-0">
-                        <tbody>
-                            <tr><td>Tools loaded</td><td class="text-end"><strong>497</strong></td></tr>
-                            <tr><td>Tool JSON configs</td><td class="text-end"><strong>501</strong></td></tr>
-                            <tr><td>Route modules</td><td class="text-end"><strong>13</strong></td></tr>
-                            <tr><td>API endpoints</td><td class="text-end"><strong>79+</strong></td></tr>
-                            <tr><td>MCP methods</td><td class="text-end"><strong>15</strong></td></tr>
-                            <tr><td>Studio creators</td><td class="text-end"><strong>9</strong></td></tr>
-                            <tr><td>Auth methods</td><td class="text-end"><strong>4</strong></td></tr>
-                            <tr><td>CSS themes</td><td class="text-end"><strong>4</strong></td></tr>
-                            <tr><td>Tests</td><td class="text-end"><strong>120</strong></td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── Competitive Analysis ───────────────────────────────── -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-warning"><i class="bi bi-bar-chart-line me-2"></i>Competitive Analysis</div>
+                <div class="card-header card-header-danger"><i class="bi bi-shield-lock me-2" aria-hidden="true"></i>Access</div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle mb-3">
-                            <thead>
-                                <tr><th>Feature</th><th><i class="bi bi-star-fill text-warning me-1"></i>SAJHA v{{ app_version }}</th><th>Typical MCP Server</th></tr>
-                            </thead>
-                            <tbody>
-                                {% set rows = [
-                                    ('Framework','FastAPI (ASGI)','Varies'),
-                                    ('Built-in Tools','497 Tools','1–10'),
-                                    ('MCP Protocol','15 methods, v2025-11-25','Partial'),
-                                    ('A2A Protocol','Agent card + Tasks','✗'),
-                                    ('Web UI','Full Admin UI','Limited'),
-                                    ('Visual Tool Creator','9 Creator Types','✗'),
-                                    ('Authentication','JWT + Key + OAuth','Basic'),
-                                    ('Hot-Reload','All configs','Restart required'),
-                                    ('Reporting','Dashboard + 7 APIs','✗'),
-                                    ('Client SDK','Zero-dep Python','Varies')
-                                ] %}
-                                {% for feature, sajha, typical in rows %}
-                                <tr><td><strong>{{ feature }}</strong></td><td><i class="bi bi-check-circle-fill text-success me-1"></i>{{ sajha }}</td><td class="text-muted">{{ typical }}</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    <p class="small mb-0"><i class="bi bi-lightbulb text-warning me-1"></i><strong>Summary:</strong> SAJHA is built for organizations that need a <em>production-grade, multi-user</em> MCP server with broad data coverage (497 tools), visual tool creation (MCP Studio), and enterprise auth — deployed from a single <code>python run_server.py</code> command.</p>
+                    <ul class="cap-list small">
+                        <li>SAJHA's own credentials: a login session, a SAJHA JWT, or an API key limited to the tools it may call. Roles decide what each account can do in the console.</li>
+                        <li>OAuth 2.1 on <code>/mcp</code>, set by <code>mcp.auth.mode</code>: <code>off</code> (the default), <code>optional</code> or <code>required</code>; tokens from the built-in authorization server or an external issuer.</li>
+                        <li>OAuth here is not single sign-on for the web console, and SAJHA is not an OpenID Connect provider.</li>
+                    </ul>
+                    {% if is_admin and oauth_mode is defined %}
+                    <p class="small mb-2"><span class="badge bg-secondary">This server</span>
+                        <code>mcp.auth.mode</code> = <code>{{ oauth_mode }}</code>{% if oauth_mode != 'off' %}, {{ 'built-in authorization server' if oauth_builtin else 'external issuer' }}{% endif %}
+                        · database: <code>{{ db_type }}</code></p>
+                    {% endif %}
+                    <p class="small mb-0"><a href="{{ guide_url('OAuth Guide.md') }}">OAuth Guide</a> ·
+                        <a href="{{ guide_url('Security Model.md') }}">Security Model</a></p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ── Contact ────────────────────────────────────────────── -->
-    <div class="row mb-2">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-header-secondary"><i class="bi bi-c-circle me-2"></i>Copyright &amp; Contact</div>
-                <div class="card-body text-center">
-                    <p class="mb-1">Copyright © {{ app_copyright_years }} {{ app_author }}</p>
-                    <p class="text-muted small mb-3">All rights reserved. {{ app_name }} is proprietary software.</p>
-                    <a href="mailto:{{ app_email }}" class="btn btn-sm btn-outline-primary me-2"><i class="bi bi-envelope me-1"></i>{{ app_email }}</a>
-                    <a href="{{ app_github_repo }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-github me-1"></i>{{ app_github_repo_name }}</a>
-                    <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-box-arrow-up-right me-1"></i>MCP Spec</a>
-                    <a href="/docs" class="btn btn-sm btn-outline-secondary"><i class="bi bi-code-slash me-1"></i>OpenAPI Docs</a>
+    <div class="card mb-4">
+        <div class="card-header card-header-secondary"><i class="bi bi-lightning-charge me-2" aria-hidden="true"></i>What else it does</div>
+        <div class="card-body">
+            <div class="row g-3">
+                {% set caps = [
+                    ('bi-magic', 'MCP Studio', 'Build tools in the browser from Python code, REST endpoints, SQL, scripts and enterprise sources.', 'MCP Studio User Guide.md'),
+                    ('bi-boxes', 'Composite tools', 'Chain tools into one, with the confidence of the result tracked.', 'Composition Framework.md'),
+                    ('bi-arrow-repeat', 'Hot reload', 'Tool configs, prompts, users and API keys change without a restart.', 'Configuration Reference.md'),
+                    ('bi-hdd-stack', 'Storage', 'Configs, prompts, Studio output and docs on local disk, S3, Azure Blob or GCS.', 'Storage Guide.md'),
+                    ('bi-speedometer2', 'Caching and circuit breakers', 'Opt-in per-tool caching, and breakers that stop calls to a failing provider.', 'TUTORIAL_06_configure_tool_caching.md'),
+                    ('bi-window-stack', 'MCP Apps', 'Interactive tool views, and arguments mirrored into headers.', 'MCP Apps and Headers Guide.md'),
+                    ('bi-cpu', 'LLM gateway', 'LLM providers for the console, and semantic search over the tool catalog.', 'Architecture.md'),
+                    ('bi-plug', 'Client SDK', 'A Python client on the official MCP SDK, plus REST and A2A clients.', 'Client SDK Guide.md'),
+                ] %}
+                {% for icon, title, desc, guide in caps %}
+                <div class="col-md-6 col-lg-3">
+                    <h3 class="h6 mb-1"><i class="bi {{ icon }} me-2" aria-hidden="true"></i><a href="{{ guide_url(guide) }}">{{ title }}</a></h3>
+                    <p class="text-muted small mb-0">{{ desc }}</p>
                 </div>
+                {% endfor %}
             </div>
         </div>
     </div>
 
+    <div class="card mb-2">
+        <div class="card-header card-header-secondary"><i class="bi bi-c-circle me-2" aria-hidden="true"></i>Copyright and contact</div>
+        <div class="card-body text-center">
+            <p class="mb-1">Copyright © {{ app_copyright_years }} {{ app_author }}</p>
+            <p class="text-muted small mb-3">All rights reserved.</p>
+            <a href="mailto:{{ app_email }}" class="btn btn-sm btn-outline-primary me-2"><i class="bi bi-envelope me-1" aria-hidden="true"></i>{{ app_email }}</a>
+            <a href="{{ app_github_repo }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-github me-1" aria-hidden="true"></i>{{ app_github_repo_name }}</a>
+            <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>MCP specification</a>
+            <a href="/api/docs" class="btn btn-sm btn-outline-secondary"><i class="bi bi-braces me-1" aria-hidden="true"></i>API docs</a>
+        </div>
+    </div>
+
+    {% include "help/_help_footer.html" %}
 </div>
 {% endblock %}

@@ -767,6 +767,92 @@ h1 small, h1 span, h1 a, h1 code { color: var(--t-muted); }
 .help-related .chips { justify-content: flex-start; }
 .help-related .chip.all { background: var(--sajha-crimson-tint); }
 
+/* Help landing: one tile per section (sajha/web/help_catalog.py) */
+.cat-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.cat-tile { display: flex; flex-direction: column; gap: .45rem; padding: 1rem 1.15rem; border-radius: 16px; text-decoration: none;
+  color: var(--sajha-ink); background: var(--sajha-surface); border: 1px solid var(--sajha-border);
+  box-shadow: 0 8px 24px -18px rgba(41,51,82,.35); transition: transform .15s, border-color .15s, box-shadow .15s; }
+.cat-tile:hover { transform: translateY(-3px); color: var(--sajha-ink); border-color: var(--sajha-crimson); box-shadow: 0 18px 34px -18px rgba(41,51,82,.55); }
+.cat-tile .ct-head { display: flex; align-items: center; gap: .7rem; font-weight: 700; font-size: 1.08rem; }
+.cat-tile .ct-count { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--t-accent-text); background: var(--sajha-crimson-tint); border-radius: 999px; padding: .1rem .6rem; }
+.cat-tile .ct-blurb { color: var(--t-muted); font-size: .92rem; }
+.cat-tile .ct-first { margin-top: auto; font-size: 12.5px; color: var(--t-muted); }
+.help-group-title { font-size: 11px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--t-muted); margin: 1rem 0 .6rem; }
+#helpResults { display: none; max-width: 900px; margin: 0 auto 1.5rem; }
+#helpResults .list-group-item { display: flex; gap: .6rem; align-items: baseline; }
+#helpResults .list-group-item .rcat { margin-left: auto; font-size: 12px; color: var(--t-muted); white-space: nowrap; }
+#helpNoHits { display: none; }
+.help-companion { display: flex; align-items: center; gap: .7rem; max-width: 1100px; margin: 0 0 1rem; padding: .8rem 1.1rem;
+  border-radius: 14px; text-decoration: none; color: var(--sajha-ink); background: var(--sajha-surface);
+  border: 1px solid var(--sajha-border); border-left: 4px solid var(--sajha-crimson); }
+.help-companion:hover { color: var(--sajha-ink); border-color: var(--sajha-crimson); }
+.help-companion > .bi:first-child { font-size: 1.3rem; color: var(--t-accent-text); }
+
+/* Guides: a contents rail beside long-form reference text (MAYA's) */
+.guide-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 1.6rem; align-items: start; max-width: 1240px; }
+.guide-toc { position: sticky; top: 84px; max-height: calc(100vh - 110px); overflow-y: auto; font-size: 13px;
+  padding: .9rem 1rem; border-radius: 14px; background: var(--sajha-surface); border: 1px solid var(--sajha-border); }
+.guide-toc .head { font-size: 11px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--sajha-slate); margin-bottom: .5rem; }
+.guide-toc ol { list-style: none; margin: 0; padding: 0; }
+.guide-toc ol ol { padding-left: .8rem; margin: .15rem 0 .35rem; border-left: 2px solid var(--sajha-border); }
+.guide-toc a { display: block; padding: .18rem 0; text-decoration: none; color: var(--sajha-ink); }
+.guide-toc a:hover { color: var(--t-accent-text); }
+.guide-body { max-width: 900px; min-width: 0; }
+.guide-body h2 { margin-top: 2rem; padding-top: .4rem; border-top: 1px solid var(--sajha-border); scroll-margin-top: 90px; }
+.guide-body h3 { margin-top: 1.4rem; scroll-margin-top: 90px; }
+.guide-body h4 { scroll-margin-top: 90px; }
+.guide-body p, .guide-body li { line-height: 1.65; }
+.guide-body code { color: var(--t-accent-text); }
+.guide-body pre { background: var(--sajha-surface); border: 1px solid var(--sajha-border); border-radius: 10px; padding: .85rem 1rem; overflow-x: auto; }
+.guide-body pre code { color: var(--sajha-ink); }
+.guide-body blockquote { border-left: 4px solid var(--sajha-indigo); padding: .4rem 1rem; color: var(--sajha-slate); margin: 1rem 0; }
+.guide-body .guide-table { margin: 1rem 0; border: 1px solid var(--sajha-border); border-radius: 10px; background: var(--sajha-surface); }
+.guide-body .guide-table table { margin: 0; }
+.guide-body .guide-table th { white-space: nowrap; }
+.guide-body img { max-width: 100%; height: auto; }
+.guide-body hr { display: none; }   /* the h2 rule already separates sections */
+@media (max-width: 991.98px) { .guide-layout { grid-template-columns: 1fr; } .guide-toc { position: static; max-height: none; } }
+
+/* Glossary (rendered from GLOSSARY.md) */
+.gl-toc { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; margin-bottom: 1.4rem; }
+.gl-sec { margin-bottom: 2rem; scroll-margin-top: 150px; }
+.gl-sec h2 { font-size: 1.25rem; padding-bottom: .35rem; border-bottom: 2px solid var(--sajha-crimson); margin-bottom: 1rem; }
+.gl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: .6rem; }
+.gl-term { border: 1px solid var(--sajha-border); border-radius: 12px; padding: .7rem .9rem; background: var(--sajha-surface); scroll-margin-top: 150px; }
+.gl-term:target { border-color: var(--sajha-crimson); box-shadow: 0 0 0 3px var(--sajha-crimson-tint); }
+.gl-term .name { font-weight: 700; color: var(--sajha-heading); }
+.gl-term .def { font-size: .92rem; color: var(--t-muted); margin-top: .2rem; line-height: 1.5; }
+.gl-term code { font-size: .85em; }
+
+/* "About this page" at the foot of every console page (sajha/web/page_help.py): tiles in
+   the cards' own language, collapsible. Definitions come from GLOSSARY.md only. */
+.page-help { margin: 2.5rem 0 1rem; }
+.page-help > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem .8rem; margin-bottom: .8rem; }
+.page-help > summary::-webkit-details-marker { display: none; }
+.page-help:not([open]) > summary { margin-bottom: 0; }
+.page-help .ph-title { font-size: 1.15rem; font-weight: 750; letter-spacing: -.01em;
+  background: linear-gradient(90deg, var(--sajha-heading), var(--sajha-crimson) 55%, var(--sajha-indigo));
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.page-help .ph-title i { color: var(--sajha-crimson); -webkit-text-fill-color: var(--sajha-crimson); }
+.page-help .ph-title::after { content: "\F282"; font-family: "bootstrap-icons"; font-size: .8rem; margin-left: .4rem;
+  display: inline-block; color: var(--sajha-slate); -webkit-text-fill-color: var(--sajha-slate); transition: transform .15s; }
+.page-help:not([open]) .ph-title::after { transform: rotate(-90deg); }
+.page-help .ph-what { color: var(--sajha-slate); font-size: .9rem; flex: 1 1 20rem; }
+.page-help .ph-more { font-weight: 600; font-size: .88rem; white-space: nowrap; margin-left: auto; }
+.page-help .ph-grid { display: grid; gap: 1rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.page-help .ph-grid.ph-n1 { grid-template-columns: minmax(0, 1fr); max-width: 40rem; }
+.page-help .ph-grid.ph-n2, .page-help .ph-grid.ph-n4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.page-help .ph-tile { background: var(--sajha-surface); border: 1px solid color-mix(in srgb, var(--sajha-border) 70%, transparent);
+  border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(26,26,26,.04), 0 8px 24px -14px rgba(41,51,82,.28); }
+.page-help .ph-head { display: flex; align-items: center; gap: .55rem; padding: .55rem .9rem; font-weight: 650; font-size: .9rem;
+  color: var(--sajha-heading); background: linear-gradient(90deg, var(--sajha-crimson-tint), transparent); text-decoration: none; }
+.page-help .ph-head i { display: inline-grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 8px;
+  background: var(--sajha-crimson); color: var(--sajha-on-crimson); font-size: .85rem; }
+.page-help .ph-tile p { margin: 0; padding: .6rem .9rem .8rem; font-size: .86rem; }
+.page-help .help-related { margin-top: 1rem; }
+@media (prefers-reduced-motion: reduce) { .page-help .ph-title::after { transition: none; } }
+@media (max-width: 900px) { .page-help .ph-grid, .page-help .ph-grid.ph-n2, .page-help .ph-grid.ph-n4 { grid-template-columns: minmax(0, 1fr); } }
+
 /* About */
 .about-hero { padding: 3.2rem 1.5rem; }
 .about-hero img { height: 76px; position: relative; filter: drop-shadow(0 6px 14px rgba(0,0,0,.4)); margin-bottom: .8rem; }

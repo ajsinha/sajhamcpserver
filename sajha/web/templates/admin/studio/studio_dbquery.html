@@ -230,7 +230,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 </p>
             </div>
             <div class="d-flex gap-2">
-                <a href="{{ url_for('help_page') }}#mcp-studio-dbquery" class="btn btn-outline-light btn-sm">
+                <a href="{{ guide_url('MCP Studio DBQuery Tool Creator Guide.md') }}" class="btn btn-outline-light btn-sm">
                     <i class="bi bi-question-circle me-1"></i>Help
                 </a>
                 <a href="{{ url_for('studio_home') }}" class="btn btn-outline-light btn-sm">
@@ -494,39 +494,6 @@ ORDER BY sale_date DESC"></textarea>
 <div id="successBanner" class="alert alert-success d-none mx-3 mt-3"><h5><i class="bi bi-check-circle-fill me-2"></i>Tool Created!</h5><p class="mb-1">Your DB query tool is ready.</p><a href="/tools" class="btn btn-success btn-sm">View Tools</a></div>
 {% endblock %}
 
-{% block page_glossary %}
-<div class="container-fluid mt-4">
-    <div class="card border-secondary">
-        <div class="card-header card-header-secondary" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
-            <i class="bi bi-book me-2"></i>Page Glossary
-            <i class="bi bi-chevron-down float-end"></i>
-        </div>
-        <div class="collapse" id="pageGlossary">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>DuckDB:</strong> In-process analytical database optimized for OLAP queries on local files.</p>
-                        <p><strong>SQLite:</strong> Lightweight file-based relational database, widely used for local storage.</p>
-                        <p><strong>Query Template:</strong> SQL query with parameter placeholders for dynamic value substitution.</p>
-                        <p><strong>Parameter Escaping:</strong> Automatic quoting and escaping to prevent SQL injection.</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>PostgreSQL:</strong> Advanced open-source relational database for production workloads.</p>
-                        <p><strong>MySQL:</strong> Popular open-source relational database management system.</p>
-                        <p><strong>Connection String:</strong> Database connection details including host, credentials, and database name.</p>
-                        <p><strong>Literature:</strong> Contextual documentation that helps AI understand tool usage.</p>
-                    </div>
-                </div>
-                <div class="text-end mt-2">
-                    <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-book me-1"></i>View Full Glossary
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
 
 {% block extra_js %}
 <script>

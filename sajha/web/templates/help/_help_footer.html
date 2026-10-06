@@ -1,0 +1,25 @@
+{# Shared help footer: a "Full reference" link to the guide that owns the topic, and the
+   other topics in its help category. Built by sajha/web/help_catalog.py::related_for.
+   Expects `help_related` = {category, cid, siblings[], companion?}. #}
+{% if help_related %}
+<div class="help-related mt-4">
+    {% if help_related.companion %}
+    <a class="help-companion" href="{{ guide_url(help_related.companion.file) }}">
+        <i class="bi bi-journal-richtext" aria-hidden="true"></i>
+        <span><strong>Full reference:</strong> {{ help_related.companion.title }}
+        <span class="text-muted">, the guide that owns this topic</span></span>
+        <i class="bi bi-arrow-right ms-auto" aria-hidden="true"></i>
+    </a>
+    {% endif %}
+    {% if help_related.siblings %}
+    <div class="head"><i class="bi bi-signpost-2 me-1" aria-hidden="true"></i>More in <a href="/help/c/{{ help_related.cid }}">{{ help_related.category }}</a></div>
+    {% endif %}
+    <div class="chips">
+        {% for t in help_related.siblings %}
+        <a class="chip" href="{{ topic_href(t) }}"><i class="bi {{ t.icon }}" aria-hidden="true"></i> {{ t.title }}</a>
+        {% endfor %}
+        <a class="chip" href="/glossary"><i class="bi bi-journal-text" aria-hidden="true"></i> Glossary</a>
+        <a class="chip all" href="/help"><i class="bi bi-grid" aria-hidden="true"></i> All help</a>
+    </div>
+</div>
+{% endif %}

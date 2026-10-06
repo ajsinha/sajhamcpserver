@@ -1,0 +1,68 @@
+{% extends "common/base.html" %}
+{# The guide library: every guide under docs/, grouped by folder (sajha/web/guides.py). #}
+{% block title %}Guides - Help - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav class="help-crumbs" aria-label="Breadcrumb"><a href="/help"><i class="bi bi-life-preserver me-1" aria-hidden="true"></i>Help</a><i class="bi bi-chevron-right" aria-hidden="true"></i><span>Guides</span></nav>
+    <div class="help-topic-hero">
+        <div class="ico"><i class="bi bi-collection" aria-hidden="true"></i></div>
+        <div>
+            <h1>Guide library</h1>
+            <p>Every guide, by folder. Each owns one topic; definitions are in the <a href="/glossary">glossary</a>.</p>
+        </div>
+    </div>
+
+    <div class="help-search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input id="helpSearch" type="search" autocomplete="off" placeholder="Filter {{ guide_count }} guides&hellip;" aria-label="Filter guides">
+    </div>
+    <div class="cat-chips mb-3">
+        {% for f in folders %}<a class="chip" href="#f-{{ f.folder|replace('/', '-') }}">{{ f.label }} <span>{{ f.guides|length }}</span></a>{% endfor %}
+    </div>
+
+    <div class="row g-3">
+    {% for f in folders %}
+        <div class="col-lg-6 col-xxl-4 help-group" id="f-{{ f.folder|replace('/', '-') }}" style="scroll-margin-top:90px">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-folder2-open me-2" aria-hidden="true"></i>{{ f.label }}</div>
+                <div class="list-group list-group-flush">
+                    {% for g in f.guides %}
+                    <a class="list-group-item list-group-item-action help-item" data-search="{{ (g.title ~ ' ' ~ g.name ~ ' ' ~ f.label)|lower }}" href="{{ g.url }}">
+                        <i class="bi bi-journal-text me-2" aria-hidden="true"></i>{{ g.title }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+    </div>
+    <div id="helpNoHits" class="help-none"><i class="bi bi-search" aria-hidden="true"></i> No guide matches.</div>
+
+    {% include "help/_help_footer.html" %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var box = document.getElementById('helpSearch');
+    var items = Array.prototype.slice.call(document.querySelectorAll('.help-item'));
+    var groups = Array.prototype.slice.call(document.querySelectorAll('.help-group'));
+    var noHits = document.getElementById('helpNoHits');
+    if (!box) return;
+    box.addEventListener('input', function () {
+        var q = box.value.trim().toLowerCase(), any = false;
+        items.forEach(function (it) {
+            var hit = !q || (it.getAttribute('data-search') || '').indexOf(q) !== -1;
+            it.style.display = hit ? '' : 'none';
+            if (hit) any = true;
+        });
+        groups.forEach(function (g) {
+            g.style.display = Array.prototype.some.call(g.querySelectorAll('.help-item'),
+                function (i) { return i.style.display !== 'none'; }) ? '' : 'none';
+        });
+        noHits.style.display = any ? 'none' : 'block';
+    });
+})();
+</script>
+{% endblock %}

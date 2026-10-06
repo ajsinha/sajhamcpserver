@@ -1,0 +1,37 @@
+{% extends "common/base.html" %}
+{# One guide, rendered on the server from docs/ (sajha/web/guides.py): raw HTML in the
+   markdown is escaped, and relative links point at the app. #}
+{% block title %}{{ title }} - {{ app_name }}{% endblock %}
+
+{% macro toc_list(items) %}<ol>{% for t in items %}<li><a href="#{{ t.id }}">{{ t.name|striptags }}</a>{% if t.children %}{{ toc_list(t.children) }}{% endif %}</li>{% endfor %}</ol>{% endmacro %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav class="help-crumbs" aria-label="Breadcrumb">
+        <a href="/help"><i class="bi bi-life-preserver me-1" aria-hidden="true"></i>Help</a><i class="bi bi-chevron-right" aria-hidden="true"></i>
+        <a href="/help/guides">Guides</a><i class="bi bi-chevron-right" aria-hidden="true"></i>
+        {% if help_related and help_related.cid %}<a href="/help/c/{{ help_related.cid }}">{{ help_related.category }}</a>{% else %}<span>{{ folder_label }}</span>{% endif %}<i class="bi bi-chevron-right" aria-hidden="true"></i>
+        <span>{{ title }}</span>
+    </nav>
+    <div class="help-topic-hero">
+        <div class="ico"><i class="bi bi-journal-richtext" aria-hidden="true"></i></div>
+        <div>
+            <h1>{{ title }}</h1>
+            <p>{{ folder_label }} · docs/{{ folder }}/{{ name }}</p>
+        </div>
+    </div>
+
+    <div class="guide-layout">
+        {% if toc %}
+        <nav class="guide-toc" aria-label="Contents">
+            <div class="head">Contents</div>
+            {{ toc_list(toc) }}
+        </nav>
+        {% else %}<div></div>{% endif %}
+        <article class="guide-body" data-sajha-table="false">
+            {{ body|safe }}
+            {% include "help/_help_footer.html" %}
+        </article>
+    </div>
+</div>
+{% endblock %}

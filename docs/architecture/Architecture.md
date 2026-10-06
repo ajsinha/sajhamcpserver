@@ -176,7 +176,7 @@ parameters between steps; `EntropyGuard` tracks cumulative confidence
 | Store | What lives there | Code |
 |---|---|---|
 | Database (SQLite default, PostgreSQL) | Users, roles, permissions, API keys, sessions, audit log, rate-limit log, tenants, prompts metadata, composite tools, tool versions and usage, LLM providers, models and usage | `sajha/db/`, `db/scripts/<type>/` |
-| Storage backend (local, S3, Azure Blob, GCS) | Tool and prompt configs, Studio output, documents served at `/docs` | `sajha/core/storage.py`; [Storage Guide](../getting-started/Storage%20Guide.md) |
+| Storage backend (local, S3, Azure Blob, GCS) | Tool and prompt configs, Studio output, guides served at `/help/guides` | `sajha/core/storage.py`; [Storage Guide](../getting-started/Storage%20Guide.md) |
 | Local disk (`data/`) | Tool output cache, async results, shell scratch, DuckDB/SQL data files, the OAuth signing key | config keys under `cache`, `async`, `shell`, `data`, `mcp.auth.builtin` |
 | Process memory | MCP sessions, MCP tasks, listen streams, OAuth pending consents, codes, refresh tokens and DCR clients | `mcp_sessions.py`, `mcp_tasks.py`, `sajha/auth/oauth/` |
 
@@ -201,8 +201,16 @@ share the OAuth signing key so that any instance can verify what another issued.
 Server-rendered Jinja2 templates in `sajha/web/templates/` with Bootstrap and
 vendored assets (no CDN), one design-token file
 (`sajha/web/static/css/tokens.css`) and four themes: Crimson, Dark, Blue and Green.
-`render()` in `sajha/app.py` supplies common context. Help pages live under
-`sajha/web/templates/help/`; the markdown documentation is browsable at `/docs`.
+`render()` in `sajha/app.py` supplies common context.
+
+The in-app help is data-driven. `sajha/web/help_catalog.py` is the registry of help
+topics (rendered at `/help` and `/help/c/{cid}`); `sajha/web/guides.py` finds each guide
+under `docs/` by its unique file name and renders it server-side at
+`/help/guides/{name}` (`docs/archive/` is never served); `/glossary` is rendered from
+`GLOSSARY.md`; `/help/tools` is derived from the tools registry. Every console page ends
+with an "About this page" panel from `sajha/web/page_help.py`, whose terms are looked up
+in `GLOSSARY.md`. These pages need no login. The old `/docs` URLs redirect to
+`/help/guides`.
 
 ## 11. Client SDK
 

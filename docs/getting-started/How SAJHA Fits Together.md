@@ -27,8 +27,8 @@ circuit breakers, observability, and pluggable storage.
 ```
   MCP clients            programs / agents          people (browser)
        │                        │                          │
-  /mcp (both eras)        /api/* REST, /a2a          web UI, /docs, help
-  /mcp/sse, /mcp/ws       (JWT or API key)           (session cookie)
+  /mcp (both eras)        /api/* REST, /a2a          web UI, /help, /glossary
+  /mcp/sse, /mcp/ws       (JWT or API key)           (session cookie; help is public)
        │                        │                          │
        └──── Origin check · authorization (API key · JWT · OAuth 2.1) ────┘
                                  │
@@ -98,7 +98,7 @@ whose job it is holds the content, and the other links to it.
 | **Compliance reports** | What the protocol implementation does, requirement by requirement, with test evidence | `docs/protocol/MCP * Compliance.md` |
 | **Architecture** | How the server is built inside | `docs/architecture/` |
 | **Tutorials** | Learning by doing, in order | `docs/tutorials/TUTORIAL_*.md` |
-| **Help pages** | The in-app quick tour of a topic, linking to its guide | `sajha/web/templates/help/` |
+| **In-app help** | The help catalog, these guides rendered at `/help/guides/<name>`, the glossary at `/glossary`, and an "About this page" panel on every console page, each linking to the owning guide | `sajha/web/help_catalog.py`, `sajha/web/guides.py`, `sajha/web/page_help.py` |
 | **Glossary** | One definition per term | [`GLOSSARY.md`](../../GLOSSARY.md) |
 | **Release log** | What changed, version by version | [`CHANGELOG.md`](../../CHANGELOG.md) |
 | **Version** | The one version number | `app.version` in `config/application.yml` |

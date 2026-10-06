@@ -43,7 +43,7 @@ selected store.
 | Tools registry | `config/tools/*.json` | list and read at load; admin config edits and enable/disable persist with `write_json` |
 | Prompts registry | `config/prompts/*.json` | list and read at load; create and update use `write_json`; delete uses `delete` |
 | MCP Studio generators | `config/tools/<name>.json` | the generated tool **JSON** is written through `write_tool_config()` |
-| Docs viewer (`/docs`, `/docs/view/...`) | `docs/**/*.md` | recursive listing and read on every request, with a `..` path-traversal guard |
+| Guide pages (`/help/guides`, `/help/guides/{name}`) | `docs/**/*.md` except `docs/archive/` and `README.md` files | recursive listing (reused for 30 s) and a read per page; a guide is found by its file name |
 | Semantic tool search vector index | `data/tool_search_index.json` | loaded at start and rewritten after re-embedding; only when `ai.tool_search.embedder` is `gateway` (the default `bm25` builds nothing to persist) |
 
 The tools and prompts paths come from `config.tools.dir` / `config.prompts.dir` (defaults
@@ -319,7 +319,7 @@ Behaviour you should expect on a cloud backend:
    `${VAR:default}` placeholders shown above. Then restart.
 4. **Verify.** The startup log shows `Storage backend initialized: S3StorageBackend` (or the
    Azure or GCS class) and `Object-store sync manager active for ...`. `/admin/tools` lists the
-   expected tools, and `/docs` lists the documents.
+   expected tools, and `/help/guides` lists the guides.
 5. **Keep state off the bucket.** The database, cache, and OAuth key stay on local disk or
    EFS (or PostgreSQL).
 6. **Multi-instance with MCP Studio.** Studio writes the tool JSON to the bucket, so every
@@ -341,7 +341,7 @@ Behaviour you should expect on a cloud backend:
 | Tool JSON loads but the class fails to import on another instance | The Studio `.py` exists only on the instance that generated it. Share `sajha/tools/impl/` via EFS. |
 | `database is locked` or a corrupt SQLite file on a shared mount | Never put SQLite on an object store. On EFS, prefer a single writer, or switch `db.type` to `postgresql`. |
 | Setting `ai.tool_search.persist: false` still writes `data/tool_search_index.json` | The flag is read as a string and passed through `bool()`, so any non-empty value counts as true. Use the `bm25` embedder (nothing is persisted) if you need no index file. |
-| A doc is missing from `/docs` | Only `*.md` under `docs/` (recursive) are listed, and on a cloud backend they must be in the bucket under `<prefix>/docs/`. |
+| A guide is missing from `/help/guides` | Only `*.md` under `docs/` (recursive, excluding `docs/archive/` and `README.md` files) are listed, and on a cloud backend they must be in the bucket under `<prefix>/docs/`. |
 
 ---
 

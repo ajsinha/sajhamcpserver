@@ -23,7 +23,7 @@
   ('MCP Studio', 'magic', [
     ('Code & services', [
       (url_for('studio_home'), 'house', 'Studio home', 'Everything you can build here'),
-      (url_for('studio_home') ~ '#python-creator', 'code-slash', 'Python code tool', 'Turn a Python function into a tool'),
+      (url_for('studio_home') ~ '#python-creator', 'code-slash', 'Python code tool', 'Turn a Python function into a tool (on Studio home)'),
       (url_for('studio_rest'), 'cloud-arrow-up', 'REST service tool', 'Wrap an HTTP endpoint as a tool'),
       (url_for('studio_dbquery'), 'database', 'DB query tool', 'A parameterised SQL query as a tool'),
       (url_for('studio_script'), 'terminal', 'Script tool', 'Run a shell or Python script as a tool')]),
@@ -48,11 +48,12 @@
 {% set MENU = MENU + [
   ('Help', 'question-circle', [
     ('Learn', [
-      (url_for('help_page'), 'question-circle', 'Help', 'Concepts, tools and how SAJHA fits together'),
-      ('/help/tutorials', 'mortarboard', 'Tutorials', 'Step-by-step walkthroughs'),
-      ('/help/glossary', 'book', 'Glossary', 'The terms, defined'),
-      ('/docs', 'journal-text', 'Documentation', 'Guides and reference'),
-      (url_for('about_page'), 'info-circle', 'About SAJHA', 'Version, licence and credits')])])] %}
+      (url_for('help_page'), 'life-preserver', 'Help', 'Every topic, by section, searchable'),
+      (url_for('help_guides'), 'collection', 'Guides', 'Every guide, by folder'),
+      (url_for('glossary'), 'journal-text', 'Glossary', 'Every term, defined once')]),
+    ('Reference', [
+      (url_for('help_tools_page'), 'grid-3x3-gap', 'Tool catalog', 'What this server has loaded, by group'),
+      (url_for('about_page'), 'info-circle', 'About SAJHA', 'What it is, and what it is running now')])])] %}
 
 <nav class="navbar navbar-expand-lg sajha-nav fixed-top" aria-label="Main">
   <div class="container-fluid">

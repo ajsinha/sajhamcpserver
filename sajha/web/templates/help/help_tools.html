@@ -1,73 +1,76 @@
 {% extends "common/base.html" %}
-{% block title %}Tool Catalog - Help - SAJHA MCP Server{% endblock %}
-{% block extra_css %}
-<style>
-.tool-group-card { border-radius: var(--radius-lg); transition: all 0.2s ease; height: 100%; }
-.tool-group-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
-.tool-group-header { padding: 1rem 1.25rem; border-radius: var(--radius-lg) var(--radius-lg) 0 0; display: flex; justify-content: space-between; align-items: center; }
-.tool-group-body { padding: 1rem 1.25rem; }
-.tool-group-body p { margin-bottom: 0.5rem; color: var(--t-text2); font-size: 0.9rem; }
-.tool-group-desc { font-size: 0.8rem; padding: 0.2rem 0.5rem; border-radius: 4px; display: inline-block; margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.tool-group-footer { padding: 0.75rem 1.25rem; border-top: 1px solid var(--t-card-b); display: flex; justify-content: space-between; align-items: center; }
-</style>
-{% endblock %}
+{# The live tool catalog: derived from the tools registry on every request
+   (sajha/web/help_catalog.py::live_tool_groups), so it is never out of date. #}
+{% block title %}Tool catalog - Help - {{ app_name }}{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
-    <nav class="help-crumbs" aria-label="Breadcrumb"><a href="/help"><i class="bi bi-life-preserver me-1"></i>Help</a><i class="bi bi-chevron-right"></i><span>Tool Catalog</span></nav>
+    <nav class="help-crumbs" aria-label="Breadcrumb"><a href="/help"><i class="bi bi-life-preserver me-1" aria-hidden="true"></i>Help</a><i class="bi bi-chevron-right" aria-hidden="true"></i><a href="/help/c/tools">Tools and prompts</a><i class="bi bi-chevron-right" aria-hidden="true"></i><span>Tool catalog</span></nav>
     <div class="help-topic-hero">
-        <div class="ico"><i class="bi bi-tools"></i></div>
+        <div class="ico"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i></div>
         <div>
-            <h1 class="h3">Tool Catalog</h1>
-            <p>Browse every tool by provider group. <span class="badge bg-light rounded-pill px-3 py-2 ms-1"><i class="bi bi-gear me-1"></i>{{ tool_stats.total_tools }} tools in {{ tool_stats.total_groups }} groups</span></p>
+            <h1>Tool catalog</h1>
+            <p>What this server has loaded right now: {{ catalog_live.total_tools }} tools in {{ catalog_live.total_groups }} groups.
+               A tool's group is the text before the first <code class="text-reset">_</code> in its name.</p>
         </div>
     </div>
 
-    <!-- Search -->
-    <div class="row mb-3">
-        <div class="col-md-6">
-            <div class="input-group">
-                <span class="input-group-text"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control" id="toolGroupSearch" placeholder="Search tool groups..." autofocus>
-                <button class="btn btn-outline-secondary" onclick="this.previousElementSibling.value='';filterGroups()"><i class="bi bi-x-lg"></i></button>
-            </div>
-        </div>
+    <div class="help-search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input id="toolGroupSearch" type="search" autocomplete="off" placeholder="Filter groups and example tools&hellip;" aria-label="Filter tool groups">
     </div>
 
-    <!-- Tool Group Cards -->
     <div class="row g-3" id="toolGroupGrid">
-        {% set tok_map = {'primary':'crimson','success':'ok','info':'indigo','warning':'warn','danger':'bad','secondary':'slate','dark':'indigo'} %}
-        {% for group in tool_groups %}
-        {% set tok = 'var(--sajha-' ~ tok_map.get(group.color, 'crimson') ~ ')' %}
-        <div class="col-md-6 col-lg-4 tool-group-col" data-name="{{ group.name }}">
-            <div class="card tool-group-card">
-                <div class="tool-group-header" style="background:{{ tok }};color:var(--sajha-on-crimson)">
-                    <span><i class="{{ group.icon }} me-2"></i><strong>{{ group.name }}</strong></span>
-                    <span class="badge" style="background:var(--sajha-surface);color:var(--sajha-ink)">{{ group.tool_count }} tools</span>
+        {% for g in catalog_live.groups %}
+        {% set tok = 'var(--sajha-' ~ g.tone ~ ')' %}
+        <div class="col-md-6 col-xl-4 tool-group-col">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center" style="background:{{ tok }};color:var(--sajha-on-crimson)">
+                    <i class="bi {{ g.icon }} me-2" aria-hidden="true"></i><strong>{{ g.name }}</strong>
+                    <span class="badge ms-auto" style="background:var(--sajha-surface);color:var(--sajha-ink)">{{ g.tool_count }} tools</span>
                 </div>
-                <div class="tool-group-body">
-                    <p>{{ group.description }}</p>
-                    {% for cat in group.categories %}
-                    <div class="tool-group-desc" style="background:color-mix(in srgb, {{ tok }} 12%, var(--sajha-surface));color:color-mix(in srgb, {{ tok }} 80%, var(--sajha-ink))" title="{{ cat }}">{{ cat }}</div>
+                <div class="card-body">
+                    <ul class="list-unstyled small mb-0">
+                    {% for ex in g.examples %}
+                        <li class="mb-1"><code>{{ ex.name }}</code>{% if ex.description %}<span class="text-muted"> {{ ex.description }}</span>{% endif %}</li>
                     {% endfor %}
+                    </ul>
                 </div>
-                <div class="tool-group-footer">
-                    <small class="text-muted"><i class="bi bi-check-circle text-success me-1"></i>{{ group.enabled_count }} enabled</small>
-                    <a href="/tools?group={{ group.name }}" class="btn btn-sm btn-outline-{{ group.color }}"><i class="bi bi-eye me-1"></i>View</a>
+                <div class="card-footer d-flex align-items-center">
+                    <small class="text-muted"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ g.enabled_count }} enabled</small>
+                    {% if session.token %}<a href="/tools?group={{ g.name|urlencode }}" class="btn btn-sm btn-outline-secondary ms-auto"><i class="bi bi-eye me-1" aria-hidden="true"></i>View</a>{% endif %}
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
+    <div id="helpNoHits" class="help-none"><i class="bi bi-search" aria-hidden="true"></i> No group matches.</div>
+
+    <div class="help-box concept mt-4">
+        <div class="hb-title">Each provider's tools, parameters and API keys</div>
+        are documented in its reference guide, under <a href="/help/c/tools">Tools and prompts</a>.
+    </div>
+
+    {% include "help/_help_footer.html" %}
 </div>
 {% endblock %}
+
 {% block extra_js %}
 <script>
-document.getElementById('toolGroupSearch').addEventListener('input', filterGroups);
-function filterGroups() {
-    var q = document.getElementById('toolGroupSearch').value.toLowerCase();
-    document.querySelectorAll('.tool-group-col').forEach(function(el) {
-        el.style.display = (!q || el.textContent.toLowerCase().includes(q)) ? '' : 'none';
+(function () {
+    var box = document.getElementById('toolGroupSearch');
+    var cols = Array.prototype.slice.call(document.querySelectorAll('.tool-group-col'));
+    var noHits = document.getElementById('helpNoHits');
+    if (!box) return;
+    box.addEventListener('input', function () {
+        var q = box.value.trim().toLowerCase(), any = false;
+        cols.forEach(function (el) {
+            var hit = !q || el.textContent.toLowerCase().indexOf(q) !== -1;
+            el.style.display = hit ? '' : 'none';
+            if (hit) any = true;
+        });
+        noHits.style.display = any ? 'none' : 'block';
     });
-}
+})();
 </script>
 {% endblock %}

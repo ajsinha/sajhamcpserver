@@ -1,0 +1,78 @@
+{% extends "common/base.html" %}
+{# The help landing page: one tile per section of sajha/web/help_catalog.py, and a search
+   over every topic of every section. Nothing here is written by hand: add a topic to the
+   catalog and it appears. #}
+{% block title %}Help - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="help-hero">
+        <i class="bi bi-life-preserver hero-ico" aria-hidden="true"></i>
+        <h1>Help and documentation</h1>
+        <p>Search every guide and page, or open a section. New here? Start with
+            <a href="{{ guide_url('How SAJHA Fits Together.md') }}">How SAJHA Fits Together</a>.</p>
+    </div>
+
+    <div class="help-search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input id="helpSearch" type="search" autocomplete="off"
+               placeholder="Search help: e.g. oauth, storage, composite, FRED, tasks&hellip;" aria-label="Search help">
+    </div>
+    <div class="cat-chips mb-4">
+        <a class="chip" href="/help/guides"><i class="bi bi-collection" aria-hidden="true"></i> Guide library</a>
+        <a class="chip" href="/glossary"><i class="bi bi-journal-text" aria-hidden="true"></i> Glossary</a>
+        <a class="chip" href="/help/tools"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i> Tool catalog</a>
+        <a class="chip" href="/api/docs"><i class="bi bi-braces" aria-hidden="true"></i> API docs</a>
+        <a class="chip" href="/about"><i class="bi bi-info-circle" aria-hidden="true"></i> About</a>
+    </div>
+
+    {# Search results: every topic of every section, hidden until there is a query. #}
+    <div id="helpResults" class="list-group">
+        {% for c in catalog %}{% for t in c.topics %}
+        <a class="list-group-item list-group-item-action help-hit" style="display:none"
+           data-search="{{ (t.title ~ ' ' ~ t.summary ~ ' ' ~ c.name ~ ' ' ~ (t.file or ''))|lower }}"
+           href="{{ topic_href(t) }}">
+            <i class="bi {{ t.icon }}" aria-hidden="true"></i>
+            <span><strong>{{ t.title }}</strong> <span class="text-muted">{{ t.summary }}</span></span>
+            <span class="rcat">{{ c.name }}</span>
+        </a>
+        {% endfor %}{% endfor %}
+    </div>
+    <div id="helpNoHits" class="help-none"><i class="bi bi-search" aria-hidden="true"></i> No help topics match your search.</div>
+
+    <div class="cat-tiles" id="helpSections">
+        {% for c in catalog %}
+        <a class="cat-tile" id="cat-{{ c.id }}" href="/help/c/{{ c.id }}">
+            <span class="ct-head"><span class="cat-ico"><i class="bi {{ c.icon }}" aria-hidden="true"></i></span> {{ c.name }}
+                <span class="ct-count">{{ c.topics|length }}</span></span>
+            <span class="ct-blurb">{{ c.blurb }}</span>
+            <span class="ct-first">{{ c.topics[:3] | map(attribute='title') | join(' · ') }}{% if c.topics|length > 3 %} &hellip;{% endif %}</span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var box = document.getElementById('helpSearch');
+    var hits = Array.prototype.slice.call(document.querySelectorAll('.help-hit'));
+    var results = document.getElementById('helpResults');
+    var sections = document.getElementById('helpSections');
+    var noHits = document.getElementById('helpNoHits');
+    if (!box) return;
+    box.addEventListener('input', function () {
+        var q = box.value.trim().toLowerCase(), any = false;
+        hits.forEach(function (h) {
+            var hit = q && (h.getAttribute('data-search') || '').indexOf(q) !== -1;
+            h.style.display = hit ? '' : 'none';
+            if (hit) any = true;
+        });
+        results.style.display = q && any ? 'block' : 'none';
+        sections.style.display = q ? 'none' : '';
+        noHits.style.display = q && !any ? 'block' : 'none';
+    });
+})();
+</script>
+{% endblock %}

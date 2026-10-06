@@ -105,10 +105,10 @@ async def root(request: Request, auth: AuthContext = Depends(get_current_user)):
     # Show landing page for unauthenticated visitors. The counts and the hero's constellation
     # come from the live registry, grouped by name prefix exactly as the help pages group them.
     from sajha.app import render_standalone
-    from sajha.routes.misc_routes import _build_tool_context
-    tool_ctx = _build_tool_context(auth)
+    from sajha.web.help_catalog import live_tool_groups
+    live = live_tool_groups()
     return render_standalone(request, 'landing.html', {
-        'tool_count': tool_ctx['tool_stats']['total_tools'],
-        'group_count': tool_ctx['tool_stats']['total_groups'],
-        'tool_groups': [[g['name'], g['tool_count']] for g in tool_ctx['tool_groups']],
+        'tool_count': live['total_tools'],
+        'group_count': live['total_groups'],
+        'tool_groups': [[g['name'], g['tool_count']] for g in live['groups']],
     })

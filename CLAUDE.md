@@ -94,17 +94,21 @@ clientsdk/README.md  short pointer + install + quick start; the guide is in docs
 | **Abbrev** (*Expansion*) | ... |
 ```
 
-Sections are `## N. Title`; each term is one row starting `| **`. Templates must not
-carry their own definitions (the old per-page `page_glossary` blocks are being replaced
-by entries rendered from this file). Add a term here first, then link to it.
+Sections are `## N. Title`; each term is one row starting `| **`. Templates and guides must not
+carry their own definitions: `sajha/web/glossary.py` parses this file for `/glossary`,
+and each page's "About this page" panel names terms in `sajha/web/page_help.py`
+(`PAGE_HELP`) whose definitions come only from here (`tests/test_glossary_single_source.py`
+enforces both). Add a term here first, then name it.
 
 ### 5. The in-app help follows the docs, not the other way round
 
-Help pages under `sajha/web/templates/help/` are a quick tour that links to the owning
-guide for the full reference. They must not hold facts the guides lack. When the help
-catalog (in-app guide browser) serves markdown, it finds guides by unique file name
-and groups them by their folder under `docs/`; adding a folder means adding it to the
-catalog's folder map.
+`sajha/web/help_catalog.py` is the single registry of help topics: every help page,
+guide and live browser is a card there, and `/help`, `/help/c/{cid}` and the help
+footer are rendered from it. `sajha/web/guides.py` finds guides by unique file name
+under `docs/` (excluding `archive/` and READMEs) and renders them at
+`/help/guides/{name}`; adding a folder means adding it to its `FOLDERS` map. Help
+pages hold no facts the guides lack. `tests/test_help_catalog.py` and
+`tests/test_documentation_rot.py` keep the catalog, links and cited paths honest.
 
 ### 6. Archive, don't delete, point-in-time documents
 

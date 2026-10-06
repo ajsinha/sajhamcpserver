@@ -1,0 +1,69 @@
+{% extends "common/base.html" %}
+{# Rendered from GLOSSARY.md (sajha/web/glossary.py), the one place a term is defined.
+   Add or change a definition there, never here. #}
+{% block title %}Glossary - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav class="help-crumbs" aria-label="Breadcrumb"><a href="/help"><i class="bi bi-life-preserver me-1" aria-hidden="true"></i>Help</a><i class="bi bi-chevron-right" aria-hidden="true"></i><span>Glossary</span></nav>
+    <div class="help-topic-hero">
+        <div class="ico"><i class="bi bi-journal-text" aria-hidden="true"></i></div>
+        <div>
+            <h1>Glossary</h1>
+            <p>Every acronym, term of art and SAJHA-specific word, defined once.</p>
+        </div>
+    </div>
+
+    <div class="help-toolbar">
+        <div class="help-search">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input id="glq" type="search" autocomplete="off" placeholder="Search {{ term_count }} terms and definitions&hellip;" aria-label="Search the glossary">
+        </div>
+        <div class="cat-chips gl-toc mb-0">
+            {% for sec in glossary if sec.terms %}<a class="chip" href="#{{ sec.id }}">{{ sec.title }}</a>{% endfor %}
+        </div>
+    </div>
+
+    {% for sec in glossary %}
+    <section class="gl-sec" id="{{ sec.id }}">
+        <h2>{{ sec.title }}</h2>
+        <div class="gl-grid">
+            {% for t in sec.terms %}
+            <div class="gl-term" id="{{ t.id }}" data-t="{{ t.text }}">
+                <span class="name">{{ t.name_html|safe }}</span>
+                <div class="def">{{ t.html|safe }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+    <div class="help-none" id="glempty" style="display:none"><i class="bi bi-search" aria-hidden="true"></i> No terms match your search.</div>
+
+    {% include "help/_help_footer.html" %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var q = document.getElementById('glq');
+    var terms = Array.prototype.slice.call(document.querySelectorAll('.gl-term'));
+    var secs = Array.prototype.slice.call(document.querySelectorAll('.gl-sec'));
+    var empty = document.getElementById('glempty');
+    if (!q) return;
+    q.addEventListener('input', function () {
+        var s = q.value.trim().toLowerCase(), any = false;
+        terms.forEach(function (t) {
+            var hit = !s || (t.getAttribute('data-t') || '').indexOf(s) !== -1;
+            t.style.display = hit ? '' : 'none';
+            if (hit) any = true;
+        });
+        secs.forEach(function (sec) {
+            sec.style.display = Array.prototype.some.call(sec.querySelectorAll('.gl-term'),
+                function (t) { return t.style.display !== 'none'; }) ? '' : 'none';
+        });
+        empty.style.display = any ? 'none' : 'block';
+    });
+})();
+</script>
+{% endblock %}

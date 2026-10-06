@@ -63,7 +63,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                         <i class="bi bi-eye" id="passwordToggleIcon"></i>
                                     </button>
                                 </div>
-                                <div class="form-text">Minimum 6 characters. Will be hashed using SHA-256.</div>
+                                <div class="form-text">Minimum 6 characters. Stored as a bcrypt hash, never in plain text.</div>
                             </div>
                         </div>
 
@@ -287,37 +287,6 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 </div>
 {% endblock %}
 
-{% block page_glossary %}
-<div class="container-fluid mt-4">
-    <div class="card border-secondary">
-        <div class="card-header card-header-secondary" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
-            <i class="bi bi-book me-2"></i>Page Glossary
-            <i class="bi bi-chevron-down float-end"></i>
-        </div>
-        <div class="collapse" id="pageGlossary">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>User ID:</strong> A unique identifier used for authentication. Cannot be changed after creation.</p>
-                        <p><strong>RBAC (Role-Based Access Control):</strong> Authorization approach where permissions are assigned to roles.</p>
-                        <p><strong>Password Hash:</strong> Encrypted representation of password using SHA-256 algorithm.</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Role:</strong> A named set of permissions (admin, developer, user, viewer).</p>
-                        <p><strong>Tool Access:</strong> Which MCP tools a user is authorized to execute.</p>
-                        <p><strong>Account Status:</strong> Whether a user account is enabled or disabled for login.</p>
-                    </div>
-                </div>
-                <div class="text-end mt-2">
-                    <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-book me-1"></i>View Full Glossary
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
 
 {% block extra_js %}
 <script>

@@ -34,14 +34,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Main Content -->
     <main class="container-fluid sajha-content" id="main-content">
         {% block content %}{% endblock %}
+        {# About this page: sajha/web/page_help.py, definitions from GLOSSARY.md #}
+        {% block page_help %}{% include "common/_page_help.html" %}{% endblock %}
     </main>
-    
-    <!-- Page Glossary Section -->
-    {% block page_glossary %}{% endblock %}
     
     <!-- Footer -->
     <footer class="sajha-foot">
-        <p class="mb-0">{{ app_name }} {{ app_version }} · <a href="/help">Help</a> · <a href="/about">About</a>
+        <p class="mb-0">{{ app_name }} {{ app_version }} · <a href="/help">Help</a> · <a href="/help/guides">Guides</a> · <a href="/glossary">Glossary</a> · <a href="/about">About</a>
             · © {{ app_copyright_years }} {{ app_author }}</p>
     </footer>
 

@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v3 — Application
+SAJHA MCP Server — Application
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 
 SajhaMCPServerWebApp: the single orchestrator class.
@@ -158,6 +158,7 @@ class SajhaMCPServerWebApp:
         from sajha.routes.ws_routes import router as ws_router
         from sajha.routes.ops_routes import router as ops_router
         from sajha.routes.oauth_routes import router as oauth_router
+        from sajha.routes.help_routes import router as help_router
 
         routers = [
             auth_router, dashboard_router, api_router, tools_router,
@@ -169,6 +170,7 @@ class SajhaMCPServerWebApp:
             ws_router,
             ops_router,
             oauth_router,
+            help_router,
         ]
 
         for router in routers:
@@ -239,12 +241,8 @@ class SajhaMCPServerWebApp:
             'prompts_by_tag': '/prompts/tag',
             'monitoring_tools': '/monitoring/tools',
             'monitoring_users': '/monitoring/users',
-            'help_page': '/help',
-            'about_page': '/about',
             'ai_settings': '/ai/settings',
             'composite_builder': '/composite/builder',
-            'docs_list': '/docs',
-            'docs_view': '/docs/view/{doc_path}',
             'tool_execute': '/tools/{tool_name}/execute',
             'tool_schema': '/tools/{tool_name}/schema',
             'tool_config_page': '/tools/{tool_name}/config',
@@ -262,13 +260,24 @@ class SajhaMCPServerWebApp:
             'reports_dashboard': '/reports',
         }
 
+        app = self.app
+
         def url_for(endpoint, **kwargs):
             if endpoint == 'static':
                 return f'/static/{kwargs.get("filename", "")}'
-            url = _URL_MAP.get(endpoint, f'/{endpoint}')
+            url = _URL_MAP.get(endpoint)
+            if url is None:
+                # A route's own name (FastAPI: the handler's name unless name= is set)
+                try:
+                    return str(app.url_path_for(endpoint, **kwargs))
+                except Exception:
+                    url = f'/{endpoint}'
             for key, value in kwargs.items():
                 url = url.replace(f'{{{key}}}', str(value))
             return url
+
+        from sajha.web import help_catalog, page_help, guides
+        help_catalog.set_url_for(url_for)
 
         templates.env.globals.update({
             'app_name': s.app_name,
@@ -280,6 +289,11 @@ class SajhaMCPServerWebApp:
             'app_github_repo_name': s.app_github_repo_name,
             'current_year': datetime.now().year,
             'url_for': url_for,
+            # Help: catalog links, guide URLs, and each page's "About this page" panel
+            'topic_href': help_catalog.href,
+            'guide_url': guides.guide_url,
+            'page_help_for': lambda request, key=None: page_help.page_help(
+                key or page_help.endpoint_of(request)),
         })
 
         # Template filters
@@ -399,7 +413,7 @@ class SajhaMCPServerWebApp:
 
         logger.info('')
         logger.info('=' * 70)
-        logger.info('       SAJHA MCP Server v3 — Starting')
+        logger.info(f'       SAJHA MCP Server {s.app_version} — Starting')
         logger.info('=' * 70)
 
         # 1. Database (SQL scripts: schema + seed)
@@ -526,7 +540,7 @@ class SajhaMCPServerWebApp:
 
         logger.info('')
         logger.info('=' * 70)
-        logger.info(f'  SAJHA MCP Server v3 READY')
+        logger.info(f'  SAJHA MCP Server {s.app_version} READY')
         logger.info(f'  URL: http://{s.server_host}:{s.server_port}')
         logger.info(f'  Config: {s.config_source}')
         logger.info(f'  Tools: {len(tools_registry.tools)}')
@@ -546,7 +560,7 @@ class SajhaMCPServerWebApp:
         yield  # App is running
 
         # Shutdown
-        logger.info('Shutting down SAJHA MCP Server v3...')
+        logger.info('Shutting down SAJHA MCP Server...')
         try:   # end MCP subscriptions/listen streams (and legacy push forwarders)
             from sajha.core.change_bus import get_change_bus
             get_change_bus().shutdown()

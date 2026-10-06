@@ -480,7 +480,7 @@ These render templates; they are not JSON APIs. Unauthenticated requests to `use
 
 | Auth | Paths |
 |---|---|
-| none / optional | `/`, `/login`, `/help`, `/help/tools`, `/help/ai`, `/help/enterprise`, `/help/tutorials`, `/help/glossary`, `/help/storage`, `/about`, `/docs`, `/docs/view/{doc_path}`, `/oauth/authorize` |
+| none / optional | `/`, `/login`, `/help`, `/help/c/{cid}`, `/help/guides`, `/help/guides/{name}`, `/glossary`, `/help/tools`, `/about`, `/oauth/authorize`; and the 301 redirects `/help/ai`, `/help/enterprise`, `/help/tutorials`, `/help/glossary`, `/help/storage`, `/docs`, `/docs/view/{doc_path}` |
 | user | `/dashboard`, `/tools`, `/tools/{tool_name}/execute`, `/tools/{tool_name}/schema`, `/tools/{tool_name}/config`, `/prompts`, `/prompts/{prompt_name}`, `/prompts/{prompt_name}/test`, `/prompts/category/{category}`, `/prompts/tag/{tag}`, `/reports`, `/composite/builder`, `/ai/settings`, `/studio`, `/studio/rest`, `/studio/dbquery`, `/studio/script`, `/studio/livelink`, `/studio/olap`, `/studio/powerbi`, `/studio/powerbidax`, `/studio/sharepoint`, `/studio/examples` |
 | admin | `/admin/users`, `/admin/users/create`, `/admin/tools`, `/admin/system-monitor`, `/admin/prompts`, `/admin/async-tasks`, `/admin/apikeys`, `/admin/apikeys/create`, `/admin/apikeys/{key_id}/view`, `/prompts/create`, `/monitoring/tools`, `/monitoring/users` |
 

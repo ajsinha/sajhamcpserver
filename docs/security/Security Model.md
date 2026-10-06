@@ -48,7 +48,7 @@ Callers send the token as `Authorization: Bearer <jwt>`.
 
 ### API keys
 
-API keys are created by an admin at `POST /apikeys/create` (`sajha/routes/apikeys_routes.py`).
+API keys are created by an admin at `POST /admin/apikeys/create` (`sajha/routes/apikeys_routes.py`).
 
 - **Format.** `sja_` followed by `secrets.token_hex(24)`. The raw key is shown once.
 - **Storage.** Only the SHA-256 hash (`ApiKeyDAO.hash_key` in `sajha/db/dao/__init__.py`) and the first 8 characters, used as a display prefix, are stored.

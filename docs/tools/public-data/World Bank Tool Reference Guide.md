@@ -33,7 +33,7 @@ The World Bank tools (prefix `wb_`, implementation `sajha/tools/impl/world_bank_
 - **Common Indicator Shortcuts**: 40+ predefined shortcuts for frequently used indicators
 - **Multiple Query Methods**: Search by country, indicator, topic, region, or income level
 - **Cross-Country Comparisons**: Compare up to 10 countries simultaneously
-- **MCP Compatible**: Fully compliant with Model Context Protocol
+- **Served over MCP**: listed and called through SAJHA's `/mcp` endpoint like every other tool
 
 ### How It Works
 

@@ -1,0 +1,67 @@
+{% extends "common/base.html" %}
+{# One help section: its cards, in their groups (sajha/web/help_catalog.py). #}
+{% block title %}{{ cat.name }} - Help - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav class="help-crumbs" aria-label="Breadcrumb"><a href="/help"><i class="bi bi-life-preserver me-1" aria-hidden="true"></i>Help</a><i class="bi bi-chevron-right" aria-hidden="true"></i><span>{{ cat.name }}</span></nav>
+    <div class="help-topic-hero">
+        <div class="ico"><i class="bi {{ cat.icon }}" aria-hidden="true"></i></div>
+        <div>
+            <h1>{{ cat.name }}</h1>
+            <p>{{ cat.blurb }}</p>
+        </div>
+    </div>
+
+    <div class="help-search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input id="helpSearch" type="search" autocomplete="off" placeholder="Filter this section&hellip;"
+               aria-label="Filter {{ cat.name }}">
+    </div>
+
+    {% for title, topics in groups %}
+    <section class="help-group">
+        {% if title %}<div class="help-group-title">{{ title }}</div>{% endif %}
+        <div class="row">
+            {% for t in topics %}{% set c = cat %}{% include 'help/_topic_card.html' %}{% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+    <div id="helpNoHits" class="help-none"><i class="bi bi-search" aria-hidden="true"></i> Nothing in this section matches.</div>
+
+    <div class="help-related mt-4">
+        <div class="head">Other sections</div>
+        <div class="chips">
+            {% for c in catalog if c.id != cat.id %}
+            <a class="chip" href="/help/c/{{ c.id }}"><i class="bi {{ c.icon }}" aria-hidden="true"></i> {{ c.name }}</a>
+            {% endfor %}
+            <a class="chip all" href="/help"><i class="bi bi-grid" aria-hidden="true"></i> All help</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var box = document.getElementById('helpSearch');
+    var items = Array.prototype.slice.call(document.querySelectorAll('.help-item'));
+    var groups = Array.prototype.slice.call(document.querySelectorAll('.help-group'));
+    var noHits = document.getElementById('helpNoHits');
+    if (!box) return;
+    box.addEventListener('input', function () {
+        var q = box.value.trim().toLowerCase(), any = false;
+        items.forEach(function (it) {
+            var hit = !q || (it.getAttribute('data-search') || '').indexOf(q) !== -1;
+            it.style.display = hit ? '' : 'none';
+            if (hit) any = true;
+        });
+        groups.forEach(function (g) {
+            g.style.display = Array.prototype.some.call(g.querySelectorAll('.help-item'),
+                function (i) { return i.style.display !== 'none'; }) ? '' : 'none';
+        });
+        noHits.style.display = any ? 'none' : 'block';
+    });
+})();
+</script>
+{% endblock %}

@@ -328,7 +328,7 @@
             <a href="{{ url_for('studio_examples') }}" class="btn btn-outline-info btn-sm me-2">
                 <i class="bi bi-book me-1"></i>Examples
             </a>
-            <a href="{{ url_for('help_page') }}#mcp-studio" class="btn btn-outline-warning btn-sm me-2">
+            <a href="{{ guide_url('MCP Studio User Guide.md') }}" class="btn btn-outline-warning btn-sm me-2">
                 <i class="bi bi-question-circle me-1"></i>Help
             </a>
             <a href="{{ url_for('admin_tools') }}" class="btn btn-outline-secondary btn-sm">
@@ -341,9 +341,10 @@
     <div class="alert alert-info studio-overview d-flex align-items-center mb-4" role="alert">
         <i class="bi bi-lightbulb-fill me-3 fs-4 text-info"></i>
         <div>
-            <strong>MCP Studio</strong> enables you to create MCP-compliant tools in three ways: 
-            write Python code with our decorator, wrap any REST API endpoint, or create database query tools. 
-            All methods generate production-ready tools that are immediately available to AI clients.
+            <strong>MCP Studio</strong> builds MCP tools in the browser: from Python code with the
+            <code>@sajhamcptool</code> decorator (the creator on this page, below), a REST endpoint, a SQL query,
+            a script, or an enterprise source (Power BI, LiveLink, SharePoint, OLAP). Each creator generates a
+            tool that clients can call without a restart.
         </div>
     </div>
     
@@ -740,7 +741,7 @@
     
     <!-- Separator -->
     <hr class="my-4">
-    <h5 class="mb-3 text-muted"><i class="bi bi-code-slash me-2"></i>Python Code Tool Creator</h5>
+    <h5 class="mb-3 text-muted" id="python-creator" style="scroll-margin-top:90px"><i class="bi bi-code-slash me-2"></i>Python Code Tool Creator</h5>
     
     <!-- Introduction -->
     <div class="studio-intro">
@@ -854,37 +855,6 @@
 <div id="successBanner" class="alert alert-success d-none mx-3 mt-3"><h5><i class="bi bi-check-circle-fill me-2"></i>Tool Created!</h5><p class="mb-1">Your tool is ready.</p><a href="/tools" class="btn btn-success btn-sm">View Tools</a></div>
 {% endblock %}
 
-{% block page_glossary %}
-<div class="container-fluid mt-4">
-    <div class="card border-secondary">
-        <div class="card-header card-header-secondary" data-bs-toggle="collapse" data-bs-target="#pageGlossary" style="cursor: pointer;">
-            <i class="bi bi-book me-2"></i>Page Glossary
-            <i class="bi bi-chevron-down float-end"></i>
-        </div>
-        <div class="collapse" id="pageGlossary">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>MCP Studio:</strong> Visual interface for creating MCP tools without manual coding.</p>
-                        <p><strong>@sajhamcptool Decorator:</strong> Python decorator that marks a function as an MCP tool.</p>
-                        <p><strong>AST (Abstract Syntax Tree):</strong> Code representation used to analyze Python functions.</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Type Hints:</strong> Python annotations indicating expected data types for auto-schema generation.</p>
-                        <p><strong>Code Generation:</strong> Automatic production of tool class and JSON configuration.</p>
-                        <p><strong>Input Schema:</strong> JSON Schema definition generated from function parameters.</p>
-                    </div>
-                </div>
-                <div class="text-end mt-2">
-                    <a href="{{ url_for('docs_view', doc_path='architecture/Glossary.md') }}" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-book me-1"></i>View Full Glossary
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
 
 {% block extra_js %}
 <script>

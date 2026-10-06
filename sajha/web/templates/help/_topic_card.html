@@ -1,0 +1,11 @@
+{# One help topic card. Expects `t` (a CATALOG topic) and `c` (its category). #}
+<div class="col-md-6 col-xl-4 mb-3 help-item" data-search="{{ (t.title ~ ' ' ~ t.summary ~ ' ' ~ c.name ~ ' ' ~ (t.file or ''))|lower }}">
+    <a class="card help-card h-100" href="{{ topic_href(t) }}">
+        <div class="card-body">
+            <div class="hc-title"><span class="hc-ico"><i class="bi {{ t.icon }}" aria-hidden="true"></i></span>
+                <span>{{ t.title }}{% if t.badge %} <span class="badge">{{ t.badge }}</span>{% endif %}</span></div>
+            <p>{{ t.summary }}</p>
+            <span class="more">{% if t.kind == 'guide' %}Read the guide{% elif t.kind == 'browser' %}Browse{% else %}Open{% endif %} <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
+        </div>
+    </a>
+</div>
