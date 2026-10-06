@@ -156,7 +156,14 @@ def check_cimd_url(url: str) -> Optional[str]:
 _NAT64 = ipaddress.ip_network('64:ff9b::/96')
 
 
-def _ip_allowed(ip, host: str) -> bool:
+def address_allowed(ip, host: str, allow_localhost: bool = False, allow_private: bool = False) -> bool:
+    """
+    SSRF guard for one resolved address: public (global unicast) addresses only, unless
+    ``allow_localhost`` (loopback, and only for a localhost host name) or ``allow_private``
+    (RFC 1918 / ULA; never link-local, so never cloud metadata at 169.254.169.254).
+    IPv6 forms that embed an IPv4 target (mapped, 6to4, Teredo, NAT64) are judged by it.
+    Shared by CIMD fetches and async webhook delivery (sajha/core/async_executor.py).
+    """
     if isinstance(ip, ipaddress.IPv6Address):
         # Addresses that embed an IPv4 target are judged by that target
         embedded = ip.ipv4_mapped or ip.sixtofour or (ip.teredo[1] if ip.teredo else None)
@@ -165,11 +172,15 @@ def _ip_allowed(ip, host: str) -> bool:
         if embedded is not None:
             ip = embedded
     if ip.is_loopback:
-        return settings.cimd_allow_localhost() and host in _LOOPBACK_HOSTS
+        return allow_localhost and host in _LOOPBACK_HOSTS
     if ip.is_global and not ip.is_multicast and not ip.is_reserved:
         return True
-    return settings.cimd_allow_private_networks() and ip.is_private and not ip.is_link_local \
+    return allow_private and ip.is_private and not ip.is_link_local \
         and not ip.is_unspecified and not ip.is_multicast
+
+
+def _ip_allowed(ip, host: str) -> bool:
+    return address_allowed(ip, host, settings.cimd_allow_localhost(), settings.cimd_allow_private_networks())
 
 
 async def _resolve_pinned(host: str, port: int) -> str:

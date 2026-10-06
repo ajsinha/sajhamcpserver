@@ -551,6 +551,43 @@ class S3SyncManager:
 _storage: Optional[StorageBackend] = None
 
 
+#: Documented environment overrides of storage keys (see the YAML comments and the
+#: Configuration Reference).  ``SAJHA_<DOTTED_KEY>`` (e.g. SAJHA_STORAGE_S3_BUCKET) works too.
+STORAGE_ENV_OVERRIDES = {
+    'storage.backend': 'SAJHA_STORAGE_BACKEND',
+    'storage.base_dir': 'SAJHA_BASE_DIR',
+    'storage.s3.bucket': 'SAJHA_S3_BUCKET',
+    'storage.s3.prefix': 'SAJHA_S3_PREFIX',
+    'storage.s3.region': 'AWS_DEFAULT_REGION',
+    'storage.s3.endpoint_url': 'SAJHA_S3_ENDPOINT_URL',
+    'storage.s3.cache_dir': 'SAJHA_S3_CACHE_DIR',
+    'storage.azure.container': 'SAJHA_AZURE_CONTAINER',
+    'storage.azure.account_url': 'SAJHA_AZURE_ACCOUNT_URL',
+    'storage.azure.connection_string': 'AZURE_STORAGE_CONNECTION_STRING',
+    'storage.azure.prefix': 'SAJHA_AZURE_PREFIX',
+    'storage.azure.cache_dir': 'SAJHA_AZURE_CACHE_DIR',
+    'storage.gcs.bucket': 'SAJHA_GCS_BUCKET',
+    'storage.gcs.project': 'GOOGLE_CLOUD_PROJECT',
+    'storage.gcs.prefix': 'SAJHA_GCS_PREFIX',
+    'storage.gcs.cache_dir': 'SAJHA_GCS_CACHE_DIR',
+}
+
+
+def storage_setting(config, key: str, default: str = '') -> str:
+    """
+    One storage setting: the documented env var (STORAGE_ENV_OVERRIDES), then
+    ``SAJHA_<DOTTED_KEY>``, then the config (application.yml), then ``default``.
+    An env var set to an empty string is ignored.
+    """
+    for name in (STORAGE_ENV_OVERRIDES.get(key), 'SAJHA_' + key.replace('.', '_').upper()):
+        if name:
+            value = os.environ.get(name)
+            if value not in (None, ''):
+                return value
+    value = config.get(key, None) if config is not None else None
+    return default if value is None else str(value)
+
+
 def init_storage(config: dict) -> StorageBackend:
     """Initialize the storage backend from config (default: local filesystem).
 
@@ -567,35 +604,36 @@ def init_storage(config: dict) -> StorageBackend:
     """
     global _storage
 
-    backend = config.get('storage.backend', os.environ.get('SAJHA_STORAGE_BACKEND', 'local'))
+    def val(key: str, default: str = '') -> str:
+        return storage_setting(config, key, default)
+
+    backend = (val('storage.backend', 'local') or 'local').strip().lower()
 
     if backend == 's3':
         _storage = S3StorageBackend(
-            bucket=config.get('storage.s3.bucket', os.environ.get('SAJHA_S3_BUCKET', '')),
-            prefix=config.get('storage.s3.prefix', os.environ.get('SAJHA_S3_PREFIX', '')),
-            region=config.get('storage.s3.region', os.environ.get('AWS_DEFAULT_REGION', 'us-east-1')),
-            cache_dir=config.get('storage.s3.cache_dir', os.environ.get('SAJHA_S3_CACHE_DIR', '/tmp/sajha-cache')),
-            endpoint_url=config.get('storage.s3.endpoint_url', os.environ.get('SAJHA_S3_ENDPOINT_URL', '')) or None,
+            bucket=val('storage.s3.bucket'),
+            prefix=val('storage.s3.prefix'),
+            region=val('storage.s3.region', 'us-east-1'),
+            cache_dir=val('storage.s3.cache_dir', '/tmp/sajha-cache'),
+            endpoint_url=val('storage.s3.endpoint_url') or None,
         )
     elif backend == 'azure':
         _storage = AzureBlobStorageBackend(
-            container=config.get('storage.azure.container', os.environ.get('SAJHA_AZURE_CONTAINER', '')),
-            account_url=config.get('storage.azure.account_url', os.environ.get('SAJHA_AZURE_ACCOUNT_URL', '')),
-            connection_string=config.get('storage.azure.connection_string', os.environ.get('AZURE_STORAGE_CONNECTION_STRING', '')),
-            prefix=config.get('storage.azure.prefix', os.environ.get('SAJHA_AZURE_PREFIX', '')),
-            cache_dir=config.get('storage.azure.cache_dir', os.environ.get('SAJHA_AZURE_CACHE_DIR', '/tmp/sajha-cache')),
+            container=val('storage.azure.container'),
+            account_url=val('storage.azure.account_url'),
+            connection_string=val('storage.azure.connection_string'),
+            prefix=val('storage.azure.prefix'),
+            cache_dir=val('storage.azure.cache_dir', '/tmp/sajha-cache'),
         )
     elif backend == 'gcs':
         _storage = GCSStorageBackend(
-            bucket=config.get('storage.gcs.bucket', os.environ.get('SAJHA_GCS_BUCKET', '')),
-            project=config.get('storage.gcs.project', os.environ.get('GOOGLE_CLOUD_PROJECT', '')),
-            prefix=config.get('storage.gcs.prefix', os.environ.get('SAJHA_GCS_PREFIX', '')),
-            cache_dir=config.get('storage.gcs.cache_dir', os.environ.get('SAJHA_GCS_CACHE_DIR', '/tmp/sajha-cache')),
+            bucket=val('storage.gcs.bucket'),
+            project=val('storage.gcs.project'),
+            prefix=val('storage.gcs.prefix'),
+            cache_dir=val('storage.gcs.cache_dir', '/tmp/sajha-cache'),
         )
     else:
-        _storage = LocalStorageBackend(
-            base_dir=config.get('storage.base_dir', os.environ.get('SAJHA_BASE_DIR', '.'))
-        )
+        _storage = LocalStorageBackend(base_dir=val('storage.base_dir', '.'))
 
     return _storage
 

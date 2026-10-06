@@ -170,7 +170,7 @@ class TestAdminAPI:
         import uuid
         uid = f'testcreate_{uuid.uuid4().hex[:8]}'
         r = client.post('/api/admin/users/create', headers=auth_headers, json={
-            'user_id': uid, 'user_name': 'Test', 'password': 'pass123', 'roles': ['user']
+            'user_id': uid, 'user_name': 'Test', 'password': 'pass-1234', 'roles': ['user']
         })
         assert r.status_code == 200
         assert r.json()['success'] is True

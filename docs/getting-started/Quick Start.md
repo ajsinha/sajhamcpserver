@@ -23,25 +23,34 @@ CI runs on Python 3.12. The server listens on `http://localhost:3002`
 ## 2. Sign in and secure the defaults
 
 Open `http://localhost:3002` and sign in as `admin` / `admin123` (the seeded account).
-Before the server is reachable by anyone else, **replace that account**: there is no
-change-password endpoint, so create a new admin and disable `admin` (steps in the
-[Security Model](../security/Security%20Model.md#default-admin-account)). Also set real
-secrets through environment variables; the shipped defaults are public:
+A banner asks you to change that password; do it (`/account/password`, or **Change
+password** in the user menu) before the server is reachable by anyone else (see the
+[Security Model](../security/Security%20Model.md#default-admin-account)).
+
+The JWT and session secrets need no setup: on first start SAJHA generates them into
+`data/secrets/server_secrets.json` (mode 0600, git-ignored). To manage them yourself, for
+example across several hosts, set the same long random values everywhere:
 
 ```bash
 export JWT_SECRET=...        # auth.jwt.secret
 export SESSION_SECRET=...    # auth.session.secret_key
 ```
 
+Anonymous MCP callers see no tools by default; use an API key or sign-in token, or list
+tools in `mcp.anonymous.tools` ([Configuration Reference](Configuration%20Reference.md)).
+
 The full checklist is in the [Security Model](../security/Security%20Model.md).
 
 ## 3. Call a tool over MCP
 
-Any MCP client can connect to `http://localhost:3002/mcp`. With curl, a stateless
-2026-07-28 call:
+Any MCP client can connect to `http://localhost:3002/mcp`. Calls run only the tools the
+caller may use, so sign in first (or send `X-API-Key`). With curl, a stateless 2026-07-28 call:
 
 ```bash
+TOKEN=$(curl -s -X POST http://localhost:3002/api/auth/login -H 'Content-Type: application/json' \
+  -d '{"user_id":"admin","password":"<your password>"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
 curl -s http://localhost:3002/mcp \
+  -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'MCP-Protocol-Version: 2026-07-28' \
   -H 'Mcp-Method: tools/call' -H 'Mcp-Name: calc_percentage_change' \

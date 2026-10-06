@@ -1,19 +1,11 @@
 """
-SAJHA MCP Server — LLM Provider Abstraction
+SAJHA MCP Server — legacy LLM provider interface (deprecated)
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
-Abstract base for all LLM providers. Concrete implementations:
-- AnthropicProvider (Claude via API)
-- OpenAIProvider (GPT via API)
-- BedrockProvider (AWS Bedrock — Claude, Titan, Llama, Mistral)
-- TogetherProvider (Together.ai — open-source models)
-- OllamaProvider (Local models via Ollama)
-- AzureOpenAIProvider (Azure-hosted OpenAI models)
-
-Usage:
-    from sajha.ai.providers import create_provider
-    provider = create_provider('anthropic', api_key='sk-...')
-    response = provider.complete([{"role": "user", "content": "Hello"}], model="claude-sonnet-4-20250514")
+The pre-6.x provider ABC and its registry, kept so custom providers written against it keep
+working: register_provider_class('my_type', MyProvider) and the gateway wraps it with
+sajha.ai.llm.legacy.LegacyProviderAdapter. New providers should subclass
+sajha.ai.llm.LLMProvider instead (see docs/architecture/Intelligence Layer.md).
 """
 
 import logging
@@ -229,28 +221,8 @@ def get_provider(provider_type: str) -> Optional[LLMProvider]:
     return None
 
 
-# ── Auto-Register Built-in Providers ─────────────────────────
-# Each built-in provider registers itself on import.
-# Custom providers register via register_provider_class().
-
-def _auto_register_builtins():
-    """Register all built-in provider classes. Called once at module load."""
-    from sajha.ai.providers.anthropic_provider import AnthropicProvider
-    from sajha.ai.providers.openai_provider import OpenAIProvider
-    from sajha.ai.providers.bedrock_provider import BedrockProvider
-    from sajha.ai.providers.together_provider import TogetherProvider
-    from sajha.ai.providers.ollama_provider import OllamaProvider
-    from sajha.ai.providers.azure_openai_provider import AzureOpenAIProvider
-
-    register_provider_class(ProviderType.ANTHROPIC, AnthropicProvider)
-    register_provider_class(ProviderType.OPENAI, OpenAIProvider)
-    register_provider_class(ProviderType.BEDROCK, BedrockProvider)
-    register_provider_class(ProviderType.TOGETHER, TogetherProvider)
-    register_provider_class(ProviderType.OLLAMA, OllamaProvider)
-    register_provider_class(ProviderType.AZURE_OPENAI, AzureOpenAIProvider)
-
-
-try:
-    _auto_register_builtins()
-except ImportError as e:
-    logger.warning(f"Some built-in LLM providers failed to register: {e}", exc_info=True)
+# ── Built-in providers ───────────────────────────────────────
+# The six vendor classes that used to live here were replaced by the native providers in
+# sajha.ai.llm.providers (registered with sajha.ai.llm.registry). This module remains as the
+# legacy extension point: a class registered with register_provider_class() is wrapped by
+# sajha.ai.llm.legacy.LegacyProviderAdapter and served through the gateway like any other.

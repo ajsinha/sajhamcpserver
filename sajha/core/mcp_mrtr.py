@@ -24,8 +24,9 @@ tool/argument set/user) is rejected with -32602.
 
 The signing secret comes from ``mcp.mrtr.state_secret``
 (env ``SAJHA_MCP_MRTR_STATE_SECRET``); if unset it is derived from
-``auth.session.secret_key`` — which, when that is not configured either, is
-random per process, so states then do not survive a restart.
+``auth.session.secret_key`` — which, when not configured, is generated once and
+persisted in the secrets file (sajha/core/server_secrets.py), so states survive
+restarts and are valid on every worker that shares the data directory.
 """
 
 from __future__ import annotations
@@ -86,7 +87,10 @@ def _secret() -> bytes:
         if configured:
             _secret_cache = configured.encode("utf-8")
         else:
-            base = (_get("auth.session.secret_key", "") or "").strip()
+            # The session secret: configured, or generated once and persisted
+            # (sajha/core/server_secrets.py), so states survive restarts and workers.
+            from sajha.core.config import get_settings
+            base = (get_settings().secret_key or "").strip()
             seed = base.encode("utf-8") if base else os.urandom(32)
             _secret_cache = hmac.new(seed, b"sajha/mcp/mrtr-request-state/v1", hashlib.sha256).digest()
     return _secret_cache

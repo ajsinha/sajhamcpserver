@@ -71,6 +71,7 @@ scaling out needs sticky routing.
 | Prompts | Prompt configs, arguments, the prompt pages | [Prompts Management Guide](../tools/prompts/Prompts%20Management%20Guide.md) |
 | Building tools in the browser | MCP Studio and its nine creators | [MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md) |
 | Chaining tools | Composite tools, `StepResult`, `ParamLens`, `EntropyGuard` | [Composition Framework](../architecture/Composition%20Framework.md) |
+| Asking SAJHA questions with an LLM | LLM providers and models, gateway aliases, the mock provider, `/api/ai/ask` | [Intelligence Layer](../architecture/Intelligence%20Layer.md) |
 
 ---
 

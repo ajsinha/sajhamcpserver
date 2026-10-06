@@ -53,6 +53,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 
 - [Architecture](architecture/Architecture.md)
 - [Composition Framework](architecture/Composition%20Framework.md)
+- [Intelligence Layer](architecture/Intelligence%20Layer.md)
 
 ## MCP Studio
 

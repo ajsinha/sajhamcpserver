@@ -134,6 +134,8 @@ CATALOG: List[dict] = [
                'The process, the registries, the request path, observability and the LLM gateway.'),
             _g('Composition Framework', 'Composition Framework.md', 'bi-bezier2',
                'Composite tools: StepResult, ParamLens, EntropyGuard and confidence.'),
+            _g('Intelligence Layer', 'Intelligence Layer.md', 'bi-stars',
+               'LLM providers and models, the gateway, the mock provider, and /api/ai/ask.'),
         ],
     },
     {

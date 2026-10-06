@@ -1,0 +1,10 @@
+# A mock-scripted script, served as model "mock/mock-scripted:example".
+# mode: ordered (play steps in turn) | rules (first step whose `match` regex matches the last user message)
+mode: rules
+steps:
+  - match: "hello|hi"
+    text: "Hello from mock-scripted."
+  - match: "weather"
+    tool_calls:
+      - { name: calc_percentage_change, arguments: { old_value: 80, new_value: 100 } }
+  - text: "I have no scripted reply for that."

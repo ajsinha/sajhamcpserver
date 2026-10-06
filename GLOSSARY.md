@@ -166,7 +166,8 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Session token** | The SAJHA JWT issued after a successful web login, stored in the `sajha_token` cookie. |
 | **API key** | A long-lived credential for programs, prefixed `sja_`, sent in the `X-API-Key` header (or `?api_key=` on WebSocket). Stored as a SHA-256 hash; carries a tool access mode, optional rate limits and an expiry. Works in every `mcp.auth.mode` and is not scope-checked. |
 | **X-API-Key header** | The HTTP header that carries a SAJHA API key, e.g. `curl -H "X-API-Key: sja_…"`. |
-| **Tool access** | Which tools a user or API key may run. Intended to follow a user's roles, or an API key's tool access mode (`*` means all tools); disallowed calls get `-32010`. In this release it is enforced on the REST execute route for users only, not on MCP endpoints and not for API key lists (see the Security Model). |
+| **Tool access** | Which tools a caller may list and run (`sajha/auth/access.py`), enforced on the REST API, every MCP transport, A2A and async execution: users by their roles' tool permissions (`execute` to run, `read` to see), API keys by their tool access mode, anonymous callers by `mcp.anonymous.*`. Disallowed calls get 403 (REST), `-32002` (2025-11-25) or `-32010` (2026-07-28). |
+| **Anonymous access** | MCP or A2A calls with no credentials, possible while `mcp.auth.mode` is `off` or `optional` and `mcp.anonymous.enabled` is true. Anonymous callers see and run only the tools matched by `mcp.anonymous.tools` (default: none) plus the tool permissions of `mcp.anonymous.role`. |
 | **Tool access mode** | How an API key's tool permissions are decided: `all`, `allowlist`, `denylist` or `regex`. |
 | **Allowlist** | API key tool access mode where only the selected tools are permitted. |
 | **Denylist** | API key tool access mode where every tool except the selected ones is permitted. |
@@ -180,13 +181,16 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Role** | A named set of permissions. Seeded roles: `admin` (full access), `user` (standard tool access), `viewer` (read-only), `developer` (MCP Studio). `api_consumer` is the least-privilege identity given to unmatched external OAuth users. |
 | **User ID** | The unique login name of a user account; cannot be changed after creation. External OAuth identities are matched to it. |
 | **Account status** | Whether a user account is enabled or disabled for login. |
+| **Account lockout** | After `auth.login.max_failed_attempts` consecutive failed sign-ins (default 5) the account is locked for `auth.login.lockout_minutes` (default 15); a client IP with too many failed sign-ins gets 429. Applies to the web form, `POST /api/auth/login` and the OAuth consent sign-in. |
+| **Must change password** | The per-user flag `users.must_change_password`, set for the seed admin, passwords an admin sets and well-known passwords. A banner links to `/account/password` until the password is changed. |
+| **Server secrets file** | `<data.dir>/secrets/server_secrets.json` (mode 0600, git-ignored): the JWT secret and session secret SAJHA generates once when none is configured. Publicly known placeholder secrets are refused at start-up. |
 | **Password hash** | The stored form of a password: bcrypt (cost 12), used directly rather than through passlib. Passwords are never stored in plain text. |
 | **AuthContext** | The dataclass the auth dependencies return to routes: `user_id`, `user_name`, `roles`, `is_admin`, auth type. |
 | **AuthManager** | The authentication orchestrator (`sajha/auth/__init__.py`, with `sajha/core/auth_manager.py`) that resolves cookies, bearer tokens, API keys and OAuth tokens into an `AuthContext`. |
 | **Consent page** | The built-in AS's approval page (`/oauth/authorize`): CSRF-protected, frame-blocked, sign-in rate-limited, never redirecting to an unregistered URI. |
 | **AuditLogger** | Structured security event logging (`sajha/core/audit.py`) to the `audit_log` table: logins, logouts, user and API key changes, tool executions, config and permission changes, account locks. |
 | **Audit log** | The record of user and security actions kept for security and compliance review. |
-| **SSRF** (*Server-Side Request Forgery*) | Tricking a server into fetching internal URLs. CIMD fetches are guarded against it. |
+| **SSRF** (*Server-Side Request Forgery*) | Tricking a server into fetching internal URLs. CIMD fetches and async webhook deliveries are guarded against it (vetted, pinned public IPs; no redirects). |
 
 ---
 
@@ -348,3 +352,90 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **DAX** (*Data Analysis Expressions*) | Power BI's query and formula language; the Power BI DAX creator builds tools that run DAX queries against datasets. |
 | **LiveLink** | OpenText Content Server (formerly Livelink), an enterprise content management system; the LiveLink creator builds document search, browse and retrieval tools. |
 | **SharePoint** | Microsoft's document and list platform in Microsoft 365; the SharePoint creator builds document, list and search tools over it. |
+| **FRED API** | The St. Louis Fed's web API over FRED. The Federal Reserve tools and the `boj_` and `pboc_` tools fetch their series from it; it needs a free API key. |
+| **Time series** | A sequence of data points indexed by time (GDP by quarter, a yield by day). FRED, the World Bank and the other data tools return them. |
+| **Economic indicator** | A statistic about economic activity, such as GDP, unemployment or inflation. |
+| **Indicator** | A specific measurable value tracked over time (literacy rate, life expectancy); UN and World Bank tools look data up by indicator. |
+| **Indicator code** | The identifier of one data series, such as the World Bank's `NY.GDP.MKTP.CD` (GDP in current US dollars). |
+| **Country code** | An ISO 3166 code identifying a country (`USA`, `CHN`, `IND`), required by the UN and World Bank queries. |
+| **GDP** (*Gross Domestic Product*) | The total value of goods and services a country produces in a period. |
+| **Exchange rate** | The price of one currency in terms of another. |
+| **Federal funds rate** | The rate at which US banks lend reserves to each other overnight; the Federal Reserve's policy rate target. |
+| **Treasury yield** | The return on US government debt, quoted by maturity (3-month, 2-year, 10-year, 30-year). |
+| **Quantitative easing** (*QE*) | A central bank buying securities on a large scale to add money to the financial system. |
+| **M2 / M3** | Broad measures of money supply: cash and checking deposits plus savings and other easily converted deposits (M2), plus larger and longer-term deposits (M3). |
+| **BoC** (*Bank of Canada*) | Canada's central bank, responsible for monetary policy, issuing currency and financial-system stability. |
+| **Policy interest rate** | The Bank of Canada's target for the overnight rate, its main monetary-policy tool. |
+| **Overnight rate** | The rate at which major financial institutions borrow and lend one-day funds among themselves. |
+| **Inflation target** | The Bank of Canada's 2% inflation target, the midpoint of a 1-3% control range. |
+| **Government of Canada bonds** | Debt securities issued by the Canadian federal government; their yields are available through the BoC tools. |
+| **CEER** (*Canadian-dollar Effective Exchange Rate*) | A trade-weighted average of the Canadian dollar's bilateral exchange rates. |
+| **CAD** (*Canadian dollar*) | The currency of Canada. |
+| **BoJ** (*Bank of Japan*) | Japan's central bank. |
+| **JGB** (*Japanese Government Bond*) | Debt securities issued by the Japanese government. |
+| **Call money rate** | Japan's uncollateralized overnight interbank rate, the Bank of Japan's main operating target. |
+| **Banque de France** | France's central bank, part of the Eurosystem that implements ECB monetary policy. |
+| **Eurosystem** | The ECB together with the national central banks of the euro-area countries. |
+| **Eurozone** | The European Union countries that have adopted the euro. |
+| **EUR** (*euro*) | The currency of France and the rest of the Eurozone. |
+| **OAT** (*Obligations Assimilables du Trésor*) | French government bonds. |
+| **INSEE** | France's National Institute of Statistics and Economic Studies. |
+| **HICP** (*Harmonised Index of Consumer Prices*) | The euro-area inflation measure the ECB targets. |
+| **ECB** (*European Central Bank*) | The central bank of the Eurozone, responsible for monetary policy for the euro. |
+| **Main refinancing rate** / **Refinancing rate** | The ECB's main policy rate, at which it lends to banks for one week. |
+| **Deposit facility rate** | The rate euro-area banks receive for depositing money with the Eurosystem overnight. |
+| **TARGET2** | The Eurosystem's real-time gross settlement system for euro payments (now T2). |
+| **PBoC** (*People's Bank of China*) | China's central bank, responsible for monetary policy and financial regulation. |
+| **CNY** / **RMB** (*Chinese yuan, renminbi*) | China's currency: renminbi is its name, yuan its unit, CNY its ISO code. |
+| **LPR** (*Loan Prime Rate*) | China's benchmark lending rate, published monthly. |
+| **CGB** (*Chinese Government Bond*) | Debt securities issued by the Chinese government. |
+| **RBI** (*Reserve Bank of India*) | India's central bank, responsible for monetary policy and banking regulation. |
+| **INR** (*Indian rupee*) | The currency of India. |
+| **Repo rate** | The rate at which the RBI lends to commercial banks; its key policy rate. |
+| **Reverse repo rate** | The rate at which the RBI borrows from commercial banks. |
+| **CRR** (*Cash Reserve Ratio*) | The share of deposits Indian banks must hold with the RBI. |
+| **SLR** (*Statutory Liquidity Ratio*) | The share of deposits Indian banks must hold in liquid assets such as government securities. |
+| **G-Sec** (*Government Security*) | A debt instrument issued by the Indian government. |
+| **EDGAR** | The SEC's Electronic Data Gathering, Analysis, and Retrieval system, where US public companies file. |
+| **CIK** (*Central Index Key*) | The SEC's 10-digit company identifier. |
+| **Accession number** | The unique ID of one SEC filing (`0000320193-23-000077`). |
+| **XBRL** (*eXtensible Business Reporting Language*) | The structured financial data attached to filings. |
+| **Concept** / **XBRL tag** | One XBRL line item, such as `Assets`. |
+| **Frame** (*XBRL*) | One XBRL concept across all filers for a calendar period (`CY2023`, `CY2023Q1`). |
+| **SIC code** (*Standard Industrial Classification*) | A four-digit industry code the SEC assigns to each filer. |
+| **Form type** | The category of an SEC filing: 10-K, 10-Q, 8-K, DEF 14A and so on. |
+| **10-K** / **10-Q** | The SEC annual and quarterly reports. |
+| **Investor relations page** (*IR page*) | The part of a company website that publishes reports, presentations and filings for investors. |
+| **Earnings presentation** | The slide deck that accompanies a quarterly earnings call. |
+| **SEC fallback** | When the investor relations tools find nothing by scraping, they retrieve matching filings from SEC EDGAR by CIK. |
+| **Ticker symbol** | A short code identifying a traded security (`AAPL` for Apple). |
+| **Stock quote** | A security's current price and trading information; Yahoo Finance quotes may be delayed. |
+| **Historical data** (*prices*) | Past price and volume data for a security, at daily, weekly or monthly intervals. |
+| **Market capitalization** | A company's share price times its shares outstanding. |
+| **P/E ratio** (*price-to-earnings*) | Share price divided by earnings per share, a common valuation measure. |
+| **Dividend yield** | Annual dividends per share divided by the share price, as a percentage. |
+| **Options chain** | All listed options on a security: calls and puts across strikes and expiry dates. |
+| **ETF** (*Exchange-Traded Fund*) | A fund whose shares trade on an exchange like a stock. |
+| **FBI** (*Federal Bureau of Investigation*) | The US federal law-enforcement and intelligence agency; its Crime Data Explorer API backs the FBI tools. |
+| **UCR** (*Uniform Crime Reporting*) | The FBI programme that collects crime statistics from US law-enforcement agencies. |
+| **NIBRS** (*National Incident-Based Reporting System*) | The incident-level crime data collection that replaced UCR summary reporting in 2021. |
+| **ORI** (*Originating Agency Identifier*) | The code identifying a law-enforcement agency in FBI data. |
+| **Crime statistics** | Counts of criminal offences, nationally, by state or by agency. |
+| **Violent crime** | Offences involving force or its threat: murder, rape, robbery, aggravated assault. |
+| **Property crime** | Taking property without force: burglary, larceny-theft, motor-vehicle theft, arson. |
+| **Crime rate** | Offences per 100,000 people, so areas of different size can be compared. |
+| **IMF** (*International Monetary Fund*) | The international organization for monetary cooperation and financial stability. |
+| **Balance of payments** | The record of all economic transactions between a country's residents and the rest of the world. |
+| **Current account** | The part of the balance of payments covering trade in goods and services, income and current transfers. |
+| **SDR** (*Special Drawing Rights*) | The IMF's international reserve asset, supplementing members' official reserves. |
+| **WEO** (*World Economic Outlook*) | The IMF's twice-yearly analysis and projections of the global economy. |
+| **Financial Soundness Indicators** | IMF statistics on the health of a country's financial institutions and markets. |
+| **UN** (*United Nations*) | The international organization for peace, security and cooperation among nations. |
+| **UNSD** (*United Nations Statistics Division*) | The UN body that compiles and publishes global statistics. |
+| **UNdata** | The UNSD's portal (`data.un.org`) to the UN statistical databases. |
+| **SDG** (*Sustainable Development Goals*) | The UN's 17 global development goals for 2030. |
+| **HDI** (*Human Development Index*) | A composite index of health, education and income. |
+| **Treaty** | A formal agreement between states; the UN Treaty Collection records them. |
+| **World Bank** | The international financial institution that lends and grants for development and publishes development data. |
+| **WDI** (*World Development Indicators*) | The World Bank's main database of development indicators: economy, health, education and more. |
+| **Poverty rate** | The share of a population living below a poverty line, such as the World Bank's international line in dollars a day at purchasing-power parity. |

@@ -145,10 +145,9 @@ without an auth manager, so the hooks are inactive in this release. See the
 
 Composite tools chain registered tools into one tool. They are defined in the
 database (`composite_tools`, `composite_tool_steps`), built by `CompositeToolEngine`
-(`sajha/tools/composite_tool.py`) at startup and on save, and are meant to be
-registered like any other tool. In this release that registration fails
-(`CompositeToolEngine` calls `ToolsRegistry.register_tool` with two arguments; it takes
-one), so saved composites are stored and previewable but not callable. Each step's result is a `StepResult` envelope; `ParamLens` projects
+(`sajha/tools/composite_tool.py`) at startup and on save, and registered like any
+other tool, so a saved composite is callable over MCP at once (and re-registered after a
+registry reload). Each step's result is a `StepResult` envelope; `ParamLens` projects
 parameters between steps; `EntropyGuard` tracks cumulative confidence
 (`sajha/core/composition.py`). Design and theory:
 [Composition Framework](Composition%20Framework.md).
@@ -186,7 +185,7 @@ keep it on a real filesystem or a managed database.
 ## 9. Security layers
 
 Credential checks (`sajha/auth/`, `sajha/core/auth_manager.py`,
-`sajha/core/apikey_manager.py`), role-based tool access, OAuth on MCP endpoints, the
+`sajha/core/apikey_manager.py`), per-caller tool access (`sajha/auth/access.py`, shared by REST, MCP, A2A and async), generated server secrets (`sajha/core/server_secrets.py`), OAuth on MCP endpoints, the
 Origin allow-list on `/mcp`, security headers and CSP (`sajha/security.py`), request
 size limits, rate limiting and the audit log (`sajha/core/audit.py`). The model, the
 defaults and the deployment checklist are in the

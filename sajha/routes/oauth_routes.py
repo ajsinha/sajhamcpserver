@@ -278,17 +278,19 @@ async def oauth_authorize_decision(request: Request, db: Session = Depends(get_d
     decision = form.get('decision')
     if decision == 'approve' and user is None:
         from sajha.auth import AuthManager
-        from sajha.security import check_auth_rate_limit
-        if not check_auth_rate_limit(request):
+        from sajha.security import check_auth_rate_limit, login_blocked, record_login_failure
+        if not check_auth_rate_limit(request) or login_blocked(request):
             return _render_consent(request, pending, req_id, browser_token, None,
                                    'Too many sign-in attempts. Wait a minute and retry.', 429)
         login_id = str(form.get('user_id') or '')
-        jwt_token = AuthManager.authenticate_local(db, login_id, str(form.get('password') or '')) \
-            if login_id else None
+        jwt_token, outcome = AuthManager.sign_in(db, login_id, str(form.get('password') or '')) \
+            if login_id else (None, 'invalid')
         user = AuthManager.authenticate_jwt(db, jwt_token) if jwt_token else None
         if user is None:
+            record_login_failure(request)
             return _render_consent(request, pending, req_id, browser_token, None,
-                                   'Invalid user ID or password.', 401)
+                                   'Too many failed sign-ins for this account. Try again later.'
+                                   if outcome == 'locked' else 'Invalid user ID or password.', 401)
 
     if store.pop_pending(req_id) is None:       # single use (double-submit race)
         return _error_page(request, 'This authorization request was already used.')

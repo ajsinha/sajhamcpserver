@@ -19,7 +19,7 @@ from sse_starlette.sse import EventSourceResponse
 from sqlalchemy.orm import Session
 
 from sajha.db.engine import get_db
-from sajha.auth import AuthManager, AuthContext
+from sajha.auth import AuthManager, AuthContext, require_admin
 from sajha.auth.oauth.resource_server import authorize_mcp
 
 logger = logging.getLogger(__name__)
@@ -152,7 +152,7 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
         if not parsed:
             status, payload = mcp_modern.parse_error_response()
         else:
-            session_data = auth.to_legacy_session() if auth.authenticated else None
+            session_data = auth.to_legacy_session()  # identity + tool policy (anonymous too)
             outcome = await _modern_server(mcp_handler).handle(
                 body, request.headers, list(request.headers.items()), session_data,
                 receive=request.receive)
@@ -189,7 +189,7 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
             logger.debug(f"Unmatched client response id={body.get('id')!r}")
         return Response(status_code=202)
 
-    session_data = auth.to_legacy_session() if auth.authenticated else None
+    session_data = auth.to_legacy_session()  # identity + tool policy (anonymous too)
 
     # Notification: no id -> 202, no body
     if body.get('jsonrpc') == '2.0' and isinstance(body.get('method'), str) and 'id' not in body:
@@ -432,7 +432,7 @@ async def mcp_message(request: Request, db: Session = Depends(get_db)):
     auth, err = await authorize_mcp(request, db, method)
     if err is not None:
         return err
-    session_data = auth.to_legacy_session() if auth.authenticated else None
+    session_data = auth.to_legacy_session()  # identity + tool policy (anonymous too)
     if isinstance(body, Exception):
         return JSONResponse({
             'jsonrpc': '2.0',
@@ -554,8 +554,8 @@ async def completion_complete(request: Request):
 # ── Logging (new in v3) ─────────────────────────────────────────
 
 @router.post('/api/logging/setLevel')
-async def logging_set_level(request: Request):
-    """MCP logging/setLevel — dynamically adjust server log level."""
+async def logging_set_level(request: Request, auth: AuthContext = Depends(require_admin)):
+    """Change the server's root log level (admin only)."""
     body = await request.json()
     level = body.get('params', {}).get('level', 'info').upper()
 

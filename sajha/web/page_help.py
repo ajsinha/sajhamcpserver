@@ -110,6 +110,10 @@ PAGE_HELP: dict = {
         'what': 'Accounts and their roles.',
         'terms': ['RBAC', 'User ID', 'Role', 'Password hash', 'Session token', 'Account status'],
         'guide': 'Security Model.md'},
+    'change_password_page': {
+        'what': 'Change your own password; required while it is a default or an administrator set it.',
+        'terms': ['Password hash', 'Must change password', 'Account lockout', 'Session token'],
+        'guide': 'Security Model.md'},
     'admin_user_create_page': {
         'what': 'Create an account and give it a role.',
         'terms': ['User ID', 'RBAC', 'Password hash', 'Role', 'Tool access', 'Account status'],

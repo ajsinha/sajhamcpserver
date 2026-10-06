@@ -353,7 +353,16 @@ class SampleDataGenerator:
                 EXTRACT(QUARTER FROM o.order_date) AS order_quarter,
                 EXTRACT(MONTH FROM o.order_date) AS order_month,
                 DATE_TRUNC('month', o.order_date) AS order_month_start,
-                DATE_TRUNC('month', c.signup_date) AS signup_month
+                DATE_TRUNC('month', c.signup_date) AS signup_month,
+                -- Column aliases the semantic layer (config/olap/dimensions.json,
+                -- measures.json) refers to, so the shipped datasets resolve here.
+                o.order_date AS date,
+                'Q' || CAST(EXTRACT(QUARTER FROM o.order_date) AS INTEGER) AS quarter,
+                o.quantity AS qty,
+                o.discount AS discount_amount,
+                c.segment AS segment,
+                p.category AS category,
+                'Rep ' || CAST(1 + (hash(o.customer_id) % 8) AS INTEGER) AS sales_rep
             FROM orders o
             JOIN customers c ON o.customer_id = c.customer_id
             JOIN products p ON o.product_id = p.product_id

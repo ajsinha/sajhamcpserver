@@ -78,13 +78,24 @@ db:
 # ── Authentication ───────────────────────────────────────────────────────────
 
 auth:
+  # Secrets: leave empty and SAJHA generates each one once into auth.secrets_file
+  # (default <data.dir>/secrets/server_secrets.json, mode 0600, git-ignored), or set
+  # JWT_SECRET / SESSION_SECRET in the environment (same value on every instance).
+  # Publicly known placeholder values are refused at start-up.  Never put a secret here.
   jwt:
-    secret: ${JWT_SECRET:sajha-jwt-secret-change-in-production}
+    secret: ${JWT_SECRET:}
     algorithm: HS256
     expiry_minutes: ${JWT_EXPIRY:60}
   session:
-    secret_key: ${SESSION_SECRET:sajha-session-secret-change-in-production}
+    secret_key: ${SESSION_SECRET:}
     timeout_minutes: 60
+  secrets_file: ""                        # default: <data.dir>/secrets/server_secrets.json
+  # Sign-in protection: the web form, POST /api/auth/login and the OAuth consent sign-in
+  login:
+    max_failed_attempts: 5                # consecutive failures that lock the account
+    lockout_minutes: 15
+    ip_max_failures: 20                   # failed sign-ins per client IP per window -> 429
+    ip_window_seconds: 300
 
 # ── OAuth (optional) ────────────────────────────────────────────────────────
 
@@ -126,11 +137,22 @@ mcp:
   # returned with an InputRequiredResult is HMAC-SHA256 signed and bound to the
   # method, tool/prompt/URI, arguments and caller.  Set a stable secret when
   # running several workers or to keep states valid across restarts; when empty
-  # it is derived from auth.session.secret_key (random per process if unset).
+  # it is derived from auth.session.secret_key (persisted in auth.secrets_file).
   # Env override: SAJHA_MCP_MRTR_STATE_SECRET
   mrtr:
     state_secret: ""
     state_ttl_seconds: 900
+  # Callers with no credentials (possible while mcp.auth.mode is off or optional).
+  # tools/list and tools/call apply the same per-tool access rules as the REST API:
+  # users by their roles' permissions, API keys by their allow/deny list, anonymous
+  # callers by this allowlist (fnmatch patterns, e.g. ["calc_*", "wikipedia_search"]).
+  # Default: anonymous callers see and run no registry tools.  The conformance
+  # fixtures (test_*, present only when conformance_fixtures is on) stay callable.
+  # Env: SAJHA_MCP_ANONYMOUS_ENABLED=false  SAJHA_MCP_ANONYMOUS_TOOLS="calc_*,wiki_*"
+  anonymous:
+    enabled: true                 # false: credentials required on every MCP transport and /a2a
+    role: ""                      # optional: also grant the tool permissions of this SAJHA role
+    tools: []
   # Ask the user (form-mode elicitation via MRTR) before running a tool whose
   # config sets annotations.destructiveHint: true.  Only when the client
   # declares the elicitation capability; otherwise the call runs as before.
@@ -303,19 +325,85 @@ fred:
   api:
     key: ${FRED_API_KEY:}
 
+fbi:                                         # FBI Crime Data Explorer (api.data.gov key; falls back to DEMO_KEY)
+  api:
+    key: ${FBI_API_KEY:}
+
 tavily:
   api:
     key: ${TAVILY_API_KEY:}
 
-# ── AI Integration ───────────────────────────────────────────
-# LLM providers, semantic discovery, and gateway configuration.
-# Each provider is enabled by setting its API key (or for keyless
-# providers like Bedrock/Ollama, they register automatically).
+alpha_vantage:
+  api:
+    key: ${ALPHA_VANTAGE_API_KEY:}
+
+# ── AI Integration (intelligence layer) ─────────────────────────────────────
+# Full reference: docs/architecture/Intelligence Layer.md (every key, its env override, defaults).
+#
+# Out of the box the offline MOCK provider serves every alias, so /api/ai/ask works with no
+# keys. Real providers are listed below but disabled; a key in the environment never enables
+# one by itself. To switch to a real provider:
+#   1. enable it:      SAJHA_AI_OPENAI_ENABLED=true      (or enabled: true below)
+#   2. give it a key:  OPENAI_API_KEY=...  or  SAJHA_AI_OPENAI_API_KEY=...  (never in this file)
+#   3. point an alias: SAJHA_AI_ALIASES_DEFAULT=openai,mock/mock-planner
+# Every provider setting is overridable as SAJHA_AI_<PROVIDER>_<FIELD> (env wins over this file);
+# gateway sections likewise: SAJHA_AI_ASK_MAX_STEPS, SAJHA_AI_RETRY_MAX_RETRIES, SAJHA_AI_CACHE_ENABLED ...
+# The effective configuration (values redacted, with their source) is GET /api/ai/config (admin).
 ai:
-  default_provider: ${AI_DEFAULT_PROVIDER:anthropic}
-  default_model: ${AI_DEFAULT_MODEL:claude-sonnet-4-20250514}
-  embedding_provider: ${AI_EMBEDDING_PROVIDER:openai}
-  embedding_model: ${AI_EMBEDDING_MODEL:text-embedding-3-small}
+  providers:
+    - name: mock                         # offline, deterministic; the default
+      config:
+        enabled: true
+        latency_ms: [0, 0]               # fault injection: uniform latency range (seeded)
+        fail_every: 0                    # every Nth call fails with fail_with; 0 = never
+        fail_with: rate_limited          # rate_limited | unavailable | auth | context_too_long | content_filtered
+        seed: 42
+        scripts_dir: config/ai/mock_scripts
+    - { name: anthropic,    config: { enabled: false } }
+    - { name: openai,       config: { enabled: false } }
+    - { name: azure_openai, config: { enabled: false, api_style: v1 } }
+    - { name: gemini,       config: { enabled: false } }
+    - { name: bedrock,      config: { enabled: false, region: us-east-1 } }    # needs: pip install boto3
+    - { name: mistral,      config: { enabled: false } }
+    - { name: cohere,       config: { enabled: false } }
+    - { name: ollama,       config: { enabled: false, base_url: "http://localhost:11434" } }
+    - { name: groq,         config: { enabled: false } }
+    - { name: together,     config: { enabled: false } }
+    - { name: fireworks,    config: { enabled: false } }
+    - { name: deepseek,     config: { enabled: false } }
+    - { name: xai,          config: { enabled: false } }
+    - { name: openrouter,   config: { enabled: false } }
+    - { name: perplexity,   config: { enabled: false } }
+    - { name: vllm,         config: { enabled: false, base_url: "http://localhost:8000/v1" } }
+    - { name: lmstudio,     config: { enabled: false, base_url: "http://localhost:1234/v1" } }
+  # Ordered candidates per alias; a bare provider name means its default_model.
+  aliases:
+    default:   [mock/mock-planner]
+    fast:      [mock/mock-planner]
+    reasoning: [mock/mock-planner]
+    embedding: [mock/mock-embed]
+  policy:
+    enabled: true
+    roles:
+      viewer: { allowed: ["mock/*"], tools: false }
+  budgets:
+    enabled: true
+    per_user_daily_tokens: ${AI_PER_USER_DAILY_TOKENS:}
+  retry:
+    max_retries: 2
+    backoff_base_s: 0.5
+    backoff_max_s: 20
+  breaker:
+    failure_threshold: 5
+    recovery_timeout_s: 60
+  ask:
+    model: default
+    max_steps: 6
+    max_tool_calls: 10
+    timeout_s: 60
+    shortlist: 12
+    max_result_chars: 4000
+    mcp_tool_enabled: false            # register the sajha_ask MCP tool
   # Semantic tool search — natural-language query → top-k matching tools.
   tool_search:
     enabled: true
@@ -325,19 +413,6 @@ ai:
   cache:
     enabled: true
     ttl_seconds: 3600
-  anthropic:
-    api_key: ${ANTHROPIC_API_KEY:}
-  openai:
-    api_key: ${OPENAI_API_KEY:}
-  bedrock:
-    region: ${AWS_DEFAULT_REGION:us-east-1}
-  together:
-    api_key: ${TOGETHER_API_KEY:}
-  ollama:
-    base_url: ${OLLAMA_BASE_URL:http://localhost:11434}
-  azure_openai:
-    api_key: ${AZURE_OPENAI_API_KEY:}
-    endpoint: ${AZURE_OPENAI_ENDPOINT:}
 
 # ── Tool Output Cache ────────────────────────────────────────────────────────
 # File-based cache for tool results. Each entry is a JSON file on disk.
@@ -361,13 +436,21 @@ async:
   workers: ${ASYNC_WORKERS:8}             # Daemon threads in worker pool
   queue_size: ${ASYNC_QUEUE_SIZE:1000}    # Max pending tasks (503 on overflow)
   task_ttl_hours: ${ASYNC_TASK_TTL:24}    # Retain completed tasks for N hours
+  # Submitting needs the admin role or a role permission (resource_type "async",
+  # action "execute"), plus execute access to the tool itself.
   delivery:
     webhook:
       timeout: 10
       max_retries: 3
+      # Destinations a webhook may POST to: URL prefixes (scheme://host[:port][/path]).
+      # Empty = webhook delivery refused.  Targets must resolve to public addresses
+      # unless allow_private_networks is true.  Env: SAJHA_ASYNC_DELIVERY_WEBHOOK_ALLOWED_URLS
+      allowed_urls: []
+      allow_private_networks: false
     kafka:
       bootstrap_servers: ${KAFKA_BROKERS:localhost:9092}
     file:
+      # Files are written only inside this directory (relative paths; no traversal)
       base_dir: ${ASYNC_FILE_DIR:data/async_results}
       max_size_mb: 50
 

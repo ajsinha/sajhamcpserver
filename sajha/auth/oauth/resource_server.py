@@ -281,10 +281,14 @@ async def authorize_mcp(request: Request, db, method: Optional[str] = None):
     when error_response is not None the caller returns it as is.
     """
     from sajha.auth import AuthManager, AuthContext
+    from sajha.auth.access import anonymous_enabled
     ctx = AuthManager.authenticate_request(request, db)
     mode = settings.auth_mode()
-    if ctx.authenticated or mode == 'off':
+    if ctx.authenticated:
         return ctx, None
+    if mode == 'off':
+        # No OAuth: anonymous callers get the anonymous tool policy, or 401 (mcp.anonymous.enabled)
+        return ctx, (None if anonymous_enabled() else anonymous_refused())
 
     token = _bearer(request)
     if token:
@@ -303,6 +307,13 @@ async def authorize_mcp(request: Request, db, method: Optional[str] = None):
                                         f'this operation requires the {needed} scope', scope=needed)
         return oauth_ctx, None
 
-    if mode == 'required':
+    if mode == 'required' or not anonymous_enabled():
         return ctx, challenge(request, 401)
     return ctx, None
+
+
+def anonymous_refused() -> JSONResponse:
+    """401 for a credential-less call when mcp.anonymous.enabled is false and OAuth is off."""
+    return JSONResponse({'error': 'unauthorized',
+                         'error_description': 'Authentication required (X-API-Key or Bearer token)'},
+                        status_code=401, headers={'WWW-Authenticate': 'Bearer realm="sajha"'})

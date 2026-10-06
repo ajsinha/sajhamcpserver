@@ -216,7 +216,8 @@ CREATE TABLE IF NOT EXISTS users (
     oauth_provider       VARCHAR(50)    ,
     oauth_subject        VARCHAR(255)   ,
     failed_attempts      INTEGER        NOT NULL DEFAULT 0,
-    locked_until         TIMESTAMP      
+    locked_until         TIMESTAMP,
+    must_change_password BOOLEAN        NOT NULL DEFAULT 0
 );
 
 -- ── Junction: User-Role ──

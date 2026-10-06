@@ -27,7 +27,8 @@ services:
       - SAJHA_DB_NAME=sajha
       - SAJHA_DB_USER=sajha
       - SAJHA_DB_PASSWORD=${DB_PASSWORD:-sajha_secure_2025}
-      - SAJHA_JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      # empty: generated once and kept in the sajha-data volume (data/secrets/)
+      - SAJHA_JWT_SECRET=${JWT_SECRET:-}
       - SAJHA_STORAGE_BACKEND=local
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}

@@ -256,14 +256,14 @@ async def provider_dependency_graph(auth: AuthContext = Depends(require_auth)):
 
 
 @router.get('/api/replay/recent')
-async def replay_recent(auth: AuthContext = Depends(require_auth)):
-    """Recent tool executions across all tools."""
+async def replay_recent(auth: AuthContext = Depends(require_admin)):
+    """Recent tool executions across all tools and users (admin only: arguments and results)."""
     from sajha.core.tool_health import get_replay_store
     return {'executions': get_replay_store().get_recent(50)}
 
 
 @router.get('/api/replay/tool/{tool_name}')
-async def replay_tool_history(tool_name: str, auth: AuthContext = Depends(require_auth)):
+async def replay_tool_history(tool_name: str, auth: AuthContext = Depends(require_admin)):
     """Execution history for a specific tool."""
     from sajha.core.tool_health import get_replay_store
     return {'tool': tool_name, 'executions': get_replay_store().get_history(tool_name)}
@@ -339,12 +339,40 @@ async def audit_log(request: Request, auth: AuthContext = Depends(require_admin)
 # ASYNC TOOL EXECUTION (v5.3.0)
 # ═══════════════════════════════════════════════════════════════════
 
+def _can_use_async(auth: AuthContext) -> bool:
+    """Admins, or roles granted resource_type 'async' with action 'execute'."""
+    return auth.is_admin or auth.has_permission('async', '*', 'execute')
+
+
+def _async_scope(auth: AuthContext):
+    """The user whose tasks this caller may see (None = every task, admins only)."""
+    return None if auth.is_admin else auth.user_id
+
+
+def _visible_task(task_id: str, auth: AuthContext):
+    from sajha.core.async_executor import get_async_executor
+    task = get_async_executor().get_task(task_id)
+    if task is None or (not auth.is_admin and task.user_id != auth.user_id):
+        return None
+    return task
+
+
 @router.post('/api/tools/{tool_name}/execute-async')
 async def execute_tool_async(tool_name: str, request: Request, auth: AuthContext = Depends(require_auth)):
     """Submit a tool for async background execution with delivery routing."""
     import queue as queue_mod
-    from sajha.core.async_executor import get_async_executor
+    from sajha.core.async_executor import get_async_executor, DeliveryError
+    from sajha.core.config import get_settings
+    if not get_settings().async_enabled:
+        return JSONResponse({'error': 'Async execution is disabled (async.enabled)'}, status_code=503)
+    if not _can_use_async(auth):
+        return JSONResponse({'error': 'Async execution requires the admin role or the async:execute permission'},
+                            status_code=403)
+    if not auth.has_tool_access(tool_name):
+        return JSONResponse({'error': f'Access denied to tool: {tool_name}'}, status_code=403)
     body = await request.json()
+    if not isinstance(body, dict):
+        return JSONResponse({'error': 'JSON object body required'}, status_code=400)
 
     # Extract async delivery config
     async_config = body.pop('async', body.pop('delivery', {}))
@@ -373,11 +401,13 @@ async def execute_tool_async(tool_name: str, request: Request, auth: AuthContext
             'destination': destination,
             'poll_url': f'/api/async/tasks/{task.task_id}',
         }
+    except DeliveryError as e:
+        return JSONResponse({'error': str(e)}, status_code=400)
     except queue_mod.Full:
         return JSONResponse({'error': 'Queue full — try again later', 'queue_size': executor._queue.maxsize}, status_code=503)
     except Exception as e:
         logger.error(f"Async submit error: {e}", exc_info=True)
-        return JSONResponse({'error': str(e)}, status_code=500)
+        return JSONResponse({'error': 'Async submit failed'}, status_code=500)
 
 
 @router.get('/api/async/tasks')
@@ -385,16 +415,19 @@ async def list_async_tasks(request: Request, auth: AuthContext = Depends(require
     """List async tasks. Optional filter: ?status=queued|running|completed|failed"""
     from sajha.core.async_executor import get_async_executor
     status = request.query_params.get('status')
-    limit = int(request.query_params.get('limit', 100))
+    try:
+        limit = max(1, min(1000, int(request.query_params.get('limit', 100))))
+    except ValueError:
+        limit = 100
     executor = get_async_executor()
-    return {'tasks': executor.list_tasks(status=status, limit=limit), 'stats': executor.stats()}
+    return {'tasks': executor.list_tasks(status=status, limit=limit, user_id=_async_scope(auth)),
+            'stats': executor.stats()}
 
 
 @router.get('/api/async/tasks/{task_id}')
 async def get_async_task(task_id: str, auth: AuthContext = Depends(require_auth)):
-    """Get async task status and result."""
-    from sajha.core.async_executor import get_async_executor
-    task = get_async_executor().get_task(task_id)
+    """Get async task status and result (the caller's own tasks; admins: any)."""
+    task = _visible_task(task_id, auth)
     if not task:
         return JSONResponse({'error': 'Task not found'}, status_code=404)
     return task.to_full_dict()
@@ -404,7 +437,7 @@ async def get_async_task(task_id: str, auth: AuthContext = Depends(require_auth)
 async def cancel_async_task(task_id: str, auth: AuthContext = Depends(require_auth)):
     """Cancel a queued async task."""
     from sajha.core.async_executor import get_async_executor
-    if get_async_executor().cancel_task(task_id):
+    if _visible_task(task_id, auth) and get_async_executor().cancel_task(task_id):
         return {'cancelled': True, 'task_id': task_id}
     return JSONResponse({'error': 'Task not found or not cancellable'}, status_code=400)
 
@@ -413,7 +446,13 @@ async def cancel_async_task(task_id: str, auth: AuthContext = Depends(require_au
 async def retry_async_task(task_id: str, auth: AuthContext = Depends(require_auth)):
     """Retry a failed async task."""
     from sajha.core.async_executor import get_async_executor
-    task = get_async_executor().retry_task(task_id)
+    old = _visible_task(task_id, auth)
+    if old is None or not _can_use_async(auth) or not auth.has_tool_access(old.tool_name):
+        return JSONResponse({'error': 'Task not found or not retryable'}, status_code=400)
+    try:
+        task = get_async_executor().retry_task(task_id)
+    except Exception as e:
+        return JSONResponse({'error': f'Retry refused: {e}'}, status_code=400)
     if task:
         return {'task_id': task.task_id, 'status': 'queued', 'retried_from': task_id}
     return JSONResponse({'error': 'Task not found or not retryable'}, status_code=400)
@@ -439,10 +478,20 @@ async def admin_async_tasks_page(request: Request, auth: AuthContext = Depends(r
 # SHELL EXECUTION — Sandboxed Python & Bash (v5.3.0)
 # ═══════════════════════════════════════════════════════════════════
 
+def _can_use_shell(auth: AuthContext) -> bool:
+    """Admins, or roles granted resource_type 'shell' with action 'execute'."""
+    return auth.is_admin or auth.has_permission('shell', '*', 'execute')
+
+
+_SHELL_FORBIDDEN = {'error': 'Shell execution requires the admin role or the shell:execute permission'}
+
+
 @router.post('/api/shell/python')
 async def shell_execute_python(request: Request, auth: AuthContext = Depends(require_auth)):
     """Execute Python code in sandbox. Requires shell.enabled=true in config."""
     from sajha.core.shell_executor import get_shell_executor
+    if not _can_use_shell(auth):
+        return JSONResponse(_SHELL_FORBIDDEN, status_code=403)
     executor = get_shell_executor()
     if not executor.python_enabled:
         return JSONResponse({'error': 'Python execution is disabled. Set shell.enabled=true in config.'}, status_code=403)
@@ -458,6 +507,8 @@ async def shell_execute_python(request: Request, auth: AuthContext = Depends(req
 async def shell_execute_bash(request: Request, auth: AuthContext = Depends(require_auth)):
     """Execute bash command in sandbox. Requires shell.enabled=true AND shell.bash.enabled=true."""
     from sajha.core.shell_executor import get_shell_executor
+    if not _can_use_shell(auth):
+        return JSONResponse(_SHELL_FORBIDDEN, status_code=403)
     executor = get_shell_executor()
     if not executor.bash_enabled:
         return JSONResponse({'error': 'Bash execution is disabled. Set shell.enabled=true and shell.bash.enabled=true.'}, status_code=403)

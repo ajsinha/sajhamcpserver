@@ -24,9 +24,12 @@ LOAN = 'calc_loan_amortization'
 
 @pytest.fixture(scope='module')
 def client():
+    # anonymous MCP calls to registry tools (default: none, see tests/test_hardening.py)
+    os.environ['SAJHA_MCP_ANONYMOUS_TOOLS'] = '*'
     from sajha.app import create_app
     with TestClient(create_app()) as c:
         yield c
+    os.environ.pop('SAJHA_MCP_ANONYMOUS_TOOLS', None)
 
 
 def _tool(client, name, **kw):

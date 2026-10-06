@@ -83,7 +83,18 @@ async def a2a_endpoint(
         tasks/send      — Submit a new task
         tasks/get       — Get task status
         tasks/cancel    — Cancel a task
+
+    Callers authenticate like the REST API (Bearer JWT, X-API-Key, session cookie).
+    Without credentials the anonymous policy applies (mcp.anonymous.*), or 401 when
+    mcp.anonymous.enabled is false.  A tool runs only if the caller may execute it
+    (sajha/auth/access.py), and tasks are visible only to the caller that created them.
     """
+    from sajha.auth.access import anonymous_enabled
+    if not auth.authenticated and not anonymous_enabled():
+        return JSONResponse({
+            'jsonrpc': '2.0', 'id': None,
+            'error': {'code': -32001, 'message': 'Authentication required'},
+        }, status_code=401, headers={'WWW-Authenticate': 'Bearer realm="sajha"'})
     try:
         body = await request.json()
     except Exception as e:
@@ -118,7 +129,9 @@ async def a2a_endpoint(
 
 async def _tasks_send(params: dict, auth: AuthContext, db: Session) -> dict:
     """Submit a new task for execution."""
-    from sajha.app import tools_registry, mcp_handler
+    from sajha.app import tools_registry
+    from sajha.auth.access import policy_for
+    policy = policy_for(auth)
 
     message = params.get('message', {})
     session_id = params.get('sessionId')
@@ -138,7 +151,7 @@ async def _tasks_send(params: dict, auth: AuthContext, db: Session) -> dict:
         session_id=session_id,
         state='working',
         input_message=json.dumps(message),
-        caller_agent=auth.user_id or 'anonymous',
+        caller_agent=_caller(auth),
     )
     dao.create(task)
 
@@ -152,7 +165,11 @@ async def _tasks_send(params: dict, auth: AuthContext, db: Session) -> dict:
             matched_tool = tool_name
             break
 
-    if matched_tool and tools_registry:
+    if matched_tool and tools_registry and not policy.can_execute(matched_tool):
+        result_text = f'Access denied to tool: {matched_tool}'
+        task.state = 'failed'
+        task.error_message = result_text
+    elif matched_tool and tools_registry:
         tool = tools_registry.get_tool(matched_tool)
         if tool:
             try:
@@ -164,11 +181,13 @@ async def _tasks_send(params: dict, auth: AuthContext, db: Session) -> dict:
                 task.state = 'failed'
                 task.error_message = str(e)
     else:
-        # No specific tool matched — return capabilities
+        # No specific tool matched — return the capabilities this caller may use
+        runnable = [n for n in (tools_registry.tools.keys() if tools_registry else [])
+                    if policy.can_execute(n)]
         result_text = (
-            f"I'm {get_settings().app_name} with {len(tools_registry.tools) if tools_registry else 0} tools available. "
+            f"I'm {get_settings().app_name} with {len(runnable)} tools available to you. "
             f"Please specify a tool name to execute. Available tools include: "
-            + ', '.join(list(tools_registry.tools.keys())[:20] if tools_registry else [])
+            + ', '.join(runnable[:20])
         )
         task.state = 'completed'
 
@@ -189,7 +208,7 @@ async def _tasks_get(params: dict, auth: AuthContext, db: Session) -> dict:
 
     dao = A2ATaskDAO(db)
     task = dao.get_by_id(task_id)
-    if not task:
+    if not task or not _owns(auth, task):
         raise ValueError(f'Task {task_id} not found')
 
     return _task_to_response(task)
@@ -203,7 +222,7 @@ async def _tasks_cancel(params: dict, auth: AuthContext, db: Session) -> dict:
 
     dao = A2ATaskDAO(db)
     task = dao.get_by_id(task_id)
-    if not task:
+    if not task or not _owns(auth, task):
         raise ValueError(f'Task {task_id} not found')
 
     if task.state in ('completed', 'failed', 'cancelled'):
@@ -212,6 +231,15 @@ async def _tasks_cancel(params: dict, auth: AuthContext, db: Session) -> dict:
     dao.update_state(task_id, 'cancelled')
     task = dao.get_by_id(task_id)
     return _task_to_response(task)
+
+
+def _caller(auth: AuthContext) -> str:
+    return (auth.user_id if auth.authenticated else None) or 'anonymous'
+
+
+def _owns(auth: AuthContext, task: A2ATask) -> bool:
+    """Admins see every task; anyone else only the tasks they submitted."""
+    return bool(auth.authenticated and auth.is_admin) or task.caller_agent == _caller(auth)
 
 
 def _task_to_response(task: A2ATask) -> dict:

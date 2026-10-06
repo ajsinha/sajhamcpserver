@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from sajha.db.engine import get_db
-from sajha.auth import require_auth, AuthContext
+from sajha.auth import require_auth, require_admin, AuthContext
 from sajha.app import render
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,8 @@ async def tool_schema_page(tool_name: str, request: Request, auth: AuthContext =
 
 
 @router.get('/tools/{tool_name}/config')
-async def tool_config_page(tool_name: str, request: Request, auth: AuthContext = Depends(require_auth)):
+async def tool_config_page(tool_name: str, request: Request, auth: AuthContext = Depends(require_admin)):
+    # admin only: tool configs hold resolved ${...} values, API keys included
     from sajha.app import tools_registry
     tool = tools_registry.get_tool(tool_name) if tools_registry else None
     config = tools_registry.tool_configs.get(tool_name, {}) if tools_registry else {}

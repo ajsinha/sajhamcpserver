@@ -55,9 +55,10 @@ pip install -r requirements.txt
 python run_server.py
 ```
 
-Open **http://localhost:3002** and sign in as `admin` / `admin123`. Replace that account
-and set `JWT_SECRET` / `SESSION_SECRET` before exposing the server (see the
-[Security Model](docs/security/Security%20Model.md)). MCP clients connect to `http://localhost:3002/mcp`.
+Open **http://localhost:3002** and sign in as `admin` / `admin123`; a banner asks you to
+change that password (`/account/password`). The JWT and session secrets are generated on first
+start into `data/secrets/` (git-ignored); see the
+[Security Model](docs/security/Security%20Model.md) before exposing the server. MCP clients connect to `http://localhost:3002/mcp`.
 
 From Python, with the standard client (the official MCP SDK under a SAJHA wrapper):
 

@@ -77,7 +77,7 @@ async def api_report_tool_detail(
 @router.get('/api/reports/users/activity')
 async def api_report_users_activity(
     period: str = Query('30d'),
-    auth: AuthContext = Depends(require_auth),
+    auth: AuthContext = Depends(require_admin),     # per-user activity: admin only
     db: Session = Depends(get_db),
 ):
     since, until = _parse_period(period)

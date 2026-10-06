@@ -54,13 +54,11 @@ async def api_list_providers(auth: AuthContext = Depends(require_auth), db: Sess
                    } for m in model_dao.get_by_provider(p.provider_type, enabled_only=False)]
 
         healthy = False
-        if gw:
-            prov_inst = gw.get_provider(p.provider_type)
-            if prov_inst:
-                try: healthy = prov_inst.health_check()
-                except Exception as e:
-                    logger.warning(f"Error handled: {e}", exc_info=True)
-                    pass
+        if gw and gw.get_provider(p.provider_type) and gw.get_provider(p.provider_type).active:
+            try:
+                healthy = gw.provider_health(p.provider_type).ok
+            except Exception as e:
+                logger.warning(f"Error handled: {e}", exc_info=True)
 
         providers.append({
             'type': p.provider_type, 'display_name': p.display_name,
@@ -124,8 +122,9 @@ async def api_provider_health(provider_type: str, auth: AuthContext = Depends(re
     prov = gw.get_provider(provider_type)
     if not prov:
         return JSONResponse({'error': f'Provider {provider_type} not registered'}, status_code=404)
-    healthy = prov.health_check()
-    return JSONResponse({'provider': provider_type, 'healthy': healthy})
+    h = gw.provider_health(provider_type, refresh=True)
+    return JSONResponse({'provider': provider_type, 'healthy': h.ok and prov.active,
+                         'active': prov.active, 'status': h.status, 'detail': h.detail})
 
 
 @router.post('/api/ai/defaults')
@@ -142,11 +141,10 @@ async def api_set_defaults(request: Request, auth: AuthContext = Depends(require
     if 'model' in data and 'provider' in data:
         model_dao.set_default(data['provider'], data['model'])
 
-    # Also update the in-memory gateway
+    # Also update the in-memory gateway: provider[/model] goes first in the 'default' alias
     gw = _get_gateway()
-    if gw:
-        if 'provider' in data: gw.config.default_provider = data['provider']
-        if 'model' in data: gw.config.default_model = data['model']
+    if gw and data.get('provider'):
+        gw.set_system_default(data['provider'], data.get('model', ''))
 
     return JSONResponse({'success': True})
 
@@ -375,8 +373,90 @@ async def ai_settings_page(request: Request, auth: AuthContext = Depends(require
 @router.get('/api/ai/registry')
 async def api_registry(auth: AuthContext = Depends(require_admin)):
     """List all registered provider classes (available to configure)."""
+    from sajha.ai.llm.registry import registered_providers
     from sajha.ai.providers import get_registered_types
     return JSONResponse({
-        'registered_types': get_registered_types(),
-        'info': 'Use register_provider_class() to add custom local providers',
+        'registered_types': {n: f'{c.__module__}:{c.__name__}' for n, c in registered_providers().items()},
+        'legacy_types': get_registered_types(),
+        'info': 'Add a provider with @register_provider, a class path in ai.providers, or a '
+                "'sajha.llm_providers' entry point; see docs/architecture/Intelligence Layer.md",
     })
+
+
+# ── Intelligence layer: effective configuration and ask ───────
+
+@router.get('/api/ai/config')
+async def api_ai_config(auth: AuthContext = Depends(require_admin)):
+    """Effective ai.* configuration: every setting with its source (default/config/env/db), secrets redacted."""
+    gw = _get_gateway()
+    if not gw:
+        return JSONResponse({'error': 'Gateway not initialized'}, status_code=503)
+    from starlette.concurrency import run_in_threadpool
+    return JSONResponse(await run_in_threadpool(gw.describe_config))
+
+
+def _sse(event: dict) -> str:
+    return f"id: {event.get('seq', '')}\nevent: {event['type']}\ndata: {json.dumps(event, default=str)}\n\n"
+
+
+@router.post('/api/ai/ask')
+async def api_ask(request: Request, auth: AuthContext = Depends(require_auth)):
+    """Answer a question with SAJHA's tools. JSON AskResult, or an SSE step stream when the client
+    sends Accept: text/event-stream or ?stream=1. Body: {question, model?, confirm?: [fingerprint]}."""
+    from starlette.concurrency import run_in_threadpool
+    from fastapi.responses import StreamingResponse
+    from sajha.ai.intelligence import get_intelligence
+    from sajha.ai.llm.types import RequestContext
+    svc = get_intelligence()
+    if svc is None:
+        return JSONResponse({'error': 'Intelligence service not initialized'}, status_code=503)
+    if not svc.settings.enabled:
+        return JSONResponse({'error': 'ai.ask is disabled'}, status_code=403)
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse({'error': 'body must be JSON: {"question": "..."}'}, status_code=400)
+    if not isinstance(data, dict):
+        return JSONResponse({'error': 'body must be a JSON object'}, status_code=400)
+    question = str(data.get('question') or '').strip()
+    if not question:
+        return JSONResponse({'error': 'question is required'}, status_code=400)
+    if len(question) > 8000:
+        return JSONResponse({'error': 'question is too long (max 8000 characters)'}, status_code=400)
+    model = data.get('model') or None
+    if model is not None and not isinstance(model, str):
+        return JSONResponse({'error': 'model must be a string (an alias or provider/model)'}, status_code=400)
+    confirm = [str(c) for c in (data.get('confirm') or []) if c] if isinstance(data.get('confirm'), list) else []
+
+    access_cache: dict = {}
+
+    def can_use_tool(name: str) -> bool:
+        if name not in access_cache:
+            access_cache[name] = bool(auth.has_tool_access(name))
+        return access_cache[name]
+
+    import uuid
+    ctx = RequestContext(user_id=auth.user_id or '', roles=list(auth.roles or []), is_admin=auth.is_admin,
+                         trace_id=uuid.uuid4().hex, can_use_tool=can_use_tool)
+    want_stream = ('text/event-stream' in request.headers.get('accept', '')
+                   or request.query_params.get('stream', '').lower() in ('1', 'true', 'yes'))
+    if not want_stream:
+        result = await run_in_threadpool(lambda: svc.ask(question, ctx, model=model, confirm=confirm))
+        return JSONResponse(result.to_dict())
+
+    gen = svc.stream_ask(question, ctx, model=model, confirm=confirm)
+    # The shortlist (the only step that consults RBAC) runs now, while the request's DB session is open.
+    first = await run_in_threadpool(next, gen)
+
+    def events():
+        yield _sse(first)
+        try:
+            for ev in gen:
+                yield _sse(ev)
+        except Exception as e:      # never leave the client without a terminal event
+            logger.error(f"ask stream failed: {e}", exc_info=True)
+            yield _sse({'type': 'error', 'seq': -1, 'code': 'internal_error', 'message': str(e)[:300]})
+            yield _sse({'type': 'done', 'seq': -1, 'result': None})
+
+    return StreamingResponse(events(), media_type='text/event-stream',
+                             headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})

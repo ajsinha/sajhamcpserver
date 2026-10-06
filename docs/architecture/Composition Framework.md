@@ -2,7 +2,7 @@
 
 Inspired by "On the Composability of Intelligence: A Category Theory Framework".
 
-> **Status in this release.** Composites are saved (database tables `composite_tools`, `composite_tool_steps`) and their schemas can be previewed, but registering a saved composite as a callable tool fails: `CompositeToolEngine` in `sajha/tools/composite_tool.py` calls `ToolsRegistry.register_tool` with two arguments, and it takes one. In Sibling mode, `$.field` resolves to an empty string and `$input.field` is passed through literally; the form that works is `$.input.field` ([Tutorial 3](../tutorials/TUTORIAL_03_build_a_composite_tool.md)). The design below is what the code implements once those are fixed.
+> **Status in this release.** Composites are saved in the database (tables `composite_tools`, `composite_tool_steps`), registered as tools when saved and at startup, and callable over MCP like any other tool. Parameter mappings accept `$input.field` and `$.input.field` (the composite's input) and `$.field` (in Parent → Child, the current master record; in Sibling, the master tool's output); a dotted path such as `$.quote.price` reads a nested field.
 
 Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
 
@@ -128,8 +128,8 @@ class ParamLens:
 
 | Expression | Meaning | Source |
 |-----------|---------|--------|
-| `$.ticker` | Field from parent record | Used in parent-child per-record |
-| `$input.symbol` | Field from original pipeline input | Passed through from user |
+| `$.ticker` | Field from parent record (Sibling: from the master's output); dotted paths reach nested fields | Used in parent-child per-record |
+| `$input.symbol` or `$.input.symbol` | Field from original pipeline input | Passed through from user |
 | `5` (literal) | Static value | Hardcoded in step definition |
 
 **Why this matters:** Without lenses, the child tool receives the entire parent output dict. If the parent adds a field called `limit` in a future version, and the child also has a `limit` parameter, the child silently gets the wrong value. With `ParamLens`, the child sees exactly `{"symbol": "AAPL"}` — nothing else leaks through.

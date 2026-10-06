@@ -63,6 +63,27 @@ def render_standalone(request: Request, template_name: str, context: dict = None
     return templates.TemplateResponse(request, template_name, ctx, status_code=status_code)
 
 
+_JSON_PATH_PREFIXES = ('/api/', '/mcp', '/a2a', '/admin/studio/', '/oauth/')
+
+
+def _wants_json(request: Request) -> bool:
+    """An API / JSON caller (JSON error) rather than a browser page navigation (redirect / HTML)."""
+    path = request.url.path
+    if path.startswith(_JSON_PATH_PREFIXES) or request.method not in ('GET', 'HEAD'):
+        return True
+    accept = request.headers.get('accept', '').lower()
+    return 'application/json' in accept and 'text/html' not in accept
+
+
+def _password_change_required(token: str) -> bool:
+    """True when the session JWT says the user must change their password (claim ``pwc``)."""
+    if not token:
+        return False
+    from sajha.auth.jwt_handler import decode_access_token
+    payload = decode_access_token(token)
+    return bool(payload and payload.get('pwc'))
+
+
 # ── Module-level references (set by SajhaMCPServerWebApp during startup) ─
 tools_registry = None
 prompts_registry = None
@@ -190,15 +211,18 @@ class SajhaMCPServerWebApp:
 
         @app.exception_handler(401)
         async def unauthorized(request: Request, exc):
-            # API requests get JSON 401; browser requests redirect to landing page
-            if request.url.path.startswith('/api/') or request.url.path.startswith('/mcp'):
-                from fastapi.responses import JSONResponse
-                return JSONResponse({'error': 'Authentication required'}, status_code=401)
+            # API / JSON requests get JSON 401; browser page navigations redirect to the landing page
+            if _wants_json(request):
+                headers = getattr(exc, 'headers', None) or {'WWW-Authenticate': 'Bearer realm="sajha"'}
+                return JSONResponse({'error': 'Authentication required'}, status_code=401, headers=headers)
             from fastapi.responses import RedirectResponse
             return RedirectResponse(url='/', status_code=302)
 
         @app.exception_handler(403)
         async def forbidden(request: Request, exc):
+            if _wants_json(request):
+                detail = getattr(exc, 'detail', None) or 'Forbidden'
+                return JSONResponse({'error': detail}, status_code=403)
             return render(request, 'common/error.html', {
                 'error': 'Access Forbidden',
                 'message': "You don't have permission to access this resource",
@@ -294,6 +318,8 @@ class SajhaMCPServerWebApp:
             'guide_url': guides.guide_url,
             'page_help_for': lambda request, key=None: page_help.page_help(
                 key or page_help.endpoint_of(request)),
+            # Banner in common/base.html until a default / admin-set password is changed
+            'password_change_required': _password_change_required,
         })
 
         # Template filters
@@ -388,9 +414,11 @@ class SajhaMCPServerWebApp:
         except Exception as e:
             logger.warning(f'Object-store sync manager init failed: {e}', exc_info=True)
 
+        # Per-caller tool access on every MCP transport (sajha/auth/access.py)
+        from sajha.auth.access import SessionToolAccess
         mcp_handler = MCPHandler(
             tools_registry=tools_registry,
-            auth_manager=None,
+            auth_manager=SessionToolAccess(),
             prompts_registry=prompts_registry,
         )
         logger.info('MCP handler initialized')
@@ -507,7 +535,8 @@ class SajhaMCPServerWebApp:
 
         # 4b. Semantic Tool Search (independent of the gateway — default is lexical BM25/TF-IDF)
         try:
-            if _CFG.get('ai.tool_search.enabled', True):
+            from sajha.core.config import cfg_bool
+            if cfg_bool(_CFG, 'ai.tool_search.enabled', True):
                 from sajha.ai.embedders import get_embedder
                 from sajha.ai.tool_resolver import init_resolver, get_resolver
                 try:
@@ -515,7 +544,7 @@ class SajhaMCPServerWebApp:
                 except Exception:
                     gw_for_extract = None
                 embedder = get_embedder(_CFG, gateway=gw_for_extract)
-                persist = bool(_CFG.get('ai.tool_search.persist', True))
+                persist = cfg_bool(_CFG, 'ai.tool_search.persist', True)
                 resolver = init_resolver(embedder, tools_registry, gateway=gw_for_extract, persist=persist)
                 # Keep the index accurate as tools change — NEVER block the reload path:
                 # run the re-sync off a background thread. Tool loading is already complete.
@@ -534,6 +563,21 @@ class SajhaMCPServerWebApp:
                     logger.info(f'  Semantic Tool Search: {lex} tools indexed (lexical BM25/TF-IDF)')
         except Exception as e:
             logger.warning(f'  Semantic Tool Search: unavailable ({e})', exc_info=True)
+
+        # 4c. Intelligence service (POST /api/ai/ask) + the optional sajha_ask MCP tool
+        try:
+            from sajha.ai.gateway import get_gateway as _get_gw
+            from sajha.ai.intelligence import init_intelligence
+            from sajha.ai.ask_tool import register_if_enabled, TOOL_NAME
+            if _get_gw() is not None:
+                _svc = init_intelligence(_get_gw(), tools_registry)
+                if register_if_enabled(tools_registry, _svc.settings):
+                    tools_registry.add_reload_listener(
+                        lambda: tools_registry.get_tool(TOOL_NAME) or register_if_enabled(tools_registry, _svc.settings))
+                logger.info(f'  Intelligence: ask ready (model alias {_svc.settings.model!r}, '
+                            f'sajha_ask MCP tool {"on" if _svc.settings.mcp_tool_enabled else "off"})')
+        except Exception as e:
+            logger.warning(f'  Intelligence: unavailable ({e})', exc_info=True)
 
         # 5. Template globals
         self._register_template_globals()

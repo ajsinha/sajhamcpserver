@@ -13,7 +13,7 @@ Combine several existing tools into one composite tool with the Composite Builde
 - A running server, signed in as an administrator. Saving, updating and deleting composites requires the admin role.
 - The calculator tools `calc_percentage_change` and `calc_future_value`. They need no external API keys.
 
-> **Known issue in the current build:** A saved composite is stored in the database and its schema preview works. However, it is **not registered as a callable tool**. `CompositeToolEngine.load_from_db` (`sajha/tools/composite_tool.py`) calls `ToolsRegistry.register_tool(name, tool)`, but `register_tool` takes only the tool. The call fails with a `TypeError`, which is logged as `Failed to build composite tool <name>`. Until that is fixed, `tools/call` on a composite returns "Tool not found". To chain tools today, see the client-side `ClientPipeline` in [Tutorial 5](TUTORIAL_05_connect_the_python_sdk.md).
+> Saving a composite registers it as a tool straight away: it appears in MCP `tools/list` and can be called with `tools/call`. Deleting it unregisters it.
 
 ## How a composite runs
 
@@ -26,8 +26,8 @@ Every composite has a **master tool**. The master runs first, with the composite
 
 Parameter mapping is a JSON object of the form `{"<step param>": "<source>"}`:
 
-- `"$.input.<field>"` takes a field from the composite's input. It works in both arrangements.
-- `"$.<field>"` takes a field from the current master-output record. It applies to Parent → Child only; in a Sibling step it resolves to an empty string.
+- `"$input.<field>"` or `"$.input.<field>"` takes a field from the composite's input. Both work in both arrangements.
+- `"$.<field>"` takes a field from the master's output: in Parent → Child, from the current record; in Sibling, from the master tool's whole result. A dotted path (`"$.quote.price"`) reads a nested field. A missing field resolves to an empty string.
 - Any other value is passed through as a literal.
 
 **Static params** are fixed values merged into every call of the step.
@@ -79,7 +79,7 @@ When the composite runs with `{"old_value": 100, "new_value": 125}`, its result 
 }
 ```
 
-(This output came from running the composite engine directly. See the known issue above about calling it through MCP.)
+Call it like any other tool: MCP `tools/call` with `{"name": "<composite name>", "arguments": {"old_value": 100, "new_value": 125}}`.
 
 ### 6. Manage composites over the API
 

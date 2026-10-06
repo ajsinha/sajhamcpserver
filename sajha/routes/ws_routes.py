@@ -34,7 +34,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from sqlalchemy.orm import Session
 
 from sajha.db.engine import get_db_session
-from sajha.auth import AuthManager
+from sajha.auth import AuthManager, AuthContext, require_admin
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=['mcp-websocket'])
@@ -136,20 +136,22 @@ async def mcp_websocket(ws: WebSocket):
         if auth and auth.authenticated:
             session.user_id = auth.user_id
             session.auth_context = auth
+            # identity + tool policy: the same per-tool access rules as the REST API
             session.session_data = auth.to_legacy_session()
-        else:
-            session.session_data = None
     except Exception as e:
         logger.warning(f"WS auth failed: {e}", exc_info=True)
-        session.session_data = None
     finally:
         db.close()
 
     from sajha.auth.oauth.settings import auth_mode
-    if auth_mode() == 'required' and session.session_data is None:
-        # mcp.auth.mode=required: this transport takes SAJHA JWTs / API keys only (no OAuth flow)
-        await ws.close(code=1008, reason='Authentication required')
-        return
+    from sajha.auth.access import anonymous_enabled, mcp_session_for
+    if session.auth_context is None:
+        if token or api_key or auth_mode() == 'required' or not anonymous_enabled():
+            # invalid credentials, mcp.auth.mode=required or mcp.anonymous.enabled=false:
+            # this transport takes SAJHA JWTs / API keys only (no OAuth flow)
+            await ws.close(code=1008, reason='Authentication required')
+            return
+        session.session_data = mcp_session_for(None)   # the anonymous tool policy
 
     _ws_sessions[session_id] = session
     logger.info(f"WebSocket connected: {session_id} (user={session.user_id})")
@@ -233,7 +235,7 @@ async def _forward_changes(session: 'WSSession'):
 # ── Admin: Active sessions API ───────────────────────────────
 
 @router.get('/api/ws/sessions')
-async def api_ws_sessions():
+async def api_ws_sessions(auth: AuthContext = Depends(require_admin)):
     """List active WebSocket sessions (admin diagnostic)."""
     return {
         'active_sessions': get_active_sessions(),

@@ -107,12 +107,15 @@ storage:
 The backend is chosen **once, at startup** (`init_storage` runs before tools and prompts
 load). To change `storage.*`, restart the server.
 
-### Environment variables: how overrides actually work
+### Environment variables
 
-`init_storage()` reads each key from the YAML and falls back to an environment variable
-**only when the key is missing from the YAML**:
+Every storage key can be overridden from the environment, and the environment wins over
+`application.yml`. `init_storage()` resolves each key (`storage_setting` in
+`sajha/core/storage.py`) as: the env var in this table → `SAJHA_` + the dotted key in upper
+case (for example `SAJHA_STORAGE_S3_BUCKET`) → the YAML → the code default. An env var set to
+an empty string is ignored.
 
-| Key | Env fallback |
+| Key | Env override |
 |-----|--------------|
 | `storage.backend` | `SAJHA_STORAGE_BACKEND` |
 | `storage.base_dir` | `SAJHA_BASE_DIR` |
@@ -120,36 +123,11 @@ load). To change `storage.*`, restart the server.
 | `storage.azure.container` / `account_url` / `connection_string` / `prefix` / `cache_dir` | `SAJHA_AZURE_CONTAINER` / `SAJHA_AZURE_ACCOUNT_URL` / `AZURE_STORAGE_CONNECTION_STRING` / `SAJHA_AZURE_PREFIX` / `SAJHA_AZURE_CACHE_DIR` |
 | `storage.gcs.bucket` / `project` / `prefix` / `cache_dir` | `SAJHA_GCS_BUCKET` / `GOOGLE_CLOUD_PROJECT` / `SAJHA_GCS_PREFIX` / `SAJHA_GCS_CACHE_DIR` |
 
-The shipped `application.yml` defines every one of these keys, even if only as `""`. So with
-the shipped file **these environment variables have no effect**. For example,
-`SAJHA_STORAGE_BACKEND=s3` alone still starts the `local` backend. The general `SAJHA_*`
-override convention in `sajha.core.config` does not apply here either, because storage
-settings are not part of that `Settings` model.
-
-To drive storage from the environment, use one of these approaches:
-
-1. **`${VAR:default}` placeholders in the YAML (recommended).** These are substituted at
-   load time:
-
-   ```yaml
-   storage:
-     backend: ${SAJHA_STORAGE_BACKEND:local}
-     s3:
-       bucket: ${SAJHA_S3_BUCKET:}
-     azure:
-       connection_string: ${AZURE_STORAGE_CONNECTION_STRING:}
-   ```
-
-2. **Delete the key from the YAML.** The env fallback in the table above then applies.
-3. **Set an environment variable named after the dotted key itself**, e.g.
-   `env 'storage.backend=s3' 'storage.s3.bucket=my-bucket' python run_server.py`. The
-   properties loader lets an env var with the exact key name override the file value.
-4. **Point `--config` at a deployment-specific YAML.**
-
-The same caveat applies to the credential variables. With `connection_string: ""` in the YAML,
-SAJHA does not read `AZURE_STORAGE_CONNECTION_STRING`, so use a placeholder. For GCS,
-`project: ""` makes SAJHA call `storage.Client()` without a project, and the Google SDK then
-resolves the project itself (ADC / `GOOGLE_CLOUD_PROJECT`).
+So `SAJHA_STORAGE_BACKEND=s3 SAJHA_S3_BUCKET=my-bucket python run_server.py` starts the S3
+backend with the shipped `application.yml`. Keep credentials such as
+`AZURE_STORAGE_CONNECTION_STRING` in the environment, never in the YAML. For GCS, an empty
+`project` makes SAJHA call `storage.Client()` without a project, and the Google SDK then
+resolves it itself (ADC / `GOOGLE_CLOUD_PROJECT`).
 
 ---
 

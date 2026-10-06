@@ -480,6 +480,7 @@ def get_shell_executor() -> ShellExecutor:
                 'bash': {
                     'enabled': getattr(s, 'shell_bash_enabled', False),
                     'timeout_seconds': getattr(s, 'shell_bash_timeout', 15),
+                    'max_output_bytes': getattr(s, 'shell_bash_max_output_bytes', 1048576),
                 },
             }
         except Exception:

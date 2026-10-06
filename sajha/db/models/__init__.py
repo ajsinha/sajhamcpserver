@@ -57,6 +57,10 @@ class User(Base):
     failed_attempts = Column(Integer, default=0, nullable=False)
     locked_until = Column(DateTime, nullable=True)
 
+    # Password must be changed at next sign-in (seed admin, admin-set passwords);
+    # added by db/scripts/<type>/003_password_policy.sql
+    must_change_password = Column(Boolean, default=False, nullable=False)
+
     # Relationships
     roles = relationship('Role', secondary=user_roles, back_populates='users', lazy='joined')
     api_keys = relationship('ApiKey', back_populates='owner', cascade='all, delete-orphan')

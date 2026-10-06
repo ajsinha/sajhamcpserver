@@ -1,0 +1,322 @@
+# SAJHA MCP Server — Intelligence Layer
+
+The intelligence layer lets SAJHA answer a question itself: it picks tools from its own
+catalog, runs them under the caller's permissions, and returns an answer with the tool
+calls it relied on and a confidence score. This document describes the layer as built:
+the abstractions, the providers, the gateway, the ask loop and its event stream. Every
+configuration key and its default is in the
+[Configuration Reference](../getting-started/Configuration%20Reference.md#ai); endpoint
+summaries are in the [API Reference](../protocol/API%20Reference.md); the confidence
+mathematics is the [Composition Framework](Composition%20Framework.md).
+
+---
+
+## 1. Shape
+
+```
+ consumers      POST /api/ai/ask · sajha_ask MCP tool · /api/ai/* (settings page, tool resolver)
+                                   │
+ service        IntelligenceService (sajha/ai/intelligence.py): shortlist → tool loop → synthesis
+                                   │
+ gateway        LLMGateway (sajha/ai/gateway.py): aliases, capability match, policy, budgets,
+                retries + fallback, circuit breaker, response cache, OpenTelemetry span
+                                   │
+ abstractions   sajha/ai/llm/: Message/ChatRequest/ChatResponse, ChatModel, EmbeddingModel,
+                LLMProvider + pydantic config_model, registry, SecretStore, errors
+                                   │
+ providers      native: anthropic, openai, azure_openai, gemini, bedrock, mistral, cohere,
+                ollama, OpenAI-compatible presets · mock · LegacyProviderAdapter
+```
+
+Everything above the provider row codes only against SAJHA's own types, so adding or
+swapping a provider never touches the gateway, the service or its consumers. Nothing in
+`sajha/ai/llm/` imports a vendor SDK: the native providers speak each vendor's REST API with
+`httpx`; Bedrock alone needs SigV4 signing and imports `boto3` lazily (an optional
+dependency; without it the Bedrock provider reports itself down with an install hint).
+
+| Code | What |
+|---|---|
+| `sajha/ai/llm/types.py` | `Message` and its parts (`TextPart`, `ImagePart`, `ToolCallPart`, `ToolResultPart`), `ToolSpec`, `ChatRequest`, `ChatResponse`, `Usage`, `RequestContext`, stream events (`TextDelta`, `ToolCallDelta`, `UsageEvent`, `Done`) |
+| `sajha/ai/llm/model.py` | `ModelCapabilities`, `ChatModel`, `EmbeddingModel`, `ModelDescriptor`, `HealthStatus`, `Needs` |
+| `sajha/ai/llm/provider.py` | `LLMProvider`: credentials, HTTP client, catalogue, model factory, health |
+| `sajha/ai/llm/settings.py` | every config model, the layered resolution, effective-config description |
+| `sajha/ai/llm/registry.py` | `register_provider`, `register_model`, class paths, entry points |
+| `sajha/ai/llm/catalog.py` | curated model ids, context windows and list prices (data only) |
+| `sajha/ai/llm/secrets.py` | `SecretStore` (`env:`, `file:`, `db:` references) and redaction |
+| `sajha/ai/llm/http.py` | httpx client construction, error mapping, SSE and NDJSON parsing |
+| `sajha/ai/llm/providers/` | the native providers |
+| `sajha/ai/llm/mock.py` | `MockProvider` and its models |
+| `sajha/ai/llm/legacy.py` | `LegacyProviderAdapter` for providers written against the old ABC |
+| `sajha/ai/gateway.py` | `LLMGateway`, `build_gateway`, `init_gateway`, `get_gateway` |
+| `sajha/ai/intelligence.py` | `IntelligenceService`, `AskResult`, `AskStep`, the event stream |
+| `sajha/ai/ask_tool.py` | the optional `sajha_ask` MCP tool |
+| `sajha/routes/ai_routes.py` | `POST /api/ai/ask`, `GET /api/ai/config` and the older `/api/ai/*` routes |
+
+## 2. Core abstractions
+
+**Messages and requests** are plain dataclasses. A `ChatRequest` carries messages, a system
+prompt, offered `ToolSpec`s (built from an MCP tool's name, description and input schema),
+`tool_choice` (`auto`, `none`, `required` or a tool name), an optional `response_schema`
+(structured output), sampling and length limits, and a `RequestContext` (user, roles,
+trace id, budget key, and the RBAC check the ask loop uses). A `ChatResponse` holds the
+assistant `Message` (text and/or tool calls), a finish reason (`stop`, `tool_calls`,
+`length`, `content_filter`, `error`), `Usage` (tokens and cost) and latency.
+`Message.meta` keeps provider round-trip state that must be echoed on the next turn
+(Anthropic thinking blocks, Gemini thought signatures); it is never sent to a different
+provider and never logged.
+
+**Models** are objects: one `ChatModel` or `EmbeddingModel` per configured model, carrying
+`ModelCapabilities` (chat, tools, structured output, vision, streaming, embedding, context
+window, output cap, per-million-token prices, whether it accepts a temperature or a forced
+tool choice, and tags such as `fast`, `reasoning`, `local`, `deterministic`).
+`ChatModel.generate` is the one required method; `stream` defaults to a single `Done`
+event, `agenerate` wraps `generate` in a worker thread (sync first, async wrappers), and
+`validate` raises `UnsupportedFeature` for a request the model cannot serve.
+
+**Providers** are factories. `LLMProvider` declares a registry `name` and a pydantic
+`config_model`; it owns the API key, the `httpx` client (base URL, headers, proxy, TLS,
+timeouts) and a concurrency limit, lists its models (curated catalogue, live discovery
+where the vendor offers it, `@register_model` classes, then database and config
+overrides), and creates `ChatModel`/`EmbeddingModel` objects.
+
+**Errors** are SAJHA's, so the gateway can react without knowing the vendor:
+
+| Error | Meaning | Gateway reaction |
+|---|---|---|
+| `RateLimited(retry_after)` | 429 or quota | retry after the delay, then fall back |
+| `ProviderUnavailable` | 5xx, timeout, connection | retry with backoff, then fall back |
+| `AuthenticationFailed` | bad or missing key | no retry; mark the provider down |
+| `ContextTooLong` | prompt over the window | next candidate |
+| `UnsupportedFeature` | e.g. tools on a model without them, unknown model | next candidate |
+| `ContentFiltered` | refused by provider safety | no retry, no fallback; raised |
+| `InvalidRequest` | malformed request | no retry; raised |
+| `PolicyDenied`, `BudgetExceeded` | role policy or token budget | no call |
+| `NoModelAvailable` | no candidate left | raised, naming each candidate and why it was skipped |
+
+## 3. Providers
+
+| Name | Wire API | Tools | Structured output | Streaming | Embeddings | Key variables (vendor) |
+|---|---|---|---|---|---|---|
+| `anthropic` | Messages API | yes | `output_config.format` | SSE | — | `ANTHROPIC_API_KEY` |
+| `openai` | Chat Completions | yes | `response_format` json_schema | SSE | `/embeddings` | `OPENAI_API_KEY` |
+| `azure_openai` | Chat Completions, GA `v1` path or deployments + `api-version` | yes | yes | SSE | yes | `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT` |
+| `gemini` | `generateContent` (AI Studio) | yes | `responseJsonSchema` | SSE | `batchEmbedContents` | `GEMINI_API_KEY`, `GOOGLE_API_KEY` |
+| `bedrock` | Converse / ConverseStream (boto3) | yes | no | event stream | Titan, Cohere (InvokeModel) | AWS credential chain |
+| `mistral` | Chat Completions shape | yes (`any` for required) | yes | SSE | `mistral-embed` | `MISTRAL_API_KEY` |
+| `cohere` | v2 Chat / Embed | yes | `json_object` + schema | SSE | yes | `COHERE_API_KEY` |
+| `ollama` | native chat and embed endpoints | yes | `format` (JSON Schema) | NDJSON | yes | none (`OLLAMA_HOST`) |
+| `groq`, `together`, `fireworks`, `deepseek`, `xai`, `openrouter`, `perplexity` | OpenAI-compatible presets | per model | per model | SSE | where offered | the vendor's `*_API_KEY` |
+| `vllm`, `lmstudio`, `openai_compatible` | any `/chat/completions` server via `base_url` | yes | per server | SSE | yes | optional |
+| `mock` | in process | yes | yes | yes | `mock-embed` | none |
+
+Each provider maps the neutral types onto its wire format (tool definitions, tool-call ids,
+tool results, images) and maps its errors onto the taxonomy above: 429 →
+`RateLimited` with `Retry-After`/`retry-after-ms`; 401/403 → `AuthenticationFailed`;
+context-length messages and 413 → `ContextTooLong`; safety blocks → `ContentFiltered`;
+404 (unknown model or deployment) → `UnsupportedFeature`; 5xx, timeouts and connection
+failures → `ProviderUnavailable`. Cost is computed from the model's declared prices.
+
+The curated model lists live only in `sajha/ai/llm/catalog.py`. A deployment adds a model
+or overrides a catalogue entry's capabilities and prices with `models:` in the provider's
+config (or `SAJHA_AI_<PROVIDER>_MODELS` as JSON), so a new model id never needs code.
+
+**Ollama** is local and keyless. `list_models()` merges the catalogue with the models
+actually pulled on the host (Ollama's `tags` endpoint), with capabilities read from its
+`show` endpoint (tools, vision, embedding, context length) unless config overrides them.
+`health()` probes the `tags` endpoint with a short timeout and caches the answer, so an absent Ollama costs one quick
+probe per health TTL. A model that is not pulled is skipped as a candidate. `keep_alive`,
+`num_ctx`, `think` and any runtime `options` pass through; `OLLAMA_HOST` is honoured.
+
+**Legacy providers.** A class written against the pre-6.x ABC in `sajha/ai/providers/` and
+registered with `register_provider_class()` is wrapped by `LegacyProviderAdapter` and served
+like any other provider (text only: the old interface parsed no tool calls). The six old
+vendor modules were removed; the native providers replace them.
+
+### Adding a provider or a model
+
+A provider is a subclass of `LLMProvider` with `name` and `config_model` (a subclass of
+`ProviderConfig`), and one registration, validated at startup:
+
+1. the `@register_provider` decorator on a class imported at startup;
+2. a class path in `ai.providers[].class` (`package.module:Class`);
+3. a pip package exposing an entry point in the `sajha.llm_providers` group.
+
+`@register_model(provider=..., model_id=...)` injects one model class into an existing
+provider (a fine-tune or a custom route), inheriting the vendor's wire code. Every field of
+the new `config_model` is configurable in YAML and overridable from the environment with no
+further code (section 4).
+
+## 4. Configuration
+
+Each provider's settings are its pydantic `config_model`; the gateway sections (`aliases`,
+`policy`, `budgets`, `cache`, `retry`, `breaker`, `gateway`, `ask`) are pydantic models too.
+Unknown keys fail at startup with the list of valid ones. A value is taken from the first
+of:
+
+1. `SAJHA_AI_<SECTION>_<FIELD>`, where `<SECTION>` is the provider's name upper-cased with
+   non-alphanumerics as `_` (`SAJHA_AI_OPENAI_BASE_URL`, `SAJHA_AI_AZURE_OPENAI_API_VERSION`,
+   `SAJHA_AI_OLLAMA_NUM_CTX`) or a gateway section (`SAJHA_AI_ASK_MAX_STEPS`,
+   `SAJHA_AI_RETRY_MAX_RETRIES`, `SAJHA_AI_ALIASES_DEFAULT`). Lists take JSON or a comma
+   list; dictionaries and lists of objects take JSON;
+2. the vendor's own variable (`OPENAI_API_KEY`, `OLLAMA_HOST`, `AWS_REGION`, ...);
+3. `config/application.yml` under `ai:` (`${VAR:default}` substituted);
+4. the `llm_providers` and `llm_models` tables written by the AI settings page;
+5. the code default.
+
+`api_key_ref` points at a secret instead of holding one: `env:NAME`, `file:/path` or
+`db:llm_providers/<type>`. Secrets are redacted in logs and in the effective configuration.
+
+**Out of the box the mock serves every alias.** Every real provider ships with
+`enabled: false` and is used only when enabled explicitly; a key in the environment never
+enables a provider on its own. To switch to a real provider:
+
+```bash
+export SAJHA_AI_OPENAI_ENABLED=true                         # 1. enable it
+export OPENAI_API_KEY=...                                   # 2. give it a key (never in application.yml)
+export SAJHA_AI_ALIASES_DEFAULT="openai,mock/mock-planner"  # 3. point an alias at it, mock as fallback
+```
+
+For a local model: `SAJHA_AI_OLLAMA_ENABLED=true` and
+`SAJHA_AI_ALIASES_DEFAULT="ollama,mock/mock-planner"` (a bare provider name means its
+`default_model`). `GET /api/ai/config` (admin) returns the effective configuration of every
+provider and section, each value with its source (`default`, `config`, `env:NAME`, `db`,
+`ref:...`), the alias each name resolves to now, and `mock_active: true` with a note while
+the mock is serving every alias.
+
+## 5. The gateway
+
+`LLMGateway` is the only thing consumers call: `chat(request, model=)`, `stream(request,
+model=)`, `embed(texts, model="embedding")` and `resolve(model, needs, ctx)`.
+
+- **Resolution.** `model` is an alias (ordered candidates), `provider/model`, or a bare
+  provider. A user's saved preference goes first, then the system default set from the
+  settings page, then the alias list. A candidate is used if its provider is enabled and
+  healthy (health cached for `ai.gateway.health_ttl_s`), its circuit is closed, the model is
+  available, its capabilities cover what the request needs (tools, structured output, vision
+  are inferred from the request) and the caller's role policy allows it.
+- **Policy** (`ai.policy.roles`): allowed `provider/model` globs, whether tools may be
+  offered, an output-token cap, a daily token allowance. A caller with several roles gets
+  the most permissive combination; a role with no entry (and no `ai.policy.default`) is
+  unrestricted.
+- **Reliability.** `RateLimited` and `ProviderUnavailable` are retried (`ai.retry`, or the
+  provider's own `max_retries` / `backoff_*`) with exponential backoff and jitter, honouring
+  `Retry-After` up to a cap; then the next candidate is tried. Each provider has a
+  `CircuitBreaker` (`sajha/core/circuit_breaker.py`) that opens after repeated failures.
+  `AuthenticationFailed` marks the provider down for the health TTL. Streams fall back only
+  before their first event.
+- **Budgets** come from the token tracker, per user and per role per UTC day
+  (`ai.budgets`, and a role's `daily_tokens`); over budget is `BudgetExceeded`, not a call.
+- **Cache.** Responses are cached on the canonical request (messages, tools, schema,
+  temperature, limits, model) when the temperature is 0, or unset on a deterministic model,
+  or when `ai.cache.cache_nonzero_temperature` is set.
+- **Observability.** One OpenTelemetry span (`llm.chat`) per call with provider, model,
+  alias, tokens, latency and outcome; prompts are attached only with
+  `ai.gateway.trace_prompts`. The tracer is the observability module's when its SDK is
+  installed, otherwise the OpenTelemetry API's (a no-op without an SDK).
+
+The pre-6.x API remains as shims over `chat()`/`embed()`: `complete`,
+`complete_messages`, `embed(texts, provider=, model=)` (its result is a list of vectors that
+also has `.embeddings`), `list_all_models`, `health_check_all`, the user-preference
+methods, `get_stats`, `get_token_usage` and `get_total_cost`.
+
+## 6. The intelligence service
+
+`IntelligenceService.ask(question, ctx)` is a bounded tool-use loop:
+
+1. **Shortlist.** The tool resolver (vector search when an embedder is configured, lexical
+   BM25 otherwise) ranks tools; disabled tools and tools the caller may not run
+   (`AuthContext.has_tool_access`, the same check as `POST /api/tools/execute`) are dropped;
+   the top `ai.ask.shortlist` go to the model as `ToolSpec`s. Role policy without tools
+   means no shortlist.
+2. **Plan and act.** The model answers or calls tools. Each call runs through
+   `tool.execute_with_tracking` (enabled check, validation, cache, circuit breaker,
+   metrics). A call to a tool that was not offered is refused. A tool marked destructive
+   (`annotations.destructiveHint: true`) is not run: the ask stops with
+   `stopped_by: needs_confirmation` and a fingerprint per pending call; re-asking with
+   `confirm: [fingerprint]` runs it. Results are capped at `ai.ask.max_result_chars` and
+   returned as `ToolResultPart` data; the system prompt states that tool output is data,
+   never instructions.
+3. **Synthesize.** A final structured-output call produces `{answer, citations, caveats}`;
+   citations are filtered to successful tool calls. If no capable model is available, the
+   loop's own answer is used.
+
+**Limits**: `max_steps`, `max_tool_calls`, `max_tokens` (all model calls of one ask) and
+`timeout_s`; the reason the loop stopped is reported as `stopped_by`: `answer`,
+`step_limit`, `tool_limit`, `budget`, `timeout`, `needs_confirmation` or `error`.
+
+**Confidence** is not the model's opinion. Each cited, successful step contributes its
+tool's confidence (`get_tool_confidence`, by tool-name prefix) chained through the
+composition framework's `EntropyGuard`; a failed call contributes 0.9 and an incomplete
+loop 0.8; an answer resting on no tool result is 0.5; no answer is 0. The `confidence`
+event carries the guard's per-step basis. Freshness and cross-source agreement are not yet
+scored.
+
+**Audit**: each ask writes an `ai_ask` audit-log entry (question, tools, models, tokens,
+outcome, confidence) unless `ai.ask.audit` is false.
+
+### `POST /api/ai/ask`
+
+Authentication as for the other `/api` routes (session cookie, JWT or API key). Body:
+`{"question": "...", "model": "<alias or provider/model>", "confirm": ["<fingerprint>"]}`
+(only `question` is required). The response is the `AskResult` as JSON, or, when the
+request sends `Accept: text/event-stream` or `?stream=1`, a Server-Sent Events stream: each
+event is `event: <type>` with `data:` the JSON below. Every event has `type` and an
+increasing `seq`; the order is fixed: `shortlist` first, `done` last, a `tool_call` before
+its `tool_result`, all tool results before the answer.
+
+| `type` | Fields |
+|---|---|
+| `shortlist` | `tools: [{name, description, score}]` |
+| `model` | `model` (`provider/model`), `step` |
+| `tool_call` | `id`, `name`, `arguments`, `step` |
+| `tool_result` | `id`, `name`, `ok`, `summary`, `latency_ms` |
+| `needs_confirmation` | `id`, `name`, `arguments`, `fingerprint`, `reason` |
+| `answer_delta` | `text` (display chunks; their concatenation is the answer) |
+| `answer` | `text` |
+| `confidence` | `value` (0..1), `basis` |
+| `error` | `code`, `message` (followed by `done`) |
+| `done` | `result`: the `AskResult` |
+
+`AskResult` fields: `question`, `answer`, `confidence`, `steps` (`id`, `name`, `arguments`,
+`ok`, `status`, `summary`, `latency_ms`, `confidence`, `fingerprint`), `citations`,
+`caveats`, `usage`, `models`, `stopped_by`, `shortlist`, `pending`, `duration_ms`, `error`.
+
+### `sajha_ask` (MCP)
+
+With `ai.ask.mcp_tool_enabled: true` the service is also registered as the MCP tool
+`sajha_ask` (`question`, optional `model` and `confirm`). A tool's `execute` does not see
+the MCP caller, so its inner calls are limited to what an anonymous MCP caller may run
+(`mcp.anonymous.*`) plus the `ai.ask.mcp_allowed_tools` patterns.
+
+## 7. The mock provider
+
+`mock` needs no network and no keys and passes the same contract tests as the real
+providers. `mock-echo` replies with the last user message; `mock-scripted` plays a script
+(ordered replies or regex rules; text, tool calls, JSON, errors) set in a test with
+`set_script()` or loaded from `<scripts_dir>/<name>.yml` as `mock-scripted:<name>`;
+`mock-planner` scores the offered tools against the question's keywords, calls the best
+one or two with arguments filled from the schema (defaults, numbers near the parameter's
+name, ticker symbols) and answers from the results, planning only from the question,
+never from tool output; `mock-embed` hashes word n-grams into normalised vectors. Fault
+injection (`latency_ms`, `fail_every`, `fail_with`, `seed`) exercises the gateway's
+reliability paths. Calls are priced at zero but report token usage.
+
+## 8. Tests
+
+`tests/ai/`: a provider contract suite run against every provider family offline
+(recorded-shape fake APIs on `httpx.MockTransport`; a fake boto3 client for Bedrock), with
+live runs when a vendor key is present; gateway tests for resolution, retries, fallback,
+breaker, budgets, policy, cache, configuration precedence, registry loading, secrets and
+the legacy shims; ask-loop tests over the real offline `calc_*` tools, including step
+limits, confirmation, injected instructions in tool output, RBAC and the event order; and
+the HTTP route in JSON and SSE.
+
+## 9. Not built yet
+
+- A chat panel in the web UI (it will consume the event stream above).
+- Native async providers (the layer is sync with thread-pool async wrappers).
+- Vertex AI for Gemini and Claude; Entra ID token acquisition for Azure (a bearer token can
+  be supplied as the key with `auth: bearer`).
+- Over MCP 2026-07-28, destructive-tool confirmation inside `sajha_ask` as a Multi
+  Round-Trip Request (it is returned as `needs_confirmation` today).
+- Freshness and agreement in the confidence score; trimming history on `ContextTooLong`.

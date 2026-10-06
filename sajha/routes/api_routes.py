@@ -207,14 +207,22 @@ async def api_create_user(
     if user_dao.user_exists(user_id):
         return JSONResponse({'error': 'User already exists'}, status_code=409)
 
+    from sajha.auth.password import password_problem
+    password = data.get('password')
+    problem = password_problem(password if isinstance(password, str) else '', user_id)
+    if problem:
+        return JSONResponse({'error': f'password: {problem}'}, status_code=400)
+
     role_dao = RoleDAO(db)
     user = User(
         user_id=user_id,
         user_name=data.get('user_name', user_id),
         email=data.get('email', ''),
-        password_hash=hash_password(data.get('password', 'changeme')),
+        password_hash=hash_password(password),
         enabled=data.get('enabled', True),
     )
+    # an admin chose this password: the user replaces it at first sign-in
+    user.must_change_password = bool(data.get('must_change_password', True))
     for rname in data.get('roles', ['user']):
         role = role_dao.get_or_create(rname)
         user.roles.append(role)

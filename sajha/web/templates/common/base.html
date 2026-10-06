@@ -33,6 +33,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
     <!-- Main Content -->
     <main class="container-fluid sajha-content" id="main-content">
+        {% if session is defined and session.token and password_change_required is defined
+              and password_change_required(session.token) %}
+        <div class="alert alert-warning d-flex align-items-center gap-2 mt-3" role="alert" id="password-change-banner">
+            <i class="bi bi-shield-exclamation" aria-hidden="true"></i>
+            <div>Your password is a default or was set by an administrator.
+                <a class="alert-link" href="/account/password">Change it now</a>.</div>
+        </div>
+        {% endif %}
         {% block content %}{% endblock %}
         {# About this page: sajha/web/page_help.py, definitions from GLOSSARY.md #}
         {% block page_help %}{% include "common/_page_help.html" %}{% endblock %}

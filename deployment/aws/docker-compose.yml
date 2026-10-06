@@ -20,7 +20,7 @@ services:
       SAJHA_DB_TYPE: sqlite
       SAJHA_DB_PATH: /app/data/sajha.db
       # Auth
-      JWT_SECRET: dev-secret-change-in-production
+      JWT_SECRET: ${JWT_SECRET:-}   # empty: generated once into data/secrets/ (sajha-data volume)
       # API Keys (set your own)
       FMP_API_KEY: ${FMP_API_KEY:-}
       FRED_API_KEY: ${FRED_API_KEY:-}

@@ -122,6 +122,62 @@ def check_auth_rate_limit(request: Request) -> bool:
     return _auth_limiter.is_allowed(f"auth:{ip}")
 
 
+class FailureThrottle:
+    """
+    Counts *failed* sign-ins per key (client IP) in a sliding window; successful
+    sign-ins cost nothing, so a busy office behind one NAT is not locked out by its own
+    users.  Limits are read live from ``auth.login.ip_max_failures`` /
+    ``auth.login.ip_window_seconds``.
+    """
+
+    def __init__(self):
+        self._fails = defaultdict(list)
+        self._lock = Lock()
+
+    @staticmethod
+    def _limits() -> tuple:
+        from sajha.core.config import _int
+        return max(1, _int('auth.login.ip_max_failures', 20)), max(1, _int('auth.login.ip_window_seconds', 300))
+
+    def blocked(self, key: str) -> bool:
+        limit, window = self._limits()
+        cutoff = time.time() - window
+        with self._lock:
+            hits = [t for t in self._fails.get(key, ()) if t > cutoff]
+            if hits:
+                self._fails[key] = hits
+            else:
+                self._fails.pop(key, None)
+            return len(hits) >= limit
+
+    def record_failure(self, key: str) -> None:
+        with self._lock:
+            self._fails[key].append(time.time())
+
+    def reset(self, key: Optional[str] = None) -> None:
+        with self._lock:
+            if key is None:
+                self._fails.clear()
+            else:
+                self._fails.pop(key, None)
+
+
+_login_throttle = FailureThrottle()
+
+
+def _client_key(request: Request) -> str:
+    return f"login:{request.client.host if request.client else 'unknown'}"
+
+
+def login_blocked(request: Request) -> bool:
+    """True when this client IP has too many recent failed sign-ins (answer 429)."""
+    return _login_throttle.blocked(_client_key(request))
+
+
+def record_login_failure(request: Request) -> None:
+    _login_throttle.record_failure(_client_key(request))
+
+
 def check_api_rate_limit(request: Request) -> bool:
     """Check if API request is within rate limit."""
     ip = request.client.host if request.client else 'unknown'

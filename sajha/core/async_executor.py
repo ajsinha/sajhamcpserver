@@ -18,8 +18,6 @@ import queue
 import threading
 import time
 import traceback
-import urllib.request
-import urllib.error
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -104,21 +102,129 @@ class AsyncTask:
 # DELIVERY ROUTER
 # ═══════════════════════════════════════════════════════════════════
 
+class DeliveryError(ValueError):
+    """A delivery destination that policy does not allow."""
+
+
+_DEFAULT_PORTS = {'http': 80, 'https': 443}
+_BLOCKED_WEBHOOK_HEADERS = {'host', 'content-length', 'transfer-encoding', 'connection'}
+
+
+def _webhook_allowed_urls() -> List[str]:
+    from sajha.core.config import _list
+    return _list('async.delivery.webhook.allowed_urls', [])
+
+
+def url_matches_prefix(url: str, prefix: str) -> bool:
+    """Same scheme, host and port as ``prefix`` and a path at or under its path."""
+    from urllib.parse import urlsplit
+    try:
+        u, p = urlsplit(url), urlsplit(prefix.strip())
+        u_port = u.port or _DEFAULT_PORTS.get(u.scheme)
+        p_port = p.port or _DEFAULT_PORTS.get(p.scheme)
+    except ValueError:
+        return False
+    if not p.scheme or not p.hostname:
+        return False
+    if (u.scheme, (u.hostname or '').lower(), u_port) != (p.scheme, p.hostname.lower(), p_port):
+        return False
+    base = p.path.rstrip('/')
+    return not base or u.path == base or u.path.startswith(base + '/')
+
+
 class DeliveryRouter:
     """Routes task results to the configured destination."""
 
     def __init__(self, webhook_timeout: int = 10, webhook_retries: int = 3,
                  kafka_config: Dict = None, file_base_dir: str = 'data/async_results',
-                 file_max_size_mb: int = 50):
+                 file_max_size_mb: int = 50, webhook_allowed_urls: Optional[Callable[[], List[str]]] = None,
+                 webhook_allow_private: bool = False):
         self._webhook_timeout = webhook_timeout
         self._webhook_retries = webhook_retries
         self._kafka_config = kafka_config or {}
         self._kafka_producer = None
         self._file_base_dir = Path(file_base_dir)
         self._file_max_size_mb = file_max_size_mb
+        self._webhook_allowed_urls = webhook_allowed_urls or _webhook_allowed_urls
+        self._webhook_allow_private = webhook_allow_private
+
+    # -- destination policy ------------------------------------------------
+
+    def validate(self, delivery_type: str, destination: str) -> None:
+        """Raise DeliveryError when the destination is not allowed (checked on submit and on delivery)."""
+        if delivery_type == 'webhook':
+            self._check_webhook_url(destination)
+        elif delivery_type == 'file':
+            self.resolve_file_destination(destination)
+        elif delivery_type == 'kafka':
+            if not destination or len(destination) > 249 or not all(
+                    c.isalnum() or c in '._-' for c in destination):
+                raise DeliveryError('kafka destination must be a topic name ([A-Za-z0-9._-], max 249)')
+        else:
+            raise DeliveryError('delivery must be webhook, kafka, or file')
+
+    def _check_webhook_url(self, url: str):
+        from urllib.parse import urlsplit
+        try:
+            p = urlsplit(url or '')
+            p.port
+        except ValueError:
+            raise DeliveryError('webhook destination is not a valid URL')
+        if p.scheme not in ('http', 'https') or not p.hostname:
+            raise DeliveryError('webhook destination must be an http(s) URL')
+        if p.username or p.password or '@' in p.netloc:
+            raise DeliveryError('webhook URL must not contain credentials')
+        allowed = self._webhook_allowed_urls()
+        if not any(url_matches_prefix(url, prefix) for prefix in allowed):
+            raise DeliveryError('webhook destination is not in async.delivery.webhook.allowed_urls')
+        return p
+
+    def _resolve_webhook_ip(self, host: str, port: int) -> str:
+        """Resolve once and vet every address (the OAuth CIMD SSRF guard); returns the IP to connect to."""
+        import ipaddress
+        import socket
+        from sajha.auth.oauth.clients import address_allowed
+        try:
+            addrs = [str(ipaddress.ip_address(host.strip('[]')))]
+        except ValueError:
+            try:
+                addrs = [r[4][0] for r in socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)]
+            except OSError as e:
+                raise DeliveryError(f'webhook host does not resolve: {e}')
+        if not addrs:
+            raise DeliveryError('webhook host does not resolve')
+        for addr in addrs:
+            if not address_allowed(ipaddress.ip_address(addr.split('%')[0]), host.lower(),
+                                   allow_localhost=self._webhook_allow_private,
+                                   allow_private=self._webhook_allow_private):
+                raise DeliveryError('webhook host resolves to a non-public address '
+                                    '(async.delivery.webhook.allow_private_networks)')
+        return addrs[0]
+
+    def resolve_file_destination(self, destination: str) -> Path:
+        """A file destination inside the configured base directory (relative path, no traversal)."""
+        rel = Path(destination or '')
+        if not destination or rel.is_absolute() or destination.startswith(('/', '\\')) \
+                or '..' in rel.parts or ':' in destination or '\x00' in destination:
+            raise DeliveryError('file destination must be a relative path inside '
+                                'async.delivery.file.base_dir (no "..", no absolute path)')
+        base = self._file_base_dir
+        if not base.is_absolute():
+            base = Path.cwd() / base
+        base = base.resolve()
+        dest = (base / rel).resolve()
+        if dest == base or base not in dest.parents:
+            raise DeliveryError('file destination escapes async.delivery.file.base_dir')
+        return dest
 
     def deliver(self, task: AsyncTask) -> bool:
         """Deliver task result to destination. Returns True on success."""
+        try:
+            self.validate(task.delivery_type, task.delivery_destination)
+        except DeliveryError as e:
+            logger.error(f"Delivery refused for task {task.task_id}: {e}")
+            task.error = task.error or f'delivery refused: {e}'
+            return False
         try:
             if task.delivery_type == 'webhook':
                 return self._deliver_webhook(task)
@@ -146,28 +252,48 @@ class DeliveryRouter:
         }
 
     def _deliver_webhook(self, task: AsyncTask) -> bool:
-        """POST result to webhook URL with retries."""
+        """POST result to an allow-listed webhook URL with retries (pinned IP, no redirects)."""
+        import httpx
+        from urllib.parse import urlunsplit
         url = task.delivery_destination
+        p = self._check_webhook_url(url)
         body = json.dumps(self._build_payload(task), default=str).encode('utf-8')
         headers = {
             'Content-Type': 'application/json',
-            'User-Agent': 'sajha-async/5.3.0',
+            'User-Agent': 'sajha-async',
             'X-Sajha-Task-Id': task.task_id,
         }
-        # Merge custom headers from delivery config
-        headers.update(task.delivery_config.get('headers', {}))
+        # Merge custom headers from delivery config (never Host / framing headers)
+        custom = task.delivery_config.get('headers', {})
+        if isinstance(custom, dict):
+            headers.update({str(k): str(v) for k, v in custom.items()
+                            if str(k).lower() not in _BLOCKED_WEBHOOK_HEADERS})
+        port = p.port or _DEFAULT_PORTS[p.scheme]
+        headers['Host'] = p.netloc
 
         for attempt in range(1, self._webhook_retries + 1):
             try:
-                req = urllib.request.Request(url, data=body, headers=headers, method='POST')
-                with urllib.request.urlopen(req, timeout=self._webhook_timeout) as resp:
-                    if 200 <= resp.status < 300:
-                        logger.info(f"Async webhook delivered: {task.task_id} → {url} (HTTP {resp.status})")
-                        return True
+                # Resolve and vet on every attempt; connect to the vetted IP (no DNS rebinding)
+                ip = self._resolve_webhook_ip(p.hostname, port)
+                ip_host = f'[{ip}]' if ':' in ip else ip
+                pinned = urlunsplit((p.scheme, f'{ip_host}:{port}', p.path or '/', p.query, ''))
+                with httpx.Client(timeout=self._webhook_timeout, follow_redirects=False,
+                                  trust_env=False) as client:
+                    resp = client.post(pinned, content=body, headers=headers,
+                                       extensions={'sni_hostname': p.hostname})
+                if 200 <= resp.status_code < 300:
+                    logger.info(f"Async webhook delivered: {task.task_id} → {p.hostname} (HTTP {resp.status_code})")
+                    return True
+                logger.warning(f"Webhook attempt {attempt}/{self._webhook_retries}: {p.hostname} "
+                               f"returned HTTP {resp.status_code}")
+            except DeliveryError as e:
+                logger.error(f"Webhook delivery refused for {task.task_id}: {e}")
+                return False
             except Exception as e:
-                logger.warning(f"Webhook attempt {attempt}/{self._webhook_retries}: {url} — {e}", exc_info=True)
-                if attempt < self._webhook_retries:
-                    time.sleep(2 ** attempt)
+                logger.warning(f"Webhook attempt {attempt}/{self._webhook_retries}: {p.hostname} — "
+                               f"{type(e).__name__}: {e}")
+            if attempt < self._webhook_retries:
+                time.sleep(2 ** attempt)
         return False
 
     def _deliver_kafka(self, task: AsyncTask) -> bool:
@@ -195,9 +321,7 @@ class DeliveryRouter:
     def _deliver_file(self, task: AsyncTask) -> bool:
         """Write result to filesystem (atomic write via temp file + rename)."""
         try:
-            dest = Path(task.delivery_destination)
-            if not dest.is_absolute():
-                dest = self._file_base_dir / dest
+            dest = self.resolve_file_destination(task.delivery_destination)
 
             # Size check
             payload = json.dumps(self._build_payload(task), default=str, indent=2)
@@ -206,9 +330,11 @@ class DeliveryRouter:
                 return False
 
             dest.parent.mkdir(parents=True, exist_ok=True)
-            tmp = dest.with_suffix('.tmp')
+            if dest.is_symlink():
+                raise DeliveryError('file destination is a symbolic link')
+            tmp = dest.with_name(f'.{dest.name}.{uuid.uuid4().hex[:8]}.tmp')
             tmp.write_text(payload)
-            tmp.rename(dest)  # Atomic on same filesystem
+            os.replace(tmp, dest)  # Atomic on same filesystem
             logger.info(f"Async file delivered: {task.task_id} → {dest}")
             return True
         except Exception as e:
@@ -247,6 +373,7 @@ class AsyncExecutor:
             kafka_config={'bootstrap.servers': dc.get('kafka', {}).get('bootstrap_servers', 'localhost:9092')},
             file_base_dir=dc.get('file', {}).get('base_dir', 'data/async_results'),
             file_max_size_mb=dc.get('file', {}).get('max_size_mb', 50),
+            webhook_allow_private=bool(dc.get('webhook', {}).get('allow_private_networks', False)),
         )
 
     def start(self):
@@ -276,8 +403,10 @@ class AsyncExecutor:
         """
         Submit a tool for async execution.
         Returns AsyncTask immediately.
-        Raises queue.Full if backpressure limit reached.
+        Raises DeliveryError for a destination policy does not allow,
+        queue.Full if backpressure limit reached.
         """
+        self._router.validate(delivery_type, delivery_destination)
         task = AsyncTask(
             task_id=f"t-{uuid.uuid4().hex[:12]}",
             tool_name=tool_name,
@@ -301,10 +430,13 @@ class AsyncExecutor:
         with self._lock:
             return self._tasks.get(task_id)
 
-    def list_tasks(self, status: str = None, limit: int = 100) -> List[Dict]:
+    def list_tasks(self, status: str = None, limit: int = 100, user_id: Optional[str] = None) -> List[Dict]:
+        """Tasks newest first; only ``user_id``'s tasks when given (None = all, for admins)."""
         with self._lock:
             self._cleanup_old_tasks()
             tasks = list(self._tasks.values())
+        if user_id is not None:
+            tasks = [t for t in tasks if t.user_id == user_id]
         if status:
             tasks = [t for t in tasks if t.status.value == status]
         tasks.sort(key=lambda t: t.created_at, reverse=True)
@@ -424,7 +556,7 @@ _executor: Optional[AsyncExecutor] = None
 def get_async_executor() -> AsyncExecutor:
     global _executor
     if _executor is None:
-        # Read config
+        # Read config (async.* in application.yml, SAJHA_ASYNC_* env)
         workers = 8
         queue_size = 1000
         task_ttl = 24
@@ -432,11 +564,17 @@ def get_async_executor() -> AsyncExecutor:
         try:
             from sajha.core.config import get_settings
             s = get_settings()
-            workers = getattr(s, 'async_workers', 8)
-            queue_size = getattr(s, 'async_queue_size', 1000)
-            task_ttl = getattr(s, 'async_task_ttl_hours', 24)
-        except Exception:
-            pass
+            workers = s.async_workers
+            queue_size = s.async_queue_size
+            task_ttl = s.async_task_ttl_hours
+            delivery_config = {
+                'webhook': {'timeout': s.async_webhook_timeout, 'max_retries': s.async_webhook_max_retries,
+                            'allow_private_networks': s.async_webhook_allow_private_networks},
+                'kafka': {'bootstrap_servers': s.async_kafka_bootstrap_servers},
+                'file': {'base_dir': s.async_file_base_dir, 'max_size_mb': s.async_file_max_size_mb},
+            }
+        except Exception as e:
+            logger.warning(f'Async executor config unavailable, using defaults: {e}')
         _executor = AsyncExecutor(
             num_workers=workers,
             queue_size=queue_size,

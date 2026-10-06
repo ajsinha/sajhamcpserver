@@ -31,11 +31,15 @@ META = {PV: V, CAPS: {}, INFO: {'name': 'pytest', 'version': '1'}}
 @pytest.fixture(scope='module')
 def client():
     os.environ['SAJHA_MCP_CONFORMANCE_FIXTURES'] = 'true'
+    # These tests exercise registry tools over anonymous MCP calls; anonymous callers get
+    # no registry tools by default (mcp.anonymous.tools, see tests/test_hardening.py).
+    os.environ['SAJHA_MCP_ANONYMOUS_TOOLS'] = '*'
     from sajha.app import create_app
     app = create_app()
     with TestClient(app) as c:
         yield c
     os.environ.pop('SAJHA_MCP_CONFORMANCE_FIXTURES', None)
+    os.environ.pop('SAJHA_MCP_ANONYMOUS_TOOLS', None)
 
 
 def _name_for(method, params):

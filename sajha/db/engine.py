@@ -185,6 +185,36 @@ def _run_sql_scripts(settings) -> None:
             conn.commit()
             logger.info(f'    → {executed} statements executed from {sql_file.name}')
 
+    _ensure_columns()
+
+
+#: Columns added after a table was first shipped: (table, column, DDL type per dialect).
+#: Applied idempotently at every start, whatever the scripts did (old DBs, custom scripts dirs).
+_ADDED_COLUMNS = (
+    ('users', 'must_change_password', {'sqlite': 'BOOLEAN NOT NULL DEFAULT 0',
+                                       'postgresql': 'BOOLEAN NOT NULL DEFAULT FALSE'}),
+)
+
+
+def _ensure_columns() -> None:
+    from sqlalchemy import inspect as sa_inspect
+    try:
+        inspector = sa_inspect(_engine)
+        tables = set(inspector.get_table_names())
+    except Exception as e:
+        logger.warning(f'Schema check skipped: {e}')
+        return
+    dialect = _engine.dialect.name
+    for table, column, ddl in _ADDED_COLUMNS:
+        if table not in tables or dialect not in ddl:
+            continue
+        existing = {c['name'] for c in inspector.get_columns(table)}
+        if column in existing:
+            continue
+        with _engine.begin() as conn:
+            conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {column} {ddl[dialect]}'))
+        logger.info(f'  Added column {table}.{column}')
+
 
 def get_engine():
     """Return the SQLAlchemy engine (for Alembic or direct use)."""

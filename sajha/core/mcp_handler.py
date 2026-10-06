@@ -175,7 +175,7 @@ class MCPHandler:
 
             # ── MCP v3 additions: Logging ────────────────────────
             elif method == 'logging/setLevel':
-                result = self._handle_logging_set_level(params)
+                result = self._handle_logging_set_level(params, session)
 
             # ── MCP 2025-11-25: Tasks (SEP-1686) ────────────────
             elif method == 'tasks/get':
@@ -346,8 +346,9 @@ class MCPHandler:
         return {}
     
     def tools_list_is_caller_scoped(self, session: Optional[Dict]) -> bool:
-        """True when tools/list output depends on who is asking (per-user filtering)."""
-        return bool(session and self.auth_manager)
+        """True when tools/list output depends on who is asking (an authenticated caller's
+        own tool access).  Anonymous callers all get the same (anonymous-policy) list."""
+        return bool(self.auth_manager and isinstance(session, dict) and session.get('authenticated'))
 
     def _handle_tools_list(self, params: Dict, session: Optional[Dict], era: str = 'legacy') -> Dict:
         """
@@ -374,14 +375,11 @@ class MCPHandler:
         if not self._advertise_output_schema():
             all_tools = [{k: v for k, v in t.items() if k != 'outputSchema'} for t in all_tools]
         
-        # Filter based on user permissions if authenticated
-        if session and self.auth_manager:
-            accessible_tools = self.auth_manager.get_user_accessible_tools(session)
-            if '*' not in accessible_tools:
-                all_tools = [
-                    tool for tool in all_tools
-                    if tool['name'] in accessible_tools
-                ]
+        # Per-caller tool access (sajha/auth/access.py): role permissions, API key
+        # allow/deny lists, or the anonymous policy (mcp.anonymous.*) when session is None
+        if self.auth_manager and not self.auth_manager.is_unrestricted(session):
+            all_tools = [tool for tool in all_tools
+                         if self.auth_manager.can_see(session, tool.get('name'))]
         all_tools = sorted(all_tools, key=lambda t: str(t.get('name', '')))
         if era == 'modern':
             all_tools = [self._with_task_support(t) for t in all_tools]
@@ -539,15 +537,14 @@ class MCPHandler:
         if not self.tools_registry:
             raise ValueError("Tools registry not available")
 
-        # Check if user has access to the tool
-        if session and self.auth_manager:
-            if not self.auth_manager.has_tool_access(session, tool_name):
-                raise PermissionError(f"Access denied to tool: {tool_name}")
-        
         # Get the tool
         tool = self.tools_registry.get_tool(tool_name)
         if not tool:
             raise ValueError(f"Tool not found: {tool_name}")
+
+        # Per-caller tool access, the same rules as the REST API (anonymous when session is None)
+        if self.auth_manager and not self.auth_manager.has_tool_access(session, tool_name):
+            raise PermissionError(f"Access denied to tool: {tool_name}")
         
         # Execute the tool
         user_id = (session or {}).get('user_id', 'anonymous')
@@ -833,8 +830,13 @@ class MCPHandler:
     # MCP v3: Logging
     # ═════════════════════════════════════════════════════════════
 
-    def _handle_logging_set_level(self, params: Dict) -> Dict:
-        """Handle logging/setLevel — dynamically adjust server log level."""
+    def _handle_logging_set_level(self, params: Dict, session: Optional[Dict] = None) -> Dict:
+        """
+        Handle logging/setLevel.  The level is validated for every caller, but only an
+        admin changes the server's root log level: for anyone else it is accepted and has
+        no server-side effect (an anonymous client must not be able to flood or silence
+        the server log).
+        """
         level = str(params.get('level', '')).lower()
         # MCP (RFC 5424) levels -> Python logging levels
         level_map = {
@@ -846,6 +848,8 @@ class MCPHandler:
                            {'validLevels': list(level_map)})
 
         python_level = level_map[level]
+        if self.auth_manager and not self.auth_manager.is_admin(session):
+            return {}
         logging.getLogger().setLevel(getattr(logging, python_level))
         self.logger.info(f'Log level changed to {level} (Python: {python_level})')
         return {}

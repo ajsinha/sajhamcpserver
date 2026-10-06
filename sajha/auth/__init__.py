@@ -41,21 +41,20 @@ class AuthContext:
     auth_type: Optional[str] = None     # 'jwt', 'apikey', 'session', 'oauth'
     is_admin: bool = False
     api_key_name: Optional[str] = None  # For apikey auth
+    api_key_mode: Optional[str] = None  # apikey: tool_access_mode (all | allowlist | denylist)
+    api_key_tools: Optional[str] = None  # apikey: tool_access_list (JSON array of patterns)
+    password_change_required: bool = False  # user: must change the password (banner)
 
     # Internal references (not serialized)
     _user: Optional[User] = field(default=None, repr=False)
     _db: Optional[Session] = field(default=None, repr=False)
 
     def has_tool_access(self, tool_name: str) -> bool:
-        """Check if this auth context grants access to execute a tool."""
+        """May this caller execute the tool?  (sajha/auth/access.py: roles, API key lists.)"""
         if not self.authenticated:
             return False
-        if self.is_admin:
-            return True
-        if self._user and self._db:
-            perm_dao = PermissionDAO(self._db)
-            return perm_dao.check_access(self._user.roles, 'tool', tool_name, 'execute')
-        return False
+        from sajha.auth.access import policy_for
+        return policy_for(self).can_execute(tool_name)
 
     def has_permission(self, resource_type: str, resource_name: str, action: str) -> bool:
         """General permission check."""
@@ -70,15 +69,12 @@ class AuthContext:
 
     def to_legacy_session(self) -> dict:
         """
-        Convert to a dict compatible with the legacy MCPHandler session format.
-        Ensures backward compatibility with existing code.
+        The session dict MCPHandler receives: identity plus this caller's tool policy
+        (``tools`` = execute patterns, ``visible_tools``, ``denied_tools``).  Works for an
+        unauthenticated context too (the anonymous policy, ``mcp.anonymous.*``).
         """
-        return {
-            'user_id': self.user_id or 'anonymous',
-            'user_name': self.user_name or 'Anonymous',
-            'roles': self.roles,
-            'tools': ['*'] if self.is_admin else [],
-        }
+        from sajha.auth.access import mcp_session_for
+        return mcp_session_for(self)
 
 
 class AuthManager:
@@ -92,22 +88,61 @@ class AuthManager:
     def authenticate_local(db: Session, login_id: str, password: str) -> Optional[str]:
         """
         Authenticate with username + password.
-        Returns a JWT token on success, None on failure.
+        Returns a JWT token on success, None on failure (bad credentials or locked account).
         """
+        token, _ = AuthManager.sign_in(db, login_id, password)
+        return token
+
+    @staticmethod
+    def sign_in(db: Session, login_id: str, password: str) -> tuple[Optional[str], str]:
+        """
+        Password sign-in with account lockout.  Returns ``(jwt, outcome)``; outcome is
+        ``ok``, ``invalid`` or ``locked``.  ``auth.login.max_failed_attempts`` consecutive
+        failures lock the account for ``auth.login.lockout_minutes`` (users.failed_attempts /
+        users.locked_until); a success resets the counter.  The JWT carries ``pwc: true``
+        when the password must be changed (seed or admin-set password, or a well-known one).
+        """
+        from sajha.core.config import _int
+        from sajha.auth.password import DEFAULT_PASSWORDS
         user_dao = UserDAO(db)
         user = user_dao.get_by_user_id(login_id)
 
         if not user or not user.enabled:
-            logger.warning(f'Login failed: user not found or disabled — {login_id}')
-            return None
+            logger.warning(f'Login failed: user not found or disabled — {login_id!r}')
+            return None, 'invalid'
+
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        locked_until = user.locked_until.replace(tzinfo=None) if user.locked_until else None
+        if locked_until and locked_until > now:
+            logger.warning(f'Login refused: account locked until {locked_until.isoformat()}Z — {login_id!r}')
+            return None, 'locked'
 
         if not verify_password(password, user.password_hash):
-            logger.warning(f'Login failed: bad password — {login_id}')
-            return None
+            max_failures = max(1, _int('auth.login.max_failed_attempts', 5))
+            user.failed_attempts = (0 if locked_until else (user.failed_attempts or 0)) + 1
+            outcome = 'invalid'
+            if user.failed_attempts >= max_failures:
+                user.locked_until = now + timedelta(minutes=max(1, _int('auth.login.lockout_minutes', 15)))
+                user.failed_attempts = 0
+                outcome = 'locked'
+                logger.warning(f'Account locked after {max_failures} failed sign-ins — {login_id!r}')
+            else:
+                user.locked_until = None
+            db.commit()
+            AuditDAO(db).log(action='user.login_failed', user_id=user.user_id,
+                             resource_type='user', resource_id=user.user_id)
+            logger.warning(f'Login failed: bad password — {login_id!r}')
+            return None, outcome
 
         # Success
+        user.failed_attempts = 0
+        user.locked_until = None
+        if (password or '').lower() in DEFAULT_PASSWORDS:
+            user.must_change_password = True
+        db.commit()
         user_dao.update_last_login(login_id)
-        token = create_access_token(user.user_id, user.role_names)
+        claims = {'pwc': True} if getattr(user, 'must_change_password', False) else None
+        token = create_access_token(user.user_id, user.role_names, extra_claims=claims)
 
         # Audit
         AuditDAO(db).log(
@@ -118,7 +153,7 @@ class AuthManager:
         )
 
         logger.info(f'User authenticated: {login_id}')
-        return token
+        return token, 'ok'
 
     # ── JWT Auth ─────────────────────────────────────────────────
 
@@ -145,6 +180,7 @@ class AuthManager:
             roles=user.role_names,
             auth_type='jwt',
             is_admin=user.is_admin,
+            password_change_required=bool(getattr(user, 'must_change_password', False)),
             _user=user,
             _db=db,
         )
@@ -171,6 +207,8 @@ class AuthManager:
             auth_type='apikey',
             is_admin=False,
             api_key_name=api_key.name,
+            api_key_mode=api_key.tool_access_mode,
+            api_key_tools=api_key.tool_access_list,
             _db=db,
         )
 

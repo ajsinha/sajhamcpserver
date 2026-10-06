@@ -50,9 +50,13 @@ curl -H "X-API-Key: sja_your_key_here" http://localhost:3002/api/metrics
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/api/auth/login` | none | JSON login; returns a JWT. Rate limited to 5 attempts per minute per client (429). |
+| POST | `/api/auth/login` | none | JSON login; returns a JWT and `password_change_required`. Too many failed sign-ins from one IP: 429; a locked account: 423 ([Security Model](../security/Security%20Model.md#web-login-and-passwords)). |
+| GET | `/account/password` | user | Change-password page (also in the user menu). |
+| POST | `/account/password` | user | Change-password form (`current_password`, `new_password`, `confirm_password`); sets a fresh cookie. |
+| POST | `/api/auth/change-password` | user | `{"current_password", "new_password"}`; returns `{"success": true, "token": <new JWT>}`. Not for API keys. |
+| POST | `/api/admin/users/{uid}/password` | admin | Reset a password: `{"password", "must_change_password": true}`; also unlocks the account. |
 | GET | `/login` | none | Login page (HTML). |
-| POST | `/login` | none | Login form (`user_id`, `password`); sets the `sajha_token` cookie and redirects to `?next=` (local paths only) or `/dashboard`. |
+| POST | `/login` | none | Login form (`user_id`, `password`); sets the `sajha_token` cookie and redirects to `?next=` (local paths only) or `/dashboard`. Same throttle (429) and lockout (423) as the JSON login. |
 | GET | `/logout` | none | Clears the cookie, redirects to `/`. |
 | GET | `/` | optional | Landing page, or redirect to `/dashboard` when signed in. |
 
@@ -140,7 +144,7 @@ The client POSTs JSON-RPC to the announced `/mcp?session=<id>`; the server answe
 
 ### 2.4 WebSocket `/mcp/ws`
 
-Authenticate with a query parameter: `?token=<SAJHA JWT>` or `?api_key=<sja_ key>` (OAuth access tokens are not accepted here). With `mcp.auth.mode: required` an unauthenticated connection is closed with code 1008. Batches are accepted on this transport, and the server pushes `list_changed` notifications.
+Authenticate with a query parameter: `?token=<SAJHA JWT>` or `?api_key=<sja_ key>` (OAuth access tokens are not accepted here). An invalid credential, or no credential while `mcp.auth.mode` is `required` or `mcp.anonymous.enabled` is false, closes the connection with code 1008. `tools/list` and `tools/call` apply the caller's tool access. Batches are accepted on this transport, and the server pushes `list_changed` notifications.
 
 ```python
 import asyncio, json, websockets
@@ -162,7 +166,7 @@ These take a JSON-RPC-like body (`{"params": {...}}`) and return a JSON-RPC-shap
 | POST | `/api/resources/list` | none | Tool catalog resource plus files in `data/duckdb`. |
 | POST | `/api/resources/read` | none | Reads `sajha://tools/catalog` (`params.uri`). |
 | POST | `/api/completion/complete` | none | Enum completion for a tool argument (`params.ref`, `params.argument`). |
-| POST | `/api/logging/setLevel` | none | Sets the server's root log level (`params.level`). |
+| POST | `/api/logging/setLevel` | admin | Sets the server's root log level (`params.level`). |
 
 ---
 
@@ -194,7 +198,7 @@ curl http://localhost:3002/.well-known/oauth-authorization-server
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
 | GET | `/.well-known/agent.json` | none | A2A agent card (skills from the first 50 registered tools). |
-| POST | `/a2a` | optional | A2A JSON-RPC: `tasks/send`, `tasks/get`, `tasks/cancel`. |
+| POST | `/a2a` | optional | A2A JSON-RPC: `tasks/send`, `tasks/get`, `tasks/cancel`. Without credentials the anonymous policy applies (`mcp.anonymous.*`, 401 when disabled); a tool runs only with execute access; tasks are visible to their creator (and admins). |
 
 ---
 
@@ -327,6 +331,8 @@ curl -X POST http://localhost:3002/api/composite-tools \
 | POST | `/api/ai/complete` | user | LLM completion: `prompt` (required), `provider`, `model`, `system`, `temperature`, `max_tokens`. |
 | GET | `/api/ai/stats` | admin | Gateway and resolver statistics. |
 | GET | `/api/ai/registry` | admin | Registered provider classes. |
+| POST | `/api/ai/ask` | user | Answer a question with SAJHA's tools: `question` (required), `model`, `confirm`. JSON `AskResult`, or an SSE step stream with `Accept: text/event-stream` or `?stream=1`. Event schema: [Intelligence Layer](../architecture/Intelligence%20Layer.md#post-apiaiask). |
+| GET | `/api/ai/config` | admin | Effective `ai.*` configuration, each value with its source; secrets redacted. |
 
 ```bash
 curl -X POST http://localhost:3002/api/ai/resolve-tool \
@@ -347,7 +353,7 @@ curl -X POST http://localhost:3002/api/ai/complete \
 | GET | `/api/reports/overview?period=24h` | user | Platform usage summary. |
 | GET | `/api/reports/tools/usage?period=7d` | user | Per-tool usage. |
 | GET | `/api/reports/tools/{tool_name}/detail?period=30d` | user | One tool's usage detail. |
-| GET | `/api/reports/users/activity?period=30d` | user | Per-user usage. |
+| GET | `/api/reports/users/activity?period=30d` | admin | Per-user usage. |
 | GET | `/api/reports/heatmap?days=30&tool=` | user | Hour-of-day usage heatmap. |
 | GET | `/api/reports/audit?limit=100&action=` | admin | Recent audit entries. |
 
@@ -396,8 +402,8 @@ curl -X POST http://localhost:3002/api/tenants \
 | GET | `/api/circuits` | user | Circuit breaker states. |
 | GET | `/api/providers/health` | user | Provider health. |
 | GET | `/api/providers/graph` | user | Tool to provider to endpoint dependency graph. |
-| GET | `/api/replay/recent` | user | Last 50 executions. |
-| GET | `/api/replay/tool/{tool_name}` | user | Execution history for one tool. |
+| GET | `/api/replay/recent` | admin | Last 50 executions. |
+| GET | `/api/replay/tool/{tool_name}` | admin | Execution history for one tool. |
 | GET | `/api/replay/stats` | user | Replay store statistics. |
 
 ```bash
@@ -425,16 +431,16 @@ Audit actions written by the server include `user.login`, `user.create`, `user.e
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/api/tools/{tool_name}/execute-async` | user | Queue a run. The body is the tool arguments plus an `async` object: `delivery` (`webhook`, `kafka` or `file`) and `destination` (required). 503 when the queue is full. |
-| GET | `/api/async/tasks?status=&limit=` | user | List tasks plus executor stats. |
-| GET | `/api/async/tasks/{task_id}` | user | Task status and result. |
-| POST | `/api/async/tasks/{task_id}/cancel` | user | Cancel a queued task. |
-| POST | `/api/async/tasks/{task_id}/retry` | user | Retry a failed task. |
+| POST | `/api/tools/{tool_name}/execute-async` | admin or `async:execute` | Queue a run (also needs execute access to the tool). The body is the tool arguments plus an `async` object: `delivery` (`webhook`, `kafka` or `file`) and `destination` (required): a URL under `async.delivery.webhook.allowed_urls`, a Kafka topic, or a relative path inside `async.delivery.file.base_dir`. 400 for a refused destination, 503 when the queue is full or `async.enabled` is false. |
+| GET | `/api/async/tasks?status=&limit=` | user | List your tasks (admins: all) plus executor stats. |
+| GET | `/api/async/tasks/{task_id}` | user | Task status and result (your own tasks; admins: any). |
+| POST | `/api/async/tasks/{task_id}/cancel` | user | Cancel one of your queued tasks. |
+| POST | `/api/async/tasks/{task_id}/retry` | user | Retry one of your failed tasks. |
 | GET | `/api/async/stats` | user | Executor statistics. |
 
 ```bash
 curl -X POST http://localhost:3002/api/tools/calc_loan_amortization/execute-async \
-  -H "Content-Type: application/json" -H "X-API-Key: sja_key" \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
   -d '{"principal": 250000, "annual_rate": 6.5, "months": 360,
        "async": {"delivery": "webhook", "destination": "https://my-app.example.com/results"}}'
 # {"task_id": "...", "status": "queued", "tool_name": "calc_loan_amortization", "delivery": "webhook",
@@ -445,8 +451,8 @@ curl -X POST http://localhost:3002/api/tools/calc_loan_amortization/execute-asyn
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/api/shell/python` | user | Run `{"code": "..."}` in the sandbox. |
-| POST | `/api/shell/bash` | user | Run `{"command": "..."}` in the sandbox. |
+| POST | `/api/shell/python` | admin or `shell:execute` | Run `{"code": "..."}` in the sandbox. |
+| POST | `/api/shell/bash` | admin or `shell:execute` | Run `{"command": "..."}` in the sandbox. |
 | GET | `/api/shell/capabilities` | user | What is enabled and the security policy. |
 | GET | `/api/shell/history` | admin | Last 50 executions. |
 
@@ -460,7 +466,7 @@ curl -X POST http://localhost:3002/api/tools/calc_loan_amortization/execute-asyn
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | `/api/ws/sessions` | none | Active `/mcp/ws` sessions and count. |
+| GET | `/api/ws/sessions` | admin | Active `/mcp/ws` sessions and count. |
 
 ### 4.11 Studio (`studio_routes.py`, prefix `/studio`)
 

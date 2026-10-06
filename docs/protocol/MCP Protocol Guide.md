@@ -72,8 +72,13 @@ circuit breaker, metrics).
 
 ### A request
 
+`$TOKEN` is a SAJHA login JWT (`POST /api/auth/login`); an `X-API-Key` header works too.
+Without credentials the anonymous tool policy applies, which by default allows no registry
+tools ([Security Model](../security/Security%20Model.md#tool-access)).
+
 ```bash
 curl -s http://localhost:3002/mcp \
+  -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'MCP-Protocol-Version: 2026-07-28' \
   -H 'Mcp-Method: tools/call' \
@@ -227,7 +232,7 @@ The live tool, prompt and resource catalog is whatever the server has loaded: as
 
 ## 6. Authentication on MCP endpoints
 
-Out of the box (`mcp.auth.mode: "off"`) `/mcp` accepts anonymous calls, and also
+Out of the box (`mcp.auth.mode: "off"`) `/mcp` accepts anonymous calls (limited to the anonymous tool policy), and also
 accepts SAJHA credentials (an `X-API-Key`, a SAJHA JWT, or the session cookie) when
 sent. With `optional` or `required`, the endpoints also
 validate OAuth 2.1 bearer tokens and, in `required` mode, answer anonymous calls with
@@ -236,7 +241,7 @@ built-in authorization server and external identity providers are in the
 [OAuth Guide](OAuth%20Guide.md); the wider picture is in the
 [Security Model](../security/Security%20Model.md).
 
-Role-based tool filtering is not active on the MCP endpoints in this release: `MCPHandler` is created without an auth manager (`sajha/app.py`), so every authenticated or anonymous caller sees and can call every enabled tool. See the [Security Model](../security/Security%20Model.md).
+`tools/list` and `tools/call` apply the caller's tool access on both eras and every transport (`sajha/auth/access.py`): users by their roles, API keys by their tool access mode, anonymous callers by `mcp.anonymous.*` (no registry tools by default; `mcp.anonymous.enabled: false` demands credentials). A refused call is `-32002` on 2025-11-25 and `-32010` on 2026-07-28, and an authenticated caller's `tools/list` is `cacheScope: private`. The conformance fixtures are callable by anyone when enabled. See [Tool access](../security/Security%20Model.md#tool-access).
 
 ---
 

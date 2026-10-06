@@ -244,15 +244,18 @@ ORDER BY time_period
         
         sql = f"""
 WITH date_spine AS (
-    SELECT generate_series(
-        (SELECT MIN({grain_expr}) FROM ({base_sql}) AS b),
-        (SELECT MAX({grain_expr}) FROM ({base_sql}) AS b),
+    -- generate_series used as a table function yields one row per period
+    -- (as a scalar it returns a single LIST, which cannot be cast to DATE)
+    SELECT CAST(gs AS DATE) AS time_period
+    FROM generate_series(
+        CAST((SELECT MIN({grain_expr}) FROM ({base_sql}) AS b) AS TIMESTAMP),
+        CAST((SELECT MAX({grain_expr}) FROM ({base_sql}) AS b) AS TIMESTAMP),
         {interval}
-    )::DATE AS time_period
+    ) AS spine(gs)
 ),
 aggregated AS (
     SELECT 
-        {grain_expr} AS time_period,
+        CAST({grain_expr} AS DATE) AS time_period,
         {', '.join(measure_exprs)}
     FROM ({base_sql}) AS base
     GROUP BY 1
