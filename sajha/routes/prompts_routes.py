@@ -4,6 +4,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 """
 
 import json
+import re
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -119,23 +120,94 @@ async def api_prompts_list():
     return JSONResponse({'prompts': prompts})
 
 
+_PROMPT_NAME = re.compile(r'^[A-Za-z0-9_-]{1,100}$')
+
+
+def _prompt_config(data: dict) -> dict:
+    """The on-disk prompt config from what a page sends.
+
+    The detail page's editor shows Prompt.to_dict(), where the text is 'template' and the
+    metadata carries runtime fields (usage_count, last_used, timestamps); the create page
+    sends the file format with 'prompt_template'. Both reduce to the file format.
+    """
+    meta = data.get('metadata') or {}
+    return {
+        'description': data.get('description', ''),
+        'prompt_template': data.get('prompt_template', data.get('template')),
+        'arguments': data.get('arguments') or [],
+        'metadata': {k: meta[k] for k in ('category', 'tags', 'author', 'version') if k in meta},
+    }
+
+
+def _registry_result(result, status_code: int = 400) -> JSONResponse:
+    """A registry (success, message) tuple as the JSON the pages expect."""
+    ok, message = result
+    if ok:
+        return JSONResponse({'success': True, 'message': message})
+    return JSONResponse({'success': False, 'error': message}, status_code=status_code)
+
+
 @router.get('/api/prompts/{prompt_name}')
 async def api_prompt_get(prompt_name: str):
     from sajha.app import prompts_registry
     prompt = prompts_registry.get_prompt(prompt_name) if prompts_registry else None
     if not prompt:
         return JSONResponse({'error': 'Prompt not found'}, status_code=404)
-    return JSONResponse(prompt)
+    return JSONResponse(prompt.to_dict())
 
 
 @router.post('/api/prompts/create')
 async def api_prompt_create(request: Request, auth: AuthContext = Depends(require_admin)):
     from sajha.app import prompts_registry
+    if not prompts_registry:
+        return JSONResponse({'success': False, 'error': 'Prompts registry unavailable'}, status_code=503)
     data = await request.json()
-    result = prompts_registry.create_prompt(data) if prompts_registry else None
-    if result:
-        return JSONResponse({'success': True, 'prompt': result})
-    return JSONResponse({'error': 'Failed to create prompt'}, status_code=400)
+    name = (data.get('name') or '').strip()
+    # the name becomes a file name in the prompts store
+    if not _PROMPT_NAME.match(name):
+        return JSONResponse({'success': False, 'error': 'Name must be letters, digits, _ or - (max 100)'}, status_code=400)
+    config = _prompt_config(data)
+    if not config['prompt_template']:
+        return JSONResponse({'success': False, 'error': "Missing 'prompt_template' field"}, status_code=400)
+    return _registry_result(prompts_registry.create_prompt(name, config))
+
+
+@router.post('/api/prompts/{prompt_name}/update')
+async def api_prompt_update(prompt_name: str, request: Request, auth: AuthContext = Depends(require_admin)):
+    from sajha.app import prompts_registry
+    if not prompts_registry:
+        return JSONResponse({'success': False, 'error': 'Prompts registry unavailable'}, status_code=503)
+    if not prompts_registry.get_prompt(prompt_name):
+        return JSONResponse({'success': False, 'error': f"Prompt '{prompt_name}' not found"}, status_code=404)
+    config = _prompt_config(await request.json())
+    if not config['prompt_template']:
+        # without this, saving the editor's JSON would write a prompt with no text
+        return JSONResponse({'success': False, 'error': "Missing 'template' field"}, status_code=400)
+    return _registry_result(prompts_registry.update_prompt(prompt_name, config))
+
+
+@router.post('/api/prompts/{prompt_name}/delete')
+async def api_prompt_delete(prompt_name: str, auth: AuthContext = Depends(require_admin)):
+    from sajha.app import prompts_registry
+    if not prompts_registry:
+        return JSONResponse({'success': False, 'error': 'Prompts registry unavailable'}, status_code=503)
+    if not prompts_registry.get_prompt(prompt_name):
+        return JSONResponse({'success': False, 'error': f"Prompt '{prompt_name}' not found"}, status_code=404)
+    return _registry_result(prompts_registry.delete_prompt(prompt_name))
+
+
+@router.post('/api/prompts/{prompt_name}/render')
+async def api_prompt_render(prompt_name: str, request: Request, auth: AuthContext = Depends(require_auth)):
+    from sajha.app import prompts_registry
+    if not prompts_registry:
+        return JSONResponse({'success': False, 'error': 'Prompts registry unavailable'}, status_code=503)
+    if not prompts_registry.get_prompt(prompt_name):
+        return JSONResponse({'success': False, 'error': f"Prompt '{prompt_name}' not found"}, status_code=404)
+    data = await request.json()
+    ok, out = prompts_registry.render_prompt(prompt_name, data.get('arguments') or {})
+    if ok:
+        return JSONResponse({'success': True, 'rendered': out})
+    return JSONResponse({'success': False, 'error': out}, status_code=400)
 
 
 @router.get('/admin/prompts')
