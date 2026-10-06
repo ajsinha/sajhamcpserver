@@ -341,20 +341,29 @@ class MCPHandler:
         self.logger.info("Client initialized successfully")
         return {}
     
-    def _handle_tools_list(self, params: Dict, session: Optional[Dict]) -> Dict:
+    def tools_list_is_caller_scoped(self, session: Optional[Dict]) -> bool:
+        """True when tools/list output depends on who is asking (per-user filtering)."""
+        return bool(session and self.auth_manager)
+
+    def _handle_tools_list(self, params: Dict, session: Optional[Dict], era: str = 'legacy') -> Dict:
         """
         Handle tools/list request
-        
+
+        Tools are returned in a deterministic order: conformance fixtures (when
+        enabled) first, then registry tools, each group sorted by name.
+
         Args:
             params: Request parameters
             session: Session data
-            
+            era: 'legacy' (initialize handshake) or 'modern' (2026-07-28)
+
         Returns:
             List of available tools
         """
         fixtures = self._fixtures()
+        fixture_tools = sorted(fixtures.tool_definitions(era), key=lambda t: t['name']) if fixtures else []
         if not self.tools_registry:
-            return {"tools": fixtures.tool_definitions() if fixtures else []}
+            return {"tools": fixture_tools}
         
         # Get all tools
         all_tools = self.tools_registry.get_all_tools()
@@ -369,9 +378,10 @@ class MCPHandler:
                     tool for tool in all_tools
                     if tool['name'] in accessible_tools
                 ]
+        all_tools = sorted(all_tools, key=lambda t: str(t.get('name', '')))
         if fixtures:
             # Fixtures first so clients that read only page 1 see them
-            all_tools = fixtures.tool_definitions() + list(all_tools)
+            all_tools = fixture_tools + list(all_tools)
         
         # Pagination support (MCP spec)
         cursor = params.get('cursor')
@@ -467,7 +477,7 @@ class MCPHandler:
             "output_schema": output_schema
         }
 
-    def _handle_tools_call(self, params: Dict, session: Optional[Dict]) -> Dict:
+    def _handle_tools_call(self, params: Dict, session: Optional[Dict], era: str = 'legacy') -> Dict:
         """
         Handle tools/call request
         
@@ -486,7 +496,7 @@ class MCPHandler:
             raise ValueError("arguments must be an object")
 
         fixtures = self._fixtures()
-        if fixtures and fixtures.has_tool(tool_name):
+        if fixtures and fixtures.has_tool(tool_name, era):
             if fixtures.is_async_tool(tool_name):
                 raise MCPError(self.INVALID_REQUEST,
                                f"Tool {tool_name} needs a streaming transport; call it via POST /mcp")

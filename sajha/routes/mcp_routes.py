@@ -74,7 +74,14 @@ def _lookup_session(request: Request):
 @router.post('/api/mcp')
 async def mcp_post(request: Request, db: Session = Depends(get_db)):
     """
-    MCP Streamable HTTP transport (2025-11-25) — client -> server messages.
+    MCP Streamable HTTP transport — client -> server messages.  Dual-era:
+
+    * 2026-07-28 (modern): a body whose params._meta carries
+      io.modelcontextprotocol/protocolVersion (or an MCP-Protocol-Version
+      header naming a non-handshake version) is served statelessly by
+      sajha.core.mcp_modern — no sessions, header/body validation,
+      server/discover, resultType + caching hints on results.
+    * 2025-11-25 and earlier (legacy), everything else:
 
     - request      -> JSON-RPC response (application/json), or an SSE stream
                       for tools that talk to the client while running
@@ -85,18 +92,42 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
     """
     from sajha.app import mcp_handler
     from sajha.core.mcp_sessions import get_session_store
+    from sajha.core import mcp_modern
 
-    for check in (_check_origin, _check_protocol_header):
-        err = check(request)
-        if err is not None:
-            return err
+    err = _check_origin(request)
+    if err is not None:
+        return err
+
+    raw = await request.body()
+    try:
+        body = json.loads(raw)
+        parsed = True
+    except (ValueError, RecursionError):
+        body, parsed = None, False
+
+    # ── MCP 2026-07-28: stateless, per-request _meta envelope ──
+    # Mcp-Session-Id / Last-Event-ID are ignored on this path and no session is minted.
+    if mcp_modern.is_modern_request(body, request.headers):
+        if not parsed:
+            status, payload = mcp_modern.parse_error_response()
+        else:
+            auth = AuthManager.authenticate_request(request, db)
+            session_data = auth.to_legacy_session() if auth.authenticated else None
+            status, payload = await _modern_server(mcp_handler).handle(
+                body, request.headers, list(request.headers.items()), session_data)
+        if payload is None:
+            return Response(status_code=status)
+        return JSONResponse(payload, status_code=status)
+
+    # ── Legacy (initialize handshake) path: 2025-11-25 and earlier ──
+    err = _check_protocol_header(request)
+    if err is not None:
+        return err
     mcp_session, err = _lookup_session(request)
     if err is not None:
         return err
 
-    try:
-        body = await request.json()
-    except Exception:
+    if not parsed:
         return _rpc_error(-32700, 'Parse error', 400)
 
     if isinstance(body, list):
@@ -153,6 +184,24 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
 
     status = 400 if 'error' in response and response['error'].get('code') in (-32700, -32600) else 200
     return JSONResponse(response, status_code=status, headers=headers)
+
+
+_modern_servers: dict = {}
+
+
+def _modern_server(handler):
+    """One ModernMCPServer per MCPHandler instance (the handler is rebuilt by create_app)."""
+    from sajha.core.mcp_modern import ModernMCPServer
+    server = _modern_servers.get(id(handler))
+    if server is None or server.handler is not handler:
+        _modern_servers.clear()
+        server = _modern_servers[id(handler)] = ModernMCPServer(handler)
+    return server
+
+
+def _modern_405():
+    """2026-07-28 has no GET stream and no sessions: GET/DELETE -> 405 (streamable-http, Backward Compatibility)."""
+    return Response(status_code=405, headers={'Allow': 'POST'})
 
 
 async def _stream_tool_call(request: Request, body: dict, params: dict, fixtures, mcp_session):
@@ -213,9 +262,12 @@ async def _stream_tool_call(request: Request, body: dict, params: dict, fixtures
 async def mcp_delete(request: Request):
     """Terminate an MCP session: 204 on success, 404 if unknown, 400 if no header."""
     from sajha.core.mcp_sessions import get_session_store
+    from sajha.core.mcp_modern import is_modern_header
     err = _check_origin(request)
     if err is not None:
         return err
+    if is_modern_header(request.headers):
+        return _modern_405()
     sid = request.headers.get(_SESSION_HEADER)
     if not sid:
         return _rpc_error(-32600, 'Mcp-Session-Id header required', 400)
@@ -241,9 +293,13 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
       2024-11-05 HTTP+SSE stream whose first event is ``endpoint``, so old
       clients keep working.
     """
+    from sajha.core.mcp_modern import is_modern_header
     err = _check_origin(request)
     if err is not None:
         return err
+
+    if request.url.path.rstrip('/') == '/mcp' and is_modern_header(request.headers):
+        return _modern_405()
 
     if request.url.path.rstrip('/') == '/mcp' and (
             request.headers.get(_SESSION_HEADER) or request.headers.get(_VERSION_HEADER)):

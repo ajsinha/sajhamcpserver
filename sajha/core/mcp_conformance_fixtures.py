@@ -162,10 +162,28 @@ async def _elicitation_enums(args, ctx):
         f"Elicitation completed: action={result.get('action')}, content={json.dumps(result.get('content', {}))}")]}
 
 
-def _tool(name, description, fn, schema=None, is_async=False):
+def _logging_tool(args):
+    # 2026-07-28: the server MUST NOT emit notifications/message unless the
+    # request carried _meta["io.modelcontextprotocol/logLevel"].  The modern
+    # path has no response stream in Wave 1, so this never logs to the client.
+    return {"content": [_text("Logging tool executed")]}
+
+
+def _missing_capability(args):
+    # Only reached when the client declared `sampling`; see `requires`.
+    return {"content": [_text("Client declared the sampling capability")]}
+
+
+def _custom_header(args):
+    return {"content": [_text(f"Region: {args.get('region')}; query: {args.get('query')}")]}
+
+
+def _tool(name, description, fn, schema=None, is_async=False, era="both", requires=None):
+    """era: "both", "legacy" (needs server -> client requests) or "modern" (2026-07-28 only).
+    requires: client capabilities the tool needs, as a ClientCapabilities object."""
     return {"definition": {"name": name, "description": description,
                            "inputSchema": schema or dict(_EMPTY_SCHEMA)},
-            "fn": fn, "async": is_async}
+            "fn": fn, "async": is_async, "era": era, "requires": requires or {}}
 
 
 _TOOLS: Dict[str, Dict] = {t["definition"]["name"]: t for t in [
@@ -176,23 +194,53 @@ _TOOLS: Dict[str, Dict] = {t["definition"]["name"]: t for t in [
     _tool("test_multiple_content_types", "Returns text, image and resource content", _mixed),
     _tool("test_error_handling", "Always fails", _error),
     _tool("json_schema_2020_12_tool", "Tool with JSON Schema 2020-12 features", _json_schema_tool, {
+        # SEP-1613 ($schema, $defs, additionalProperties) plus the SEP-2106
+        # vocabulary checked from 2026-07-28 ($anchor, allOf/anyOf, if/then/else)
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
-        "$defs": {"address": {"type": "object", "properties": {
+        "$defs": {"address": {"$anchor": "addressDef", "type": "object", "properties": {
             "street": {"type": "string"}, "city": {"type": "string"}}}},
-        "properties": {"name": {"type": "string"}, "address": {"$ref": "#/$defs/address"}},
+        "properties": {
+            "name": {"type": "string"},
+            "address": {"$ref": "#/$defs/address"},
+            "contactMethod": {"type": "string", "enum": ["phone", "email"]},
+            "phone": {"type": "string"},
+            "email": {"type": "string"},
+        },
+        "allOf": [{"anyOf": [{"required": ["phone"]}, {"required": ["email"]}]}],
+        "if": {"properties": {"contactMethod": {"const": "phone"}}, "required": ["contactMethod"]},
+        "then": {"required": ["phone"]},
+        "else": {"required": ["email"]},
         "additionalProperties": False,
     }),
     _tool("test_tool_with_logging", "Sends log notifications while running", _with_logging, is_async=True),
     _tool("test_tool_with_progress", "Sends progress notifications while running", _with_progress, is_async=True),
     _tool("test_sampling", "Requests LLM sampling from the client", _sampling, {
-        "type": "object", "properties": {"prompt": {"type": "string"}}, "required": ["prompt"]}, is_async=True),
+        "type": "object", "properties": {"prompt": {"type": "string"}}, "required": ["prompt"]}, is_async=True,
+          era="legacy"),
     _tool("test_elicitation", "Requests user input from the client", _elicitation, {
-        "type": "object", "properties": {"message": {"type": "string"}}, "required": ["message"]}, is_async=True),
+        "type": "object", "properties": {"message": {"type": "string"}}, "required": ["message"]}, is_async=True,
+          era="legacy"),
     _tool("test_elicitation_sep1034_defaults", "Elicitation with defaults (SEP-1034)",
-          _elicitation_defaults, is_async=True),
+          _elicitation_defaults, is_async=True, era="legacy"),
     _tool("test_elicitation_sep1330_enums", "Elicitation with enum variants (SEP-1330)",
-          _elicitation_enums, is_async=True),
+          _elicitation_enums, is_async=True, era="legacy"),
+    # ── 2026-07-28 diagnostics (conformance scenarios server-stateless and
+    #    http-custom-header-server-validation) ──
+    _tool("test_logging_tool", "Would log only when the request sets a logLevel", _logging_tool,
+          era="modern"),
+    _tool("test_missing_capability", "Requires the client's sampling capability",
+          _missing_capability, era="modern", requires={"sampling": {}}),
+    _tool("test_custom_header", "Mirrors its region argument into the Mcp-Param-Region header",
+          _custom_header, {
+              "type": "object",
+              "properties": {
+                  "region": {"type": "string", "description": "Region to route to",
+                             "x-mcp-header": "Region"},
+                  "query": {"type": "string", "description": "Free text"},
+              },
+              "required": ["region"],
+          }, era="modern"),
 ]}
 
 
@@ -259,11 +307,18 @@ class ConformanceFixtures:
     """Facade used by MCPHandler / routes when fixtures are enabled."""
 
     # tools
-    def tool_definitions(self) -> List[Dict]:
-        return [dict(t["definition"]) for t in _TOOLS.values()]
+    def tool_definitions(self, era: str = "legacy") -> List[Dict]:
+        """Fixture tools visible to a client of the given era ("legacy" or "modern")."""
+        return [dict(t["definition"]) for t in _TOOLS.values() if t["era"] in ("both", era)]
 
-    def has_tool(self, name: str) -> bool:
-        return name in _TOOLS
+    def has_tool(self, name: str, era: str = "legacy") -> bool:
+        return name in _TOOLS and _TOOLS[name]["era"] in ("both", era)
+
+    def required_client_capabilities(self, name: str) -> Dict:
+        return dict(_TOOLS[name]["requires"]) if name in _TOOLS else {}
+
+    def tool_input_schema(self, name: str) -> Optional[Dict]:
+        return _TOOLS[name]["definition"]["inputSchema"] if name in _TOOLS else None
 
     def is_async_tool(self, name: str) -> bool:
         return name in _TOOLS and _TOOLS[name]["async"]

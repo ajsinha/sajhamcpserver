@@ -206,6 +206,33 @@ async def test_live_negotiates_and_lists_tools(live):
 
 
 @pytest.mark.anyio
+async def test_live_auto_mode_negotiates_2026_07_28(live):
+    """SAJHA 5.5+ is dual-era: mode="auto" discovers and adopts the stateless 2026-07-28 protocol."""
+    from sajhaclient import SajhaMCPClient
+    client = await _retrying_connect(lambda: SajhaMCPClient(BASE_URL, **_client_kwargs(live)))
+    try:
+        assert client.negotiated_protocol_version == "2026-07-28"
+        page = await client.list_tools()
+        assert page.ttl_ms >= 0 and page.cache_scope in ("public", "private")
+        result = await client.call_tool(CALC_TOOL, {"old_value": 100, "new_value": 125})
+        assert not result.is_error, result
+    finally:
+        await client.close()
+
+
+@pytest.mark.anyio
+async def test_live_legacy_mode_still_uses_initialize(live):
+    from sajhaclient import SajhaMCPClient
+    client = await _retrying_connect(
+        lambda: SajhaMCPClient(BASE_URL, mode="legacy", **_client_kwargs(live)))
+    try:
+        assert client.negotiated_protocol_version == "2025-11-25"
+        assert (await client.list_tools()).tools
+    finally:
+        await client.close()
+
+
+@pytest.mark.anyio
 async def test_live_call_calculator_tool(live):
     from sajhaclient import SajhaMCPClient
     client = await _retrying_connect(lambda: SajhaMCPClient(BASE_URL, **_client_kwargs(live)))

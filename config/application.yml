@@ -112,6 +112,16 @@ mcp:
   # (test_simple_text, test://static-text, ...). For protocol testing only.
   # Env override: SAJHA_MCP_CONFORMANCE_FIXTURES=true
   conformance_fixtures: false
+  # MCP 2026-07-28 caching hints (SEP-2549): ttlMs/cacheScope on server/discover,
+  # tools/list, prompts/list, resources/list, resources/templates/list and
+  # resources/read results (modern, stateless requests only).
+  cache:
+    discover_ttl_ms: 300000      # server/discover
+    list_ttl_ms: 60000           # tools/prompts/resources/templates list results
+    read_ttl_ms: 30000           # resources/read
+    # auto: "private" when a result depends on the caller (per-user tool
+    # filtering), else "public".  Or force "public" / "private".
+    scope: auto
 
 # ── Config Paths ─────────────────────────────────────────────────────────────
 
