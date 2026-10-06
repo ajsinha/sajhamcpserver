@@ -368,6 +368,37 @@ async def ai_settings_page(request: Request, auth: AuthContext = Depends(require
     })
 
 
+#: Ask SAJHA's example chips. Each is answered by the mock planner (the default model) from the
+#: offline calc_* tools, so they work with no keys; tests/test_ask_page.py runs every one.
+ASK_EXAMPLES = [
+    'What is the percentage change from 80 to 100?',
+    'What is the price of a bond with face value 1000, coupon rate 5, yield 4.5 over 10 years?',
+    'What is the future value of 5000 at 7 percent for 20 years?',
+    'Compare the Sharpe ratio and Sortino ratio for a return of 12 with risk free rate 4 and volatility 15',
+]
+
+
+@router.get('/ask')
+async def ask_page(request: Request, auth: AuthContext = Depends(require_auth)):
+    """Ask SAJHA: a chat over POST /api/ai/ask, with the tool chain drawn live on the catalog's sky."""
+    from sajha.web.help_catalog import live_tool_groups
+    from sajha.ai.intelligence import get_intelligence
+    svc = get_intelligence()
+    live = live_tool_groups(with_names=True)
+    return render(request, 'ai/ask.html', {
+        'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
+        'is_admin': auth.is_admin,
+        'ask_data': {
+            'groups': [[g['name'], g['tool_count'], g['tools']] for g in live['groups']],
+            'total': live['total_tools'],
+            'examples': ASK_EXAMPLES,
+            'is_admin': bool(auth.is_admin),
+            'enabled': bool(svc is not None and svc.settings.enabled),
+            'user': auth.user_id or '',
+        },
+    })
+
+
 # ── Provider Registry Info ────────────────────────────────────
 
 @router.get('/api/ai/registry')

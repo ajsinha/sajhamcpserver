@@ -3,34 +3,19 @@
  * Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
  *
  * The catalog (provider groups and their tool counts) comes from the live registry through
- * #lpData. Canvas colours are --sajha-* tokens, read with getComputedStyle and read again
- * whenever the theme changes. With prefers-reduced-motion both figures stand still on their
- * final frame.
+ * #lpData. The sky is drawn by static/js/constellation.js (shared with Ask SAJHA): canvas
+ * colours are --sajha-* tokens, read again whenever the theme changes. With
+ * prefers-reduced-motion both figures stand still on their final frame.
  */
 (function () {
   'use strict';
-  var root = document.documentElement;
-  var mm = function (q) { return window.matchMedia ? window.matchMedia(q) : { matches: false }; };
-  var reduce = mm('(prefers-reduced-motion: reduce)').matches;
+  var C = window.SajhaConstellation;
+  var reduce = C.reduce;
   var data = {};
   try { data = JSON.parse(document.getElementById('lpData').textContent) || {}; } catch (e) { /* no data */ }
+  var whenVisible = C.whenVisible;
 
-  // one theme signal for both figures: the menu sets data-theme on <html>; no data-theme
-  // follows the system, so a system light/dark switch counts too
-  var themeFns = [];
-  var themeChanged = function () { themeFns.forEach(function (f) { f(); }); };
-  new MutationObserver(themeChanged).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-bs-theme'] });
-  var scheme = mm('(prefers-color-scheme: dark)');
-  if (scheme.addEventListener) scheme.addEventListener('change', themeChanged);
-  else if (scheme.addListener) scheme.addListener(themeChanged);
-
-  function tok(name) { return getComputedStyle(root).getPropertyValue(name).trim(); }
-  function whenVisible(el, fn) {
-    if (!('IntersectionObserver' in window)) { fn(true); return; }
-    new IntersectionObserver(function (es) { fn(es[es.length - 1].isIntersecting); }, { threshold: 0.15 }).observe(el);
-  }
-
-  /* ── 1. The constellation ─────────────────────────────────────────────────────────────── */
+  /* ── 1. The constellation (drawing: static/js/constellation.js) ──────────────────────── */
   (function constellation() {
     var sky = document.getElementById('lpSky');
     if (!sky) return;
@@ -52,13 +37,13 @@
     var GROUPS = (data.groups || []).filter(function (g) { return g[1] > 0; });
     var have = {};
     GROUPS.forEach(function (g) { have[g[0]] = 1; });
-    var grp = function (name) { return name.indexOf('_') >= 0 ? name.split('_')[0] : name; };
+    var grp = C.groupOf;
     var SCENES = RAW.map(function (s) {
       return { q: s.q, conf: s.conf, a: s.a, steps: s.steps.filter(function (st) { return have[grp(st[0])]; }) };
     }).filter(function (s) { return s.steps.length; });
     if (!SCENES.length) { sky.closest('.lp2-sky-wrap').hidden = true; return; }
 
-    var cv = document.getElementById('lpSkyCanvas'), cx = cv.getContext('2d');
+    var cv = document.getElementById('lpSkyCanvas'), S = C.sky(cv, GROUPS);
     var $ = function (id) { return document.getElementById(id); };
     var qEl = $('lpSkyQ'), ans = $('lpSkyAns'), confEl = $('lpSkyConf'), ansText = $('lpSkyAnsText'),
         ansChain = $('lpSkyChain'), sceneNo = $('lpSkyScene'), srDesc = $('lpSkyDesc'),
@@ -66,40 +51,15 @@
     var total = data.total || GROUPS.reduce(function (a, g) { return a + g[1]; }, 0);
     $('lpSkyStats').textContent = total + ' tools · ' + GROUPS.length + ' provider groups';
 
-    var T = {}, colors = {};
-    function readTokens() {
-      var font = getComputedStyle(document.body).fontFamily;
-      T = { ink: tok('--sajha-ink'), slate: tok('--sajha-slate'), accent: tok('--sajha-crimson'),
-            indigo: tok('--sajha-indigo'), ok: tok('--sajha-ok'), warn: tok('--sajha-warn'),
-            surface: tok('--sajha-surface'), border: tok('--sajha-border'), font: font,
-            mono: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' };
-      var pal = [T.accent, T.indigo, T.ok, T.warn, T.slate];
-      GROUPS.forEach(function (g, i) { colors[g[0]] = pal[i % pal.length]; });
-    }
-
-    var W = 0, H = 0, stars = [], chains = [], seed = 7;
-    var rnd = function () { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+    var W = 0, H = 0, chains = [];
     function rectIn(el, base) {
       var r = el.getBoundingClientRect();
       return { l: r.left - base.left - 12, t: r.top - base.top - 12, r: r.right - base.left + 12, b: r.bottom - base.top + 12 };
     }
     function layout() {
-      var dpr = Math.min(window.devicePixelRatio || 1, 2), r = cv.getBoundingClientRect();
-      W = r.width; H = r.height;
-      if (!W || !H) return;
-      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      seed = 7; stars = [];
-      // each provider group is a loose cluster on a golden-angle spiral; the biggest sit nearest the middle
-      var k = Math.max(0.55, Math.min(1, W / 1000)), cxm = W / 2, cym = H * 0.55, rx = W * 0.44, ry = H * 0.35;
-      GROUPS.forEach(function (g, i) {
-        var t = i * 2.399963, ring = Math.sqrt((i + 1.5) / (GROUPS.length + 1));
-        var gx = cxm + Math.cos(t) * rx * ring, gy = cym + Math.sin(t) * ry * ring;
-        var spread = (20 + Math.sqrt(g[1]) * 9) * k;
-        for (var n = 0; n < g[1]; n++) {
-          var a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * spread;
-          stars.push({ g: g[0], x: gx + Math.cos(a) * d, y: gy + Math.sin(a) * d * 0.8, r: 1 + rnd() * 1.5, tw: rnd() * 6.28 });
-        }
-      });
+      if (!S.resize()) return;
+      W = S.W; H = S.H;
+      var stars = S.place();
       // the star a named tool stands for: a fixed member of its group, kept clear of the
       // prompt and the answer card, and away from the chain's earlier stars so labels part
       // the answer card sits right, or left when the chain needs the stars it would cover
@@ -124,10 +84,7 @@
           var ok = all.filter(free), members = ok.length ? ok : all, h = 0;
           for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
           // a label box: the name chip above the star, its result below
-          var box = function (s) {
-            var w = name.length * 7.4 + 22, l = Math.min(Math.max(s.x - w / 2, 6), W - w - 6);
-            return { l: l, r: l + w, t: s.y - 34, b: s.y + 32 };
-          };
+          var box = function (s) { return S.labelBox(name, s.x, s.y); };
           var clear = function (s) {
             var a = box(s);
             return picked.every(function (p) { return a.r < p.b.l || a.l > p.b.r || a.b < p.b.t || a.t > p.b.b; });
@@ -161,25 +118,6 @@
     var ease = function (x) { return 1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 3); };
     var scene = 0, clock = 0, last = 0, raf = 0, paused = false, onScreen = true, shownQ = null, shownScene = -1, ansOn = null;
 
-    function pill(x, y, w, h) {
-      cx.beginPath();
-      if (cx.roundRect) cx.roundRect(x, y, w, h, 6); else cx.rect(x, y, w, h);
-    }
-    function lane(name, x, y, alpha) {
-      cx.globalAlpha = alpha; cx.font = '600 12px ' + T.mono;
-      var w = cx.measureText(name).width + 14, left = Math.min(Math.max(x - w / 2, 6), W - w - 6), top = y - 30;
-      cx.fillStyle = T.surface; cx.strokeStyle = T.border; cx.lineWidth = 1;
-      pill(left, top, w, 20); cx.fill(); cx.stroke();
-      cx.fillStyle = T.ink; cx.fillText(name, left + 7, top + 14); cx.globalAlpha = 1;
-    }
-    function result(text, x, y, alpha) {
-      if (alpha <= 0) return;
-      cx.globalAlpha = alpha; cx.font = '12px ' + T.font;
-      var w = cx.measureText(text).width + 10, left = Math.min(Math.max(x - w / 2, 6), W - w - 6);
-      cx.fillStyle = T.surface; pill(left, y + 10, w, 18); cx.fill();
-      cx.fillStyle = T.slate; cx.fillText(text, left + 5, y + 23); cx.globalAlpha = 1;
-    }
-
     function draw(now) {
       var sc = SCENES[scene], chain = chains[scene] || [];
       var t = reduce ? dur(sc) - FADE - 0.01 : clock;
@@ -202,47 +140,28 @@
         if (caret) { var c = document.createElement('span'); c.className = 'lp2-caret'; qEl.appendChild(c); }
       }
 
-      cx.clearRect(0, 0, W, H);
+      S.clear();
       var used = {};
       chain.forEach(function (c) { used[c.s.g] = 1; });
       var lit = t > TYPE ? ease((t - TYPE) / DISCOVER) * fade : 0;
-      for (var i = 0; i < stars.length; i++) {
-        var st = stars[i], tw = reduce ? 0.8 : 0.55 + 0.45 * Math.sin(now / 900 + st.tw), on = used[st.g] ? lit : 0;
-        cx.globalAlpha = (0.30 + 0.25 * tw) * (1 - on) + (0.55 + 0.45 * tw) * on;
-        cx.fillStyle = colors[st.g];
-        cx.beginPath(); cx.arc(st.x, st.y, st.r + on * 0.6, 0, 6.283); cx.fill();
-      }
-      cx.globalAlpha = 1;
+      S.drawStars(now, function (st) { return used[st.g] ? lit : 0; }, reduce);
 
-      if (!reduce && t > TYPE && t < TYPE + DISCOVER) {           // the discovery sweep
-        var p = ease((t - TYPE) / DISCOVER);
-        cx.strokeStyle = T.accent; cx.globalAlpha = 0.35 * (1 - p); cx.lineWidth = 2;
-        cx.beginPath(); cx.arc(W / 2, 40, Math.hypot(W, H) * 0.6 * p, 0, 6.283); cx.stroke(); cx.globalAlpha = 1;
-      }
+      if (!reduce && t > TYPE && t < TYPE + DISCOVER) S.sweep(W / 2, 40, ease((t - TYPE) / DISCOVER));   // the discovery sweep
 
       var pb = qEl.parentNode, px = W / 2, py = pb.offsetTop + pb.offsetHeight;
       chain.forEach(function (c, i) {                               // the chain, step by step
         var p = reduce ? 1 : ease((tStep - i * STEP) / (STEP * 0.6));
         if (p <= 0) return;
-        cx.strokeStyle = T.accent; cx.lineWidth = 1.8; cx.globalAlpha = 0.85 * fade;
-        cx.setLineDash(i === 0 ? [4, 5] : []);
-        cx.beginPath(); cx.moveTo(px, py); cx.lineTo(px + (c.s.x - px) * p, py + (c.s.y - py) * p); cx.stroke();
-        cx.setLineDash([]);
-        if (p > 0.95) {
-          cx.globalAlpha = 0.18 * fade; cx.fillStyle = T.accent;
-          cx.beginPath(); cx.arc(c.s.x, c.s.y, 14, 0, 6.283); cx.fill();
-          cx.globalAlpha = fade;
-          cx.beginPath(); cx.arc(c.s.x, c.s.y, 4.2, 0, 6.283); cx.fill();
-        }
+        S.link(px, py, c.s.x, c.s.y, p, i === 0, fade);
+        if (p > 0.95) S.node(c.s.x, c.s.y, fade);
         px = c.s.x; py = c.s.y;
       });
       chain.forEach(function (c, i) {                               // labels on top of every line
         var p = reduce ? 1 : ease((tStep - i * STEP) / (STEP * 0.6));
         if (p <= 0.95 || (W < 640 && chain[i + 1] && (reduce || tStep >= (i + 1) * STEP + STEP * 0.38))) return;
-        lane(c.n, c.s.x, c.s.y, fade);
-        result(c.r, c.s.x, c.s.y, (reduce ? 1 : ease((tStep - i * STEP - STEP * 0.6) / 0.4)) * fade);
+        S.lane(c.n, c.s.x, c.s.y, fade);
+        S.result(c.r, c.s.x, c.s.y, (reduce ? 1 : ease((tStep - i * STEP - STEP * 0.6) / 0.4)) * fade);
       });
-      cx.globalAlpha = 1;
 
       var show = (reduce || t > endSteps) && fade > 0.5;
       if (show) confEl.textContent = 'confidence ' + (sc.conf * (reduce ? 1 : ease((t - endSteps) / CONF))).toFixed(2);
@@ -274,13 +193,13 @@
     nextBtn.addEventListener('click', function () {
       scene = (scene + 1) % SCENES.length; clock = 0; kick();
     });
-    themeFns.push(function () { readTokens(); kick(); });
+    C.onTheme(function () { S.readTokens(); kick(); });
     document.addEventListener('visibilitychange', kick);
     whenVisible(sky, function (v) { onScreen = v; kick(); });
     if ('ResizeObserver' in window) new ResizeObserver(function () { layout(); kick(); }).observe(sky);
     else window.addEventListener('resize', function () { layout(); kick(); });
 
-    readTokens(); layout(); kick();
+    S.readTokens(); layout(); kick();
   })();
 
   /* ── 2. The wire: a 2026-07-28 exchange, typed as it happens ─────────────────────────── */

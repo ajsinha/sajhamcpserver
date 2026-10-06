@@ -14,7 +14,7 @@ mathematics is the [Composition Framework](Composition%20Framework.md).
 ## 1. Shape
 
 ```
- consumers      POST /api/ai/ask · sajha_ask MCP tool · /api/ai/* (settings page, tool resolver)
+ consumers      POST /api/ai/ask (and the Ask SAJHA page, /ask) · sajha_ask MCP tool · /api/ai/*
                                    │
  service        IntelligenceService (sajha/ai/intelligence.py): shortlist → tool loop → synthesis
                                    │
@@ -281,6 +281,43 @@ its `tool_result`, all tool results before the answer.
 `ok`, `status`, `summary`, `latency_ms`, `confidence`, `fingerprint`), `citations`,
 `caveats`, `usage`, `models`, `stopped_by`, `shortlist`, `pending`, `duration_ms`, `error`.
 
+### Using Ask SAJHA
+
+The console's **Ask SAJHA** page (`/ask`, signed-in users; the first item of the AI menu)
+is a chat over this endpoint. It is built from `sajha/web/templates/ai/ask.html`,
+`sajha/web/static/js/ask.js` and `sajha/web/static/js/constellation.js` (the sky drawing it
+shares with the landing page).
+
+- **Asking.** Type a question and press Enter (Shift+Enter for a new line), or pick an
+  example chip. Each question is sent on its own, with no earlier turns: the service has
+  no conversation memory. The model picker sends `model`: admins see the gateway's aliases
+  (from `GET /api/ai/config`), other users the enabled tool-capable models from
+  `GET /api/ai/models`; "default" sends none.
+- **Streaming.** The page posts with `Accept: text/event-stream` and reads the stream with
+  `fetch` (EventSource cannot POST), using the session cookie like the other console
+  pages. Stop (or Escape) aborts the request, which ends the server's stream.
+- **What it shows.** Each answer lists the shortlist ("Considered N tools", with scores),
+  one chip per tool call with its result summary and latency (open a chip for its
+  arguments and result), the answer, its confidence, the cited calls as sources, and the
+  caveats. A `needs_confirmation` event becomes a card with Confirm and Cancel; Confirm
+  asks again with `confirm: [fingerprint]`. An `error` event is shown in the answer.
+- **The sky.** Beside the chat (above it on a phone) every loaded tool is a star, grouped
+  by provider. The shortlist lights its tools and their groups; each `tool_call` draws a
+  link from the question to that tool's star with its name, and its `tool_result` puts the
+  summary there, green for success and red for failure. The events are played a few
+  hundred milliseconds apart so each step is visible even when, as with the mock, the
+  whole answer arrives at once. With reduced motion nothing moves and the final chain is
+  drawn at once.
+- **The mock.** While the mock serves the default alias the page shows a *Mock model
+  active* pill (admins: `mock_active` from `/api/ai/config`; others: a `model` event naming
+  `mock/...`). The mock planner answers from keywords and numbers in the question, so the
+  example chips are calculator questions it can fill in; anything else needs a real
+  provider (section 4).
+- **History** is kept per browser tab in `sessionStorage` and cleared by *New chat*; it is
+  never sent back to the server.
+
+A walkthrough is [Tutorial 10: Ask SAJHA](../tutorials/TUTORIAL_10_ask_sajha.md).
+
 ### `sajha_ask` (MCP)
 
 With `ai.ask.mcp_tool_enabled: true` the service is also registered as the MCP tool
@@ -313,7 +350,8 @@ the HTTP route in JSON and SSE.
 
 ## 9. Not built yet
 
-- A chat panel in the web UI (it will consume the event stream above).
+- Conversation memory: each ask is answered on its own, so Ask SAJHA cannot follow up on
+  an earlier answer.
 - Native async providers (the layer is sync with thread-pool async wrappers).
 - Vertex AI for Gemini and Claude; Entra ID token acquisition for Azure (a bearer token can
   be supplied as the key with `auth: bearer`).

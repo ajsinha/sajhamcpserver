@@ -84,6 +84,12 @@ PAGE_HELP: dict = {
                   'Hot-reload', 'Category', 'Arguments (prompt)'],
         'guide': 'Prompts Management Guide.md'},
     # ── AI ───────────────────────────────────────────────────────────────────
+    'ask_page': {
+        'what': 'Ask a question in plain words: SAJHA picks tools, runs them with your permissions, '
+                'and answers with its sources and a confidence score, drawing each step on the tool sky.',
+        'terms': ['Ask SAJHA', 'Intelligence layer', 'Semantic tool search', 'Confidence score',
+                  'destructiveHint', 'Mock provider'],
+        'guide': 'Intelligence Layer.md'},
     'ai_settings_page': {
         'what': 'LLM providers, their models and the default the server uses.',
         'terms': ['LLM gateway', 'Semantic tool search', 'Embedding', 'bm25 (embedder)',

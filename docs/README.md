@@ -105,6 +105,7 @@ These guides document each provider's tools, parameters and API keys.
 7. [Tutorial 7: Submit Async Tool Execution](tutorials/TUTORIAL_07_submit_async_tool_execution.md)
 8. [Tutorial 8: Custom Configuration](tutorials/TUTORIAL_08_custom_configuration.md)
 9. [Tutorial 9: Call SAJHA from the Standard MCP Client](tutorials/TUTORIAL_09_call_sajha_from_the_standard_mcp_client.md)
+10. [Tutorial 10: Ask SAJHA](tutorials/TUTORIAL_10_ask_sajha.md)
 
 ## Clients and security
 

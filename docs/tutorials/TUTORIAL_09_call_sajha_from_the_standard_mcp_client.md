@@ -116,6 +116,7 @@ with SajhaMCPSyncClient("http://localhost:3002", username="admin", password="adm
 - [MCP Protocol Guide](../protocol/MCP%20Protocol%20Guide.md): what the SDK negotiates on the wire
 - [MCP 2026-07-28 Compliance](../protocol/MCP%202026-07-28%20Compliance.md)
 - A runnable example: `clientsdk/examples/standard_client_example.py`
+- Next tutorial: [Ask SAJHA](TUTORIAL_10_ask_sajha.md)
 
 ---
 

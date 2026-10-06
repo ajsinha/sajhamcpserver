@@ -33,6 +33,10 @@ Details: [Security Model](docs/security/Security%20Model.md), [Configuration Ref
 ### `x-mcp-header`
 - Validated when a tool schema is loaded (invalid annotations are dropped with a warning); `Mcp-Param-Symbol` on the quote tools.
 
+### Ask SAJHA
+- **Ask SAJHA** (`/ask`, AI menu and dashboard): a chat over `POST /api/ai/ask` that streams each step (shortlist, tool calls and results, answer, confidence), shows the tool chain as expandable chips with sources and caveats, asks before a destructive call, and draws the chain live on the tool sky. Model picker, a *Mock model active* pill, Stop, per-tab history. Details: [Intelligence Layer](docs/architecture/Intelligence%20Layer.md#using-ask-sajha), [Tutorial 10](docs/tutorials/TUTORIAL_10_ask_sajha.md).
+- The landing page's constellation drawing moved to `sajha/web/static/js/constellation.js`, shared by both pages; the landing page is unchanged.
+
 ### Fixes
 - `/login?next=` open redirect.
 - Path traversal in `sajha://data` resources.

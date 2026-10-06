@@ -135,7 +135,8 @@ CATALOG: List[dict] = [
             _g('Composition Framework', 'Composition Framework.md', 'bi-bezier2',
                'Composite tools: StepResult, ParamLens, EntropyGuard and confidence.'),
             _g('Intelligence Layer', 'Intelligence Layer.md', 'bi-stars',
-               'LLM providers and models, the gateway, the mock provider, and /api/ai/ask.'),
+               'LLM providers and models, the gateway, the mock provider, /api/ai/ask and the '
+               'Ask SAJHA chat page.'),
         ],
     },
     {
@@ -245,6 +246,8 @@ CATALOG: List[dict] = [
                'Your own application.yml and environment overrides.'),
             _g('9. Call SAJHA from the standard MCP client', 'TUTORIAL_09_call_sajha_from_the_standard_mcp_client.md',
                'bi-9-circle', 'The official MCP Python SDK against SAJHA.'),
+            _g('10. Ask SAJHA', 'TUTORIAL_10_ask_sajha.md', 'bi-stars',
+               'Ask a question in the console and read the tool chain behind the answer.'),
         ],
     },
     {
@@ -371,19 +374,22 @@ _GROUP_ICONS = ['bi-tools', 'bi-graph-up', 'bi-database', 'bi-globe', 'bi-bank',
 _GROUP_TONES = ['crimson', 'ok', 'indigo', 'warn', 'bad', 'slate']
 
 
-def live_tool_groups(registry=None) -> dict:
+def live_tool_groups(registry=None, with_names: bool = False) -> dict:
     """{'total_tools', 'total_groups', 'groups': [...]} from the tools registry.
 
     A tool's group is the text before the first '_' in its name (GLOSSARY: Tool group).
-    This is the one implementation; the landing page and /help/tools both use it."""
+    This is the one implementation; the landing page, /help/tools and Ask SAJHA use it.
+    ``with_names`` adds each group's sorted tool names as 'tools' (Ask SAJHA's sky: one star
+    per named tool)."""
     if registry is None:
         from sajha.app import tools_registry as registry
     tools = getattr(registry, 'tools', None) or {}
     group_map: Dict[str, dict] = {}
     for name, tool in tools.items():
         prefix = name.split('_')[0] if '_' in name else name
-        g = group_map.setdefault(prefix, {'count': 0, 'enabled': 0, 'examples': []})
+        g = group_map.setdefault(prefix, {'count': 0, 'enabled': 0, 'examples': [], 'names': []})
         g['count'] += 1
+        g['names'].append(name)
         cfg = getattr(tool, 'config', {}) or {}
         if cfg.get('enabled', True):
             g['enabled'] += 1
@@ -395,4 +401,6 @@ def live_tool_groups(registry=None) -> dict:
                        'icon': _GROUP_ICONS[i % len(_GROUP_ICONS)],
                        'tone': _GROUP_TONES[i % len(_GROUP_TONES)],
                        'examples': g['examples']})
+        if with_names:
+            groups[-1]['tools'] = sorted(g['names'])
     return {'total_tools': len(tools), 'total_groups': len(group_map), 'groups': groups}

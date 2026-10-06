@@ -5,7 +5,7 @@ SAJHA MCP Server — Landing Page
 The front door, in MAYA's landing language (lp2-*): a centred hero over the constellation (a star
 for every tool in the live registry), a strip of numbers, capability cards, the transports,
 the 2026-07-28 wire typed live, a closing call. Colour comes only from the tokens, so it is the
-same page in all four themes. The animations live in static/js/landing.js.
+same page in all four themes. The animations live in static/js/landing.js (the sky is drawn by static/js/constellation.js).
 -->
 <html lang="en" data-bs-theme="light">
 <head>
@@ -236,6 +236,7 @@ document.querySelectorAll('a[href^="#"]').forEach(function (a) {
 </script>
 
 <script type="application/json" id="lpData">{{ {'groups': tool_groups, 'total': tool_count, 'server': {'name': app_name, 'version': app_version}}|tojson }}</script>
+<script src="{{ url_for('static', filename='js/constellation.js') }}?v={{ app_version }}"></script>
 <script src="{{ url_for('static', filename='js/landing.js') }}?v={{ app_version }}"></script>
 </body>
 </html>

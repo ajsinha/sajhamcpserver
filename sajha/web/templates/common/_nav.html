@@ -14,6 +14,8 @@
       (url_for('monitoring_tools'), 'graph-up', 'Tool metrics', 'Calls, latency and errors per tool')]
       + ([(url_for('monitoring_users'), 'people', 'User activity', 'Who called what, and when')] if is_admin else []))]),
   ('AI', 'cpu', [
+    ('Ask', [
+      (url_for('ask_page'), 'stars', 'Ask SAJHA', 'Ask a question; SAJHA picks the tools, runs them and answers')]),
     ('Models & prompts', [
       (url_for('ai_settings'), 'cloud', 'LLM', 'Providers, models and the default'),
       (url_for('prompts_list'), 'chat-square-text', 'Prompts', 'The prompt library, tested and versioned')])])] %}

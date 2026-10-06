@@ -317,7 +317,10 @@ Written for someone who does *not* already know the field. Where a term has a ge
 
 | Term | Meaning |
 |---|---|
-| **LLM gateway** | The multi-provider inference layer (`sajha/ai/`): Anthropic, OpenAI, AWS Bedrock, Together.ai, Ollama and Azure OpenAI through their official SDKs, with providers and models managed in the database and model resolution explicit, then user preference, then system default. |
+| **LLM gateway** | `LLMGateway` (`sajha/ai/gateway.py`): the one entry point for LLM calls. It resolves an alias (`default`, `fast`, `reasoning`, `embedding`) to a provider/model, applies role policy and budgets, retries, falls back and caches. Providers talk to vendor APIs directly over HTTP; out of the box only the mock provider is enabled. See the Intelligence Layer guide. |
+| **Intelligence layer** | The part of SAJHA that answers a question itself (`sajha/ai/intelligence.py`): it shortlists tools from the catalog, lets a model call them under the caller's permissions, and returns the answer with the tool calls it rests on and a confidence score. Served at `POST /api/ai/ask`. |
+| **Ask SAJHA** | The console's chat page (`/ask`) over the intelligence layer: it streams each step of an answer (the shortlist, every tool call and result, the answer and its confidence) and draws the tool chain on the live tool catalog. |
+| **Mock provider** | The built-in LLM provider that needs no network or key (`sajha/ai/llm/mock.py`). Its `mock-planner` model picks tools from keywords and numbers in the question; it serves every model alias until a real provider is enabled. |
 | **Semantic tool search** | Natural-language tool discovery (`sajha/ai/tool_resolver.py`, `POST /api/ai/resolve-tool`): ranks tools by a query over their name, description, parameters, tags and literature. The embedder is set by `ai.tool_search.embedder`. |
 | **bm25** (*embedder*) | The default tool-search ranker: a dependency-free lexical BM25 index (`sajha/ai/lexical.py`) with IDF weighting, needing no model and no network. |
 | **gateway** (*embedder*) | Tool-search mode that embeds tool text and queries through the LLM gateway's embedding provider and ranks by cosine similarity; the vector index can be persisted via storage. |
