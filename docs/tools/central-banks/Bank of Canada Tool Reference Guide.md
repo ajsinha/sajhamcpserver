@@ -1,35 +1,28 @@
-# Bank of Canada MCP Tool Reference Guide
-
-**Copyright All rights reserved 2025-2030 Ashutosh Sinha**  
-**Email: ajsinha@gmail.com**
-
-**Version:** 1.0.0  
-**Last Updated:** October 31, 2025
-
----
+# Bank of Canada Tool Reference Guide
 
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Architecture](#architecture)  
+2. [Architecture](#architecture)
 3. [API Access & Authentication](#api-access--authentication)
 4. [Tool Catalog](#tool-catalog)
-5. [Installation & Setup](#installation--setup)
-6. [Code Examples](#code-examples)
-7. [Error Handling](#error-handling)
-8. [Best Practices](#best-practices)
-9. [Appendix](#appendix)
+5. [Calling the Tools](#calling-the-tools)
+6. [Installation & Setup](#installation--setup)
+7. [Code Examples](#code-examples)
+8. [Error Handling](#error-handling)
+9. [Best Practices](#best-practices)
+10. [Appendix](#appendix)
 
 ---
 
 ## Overview
 
-The Bank of Canada MCP Tool Suite provides a comprehensive interface to access Canadian economic data through the Bank of Canada's Valet API. This toolset enables retrieval of exchange rates, interest rates, bond yields, and key economic indicators with a clean, object-oriented architecture.
+The Bank of Canada MCP Tool Suite provides a comprehensive interface to access Canadian economic data through the Bank of Canada's Valet API. The tools use the `boc_` prefix; implementation: `sajha/tools/impl/bank_of_canada_tool_refactored.py`. The live catalog in the app (Tools page, or `tools/list`) is authoritative. This toolset enables retrieval of exchange rates, interest rates, bond yields, and key economic indicators with a clean, object-oriented architecture.
 
 ### Key Features
 
-- **7 Specialized Tools** for different data access patterns
-- **15+ Economic Indicators** covering FX, rates, bonds, and macro data
+- **Specialized Tools** for different data access patterns
+- **15 Shorthand Indicators** covering FX, rates, bonds, and macro data
 - **Flexible Time Ranges** with support for date ranges and recent periods
 - **Zero Authentication** required - public API access
 - **Type-Safe Schemas** with JSON Schema validation
@@ -78,7 +71,7 @@ The Bank of Canada MCP Tool Suite provides a comprehensive interface to access C
 │  │  - API endpoint configuration                    │    │
 │  │  - Common series mapping (15 indicators)         │    │
 │  │  - Shared _fetch_series() method                 │    │
-│  │  - Error handling & retry logic                  │    │
+│  │  - Error handling (no automatic retry)           │    │
 │  └─────────────────────────────────────────────────┘    │
 └───────────────────────────────────────────────────────────┘
                           │
@@ -184,11 +177,10 @@ common_series = {
 
 The Bank of Canada Valet API is a public API that does not require authentication. All endpoints are freely accessible without registration or API keys.
 
-### Rate Limits
+### Rate Limits and Caching
 
-- **Default Limit:** 120 requests per minute per IP address
-- **Recommended Cache TTL:** 3600 seconds (1 hour)
-- **Best Practice:** Implement client-side caching for frequently accessed data
+- The `boc_` tools do not rate-limit or cache on the server side. Caching is opt-in: add `"cache_ttl": <seconds>` to a tool's JSON config in `config/tools/` (none of the shipped `boc_` configs set it; the `rateLimit`/`cacheTTL` values in some configs' `metadata` are informational only). An hour suits most series.
+- Be polite to the public Valet API: batch with `boc_get_common_indicators` and cache where you can.
 
 ### API Endpoints
 
@@ -254,7 +246,9 @@ https://www.bankofcanada.ca/valet/observations/FXUSDCAD/json?recent=10
 - `end_date` (string, optional) - End date (YYYY-MM-DD)
 - `recent_periods` (integer, optional) - Recent observations (1-100, default: 10)
 
-*Either series_name or indicator required
+*Either series_name or indicator required; if both are given, `series_name` wins.
+
+`recent_periods` is only sent to the API when neither `start_date` nor `end_date` is given.
 
 **Output:** Time series with observations array
 
@@ -273,11 +267,13 @@ https://www.bankofcanada.ca/valet/observations/FXUSDCAD/json?recent=10
 **Purpose:** Specialized tool for foreign exchange rate queries.
 
 **Input Parameters:**
-- `currency_pair` (string, required*) - Format 'XXX/CAD' (e.g., 'USD/CAD')
+- `currency_pair` (string, required*) - Format 'XXX/CAD' (e.g., 'USD/CAD'); the tool requests Valet series `FX<XXX>CAD`
 - `indicator` (string, required*) - Predefined pair ('usd_cad', 'eur_cad', etc.)
 - `start_date` (string, optional) - Start date
 - `end_date` (string, optional) - End date
-- `recent_periods` (integer, optional) - Recent observations (1-100)
+- `recent_periods` (integer, optional) - Recent observations (1-100, default: 10)
+
+*Either currency_pair or indicator required; if both are given, `indicator` wins.
 
 **Supported Currency Pairs:**
 - USD/CAD, EUR/CAD, GBP/CAD, JPY/CAD, CNY/CAD
@@ -287,29 +283,29 @@ https://www.bankofcanada.ca/valet/observations/FXUSDCAD/json?recent=10
 **Purpose:** Retrieve Bank of Canada interest rates and monetary policy data.
 
 **Input Parameters:**
-- `rate_type` (string, required) - Type: 'policy_rate', 'overnight_rate', 'prime_rate'
+- `rate_type` (string, required) - Type: 'policy_rate' (default), 'overnight_rate' (CORRA), 'prime_rate'
 - `start_date` (string, optional) - Start date
 - `end_date` (string, optional) - End date
-- `recent_periods` (integer, optional) - Recent observations
+- `recent_periods` (integer, optional) - Recent observations (1-100, default: 10)
 
 ### 5. boc_get_bond_yield
 
 **Purpose:** Retrieve Government of Canada benchmark bond yields.
 
 **Input Parameters:**
-- `bond_term` (string, required) - Maturity: '2y', '5y', '10y', '30y'
+- `bond_term` (string, required) - Maturity: '2y', '5y', '10y' (default), '30y'
 - `start_date` (string, optional) - Start date
 - `end_date` (string, optional) - End date
-- `recent_periods` (integer, optional) - Recent observations (1-100)
+- `recent_periods` (integer, optional) - Recent observations (1-100, default: 10)
 
 ### 6. boc_search_series
 
 **Purpose:** Discover and explore available data series organized by category.
 
 **Input Parameters:**
-- `category` (string, optional) - Filter: 'Exchange Rates', 'Interest Rates', 'Bond Yields', 'Economic Indicators', or 'all'
+- `category` (string, optional) - Filter: 'Exchange Rates', 'Interest Rates', 'Bond Yields', 'Economic Indicators', or 'all' (default)
 
-**Output:** Categorized list of all available series with descriptions
+**Output:** `categories` (each entry has `indicator`, `series_name`, `description`) and `total_series`
 
 ### 7. boc_get_common_indicators
 
@@ -318,55 +314,56 @@ https://www.bankofcanada.ca/valet/observations/FXUSDCAD/json?recent=10
 **Input Parameters:**
 - `indicators` (array, optional) - List of indicators (default: ['usd_cad', 'policy_rate', 'bond_10y', 'cpi'])
 
-**Output:** Dictionary of indicators with their latest values
+**Output:** `indicators` (per indicator: `series_name`, `label`, `value`, `date`, `description`, or `error`) and `last_updated`
+
+---
+
+## Calling the Tools
+
+Every tool can be called over MCP (a `tools/call` request on `POST /mcp`) or over the REST API (`POST /api/tools/execute`). Authenticate with an `X-API-Key: sja_...` header or an `Authorization: Bearer <token>` header. Sessions, protocol versions and headers are covered in the [MCP Protocol Guide](../../protocol/MCP%20Protocol%20Guide.md).
+
+**MCP (`POST /mcp`)**
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+ "params": {"name": "boc_get_exchange_rate", "arguments": {"indicator": "usd_cad", "recent_periods": 5}}}
+```
+
+**REST**
+
+```bash
+curl -X POST http://localhost:3002/api/tools/execute \
+  -H "X-API-Key: sja_your_key" -H "Content-Type: application/json" \
+  -d '{"tool": "boc_get_exchange_rate", "arguments": {"indicator": "usd_cad", "recent_periods": 5}}'
+```
+
+**Python client SDK**
+
+```python
+from sajhaclient import SajhaClient, SajhaConfig
+
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
+result = client.execute_tool("boc_get_exchange_rate", indicator="usd_cad", recent_periods=5)
+```
 
 ---
 
 ## Installation & Setup
 
-### Prerequisites
+The tools ship with SAJHA and need no extra dependencies (standard library only) and no API key. Each tool is registered from its JSON config in `config/tools/boc_*.json`. To use the classes directly (tests, notebooks):
 
-- Python 3.8 or higher
-- No external dependencies (uses standard library only: json, urllib, logging)
-
-### Installation Steps
-
-1. **Download the tool files:**
-   ```bash
-   # Core files needed
-   base_mcp_tool.py
-   bank_of_canada_tool_refactored.py
-   
-   # Optional configuration files
-   boc_*.json
-   ```
-
-2. **Directory structure:**
-   ```
-   project/
-   ├── tools/
-   │   ├── __init__.py
-   │   ├── base_mcp_tool.py
-   │   └── impl/
-   │       ├── __init__.py
-   │       └── bank_of_canada_tool_refactored.py
-   └── config/
-       └── boc_*.json
-   ```
-
-3. **Import and use:**
-   ```python
-   from tools.impl.bank_of_canada_tool_refactored import (
-       BoCGetSeriesTool,
-       BoCGetLatestTool,
-       BoCGetExchangeRateTool,
-       BoCGetInterestRateTool,
-       BoCGetBondYieldTool,
-       BoCSearchSeriesTool,
-       BoCGetCommonIndicatorsTool,
-       BANK_OF_CANADA_TOOLS
-   )
-   ```
+```python
+from sajha.tools.impl.bank_of_canada_tool_refactored import (
+    BoCGetSeriesTool,
+    BoCGetLatestTool,
+    BoCGetExchangeRateTool,
+    BoCGetInterestRateTool,
+    BoCGetBondYieldTool,
+    BoCSearchSeriesTool,
+    BoCGetCommonIndicatorsTool,
+    BANK_OF_CANADA_TOOLS
+)
+```
 
 ---
 
@@ -375,7 +372,7 @@ https://www.bankofcanada.ca/valet/observations/FXUSDCAD/json?recent=10
 ### Example 1: Get Latest USD/CAD Rate
 
 ```python
-from tools.impl.bank_of_canada_tool_refactored import BoCGetLatestTool
+from sajha.tools.impl.bank_of_canada_tool_refactored import BoCGetLatestTool
 
 # Create tool instance
 tool = BoCGetLatestTool()
@@ -390,7 +387,7 @@ print(f"Current rate: {result['value']:.4f} as of {result['date']}")
 ### Example 2: Historical Exchange Rate Analysis
 
 ```python
-from tools.impl.bank_of_canada_tool_refactored import BoCGetExchangeRateTool
+from sajha.tools.impl.bank_of_canada_tool_refactored import BoCGetExchangeRateTool
 
 tool = BoCGetExchangeRateTool()
 
@@ -412,7 +409,7 @@ print(f"30-day average rate: {avg_rate:.4f}")
 ### Example 3: Yield Curve Analysis
 
 ```python
-from tools.impl.bank_of_canada_tool_refactored import BoCGetBondYieldTool
+from sajha.tools.impl.bank_of_canada_tool_refactored import BoCGetBondYieldTool
 
 tool = BoCGetBondYieldTool()
 
@@ -440,7 +437,7 @@ print(f"\n2-10 Spread: {spread_2_10:.2f}%")
 ### Example 4: Economic Dashboard
 
 ```python
-from tools.impl.bank_of_canada_tool_refactored import BoCGetCommonIndicatorsTool
+from sajha.tools.impl.bank_of_canada_tool_refactored import BoCGetCommonIndicatorsTool
 
 tool = BoCGetCommonIndicatorsTool()
 
@@ -461,7 +458,7 @@ for indicator, data in result['indicators'].items():
 ### Example 5: Policy Rate Change Tracking
 
 ```python
-from tools.impl.bank_of_canada_tool_refactored import BoCGetInterestRateTool
+from sajha.tools.impl.bank_of_canada_tool_refactored import BoCGetInterestRateTool
 from datetime import datetime, timedelta
 
 tool = BoCGetInterestRateTool()
@@ -499,7 +496,7 @@ for change in changes:
 ### Example 6: Discover Available Series
 
 ```python
-from tools.impl.bank_of_canada_tool_refactored import BoCSearchSeriesTool
+from sajha.tools.impl.bank_of_canada_tool_refactored import BoCSearchSeriesTool
 
 tool = BoCSearchSeriesTool()
 
@@ -798,7 +795,7 @@ def validate_observation(obs):
 
 **Optimization Tips:**
 1. Use `boc_get_latest` for single current values
-2. Implement client-side caching (1-hour TTL)
+2. Cache results (client-side, or set `cache_ttl` in the tool config)
 3. Batch requests with `boc_get_common_indicators`
 4. Request only needed time periods
 5. Consider async/parallel requests for multiple series
@@ -810,10 +807,6 @@ def validate_observation(obs):
 - Economic Data Portal: https://www.bankofcanada.ca/rates/
 - Statistical Releases: https://www.bankofcanada.ca/rates/statistical-releases/
 
-**Support:**
-- Email: ajsinha@gmail.com
-- GitHub Issues: (if applicable)
-- Documentation: This guide
 
 ### E. Quick Reference Card
 
@@ -823,7 +816,7 @@ def validate_observation(obs):
 └─────────────────────────────────────────────────────────┘
 
 IMPORT:
-  from tools.impl.bank_of_canada_tool_refactored import *
+  from sajha.tools.impl.bank_of_canada_tool_refactored import *
 
 TOOLS:
   boc_get_series            → Full time series data
@@ -855,13 +848,7 @@ QUICK EXAMPLES:
 
 API: https://www.bankofcanada.ca/valet
 AUTH: None required ✓
-RATE LIMIT: 120 req/min
 ```
-
----
-
-**End of Reference Guide**
-
 
 ---
 
@@ -883,4 +870,8 @@ RATE LIMIT: 120 req/min
 
 - **CEER (Canadian-dollar Effective Exchange Rate)**: A weighted average of bilateral exchange rates for the Canadian dollar.
 
-*For complete definitions, see the [Glossary](../architecture/Glossary.md).*
+*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+
+---
+
+*Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

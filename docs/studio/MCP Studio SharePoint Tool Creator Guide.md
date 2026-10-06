@@ -1,670 +1,330 @@
 # MCP Studio SharePoint Tool Creator Guide
-## SAJHA MCP Server v5.3.0
 
-## Overview
+The SharePoint Tool Creator builds MCP tools that work with a Microsoft SharePoint site: documents, lists, site information and search. You fill in a form and Studio produces a tool configuration. No Python file is generated, because every SharePoint tool runs on one of the classes already shipped in `sajha/tools/impl/sharepoint_tool.py`.
 
-The SharePoint Tool Creator enables you to build MCP tools that integrate with Microsoft SharePoint and Microsoft 365. Create powerful document management, list operations, site administration, and enterprise search tools through a visual interface without writing API-level code.
+Where Studio lives, the common create → preview → deploy workflow, where generated files are stored, hot reload and permissions are covered once in the [MCP Studio User Guide](MCP%20Studio%20User%20Guide.md).
 
-## Table of Contents
+## Contents
 
-1. [Getting Started](#getting-started)
-2. [SharePoint Integration Overview](#sharepoint-integration-overview)
-3. [Azure AD Setup](#azure-ad-setup)
-4. [Document Tools](#document-tools)
-5. [List Tools](#list-tools)
-6. [Site Tools](#site-tools)
-7. [Search Tools](#search-tools)
-8. [Authentication Configuration](#authentication-configuration)
-9. [Security Best Practices](#security-best-practices)
-10. [Examples](#examples)
-11. [Troubleshooting](#troubleshooting)
+1. [Opening the creator](#opening-the-creator)
+2. [Tool types](#tool-types)
+3. [Form reference](#form-reference)
+4. [Operations and arguments](#operations-and-arguments)
+5. [Generated configuration](#generated-configuration)
+6. [Credentials and variables](#credentials-and-variables)
+7. [Azure AD app registration](#azure-ad-app-registration)
+8. [Runtime notes](#runtime-notes)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
-## Getting Started
+## Opening the creator
 
-### Accessing the SharePoint Tool Creator
-
-1. Navigate to `http://localhost:3002/admin/studio`
-2. Click on **SharePoint** card
-3. Or directly access: `http://localhost:3002/admin/studio/sharepoint`
-
-### Prerequisites
-
-- Admin role access to SAJHA MCP Server
-- Microsoft 365 / SharePoint Online subscription
-- Azure Active Directory tenant access
-- Azure AD App Registration with SharePoint permissions
-- Understanding of SharePoint site structure
-
-### Supported SharePoint Versions
-
-| Platform | Support Level |
-|----------|---------------|
-| **SharePoint Online** | Full support |
-| **Microsoft 365** | Full support |
-| **SharePoint 2019** | Partial (REST API) |
-| **SharePoint 2016** | Limited |
+The page is served at `/studio/sharepoint`. To reach it, use the **SharePoint** card on the Studio home page (`/studio`). SharePoint has no entry in the top-bar **MCP Studio** menu or in the Studio sub-navigation chips, so you need the home card or the direct URL.
 
 ---
 
-## SharePoint Integration Overview
+## Tool types
 
-### Architecture
+Pick a type in **1. Select Tool Type**. Each type maps to a fixed implementation class:
 
+| Type | Implementation class | Purpose |
+|------|----------------------|---------|
+| **Documents** | `sajha.tools.impl.sharepoint_tool.SharePointDocumentTool` | Files and folders |
+| **Lists** | `sajha.tools.impl.sharepoint_tool.SharePointListTool` | Lists and list items |
+| **Sites** | `sajha.tools.impl.sharepoint_tool.SharePointSiteTool` | Site information, users, groups, permissions |
+| **Search** | `sajha.tools.impl.sharepoint_tool.SharePointSearchTool` | Search across content, people and sites |
+
+---
+
+## Form reference
+
+### 2. Basic Information
+
+| Field | Required | Default | Notes |
+|-------|----------|---------|-------|
+| Tool Name | Yes | none | Pattern `[a-z][a-z0-9_]*`. Also used as the config file name. |
+| Version | No | Server version | The tool's own version string. It is written to the config as `version`. |
+| Description | Yes | none | Shown to MCP clients. |
+| Category | No | `Document Management` | |
+| Tags | No | none | Comma-separated. The page sends an empty list when blank. The generator's default (`sharepoint, microsoft, documents`) applies only when the key is omitted, for example from Python. |
+
+### 3. SharePoint Connection
+
+| Field | Required | Default | Notes |
+|-------|----------|---------|-------|
+| SharePoint Site URL | Yes | none | For example `https://tenant.sharepoint.com/sites/mysite`, or a variable such as `${sharepoint.site.url}`. |
+| Default Folder Path | No | `/Shared Documents` | |
+| Default List Name | No | none | |
+
+### 4. Azure AD Authentication
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| Authentication Type | No | The choices are `client_credentials` (the default), `certificate` and `user_credentials`. Only client credentials works at run time. See [Runtime notes](#runtime-notes). |
+| Tenant ID | Yes | A GUID or `${azure.tenant.id}`. |
+| Client ID | Yes | A GUID or `${sharepoint.client.id}`. |
+| Client Secret | No | Prefer `${sharepoint.client.secret}`. The live preview masks a literal secret as `***hidden***`. |
+
+### 5. Select Operations
+
+The page shows a checkbox group for the selected tool type. The ticked operations become the `enum` of the `operation` argument in the generated input schema. When no operations are ticked, the generator allows every operation for that type.
+
+The page submits every ticked checkbox, including those in the hidden groups for the other tool types, several of which are ticked by default. Check the `operation` enum in the generated file and remove values that do not belong to the tool's type.
+
+### 6. Options
+
+| Field | Default | Range |
+|-------|---------|-------|
+| Max File Size (MB) | 100 | 1–500 |
+| Cache TTL (seconds) | 300 | 0–3600 |
+| Allowed File Types | empty, which means all | Comma-separated, for example `docx,pdf,xlsx` |
+| Enable Version Control | on | |
+| Enable Metadata Operations | on | |
+| Enable Caching | on | |
+
+### Buttons
+
+- **Preview Configuration**: refreshes the JSON preview panel and scrolls to it. The preview also updates as you type. The preview is a summary built in the browser. It is not the full file the generator writes.
+- **Deploy Tool**: submits the form. See the note below.
+
+> **Deploy in 6.0.0:** The SharePoint page posts to `url_for("studio.deploy_sharepoint_tool")`. That name is not in the server's URL map, so the template helper turns it into the literal path `/studio.deploy_sharepoint_tool`, which has no handler. See [Known limitation: Studio action endpoints](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints). Until the endpoint is restored, generate the config with `SharePointToolGenerator` from Python, or write the JSON by hand in the format shown under [Generated configuration](#generated-configuration).
+
+---
+
+## Operations and arguments
+
+The argument names below are the ones the implementation classes read.
+
+### Documents (`SharePointDocumentTool`)
+
+| Operation | Arguments read |
+|-----------|----------------|
+| `list_files` | `folder_path` (defaults to `/Shared Documents`), `recursive` |
+| `get_file` | `file_url` |
+| `download` | `file_url`, `return_content` |
+| `upload` | `folder_path`, `file_name`, `content_base64`, `overwrite` |
+| `search` | `query`, `folder_path`, `file_types`, `max_results` |
+| `get_metadata` | `file_url` |
+| `update_metadata` | `file_url`, `metadata` |
+| `check_out` | `file_url` |
+| `check_in` | `file_url`, `comment`, `check_in_type` |
+| `get_versions` | `file_url` |
+| `delete` | `file_url`, `recycle` |
+| `move` | `source_url`, `destination_url`, `overwrite` |
+| `copy` | `source_url`, `destination_url`, `overwrite` |
+
+The generated input schema for a Documents tool declares only `operation`, `folder_path`, `file_url`, `file_name`, `query`, `metadata` and `destination_url`. To advertise the other arguments to clients (`recursive`, `content_base64`, `source_url` and so on), add them to `inputSchema` by hand.
+
+### Lists (`SharePointListTool`)
+
+| Operation | Arguments read |
+|-----------|----------------|
+| `get_lists` | none |
+| `get_list_items` | `list_name`, `top`, `skip`, `select_fields`, `order_by` |
+| `get_item` | `list_name`, `item_id` |
+| `create_item` | `list_name`, `item_data` |
+| `update_item` | `list_name`, `item_id`, `item_data` |
+| `delete_item` | `list_name`, `item_id`, `recycle` |
+| `get_list_schema` | `list_name` |
+| `query_items` | `list_name`, `filter` (OData), `select_fields`, `order_by`, `top` |
+
+### Sites (`SharePointSiteTool`)
+
+| Operation | Arguments read |
+|-----------|----------------|
+| `get_site_info` | none |
+| `get_subsites` | none |
+| `get_users` | none |
+| `get_groups` | none |
+| `get_permissions` | `object_url` |
+| `get_content_types` | none |
+
+### Search (`SharePointSearchTool`)
+
+Search tools take `search_type` instead of `operation`. The values are `all`, `documents`, `people` and `sites`, and the default is `all`. They also read `query`, `max_results`, `start_row` (with `all`), and `file_types` and `folder_path` (with `documents`).
+
+Example calls:
+
+```json
+{ "operation": "list_files", "folder_path": "/Shared Documents/Projects" }
 ```
-┌─────────────┐     ┌──────────────┐     ┌─────────────────┐     ┌─────────────┐
-│  MCP Client │────▶│  SharePoint  │────▶│  Microsoft      │────▶│  SharePoint │
-│  (Claude)   │◀────│  Tool        │◀────│  Graph API      │◀────│  Online     │
-└─────────────┘     └──────────────┘     └─────────────────┘     └─────────────┘
-                           │
-                           ▼
-                    ┌──────────────┐
-                    │  Azure AD    │
-                    │  Auth        │
-                    └──────────────┘
+
+```json
+{ "operation": "query_items", "list_name": "Projects",
+  "filter": "Status eq 'Active'", "select_fields": ["Title", "Status"] }
 ```
 
-### Tool Types
-
-| Type | Description | Use Cases |
-|------|-------------|-----------|
-| **Documents** | File operations | Upload, download, search, version control |
-| **Lists** | List/item management | CRUD operations, queries, schema |
-| **Sites** | Site administration | Users, groups, permissions, subsites |
-| **Search** | Enterprise search | Full-text search across all content |
-
----
-
-## Azure AD Setup
-
-### Step 1: Create App Registration
-
-1. Go to [Azure Portal](https://portal.azure.com)
-2. Navigate to **Azure Active Directory** → **App registrations**
-3. Click **New registration**
-4. Configure:
-   - **Name**: `SAJHA SharePoint MCP Tool`
-   - **Supported account types**: Accounts in this organizational directory only
-   - **Redirect URI**: Leave blank for now
-
-### Step 2: Configure API Permissions
-
-Add the following Microsoft Graph permissions:
-
-**Application Permissions (Recommended for server-to-server):**
-
-| Permission | Type | Description |
-|------------|------|-------------|
-| `Sites.Read.All` | Application | Read all site collections |
-| `Sites.ReadWrite.All` | Application | Read/write all site collections |
-| `Files.Read.All` | Application | Read all files |
-| `Files.ReadWrite.All` | Application | Read/write all files |
-| `User.Read.All` | Application | Read all users |
-| `Group.Read.All` | Application | Read all groups |
-
-**Delegated Permissions (For user context):**
-
-| Permission | Type | Description |
-|------------|------|-------------|
-| `Sites.Read.All` | Delegated | Read sites on behalf of user |
-| `Files.ReadWrite` | Delegated | Read/write user's files |
-
-### Step 3: Grant Admin Consent
-
-1. In the App Registration, go to **API permissions**
-2. Click **Grant admin consent for [Your Org]**
-3. Confirm the consent
-
-### Step 4: Create Client Secret
-
-1. Go to **Certificates & secrets**
-2. Click **New client secret**
-3. Set description and expiration
-4. **Copy the secret value immediately** (shown only once)
-
-### Step 5: Note Required Values
-
-Record these values for SAJHA configuration:
-
-```properties
-# Add to application.yml
-azure.tenant.id=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-sharepoint.client.id=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-sharepoint.client.secret=your-client-secret-value
-sharepoint.site.url=https://yourtenant.sharepoint.com/sites/yoursite
+```json
+{ "query": "quarterly report", "search_type": "documents", "file_types": ["pdf", "docx"], "max_results": 20 }
 ```
 
 ---
 
-## Document Tools
+## Generated configuration
 
-### Creating a Document Tool
-
-1. Select **Documents** as tool type
-2. Configure basic information:
-   - Tool name: `project_docs`
-   - Description: `Manage project documents in SharePoint`
-3. Set SharePoint connection
-4. Select operations to enable
-
-### Available Operations
-
-| Operation | Description | Parameters |
-|-----------|-------------|------------|
-| `list_files` | List files in a folder | `folder_path`, `recursive` |
-| `get_file` | Get file properties | `file_url` |
-| `download` | Download file content | `file_url`, `return_content` |
-| `upload` | Upload new file | `folder_path`, `file_name`, `content_base64` |
-| `search` | Search documents | `query`, `file_types`, `max_results` |
-| `get_metadata` | Get file metadata | `file_url` |
-| `update_metadata` | Update metadata | `file_url`, `metadata` |
-| `check_out` | Check out file | `file_url` |
-| `check_in` | Check in file | `file_url`, `comment` |
-| `get_versions` | List file versions | `file_url` |
-| `delete` | Delete file | `file_url`, `recycle` |
-| `move` | Move file | `source_url`, `destination_url` |
-| `copy` | Copy file | `source_url`, `destination_url` |
-
-### Document Tool Configuration
+`SharePointToolGenerator` writes one file, `config/tools/<tool_name>.json`, through the configured storage backend. It does not write a Python file. Here is the output for a Documents tool with five operations ticked:
 
 ```json
 {
   "name": "sharepoint_project_docs",
-  "description": "Manage project documents in SharePoint",
-  "tool_type": "documents",
-  "version": "2.9.8",
+  "description": "Read project documents in SharePoint",
+  "category": "Document Management",
+  "version": "1.0.0",
+  "enabled": true,
+  "implementation": "sajha.tools.impl.sharepoint_tool.SharePointDocumentTool",
   "site_url": "${sharepoint.site.url}",
   "authentication": {
     "type": "client_credentials",
     "tenant_id": "${azure.tenant.id}",
     "client_id": "${sharepoint.client.id}",
     "client_secret": "${sharepoint.client.secret}"
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "operation": {
+        "type": "string",
+        "required": true,
+        "enum": ["list_files", "get_file", "download", "search", "get_metadata"],
+        "description": "Operation to perform"
+      },
+      "folder_path": {"type": "string", "description": "Folder path"},
+      "file_url": {"type": "string", "description": "File URL"},
+      "file_name": {"type": "string", "description": "File name"},
+      "query": {"type": "string", "description": "Search query"},
+      "metadata": {"type": "object", "description": "Metadata fields"},
+      "destination_url": {"type": "string", "description": "Destination for move/copy"}
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "success": {"type": "boolean"},
+      "data": {"type": "object"},
+      "results": {"type": "array"},
+      "execution_time_ms": {"type": "number"},
+      "error": {"type": "string"}
+    }
   },
   "options": {
     "default_folder": "/Shared Documents/Projects",
-    "allowed_operations": [
-      "list_files", "get_file", "download", "search",
-      "get_metadata", "get_versions"
-    ],
+    "default_list": "",
     "max_file_size_mb": 100,
-    "allowed_file_types": ["docx", "pdf", "xlsx", "pptx"]
-  }
-}
-```
-
-### Usage Examples
-
-**List Files:**
-```json
-{
-  "operation": "list_files",
-  "folder_path": "/Shared Documents/Projects/2024"
-}
-```
-
-**Search Documents:**
-```json
-{
-  "operation": "search",
-  "query": "quarterly report",
-  "file_types": ["pdf", "docx"],
-  "max_results": 20
-}
-```
-
-**Download File:**
-```json
-{
-  "operation": "download",
-  "file_url": "/sites/team/Shared Documents/report.pdf",
-  "return_content": true
-}
-```
-
----
-
-## List Tools
-
-### Creating a List Tool
-
-1. Select **Lists** as tool type
-2. Configure connection
-3. Set default list name (optional)
-4. Select operations
-
-### Available Operations
-
-| Operation | Description | Parameters |
-|-----------|-------------|------------|
-| `get_lists` | List all lists in site | - |
-| `get_list_items` | Get items from list | `list_name`, `top`, `skip` |
-| `get_item` | Get single item | `list_name`, `item_id` |
-| `create_item` | Create new item | `list_name`, `item_data` |
-| `update_item` | Update item | `list_name`, `item_id`, `item_data` |
-| `delete_item` | Delete item | `list_name`, `item_id` |
-| `get_list_schema` | Get list fields | `list_name` |
-| `query_items` | Query with OData filter | `list_name`, `filter`, `select_fields` |
-
-### List Tool Configuration
-
-```json
-{
-  "name": "sharepoint_tasks",
-  "description": "Manage SharePoint task lists",
-  "tool_type": "lists",
-  "version": "2.9.8",
-  "site_url": "${sharepoint.site.url}",
-  "options": {
-    "default_list": "Tasks",
-    "allowed_operations": [
-      "get_lists", "get_list_items", "get_item",
-      "create_item", "update_item", "query_items"
-    ]
-  }
-}
-```
-
-### Usage Examples
-
-**Get All Lists:**
-```json
-{
-  "operation": "get_lists"
-}
-```
-
-**Query Items with Filter:**
-```json
-{
-  "operation": "query_items",
-  "list_name": "Projects",
-  "filter": "Status eq 'Active' and Priority eq 'High'",
-  "select_fields": ["Title", "Status", "DueDate", "AssignedTo"]
-}
-```
-
-**Create Item:**
-```json
-{
-  "operation": "create_item",
-  "list_name": "Tasks",
-  "item_data": {
-    "Title": "Review Q4 Report",
-    "Status": "Not Started",
-    "Priority": "High",
-    "DueDate": "2024-12-15"
-  }
-}
-```
-
-### OData Filter Examples
-
-| Filter | Description |
-|--------|-------------|
-| `Status eq 'Active'` | Equal to value |
-| `Priority ne 'Low'` | Not equal |
-| `Created gt '2024-01-01'` | Greater than date |
-| `Title contains 'Report'` | Contains text |
-| `AssignedTo eq null` | Is null |
-| `Status eq 'Active' and Priority eq 'High'` | AND condition |
-| `Status eq 'Draft' or Status eq 'Pending'` | OR condition |
-
----
-
-## Site Tools
-
-### Creating a Site Tool
-
-1. Select **Sites** as tool type
-2. Configure site URL
-3. Select site administration operations
-
-### Available Operations
-
-| Operation | Description | Output |
-|-----------|-------------|--------|
-| `get_site_info` | Get site details | Title, URL, template, created date |
-| `get_subsites` | List subsites | Child sites with URLs |
-| `get_users` | List site users | Users with roles |
-| `get_groups` | List site groups | SharePoint groups |
-| `get_permissions` | Get permissions | Role assignments |
-| `get_content_types` | List content types | Available content types |
-
-### Site Tool Configuration
-
-```json
-{
-  "name": "sharepoint_site_admin",
-  "description": "SharePoint site administration",
-  "tool_type": "sites",
-  "version": "2.9.8",
-  "site_url": "${sharepoint.site.url}",
-  "options": {
-    "allowed_operations": [
-      "get_site_info", "get_subsites", "get_users",
-      "get_groups", "get_content_types"
-    ]
-  }
-}
-```
-
-### Usage Examples
-
-**Get Site Information:**
-```json
-{
-  "operation": "get_site_info"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "title": "Project Team Site",
-  "description": "Collaboration site for project team",
-  "url": "https://tenant.sharepoint.com/sites/projectteam",
-  "created": "2024-01-15T10:30:00Z",
-  "language": 1033,
-  "template": "STS#3"
-}
-```
-
----
-
-## Search Tools
-
-### Creating a Search Tool
-
-1. Select **Search** as tool type
-2. Configure search options
-3. Select search scopes
-
-### Search Types
-
-| Type | Description | Best For |
-|------|-------------|----------|
-| `all` | Search everything | General queries |
-| `documents` | Files only | Document discovery |
-| `people` | Users/contacts | Finding people |
-| `sites` | Sites only | Site discovery |
-
-### Search Tool Configuration
-
-```json
-{
-  "name": "sharepoint_search",
-  "description": "Enterprise search across SharePoint",
-  "tool_type": "search",
-  "version": "2.9.8",
-  "site_url": "${sharepoint.site.url}",
-  "options": {
-    "search_types": ["all", "documents", "people", "sites"],
-    "max_results": 100,
-    "highlight_results": true
-  }
-}
-```
-
-### Usage Examples
-
-**Search All Content:**
-```json
-{
-  "query": "quarterly budget 2024",
-  "search_type": "all",
-  "max_results": 50
-}
-```
-
-**Search Documents by Type:**
-```json
-{
-  "query": "project plan",
-  "search_type": "documents",
-  "file_types": ["docx", "pdf"],
-  "max_results": 20
-}
-```
-
-**Search People:**
-```json
-{
-  "query": "project manager",
-  "search_type": "people",
-  "max_results": 10
-}
-```
-
----
-
-## Authentication Configuration
-
-### Client Credentials Flow (Recommended)
-
-Best for server-to-server integration without user interaction.
-
-```json
-{
-  "authentication": {
-    "type": "client_credentials",
-    "tenant_id": "${azure.tenant.id}",
-    "client_id": "${sharepoint.client.id}",
-    "client_secret": "${sharepoint.client.secret}"
-  }
-}
-```
-
-### Certificate Authentication
-
-More secure for production environments.
-
-```json
-{
-  "authentication": {
-    "type": "certificate",
-    "tenant_id": "${azure.tenant.id}",
-    "client_id": "${sharepoint.client.id}",
-    "certificate_path": "/path/to/cert.pem",
-    "certificate_password": "${sharepoint.cert.password}"
-  }
-}
-```
-
-### Store Credentials Securely
-
-Add to `application.yml`:
-
-```properties
-# Azure AD / SharePoint Configuration
-azure.tenant.id=${AZURE_TENANT_ID}
-sharepoint.client.id=${SHAREPOINT_CLIENT_ID}
-sharepoint.client.secret=${SHAREPOINT_CLIENT_SECRET}
-sharepoint.site.url=${SHAREPOINT_SITE_URL}
-```
-
-Set environment variables:
-```bash
-export AZURE_TENANT_ID="your-tenant-id"
-export SHAREPOINT_CLIENT_ID="your-client-id"
-export SHAREPOINT_CLIENT_SECRET="your-client-secret"
-export SHAREPOINT_SITE_URL="https://tenant.sharepoint.com/sites/mysite"
-```
-
----
-
-## Security Best Practices
-
-### 1. Principle of Least Privilege
-
-Only request permissions your tool actually needs:
-
-```json
-{
-  "options": {
-    "allowed_operations": ["list_files", "search", "get_metadata"]
-    // Don't include "delete", "upload" unless needed
-  }
-}
-```
-
-### 2. File Type Restrictions
-
-Limit allowed file types:
-
-```json
-{
-  "options": {
-    "allowed_file_types": ["docx", "pdf", "xlsx", "pptx", "txt"],
-    "max_file_size_mb": 50
-  }
-}
-```
-
-### 3. Audit Logging
-
-Enable operation logging:
-
-```json
-{
-  "options": {
-    "audit_logging": true,
-    "log_user_actions": true
-  }
-}
-```
-
-### 4. Token Management
-
-- Use short-lived client secrets (6-12 months)
-- Rotate secrets regularly
-- Monitor for unauthorized access
-
----
-
-## Examples
-
-### Example 1: Project Document Manager
-
-```json
-{
-  "name": "project_doc_manager",
-  "description": "Manage project documents with version control",
-  "tool_type": "documents",
-  "version": "2.9.8",
-  "site_url": "${sharepoint.site.url}",
-  "authentication": {
-    "type": "client_credentials",
-    "tenant_id": "${azure.tenant.id}",
-    "client_id": "${sharepoint.client.id}",
-    "client_secret": "${sharepoint.client.secret}"
-  },
-  "options": {
-    "default_folder": "/Shared Documents/Active Projects",
-    "allowed_operations": [
-      "list_files", "get_file", "download", "upload",
-      "search", "get_metadata", "update_metadata",
-      "get_versions", "check_out", "check_in"
-    ],
+    "allowed_file_types": ["docx", "pdf"],
     "enable_version_control": true,
-    "max_file_size_mb": 100
+    "enable_metadata": true
+  },
+  "caching": {"enabled": true, "ttl_seconds": 300},
+  "metadata": {
+    "author": "MCP Studio",
+    "category": "Document Management",
+    "tags": ["sharepoint", "projects"],
+    "tool_type": "documents",
+    "generator_version": "2.9.8"
   }
 }
 ```
 
-### Example 2: Task Tracker Integration
+`metadata.generator_version` is a fixed string that the generator stamps on every file. It does not describe the server release.
 
-```json
-{
-  "name": "task_tracker",
-  "description": "Sync tasks with SharePoint task list",
-  "tool_type": "lists",
-  "version": "2.9.8",
-  "site_url": "${sharepoint.site.url}",
-  "options": {
-    "default_list": "Project Tasks",
-    "allowed_operations": [
-      "get_list_items", "get_item", "create_item",
-      "update_item", "query_items"
-    ]
-  }
-}
+Examples ship in `config/tools/`: `sharepoint_documents.json`, `sharepoint_lists.json` and `sharepoint_search.json`.
+
+From Python, without the page:
+
+```python
+from sajha.studio.sharepoint_tool_generator import SharePointToolGenerator
+
+gen = SharePointToolGenerator()               # output_dir defaults to config/tools
+cfg = SharePointToolGenerator.from_dict({
+    "name": "sharepoint_project_docs",
+    "description": "Read project documents in SharePoint",
+    "tool_type": "documents",
+    "site_url": "${sharepoint.site.url}",
+    "tenant_id": "${azure.tenant.id}",
+    "client_id": "${sharepoint.client.id}",
+    "client_secret": "${sharepoint.client.secret}",
+    "allowed_operations": ["list_files", "get_file", "download", "search", "get_metadata"],
+})
+errors = gen.validate(cfg)                    # [] when valid
+if not errors:
+    gen.save(cfg)
 ```
 
-### Example 3: Enterprise Content Search
+`validate()` checks four things: the name is alphanumeric with underscores, the description is set, the tool type is one of the four, and the site URL is set.
 
-```json
-{
-  "name": "content_search",
-  "description": "Search across all SharePoint content",
-  "tool_type": "search",
-  "version": "2.9.8",
-  "site_url": "${sharepoint.site.url}",
-  "options": {
-    "search_types": ["all", "documents"],
-    "max_results": 100,
-    "highlight_results": true
-  }
-}
+---
+
+## Credentials and variables
+
+When the tools registry loads a config, it resolves every `${key}` placeholder against `config/application.yml`, using dotted paths into the YAML. An environment variable named exactly like the dotted key overrides the file value. A YAML value can itself read an environment variable with `${ENV_VAR:default}`. To keep secrets out of tool JSON, add a block like this:
+
+```yaml
+azure:
+  tenant:
+    id: ${AZURE_TENANT_ID:}
+sharepoint:
+  site:
+    url: ${SHAREPOINT_SITE_URL:}
+  client:
+    id: ${SHAREPOINT_CLIENT_ID:}
+    secret: ${SHAREPOINT_CLIENT_SECRET:}
 ```
+
+The page's side panel lists the four variable names used above: `${sharepoint.site.url}`, `${azure.tenant.id}`, `${sharepoint.client.id}` and `${sharepoint.client.secret}`.
+
+---
+
+## Azure AD app registration
+
+The page's setup panel lists these steps:
+
+1. In the Azure Portal, open **Azure AD → App registrations** and create a new registration.
+2. Add API permissions. The page suggests **SharePoint → Sites.Read.All**. Add write permissions only if you enable write operations such as `upload`, `create_item` or `delete`.
+3. Create a client secret and copy it. It is shown only once.
+4. Copy the tenant ID, client ID and secret into the variables above.
+
+---
+
+## Runtime notes
+
+These notes come from `sajha/tools/impl/sharepoint_tool.py`:
+
+- Requests go to the SharePoint REST API at `<site_url>/_api/...` with `Accept: application/json;odata=verbose`.
+- The client-credentials token is requested from `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token` with scope `https://graph.microsoft.com/.default`.
+- `certificate` and `user_credentials` raise `NotImplementedError`. The authenticator also reads the key `auth_type`, while the generated config writes `authentication.type`. In practice, every generated tool authenticates with client credentials.
+- The `options` and `caching` blocks are stored in the config, but the current SharePoint classes do not enforce them. That covers `max_file_size_mb`, `allowed_file_types`, the version-control and metadata switches, and the cache TTL. What limits which operations a client sees is the `operation` enum in the input schema.
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
+| Symptom | Likely cause | What to check |
+|---------|--------------|---------------|
+| Deploy shows an error or 404 | The deploy endpoint is not registered | See [Known limitation](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints) and use the Python generator. |
+| `Tenant ID required for client credentials auth` | Validation failed | Set Tenant ID and Client ID, or use their variables. |
+| `NotImplementedError: Certificate auth not yet implemented` | A non-client-credentials auth path was used | Use client credentials. |
+| HTTP 401 or 403 from `/_api/` | Token or permissions problem | Check the tenant, client ID, secret and granted API permissions. |
+| `${sharepoint.site.url}` appears literally in errors | Variable not defined | Add the key to `config/application.yml`. |
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| 401 Unauthorized | Invalid credentials | Verify tenant/client IDs and secret |
-| 403 Forbidden | Missing permissions | Add required API permissions in Azure |
-| Site not found | Wrong site URL | Verify site URL format |
-| Token expired | Secret expired | Rotate client secret |
-| CORS error | Browser blocking | Use server-side requests |
-
-### Debug Configuration
-
-```json
-{
-  "debug": {
-    "log_requests": true,
-    "log_responses": false,
-    "trace_api_calls": true
-  }
-}
-```
-
-### Verify Azure AD Setup
+Token check outside SAJHA:
 
 ```bash
-# Test token acquisition
-curl -X POST "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "client_id={client_id}" \
-  -d "client_secret={client_secret}" \
-  -d "scope=https://graph.microsoft.com/.default" \
-  -d "grant_type=client_credentials"
-```
-
-### Test SharePoint API
-
-```bash
-# Test API access with token
-curl -H "Authorization: Bearer {access_token}" \
-  "https://{tenant}.sharepoint.com/sites/{site}/_api/web"
+curl -X POST "https://login.microsoftonline.com/<tenant_id>/oauth2/v2.0/token" \
+  -d "client_id=<client_id>" -d "client_secret=<client_secret>" \
+  -d "scope=https://graph.microsoft.com/.default" -d "grant_type=client_credentials"
 ```
 
 ---
 
-## Related Documentation
+## Related documentation
 
-- [MCP Studio Overview](MCP_Studio_User_Guide.md)
-- [Variable Substitution Guide](../architecture/SAJHA_MCP_Server_Architecture.md)
-- [Microsoft Graph API Documentation](https://docs.microsoft.com/en-us/graph/)
-- [SharePoint REST API Reference](https://docs.microsoft.com/en-us/sharepoint/dev/sp-add-ins/get-to-know-the-sharepoint-rest-service)
+- [MCP Studio User Guide](MCP%20Studio%20User%20Guide.md)
+- [Storage Guide](../getting-started/Storage%20Guide.md): where `config/tools/` is written under the s3, azure and gcs backends
+- [Architecture](../architecture/Architecture.md)
+- [Glossary](../../GLOSSARY.md)
+- [SharePoint REST service](https://learn.microsoft.com/en-us/sharepoint/dev/sp-add-ins/get-to-know-the-sharepoint-rest-service)
 
 ---
 
-*SAJHA MCP Server v5.3.0 - SharePoint Tool Creator Guide*
-*Copyright © 2025-2030 Ashutosh Sinha*
+Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.

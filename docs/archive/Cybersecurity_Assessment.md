@@ -1,3 +1,5 @@
+> Archived point-in-time assessment; not maintained. Current: docs/security/Security Model.md.
+
 # SAJHA MCP Server v5.3.0 — Cybersecurity & Data Safety Assessment
 
 **Date:** May 2026

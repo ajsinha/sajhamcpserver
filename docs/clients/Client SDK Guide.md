@@ -1,857 +1,663 @@
-# SAJHA MCP Server — Client SDK User Guide
+# SAJHA Client SDK Guide
 
-**Version 3.0.0** | Copyright 2025-2030, Ashutosh Sinha | ajsinha@gmail.com
+`sajhaclient` is the Python client SDK for the SAJHA MCP Server. It contains:
+
+- **The standard MCP client**: `SajhaMCPClient` (async) and `SajhaMCPSyncClient` (blocking). Both wrap the official MCP Python SDK and use the standard Streamable HTTP transport. They need the optional `[mcp]` extra.
+- **Zero-dependency clients** that use only the Python standard library: `SajhaClient` (REST), `MCPClient` (MCP JSON-RPC over HTTP POST), `MCPSSEClient` (legacy HTTP+SSE), `MCPWebSocketClient` (SAJHA's MCP-over-WebSocket) and `A2AClient` (Agent-to-Agent).
+- **Shared pieces**: `SajhaConfig`, the auth providers (`NoAuth`, `ApiKeyAuth`, `JWTAuth`, `OAuthAuth`), the exception hierarchy, plus the experimental helpers `ClientPipeline`, `TransportCoalgebra` and `bisimilar`.
+
+Related documents:
+
+- [MCP Protocol Guide](../protocol/MCP%20Protocol%20Guide.md): what the server speaks on `/mcp` (both protocol eras)
+- [OAuth Guide](../protocol/OAuth%20Guide.md): server-side OAuth 2.1 and how to obtain tokens
+- [API Reference](../protocol/API%20Reference.md): the REST endpoints the `SajhaClient` methods call
 
 ---
 
-## Table of Contents
+## Contents
 
 1. [Installation](#1-installation)
-2. [Quick Start](#2-quick-start)
-3. [Authentication Methods](#3-authentication-methods)
-4. [REST API Client](#4-rest-api-client)
-5. [MCP Protocol Client](#5-mcp-protocol-client)
-6. [A2A Protocol Client](#6-a2a-protocol-client)
-7. [curl & wget Reference](#7-curl--wget-reference)
-8. [Tool Execution](#8-tool-execution)
-9. [Admin Operations](#9-admin-operations)
-10. [Reporting & Analytics](#10-reporting--analytics)
-11. [Error Handling](#11-error-handling)
-12. [Advanced Usage](#12-advanced-usage)
-13. [API Reference](#13-api-reference)
+2. [Choosing a client](#2-choosing-a-client)
+3. [Standard MCP client: SajhaMCPClient / SajhaMCPSyncClient](#3-standard-mcp-client-sajhamcpclient--sajhamcpsyncclient)
+4. [Configuration: SajhaConfig](#4-configuration-sajhaconfig)
+5. [Authentication](#5-authentication)
+6. [REST client: SajhaClient](#6-rest-client-sajhaclient)
+7. [Zero-dependency MCP clients](#7-zero-dependency-mcp-clients)
+8. [A2A client: A2AClient](#8-a2a-client-a2aclient)
+9. [Errors](#9-errors)
+10. [Experimental: ClientPipeline, transport coalgebra, bisimilar](#10-experimental-clientpipeline-transport-coalgebra-bisimilar)
+11. [curl and wget](#11-curl-and-wget)
+12. [Examples and tests](#12-examples-and-tests)
 
 ---
 
 ## 1. Installation
 
-### From Source
-
 ```bash
-cd clientsdk
-pip install .
+pip install sajhaclient            # core: zero dependencies, Python 3.9+
+pip install 'sajhaclient[mcp]'     # adds the standard MCP client (official SDK: mcp>=2.3,<3)
 ```
 
-### Development Mode
+To install from a checkout of this repository:
 
 ```bash
-pip install -e .
+pip install ./clientsdk            # or: pip install './clientsdk[mcp]'
+pip install -e './clientsdk[dev]'  # editable, with pytest and pytest-asyncio
 ```
 
-### Zero Dependencies
+Extras declared in `clientsdk/setup.py`:
 
-The SDK uses only Python standard library (`urllib`, `json`, `threading`). No `requests`, no `httpx`, no third-party packages required. Works with Python 3.9+.
+| Extra | Installs | Needed for |
+|-------|----------|------------|
+| `mcp` | `mcp>=2.3,<3` | `SajhaMCPClient`, `SajhaMCPSyncClient` |
+| `dev` | `pytest`, `pytest-asyncio` | running `clientsdk/tests` |
+
+`MCPWebSocketClient` also needs the `websockets` package, which is not part of any extra. Install it with `pip install websockets`.
+
+Importing `sajhaclient` never imports `mcp`. The SDK is imported the first time a `SajhaMCPClient` is constructed. If it is missing, you get an `ImportError` that tells you to run `pip install 'sajhaclient[mcp]'`.
 
 ---
 
-## 2. Quick Start
+## 2. Choosing a client
 
-### 30-Second Example
+All clients are importable from the package root, e.g. `from sajhaclient import SajhaMCPClient`.
 
-```python
-from sajhaclient import SajhaClient, SajhaConfig
-
-# Connect with API key
-client = SajhaClient(SajhaConfig(
-    base_url="http://localhost:3002",
-    api_key="sja_your_key_here",
-))
-
-# Check server health
-print(client.health())
-
-# List available tools
-tools = client.list_tools()
-print(f"{len(tools)} tools available")
-
-# Execute a tool
-result = client.execute_tool("fmp_stock_quote", symbol="AAPL")
-print(result)
-```
-
-### Connection Methods at a Glance
-
-| Method | Use When | Example |
-|--------|----------|---------|
-| API Key | Scripts, automation, CI/CD | `SajhaConfig(api_key="sja_xxx")` |
-| JWT Login | Interactive apps, admin tasks | `SajhaConfig(username="admin", password="pass")` |
-| OAuth | Enterprise SSO (Azure AD, Okta) | `OAuthAuth(token_url, client_id, secret)` |
-| No Auth | Health check, public endpoints | `SajhaConfig()` |
-
-### Protocol Clients
-
-| Client | Protocol | Use When |
-|--------|----------|----------|
-| `SajhaClient` | REST/HTTP | Standard tool execution, admin, reports |
-| `MCPClient` | MCP JSON-RPC 2.0 | AI agents, LLM integrations |
-| `A2AClient` | Agent-to-Agent | Multi-agent systems, agent orchestration |
+| Class | Protocol / transport | Dependencies | Use it for |
+|-------|---------------------|--------------|------------|
+| `SajhaMCPClient` | MCP over Streamable HTTP via the official SDK; negotiates 2026-07-28 or the `initialize` handshake | `[mcp]` extra | **Default choice** for MCP: agents, LLM integrations, anything that must stay spec-compliant |
+| `SajhaMCPSyncClient` | Same, as a blocking facade | `[mcp]` extra | The same thing, without asyncio |
+| `SajhaClient` | SAJHA REST API | none | Health, tool schemas, tool execution, usage reports, admin |
+| `MCPClient` | MCP JSON-RPC via plain HTTP POST (`initialize` with `2025-11-25`) | none | Environments where you cannot install packages |
+| `MCPSSEClient` | Legacy MCP HTTP+SSE (the 2024-11-05 pattern) | none | Old SSE-based setups only. **Deprecated** |
+| `MCPWebSocketClient` | SAJHA's MCP-over-WebSocket (`/mcp/ws`), a SAJHA extension rather than a standard MCP transport | `websockets` | Full-duplex sessions with server-pushed notifications |
+| `A2AClient` | A2A JSON-RPC (`/a2a`, `/.well-known/agent.json`) | none | Multi-agent orchestration |
 
 ---
 
-## 3. Authentication Methods
+## 3. Standard MCP client: SajhaMCPClient / SajhaMCPSyncClient
 
-### 3.1 API Key Authentication
+`SajhaMCPClient` is a thin wrapper over the official MCP Python SDK's `mcp.Client`. It speaks Streamable HTTP to `<base_url>/mcp`, so it behaves like any other spec-compliant MCP client. It also gives you SAJHA's own features through the zero-dependency clients (see [3.6](#36-sajha-extras-on-the-same-object)).
 
-The simplest method. Get your key from the SAJHA Admin Panel → API Keys.
+### 3.1 Quick start (async)
 
 ```python
-from sajhaclient import SajhaClient, SajhaConfig, ApiKeyAuth
+import asyncio
+from sajhaclient import SajhaMCPClient
 
-# Method 1: In config (auto-detected)
-client = SajhaClient(SajhaConfig(
-    base_url="http://localhost:3002",
-    api_key="sja_abc123def456",
-))
+async def main():
+    async with SajhaMCPClient("http://localhost:3002", api_key="sja_your_key") as client:
+        print(client.negotiated_protocol_version)       # "2026-07-28" or "2025-11-25"
+        tools = await client.list_all_tools()            # follows pagination
+        print([t.name for t in tools[:5]])
 
-# Method 2: Explicit auth object
-auth = ApiKeyAuth("sja_abc123def456")
-client = SajhaClient(SajhaConfig(base_url="http://localhost:3002"), auth=auth)
+        result = await client.call_tool("calc_percentage_change",
+                                        {"old_value": 100, "new_value": 125})
+        print(result.is_error, result.structured_content)
+
+asyncio.run(main())
 ```
 
-**HTTP Header:** `X-API-Key: sja_abc123def456`
+### 3.2 Quick start (sync)
 
-### 3.2 JWT Authentication (Username/Password)
-
-Login with credentials. The SDK handles token refresh automatically.
+`SajhaMCPSyncClient(base_url=None, **kwargs)` takes the same arguments as `SajhaMCPClient` and exposes the same methods as blocking calls. It runs the async client on a private event loop in a background thread (`anyio.from_thread.start_blocking_portal`).
 
 ```python
-from sajhaclient import SajhaClient, SajhaConfig, JWTAuth
+from sajhaclient import SajhaMCPSyncClient
 
-# Method 1: In config (auto-login)
-client = SajhaClient(SajhaConfig(
-    base_url="http://localhost:3002",
-    username="admin",
-    password="admin123",
-))
-
-# Method 2: Login after creation
-client = SajhaClient(SajhaConfig(base_url="http://localhost:3002"))
-token = client.login("admin", "admin123")
-
-# Method 3: Pre-obtained token
-auth = JWTAuth.from_token("eyJhbGciOiJIUzI1NiIs...")
-client = SajhaClient(SajhaConfig(base_url="http://localhost:3002"), auth=auth)
+with SajhaMCPSyncClient("http://localhost:3002", api_key="sja_your_key") as client:
+    print(client.negotiated_protocol_version)
+    print([t.name for t in client.list_all_tools()])
+    result = client.call_tool("calc_percentage_change", {"old_value": 80, "new_value": 100})
 ```
 
-**HTTP Header:** `Authorization: Bearer eyJhbG...`
+Without `with`, call `client.connect()` and `client.close()` yourself. A blocking method called before `connect()` raises `RuntimeError`. Properties and extras such as `negotiated_protocol_version`, `server_info`, `rest`, `a2a`, `websocket()` and `sdk` pass straight through to the wrapped async client.
 
-### 3.3 OAuth 2.0 Authentication
-
-For enterprise environments with Azure AD, Okta, Auth0, or Keycloak.
+### 3.3 Constructor
 
 ```python
-from sajhaclient import SajhaClient, SajhaConfig, OAuthAuth
-
-# Azure AD
-auth = OAuthAuth(
-    token_url="https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token",
-    client_id="your-client-id",
-    client_secret="your-secret",
-    scope="api://sajha/.default",
-)
-
-client = SajhaClient(
-    SajhaConfig(base_url="https://sajha.company.com"),
-    auth=auth,
+SajhaMCPClient(
+    base_url=None, *,
+    config=None, auth=None,
+    api_key=None, jwt_token=None, username=None, password=None,
+    mode="auto",
+    mcp_path="/mcp",
+    client_name="sajhaclient",
+    client_version=None,          # defaults to sajhaclient.__version__
+    **client_kwargs,
 )
 ```
 
-The SDK obtains and refreshes OAuth tokens automatically.
+| Argument | Meaning |
+|----------|---------|
+| `base_url` | Server URL, e.g. `"http://localhost:3002"`. Overrides `config.base_url`; a trailing `/` is removed. |
+| `config` | A [`SajhaConfig`](#4-configuration-sajhaconfig): credentials, `timeout`, `headers`, `verify_ssl`. |
+| `auth` | An explicit [`AuthProvider`](#5-authentication). It takes precedence over any credentials. |
+| `api_key`, `jwt_token`, `username`, `password` | Shortcuts that are copied into `config`. |
+| `mode` | Protocol negotiation mode for the SDK (see [3.4](#34-protocol-negotiation)). |
+| `mcp_path` | Path of the MCP endpoint relative to `base_url`. |
+| `client_name`, `client_version` | Sent to the server as `clientInfo`. |
+| `**client_kwargs` | Passed through to `mcp.Client`, e.g. `sampling_callback`, `elicitation_callback`, `logging_callback`, `read_timeout_seconds`, `cache`. |
+
+The HTTP client uses `config.timeout` as its general timeout and allows reads of up to 300 s, so long-running tool calls can stream. It sends `config.headers` on every request, honours `config.verify_ssl`, and sets `User-Agent: sajhaclient/<version>`.
+
+### 3.4 Protocol negotiation
+
+The SAJHA server is dual-era. The SDK negotiates the era according to `mode`:
+
+| `mode` | Behaviour |
+|--------|-----------|
+| `"auto"` (default) | Probes `server/discover` (MCP 2026-07-28). If the server does not support it, falls back to the `initialize` handshake (2025-11-25 and earlier). |
+| `"legacy"` | Always uses the `initialize` handshake. |
+| a modern version string, e.g. `"2026-07-28"` | Adopts that version directly, with no probe. |
+
+After connecting, these session properties are available:
+
+| Property | Value |
+|----------|-------|
+| `negotiated_protocol_version` | The agreed version, e.g. `"2026-07-28"` or `"2025-11-25"` |
+| `server_info` | `mcp_types.Implementation`, or `None` because 2026-era servers may stay anonymous |
+| `server_capabilities` | The server's capabilities |
+| `instructions` | The server's instructions string, if any |
+| `connected` | `True` while a session is open |
+| `sdk` | The underlying `mcp.Client`, for anything this wrapper does not cover |
+
+Reading `sdk` or any of the properties above (except `connected`) before connecting raises `RuntimeError`. See the [MCP Protocol Guide](../protocol/MCP%20Protocol%20Guide.md) for what the two eras mean on the wire.
+
+### 3.5 MCP operations
+
+All of these are coroutines on `SajhaMCPClient` and blocking calls on `SajhaMCPSyncClient`. They return the SDK's typed pydantic results.
+
+| Method | MCP request | Returns |
+|--------|-------------|---------|
+| `list_tools(cursor=None, **kw)` | `tools/list` (one page) | `ListToolsResult` |
+| `list_all_tools()` | `tools/list`, following `next_cursor` | `list[Tool]` |
+| `call_tool(name, arguments=None, **kw)` | `tools/call` | `CallToolResult` |
+| `list_prompts(cursor=None, **kw)` / `list_all_prompts()` | `prompts/list` | page / `list[Prompt]` |
+| `get_prompt(name, arguments=None, **kw)` | `prompts/get` | `GetPromptResult` |
+| `list_resources(cursor=None, **kw)` / `list_all_resources()` | `resources/list` | page / `list[Resource]` |
+| `list_resource_templates(cursor=None, **kw)` | `resources/templates/list` | page |
+| `read_resource(uri, **kw)` | `resources/read` | `ReadResourceResult` |
+| `complete(ref, argument, **kw)` | `completion/complete` | completion result |
+
+Notes:
+
+- `call_tool` does **not** raise when the tool itself fails. Check `result.is_error`. Use `result.structured_content` when the tool returns structured output, or `result.content` for the content blocks.
+- `get_prompt` turns every argument value into a string, because the MCP spec requires string prompt arguments.
+- SAJHA runs `tools/call` only for authenticated callers, so pass credentials (see [3.7](#37-auth-results-and-errors)).
+
+```python
+prompt = await client.get_prompt("bug_diagnosis", {
+    "bug_description": "Average of an empty list crashes",
+    "error_message": "ZeroDivisionError: division by zero",
+    "code": "def avg(xs):\n    return sum(xs) / len(xs)",
+    "language": "python",
+})
+resources = await client.list_all_resources()
+if resources:
+    contents = await client.read_resource(str(resources[0].uri))
+```
+
+### 3.6 SAJHA extras on the same object
+
+These members are SAJHA features, not standard MCP. They reuse the client's `config` and auth.
+
+| Member | What it is |
+|--------|------------|
+| `client.rest` | A [`SajhaClient`](#6-rest-client-sajhaclient) for health, schemas, reports and admin. It is blocking (urllib). |
+| `client.a2a` | An [`A2AClient`](#8-a2a-client-a2aclient). It is blocking. |
+| `client.websocket()` | A new, unconnected [`MCPWebSocketClient`](#73-mcpwebsocketclient). Call `.connect()` on it. Needs `websockets`. |
+| `client.auth` | The resolved `AuthProvider` |
+| `await client.health()` | `GET /health` |
+| `await client.tool_schema(tool_name)` | `GET /api/tools/{name}/schema` |
+| `await client.tool_metrics(tool_name, period="30d")` | `GET /api/reports/tools/{name}/detail` (latency percentiles, errors) |
+| `await client.tools_usage(period="7d")` | `GET /api/reports/tools/usage` |
+
+The four async shortcuts run the blocking REST call in a worker thread (`anyio.to_thread`), so they do not block the event loop. On `SajhaMCPSyncClient` they are ordinary blocking methods.
+
+```python
+print((await client.health()).get("status"))
+print(client.a2a.get_agent_card().get("name"))
+usage = client.rest.report_tools_usage("7d")
+```
+
+### 3.7 Auth, results and errors
+
+- **Auth precedence** (same as the zero-dependency clients): explicit `auth=`, then `api_key` (sent as `X-API-Key`), then `jwt_token` (sent as `Authorization: Bearer`), then `username` + `password` (logs in via `JWTAuth` and sends `Bearer`), then no auth. Headers are stamped on every request and `refresh_if_needed()` runs each time, so JWT and OAuth refresh keep working on long sessions. A failed refresh is logged rather than raised; the server then answers 401.
+- **Protocol errors** (JSON-RPC errors from the server) raise `SajhaMCPError`, with `.code`, `.message` and `.data`.
+- **Transport failures** (connection refused, network errors) raise `SajhaConnectionError`. This applies when connecting too.
+- Other exceptions from the SDK propagate unchanged.
 
 ---
 
-## 4. REST API Client
+## 4. Configuration: SajhaConfig
 
-### 4.1 Tool Discovery
+`SajhaConfig` is a dataclass shared by every client.
 
-```python
-# List all tools
-tools = client.list_tools()
-for tool in tools:
-    print(f"{tool['name']}: {tool.get('description', '')}")
+| Field | Type | Default | Meaning |
+|-------|------|---------|---------|
+| `base_url` | `str` | `"http://localhost:3002"` | Server URL. A trailing `/` is stripped. |
+| `api_key` | `str \| None` | `None` | API key (`sja_...`) |
+| `jwt_token` | `str \| None` | `None` | A JWT you already have |
+| `username` | `str \| None` | `None` | Login user for `JWTAuth` |
+| `password` | `str \| None` | `None` | Login password for `JWTAuth` |
+| `timeout` | `int` | `30` | Request timeout in seconds |
+| `max_retries` | `int` | `3` | Attempts used by `SajhaClient` on 5xx and connection errors |
+| `verify_ssl` | `bool` | `True` | TLS verification. Only `SajhaMCPClient` applies it; the urllib-based clients use the default SSL context. |
+| `headers` | `dict` | `{}` | Extra headers sent on every request by `SajhaClient` and `SajhaMCPClient` |
 
-# Get full schema for a specific tool
-schema = client.get_tool_schema("fmp_stock_quote")
-print(schema['inputSchema'])
-```
-
-### 4.2 Tool Execution
-
-```python
-# Execute any tool by name with keyword arguments
-result = client.execute_tool("fmp_stock_quote", symbol="AAPL")
-result = client.execute_tool("wikipedia_search", query="Python programming")
-result = client.execute_tool("fmp_stock_screener", sector="Technology", limit=10)
-result = client.execute_tool("openbb_equity_price", symbol="TSLA", start_date="2025-01-01")
-```
-
-### 4.3 Prompts
-
-```python
-prompts = client.list_prompts()
-prompt = client.get_prompt("code_review")
-```
-
----
-
-## 5. MCP Protocol Client
-
-Use `MCPClient` for AI agent integrations. Implements the full MCP (Model Context Protocol) JSON-RPC 2.0 specification.
-
-### 5.1 Basic Usage
+Derived URLs (read-only properties): `mcp_url` (`<base_url>/mcp`), `mcp_sse_url` (`<base_url>/mcp`), `a2a_url` (`<base_url>/a2a`), `agent_card_url` (`<base_url>/.well-known/agent.json`).
 
 ```python
 from sajhaclient import SajhaConfig
-from sajhaclient.mcp_client import MCPClient
 
-mcp = MCPClient(SajhaConfig(
-    base_url="http://localhost:3002",
-    api_key="sja_xxx",
-))
-
-# Step 1: Initialize (required first call)
-caps = mcp.initialize(client_name="my-agent", client_version="1.0")
-print(f"Capabilities: {list(caps['capabilities'].keys())}")
-
-# Step 2: Discover tools
-tools = mcp.list_tools()
-
-# Step 3: Call tools
-result = mcp.call_tool("fmp_stock_quote", symbol="AAPL")
-```
-
-### 5.2 All MCP Methods
-
-```python
-# Session
-mcp.initialize()
-mcp.ping()
-
-# Tools
-mcp.list_tools()
-mcp.call_tool("tool_name", arg1="val1", arg2="val2")
-
-# Prompts
-mcp.list_prompts()
-mcp.get_prompt("prompt_name", arguments={"key": "value"})
-
-# Resources
-mcp.list_resources()
-mcp.read_resource("sajha://tools/catalog")
-
-# Completion (auto-suggest)
-mcp.complete("fmp_stock_quote", "symbol", "AA")  # → ["AAPL", "AAL", ...]
-
-# Logging
-mcp.set_log_level("DEBUG")
-```
-
-### 5.3 SSE Streaming Transport
-
-```python
-from sajhaclient.mcp_client import MCPSSEClient
-
-sse = MCPSSEClient(SajhaConfig(base_url="http://localhost:3002"))
-sse.connect()
-
-# Listen for server notifications (tool list changes, etc.)
-sse.on_notification(lambda n: print(f"Server notification: {n}"))
-
-# Disconnect when done
-sse.disconnect()
+config = SajhaConfig(
+    base_url="https://sajha.example.com",
+    api_key="sja_your_key",
+    timeout=60,
+    max_retries=5,
+    headers={"X-Request-ID": "req-001"},
+)
 ```
 
 ---
 
-## 6. A2A Protocol Client
+## 5. Authentication
 
-Use `A2AClient` when building multi-agent systems. SAJHA acts as an agent that your orchestrator can delegate tasks to.
+Every client accepts either credentials in `SajhaConfig` or an explicit `auth=` provider. All providers implement `AuthProvider`: `get_headers()`, `refresh_if_needed()` and the `auth_type` property.
 
-### 6.1 Agent Discovery
+| Provider | Constructor | Header sent | `auth_type` |
+|----------|-------------|-------------|-------------|
+| `NoAuth` | `NoAuth()` | none | `"none"` |
+| `ApiKeyAuth` | `ApiKeyAuth(api_key)`; raises `SajhaAuthError` if the key is empty | `X-API-Key: <key>` | `"apikey"` |
+| `JWTAuth` | `JWTAuth(base_url, username, password, timeout=30)` | `Authorization: Bearer <jwt>` | `"jwt"` |
+| `JWTAuth.from_token` | `JWTAuth.from_token(token)` | `Authorization: Bearer <jwt>` | `"jwt"` |
+| `OAuthAuth` | `OAuthAuth(token_url, client_id, client_secret, scope="", timeout=30)` | `Authorization: Bearer <token>` | `"oauth"` |
 
-```python
-from sajhaclient.a2a_client import A2AClient
+Behaviour:
 
-a2a = A2AClient(SajhaConfig(base_url="http://localhost:3002"))
-
-# What can this agent do?
-card = a2a.get_agent_card()
-print(f"Agent: {card['name']}")
-print(f"Skills: {len(card['skills'])}")
-for skill in card['skills'][:5]:
-    print(f"  - {skill['id']}: {skill['description']}")
-```
-
-### 6.2 Task Lifecycle
+- `JWTAuth(...)` logs in immediately with `POST /api/auth/login` (`{"user_id", "password"}`) and logs in again once the token is within 5 minutes of an assumed 1-hour lifetime. The token is on `.token`. `JWTAuth.from_token` never refreshes.
+- `OAuthAuth(...)` fetches a token immediately with the OAuth 2.0 **client credentials** grant and refreshes it 5 minutes before `expires_in` (1 hour if the server does not send it). It works with any token endpoint, e.g. Azure AD, Okta, Auth0 or Keycloak. See the [OAuth Guide](../protocol/OAuth%20Guide.md) for how the server validates these tokens.
+- Login and token failures raise `SajhaAuthError`.
 
 ```python
-# Send a task (async — returns immediately)
-task = a2a.send_task("Get the latest AAPL stock quote")
-print(f"Task {task['id']}: {task['status']['state']}")
+from sajhaclient import SajhaClient, SajhaConfig, ApiKeyAuth, JWTAuth, OAuthAuth
 
-# Check status
-status = a2a.get_task(task['id'])
+cfg = SajhaConfig(base_url="http://localhost:3002")
 
-# Send and wait (blocking — waits for completion)
-result = a2a.send_and_wait("Analyze Tesla's balance sheet", timeout=30)
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_key"))   # from config
+client = SajhaClient(cfg, auth=ApiKeyAuth("sja_key"))                                     # explicit
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002",
+                                 username="admin", password="admin123"))                  # JWT login
+client = SajhaClient(cfg, auth=JWTAuth.from_token("eyJhbGciOi..."))                        # existing JWT
 
-# Cancel a running task
-a2a.cancel_task(task['id'])
+auth = OAuthAuth(
+    token_url="https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token",
+    client_id="your-client-id",
+    client_secret="your-client-secret",
+    scope="api://sajha/.default",
+)
+client = SajhaClient(SajhaConfig(base_url="https://sajha.example.com"), auth=auth)
 ```
 
-### 6.3 Multi-Turn Sessions
+**Which clients read credentials from `SajhaConfig`:**
 
-```python
-session = "research-session-001"
-a2a.send_task("I'm researching EV stocks", session_id=session)
-a2a.send_task("Compare TSLA and RIVN financials", session_id=session)
-result = a2a.send_task("Which looks better for investment?", session_id=session)
-```
+| Client | `api_key` | `jwt_token` | `username` + `password` |
+|--------|-----------|-------------|-------------------------|
+| `SajhaMCPClient`, `SajhaClient`, `MCPClient` | yes | yes | yes |
+| `A2AClient` | yes | no | yes |
+| `MCPSSEClient`, `MCPWebSocketClient` | no | no | no |
+
+For `MCPSSEClient` and `MCPWebSocketClient`, always pass `auth=` explicitly. Otherwise they connect with `NoAuth`.
 
 ---
 
-## 7. curl & wget Reference
+## 6. REST client: SajhaClient
 
-### Health Check
-
-```bash
-curl http://localhost:3002/health
-```
-
-### Login (Get JWT Token)
-
-```bash
-curl -X POST http://localhost:3002/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"user_id": "admin", "password": "admin123"}'
-```
-
-### Execute Tool (API Key)
-
-```bash
-curl -X POST http://localhost:3002/api/tools/execute \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: sja_your_key" \
-  -d '{"tool": "fmp_stock_quote", "arguments": {"symbol": "AAPL"}}'
-```
-
-### Execute Tool (JWT)
-
-```bash
-curl -X POST http://localhost:3002/api/tools/execute \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer eyJhbG..." \
-  -d '{"tool": "fmp_stock_quote", "arguments": {"symbol": "AAPL"}}'
-```
-
-### MCP Protocol
-
-```bash
-# Initialize
-curl -X POST http://localhost:3002/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"clientInfo":{"name":"curl","version":"1.0"}}}'
-
-# List tools
-curl -X POST http://localhost:3002/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
-
-# Call tool
-curl -X POST http://localhost:3002/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"fmp_stock_quote","arguments":{"symbol":"AAPL"}}}'
-```
-
-### A2A Protocol
-
-```bash
-# Agent card
-curl http://localhost:3002/.well-known/agent.json
-
-# Send task
-curl -X POST http://localhost:3002/a2a \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tasks/send","params":{"message":{"parts":[{"type":"text","text":"Get AAPL quote"}]}}}'
-```
-
-### wget
-
-```bash
-wget -qO- http://localhost:3002/health
-wget -qO- --header="X-API-Key: sja_xxx" http://localhost:3002/api/tools/list
-```
-
----
-
-## 8. Tool Execution
-
-### Available Tool Categories
-
-| Category | FMP Tools | OpenBB Tools |
-|----------|-----------|--------------|
-| Company Data | `fmp_company_profile`, `fmp_company_peers`, `fmp_exec_compensation` | `openbb_equity_profile` |
-| Market Data | `fmp_stock_quote`, `fmp_historical_price` | `openbb_equity_price` |
-| Financial Statements | `fmp_income_statement`, `fmp_balance_sheet`, `fmp_cash_flow` | `openbb_income_statement`, `openbb_balance_sheet`, `openbb_cash_flow` |
-| Financial Analysis | `fmp_key_metrics`, `fmp_analyst_estimates`, `fmp_price_target`, `fmp_upgrades_downgrades` | `openbb_equity_metrics`, `openbb_dividends`, `openbb_earnings` |
-| Valuation | `fmp_dcf_valuation`, `fmp_historical_dcf` | — |
-| Market Movers | `fmp_market_gainers`, `fmp_market_losers`, `fmp_most_active`, `fmp_sector_performance` | — |
-| Calendars | `fmp_earnings_calendar`, `fmp_dividend_calendar`, `fmp_ipo_calendar`, `fmp_economic_calendar` | — |
-| News | `fmp_stock_news` | `openbb_market_news`, `openbb_company_news` |
-| Ownership | `fmp_insider_trading`, `fmp_institutional_holders`, `fmp_senate_trading` | `openbb_insider_trading`, `openbb_institutional_ownership` |
-| Screening | `fmp_stock_screener` | `openbb_equity_screener` |
-| SEC | `fmp_sec_filings` | — |
-| ETFs | `fmp_etf_holdings` | `openbb_etf_holdings` |
-| Economics | `fmp_treasury_rates` | `openbb_economy_gdp`, `openbb_economy_cpi`, `openbb_unemployment`, `openbb_economic_indicators` |
-| Fixed Income | — | `openbb_treasury_rates`, `openbb_yield_curve` |
-| Forex | — | `openbb_forex_historical` |
-| Crypto | — | `openbb_crypto_price` |
-| Commodities | — | `openbb_commodity_price` |
-| Derivatives | — | `openbb_options_chains` |
-| Indexes | — | `openbb_index_constituents` |
-
----
-
-## 9. Admin Operations
-
-Requires admin role.
-
-```python
-# User management
-client.admin_list_users()
-client.admin_create_user("analyst1", "Jane", "password", roles=["analyst"])
-client.admin_enable_user("analyst1")
-client.admin_disable_user("analyst1")
-client.admin_delete_user("analyst1")
-
-# Tool management
-client.admin_enable_tool("fmp_stock_quote")
-client.admin_disable_tool("fmp_senate_trading")
-client.admin_reload_tools()
-client.admin_get_tool_config("fmp_stock_quote")
-client.admin_save_tool_config("fmp_stock_quote", {...})
-```
-
----
-
-## 10. Reporting & Analytics
-
-```python
-# Usage overview
-client.report_overview("24h")   # Last 24 hours
-client.report_overview("7d")    # Last 7 days
-client.report_overview("30d")   # Last 30 days
-
-# Per-tool usage
-client.report_tools_usage("7d")
-
-# Tool detail (percentiles, errors)
-client.report_tool_detail("fmp_stock_quote", "30d")
-
-# User activity
-client.report_user_activity("30d")
-
-# Usage heatmap
-client.report_heatmap(days=30, tool="fmp_stock_quote")
-
-# Audit trail
-client.report_audit(limit=100, action="user.login")
-```
-
----
-
-## 11. Error Handling
+`SajhaClient(config=None, auth=None)` wraps the SAJHA REST API using urllib. On 5xx responses and connection errors it retries up to `config.max_retries` times, with exponential backoff (1 s, 2 s, ...). The REST endpoints are documented in the [API Reference](../protocol/API%20Reference.md).
 
 ```python
 from sajhaclient import SajhaClient, SajhaConfig
-from sajhaclient.exceptions import (
-    SajhaError,           # Base exception
-    SajhaConnectionError, # Cannot connect
-    SajhaAuthError,       # Auth failed (401)
-    SajhaPermissionError, # No permission (403)
-    SajhaNotFoundError,   # Not found (404)
-    SajhaValidationError, # Bad input (400)
-    SajhaServerError,     # Server error (500)
-    SajhaMCPError,        # MCP protocol error
-    SajhaA2AError,        # A2A protocol error
-)
 
-client = SajhaClient(SajhaConfig(base_url="http://localhost:3002"))
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
 
-try:
-    result = client.execute_tool("nonexistent_tool")
-except SajhaNotFoundError:
-    print("Tool does not exist")
-except SajhaAuthError:
-    print("Authentication required — provide API key or login")
-except SajhaPermissionError:
-    print("You don't have access to this tool")
-except SajhaConnectionError:
-    print("Cannot reach the server — check URL and network")
-except SajhaError as e:
-    print(f"Something went wrong: {e}")
+print(client.health())
+tools = client.list_tools()                                 # list of dicts
+schema = client.get_tool_schema("calc_percentage_change")
+result = client.execute_tool("calc_percentage_change", old_value=80, new_value=100)
+quote = client.execute_tool("yahoo_get_quote", symbol="AAPL")
+```
+
+Tool arguments are passed as keyword arguments to `execute_tool(tool_name, **arguments)`.
+
+### Methods
+
+| Method | Endpoint | Notes |
+|--------|----------|-------|
+| `health()` | `GET /health` | |
+| `list_tools()` | `GET /api/tools/list` | Returns the `tools` list |
+| `get_tool_schema(tool_name)` | `GET /api/tools/{name}/schema` | |
+| `execute_tool(tool_name, **arguments)` | `POST /api/tools/execute` | Body: `{"tool": ..., "arguments": {...}}` |
+| `list_prompts()` | `GET /api/prompts/list` | Returns the `prompts` list |
+| `get_prompt(prompt_name)` | `GET /api/prompts/{name}` | |
+| `report_overview(period="24h")` | `GET /api/reports/overview` | |
+| `report_tools_usage(period="7d")` | `GET /api/reports/tools/usage` | |
+| `report_tool_detail(tool_name, period="30d")` | `GET /api/reports/tools/{name}/detail` | p50/p95/p99, errors |
+| `report_user_activity(period="30d")` | `GET /api/reports/users/activity` | |
+| `report_heatmap(days=30, tool=None)` | `GET /api/reports/heatmap` | Day-of-week by hour |
+| `report_audit(limit=100, action=None)` | `GET /api/reports/audit` | |
+| `admin_list_users()` | `GET /api/admin/users` | Returns the `users` list |
+| `admin_create_user(user_id, user_name, password, roles=None, email="")` | `POST /api/admin/users/create` | `roles` defaults to `["user"]` |
+| `admin_enable_user(user_id)` / `admin_disable_user(user_id)` | `POST /api/admin/users/{id}/enable` / `/disable` | |
+| `admin_delete_user(user_id)` | `DELETE /api/admin/users/{id}/delete` | |
+| `admin_enable_tool(tool_name)` / `admin_disable_tool(tool_name)` | `POST /api/admin/tools/{name}/enable` / `/disable` | |
+| `admin_get_tool_config(tool_name)` | `GET /api/admin/tools/{name}/config` | |
+| `admin_save_tool_config(tool_name, config)` | `POST /api/admin/tools/{name}/config` | |
+| `admin_reload_tools()` | `POST /api/admin/tools/reload` | |
+| `login(username, password)` | `POST /api/auth/login` | Replaces the client's auth with a new `JWTAuth` and returns the token |
+| `auth_type` (property) | | `"none"`, `"apikey"`, `"jwt"` or `"oauth"` |
+
+The `report_*` methods need an authenticated user, and the `admin_*` methods need the admin role. The server decides which calls succeed.
+
+```python
+client.report_overview("7d")
+client.report_tool_detail("calc_percentage_change", "30d")
+client.report_audit(limit=50, action="user.login")
+
+client.admin_create_user("analyst1", "Jane Analyst", "s3cret", roles=["analyst"])
+client.admin_disable_tool("calc_percentage_change")
+client.admin_reload_tools()
 ```
 
 ---
 
-## 12. Advanced Usage
+## 7. Zero-dependency MCP clients
 
-### Custom Headers
+These clients use only the standard library and talk MCP JSON-RPC to SAJHA directly. Use them when you cannot install third-party packages, need Python 3.9 support, or want SAJHA's WebSocket transport. They always use the `initialize` handshake with `protocolVersion: "2025-11-25"` and do not negotiate. For interoperability with current and future MCP revisions, prefer `SajhaMCPClient`.
 
-```python
-client = SajhaClient(SajhaConfig(
-    base_url="http://localhost:3002",
-    api_key="sja_xxx",
-    headers={"X-Request-ID": "req-001", "X-Correlation-ID": "corr-abc"},
-))
-```
+Unlike the standard client, these take tool arguments as **keyword arguments** (`call_tool("name", x=1)`) and return plain dicts.
 
-### Timeout and Retry
+### 7.1 MCPClient (HTTP POST)
+
+`MCPClient(config=None, auth=None)` sends each request as a JSON-RPC `POST` to `<base_url>/mcp`.
 
 ```python
-config = SajhaConfig(
-    base_url="http://localhost:3002",
-    timeout=60,        # 60 second timeout
-    max_retries=5,     # Retry 5 times on server errors
-)
+from sajhaclient import MCPClient, SajhaConfig
+
+mcp = MCPClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
+init = mcp.initialize(client_name="my-agent", client_version="1.0")
+print(mcp.server_info, list(mcp.capabilities))
+
+tools = mcp.list_tools()                                               # list of dicts
+result = mcp.call_tool("calc_percentage_change", old_value=80, new_value=100)
 ```
 
-### Disable SSL Verification (dev only)
+| Method | MCP request | Returns |
+|--------|-------------|---------|
+| `initialize(client_name="sajhaclient", client_version=...)` | `initialize` | The full result. It also sets `server_info` and `capabilities`. |
+| `ping()` | `ping` | dict |
+| `list_tools()` | `tools/list` | list of tool dicts (first page only) |
+| `call_tool(tool_name, **arguments)` | `tools/call` | The result dict (`content`, `isError`, ...) |
+| `list_prompts()` | `prompts/list` | list |
+| `get_prompt(prompt_name, arguments=None)` | `prompts/get` | dict |
+| `list_resources()` | `resources/list` | list |
+| `read_resource(uri)` | `resources/read` | dict |
+| `complete(tool_name, argument_name, partial_value="")` | `completion/complete` with a `ref/tool` reference | list of suggested values |
+| `set_log_level(level)` | `logging/setLevel` | dict |
+| `server_info`, `capabilities` (properties) | | Set by `initialize()` |
+
+HTTP 401 raises `SajhaAuthError`. Other HTTP errors raise `SajhaMCPError(-32000, ...)`, JSON-RPC errors raise `SajhaMCPError` with the server's code, and network failures raise `SajhaConnectionError`.
+
+### 7.2 MCPSSEClient (legacy HTTP+SSE, deprecated)
+
+`MCPSSEClient(config=None, auth=None)` implements the legacy MCP 2024-11-05 HTTP+SSE pattern, **not** Streamable HTTP. `connect()` opens `GET <base_url>/mcp`, reads the `endpoint` event, then starts a background thread that passes every SSE `data:` JSON message to your handlers. Requests are POSTed to the announced endpoint. The server still serves this transport for old clients. The class is kept for zero-dependency use only; prefer `SajhaMCPClient`.
 
 ```python
-config = SajhaConfig(
-    base_url="https://localhost:3002",
-    verify_ssl=False,
-)
+from sajhaclient import MCPSSEClient, SajhaConfig, ApiKeyAuth
+
+sse = MCPSSEClient(SajhaConfig(base_url="http://localhost:3002"), auth=ApiKeyAuth("sja_your_key"))
+sse.connect()
+sse.on_notification(lambda msg: print("SSE:", msg))
+sse.initialize()                     # also calls connect() if needed
+print(len(sse.list_tools()))
+sse.call_tool("calc_percentage_change", old_value=80, new_value=100)
+sse.disconnect()
 ```
 
-### Multiple Servers
+Methods: `connect()`, `disconnect()`, `on_notification(handler)`, `initialize(client_name="sajhaclient-sse", client_version=...)`, `list_tools(cursor=None)`, `call_tool(name, **arguments)`, `ping()`, `list_prompts()`, and the `connected` property.
 
-```python
-prod = SajhaClient(SajhaConfig(base_url="https://sajha.prod.com", api_key="sja_prod"))
-staging = SajhaClient(SajhaConfig(base_url="https://sajha.staging.com", api_key="sja_stg"))
+### 7.3 MCPWebSocketClient
 
-# Compare tool counts
-print(f"Prod tools: {len(prod.list_tools())}")
-print(f"Staging tools: {len(staging.list_tools())}")
-```
+`MCPWebSocketClient(config=None, auth=None)` connects to SAJHA's MCP-over-WebSocket endpoint at `ws(s)://<host>/mcp/ws`. This is a SAJHA extension, not a standard MCP transport. It is full-duplex: responses are matched to requests by id, and server-initiated notifications go to the handlers you register. It needs `pip install websockets`.
 
----
-
-## 13. API Reference
-
-### SajhaConfig
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `base_url` | str | `http://localhost:3002` | Server URL |
-| `api_key` | str | None | API key (sja_xxx) |
-| `jwt_token` | str | None | Pre-obtained JWT |
-| `username` | str | None | Login username |
-| `password` | str | None | Login password |
-| `timeout` | int | 30 | Request timeout (seconds) |
-| `max_retries` | int | 3 | Retry count on 5xx errors |
-| `verify_ssl` | bool | True | Verify SSL certificates |
-| `headers` | dict | {} | Custom HTTP headers |
-
-### SajhaClient Methods
-
-| Method | Auth Required | Description |
-|--------|---------------|-------------|
-| `health()` | No | Server status |
-| `list_tools()` | No | All available tools |
-| `get_tool_schema(name)` | No | Tool input/output schema |
-| `execute_tool(name, **args)` | Yes | Run a tool |
-| `list_prompts()` | No | All prompts |
-| `report_overview(period)` | Yes | Usage statistics |
-| `report_tools_usage(period)` | Yes | Per-tool stats |
-| `report_tool_detail(name, period)` | Yes | Tool percentiles |
-| `report_user_activity(period)` | Yes | Per-user stats |
-| `report_heatmap(days, tool)` | Yes | Usage heatmap |
-| `report_audit(limit, action)` | Admin | Audit log |
-| `admin_list_users()` | Admin | List all users |
-| `admin_create_user(...)` | Admin | Create user |
-| `admin_enable/disable_user(id)` | Admin | Toggle user |
-| `admin_delete_user(id)` | Admin | Delete user |
-| `admin_enable/disable_tool(name)` | Admin | Toggle tool |
-| `admin_reload_tools()` | Admin | Reload tool configs |
-| `login(username, password)` | No | Get JWT token |
-
-### MCPClient Methods
-
-| Method | Description |
-|--------|-------------|
-| `initialize(name, version)` | Start MCP session |
-| `ping()` | Health check |
-| `list_tools()` | Discover tools |
-| `call_tool(name, **args)` | Execute tool |
-| `list_prompts()` | Discover prompts |
-| `get_prompt(name, args)` | Get prompt |
-| `list_resources()` | Discover resources |
-| `read_resource(uri)` | Read resource |
-| `complete(tool, arg, value)` | Auto-complete |
-| `set_log_level(level)` | Set server log level |
-
-### A2AClient Methods
-
-| Method | Description |
-|--------|-------------|
-| `get_agent_card()` | Discover agent capabilities |
-| `list_skills()` | Get agent skills |
-| `send_task(text, session_id)` | Submit a task |
-| `get_task(task_id)` | Check task status |
-| `cancel_task(task_id)` | Cancel a task |
-| `send_and_wait(text, timeout)` | Submit and wait for completion |
-
----
-
-*SAJHA MCP Server Client SDK v3.0.0 — Built for the developer community.*
-
----
-
-## WebSocket Client (v5.3.0)
-
-Full-duplex bidirectional MCP communication. Requires: `pip install websockets`
-
-### Basic Usage
+WebSocket auth is passed as a query parameter: `?token=<jwt>` for Bearer providers, or `?api_key=<key>` for `ApiKeyAuth`. The `ws_url` property shows the URL that will be used.
 
 ```python
 from sajhaclient import MCPWebSocketClient, SajhaConfig, ApiKeyAuth
 
-config = SajhaConfig(base_url="http://localhost:3002")
-ws = MCPWebSocketClient(config, auth=ApiKeyAuth("sja_your_key"))
-
-ws.connect()
-info = ws.initialize()
-print(f"Server: {info['serverInfo']['name']} v{info['serverInfo']['version']}")
-
-# List tools
-tools = ws.list_tools()
-print(f"Available: {len(tools['tools'])} tools")
-
-# Call a tool
-result = ws.call_tool("yahoo_quote", symbol="AAPL")
-print(result)
-
-ws.disconnect()
-```
-
-### Context Manager
-
-```python
-with MCPWebSocketClient(config, auth=ApiKeyAuth("sja_key")) as ws:
-    ws.initialize()
-    result = ws.call_tool("fred_gdp")
-    # Connection auto-closes on exit
-```
-
-### Notifications
-
-```python
-ws = MCPWebSocketClient(config, auth=ApiKeyAuth("sja_key"))
-ws.connect()
-ws.initialize()
-
-# Register notification handler
-def on_change(notification):
-    print(f"Server notification: {notification['method']}")
-
-ws.on_notification(on_change)
-
-# Now when an admin enables/disables a tool, your handler fires
-result = ws.call_tool("fmp_stock_quote", symbol="MSFT")
-```
-
-### Resources & Prompts via WebSocket
-
-```python
-with MCPWebSocketClient(config, auth=ApiKeyAuth("sja_key")) as ws:
-    ws.initialize()
-    
-    # List resources
+with MCPWebSocketClient(SajhaConfig(base_url="http://localhost:3002"),
+                        auth=ApiKeyAuth("sja_your_key")) as ws:      # connect() / disconnect()
+    info = ws.initialize()
+    ws.on_notification(lambda n: print("notification:", n.get("method")))
+    tools = ws.list_tools()["tools"]
+    result = ws.call_tool("calc_percentage_change", old_value=80, new_value=100)
     resources = ws.list_resources()
-    
-    # Read a resource
-    catalog = ws.read_resource("sajha://tools/catalog")
-    
-    # List and get prompts
     prompts = ws.list_prompts()
-    prompt = ws.get_prompt("risk_analysis", {"symbol": "AAPL"})
-    
-    # Ping
-    pong = ws.ping()
+    ws.ping()
 ```
 
-### When to Use WebSocket vs HTTP vs SSE
+Methods: `connect()`, `disconnect()`, `initialize(client_name="sajhaclient-ws", client_version=...)`, which also sends the `initialized` notification, `list_tools(cursor=None)`, `call_tool(name, **arguments)`, `list_resources()`, `read_resource(uri)`, `list_prompts()`, `get_prompt(name, arguments=None)`, `ping()`, `on_notification(handler)`, and the `connected` and `ws_url` properties. These methods return the raw JSON-RPC `result` dicts. For example, `list_tools()` returns `{"tools": [...]}`, not a list. JSON-RPC errors raise `SajhaError`.
 
-| Transport | Use Case |
-|-----------|----------|
-| `MCPClient` (HTTP POST) | Simple tool calls, automation scripts, CI/CD |
-| `MCPSSEClient` (SSE) | Long-running tools, progress streaming, web UI |
-| `MCPWebSocketClient` (WS) | Interactive agents, real-time notifications, low-latency |
+From a standard client, `client.websocket()` returns one of these, already configured with the same config and auth.
 
 ---
 
-## Client-Side Composition (v5.3.0)
+## 8. A2A client: A2AClient
 
-Chain multiple tool calls client-side with Kleisli semantics.
-
-### ClientPipeline
+`A2AClient(config=None, auth=None)` lets an orchestrator discover SAJHA as an agent and send it tasks over A2A JSON-RPC.
 
 ```python
-from sajhaclient import SajhaClient, SajhaConfig, ApiKeyAuth, ClientPipeline
+from sajhaclient import A2AClient, SajhaConfig
 
-client = SajhaClient(SajhaConfig(base_url="http://localhost:3002"), auth=ApiKeyAuth("sja_key"))
+a2a = A2AClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
 
-# Build a pipeline: quote → risk calculation
-pipeline = ClientPipeline(client)
-pipeline.add_step("yahoo_quote", param_map={"symbol": "$input.ticker"})
-pipeline.add_step("calc_sharpe", param_map={"returns": "$.history"}, output_key="risk")
+card = a2a.get_agent_card()
+print(card["name"], len(card.get("skills", [])))
 
-result = pipeline.execute({"ticker": "AAPL"})
+task = a2a.send_task("Get the latest AAPL stock quote")
+print(task["id"], task["status"]["state"])
+task = a2a.get_task(task["id"])
 
-# Composition metadata
-print(result['_composition']['confidence'])      # 0.8464
-print(result['_composition']['entropy_bits'])     # 0.892
-print(result['_composition']['confidence_floor']) # 0.539
-print(result['_composition']['trace'])            # ['✓ yahoo_quote: 1200ms', '✓ calc_sharpe: 5ms']
+done = a2a.send_and_wait("Summarize today's market movers", timeout=30)
+
+session = "research-001"                       # multi-turn: reuse a session id
+a2a.send_task("I'm researching EV stocks", session_id=session)
+a2a.send_task("Compare TSLA and RIVN", session_id=session)
 ```
 
-### Transport Coalgebra
+| Method | Request | Notes |
+|--------|---------|-------|
+| `get_agent_card()` | `GET /.well-known/agent.json` | Cached for `list_skills()` |
+| `list_skills()` | | Returns the `skills` from the agent card, fetching it if needed |
+| `send_task(text, session_id=None, metadata=None)` | `tasks/send` | Sends a single text part |
+| `get_task(task_id)` | `tasks/get` | |
+| `cancel_task(task_id)` | `tasks/cancel` | |
+| `send_and_wait(text, timeout=60, poll_interval=1.0)` | `tasks/send` then polls `tasks/get` | Returns when the task reaches `completed`, `failed` or `cancelled`. Raises `SajhaA2AError` if a polled task fails or the wait times out. |
 
-Swap transports at runtime with behavioral equivalence testing.
+HTTP and JSON-RPC errors raise `SajhaA2AError`. Network failures raise `SajhaConnectionError`.
+
+---
+
+## 9. Errors
+
+All SDK exceptions derive from `SajhaError`.
+
+| Exception | Raised when | Exported from package root |
+|-----------|-------------|---------------------|
+| `SajhaError` | Base class; also other HTTP status codes in `SajhaClient`, and JSON-RPC errors in `MCPWebSocketClient` | yes |
+| `SajhaConnectionError` | The server cannot be reached (all clients), or there is an MCP transport failure in `SajhaMCPClient` | yes |
+| `SajhaAuthError` | HTTP 401, login failure, OAuth token failure, or an empty API key | yes |
+| `SajhaPermissionError` | HTTP 403 (`SajhaClient`) | yes |
+| `SajhaNotFoundError` | HTTP 404 (`SajhaClient`) | yes |
+| `SajhaValidationError` | HTTP 400 (`SajhaClient`) | no: import from `sajhaclient.exceptions` |
+| `SajhaServerError` | HTTP 5xx after retries (`SajhaClient`) | no: import from `sajhaclient.exceptions` |
+| `SajhaMCPError(code, message, data=None)` | JSON-RPC / MCP protocol error. Has `.code`, `.message` and `.data`. | yes |
+| `SajhaA2AError` | A2A request or task failure | yes |
 
 ```python
-from sajhaclient import HTTPTransport, WSTransport, bisimilar, SajhaConfig, ApiKeyAuth
+from sajhaclient import (SajhaClient, SajhaConfig, SajhaError, SajhaAuthError,
+                         SajhaPermissionError, SajhaNotFoundError, SajhaConnectionError)
+from sajhaclient.exceptions import SajhaValidationError
+
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
+try:
+    client.execute_tool("calc_percentage_change", old_value=80, new_value=100)
+except SajhaValidationError as e:
+    print("bad arguments:", e)
+except SajhaAuthError:
+    print("authenticate first (API key, JWT or OAuth)")
+except SajhaPermissionError:
+    print("no access to this tool")
+except SajhaNotFoundError:
+    print("no such endpoint or tool")
+except SajhaConnectionError:
+    print("server unreachable")
+except SajhaError as e:
+    print("other error:", e)
+```
+
+With the standard client, remember that a failing **tool** is reported in the result (`CallToolResult.is_error`), not raised.
+
+---
+
+## 10. Experimental: ClientPipeline, transport coalgebra, bisimilar
+
+These helpers live in `sajhaclient.mcp_client` and are importable from the package root. They are not listed in `sajhaclient.__all__`, so a star import does not bring them in.
+
+### 10.1 ClientPipeline
+
+`ClientPipeline(client)` chains tool calls on the client side. `client` is any object with an `execute_tool(name, **kwargs)` method, normally a `SajhaClient`. Each step's output can feed the next one.
+
+```python
+from sajhaclient import SajhaClient, SajhaConfig, ClientPipeline
+
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
+
+pipeline = (ClientPipeline(client)
+            .add_step("yahoo_get_quote", param_map={"symbol": "$input.ticker"}, output_key="quote")
+            .add_step("calc_percentage_change",
+                      param_map={"old_value": "$input.cost_basis", "new_value": "$input.target"},
+                      output_key="upside"))
+
+result = pipeline.execute({"ticker": "AAPL", "cost_basis": 150, "target": 210},
+                          max_entropy_bits=3.0)
+print(result["quote"]["result"], result["upside"]["result"])
+print(result["_composition"])
+```
+
+`add_step(tool_name, param_map=None, static_params=None, output_key=None)` returns the pipeline, so calls can be chained. The values in `param_map` work like this:
+
+| Value | Resolves to |
+|-------|-------------|
+| `"$input.<field>"` | `<field>` from the dict passed to `execute()` (`""` if missing) |
+| `"$.<field>"` | Top-level `<field>` of the previous step's output (`""` if missing). With `SajhaClient`, a step's output is the REST envelope `{"success": true, "result": ...}`, so `"$.result"` passes the whole previous tool result. Nested paths such as `"$.result.price"` are not supported. |
+| any other string or value | Used as a literal |
+
+`static_params` are merged in first, and `output_key` defaults to the tool name.
+
+`execute(initial_input, max_entropy_bits=3.0)` returns every step's output under its `output_key`, plus a `_composition` dict:
+
+| Key | Meaning |
+|-----|---------|
+| `confidence` | The product of per-step confidences. Each successful step currently counts as a fixed `0.92`. |
+| `entropy_bits` | The binary entropy of `confidence` |
+| `confidence_floor` | `2 ** -entropy_bits` |
+| `guard_passed` | `entropy_bits <= max_entropy_bits` |
+| `duration_ms`, `steps_executed`, `trace` | Timing and a per-step trace |
+
+The first failing step stops the pipeline. Its `output_key` gets `{"error": ...}`, and `_composition` reports `confidence: 0.0`, the error and the trace.
+
+### 10.2 Transport coalgebra and bisimilar
+
+`TransportCoalgebra(config=None, auth=None)` is a common interface over the zero-dependency MCP transports: `step(method, params=None) -> (result, state)`, plus the shortcuts `initialize()`, `list_tools()`, `call_tool(name, **kwargs)`, `ping()` and the `state` property (`initialized`, `request_count`, `transport`). The concrete classes are:
+
+| Class | Wraps | `state["transport"]` |
+|-------|-------|----------------------|
+| `HTTPTransport(config, auth)` | `MCPClient` | `"http_post"` |
+| `SSETransport(config, auth)` | `MCPSSEClient` | `"sse"` |
+| `WSTransport(config, auth)` | `MCPWebSocketClient` (connects on `initialize`) | `"websocket"` |
+
+`bisimilar(transport_a, transport_b, test_sequence, comparator=None)` runs the same `(method, params)` sequence on both transports and compares each pair of outputs. The default comparator checks that the types match and, for dicts, that the key sets are equal. It returns `{"passed", "steps", "first_divergence", "total_steps"}`.
+
+```python
+from sajhaclient import HTTPTransport, SSETransport, bisimilar, SajhaConfig, ApiKeyAuth
 
 config = SajhaConfig(base_url="http://localhost:3002")
-auth = ApiKeyAuth("sja_key")
+auth = ApiKeyAuth("sja_your_key")
 
-http = HTTPTransport(config, auth)
-ws = WSTransport(config, auth)
+report = bisimilar(HTTPTransport(config, auth), SSETransport(config, auth),
+                   [("initialize", None), ("tools/list", None), ("ping", None)])
+print(report["passed"], report["first_divergence"])
+```
 
-# Prove transports are behaviorally equivalent
-test_ops = [
-    ("initialize", None),
-    ("tools/list", None),
-    ("tools/call", {"name": "yahoo_quote", "arguments": {"symbol": "AAPL"}}),
-]
+Caveats in the current code:
 
-result = bisimilar(http, ws, test_ops)
-print(f"Bisimilar: {result['passed']}")  # True = safe to swap
+- **Shape differences.** The wrapped clients do not return identical shapes. For example, `MCPClient.list_tools()` returns a list, but `MCPWebSocketClient.list_tools()` returns `{"tools": [...]}`. As a result, HTTP and WebSocket transports diverge at `tools/list` under the default comparator.
+- **`tools/call` is broken.** Routing `tools/call` through `step()` (or through `TransportCoalgebra.call_tool`) currently passes the arguments dict positionally to the wrapped client's keyword-only `call_tool` and fails. Call tools on the underlying clients instead.
+- **`WSTransport` passthrough is broken.** `WSTransport.step` with a method other than `initialize`, `tools/list`, `tools/call` or `ping` fails.
+
+---
+
+## 11. curl and wget
+
+Sometimes the SDK is not needed. These requests hit the same endpoints the clients use:
+
+```bash
+# Health
+curl http://localhost:3002/health
+
+# Login -> JWT
+curl -X POST http://localhost:3002/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "admin", "password": "admin123"}'
+
+# Execute a tool over REST (API key; use "Authorization: Bearer <jwt>" for JWT)
+curl -X POST http://localhost:3002/api/tools/execute \
+  -H "Content-Type: application/json" -H "X-API-Key: sja_your_key" \
+  -d '{"tool": "calc_percentage_change", "arguments": {"old_value": 80, "new_value": 100}}'
+
+# A2A agent card
+curl http://localhost:3002/.well-known/agent.json
+
+# wget
+wget -qO- http://localhost:3002/health
+wget -qO- --header="X-API-Key: sja_your_key" http://localhost:3002/api/tools/list
+```
+
+For raw MCP JSON-RPC on `/mcp`, including the headers each protocol era requires, see the [MCP Protocol Guide](../protocol/MCP%20Protocol%20Guide.md). More scripts are in `clientsdk/examples/curl_examples.sh` and `wget_examples.sh`.
+
+---
+
+## 12. Examples and tests
+
+`clientsdk/examples/`:
+
+| File | Shows |
+|------|-------|
+| `standard_client_example.py` | `SajhaMCPClient` and `SajhaMCPSyncClient`: negotiation, tools, prompts, resources, SAJHA extras |
+| `mcp_client_example.py` | `MCPClient` |
+| `rest_apikey.py`, `rest_jwt.py`, `rest_oauth.py` | `SajhaClient` with each auth method |
+| `a2a_client_example.py` | `A2AClient` |
+| `admin_operations.py` | Admin user and tool management |
+| `financial_analysis.py` | Chaining several tools over REST |
+| `curl_examples.sh`, `wget_examples.sh` | The same calls without Python |
+
+`clientsdk/tests/test_standard_client.py` covers the standard client. The offline tests check the lazy import, the install hint, URL and auth resolution, header stamping, and connection-error mapping. The live tests check `auto` mode negotiating 2026-07-28, `legacy` mode using `initialize`, tool calls, prompts, resources, the SAJHA extras and the sync facade. Run them with:
+
+```bash
+pip install -e './clientsdk[dev,mcp]'
+pytest clientsdk/tests
 ```
 
 ---
 
-## Transport Coalgebra (v5.3.0)
-
-All three MCP transports implement the same coalgebraic interface: `step(method, params) → (result, new_state)`. This means they're interchangeable.
-
-### Transport Classes
-
-```python
-from sajhaclient import HTTPTransport, SSETransport, WSTransport, SajhaConfig, ApiKeyAuth
-
-config = SajhaConfig(base_url="http://localhost:3002")
-auth = ApiKeyAuth("sja_key")
-
-# All three behave identically
-http = HTTPTransport(config, auth)
-sse = SSETransport(config, auth)
-ws = WSTransport(config, auth)
-
-# Each has the same interface
-result, state = http.step('initialize')
-result, state = http.step('tools/list')
-result, state = http.step('tools/call', {'name': 'yahoo_quote', 'arguments': {'symbol': 'AAPL'}})
-```
-
-### Bisimulation Testing
-
-Prove two transports are behaviorally equivalent:
-
-```python
-from sajhaclient import bisimilar
-
-result = bisimilar(
-    HTTPTransport(config, auth),
-    WSTransport(config, auth),
-    test_sequence=[
-        ('initialize', None),
-        ('tools/list', None),
-        ('tools/call', {'name': 'yahoo_quote', 'arguments': {'symbol': 'AAPL'}}),
-        ('ping', None),
-    ]
-)
-
-print(result['passed'])          # True = same outputs
-print(result['total_steps'])     # 4
-print(result['first_divergence']) # None (no divergence)
-```
-
-### Transport Hot-Swap
-
-```python
-# Start with WebSocket
-transport = WSTransport(config, auth)
-transport.initialize()
-
-# WebSocket drops — fall back to HTTP
-if not transport._client.connected():
-    transport = HTTPTransport(config, auth)
-    transport.initialize()
-
-# Same call works on either transport
-result, _ = transport.step('tools/call', {'name': 'fred_gdp'})
-```
-
----
-
-## Client-Side Pipelines (v5.3.0)
-
-Build tool chains client-side with confidence tracking:
-
-### Basic Pipeline
-
-```python
-from sajhaclient import SajhaClient, SajhaConfig, ApiKeyAuth, ClientPipeline
-
-client = SajhaClient(SajhaConfig(base_url="http://localhost:3002"), auth=ApiKeyAuth("key"))
-
-pipeline = ClientPipeline(client)
-pipeline.add_step("yahoo_quote", param_map={"symbol": "$input.ticker"})
-pipeline.add_step("calc_sharpe", param_map={"returns": "$.history"})
-
-result = pipeline.execute({"ticker": "AAPL"})
-```
-
-### Param Mapping Syntax
-
-| Expression | Meaning | Example |
-|-----------|---------|---------|
-| `$input.field` | From the original pipeline input | `$input.ticker` → "AAPL" |
-| `$.field` | From previous step's output | `$.history` → previous step's history array |
-| `"literal"` | Static value | `"USD"` |
-| `5` | Static number | `5` |
-
-### Entropy Guard
-
-```python
-result = pipeline.execute({"ticker": "AAPL"}, max_entropy_bits=2.0)
-
-comp = result['_composition']
-print(comp['confidence'])       # 0.85 (cumulative)
-print(comp['entropy_bits'])     # 0.61
-print(comp['confidence_floor']) # 0.65 (minimum probability)
-print(comp['guard_passed'])     # True (under 2.0 bits)
-print(comp['trace'])            # ["✓ yahoo_quote: 230ms", "✓ calc_sharpe: 5ms"]
-```
-
-### Fluent API
-
-```python
-result = (ClientPipeline(client)
-    .add_step("fmp_stock_screener", param_map={"marketCap": "$input.min_cap"})
-    .add_step("fmp_profile", param_map={"symbol": "$.symbol"})
-    .add_step("calc_var", param_map={"returns": "$.historicalPrice"})
-    .execute({"min_cap": 1000000000}, max_entropy_bits=2.5))
-```
+*Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

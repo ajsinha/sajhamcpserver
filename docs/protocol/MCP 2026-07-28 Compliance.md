@@ -1,4 +1,4 @@
-# SAJHA MCP Server — MCP 2026-07-28 Compliance Report (Waves 1–4)
+# SAJHA MCP Server — MCP 2026-07-28 Compliance Report
 
 **Protocol versions supported:** 2026-07-28 (stateless, "modern") **plus** 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05 (handshake-era, "legacy"). SAJHA is a *dual-era* server.
 **Transport:** Streamable HTTP on `/mcp`. Legacy HTTP+SSE (`GET /mcp/sse`) and the WebSocket extension (`/mcp/ws`) are legacy-era only.
@@ -76,7 +76,7 @@ mcp:
     scope: auto               # auto | public | private
 ```
 
-With `scope: auto`, `cacheScope` is `"private"` when a result depends on the caller (per-user `tools/list` filtering through `MCPHandler.auth_manager`) and `"public"` otherwise. Environment overrides follow the usual pattern, for example `SAJHA_MCP_CACHE_LIST_TTL_MS`.
+With `scope: auto`, `cacheScope` is `"private"` when a result depends on the caller (per-user `tools/list` filtering through `MCPHandler.auth_manager`) and `"public"` otherwise. In this release the handler has no auth manager, so lists are always `"public"`. Environment overrides follow the usual pattern, for example `SAJHA_MCP_CACHE_LIST_TTL_MS`.
 
 ### 1.6 Error codes on the modern path
 
@@ -237,7 +237,7 @@ The same rules apply to the 2026-07-28 and 2025-11-25 paths of `POST /mcp` (and 
 | `optional` | OAuth bearer tokens are validated and accepted; anonymous calls still allowed; an *invalid* bearer gets 401 `error="invalid_token"`. |
 | `required` | No valid credential → **401** with `WWW-Authenticate: Bearer resource_metadata="<base>/.well-known/oauth-protected-resource/mcp", scope="mcp:read mcp:tools"`. |
 
-Existing SAJHA credentials (`X-API-Key` / `sja_` keys, SAJHA login JWTs, the `sajha_token` cookie) keep working in every mode and are not scope-checked (their roles govern tool access as before). OAuth access tokens are accepted **only** on the MCP endpoints, never on the REST API.
+Existing SAJHA credentials (`X-API-Key` / `sja_` keys, SAJHA login JWTs, the `sajha_token` cookie) keep working in every mode and are not scope-checked (they identify the caller; per-role tool filtering on MCP is not active in this release, see the [Security Model](../security/Security%20Model.md)). OAuth access tokens are accepted **only** on the MCP endpoints, never on the REST API.
 
 **Resource server (RFC 9728, RFC 8707, RFC 6750).**
 - Protected Resource Metadata at `/.well-known/oauth-protected-resource`, `/.well-known/oauth-protected-resource/mcp` and `.../api/mcp`: `resource` (= `<public_url>/mcp`), `authorization_servers`, `scopes_supported` (`mcp:read mcp:tools`, never `offline_access`), `bearer_methods_supported: ["header"]`.

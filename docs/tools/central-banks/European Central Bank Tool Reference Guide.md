@@ -1,10 +1,4 @@
-# European Central Bank MCP Tool Reference Guide
-
-**Copyright © 2025-2030 Ashutosh Sinha**  
-**Email:** ajsinha@gmail.com  
-**All Rights Reserved**
-
----
+# European Central Bank Tool Reference Guide
 
 ## Table of Contents
 
@@ -14,17 +8,18 @@
 4. [Authentication & API Keys](#authentication--api-keys)
 5. [Tool Descriptions](#tool-descriptions)
 6. [Data Flow Identifiers](#data-flow-identifiers)
-7. [Usage Examples](#usage-examples)
-8. [Schema Reference](#schema-reference)
-9. [Limitations](#limitations)
-10. [Error Handling](#error-handling)
-11. [Performance Considerations](#performance-considerations)
+7. [Calling the Tools](#calling-the-tools)
+8. [Usage Examples](#usage-examples)
+9. [Schema Reference](#schema-reference)
+10. [Limitations](#limitations)
+11. [Error Handling](#error-handling)
+12. [Performance Considerations](#performance-considerations)
 
 ---
 
 ## Overview
 
-The European Central Bank (ECB) MCP Tool Suite is a comprehensive collection of 8 specialized tools designed to retrieve economic and financial data from the European Central Bank's Statistical Data Warehouse. These tools provide programmatic access to critical Euro Area economic indicators including exchange rates, interest rates, bond yields, inflation metrics, and monetary aggregates.
+The European Central Bank (ECB) MCP Tool Suite is a collection of specialized tools (prefix `ecb_`, implementation `sajha/tools/impl/european_central_bank_tool_refactored.py`) designed to retrieve economic and financial data from the European Central Bank's Statistical Data Warehouse. These tools provide programmatic access to critical Euro Area economic indicators including exchange rates, interest rates, bond yields, inflation metrics, and monetary aggregates. The live catalog in the app (Tools page, or `tools/list`) is authoritative.
 
 ### Key Features
 
@@ -55,10 +50,10 @@ The European Central Bank (ECB) MCP Tool Suite is a comprehensive collection of 
 │                   MCP Client Application                 │
 └────────────────────┬────────────────────────────────────┘
                      │
-                     │ MCP Protocol
+                     │ tools/call
                      │
 ┌────────────────────▼────────────────────────────────────┐
-│              MCP Tool Layer (8 Tools)                    │
+│              MCP Tool Layer (ecb_ tools)                 │
 ├──────────────────────────────────────────────────────────┤
 │  • ecb_get_series                                        │
 │  • ecb_get_exchange_rate                                 │
@@ -140,7 +135,6 @@ Each tool specializes in a specific data retrieval pattern:
 - ✗ HTML Parsing
 - ✗ Database Queries
 - ✗ File System Access
-- ✗ WebSocket Streaming (use SSE transport)
 
 ### API Communication
 
@@ -227,14 +221,9 @@ The ECB Statistical Data Warehouse is a **public API** that does **not require**
 - **Rate Limiting**: Enforced at the API gateway level (not user-specific)
 - **Fair Use**: Users should implement reasonable caching and avoid excessive requests
 
-### Recommended Rate Limit
+### Rate Limits and Caching
 
-The tools implement a suggested rate limit of **120 requests per hour** per tool, though this is not strictly enforced by the API.
-
-### Cache Strategy
-
-- **cacheTTL**: 3600 seconds (1 hour) for real-time data
-- **cacheTTL**: 86400 seconds (24 hours) for metadata (search_series)
+The `ecb_` tools do not rate-limit or cache on the server side. Caching is opt-in: add `"cache_ttl": <seconds>` to a tool's JSON config in `config/tools/` (none of the shipped `ecb_` configs set it). An hour suits daily series; `ecb_search_series` returns a static catalog and needs no caching.
 
 ---
 
@@ -247,7 +236,7 @@ The tools implement a suggested rate limit of **120 requests per hour** per tool
 **Use Cases**:
 - Retrieve any ECB time series by flow/key combination
 - Custom date range analysis
-- Access to 21 pre-configured common indicators
+- Access to 21 pre-configured shorthand indicators
 
 **Input Parameters**:
 ```json
@@ -261,12 +250,14 @@ The tools implement a suggested rate limit of **120 requests per hour** per tool
 }
 ```
 
+`flow` + `key` take precedence over `indicator`. Without dates, the tool requests roughly `recent_periods × 40` days of history and keeps the last `recent_periods` observations, so a small `recent_periods` on a monthly or quarterly series can come back empty; pass `start_date` for those.
+
 **Output**:
 ```json
 {
   "flow": "EXR",
   "key": "D.USD.EUR.SP00.A",
-  "series_name": "USD/EUR Exchange Rate",
+  "series_name": "D.USD.EUR.SP00.A",
   "description": "EUR/USD Exchange Rate Daily",
   "observation_count": 252,
   "observations": [
@@ -292,7 +283,7 @@ The tools implement a suggested rate limit of **120 requests per hour** per tool
 **Input Parameters**:
 ```json
 {
-  "currency_pair": "EUR/USD",  // OR use indicator
+  "currency_pair": "EUR/USD",  // OR use indicator (indicator wins if both are given)
   "indicator": "eur_usd",      // Shorthand option
   "start_date": "2024-01-01",
   "end_date": "2024-12-31",
@@ -322,7 +313,7 @@ The tools implement a suggested rate limit of **120 requests per hour** per tool
 **Input Parameters**:
 ```json
 {
-  "rate_type": "main_refinancing_rate",
+  "rate_type": "main_refinancing_rate",   // required
   "start_date": "2024-01-01",
   "end_date": "2024-12-31",
   "recent_periods": 10
@@ -345,7 +336,7 @@ The tools implement a suggested rate limit of **120 requests per hour** per tool
 **Input Parameters**:
 ```json
 {
-  "bond_term": "10y",
+  "bond_term": "10y",          // required: 2y, 5y or 10y
   "start_date": "2024-01-01",
   "end_date": "2024-12-31",
   "recent_periods": 10
@@ -360,7 +351,7 @@ The tools implement a suggested rate limit of **120 requests per hour** per tool
 - Economic forecasting
 - Risk assessment
 
-**Note**: Yields are GDP-weighted averages across Euro Area countries.
+**Note**: Yields are spot rates from the ECB euro area yield curve (YC flow, `G_N_A` = central government bonds rated AAA), not an average of national yields.
 
 ---
 
@@ -376,7 +367,7 @@ The tools implement a suggested rate limit of **120 requests per hour** per tool
 **Input Parameters**:
 ```json
 {
-  "inflation_type": "overall",
+  "inflation_type": "overall",  // required in the schema; implementation falls back to "overall"
   "start_date": "2024-01-01",
   "end_date": "2024-12-31",
   "recent_periods": 12
@@ -402,6 +393,8 @@ The tools implement a suggested rate limit of **120 requests per hour** per tool
 
 **Optimization**: Minimal payload size (~200 bytes vs ~2KB for time series)
 
+> **Note:** the tool looks back about 40 days for the latest value, so monthly series published with a lag and quarterly series (for example `gdp`) can return "No data available". Use `ecb_get_series` with a `start_date` for those. `ecb_get_common_indicators` uses the same 40-day window.
+
 **Input Parameters**:
 ```json
 {
@@ -417,7 +410,7 @@ The tools implement a suggested rate limit of **120 requests per hour** per tool
 {
   "flow": "EXR",
   "key": "D.USD.EUR.SP00.A",
-  "series_name": "USD/EUR Exchange Rate",
+  "series_name": "D.USD.EUR.SP00.A",
   "description": "EUR/USD Exchange Rate Daily",
   "date": "2024-10-31",
   "value": 1.0845
@@ -578,12 +571,44 @@ FM/B.U2.EUR.4F.KR.MRR_FR.LEV
 
 ---
 
+## Calling the Tools
+
+Every tool can be called over MCP (a `tools/call` request on `POST /mcp`) or over the REST API (`POST /api/tools/execute`). Authenticate with an `X-API-Key: sja_...` header or an `Authorization: Bearer <token>` header. Sessions, protocol versions and headers are covered in the [MCP Protocol Guide](../../protocol/MCP%20Protocol%20Guide.md).
+
+**MCP (`POST /mcp`)**
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+ "params": {"name": "ecb_get_exchange_rate", "arguments": {"indicator": "eur_usd", "recent_periods": 5}}}
+```
+
+**REST**
+
+```bash
+curl -X POST http://localhost:3002/api/tools/execute \
+  -H "X-API-Key: sja_your_key" -H "Content-Type: application/json" \
+  -d '{"tool": "ecb_get_exchange_rate", "arguments": {"indicator": "eur_usd", "recent_periods": 5}}'
+```
+
+**Python client SDK**
+
+```python
+from sajhaclient import SajhaClient, SajhaConfig
+
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
+result = client.execute_tool("ecb_get_exchange_rate", indicator="eur_usd", recent_periods=5)
+```
+
+The examples below instantiate the tool classes directly, which is useful in tests and notebooks.
+
+---
+
 ## Usage Examples
 
 ### Example 1: Get Latest EUR/USD Rate
 
 ```python
-from tools.impl.european_central_bank_tool_refactored import ECBGetLatestTool
+from sajha.tools.impl.european_central_bank_tool_refactored import ECBGetLatestTool
 
 tool = ECBGetLatestTool()
 result = tool.execute({
@@ -597,7 +622,7 @@ print(f"EUR/USD: {result['value']} on {result['date']}")
 ### Example 2: Analyze Yield Curve
 
 ```python
-from tools.impl.european_central_bank_tool_refactored import ECBGetBondYieldTool
+from sajha.tools.impl.european_central_bank_tool_refactored import ECBGetBondYieldTool
 
 tool = ECBGetBondYieldTool()
 
@@ -620,7 +645,7 @@ print(f"2s10s Spread: {spread:.2f}%")
 ### Example 3: Create Economic Dashboard
 
 ```python
-from tools.impl.european_central_bank_tool_refactored import ECBGetCommonIndicatorsTool
+from sajha.tools.impl.european_central_bank_tool_refactored import ECBGetCommonIndicatorsTool
 
 tool = ECBGetCommonIndicatorsTool()
 result = tool.execute({
@@ -645,7 +670,7 @@ for indicator, data in result['indicators'].items():
 ### Example 4: Historical Inflation Analysis
 
 ```python
-from tools.impl.european_central_bank_tool_refactored import ECBGetInflationTool
+from sajha.tools.impl.european_central_bank_tool_refactored import ECBGetInflationTool
 import matplotlib.pyplot as plt
 
 tool = ECBGetInflationTool()
@@ -672,7 +697,7 @@ plt.show()
 ### Example 5: Compare Interest Rates
 
 ```python
-from tools.impl.european_central_bank_tool_refactored import ECBGetInterestRateTool
+from sajha.tools.impl.european_central_bank_tool_refactored import ECBGetInterestRateTool
 
 tool = ECBGetInterestRateTool()
 
@@ -693,7 +718,7 @@ print(f"Deposit Facility: {rates['deposit_facility_rate']}%")
 ### Example 6: Discover Available Series
 
 ```python
-from tools.impl.european_central_bank_tool_refactored import ECBSearchSeriesTool
+from sajha.tools.impl.european_central_bank_tool_refactored import ECBSearchSeriesTool
 
 tool = ECBSearchSeriesTool()
 result = tool.execute({
@@ -825,9 +850,8 @@ for series in result['categories']['Exchange Rates']:
 ### Technical Limitations
 
 1. **Rate Limiting**:
-   - Recommended: 120 requests/hour per tool
-   - No hard enforcement, but excessive use discouraged
-   - Consider implementing local caching
+   - No server-side rate limiting; the ECB API applies its own fair-use limits
+   - Caching is opt-in via `cache_ttl` in the tool config
 
 2. **Request Size**:
    - Maximum 100 recent periods per request
@@ -854,7 +878,7 @@ for series in result['categories']['Exchange Rates']:
 2. **ecb_get_bond_yield**:
    - Only 2Y, 5Y, 10Y maturities
    - Euro Area aggregate only (not individual countries)
-   - GDP-weighted averages
+   - AAA-rated central government yield curve (spot rates)
 
 3. **ecb_get_inflation**:
    - HICP only (no national CPIs)
@@ -1080,28 +1104,6 @@ dashboard = tool.execute({
 
 ---
 
-## Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025 | Initial release with 8 tools |
-
----
-
-## Support & Contact
-
-**Author**: Ashutosh Sinha  
-**Email**: ajsinha@gmail.com  
-**Copyright**: © 2025-2030 All Rights Reserved
-
-For issues, questions, or feature requests, please contact the author directly.
-
----
-
-*End of European Central Bank MCP Tool Reference Guide*
-
----
-
 ## Page Glossary
 
 **Key terms referenced in this document:**
@@ -1120,4 +1122,8 @@ For issues, questions, or feature requests, please contact the author directly.
 
 - **Quantitative Easing (QE)**: A monetary policy where a central bank purchases securities to increase money supply.
 
-*For complete definitions, see the [Glossary](../architecture/Glossary.md).*
+*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+
+---
+
+*Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

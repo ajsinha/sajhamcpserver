@@ -1,26 +1,24 @@
-# Banque de France / ECB MCP Tools - Complete Documentation
-
-
-**Copyright All rights reserved 2025-2030 Ashutosh Sinha**  
-**Email: ajsinha@gmail.com**
-
+# Banque de France Tool Reference Guide
 
 ## Table of Contents
 1. [Overview](#overview)
 2. [Architecture](#architecture)
-3. [Quick Start](#quick-start)
-4. [Available Tools](#available-tools)
-5. [Detailed Tool Reference](#detailed-tool-reference)
-6. [Code Examples](#code-examples)
-7. [API Reference](#api-reference)
-8. [Common Use Cases](#common-use-cases)
-9. [Troubleshooting](#troubleshooting)
+3. [Data Source and Keys](#data-source-and-keys)
+4. [Quick Start](#quick-start)
+5. [Available Tools](#available-tools)
+6. [Detailed Tool Reference](#detailed-tool-reference)
+7. [Code Examples](#code-examples)
+8. [API Reference](#api-reference)
+9. [Common Use Cases](#common-use-cases)
+10. [Calling the Tools](#calling-the-tools)
+11. [Troubleshooting](#troubleshooting)
+12. [Support and Resources](#support-and-resources)
 
 ---
 
 ## Overview
 
-The Banque de France / ECB MCP Tools provide comprehensive access to French and Eurozone economic and financial data through the Banque de France Webstat API and ECB Statistical Data Warehouse. These tools enable you to retrieve:
+The Banque de France tools (prefix `bdf_`) return French and Eurozone economic and financial data. Implementation: `sajha/tools/impl/france_central_bank.py`. The live catalog in the app (Tools page, or `tools/list`) is authoritative. These tools enable you to retrieve:
 
 - **French Government Bond (OAT) Yields**: Obligations Assimilables du Trésor yields for 2, 5, 10, and 30-year maturities
 - **ECB Policy Rates**: Main refinancing rate, deposit facility rate, and marginal lending rate
@@ -59,7 +57,7 @@ The Banque de France / ECB MCP Tools provide comprehensive access to French and 
                      │ MCP Protocol
                      │
 ┌────────────────────▼────────────────────────────────────┐
-│              MCP Tool Layer (5 Tools)                    │
+│              MCP Tool Layer                              │
 ├──────────────────────────────────────────────────────────┤
 │  • bdf_get_ecb_policy_rate   (ECB Interest Rates)        │
 │  • bdf_get_oat_yield         (OAT Bond Yields)           │
@@ -71,10 +69,10 @@ The Banque de France / ECB MCP Tools provide comprehensive access to French and 
                      │ HTTP/HTTPS
                      │
 ┌────────────────────▼────────────────────────────────────┐
-│          BDFBaseTool (Shared Functionality)              │
+│          BanqueDeFranceBaseTool (Shared)                 │
 ├──────────────────────────────────────────────────────────┤
-│  • Banque de France API Integration                      │
-│  • ECB Data Warehouse Connection                         │
+│  • ECB Data API connection (SDMX jsondata)               │
+│  • Series-key mapping                                    │
 │  • Data Transformation & Parsing                         │
 │  • Response Normalization                                │
 └────────────────────┬────────────────────────────────────┘
@@ -82,8 +80,8 @@ The Banque de France / ECB MCP Tools provide comprehensive access to French and 
                      │ REST API Calls
                      │
 ┌────────────────────▼────────────────────────────────────┐
-│           Banque de France / ECB Data Portal             │
-│    https://www.banque-france.fr/ | https://sdw.ecb.eu/   │
+│                ECB Statistical Data API                  │
+│        https://sdw-wsrest.ecb.europa.eu/service/data     │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -104,12 +102,26 @@ The Banque de France / ECB MCP Tools provide comprehensive access to French and 
 
 ---
 
+## Data Source and Keys
+
+Despite the name, all five tools fetch from the **ECB statistical data API** (SDMX, `format=jsondata`) at `https://sdw-wsrest.ecb.europa.eu/service/data/<series key>`. The Banque de France Webstat URL is defined in the code but not used. No API key is needed and there is no SAJHA config key for these tools (see the [Configuration Reference](../../getting-started/Configuration%20Reference.md) for keys used elsewhere).
+
+> **Caution:** `sdw-wsrest.ecb.europa.eu` is the ECB's legacy host; the ECB now serves this API at `data-api.ecb.europa.eu`. During documentation review the legacy host could not be reached, so these tools may return "Failed to get series data" until the base URL in the implementation is updated. The `ecb_` tools (see the [European Central Bank Tool Reference Guide](European%20Central%20Bank%20Tool%20Reference%20Guide.md)) cover the same ECB rates, FX and HICP data.
+
+Implementation notes:
+- `bdf_get_oat_yield` maps all four terms (`2y`, `5y`, `10y`, `30y`) to the same series key, `IRS.M.FR.L.L40.CI.0000.EUR.N.Z` (the ECB's French long-term interest rate for convergence purposes, a monthly ~10-year yield). The `bond_term` value therefore does not change the data returned.
+- The response `label` is the series key, `unit` is always `%` and `frequency` is always `Daily`, whatever the series.
+- Unknown argument values raise an error (`Invalid bond term`, `Invalid rate type`, ...).
+- Caching is opt-in per tool: add a top-level `"cache_ttl": <seconds>` to the tool's JSON config. The `metadata.rateLimit`/`metadata.cacheTTL` fields in the `bdf_` configs are informational and are not enforced.
+
+---
+
 ## Quick Start
 
 ### Installation
 
 ```python
-from tools.impl.france_central_bank import BANQUE_DE_FRANCE_TOOLS
+from sajha.tools.impl.france_central_bank import BANQUE_DE_FRANCE_TOOLS
 
 # Initialize a tool
 oat_tool = BANQUE_DE_FRANCE_TOOLS['bdf_get_oat_yield']()
@@ -159,10 +171,10 @@ print(f"ECB Main Refinancing Rate: {result['observations'][0]['value']}%")
 **Input Parameters**:
 ```json
 {
-  "bond_term": "10y",         // Required: "2y", "5y", "10y", or "30y"
+  "bond_term": "10y",         // Required: "2y", "5y", "10y", or "30y" (all return the same series)
   "start_date": "2024-01-01", // Optional: YYYY-MM-DD format
   "end_date": "2024-12-31",   // Optional: YYYY-MM-DD format
-  "recent_periods": 30        // Optional: 1-100 (default: 10)
+  "recent_periods": 30        // Optional (default: 10); ignored when a date is given
 }
 ```
 
@@ -170,9 +182,10 @@ print(f"ECB Main Refinancing Rate: {result['observations'][0]['value']}%")
 ```json
 {
   "series_code": "IRS.M.FR.L.L40.CI.0000.EUR.N.Z",
-  "label": "10-Year OAT Yield",
-  "description": "French 10-year Government Bond yield",
-  "unit": "Percentage",
+  "label": "IRS.M.FR.L.L40.CI.0000.EUR.N.Z",
+  "description": "",
+  "unit": "%",
+  "frequency": "Daily",
   "observation_count": 30,
   "observations": [
     {
@@ -311,8 +324,10 @@ print(f"ECB Main Refinancing Rate: {result['observations'][0]['value']}%")
 
 ### Example 1: OAT vs Bund Spread Analysis
 
+> In the current implementation every `bond_term` returns the same long-term series (see [Data Source and Keys](#data-source-and-keys)), so the spreads below come out as zero until per-maturity series are mapped.
+
 ```python
-from tools.impl.france_central_bank import BANQUE_DE_FRANCE_TOOLS
+from sajha.tools.impl.france_central_bank import BANQUE_DE_FRANCE_TOOLS
 # Note: Would need German Bund tool for complete analysis
 
 oat_tool = BANQUE_DE_FRANCE_TOOLS['bdf_get_oat_yield']()
@@ -344,7 +359,7 @@ print(f"10Y-30Y Spread: {steepness_10_30:.2f}%")
 ### Example 2: ECB Policy Corridor
 
 ```python
-from tools.impl.france_central_bank import BANQUE_DE_FRANCE_TOOLS
+from sajha.tools.impl.france_central_bank import BANQUE_DE_FRANCE_TOOLS
 
 ecb_tool = BANQUE_DE_FRANCE_TOOLS['bdf_get_ecb_policy_rate']()
 
@@ -373,7 +388,7 @@ print(f"Corridor Width: {corridor_width:.2f}%")
 ### Example 3: EUR/USD Historical Volatility
 
 ```python
-from tools.impl.france_central_bank import BANQUE_DE_FRANCE_TOOLS
+from sajha.tools.impl.france_central_bank import BANQUE_DE_FRANCE_TOOLS
 import pandas as pd
 import numpy as np
 
@@ -405,7 +420,7 @@ print(f"Annualized Volatility: {volatility:.2f}%")
 ### Example 4: France vs Eurozone Inflation
 
 ```python
-from tools.impl.france_central_bank import BANQUE_DE_FRANCE_TOOLS
+from sajha.tools.impl.france_central_bank import BANQUE_DE_FRANCE_TOOLS
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -447,7 +462,7 @@ plt.show()
 ### Example 5: Eurozone M3 Money Supply Tracking
 
 ```python
-from tools.impl.france_central_bank import BANQUE_DE_FRANCE_TOOLS
+from sajha.tools.impl.france_central_bank import BANQUE_DE_FRANCE_TOOLS
 import pandas as pd
 
 eurozone_tool = BANQUE_DE_FRANCE_TOOLS['bdf_get_eurozone_indicator']()
@@ -598,6 +613,36 @@ except TimeoutError as e:
 
 ---
 
+## Calling the Tools
+
+Every tool can be called over MCP (a `tools/call` request on `POST /mcp`) or over the REST API (`POST /api/tools/execute`). Authenticate with an `X-API-Key: sja_...` header or an `Authorization: Bearer <token>` header. Sessions, protocol versions and headers are covered in the [MCP Protocol Guide](../../protocol/MCP%20Protocol%20Guide.md).
+
+**MCP (`POST /mcp`)**
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+ "params": {"name": "bdf_get_ecb_policy_rate", "arguments": {"rate_type": "ecb_main_refi", "recent_periods": 5}}}
+```
+
+**REST**
+
+```bash
+curl -X POST http://localhost:3002/api/tools/execute \
+  -H "X-API-Key: sja_your_key" -H "Content-Type: application/json" \
+  -d '{"tool": "bdf_get_ecb_policy_rate", "arguments": {"rate_type": "ecb_main_refi", "recent_periods": 5}}'
+```
+
+**Python client SDK**
+
+```python
+from sajhaclient import SajhaClient, SajhaConfig
+
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
+result = client.execute_tool("bdf_get_ecb_policy_rate", rate_type="ecb_main_refi", recent_periods=5)
+```
+
+---
+
 ## Troubleshooting
 
 ### Common Issues
@@ -607,10 +652,9 @@ except TimeoutError as e:
    - Check ECB website for data release calendar
    - Some series updated monthly, others daily
 
-2. **API Rate Limits**
-   - Default: 120 requests/hour
-   - Cache frequently accessed data
-   - Implement exponential backoff for retries
+2. **Connection or HTTP errors**
+   - The tools use the ECB's legacy API host (see [Data Source and Keys](#data-source-and-keys))
+   - Retry with backoff; for server-side caching set `cache_ttl` in the tool config
 
 3. **Holiday Schedules**
    - Be aware of European/French holidays
@@ -663,66 +707,14 @@ except TimeoutError as e:
 
 - **Banque de France**: https://www.banque-france.fr/
 - **ECB Website**: https://www.ecb.europa.eu/
-- **ECB Statistical Data Warehouse**: https://sdw.ecb.europa.eu/
+- **ECB Data Portal**: https://data.ecb.europa.eu/
 - **Webstat BdF**: https://webstat.banque-france.fr/
 
-### Key Publications
-
-- ECB Economic Bulletin (monthly)
-- ECB Monetary Policy Decisions
-- Banque de France Conjoncture (economic outlook)
-
-### Technical Support
-
-- Email: ajsinha@gmail.com
-- GitHub: [Project Repository]
-
 ---
 
----
-# Legal Notice & License
+## Disclaimer
 
-### Copyright
-
-**Copyright © 2025-2030 Ashutosh Sinha. All Rights Reserved.**
-
-This software and documentation are protected by copyright law. Unauthorized reproduction or distribution of this software, or any portion of it, may result in severe civil and criminal penalties, and will be prosecuted to the maximum extent possible under law.
-
-### License Terms
-
-This software is provided "as is" without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
-
-**Permitted Use:**
-- ✅ Personal research and analysis
-- ✅ Academic research
-- ✅ Internal business use
-- ✅ Non-commercial applications
-
-**Restrictions:**
-- ❌ Redistribution without permission
-- ❌ Commercial sale or licensing
-- ❌ Modification without attribution
-- ❌ Removal of copyright notices
-
-### Disclaimer
-
-**THIS TOOLKIT IS FOR INFORMATIONAL AND RESEARCH PURPOSES ONLY.**
-
-The author and contributors:
-- ❌ Do NOT provide investment advice
-- ❌ Do NOT provide financial advice
-- ❌ Do NOT provide legal advice
-- ❌ Do NOT provide accounting advice
-- ❌ Make NO warranties about data accuracy
-- ❌ Accept NO liability for investment decisions
-
-**Users acknowledge:**
-- All investment decisions are their own responsibility
-- Data may contain errors or be outdated
-- Professional advice should be sought for important decisions
-- SEC filings are the authoritative source
-- This toolkit is a convenience tool, not a substitute for due diligence
-
+Data is provided for information and research only and is not investment advice. The upstream statistical publishers are the authoritative sources; verify important figures there.
 
 ---
 
@@ -744,4 +736,8 @@ The author and contributors:
 
 - **Refinancing Rate**: The ECB's main policy rate applicable to French banks.
 
-*For complete definitions, see the [Glossary](../architecture/Glossary.md).*
+*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+
+---
+
+*Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

@@ -1,6 +1,6 @@
 # SAJHA MCP Server — MCP 2025-11-25 Compliance Report
 
-**Protocol versions supported:** 2025-11-25 (latest), 2025-06-18, 2025-03-26, 2024-11-05 (legacy HTTP+SSE)
+**Scope:** the handshake-era ("legacy") path of SAJHA's dual-era `/mcp` endpoint: protocol versions 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05 (legacy HTTP+SSE). The stateless 2026-07-28 path is covered by [MCP 2026-07-28 Compliance](MCP%202026-07-28%20Compliance.md); how the two fit together is in the [MCP Protocol Guide](MCP%20Protocol%20Guide.md).
 **Transport:** Streamable HTTP on `/mcp` (plus legacy HTTP+SSE and a WebSocket extension)
 **Verified with:** the official conformance suite, `@modelcontextprotocol/conformance` 0.1.16, and the official Python SDK client (`mcp` 2.3.0)
 
@@ -70,7 +70,7 @@ run against the server with its default configuration. These operations all succ
 
 ### 1.3 Unit and integration tests
 
-`tests/test_mcp_2025_11_25.py` (47 tests, FastAPI TestClient) covers:
+`tests/test_mcp_2025_11_25.py` (FastAPI TestClient) covers:
 - version negotiation
 - session lifecycle
 - 202 responses for notifications
@@ -101,7 +101,7 @@ python -m pytest -q tests/test_mcp_2025_11_25.py
 | Unknown tool / unknown prompt → `-32602`; unknown resource → `-32002` | ✅ | `_handle_tools_call`, `handle_prompts_get`, `_handle_resources_read` |
 | Tool failures are returned as results with `isError: true` | ✅ | `_handle_tools_call` |
 
-### Server capabilities (as advertised)
+### Server capabilities (as advertised on Streamable HTTP `initialize`)
 
 ```json
 {
@@ -119,8 +119,10 @@ python -m pytest -q tests/test_mcp_2025_11_25.py
   by the server.
 - `tasks` is not advertised. The `tasks/get|list|cancel` methods exist, but tool calls
   are never task-augmented, and the task object does not follow the 2025-11-25 shape.
-- `listChanged` and `subscribe` are `false` because the server does not send
-  `list_changed` or `resources/updated` notifications. `resources/subscribe` and
+- `listChanged` and `subscribe` are `false` on Streamable HTTP sessions because
+  there is no push channel (`GET /mcp` is 405). `initialize` over the legacy
+  `/mcp/sse` and `/mcp/ws` streams advertises `listChanged: true`, and those streams
+  receive the change-bus notifications. `resources/subscribe` and
   `resources/unsubscribe` are still accepted and return `{}`.
 - SAJHA-specific settings now live under `experimental`.
 
@@ -149,8 +151,8 @@ and their response is delivered on that SSE stream.
 **Sessions** are kept in process memory (`sajha/core/mcp_sessions.py`), so a restart
 invalidates them and clients get 404 and re-initialize. Requests without a session
 header are still accepted, which keeps simple `curl` clients working. Authentication
-on `/mcp` stays optional. When credentials are sent (JWT or `X-API-Key`), tool access
-is filtered by role.
+on `/mcp` stays optional. Credentials (JWT or `X-API-Key`) are accepted, but per-role tool
+filtering is not active: `MCPHandler` is created without an auth manager.
 
 **Origin policy** is set by `mcp.allowed_origins` in `config/application.yml`, or the
 `SAJHA_MCP_ALLOWED_ORIGINS` environment variable (comma-separated):
@@ -209,17 +211,17 @@ is filtered by role.
 | SSE event IDs and resumption (`Last-Event-ID`) | Event IDs exist on the legacy stream and on SSE tool-call streams. Replay on reconnect is **not** implemented: the tracker is per-connection. |
 | `ping` returned `{status, timestamp}`; prompts responses had no `id`; JSON array bodies returned 500; `notifications/initialized` returned `-32601` | **Fixed** (§2, §3). |
 
-## 7. Not implemented (out of scope for this release)
+## 7. Not implemented on this path
 
 - A task-augmented `tools/call` and the 2025-11-25 `tasks/*` shapes, including `tasks/result`.
-- `notifications/*/list_changed` and `resources/updated` delivery. A GET stream would be needed.
+- `notifications/*/list_changed` and `resources/updated` delivery on Streamable HTTP sessions (a GET stream would be needed). The legacy `/mcp/sse` and `/mcp/ws` streams do receive them from the change bus, and advertise `listChanged: true`.
 - SSE stream resumption (`Last-Event-ID` replay) and the `test_reconnection` behaviour (SEP-1699 polling).
-- Progress and logging notifications from regular SAJHA tools. Today only the
-  conformance fixtures stream them.
+- Progress and logging notifications from regular SAJHA tools on this path. Today only the
+  conformance fixtures stream them here; on the 2026-07-28 path every tool can (`sajha.core.mcp_tool_context`).
 
-## 8. Authorization (added after 6.0.0)
+## 8. Authorization
 
-The 2025-11-25 authorization spec is implemented on the legacy path exactly as on the 2026-07-28 path; the full description (modes, token validation, built-in authorization server, CIMD/DCR, security decisions) is in [MCP_2026_07_28_Compliance.md §4.1](MCP_2026_07_28_Compliance.md). In short:
+The 2025-11-25 authorization spec is implemented on the legacy path exactly as on the 2026-07-28 path; the full description (modes, token validation, built-in authorization server, CIMD/DCR, security decisions) is in [MCP 2026-07-28 Compliance §4.1](MCP%202026-07-28%20Compliance.md) and the [OAuth Guide](OAuth%20Guide.md). In short:
 
 - `mcp.auth.mode`: `off` (default, behaviour of 5.4.0/6.0.0: the `/.well-known/oauth-*` documents stay 404), `optional`, `required`.
 - With OAuth on, the PRM document (RFC 9728) is served again — now pointing at an authorization server that exists: SAJHA's built-in one (`/.well-known/oauth-authorization-server`, `/oauth/authorize`, `/oauth/token`, `/oauth/jwks`, `/oauth/register` only with DCR enabled) or the external issuer in `mcp.auth.authorization_server`. OIDC discovery stays 404 (no ID tokens), and CIMD documents are still client-hosted: SAJHA *fetches* them (`client_id_metadata_document_supported: true`).

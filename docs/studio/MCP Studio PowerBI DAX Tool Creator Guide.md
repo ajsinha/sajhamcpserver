@@ -1,723 +1,149 @@
 # MCP Studio PowerBI DAX Query Tool Creator Guide
-## SAJHA MCP Server v5.3.0
 
-## Overview
+Where Studio lives, the common create → preview → deploy workflow, where generated files are stored, hot reload and permissions are covered once in the [MCP Studio User Guide](MCP%20Studio%20User%20Guide.md).
 
-The PowerBI DAX Query Tool Creator enables you to create MCP tools that execute Data Analysis Expressions (DAX) queries against Power BI datasets. This visual interface guides you through configuring DAX query execution, parameter binding, result formatting, and advanced analytics integration.
-
-## Table of Contents
-
-1. [Getting Started](#getting-started)
-2. [Understanding DAX Tools](#understanding-dax-tools)
-3. [Creating Your First DAX Tool](#creating-your-first-dax-tool)
-4. [DAX Query Configuration](#dax-query-configuration)
-5. [Parameter Binding](#parameter-binding)
-6. [Result Handling](#result-handling)
-7. [Query Optimization](#query-optimization)
-8. [Security Configuration](#security-configuration)
-9. [Best Practices](#best-practices)
-10. [Examples](#examples)
-11. [Troubleshooting](#troubleshooting)
+The PowerBI DAX Query Tool Creator (`/studio/powerbidax`) builds an MCP tool that runs **one DAX query template** against a PowerBI dataset and returns the rows as JSON. To export a whole report as PDF, PPTX or PNG instead, see the [PowerBI Report Tool Creator Guide](MCP%20Studio%20PowerBI%20Tool%20Creator%20Guide.md).
 
 ---
 
-## Getting Started
+## Prerequisites
 
-### Accessing the DAX Query Tool Creator
-
-1. Navigate to `http://localhost:3002/admin/studio`
-2. Click on **PowerBI DAX Query Tool** card
-3. Or directly access: `http://localhost:3002/admin/studio/powerbidax`
-
-### Prerequisites
-
-- Admin role access to SAJHA MCP Server
-- Microsoft Azure Active Directory app registration
-- PowerBI Pro or Premium capacity
-- Dataset with XMLA endpoint access (Premium only for some features)
-- Understanding of DAX query language
-
-### XMLA Endpoint Requirements
-
-For advanced DAX queries, enable XMLA endpoints:
-
-1. Go to Power BI Admin Portal
-2. Navigate to Capacity settings
-3. Enable XMLA read/write under Dataset workload settings
-4. Ensure the dataset is in a Premium workspace
+- An Azure AD (Entra ID) app registration (service principal) with access to the dataset's workspace.
+- The **Workspace ID** and **Dataset ID** as GUIDs.
+- The client secret in the server environment variable `POWERBI_CLIENT_SECRET`. This page has no field to change that name. The generator defaults to it.
+- A DAX query that runs in PowerBI Desktop's DAX query view. The tool calls the PowerBI REST `executeQueries` API, which has its own tenant settings and limits. See Microsoft's documentation.
 
 ---
 
-## Understanding DAX Tools
+## Form Fields
 
-DAX query tools enable sophisticated analytical queries against Power BI datasets. When a DAX tool is invoked:
+### Basic Information
 
-1. The tool receives query parameters from the MCP client
-2. Substitutes parameters into the DAX query template
-3. Authenticates with Power BI
-4. Executes the DAX query against the dataset
-5. Formats and returns the results
+| Field | Required | Notes |
+|-------|----------|-------|
+| Tool Name | Yes | Letters, digits and underscores. It must not start with a digit. |
+| Description | Yes | The tool description that MCP clients see. |
+| Dataset Name | Yes | A human-readable dataset name. It is returned in every result. |
+| Tags | No | A comma-separated list. If you leave it empty, the generator uses its own default tags. |
+| Author | No | If you leave it empty, the metadata author is set to `MCP Studio - PowerBI DAX Generator`. |
 
-### Architecture
+### PowerBI Connection
 
-```
-┌─────────────┐     ┌──────────────┐     ┌─────────────────┐     ┌─────────────┐
-│  MCP Client │────▶│  DAX Tool    │────▶│  PowerBI API    │────▶│  Dataset    │
-│  (Claude)   │◀────│  (SAJHA)     │◀────│  Execute Query  │◀────│  Engine     │
-└─────────────┘     └──────────────┘     └─────────────────┘     └─────────────┘
-```
+| Field | Required | Notes |
+|-------|----------|-------|
+| Workspace ID | Yes | Must be a GUID. |
+| Dataset ID | Yes | Must be a GUID. |
+| Tenant ID | Yes | Must be a GUID. |
+| Client ID | Yes | Must be a GUID. |
 
-### DAX Query Types
+### DAX Query
 
-| Type | Description | Use Case |
-|------|-------------|----------|
-| **Table Query** | Returns tabular data | Reports, data export |
-| **Scalar Query** | Returns single value | KPIs, metrics |
-| **Measure Query** | Evaluates measures | Calculations |
-| **Table Constructor** | Creates inline tables | Parameterized queries |
+| Field | Required | Notes |
+|-------|----------|-------|
+| DAX Query | Yes | Must start with `EVALUATE`. Use `@name` for parameters. |
+| Query Parameters | No | Add rows with **Add Parameter**. Each row has a name, a type (`string`, `integer` or `number`) and a description. Every parameter you add is **required**. |
+| Timeout (seconds) | No | Default 60. The page allows 10–300. |
+| Max Rows | No | Default 10000. The page allows 100–100000. |
+
+The **Live Preview** panel shows the config as you type. **Preview** and **Deploy Tool** call `POST /admin/studio/powerbidax/preview` and `POST /admin/studio/powerbidax/deploy`. See [Known limitation: Studio action endpoints](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints): these endpoints are not registered in this release.
 
 ---
 
-## Creating Your First DAX Tool
+## Parameters
 
-### Step 1: Basic Information
+Each parameter becomes a property of the tool's input schema, with the type and description you set. If you define no parameters, the schema has a single optional `parameters` object instead.
 
-Fill in the essential tool details:
+When the tool runs, every argument that is not null replaces each `@name` in the query:
 
-| Field | Description | Example |
-|-------|-------------|---------|
-| **Tool Name** | Unique identifier (snake_case) | `sales_analysis_dax` |
-| **Display Name** | Human-readable name | `Sales Analysis Query` |
-| **Description** | What the tool does | `Analyze sales by region and product` |
-| **Category** | Tool grouping | `Business Intelligence` |
-| **Version** | Semantic version | `1.0.0` |
-
-### Step 2: Dataset Configuration
-
-Configure the target dataset:
-
-```
-Workspace ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-Dataset ID: yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
-```
-
-### Step 3: DAX Query
-
-Write your DAX query:
+- **String** values are wrapped in double quotes, and any `"` inside them is doubled. Write `@region`, **not** `"@region"`.
+- **Integer** and **number** values are inserted as they are.
 
 ```dax
 EVALUATE
-SUMMARIZECOLUMNS(
-    'Date'[Year],
-    'Product'[Category],
-    "Total Sales", SUM(Sales[Amount]),
-    "Order Count", COUNTROWS(Sales)
+FILTER(
+    SUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], "Sales", SUM(Sales[Amount])),
+    'Date'[Year] = @year && 'Product'[Category] = @category
 )
-ORDER BY 'Date'[Year] DESC
 ```
 
-### Step 4: Deploy
+With the parameters `year` (integer) and `category` (string), a call with `{"year": 2025, "category": "Bikes"}` runs a query that ends in `'Date'[Year] = 2025 && 'Product'[Category] = "Bikes"`.
 
-Click **Deploy Tool** to create and register the tool.
+Substitution is plain text replacement. Avoid parameter names that are prefixes of other parameter names, such as `@year` and `@year_end`.
 
 ---
 
-## DAX Query Configuration
+## What Gets Generated
 
-### Basic Configuration
+`PowerBIDAXToolGenerator` (`sajha/studio/powerbidax_tool_generator.py`) writes these files:
+
+| File | Name |
+|------|------|
+| Tool config | `config/tools/<tool_name>.json` |
+| Implementation | `sajha/tools/impl/powerbidax_<tool_name>.py`, which contains the class `PowerBIDAX<ToolName>Tool` |
+
+The tool config looks like this. The generator also writes `version`.
 
 ```json
 {
-  "name": "my_dax_tool",
-  "implementation": "sajha.tools.impl.powerbi_dax_tool.PowerBIDAXTool",
-  "version": "2.9.8",
+  "name": "sales_by_category",
+  "implementation": "sajha.tools.impl.powerbidax_sales_by_category.PowerBIDAXSalesByCategoryTool",
+  "description": "Sales by product category for a year",
   "enabled": true,
-  "powerbi": {
-    "workspace_id": "${powerbi.workspace.id}",
-    "dataset_id": "${powerbi.dataset.id}",
-    "tenant_id": "${azure.tenant.id}",
-    "client_id": "${powerbi.client.id}",
-    "client_secret": "${powerbi.client.secret}"
-  },
-  "query": {
-    "type": "dax",
-    "template": "EVALUATE SUMMARIZECOLUMNS(...)"
+  "metadata": {
+    "author": "MCP Studio - PowerBI DAX Generator",
+    "category": "PowerBI",
+    "tags": ["powerbi", "dax"],
+    "rateLimit": 30,
+    "cacheTTL": 60,
+    "requiresApiKey": false,
+    "source": "powerbi_dax",
+    "dataset_name": "Sales Analytics"
   }
 }
 ```
 
-### Query Templates with Parameters
-
-```json
-{
-  "query": {
-    "type": "dax",
-    "template": "EVALUATE FILTER('Sales', 'Sales'[Year] = @year AND 'Sales'[Region] = \"@region\")",
-    "parameters": {
-      "year": {"type": "integer", "required": true},
-      "region": {"type": "string", "required": true}
-    }
-  }
-}
-```
-
-### Multiple Query Support
-
-```json
-{
-  "queries": [
-    {
-      "name": "sales_summary",
-      "template": "EVALUATE SUMMARIZECOLUMNS(...)"
-    },
-    {
-      "name": "top_products",
-      "template": "EVALUATE TOPN(10, ...)"
-    }
-  ],
-  "query_selection": "parameter"
-}
-```
+The query, IDs, timeout and max rows are baked into the generated Python class. To change any of them, regenerate the tool.
 
 ---
 
-## Parameter Binding
+## Runtime Behaviour
 
-### Parameter Types
+1. The tool gets a client-credentials token from Azure AD with scope `https://analysis.windows.net/powerbi/api/.default`.
+2. It substitutes the parameters and calls `POST https://api.powerbi.com/v1.0/myorg/groups/<workspace>/datasets/<dataset>/executeQueries`, with `includeNulls` set to true.
+3. It returns the first result table.
 
-| Type | DAX Format | Example |
-|------|------------|---------|
-| `integer` | `@param` | `'Sales'[Year] = @year` |
-| `string` | `"@param"` | `'Sales'[Region] = "@region"` |
-| `date` | `DATE(@y,@m,@d)` | `DATE(@year, @month, 1)` |
-| `decimal` | `@param` | `'Sales'[Amount] > @threshold` |
-| `list` | Custom handling | `IN {"@item1", "@item2"}` |
-
-### Input Schema
-
-```json
-{
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "year": {
-        "type": "integer",
-        "minimum": 2000,
-        "maximum": 2030,
-        "required": true,
-        "description": "Analysis year"
-      },
-      "region": {
-        "type": "string",
-        "enum": ["North", "South", "East", "West"],
-        "required": true,
-        "description": "Sales region"
-      },
-      "top_n": {
-        "type": "integer",
-        "default": 10,
-        "minimum": 1,
-        "maximum": 100,
-        "description": "Number of top results"
-      },
-      "include_forecast": {
-        "type": "boolean",
-        "default": false,
-        "description": "Include forecast data"
-      }
-    }
-  }
-}
-```
-
-### Dynamic Query Building
-
-```json
-{
-  "query": {
-    "type": "dax",
-    "dynamic": true,
-    "base_template": "EVALUATE SUMMARIZECOLUMNS(@dimensions, @measures)",
-    "dimension_mapping": {
-      "by_year": "'Date'[Year]",
-      "by_month": "'Date'[Month]",
-      "by_category": "'Product'[Category]",
-      "by_region": "'Geography'[Region]"
-    },
-    "measure_mapping": {
-      "total_sales": "\"Total Sales\", SUM(Sales[Amount])",
-      "order_count": "\"Orders\", COUNTROWS(Sales)",
-      "avg_order": "\"Avg Order\", AVERAGE(Sales[Amount])"
-    }
-  },
-  "inputSchema": {
-    "properties": {
-      "dimensions": {
-        "type": "array",
-        "items": {"type": "string", "enum": ["by_year", "by_month", "by_category", "by_region"]}
-      },
-      "measures": {
-        "type": "array",
-        "items": {"type": "string", "enum": ["total_sales", "order_count", "avg_order"]}
-      }
-    }
-  }
-}
-```
-
-### Date Range Parameters
-
-```json
-{
-  "query": {
-    "template": "EVALUATE CALCULATETABLE('Sales', 'Date'[Date] >= DATE(@start_year, @start_month, @start_day) && 'Date'[Date] <= DATE(@end_year, @end_month, @end_day))"
-  },
-  "parameter_conversion": {
-    "start_date": {
-      "type": "date",
-      "extract": ["start_year", "start_month", "start_day"]
-    },
-    "end_date": {
-      "type": "date",
-      "extract": ["end_year", "end_month", "end_day"]
-    }
-  }
-}
-```
-
----
-
-## Result Handling
-
-### Output Schema
-
-```json
-{
-  "outputSchema": {
-    "type": "object",
-    "properties": {
-      "success": {"type": "boolean"},
-      "row_count": {"type": "integer"},
-      "columns": {
-        "type": "array",
-        "items": {"type": "string"}
-      },
-      "data": {
-        "type": "array",
-        "items": {"type": "object"}
-      },
-      "execution_time_ms": {"type": "integer"}
-    }
-  }
-}
-```
-
-### Result Transformation
-
-```json
-{
-  "result_transform": {
-    "format": "records",
-    "rename_columns": {
-      "[Year]": "Year",
-      "[Category]": "Category",
-      "[Total Sales]": "TotalSales"
-    },
-    "numeric_precision": 2,
-    "date_format": "YYYY-MM-DD"
-  }
-}
-```
-
-### Aggregation Options
-
-```json
-{
-  "post_processing": {
-    "sort_by": ["Year", "TotalSales"],
-    "sort_order": ["asc", "desc"],
-    "limit": 100,
-    "add_totals": true,
-    "calculate_percentages": ["TotalSales"]
-  }
-}
-```
-
-### Pagination
-
-```json
-{
-  "pagination": {
-    "enabled": true,
-    "page_size": 100,
-    "max_pages": 10
-  }
-}
-```
-
----
-
-## Query Optimization
-
-### Query Hints
-
-```json
-{
-  "optimization": {
-    "use_query_cache": true,
-    "query_timeout_seconds": 300,
-    "max_rows": 10000,
-    "allow_native_query": true
-  }
-}
-```
-
-### Efficient DAX Patterns
-
-**Good - Using Variables:**
-```dax
-EVALUATE
-VAR TotalSales = CALCULATE(SUM(Sales[Amount]))
-VAR AvgSales = CALCULATE(AVERAGE(Sales[Amount]))
-RETURN
-ROW("Total", TotalSales, "Average", AvgSales, "Ratio", DIVIDE(TotalSales, AvgSales))
-```
-
-**Good - Using SUMMARIZECOLUMNS:**
-```dax
-EVALUATE
-SUMMARIZECOLUMNS(
-    'Date'[Year],
-    'Product'[Category],
-    TREATAS({@year}, 'Date'[Year]),
-    "Total", SUM(Sales[Amount])
-)
-```
-
-**Avoid - Nested Iterators:**
-```dax
--- Avoid this pattern when possible
-EVALUATE
-ADDCOLUMNS(
-    'Product',
-    "ComplexCalc", SUMX(RELATEDTABLE(Sales), Sales[Amount] * Sales[Quantity])
-)
-```
-
-### Caching Configuration
-
-```json
-{
-  "caching": {
-    "enabled": true,
-    "ttl_seconds": 300,
-    "cache_key_params": ["year", "region"],
-    "invalidate_on_refresh": true
-  }
-}
-```
-
----
-
-## Security Configuration
-
-### Row-Level Security
-
-```json
-{
-  "security": {
-    "rls_enabled": true,
-    "effective_identity": {
-      "username": "${rls.username}",
-      "roles": ["SalesRep"],
-      "datasets": ["${powerbi.dataset.id}"]
-    }
-  }
-}
-```
-
-### Query Restrictions
-
-```json
-{
-  "security": {
-    "allowed_tables": ["Sales", "Product", "Date", "Geography"],
-    "blocked_tables": ["Employee", "Salary", "HR"],
-    "max_result_rows": 10000,
-    "audit_queries": true
-  }
-}
-```
-
-### Input Sanitization
-
-```json
-{
-  "security": {
-    "sanitize_inputs": true,
-    "escape_strings": true,
-    "validate_identifiers": true,
-    "block_injection_patterns": [
-      "EVALUATE.*DROP",
-      "ALTER.*TABLE",
-      "CREATE.*TABLE"
-    ]
-  }
-}
-```
-
----
-
-## Best Practices
-
-### 1. Query Design
-
-- Use variables for repeated expressions
-- Prefer SUMMARIZECOLUMNS over ADDCOLUMNS + GROUPBY
-- Filter early in the query
-- Avoid unnecessary columns in results
-
-### 2. Parameter Handling
-
-- Always validate and sanitize inputs
-- Use typed parameters
-- Provide sensible defaults
-- Document parameter constraints
-
-### 3. Error Handling
-
-```json
-{
-  "error_handling": {
-    "retry_on_timeout": true,
-    "max_retries": 3,
-    "fallback_query": "EVALUATE ROW(\"Error\", TRUE())",
-    "include_error_details": false
-  }
-}
-```
-
-### 4. Performance
-
-- Set appropriate timeouts
-- Use caching for repeated queries
-- Limit result sets
-- Monitor query execution times
-
-### 5. Documentation
-
-- Document query purpose
-- Explain parameters
-- Provide usage examples
-- Note performance considerations
-
----
-
-## Examples
-
-### Example 1: Sales Summary by Year
-
-```json
-{
-  "name": "sales_summary_by_year",
-  "description": "Get sales summary grouped by year",
-  "powerbi": {
-    "workspace_id": "${powerbi.workspace.id}",
-    "dataset_id": "${powerbi.dataset.id}"
-  },
-  "query": {
-    "template": "EVALUATE\nSUMMARIZECOLUMNS(\n    'Date'[Year],\n    \"Total Sales\", SUM(Sales[Amount]),\n    \"Order Count\", COUNTROWS(Sales),\n    \"Avg Order Value\", AVERAGE(Sales[Amount])\n)\nORDER BY 'Date'[Year] DESC"
-  },
-  "inputSchema": {
-    "type": "object",
-    "properties": {}
-  }
-}
-```
-
-### Example 2: Top N Products with Filters
-
-```json
-{
-  "name": "top_products_by_sales",
-  "description": "Get top N products by sales for a specific year and region",
-  "query": {
-    "template": "EVALUATE\nTOPN(\n    @top_n,\n    SUMMARIZECOLUMNS(\n        'Product'[ProductName],\n        'Product'[Category],\n        TREATAS({@year}, 'Date'[Year]),\n        TREATAS({\"@region\"}, 'Geography'[Region]),\n        \"TotalSales\", SUM(Sales[Amount]),\n        \"UnitsSold\", SUM(Sales[Quantity])\n    ),\n    [TotalSales], DESC\n)"
-  },
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "year": {
-        "type": "integer",
-        "required": true,
-        "description": "Filter year"
-      },
-      "region": {
-        "type": "string",
-        "required": true,
-        "description": "Filter region"
-      },
-      "top_n": {
-        "type": "integer",
-        "default": 10,
-        "minimum": 1,
-        "maximum": 100,
-        "description": "Number of top products"
-      }
-    }
-  }
-}
-```
-
-### Example 3: Year-over-Year Comparison
-
-```json
-{
-  "name": "yoy_comparison",
-  "description": "Compare metrics year-over-year",
-  "query": {
-    "template": "EVALUATE\nVAR CurrentYear = @year\nVAR PreviousYear = @year - 1\nVAR CurrentSales = CALCULATE(SUM(Sales[Amount]), 'Date'[Year] = CurrentYear)\nVAR PreviousSales = CALCULATE(SUM(Sales[Amount]), 'Date'[Year] = PreviousYear)\nVAR Growth = DIVIDE(CurrentSales - PreviousSales, PreviousSales)\nRETURN\nROW(\n    \"Current Year\", CurrentYear,\n    \"Current Sales\", CurrentSales,\n    \"Previous Year\", PreviousYear,\n    \"Previous Sales\", PreviousSales,\n    \"Growth Rate\", Growth\n)"
-  },
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "year": {
-        "type": "integer",
-        "required": true,
-        "description": "Year to compare"
-      }
-    }
-  }
-}
-```
-
-### Example 4: Dynamic Dimension Query
-
-```json
-{
-  "name": "dynamic_analysis",
-  "description": "Analyze data with dynamic dimensions and measures",
-  "query": {
-    "dynamic": true,
-    "base_template": "EVALUATE\nSUMMARIZECOLUMNS(\n    @dimensions,\n    @measures\n)\nORDER BY @sort_column @sort_order"
-  },
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "group_by": {
-        "type": "array",
-        "items": {
-          "type": "string",
-          "enum": ["year", "month", "quarter", "category", "region", "customer"]
-        },
-        "required": true,
-        "description": "Dimensions to group by"
-      },
-      "metrics": {
-        "type": "array",
-        "items": {
-          "type": "string",
-          "enum": ["total_sales", "order_count", "avg_order", "unique_customers"]
-        },
-        "required": true,
-        "description": "Metrics to calculate"
-      },
-      "sort_by": {
-        "type": "string",
-        "default": "total_sales",
-        "description": "Column to sort by"
-      },
-      "sort_descending": {
-        "type": "boolean",
-        "default": true
-      }
-    }
-  }
-}
-```
-
-### Example 5: Time Intelligence Query
-
-```json
-{
-  "name": "time_intelligence_metrics",
-  "description": "Calculate time intelligence metrics (MTD, QTD, YTD)",
-  "query": {
-    "template": "EVALUATE\nVAR SelectedDate = DATE(@year, @month, @day)\nRETURN\nROW(\n    \"Date\", SelectedDate,\n    \"MTD Sales\", CALCULATE(SUM(Sales[Amount]), DATESMTD('Date'[Date])),\n    \"QTD Sales\", CALCULATE(SUM(Sales[Amount]), DATESQTD('Date'[Date])),\n    \"YTD Sales\", CALCULATE(SUM(Sales[Amount]), DATESYTD('Date'[Date])),\n    \"Same Period Last Year\", CALCULATE(SUM(Sales[Amount]), SAMEPERIODLASTYEAR('Date'[Date]))\n)"
-  },
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "year": {"type": "integer", "required": true},
-      "month": {"type": "integer", "minimum": 1, "maximum": 12, "required": true},
-      "day": {"type": "integer", "minimum": 1, "maximum": 31, "required": true}
-    }
-  }
-}
-```
+| Output field | Description |
+|--------------|-------------|
+| `success` | Whether the query succeeded. |
+| `dataset_name` | The configured dataset name. |
+| `row_count` | The number of rows the API returned, counted before the Max Rows cap. |
+| `columns` | The column names. |
+| `data` | The rows, as objects. At most Max Rows are returned. |
+| `query_time_seconds` | How long the query took. |
+| `error` | The error message when `success` is false. PowerBI's own error text is included when it is available. |
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
-
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| Authentication failed | Invalid credentials | Check tenant/client IDs and secrets |
-| Dataset not found | Wrong dataset ID | Verify workspace and dataset IDs |
-| Query timeout | Complex query | Optimize DAX or increase timeout |
-| Invalid column | Column doesn't exist | Check column names in dataset |
-| RLS not working | Incorrect identity | Verify effective identity configuration |
-| Empty results | Filter too restrictive | Check filter parameters |
-
-### Debug Checklist
-
-1. ✅ Verify Azure AD app registration
-2. ✅ Check API permissions are granted
-3. ✅ Confirm dataset is accessible
-4. ✅ Test DAX query in Power BI Desktop first
-5. ✅ Validate parameter substitution
-6. ✅ Check server logs for errors
-
-### DAX Query Validation
-
-Test your DAX query in Power BI Desktop:
-
-1. Open Power BI Desktop
-2. Connect to the same dataset
-3. Open DAX Query View (View → DAX Query)
-4. Paste your query and execute
-5. Verify results match expectations
-
-### Log Analysis
-
-```bash
-# View DAX query execution logs
-tail -f logs/sajha_mcp.log | grep "PowerBIDAX"
-
-# Check authentication issues
-grep "token" logs/sajha_mcp.log | tail -20
-```
-
-### Common DAX Errors
-
-| Error | Cause | Fix |
-|-------|-------|-----|
-| "Column not found" | Invalid column reference | Check table and column names |
-| "Circular dependency" | Measure references itself | Review measure logic |
-| "Type mismatch" | Wrong data type in filter | Cast or convert types |
-| "EVALUATE missing" | Query syntax error | Ensure EVALUATE keyword present |
+| Symptom | Likely cause |
+|---------|--------------|
+| Authentication fails | `POWERBI_CLIENT_SECRET` is not set on the server, or the tenant ID, client ID or secret is wrong. |
+| 401 or 403 from `executeQueries` | The service principal has no dataset access, or the tenant setting that allows the API is off. |
+| `DAX query must start with EVALUATE` | Validation rejected the query. Start it with `EVALUATE`. |
+| A column or table is not found | The names do not match the dataset model. Test the query in PowerBI Desktop first. |
+| Literal `@name` text is left in the query | The caller did not supply that argument, or the argument was null. |
+| Quoting errors on a string parameter | The template has quotes around `@name`. Remove them, because the tool adds them. |
 
 ---
 
 ## Related Documentation
 
-- [MCP Studio Overview](MCP_Studio_User_Guide.md)
-- [PowerBI Tool Guide](MCP_Studio_PowerBI_Tool_Creator_Guide.md)
-- [OLAP Analytics Guide](MCP_Studio_OLAP_Tool_Creator_Guide.md)
+- [MCP Studio User Guide](MCP%20Studio%20User%20Guide.md)
+- [PowerBI Report Tool Creator Guide](MCP%20Studio%20PowerBI%20Tool%20Creator%20Guide.md)
+- [OLAP Tool Creator Guide](MCP%20Studio%20OLAP%20Tool%20Creator%20Guide.md)
+- [Glossary](../../GLOSSARY.md)
 
 ---
 
-*SAJHA MCP Server v5.3.0 - PowerBI DAX Query Tool Creator Guide*
-*Copyright © 2025-2030 Ashutosh Sinha*
+Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.

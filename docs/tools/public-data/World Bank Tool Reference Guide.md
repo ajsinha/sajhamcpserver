@@ -1,11 +1,4 @@
-# World Bank MCP Tool Reference Guide
-
-**Copyright All rights reserved 2025-2030, Ashutosh Sinha**  
-**Email: ajsinha@gmail.com**  
-**Version: 5.3.0**  
-**Last Updated: October 31, 2025**
-
----
+# World Bank Tool Reference Guide
 
 ## Table of Contents
 
@@ -14,19 +7,22 @@
 3. [System Requirements](#system-requirements)
 4. [Authentication & API Access](#authentication--api-access)
 5. [Tool Details](#tool-details)
-6. [Common Indicators Reference](#common-indicators-reference)
-7. [API Reference](#api-reference)
-8. [Usage Examples](#usage-examples)
-9. [Schema Specifications](#schema-specifications)
-10. [Limitations](#limitations)
-11. [Troubleshooting](#troubleshooting)
-12. [Architecture Diagrams](#architecture-diagrams)
+6. [Calling the Tools](#calling-the-tools)
+7. [Common Indicators Reference](#common-indicators-reference)
+8. [API Reference](#api-reference)
+9. [Usage Examples](#usage-examples)
+10. [Schema Specifications](#schema-specifications)
+11. [Limitations](#limitations)
+12. [Troubleshooting](#troubleshooting)
+13. [Architecture Diagrams](#architecture-diagrams)
+14. [Best Practices](#best-practices)
+15. [Performance Considerations](#performance-considerations)
 
 ---
 
 ## Overview
 
-The World Bank MCP Tool provides comprehensive access to World Bank Open Data API, offering development indicators, economic data, and social statistics for 200+ countries from 1960 to present. It includes 10 specialized tools covering everything from country metadata to cross-country comparisons.
+The World Bank tools (prefix `wb_`, implementation `sajha/tools/impl/world_bank_tool.py`) provide access to the World Bank Open Data API v2, offering development indicators, economic data, and social statistics for 200+ countries from 1960 to present. They cover everything from country metadata to cross-country comparisons; the live catalog in the app (Tools page or `tools/list`) is authoritative.
 
 ### Key Features
 
@@ -251,7 +247,7 @@ import urllib.parse
 import urllib.request
 from typing import Dict, Any, List, Optional
 from datetime import datetime
-from tools.base_mcp_tool import BaseMCPTool
+from sajha.tools.base_mcp_tool import BaseMCPTool
 ```
 
 ### Python Version
@@ -268,7 +264,6 @@ from tools.base_mcp_tool import BaseMCPTool
 - **World Bank Open Data API v2**: Publicly accessible
 - **No registration required**
 - **No API key needed**
-- **Free unlimited access**
 - **No rate limits published** (reasonable use recommended)
 
 ---
@@ -281,8 +276,7 @@ from tools.base_mcp_tool import BaseMCPTool
 - No API key needed
 - No registration required
 - No authentication headers
-- Free unlimited access
-- No rate limits (use responsibly)
+- No published rate limits (use responsibly)
 
 **Example Request:**
 ```python
@@ -320,15 +314,14 @@ While no formal rate limits exist:
 
 **Purpose:** Retrieve list of all countries and regions with metadata
 
-**Input Schema:**
-```json
-{
-  "income_level": "string (HIC|UMC|LMC|LIC|all, default: all)",
-  "region": "string (EAS|ECS|LCN|MEA|NAC|SAS|SSF|WLD|all, default: all)",
-  "lending_type": "string (IBD|IDB|IDX|LNX|all, default: all)",
-  "per_page": "integer (1-500, default: 300)"
-}
-```
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `income_level` | string | No | `all` | Filter by income level classification. One of: `HIC`, `UMC`, `LMC`, `LIC`, `all` |
+| `region` | string | No | `all` | Filter by geographic region. One of: `EAS`, `ECS`, `LCN`, `MEA`, `NAC`, `SAS`, `SSF`, `WLD`, `all` |
+| `lending_type` | string | No | `all` | Filter by lending type. One of: `IBD`, `IDB`, `IDX`, `LNX`, `all` |
+| `per_page` | integer | No | `300` | Number of results per page. Range 1–500. |
 
 **Income Levels:**
 - **HIC**: High Income Countries
@@ -406,15 +399,14 @@ result = tool.execute({
 
 **Purpose:** Browse World Bank's comprehensive catalog of 16,000+ development indicators
 
-**Input Schema:**
-```json
-{
-  "topic_id": "integer (1-21, optional)",
-  "source": "integer (1-100, optional)",
-  "per_page": "integer (1-1000, default: 100)",
-  "page": "integer (min: 1, default: 1)"
-}
-```
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `topic_id` | integer | No | — | Filter by topic ID (1=Agriculture, 2=Aid Effectiveness, 3=Economy & Growth, 4=Education, 5=Energy & Mining, 6=Environment, 7=Financial Sector, 8=Health, 9=Infrastructure, 10=Social Protection & Labor, 11=Poverty, 12=Private Sector, 13=Public Sector, 14=Science & Technology, 15=Social Development, 16=Urban Development, 17=Gender, 18=Trade, 19=Climate Change, 20=External Debt, 21=Millenium Development Goals). Range 1–21. |
+| `source` | integer | No | — | Filter by data source ID. Range 1–100. |
+| `per_page` | integer | No | `100` | Number of indicators per page. Range 1–1000. |
+| `page` | integer | No | `1` | Page number for pagination. Range 1–. |
 
 **Topics:**
 1. Agriculture & Rural Development
@@ -496,12 +488,11 @@ result = tool.execute({
 
 **Purpose:** Retrieve income level classifications and descriptions
 
-**Input Schema:**
-```json
-{
-  "per_page": "integer (1-100, default: 50)"
-}
-```
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `per_page` | integer | No | `50` | Number of results per page. Range 1–100. |
 
 **Output Schema:**
 ```json
@@ -552,12 +543,11 @@ result = tool.execute({
 
 **Purpose:** Retrieve World Bank lending type classifications
 
-**Input Schema:**
-```json
-{
-  "per_page": "integer (1-100, default: 50)"
-}
-```
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `per_page` | integer | No | `50` | Number of results per page. Range 1–100. |
 
 **Output Schema:**
 ```json
@@ -601,12 +591,11 @@ result = tool.execute({
 
 **Purpose:** Retrieve geographic region classifications
 
-**Input Schema:**
-```json
-{
-  "per_page": "integer (1-100, default: 50)"
-}
-```
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `per_page` | integer | No | `50` | Number of results per page. Range 1–100. |
 
 **Output Schema:**
 ```json
@@ -644,17 +633,18 @@ result = tool.execute({
 
 **Purpose:** Retrieve time series data for a specific indicator and country
 
-**Input Schema:**
-```json
-{
-  "country_code": "string (required, ISO2/ISO3, e.g., 'US', 'USA')",
-  "indicator": "string (shorthand, e.g., 'gdp', 'population')",
-  "indicator_code": "string (direct code, e.g., 'NY.GDP.MKTP.CD')",
-  "start_year": "integer (1960-2030, optional)",
-  "end_year": "integer (1960-2030, optional)",
-  "per_page": "integer (1-1000, default: 100)"
-}
-```
+Supply `indicator` (shorthand) or `indicator_code`; one of them is required at run time. The year range is applied only when both `start_year` and `end_year` are given.
+
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `country_code` | string | Yes | — | ISO2 or ISO3 country code (e.g., 'US', 'USA', 'CN', 'CHN', 'IN', 'IND'). |
+| `indicator` | string | No | — | Common indicator shorthand. One of 39 values (see [Common Indicators Reference](#common-indicators-reference)). |
+| `indicator_code` | string | No | — | World Bank indicator code (e.g., 'NY.GDP.MKTP.CD' for GDP). Use this for direct indicator access. |
+| `start_year` | integer | No | — | Start year for data retrieval. Range 1960–2030. |
+| `end_year` | integer | No | — | End year for data retrieval. Range 1960–2030. |
+| `per_page` | integer | No | `100` | Number of data points per page. Range 1–1000. |
 
 **Note:** Must provide either `indicator` OR `indicator_code`
 
@@ -727,19 +717,20 @@ result = tool.execute({
 
 **Purpose:** Retrieve cross-country data for a specific indicator
 
-**Input Schema:**
-```json
-{
-  "indicator": "string (shorthand, e.g., 'gdp_per_capita')",
-  "indicator_code": "string (direct code)",
-  "year": "integer (1960-2030, specific year)",
-  "start_year": "integer (1960-2030, for range)",
-  "end_year": "integer (1960-2030, for range)",
-  "income_level": "string (HIC|UMC|LMC|LIC, optional filter)",
-  "region": "string (EAS|ECS|LCN|MEA|NAC|SAS|SSF, optional filter)",
-  "per_page": "integer (1-1000, default: 100)"
-}
-```
+Supply `indicator` or `indicator_code`. `year` takes precedence over `start_year`/`end_year` (the range needs both). If both `income_level` and `region` are given, `income_level` wins; with neither, all economies are returned.
+
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `indicator` | string | No | — | Common indicator shorthand. One of 39 values (see [Common Indicators Reference](#common-indicators-reference)). |
+| `indicator_code` | string | No | — | World Bank indicator code (e.g., 'SP.POP.TOTL' for population). Use this for direct indicator access. |
+| `year` | integer | No | — | Specific year for cross-country comparison. Range 1960–2030. |
+| `start_year` | integer | No | — | Start year for time range. Range 1960–2030. |
+| `end_year` | integer | No | — | End year for time range. Range 1960–2030. |
+| `income_level` | string | No | — | Filter by income level. One of: `HIC`, `UMC`, `LMC`, `LIC` |
+| `region` | string | No | — | Filter by region. One of: `EAS`, `ECS`, `LCN`, `MEA`, `NAC`, `SAS`, `SSF` |
+| `per_page` | integer | No | `100` | Number of results per page. Range 1–1000. |
 
 **Output Schema:**
 ```json
@@ -810,17 +801,18 @@ result = tool.execute({
 
 **Purpose:** Side-by-side comparison of multiple countries for a specific indicator
 
-**Input Schema:**
-```json
-{
-  "country_codes": "array (required, 2-10 ISO codes)",
-  "indicator": "string (shorthand)",
-  "indicator_code": "string (direct code)",
-  "start_year": "integer (1960-2030, optional)",
-  "end_year": "integer (1960-2030, optional)",
-  "most_recent_year": "boolean (default: false)"
-}
-```
+Supply `indicator` or `indicator_code`. The year range is applied only when both `start_year` and `end_year` are given.
+
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `country_codes` | array of string | Yes | — | List of country codes to compare (2-10 countries). 2–10 items. |
+| `indicator` | string | No | — | Common indicator shorthand. One of 39 values (see [Common Indicators Reference](#common-indicators-reference)). |
+| `indicator_code` | string | No | — | World Bank indicator code for direct access. |
+| `start_year` | integer | No | — | Start year for comparison. Range 1960–2030. |
+| `end_year` | integer | No | — | End year for comparison. Range 1960–2030. |
+| `most_recent_year` | boolean | No | `false` | Compare only the most recent available year for each country. |
 
 **Output Schema:**
 ```json
@@ -907,15 +899,16 @@ result = tool.execute({
 
 **Purpose:** Search for indicators by keyword
 
-**Input Schema:**
-```json
-{
-  "search_term": "string (required, 2-100 chars)",
-  "topic_id": "integer (1-21, optional filter)",
-  "per_page": "integer (1-500, default: 50)",
-  "page": "integer (min: 1, default: 1)"
-}
-```
+The search is a case-insensitive substring match on indicator name and source note, applied to the single page of the indicator catalog fetched with `page`/`per_page` (optionally narrowed by `topic_id`). To search more of the catalog, page through it.
+
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `search_term` | string | Yes | — | Keyword or phrase to search for in indicator names and descriptions (e.g., 'education', 'carbon', 'poverty', 'trade'). 2–100 characters. |
+| `topic_id` | integer | No | — | Filter by topic ID (1=Agriculture, 3=Economy & Growth, 4=Education, 5=Energy, 6=Environment, 8=Health, 11=Poverty, 17=Gender, 19=Climate Change). Range 1–21. |
+| `per_page` | integer | No | `50` | Number of results per page. Range 1–500. |
+| `page` | integer | No | `1` | Page number for pagination. Range 1–. |
 
 **Output Schema:**
 ```json
@@ -980,14 +973,13 @@ result = tool.execute({
 
 **Purpose:** Retrieve all indicators for a specific development topic
 
-**Input Schema:**
-```json
-{
-  "topic_id": "integer (required, 1-21)",
-  "per_page": "integer (1-1000, default: 100)",
-  "page": "integer (min: 1, default: 1)"
-}
-```
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `topic_id` | integer | Yes | — | Topic ID: 1=Agriculture & Rural Development, 2=Aid Effectiveness, 3=Economy & Growth, 4=Education, 5=Energy & Mining, 6=Environment, 7=Financial Sector, 8=Health, 9=Infrastructure, 10=Social Protection & Labor, 11=Poverty, 12=Private Sector, 13=Public Sector, 14=Science & Technology, 15=Social Development, 16=Urban Development, 17=Gender, 18=Trade, 19=Climate Change, 20=External Debt, 21=Millennium Development Goals. Range 1–21. |
+| `per_page` | integer | No | `100` | Number of indicators per page. Range 1–1000. |
+| `page` | integer | No | `1` | Page number for pagination. Range 1–. |
 
 **Output Schema:**
 ```json
@@ -1044,6 +1036,38 @@ result = tool.execute({
 
 ---
 
+## Calling the Tools
+
+Every tool can be called over MCP (a `tools/call` request on `POST /mcp`) or over the REST API (`POST /api/tools/execute`). Authenticate with an `X-API-Key: sja_...` header or an `Authorization: Bearer <token>` header. Sessions, protocol versions and headers are covered in the [MCP Protocol Guide](../../protocol/MCP%20Protocol%20Guide.md).
+
+**MCP (`POST /mcp`)**
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+ "params": {"name": "wb_get_country_data", "arguments": {"country_code": "IN", "indicator": "gdp_growth", "start_year": 2010, "end_year": 2023}}}
+```
+
+**REST**
+
+```bash
+curl -X POST http://localhost:3002/api/tools/execute \
+  -H "X-API-Key: sja_your_key" -H "Content-Type: application/json" \
+  -d '{"tool": "wb_get_country_data", "arguments": {"country_code": "IN", "indicator": "gdp_growth", "start_year": 2010, "end_year": 2023}}'
+```
+
+**Python client SDK**
+
+```python
+from sajhaclient import SajhaClient, SajhaConfig
+
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
+result = client.execute_tool("wb_get_country_data", country_code="IN", indicator="gdp_growth", start_year=2010, end_year=2023)
+```
+
+The Python examples in this guide instantiate the tool classes directly (useful in tests and notebooks); through the server, use one of the forms above.
+
+---
+
 ## Common Indicators Reference
 
 ### Quick Reference Table
@@ -1055,6 +1079,7 @@ result = tool.execute({
 | | GDP growth | `gdp_growth` | NY.GDP.MKTP.KD.ZG |
 | | GDP, PPP | `gdp_ppp` | NY.GDP.MKTP.PP.CD |
 | | Inflation | `inflation` | FP.CPI.TOTL.ZG |
+| | Food price inflation | `food_price_inflation` | FP.CPI.FOOD.ZG |
 | **Population** | Total population | `population` | SP.POP.TOTL |
 | | Population growth | `population_growth` | SP.POP.GROW |
 | | Urban population % | `urban_population` | SP.URB.TOTL.IN.ZS |
@@ -1063,6 +1088,7 @@ result = tool.execute({
 | | Death rate | `death_rate` | SP.DYN.CDRT.IN |
 | **Social** | Poverty rate $1.90/day | `poverty_rate` | SI.POV.DDAY |
 | | Gini index | `gini_index` | SI.POV.GINI |
+| | Income share of lowest 20% | `income_share_lowest_20` | SI.DST.FRST.20 |
 | | Literacy rate | `literacy_rate` | SE.ADT.LITR.ZS |
 | | Primary enrollment | `primary_enrollment` | SE.PRM.NENR |
 | | Secondary enrollment | `secondary_enrollment` | SE.SEC.NENR |
@@ -1115,16 +1141,10 @@ def _make_request(self, endpoint: str, params: Dict = None) -> List:
 ### Tool Instantiation
 
 ```python
-from world_bank_tool import WORLD_BANK_TOOLS
+from sajha.tools.impl.world_bank_tool import WBGetCountryDataTool
 
-# Get tool class
-ToolClass = WORLD_BANK_TOOLS['wb_get_country_data']
-
-# Create instance
-tool = ToolClass(config={
-    'name': 'wb_get_country_data',
-    'enabled': True
-})
+# Create instance (config is optional; the server builds tools from config/tools/*.json)
+tool = WBGetCountryDataTool()
 
 # Execute
 result = tool.execute({
@@ -1142,7 +1162,7 @@ result = tool.execute({
 ### Example 1: Get Country List with Filters
 
 ```python
-from world_bank_tool import WBGetCountriesTool
+from sajha.tools.impl.world_bank_tool import WBGetCountriesTool
 
 tool = WBGetCountriesTool({})
 
@@ -1161,7 +1181,7 @@ for country in result['countries']:
 ### Example 2: Track Country Economic Indicators
 
 ```python
-from world_bank_tool import WBGetCountryDataTool
+from sajha.tools.impl.world_bank_tool import WBGetCountryDataTool
 
 tool = WBGetCountryDataTool({})
 
@@ -1183,7 +1203,7 @@ for point in result['data']:
 ### Example 3: Compare Multiple Countries
 
 ```python
-from world_bank_tool import WBCompareCountriesTool
+from sajha.tools.impl.world_bank_tool import WBCompareCountriesTool
 
 tool = WBCompareCountriesTool({})
 
@@ -1218,7 +1238,7 @@ for country_data in result['countries']:
 ### Example 4: Search for Indicators
 
 ```python
-from world_bank_tool import WBSearchIndicatorsTool
+from sajha.tools.impl.world_bank_tool import WBSearchIndicatorsTool
 
 tool = WBSearchIndicatorsTool({})
 
@@ -1243,7 +1263,7 @@ for indicator in result['results']:
 ### Example 5: Get Cross-Country Rankings
 
 ```python
-from world_bank_tool import WBGetIndicatorDataTool
+from sajha.tools.impl.world_bank_tool import WBGetIndicatorDataTool
 
 tool = WBGetIndicatorDataTool({})
 
@@ -1273,7 +1293,7 @@ for i, item in enumerate(sorted_data[:10], 1):
 ### Example 6: Topic-Based Analysis
 
 ```python
-from world_bank_tool import WBGetTopicIndicatorsTool
+from sajha.tools.impl.world_bank_tool import WBGetTopicIndicatorsTool
 
 tool = WBGetTopicIndicatorsTool({})
 
@@ -1384,7 +1404,7 @@ raise ValueError("Unknown indicator: xyz")
    - Recommended: < 120 requests/minute
 
 2. **Best Practices**
-   - Cache results when possible
+   - Cache results when possible (server-side caching is opt-in: add a top-level `"cache_ttl": <seconds>` to the tool's JSON config in `config/tools/`; none of the shipped `wb_` configs set it)
    - Use pagination efficiently
    - Batch requests when appropriate
    - Implement client-side throttling
@@ -1414,7 +1434,6 @@ raise ValueError("Unknown indicator: xyz")
 1. **No Real-Time Data**
    - No live/streaming data
    - Batch updates (quarterly/annually)
-   - SSE transport available via /mcp/sse
 
 2. **Pagination**
    - Max per_page: 1000 for data, 500 for metadata
@@ -1867,40 +1886,6 @@ result = tool.execute({
 
 ---
 
-## Metadata
-
-### Tool Registry
-
-```python
-WORLD_BANK_TOOLS = {
-    'wb_get_countries': WBGetCountriesTool,
-    'wb_get_indicators': WBGetIndicatorsTool,
-    'wb_get_country_data': WBGetCountryDataTool,
-    'wb_get_indicator_data': WBGetIndicatorDataTool,
-    'wb_search_indicators': WBSearchIndicatorsTool,
-    'wb_compare_countries': WBCompareCountriesTool,
-    'wb_get_income_levels': WBGetIncomeLevelsTool,
-    'wb_get_lending_types': WBGetLendingTypesTool,
-    'wb_get_regions': WBGetRegionsTool,
-    'wb_get_topic_indicators': WBGetTopicIndicatorsTool
-}
-```
-
-### Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-31 | Initial release |
-
-### Rate Limits (Recommended)
-
-| Tool Category | Requests/Min | Cache TTL |
-|---------------|--------------|-----------|
-| Metadata Tools | 120 | 86400s (24h) |
-| Data Tools | 120 | 3600s (1h) |
-
----
-
 ## Support & Resources
 
 ### Documentation
@@ -1909,10 +1894,6 @@ WORLD_BANK_TOOLS = {
 - **Indicator Catalog:** https://data.worldbank.org/indicator
 - **Country Profiles:** https://data.worldbank.org/country
 
-### Contact Information
-- **Author:** Ashutosh Sinha
-- **Email:** ajsinha@gmail.com
-
 ### External Resources
 - **World Bank Data Blog:** https://blogs.worldbank.org/opendata
 - **Data Help Desk:** https://datahelpdesk.worldbank.org
@@ -1920,13 +1901,7 @@ WORLD_BANK_TOOLS = {
 
 ---
 
-## Legal
-
-**Copyright All rights reserved 2025-2030, Ashutosh Sinha**
-
-This software and documentation are proprietary and confidential. Unauthorized copying, distribution, or use is strictly prohibited.
-
-**Email:** ajsinha@gmail.com
+## Data Terms
 
 ### Third-Party Services
 
@@ -1944,10 +1919,6 @@ This tool uses World Bank Open Data API:
 - Attribution required for publications: "Data from World Bank Open Data"
 - Free to use for commercial and non-commercial purposes
 - Review World Bank data policies for specific requirements
-
----
-
-*End of Reference Guide*
 
 ---
 
@@ -1969,4 +1940,8 @@ This tool uses World Bank Open Data API:
 
 - **Poverty Rate**: Percentage of population living below the poverty line. Available at various thresholds ($1.90, $3.20, $5.50/day).
 
-*For complete definitions, see the [Glossary](../architecture/Glossary.md).*
+*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+
+---
+
+*Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

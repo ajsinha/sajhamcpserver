@@ -1,633 +1,184 @@
 # MCP Studio Database Query Tool Creator Guide
-## SAJHA MCP Server v5.3.0
 
-## Overview
+The Database Query Tool Creator (`/studio/dbquery`) turns a SQL query template into an MCP tool. You fill in a form; Studio generates a tool config plus a Python implementation that connects to the database, substitutes the caller's arguments into the query and returns the rows.
 
-The Database Query Tool Creator enables you to create MCP tools that execute SQL queries against various databases including PostgreSQL, MySQL, SQL Server, Oracle, SQLite, and DuckDB. Build powerful data retrieval and analytics tools without writing driver-level code.
-
-## Table of Contents
-
-1. [Getting Started](#getting-started)
-2. [Supported Databases](#supported-databases)
-3. [Creating Database Tools](#creating-database-tools)
-4. [Connection Configuration](#connection-configuration)
-5. [Query Configuration](#query-configuration)
-6. [Parameter Handling](#parameter-handling)
-7. [Result Processing](#result-processing)
-8. [Security Best Practices](#security-best-practices)
-9. [Performance Optimization](#performance-optimization)
-10. [Examples](#examples)
-11. [Troubleshooting](#troubleshooting)
+Where Studio lives, the common create → preview → deploy workflow, where generated files are stored, hot reload and permissions are covered once in the [MCP Studio User Guide](MCP%20Studio%20User%20Guide.md).
 
 ---
 
-## Getting Started
+## Supported databases
 
-### Accessing the Database Query Tool Creator
+The generator accepts exactly these `db_type` values. Any other value fails validation.
 
-1. Navigate to `http://localhost:3002/admin/studio`
-2. Click on **Database Query Tool** card
-3. Or directly access: `http://localhost:3002/admin/studio/dbquery`
+| Database | `db_type` | Driver used by generated code | Connection string format |
+|----------|-----------|-------------------------------|--------------------------|
+| DuckDB | `duckdb` | `duckdb` | File path, e.g. `data/mydata.db`, or `:memory:` |
+| SQLite | `sqlite` | `sqlite3` (standard library) | File path, e.g. `data/app.sqlite` |
+| PostgreSQL | `postgresql` | `psycopg2` | libpq string passed to `psycopg2.connect()`, e.g. `host=localhost dbname=mydb user=postgres password=secret` |
+| MySQL | `mysql` | `pymysql` | Semicolon-separated `key=value` pairs: `host=localhost;database=mydb;user=root;password=secret` |
 
-### Prerequisites
-
-- Admin role access to SAJHA MCP Server
-- Database connection credentials
-- Database driver installed
-- Network access to database server
+The generated tool imports the driver when it runs. Install `psycopg2` or `pymysql` yourself if you use PostgreSQL or MySQL. For MySQL, the generated code reads only `host`, `database`, `user` and `password` from the string, so there is no port or SSL setting.
 
 ---
 
-## Supported Databases
+## Form fields
 
-| Database | Driver | Connection String Format |
-|----------|--------|-------------------------|
-| **PostgreSQL** | psycopg2 | `postgresql://user:pass@host:5432/db` |
-| **MySQL** | pymysql | `mysql://user:pass@host:3306/db` |
-| **SQL Server** | pyodbc | `mssql+pyodbc://user:pass@host/db` |
-| **Oracle** | cx_Oracle | `oracle://user:pass@host:1521/sid` |
-| **SQLite** | sqlite3 | `sqlite:///path/to/db.sqlite` |
-| **DuckDB** | duckdb | `duckdb:///path/to/db.duckdb` |
+### Tool information
+
+| Field | Required | Default | Notes |
+|-------|----------|---------|-------|
+| Tool Name | Yes | – | Must start with a lowercase letter. Use lowercase letters, digits and underscores, at least 3 characters. Becomes the tool name and the file names. |
+| Category | No | `Database` | Stored in `metadata.category`. |
+| Description | Yes | – | The tool description that clients see. |
+| Literature / Context (for AI) | No | – | Free-text context: business rules, a data dictionary, usage notes. The first 500 characters are stored in `metadata.literature` and in the generated class docstring. |
+
+### Database connection
+
+| Field | Required | Default | Notes |
+|-------|----------|---------|-------|
+| Database Type | Yes | DuckDB | One of the four buttons above. |
+| Connection String | Yes | – | See the format table above. It is written verbatim into the generated Python file, so read [Security notes](#security-notes) before you put credentials here. |
+| Timeout (seconds) | No | 30 | The form allows 1–300. The value is stored on the generated class, but the generated query code does not currently enforce it. |
+| Max Rows | No | 1000 | The form allows 1–100000. The generated code calls `fetchmany(max_rows)`, so results are cut off at this many rows. |
+
+### Query parameters
+
+Click **Add Parameter** for each input. Each row has these fields:
+
+| Field | Notes |
+|-------|-------|
+| Name | Must match a `{{name}}` placeholder in the query. Names must be unique. |
+| Type | `string`, `integer`, `float`, `boolean`, `date` or `datetime` |
+| Description | Defaults to `Parameter: <name>` if left blank. |
+| Default | Optional. A parameter with a default is never listed as required in the schema. |
+| Required | Checkbox. |
+| Enum values | Optional comma-separated list. It becomes a JSON Schema `enum` and is checked at runtime. |
+
+Types map to JSON Schema like this:
+
+| Type | JSON Schema |
+|------|-------------|
+| `string` | `string` |
+| `integer` | `integer` (the value is converted with `int()` at runtime) |
+| `float` | `number` (the value is converted with `float()` at runtime) |
+| `boolean` | `boolean` (strings `true`, `1` and `yes` count as true) |
+| `date` | `string` with `format: date` |
+| `datetime` | `string` with `format: date-time` |
+
+### SQL query template
+
+Write the query with `{{param_name}}` placeholders:
+
+```sql
+SELECT * FROM sales
+WHERE region = {{region}}
+  AND sale_date >= {{start_date}}
+  AND sale_date <= {{end_date}}
+ORDER BY sale_date DESC
+```
+
+Do not put quotes around placeholders. At runtime, the generated `_build_query()` method replaces each placeholder as follows:
+
+- A **string** value is wrapped in single quotes, and any single quotes inside it are doubled (`'` becomes `''`).
+- A **boolean** becomes `TRUE` or `FALSE`.
+- **`None`** becomes `NULL`.
+- **Anything else**, such as a number, is inserted with `str(value)`.
+
+Validation fails in these cases:
+- a placeholder has no matching parameter
+- the template contains `DROP `, `DELETE ` or `TRUNCATE ` (in any case)
+
+No other statement types are blocked.
+
+### Quick examples
+
+The sidebar has four examples you can click to load into the form: **Sales by Region** (DuckDB), **User Search** (SQLite), **Inventory Status** (PostgreSQL) and **Sales Aggregation** (DuckDB).
+
+### Preview and Deploy
+
+**Preview** shows the generated JSON, the Python implementation and the input and output schemas in tabs. **Deploy** becomes available after a successful preview. Both buttons send POST requests to `/admin/studio/dbquery/preview` and `/admin/studio/dbquery/deploy`. See [Known limitation: Studio action endpoints](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints) for the current status of those endpoints.
 
 ---
 
-## Creating Database Tools
+## Generated files
 
-### Step 1: Basic Information
+| File | Name |
+|------|------|
+| Tool config | `config/tools/<tool_name>.json` |
+| Implementation | `sajha/tools/impl/dbquery_<tool_name>.py`, class `DBQuery<ToolName>Tool` |
 
-```json
-{
-  "name": "customer_sales_query",
-  "display_name": "Customer Sales Query",
-  "description": "Query customer sales data with filters",
-  "category": "Sales Analytics",
-  "version": "2.9.8"
-}
-```
+A save is refused if either file already exists, unless overwrite is requested.
 
-### Step 2: Database Connection
+Example config (`version` comes from the generator's `DBQueryToolDefinition.version` default):
 
 ```json
 {
-  "connection": {
-    "type": "postgresql",
-    "host": "${db.host}",
-    "port": 5432,
-    "database": "${db.name}",
-    "username": "${db.user}",
-    "password": "${db.password}",
-    "ssl_mode": "require"
+  "name": "get_sales_by_region",
+  "implementation": "sajha.tools.impl.dbquery_get_sales_by_region.DBQueryGetSalesByRegionTool",
+  "description": "Sales rows for a region and date range",
+  "version": "2.9.8",
+  "enabled": true,
+  "metadata": {
+    "author": "MCP Studio - DB Query Generator",
+    "category": "Database",
+    "tags": ["database", "query", "sql", "generated"],
+    "rateLimit": 60,
+    "cacheTTL": 60,
+    "requiresApiKey": false,
+    "source": "db_query",
+    "db_type": "duckdb",
+    "literature": ""
   }
 }
 ```
 
-### Step 3: Query Definition
+### Output shape
+
+On success:
 
 ```json
 {
-  "query": {
-    "type": "select",
-    "sql": "SELECT customer_id, customer_name, SUM(amount) as total_sales FROM sales WHERE region = :region AND sale_date >= :start_date GROUP BY customer_id, customer_name ORDER BY total_sales DESC LIMIT :limit",
-    "parameters": {
-      "region": {"type": "string", "required": true},
-      "start_date": {"type": "date", "required": true},
-      "limit": {"type": "integer", "default": 100}
-    }
-  }
+  "success": true,
+  "data": [{"region": "EMEA", "amount": 1200.5}],
+  "columns": ["region", "amount"],
+  "row_count": 1,
+  "query_time_ms": 4.21,
+  "db_type": "duckdb"
 }
 ```
 
-### Step 4: Deploy
-
-Click **Deploy Tool** to create and register the tool.
+On failure: `{"success": false, "error": "Validation error: ..."}` or `{"success": false, "error": "Query execution error: ..."}`.
 
 ---
 
-## Connection Configuration
-
-### Connection String Method
-
-```json
-{
-  "connection": {
-    "connection_string": "${database.connection.string}",
-    "pool_size": 5,
-    "max_overflow": 10,
-    "pool_timeout": 30
-  }
-}
-```
-
-### Individual Parameters Method
-
-```json
-{
-  "connection": {
-    "type": "postgresql",
-    "host": "${db.host}",
-    "port": "${db.port:5432}",
-    "database": "${db.name}",
-    "username": "${db.user}",
-    "password": "${db.password}",
-    "options": {
-      "ssl_mode": "verify-full",
-      "ssl_cert": "/path/to/cert.pem",
-      "connect_timeout": 10,
-      "application_name": "SAJHA-MCP"
-    }
-  }
-}
-```
-
-### Connection Pooling
-
-```json
-{
-  "connection": {
-    "pooling": {
-      "enabled": true,
-      "min_connections": 2,
-      "max_connections": 10,
-      "idle_timeout": 300,
-      "max_lifetime": 3600
-    }
-  }
-}
-```
-
-### Multiple Database Support
-
-```json
-{
-  "connections": {
-    "primary": {
-      "type": "postgresql",
-      "connection_string": "${primary.db.url}"
-    },
-    "analytics": {
-      "type": "duckdb",
-      "connection_string": "${analytics.db.url}"
-    },
-    "archive": {
-      "type": "mysql",
-      "connection_string": "${archive.db.url}"
-    }
-  },
-  "default_connection": "primary"
-}
-```
-
----
-
-## Query Configuration
-
-### Simple SELECT Query
-
-```json
-{
-  "query": {
-    "type": "select",
-    "sql": "SELECT * FROM customers WHERE status = :status",
-    "parameters": {
-      "status": {"type": "string", "default": "active"}
-    }
-  }
-}
-```
-
-### Parameterized Query with Validation
-
-```json
-{
-  "query": {
-    "sql": "SELECT product_name, quantity, price FROM inventory WHERE category = :category AND price BETWEEN :min_price AND :max_price ORDER BY :sort_by :sort_dir LIMIT :limit",
-    "parameters": {
-      "category": {
-        "type": "string",
-        "required": true,
-        "enum": ["electronics", "clothing", "food", "furniture"]
-      },
-      "min_price": {
-        "type": "number",
-        "minimum": 0,
-        "default": 0
-      },
-      "max_price": {
-        "type": "number",
-        "minimum": 0,
-        "default": 999999
-      },
-      "sort_by": {
-        "type": "string",
-        "enum": ["product_name", "quantity", "price"],
-        "default": "product_name"
-      },
-      "sort_dir": {
-        "type": "string",
-        "enum": ["ASC", "DESC"],
-        "default": "ASC"
-      },
-      "limit": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 1000,
-        "default": 100
-      }
-    }
-  }
-}
-```
-
-### Aggregate Query
-
-```json
-{
-  "query": {
-    "sql": "SELECT region, product_category, COUNT(*) as order_count, SUM(amount) as total_revenue, AVG(amount) as avg_order_value FROM orders WHERE order_date BETWEEN :start_date AND :end_date GROUP BY region, product_category HAVING SUM(amount) > :min_revenue ORDER BY total_revenue DESC",
-    "parameters": {
-      "start_date": {"type": "date", "required": true},
-      "end_date": {"type": "date", "required": true},
-      "min_revenue": {"type": "number", "default": 0}
-    }
-  }
-}
-```
-
-### Dynamic SQL (Advanced)
-
-```json
-{
-  "query": {
-    "type": "dynamic",
-    "template": "SELECT {{ columns | default('*') }} FROM {{ table }} WHERE 1=1 {% if status %}AND status = :status{% endif %} {% if region %}AND region = :region{% endif %} ORDER BY {{ order_by | default('id') }} LIMIT :limit",
-    "parameters": {
-      "table": {"type": "string", "required": true, "enum": ["customers", "orders", "products"]},
-      "columns": {"type": "string"},
-      "status": {"type": "string"},
-      "region": {"type": "string"},
-      "order_by": {"type": "string"},
-      "limit": {"type": "integer", "default": 100}
-    }
-  }
-}
-```
-
-### Stored Procedure Call
-
-```json
-{
-  "query": {
-    "type": "procedure",
-    "name": "sp_generate_report",
-    "parameters": {
-      "report_type": {"type": "string", "required": true},
-      "start_date": {"type": "date", "required": true},
-      "end_date": {"type": "date", "required": true}
-    },
-    "output_parameters": ["result_count", "report_id"]
-  }
-}
-```
-
----
-
-## Parameter Handling
-
-### Parameter Types
-
-| Type | SQL Type | Example |
-|------|----------|---------|
-| `string` | VARCHAR | `"active"` |
-| `integer` | INTEGER | `42` |
-| `number` | DECIMAL | `19.99` |
-| `boolean` | BOOLEAN | `true` |
-| `date` | DATE | `"2024-01-15"` |
-| `datetime` | TIMESTAMP | `"2024-01-15T10:30:00"` |
-| `array` | Array | `["a", "b", "c"]` |
-| `json` | JSONB | `{"key": "value"}` |
-
-### Parameter Validation
-
-```json
-{
-  "parameters": {
-    "email": {
-      "type": "string",
-      "format": "email",
-      "required": true
-    },
-    "quantity": {
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 1000
-    },
-    "status": {
-      "type": "string",
-      "enum": ["pending", "active", "completed", "cancelled"]
-    },
-    "tags": {
-      "type": "array",
-      "items": {"type": "string"},
-      "minItems": 1,
-      "maxItems": 10
-    }
-  }
-}
-```
-
-### IN Clause Handling
-
-```json
-{
-  "query": {
-    "sql": "SELECT * FROM products WHERE category IN :categories",
-    "parameters": {
-      "categories": {
-        "type": "array",
-        "items": {"type": "string"},
-        "expand_in_clause": true
-      }
-    }
-  }
-}
-```
-
----
-
-## Result Processing
-
-### Column Mapping
-
-```json
-{
-  "result": {
-    "mapping": {
-      "cust_id": "customer_id",
-      "cust_name": "customer_name",
-      "tot_amt": "total_amount"
-    }
-  }
-}
-```
-
-### Data Transformation
-
-```json
-{
-  "result": {
-    "transforms": {
-      "amount": {"type": "currency", "currency": "USD"},
-      "created_at": {"type": "datetime", "format": "YYYY-MM-DD"},
-      "status": {"type": "enum", "mapping": {"A": "Active", "I": "Inactive"}}
-    }
-  }
-}
-```
-
-### Pagination
-
-```json
-{
-  "result": {
-    "pagination": {
-      "enabled": true,
-      "page_size": 50,
-      "max_page_size": 500,
-      "include_total_count": true
-    }
-  }
-}
-```
-
-### Output Schema
-
-```json
-{
-  "outputSchema": {
-    "type": "object",
-    "properties": {
-      "success": {"type": "boolean"},
-      "row_count": {"type": "integer"},
-      "columns": {"type": "array", "items": {"type": "string"}},
-      "data": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "customer_id": {"type": "string"},
-            "customer_name": {"type": "string"},
-            "total_sales": {"type": "number"}
-          }
-        }
-      },
-      "execution_time_ms": {"type": "number"}
-    }
-  }
-}
-```
-
----
-
-## Security Best Practices
-
-### 1. Parameterized Queries Only
-
-**NEVER** use string concatenation:
-
-```python
-# BAD - SQL Injection vulnerable
-query = f"SELECT * FROM users WHERE name = '{user_input}'"
-
-# GOOD - Parameterized
-query = "SELECT * FROM users WHERE name = :name"
-params = {"name": user_input}
-```
-
-### 2. Credential Management
-
-```json
-{
-  "connection": {
-    "username": "${db.user}",
-    "password": "${db.password}"
-  }
-}
-```
-
-Store credentials in `application.yml`:
-```properties
-db.user=${DB_USER}
-db.password=${DB_PASSWORD}
-```
-
-### 3. Query Restrictions
-
-```json
-{
-  "security": {
-    "allowed_operations": ["SELECT"],
-    "blocked_keywords": ["DROP", "DELETE", "TRUNCATE", "ALTER", "GRANT"],
-    "max_rows": 10000,
-    "query_timeout": 30
-  }
-}
-```
-
-### 4. Row-Level Security
-
-```json
-{
-  "security": {
-    "row_filter": "tenant_id = :current_tenant_id",
-    "inject_user_context": true
-  }
-}
-```
-
----
-
-## Performance Optimization
-
-### Query Hints
-
-```json
-{
-  "query": {
-    "sql": "SELECT /*+ INDEX(orders idx_order_date) */ * FROM orders WHERE order_date > :date",
-    "hints": {
-      "use_index": "idx_order_date",
-      "parallel_degree": 4
-    }
-  }
-}
-```
-
-### Caching
-
-```json
-{
-  "caching": {
-    "enabled": true,
-    "ttl_seconds": 300,
-    "cache_key_params": ["region", "date_range"],
-    "invalidation_triggers": ["orders_table_update"]
-  }
-}
-```
-
-### Query Timeout
-
-```json
-{
-  "query": {
-    "timeout_seconds": 30,
-    "cancel_on_timeout": true
-  }
-}
-```
-
----
-
-## Examples
-
-### Example 1: Sales Dashboard Query
-
-```json
-{
-  "name": "sales_dashboard_summary",
-  "description": "Get sales summary for dashboard",
-  "connection": {
-    "type": "postgresql",
-    "connection_string": "${sales.db.url}"
-  },
-  "query": {
-    "sql": "SELECT DATE_TRUNC('day', order_date) as date, COUNT(*) as orders, SUM(amount) as revenue, AVG(amount) as avg_order FROM orders WHERE order_date >= :start_date AND order_date < :end_date GROUP BY DATE_TRUNC('day', order_date) ORDER BY date",
-    "parameters": {
-      "start_date": {"type": "date", "required": true},
-      "end_date": {"type": "date", "required": true}
-    }
-  }
-}
-```
-
-### Example 2: Customer Search
-
-```json
-{
-  "name": "customer_search",
-  "description": "Search customers by various criteria",
-  "connection": {
-    "type": "mysql",
-    "connection_string": "${crm.db.url}"
-  },
-  "query": {
-    "sql": "SELECT customer_id, name, email, phone, created_at FROM customers WHERE (name LIKE :search_term OR email LIKE :search_term) AND status = :status ORDER BY created_at DESC LIMIT :limit",
-    "parameters": {
-      "search_term": {"type": "string", "required": true},
-      "status": {"type": "string", "default": "active"},
-      "limit": {"type": "integer", "default": 50, "maximum": 200}
-    }
-  }
-}
-```
-
-### Example 3: Inventory Report
-
-```json
-{
-  "name": "inventory_report",
-  "description": "Generate inventory status report",
-  "connection": {
-    "type": "sqlserver",
-    "connection_string": "${inventory.db.url}"
-  },
-  "query": {
-    "sql": "SELECT p.product_id, p.product_name, p.category, i.quantity_on_hand, i.reorder_point, CASE WHEN i.quantity_on_hand <= i.reorder_point THEN 'Low Stock' WHEN i.quantity_on_hand = 0 THEN 'Out of Stock' ELSE 'In Stock' END as stock_status FROM products p JOIN inventory i ON p.product_id = i.product_id WHERE p.category = :category OR :category IS NULL ORDER BY stock_status, p.product_name",
-    "parameters": {
-      "category": {"type": "string", "required": false}
-    }
-  }
-}
-```
+## Security notes
+
+- **Values are inlined, not bound.** The generated tool builds a SQL string. It does not use driver bind parameters. Escaping quotes protects string values, and numeric and boolean types are converted before they are inserted. Even so, prefer read-only database accounts and narrow queries.
+- **The DROP/DELETE/TRUNCATE check runs only when the tool is generated.** It looks at the template, not at runtime values, and it does not block `UPDATE`, `INSERT` or DDL other than `DROP`. Use a database account that has only `SELECT` rights.
+- **The connection string is embedded in the generated `.py` file.** Anyone who can read `sajha/tools/impl/` can see its credentials. Prefer file-based DuckDB/SQLite databases, or accounts with minimal privileges.
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
-
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| Connection refused | Wrong host/port | Verify connection settings |
-| Authentication failed | Bad credentials | Check username/password |
-| Query timeout | Slow query | Add indexes, optimize query |
-| Too many connections | Pool exhausted | Increase pool size |
-| Parameter type mismatch | Wrong data type | Check parameter types |
-
-### Debug Mode
-
-```json
-{
-  "debug": {
-    "enabled": true,
-    "log_queries": true,
-    "log_parameters": false,
-    "explain_analyze": true
-  }
-}
-```
-
-### Connection Testing
-
-```bash
-# Test PostgreSQL connection
-psql -h hostname -U username -d database -c "SELECT 1"
-
-# Test MySQL connection
-mysql -h hostname -u username -p database -e "SELECT 1"
-```
+| Message | Cause |
+|---------|-------|
+| `Tool name must start with lowercase letter...` | The name has uppercase letters, hyphens or a leading digit. |
+| `Query placeholder '{{x}}' has no matching parameter definition` | Add a parameter named `x`, or remove the placeholder. |
+| `Query contains potentially dangerous operations` | The template contains `DROP `, `DELETE ` or `TRUNCATE `. |
+| `Required parameter 'x' is missing` (at runtime) | The caller left out a required parameter that has no default. |
+| `Query execution error: No module named 'psycopg2'` / `'pymysql'` | Install the driver into the server's environment. |
+| `Tool configuration already exists` | A tool with that name already exists. Choose another name. |
 
 ---
 
-*SAJHA MCP Server v5.3.0 - Database Query Tool Creator Guide*
-*Copyright © 2025-2030 Ashutosh Sinha*
+## Related documentation
+
+- [MCP Studio User Guide](MCP%20Studio%20User%20Guide.md)
+- [SQL Select Tool Reference Guide](../tools/analytics/SQL%20Select%20Tool%20Reference%20Guide.md)
+- [DuckDB Tool Reference Guide](../tools/analytics/DuckDB%20Tool%20Reference%20Guide.md)
+- [Storage Guide](../getting-started/Storage%20Guide.md)
+
+---
+
+Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.

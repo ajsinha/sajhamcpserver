@@ -263,7 +263,7 @@ data:
 # a path, not a separate backend). 's3' reads/writes an object-storage bucket
 # with a local read-through cache. Mutable state (the SQLite DB, audit log,
 # cache) is NOT an S3 candidate — keep it on a real filesystem (EFS) or a
-# managed service (RDS). See docs/STORAGE_ROADMAP.md.
+# managed service (RDS). See docs/getting-started/Storage Guide.md.
 storage:
   backend: local                           # local | s3 | azure | gcs  (env: SAJHA_STORAGE_BACKEND)
   base_dir: "."                            # base dir for the local backend

@@ -1,11 +1,4 @@
-# United Nations MCP Tool Reference Guide
-
-**Copyright All rights reserved 2025-2030, Ashutosh Sinha**  
-**Email: ajsinha@gmail.com**  
-**Version: 5.3.0**  
-**Last Updated: October 31, 2025**
-
----
+# United Nations Tool Reference Guide
 
 ## Table of Contents
 
@@ -15,27 +8,29 @@
 4. [Authentication & API Access](#authentication--api-access)
 5. [Tool Details](#tool-details)
 6. [API Reference](#api-reference)
-7. [Usage Examples](#usage-examples)
-8. [Schema Specifications](#schema-specifications)
-9. [Limitations](#limitations)
-10. [Troubleshooting](#troubleshooting)
-11. [Architecture Diagrams](#architecture-diagrams)
+7. [Calling the Tools](#calling-the-tools)
+8. [Usage Examples](#usage-examples)
+9. [Schema Specifications](#schema-specifications)
+10. [Limitations](#limitations)
+11. [Troubleshooting](#troubleshooting)
+12. [Architecture Diagrams](#architecture-diagrams)
 
 ---
 
 ## Overview
 
-The United Nations MCP Tool provides access to official UN data through two major data sources: Sustainable Development Goals (SDG) statistics and Comtrade international trade data. It offers nine specialized tools for accessing global statistics, tracking development progress, and analyzing international trade patterns.
+The United Nations tools (prefix `un_`, implementation `sajha/tools/impl/united_nations_tool_refactored.py`) cover two UN data sources: Sustainable Development Goals (SDG) statistics from the UN SDG API, and international trade from UN Comtrade. The live catalog in the app (Tools page, or `tools/list`) is authoritative.
+
+> **Trade tools are placeholders.** The four Comtrade tools (`un_get_trade_data`, `un_get_country_trade`, `un_get_trade_balance`, `un_compare_trade`) do not call Comtrade yet: they validate and echo their arguments and return empty data (`data: []`, `total_value: null`) with a note that Comtrade authentication is required. Only the five SDG tools return live data.
 
 ### Key Features
 
 - **SDG Data Access**: Track progress on all 17 Sustainable Development Goals
 - **Trade Statistics**: Access comprehensive international trade data
 - **Official UN Data**: Direct access to authoritative global statistics
-- **No API Key Required** (SDG data): Most SDG tools work without authentication
+- **No API Key Required**: the SDG tools call the public UN SDG API without a key
 - **Comprehensive Coverage**: 1962-2030 trade data, 2000-2030 SDG data
 - **Country-Level Analysis**: Data for 200+ countries and territories
-- **MCP Compatible**: Fully compliant with Model Context Protocol
 
 ### How It Works
 
@@ -210,7 +205,7 @@ Accept: application/json
 
 **Comtrade API Endpoint:** `https://comtradeapi.un.org/data/v1`
 
-**Authentication:** Required for Comtrade (not implemented in base version)
+**Authentication:** Comtrade requires a subscription key; it is not wired up, and the trade tools do not call this endpoint yet.
 
 ---
 
@@ -225,7 +220,7 @@ import urllib.parse
 import urllib.request
 from typing import Dict, Any, List, Optional
 from datetime import datetime
-from tools.base_mcp_tool import BaseMCPTool
+from sajha.tools.base_mcp_tool import BaseMCPTool
 ```
 
 ### Python Version
@@ -252,8 +247,7 @@ from tools.base_mcp_tool import BaseMCPTool
 **UN SDG API is publicly accessible:**
 - No API key needed
 - No registration required
-- Rate limits apply (reasonable use)
-- Free for all users
+- Free for all users (reasonable use expected)
 
 **Example Request:**
 ```python
@@ -283,23 +277,11 @@ headers = {
 }
 ```
 
-**Note:** Current implementation has placeholder for Comtrade authentication. Full implementation would require API key configuration.
+**Note:** SAJHA does not send a Comtrade key: there is no config key or environment variable for it, and the trade tools are placeholders that make no Comtrade call.
 
 ### Configuration
 
-**Method 1: Config File**
-```json
-{
-  "name": "un_get_trade_data",
-  "comtrade_api_key": "your-key-here",
-  "enabled": true
-}
-```
-
-**Method 2: Environment Variable**
-```bash
-export UN_COMTRADE_API_KEY="your-key-here"
-```
+No SAJHA configuration is needed for the `un_` tools: the shipped configs carry no `api_key`, and there is no UN or Comtrade entry in `config/application.yml`. See the [Configuration Reference](../../getting-started/Configuration%20Reference.md) for how tool configs and API keys are resolved generally.
 
 ---
 
@@ -415,7 +397,7 @@ for indicator in result['indicators']:
 ```json
 {
   "indicator_code": "string (required, e.g., '1.1.1')",
-  "country_code": "string (optional, ISO3 code)",
+  "country_code": "string (optional; sent to the SDG API as areaCode)",
   "start_year": "integer (optional, 2000-2030)",
   "end_year": "integer (optional, 2000-2030)"
 }
@@ -600,7 +582,9 @@ for indicator in result['indicators']:
 
 ---
 
-### Trade Tools (Comtrade - Authentication Required)
+### Trade Tools (Comtrade, placeholder implementation)
+
+These tools accept the arguments below but currently return placeholder results with empty data (see the [Overview](#overview)).
 
 ### 6. un_get_trade_data
 
@@ -802,7 +786,7 @@ else:
 ```json
 {
   "country_codes": "array (required, 2-10 ISO3 codes)",
-  "trade_flow": "enum: export|import (default: export)",
+  "trade_flow": "enum: export|import|re_export|re_import (default: export)",
   "year": "integer (optional)"
 }
 ```
@@ -885,7 +869,7 @@ def _fetch_sdg_api(self, endpoint: str) -> List:
 ### Tool Instantiation
 
 ```python
-from united_nations_tool_refactored import UNITED_NATIONS_TOOLS
+from sajha.tools.impl.united_nations_tool_refactored import UNITED_NATIONS_TOOLS
 
 # Get tool class
 ToolClass = UNITED_NATIONS_TOOLS['un_get_sdgs']
@@ -902,12 +886,46 @@ result = tool.execute({})
 
 ---
 
+## Calling the Tools
+
+Every tool can be called over MCP (a `tools/call` request on `POST /mcp`) or over the REST API (`POST /api/tools/execute`). Authenticate with an `X-API-Key: sja_...` header or an `Authorization: Bearer <token>` header. Sessions, protocol versions and headers are covered in the [MCP Protocol Guide](../../protocol/MCP%20Protocol%20Guide.md).
+
+**MCP (`POST /mcp`)**
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+ "params": {"name": "un_get_sdg_data", "arguments": {"indicator_code": "1.1.1", "country_code": "356", "start_year": 2015, "end_year": 2023}}}
+```
+
+**REST**
+
+```bash
+curl -X POST http://localhost:3002/api/tools/execute \
+  -H "X-API-Key: sja_your_key" -H "Content-Type: application/json" \
+  -d '{"tool": "un_get_sdg_data", "arguments": {"indicator_code": "1.1.1", "country_code": "356", "start_year": 2015, "end_year": 2023}}'
+```
+
+**Python client SDK**
+
+```python
+from sajhaclient import SajhaClient, SajhaConfig
+
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
+result = client.execute_tool("un_get_sdg_data", indicator_code="1.1.1", country_code="356", start_year=2015, end_year=2023)
+```
+
+`country_code` is passed to the SDG API unchanged as `areaCode`. The UN SDG API identifies areas by UN M49 numeric code (for example `356` for India, `840` for the United States); ISO3 codes such as `IND` may return no data.
+
+The Python examples below instantiate the tool classes directly, which is useful in tests and notebooks; through the server, use one of the forms above.
+
+---
+
 ## Usage Examples
 
 ### Example 1: List All SDGs
 
 ```python
-from united_nations_tool_refactored import UNGetSDGsTool
+from sajha.tools.impl.united_nations_tool_refactored import UNGetSDGsTool
 
 tool = UNGetSDGsTool({})
 
@@ -926,7 +944,7 @@ for sdg in result['sdgs']:
 ### Example 2: Track Country's SDG Progress
 
 ```python
-from united_nations_tool_refactored import UNGetSDGProgressTool
+from sajha.tools.impl.united_nations_tool_refactored import UNGetSDGProgressTool
 
 tool = UNGetSDGProgressTool({})
 
@@ -950,7 +968,7 @@ for indicator in result['indicators']:
 ### Example 3: Get SDG Indicator Time Series
 
 ```python
-from united_nations_tool_refactored import UNGetSDGDataTool
+from sajha.tools.impl.united_nations_tool_refactored import UNGetSDGDataTool
 
 tool = UNGetSDGDataTool({})
 
@@ -973,7 +991,7 @@ for point in result['data']:
 ### Example 4: Get SDG Targets
 
 ```python
-from united_nations_tool_refactored import UNGetSDGTargetsTool
+from sajha.tools.impl.united_nations_tool_refactored import UNGetSDGTargetsTool
 
 tool = UNGetSDGTargetsTool({})
 
@@ -993,7 +1011,7 @@ for target in result['targets']:
 ### Example 5: Compare Trade Across Countries
 
 ```python
-from united_nations_tool_refactored import UNCompareCountryTradeTool
+from sajha.tools.impl.united_nations_tool_refactored import UNCompareCountryTradeTool
 
 tool = UNCompareCountryTradeTool({})
 
@@ -1018,7 +1036,7 @@ for country in result['countries']:
 ### Example 6: Calculate Bilateral Trade Balance
 
 ```python
-from united_nations_tool_refactored import UNGetTradeBalanceTool
+from sajha.tools.impl.united_nations_tool_refactored import UNGetTradeBalanceTool
 
 tool = UNGetTradeBalanceTool({})
 
@@ -1099,9 +1117,7 @@ Common country codes used in tools:
 ### API Limitations
 
 1. **Rate Limits**
-   - SDG API: Reasonable use (no hard limit published)
-   - Comtrade API: Depends on subscription tier
-   - Recommended: < 100 requests/minute
+   - SDG API: reasonable use (no hard limit published); SAJHA applies no rate limiting of its own
 
 2. **Data Availability**
    - SDG data: Typically 1-2 years behind current
@@ -1122,10 +1138,8 @@ Common country codes used in tools:
    - No registration needed
 
 2. **Comtrade Tools**
-   - Requires API key for production use
-   - Free tier available with limits
-   - Registration required
-   - Current implementation: placeholder only
+   - Current implementation: placeholder only (no Comtrade call, empty data)
+   - Real Comtrade access would need a subscription key, which SAJHA does not support yet
 
 ### Data Quality
 
@@ -1158,9 +1172,9 @@ Common country codes used in tools:
    - Large data requests may take longer
    - Network latency varies
 
-3. **No Caching**
-   - Each call makes fresh API request
-   - Implement client-side caching if needed
+3. **No Caching by Default**
+   - Each call makes a fresh API request
+   - Server-side caching is opt-in: add `"cache_ttl": <seconds>` to a tool's JSON config in `config/tools/`
 
 ---
 
@@ -1240,7 +1254,7 @@ result = tool.execute({
 **Solution:**
 1. Register at https://comtradeapi.un.org
 2. Obtain API subscription key
-3. Configure in tool (when implemented)
+3. Note that SAJHA cannot use the key yet: the trade tools are placeholders
 
 #### Issue 5: Year Out of Range
 
@@ -1543,19 +1557,6 @@ UNITED_NATIONS_TOOLS = {
 }
 ```
 
-### Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-31 | Initial release |
-
-### Rate Limits (Recommended)
-
-| Tool Category | Requests/Min | Cache TTL |
-|---------------|--------------|-----------|
-| SDG Tools | 60 | 3600s (1 hour) |
-| Trade Tools | 60 | 3600s (1 hour) |
-
 ---
 
 ## Support & Resources
@@ -1566,10 +1567,6 @@ UNITED_NATIONS_TOOLS = {
 - **SDG Indicators:** https://unstats.un.org/sdgs/indicators/database
 - **SDG API Docs:** https://unstats.un.org/sdgapi/swagger/
 
-### Contact Information
-- **Author:** Ashutosh Sinha
-- **Email:** ajsinha@gmail.com
-
 ### External Resources
 - **UN Statistics Division:** https://unstats.un.org
 - **SDG Knowledge Platform:** https://sustainabledevelopment.un.org
@@ -1577,13 +1574,7 @@ UNITED_NATIONS_TOOLS = {
 
 ---
 
-## Legal
-
-**Copyright All rights reserved 2025-2030, Ashutosh Sinha**
-
-This software and documentation are proprietary and confidential. Unauthorized copying, distribution, or use is strictly prohibited.
-
-**Email:** ajsinha@gmail.com
+## Data Terms
 
 ### Third-Party Services
 
@@ -1599,10 +1590,6 @@ This tool uses UN data services:
 - Data subject to UN terms and conditions
 - Proper attribution to UN required for publications
 - Review UN data policies for commercial use
-
----
-
-*End of Reference Guide*
 
 ---
 
@@ -1626,4 +1613,8 @@ This tool uses UN data services:
 
 - **Human Development Index (HDI)**: A composite index measuring average achievement in health, education, and income.
 
-*For complete definitions, see the [Glossary](../architecture/Glossary.md).*
+*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+
+---
+
+*Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

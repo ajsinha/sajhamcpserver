@@ -1,10 +1,4 @@
-# FBI Crime Data Explorer MCP Tool Reference Guide
-
-**Copyright © 2025-2030 Ashutosh Sinha**  
-**Email:** ajsinha@gmail.com  
-**All Rights Reserved**
-
----
+# FBI Tool Reference Guide
 
 ## Table of Contents
 
@@ -14,18 +8,19 @@
 4. [Authentication & API Keys](#authentication--api-keys)
 5. [Tool Descriptions](#tool-descriptions)
 6. [Offense Types](#offense-types)
-7. [Usage Examples](#usage-examples)
-8. [Schema Reference](#schema-reference)
-9. [ORI Codes](#ori-codes)
-10. [Limitations](#limitations)
-11. [Error Handling](#error-handling)
-12. [Performance Considerations](#performance-considerations)
+7. [Calling the Tools](#calling-the-tools)
+8. [Usage Examples](#usage-examples)
+9. [Schema Reference](#schema-reference)
+10. [ORI Codes](#ori-codes)
+11. [Limitations](#limitations)
+12. [Error Handling](#error-handling)
+13. [Performance Considerations](#performance-considerations)
 
 ---
 
 ## Overview
 
-The FBI Crime Data Explorer MCP Tool Suite is a comprehensive collection of 9 specialized tools designed to access crime statistics from the FBI's Uniform Crime Reporting (UCR) program. These tools provide programmatic access to national, state, and agency-level crime data spanning decades of historical information.
+The FBI tools (prefix `fbi_`, implementation `sajha/tools/impl/fbi_tool_refactored.py`) read crime statistics from the FBI Crime Data Explorer (CDE), the publication platform of the FBI's Uniform Crime Reporting (UCR) program, at national, state and agency level. The live catalog in the app (Tools page, or `tools/list`) is authoritative.
 
 ### Key Features
 
@@ -150,7 +145,6 @@ Each tool specializes in a specific data retrieval pattern:
 - ✗ HTML Parsing
 - ✗ Database Queries
 - ✗ File System Access
-- ✗ WebSocket Streaming (use SSE transport)
 
 ### API Communication
 
@@ -212,29 +206,16 @@ The tools parse this structure and enrich it with:
 
 ## Authentication & API Keys
 
-### No API Key Required
+### How the Key Is Supplied (currently: it is not)
 
-The FBI Crime Data Explorer API accessed through `api.usa.gov` is a **public API** that does **not require**:
-- API Keys
-- OAuth tokens
-- Username/Password
-- Registration
-- Rate limit authentication
+The tools call `https://api.usa.gov/crime/fbi/cde` with only `User-Agent` and `Accept` headers. The implementation sends **no API key**: the `fbi_` tool configs have no `api_key` field, `FBIBaseTool` reads none, and `config/application.yml` has no FBI entry.
 
-### Access Control
+The CDE API is served through the api.data.gov gateway, which normally requires a free key (passed as the `API_KEY` query parameter) and rejects keyless requests. Expect the tools to return an "API request failed" error until key support is added to the implementation. A key can be requested at [api.data.gov/signup](https://api.data.gov/signup/). See the [Configuration Reference](../../getting-started/Configuration%20Reference.md) for how other providers' keys are configured.
 
-- **Open Access**: Anyone can access the API
-- **Fair Use**: Users should implement reasonable caching
-- **Rate Limiting**: May be enforced at the API gateway level (not documented)
+### Rate Limiting and Caching
 
-### Recommended Rate Limit
-
-The tools implement a suggested rate limit of **120 requests per hour** per tool, though this is not strictly enforced by the API.
-
-### Cache Strategy
-
-- **cacheTTL**: 3600 seconds (1 hour) for statistical data
-- Crime statistics are typically updated annually, so longer caching is appropriate
+- SAJHA does not rate-limit these tools. The `rateLimit` and `cacheTTL` values under `metadata` in the `fbi_` configs are informational only and are not enforced.
+- Server-side caching is opt-in: add a top-level `"cache_ttl": <seconds>` to a tool's JSON config in `config/tools/`. Crime statistics change roughly once a year, so long TTLs are appropriate.
 
 ---
 
@@ -740,12 +721,44 @@ The tools focus on **Part I (Index) Crimes**, which are:
 
 ---
 
+## Calling the Tools
+
+Every tool can be called over MCP (a `tools/call` request on `POST /mcp`) or over the REST API (`POST /api/tools/execute`). Authenticate with an `X-API-Key: sja_...` header or an `Authorization: Bearer <token>` header. Sessions, protocol versions and headers are covered in the [MCP Protocol Guide](../../protocol/MCP%20Protocol%20Guide.md).
+
+**MCP (`POST /mcp`)**
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+ "params": {"name": "fbi_compare_states", "arguments": {"states": ["CA", "TX", "FL", "NY"], "offense_type": "violent_crime", "year": 2022}}}
+```
+
+**REST**
+
+```bash
+curl -X POST http://localhost:3002/api/tools/execute \
+  -H "X-API-Key: sja_your_key" -H "Content-Type: application/json" \
+  -d '{"tool": "fbi_compare_states", "arguments": {"states": ["CA", "TX", "FL", "NY"], "offense_type": "violent_crime", "year": 2022}}'
+```
+
+**Python client SDK**
+
+```python
+from sajhaclient import SajhaClient, SajhaConfig
+
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
+result = client.execute_tool("fbi_compare_states", states=["CA", "TX", "FL", "NY"], offense_type="violent_crime", year=2022)
+```
+
+The Python examples below instantiate the tool classes directly, which is useful in tests and notebooks; through the server, use one of the forms above.
+
+---
+
 ## Usage Examples
 
 ### Example 1: Get National Crime Statistics
 
 ```python
-from tools.impl.fbi_tool_refactored import FBIGetNationalStatisticsTool
+from sajha.tools.impl.fbi_tool_refactored import FBIGetNationalStatisticsTool
 
 tool = FBIGetNationalStatisticsTool()
 result = tool.execute({
@@ -761,7 +774,7 @@ print(f"Total incidents: {result['national_data']['total_incidents']:,}")
 ### Example 2: Compare Crime Across States
 
 ```python
-from tools.impl.fbi_tool_refactored import FBICompareStatesTool
+from sajha.tools.impl.fbi_tool_refactored import FBICompareStatesTool
 
 tool = FBICompareStatesTool()
 result = tool.execute({
@@ -779,7 +792,7 @@ for state in result['states_compared']:
 ### Example 3: Analyze Crime Trends
 
 ```python
-from tools.impl.fbi_tool_refactored import FBIGetCrimeTrendTool
+from sajha.tools.impl.fbi_tool_refactored import FBIGetCrimeTrendTool
 import matplotlib.pyplot as plt
 
 tool = FBIGetCrimeTrendTool()
@@ -812,7 +825,7 @@ print(f"Peak year: {result['trend_analysis']['peak_year']}")
 ### Example 4: Find and Analyze Agency
 
 ```python
-from tools.impl.fbi_tool_refactored import (
+from sajha.tools.impl.fbi_tool_refactored import (
     FBISearchAgenciesTool,
     FBIGetAgencyStatisticsTool
 )
@@ -845,7 +858,7 @@ print(f"Rate: {stats_result['agency_data']['rate_per_100k']} per 100,000")
 ### Example 5: State Crime Profile
 
 ```python
-from tools.impl.fbi_tool_refactored import FBIGetStateStatisticsTool
+from sajha.tools.impl.fbi_tool_refactored import FBIGetStateStatisticsTool
 
 tool = FBIGetStateStatisticsTool()
 
@@ -875,7 +888,7 @@ for offense in offenses:
 ### Example 6: Check Data Quality
 
 ```python
-from tools.impl.fbi_tool_refactored import FBIGetParticipationRateTool
+from sajha.tools.impl.fbi_tool_refactored import FBIGetParticipationRateTool
 
 tool = FBIGetParticipationRateTool()
 result = tool.execute({
@@ -1069,9 +1082,8 @@ result = tool.execute({
 ### Technical Limitations
 
 1. **Rate Limiting**:
-   - Recommended: 120 requests/hour
-   - No documented hard limits
-   - Excessive use may result in throttling
+   - Enforced by the api.data.gov gateway per key, not by SAJHA
+   - Excessive use may result in throttling (HTTP 429)
 
 2. **Request Size**:
    - No explicit limits documented
@@ -1244,6 +1256,8 @@ result = tool.execute({
 
 ### Recommended Cache TTL
 
+Set these as a top-level `cache_ttl` (seconds) in the tool's JSON config to enable server-side caching.
+
 | Data Type | Update Frequency | Recommended Cache TTL |
 |-----------|------------------|----------------------|
 | Annual statistics | Yearly | 30 days |
@@ -1339,28 +1353,6 @@ The **Uniform Crime Reporting (UCR) Program** is a nationwide, cooperative stati
 
 ---
 
-## Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025 | Initial release with 9 tools |
-
----
-
-## Support & Contact
-
-**Author**: Ashutosh Sinha  
-**Email**: ajsinha@gmail.com  
-**Copyright**: © 2025-2030 All Rights Reserved
-
-For issues, questions, or feature requests, please contact the author directly.
-
----
-
-*End of FBI Crime Data Explorer MCP Tool Reference Guide*
-
----
-
 ## Page Glossary
 
 **Key terms referenced in this document:**
@@ -1381,4 +1373,8 @@ For issues, questions, or feature requests, please contact the author directly.
 
 - **ORI (Originating Agency Identifier)**: A unique code identifying law enforcement agencies in FBI databases.
 
-*For complete definitions, see the [Glossary](../architecture/Glossary.md).*
+*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+
+---
+
+*Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

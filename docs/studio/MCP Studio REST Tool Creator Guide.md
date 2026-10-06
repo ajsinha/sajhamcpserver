@@ -1,636 +1,194 @@
 # MCP Studio REST Tool Creator Guide
-## SAJHA MCP Server v5.3.0
 
-## Overview
+The REST Tool Creator wraps a single HTTP endpoint as an MCP tool through a form, with no code to write. It generates a JSON tool config and a Python class that makes the HTTP call with `requests` and returns the parsed response.
 
-The REST Tool Creator in MCP Studio enables you to create MCP tools that interact with any REST API without writing code. This visual interface guides you through configuring API endpoints, authentication, request/response handling, and error management.
+Where Studio lives, the common create → preview → deploy workflow, where generated files are stored, hot reload and permissions are covered once in the [MCP Studio User Guide](MCP%20Studio%20User%20Guide.md).
 
-## Table of Contents
-
-1. [Getting Started](#getting-started)
-2. [Understanding REST Tools](#understanding-rest-tools)
-3. [Creating Your First REST Tool](#creating-your-first-rest-tool)
-4. [Configuration Options](#configuration-options)
-5. [Authentication Methods](#authentication-methods)
-6. [Request Configuration](#request-configuration)
-7. [Response Handling](#response-handling)
-8. [Error Handling](#error-handling)
-9. [Testing and Validation](#testing-and-validation)
-10. [Best Practices](#best-practices)
-11. [Examples](#examples)
-12. [Troubleshooting](#troubleshooting)
+The creator page is `/studio/rest` (**MCP Studio → REST service tool**).
 
 ---
 
-## Getting Started
+## Form reference
 
-### Accessing the REST Tool Creator
+### Basic information
 
-1. Navigate to `http://localhost:3002/admin/studio`
-2. Click on **REST Service Tool** card
-3. Or directly access: `http://localhost:3002/admin/studio/rest`
+| Field | Required | Notes |
+|-------|----------|-------|
+| Tool Name | Yes | Starts with a lowercase letter; `a-z`, `0-9`, `_` only; at least 3 characters. Lower-cased on submit. |
+| Category | No | Defaults to `REST API`. |
+| Description | Yes | Shown in tool listings. |
+| Tags | No | Type and press Enter. If none are given the page sends `["rest", "api"]`. |
 
-### Prerequisites
+### Endpoint configuration
 
-- Admin role access to SAJHA MCP Server
-- Understanding of the target REST API
-- API documentation or endpoint specifications
-- Authentication credentials (if required)
+| Field | Required | Notes |
+|-------|----------|-------|
+| HTTP Method | Yes | GET, POST, PUT, DELETE or PATCH. Defaults to GET. |
+| REST Endpoint URL | Yes | Must start with `http://` or `https://`. May contain path parameters such as `{user_id}`. |
+| Content Type | No | `application/json` (default), `application/x-www-form-urlencoded`, `multipart/form-data` or `text/plain`. Sent as the `Content-Type` header. |
+| Timeout (seconds) | No | 1–300, default 30. |
+
+### Authentication
+
+| Option | Fields | What the tool does |
+|--------|--------|--------------------|
+| No Auth | – | Default. |
+| API Key | Header name (default `X-API-Key`), key value | Sends the key in that header on every call. |
+| Basic Auth | Username, password | Uses HTTP Basic authentication. |
+
+> **The API key and Basic Auth credentials are written as literals into the generated Python file.** Anyone who can read `sajha/tools/impl/` can read them. Prefer an endpoint that needs no secret, or rotate keys you use here.
+
+### Custom headers
+
+Optional name/value pairs, added after the default headers (and able to override them). The defaults are `Content-Type`, an `Accept` header that matches the response format, `User-Agent: SAJHA-MCP-Server/<version>`, and the API key header if configured.
+
+### Request schema
+
+A JSON Schema for the tool's input. The section is labelled **Query Parameters Schema** for GET and DELETE, and **Request Body Schema** for POST, PUT and PATCH. A schema is required for POST, PUT and PATCH.
+
+The schema's `properties` and `required` become the tool's input schema. If the schema has no `properties`, the input schema allows any properties.
+
+### Response format
+
+| Format | Parsing | `data` in the result |
+|--------|---------|----------------------|
+| JSON (default) | Parsed as JSON; falls back to `{"raw_response": ...}` | The parsed JSON |
+| CSV | Parsed with the CSV options below; numeric-looking values become numbers; rows whose column count doesn't match the header are dropped | Array of row objects (plus `columns` and `row_count`) |
+| XML | Top-level structure only | `{"root_tag": ..., "children": [child tag names]}`, or `{"raw_xml": ...}` if parsing fails |
+| Text | Decoded as text | The text (plus `content_length`) |
+
+**CSV options** (shown when CSV is selected): Delimiter (comma, semicolon, tab, pipe), Header Row (first row is header, or no header, in which case columns are named `column_1`, `column_2`, …) and Skip Rows (0–100 lines skipped before the header or data).
+
+### Response schema (optional)
+
+A JSON Schema for the response. For JSON and XML responses, if it has `properties` it becomes the `data` property of the tool's output schema. Otherwise the output schema is derived from the response format.
 
 ---
 
-## Understanding REST Tools
+## How the generated tool calls the endpoint
 
-REST tools in SAJHA act as bridges between MCP clients (like Claude) and external REST APIs. When a user invokes a REST tool:
+- **Path parameters.** Each `{name}` in the URL is replaced with the argument of the same name.
+- **GET.** All arguments, including those used as path parameters, are also sent as query-string parameters.
+- **POST, PUT, PATCH.** All arguments are sent as a JSON body, whatever the Content Type setting.
+- **DELETE.** No query string and no body; only path parameters are used.
+- **Errors** do not raise. The tool returns `success: false` with an `error` message: a timeout, `HTTP error: <status> - <reason>` (with `status_code` and the first 500 characters of the response as `response_text`), a request failure, or an unexpected error. There is no retry.
 
-1. The tool receives input parameters from the MCP client
-2. It constructs an HTTP request based on your configuration
-3. Sends the request to the external API
-4. Processes the response
-5. Returns formatted data to the MCP client
-
-### Architecture
-
-```
-┌─────────────┐     ┌──────────────┐     ┌─────────────────┐     ┌─────────────┐
-│  MCP Client │────▶│  REST Tool   │────▶│  External API   │────▶│  Response   │
-│  (Claude)   │◀────│  (SAJHA)     │◀────│  (Target)       │◀────│  Processing │
-└─────────────┘     └──────────────┘     └─────────────────┘     └─────────────┘
-```
-
----
-
-## Creating Your First REST Tool
-
-### Step 1: Basic Information
-
-Fill in the essential tool details:
-
-| Field | Description | Example |
-|-------|-------------|---------|
-| **Tool Name** | Unique identifier (snake_case) | `weather_api_get_forecast` |
-| **Display Name** | Human-readable name | `Weather Forecast API` |
-| **Description** | What the tool does | `Retrieves weather forecast for a location` |
-| **Category** | Tool grouping | `Weather Services` |
-| **Version** | Semantic version | `1.0.0` |
-
-### Step 2: API Endpoint Configuration
-
-Configure the target API:
-
-```
-Base URL: https://api.weather.com
-Endpoint: /v1/forecast
-Method: GET
-```
-
-### Step 3: Input Parameters
-
-Define what inputs the tool accepts:
+A successful call returns:
 
 ```json
 {
-  "location": {
-    "type": "string",
-    "required": true,
-    "description": "City name or coordinates"
-  },
-  "days": {
-    "type": "integer",
-    "required": false,
-    "default": 7,
-    "description": "Number of forecast days"
-  }
+  "success": true,
+  "status_code": 200,
+  "format": "json",
+  "data": { "...": "..." },
+  "endpoint": "<the URL actually called>",
+  "method": "GET"
 }
 ```
 
-### Step 4: Deploy
-
-Click **Deploy Tool** to create and register the tool.
-
 ---
 
-## Configuration Options
+## Generated files
 
-### Basic Configuration
+For tool name `get_weather_forecast`:
+
+| File | Content |
+|------|---------|
+| `config/tools/get_weather_forecast.json` | Tool config |
+| `sajha/tools/impl/rest_get_weather_forecast.py` | Class `RESTGetWeatherForecastTool(BaseMCPTool)` |
+
+The JSON config:
 
 ```json
 {
-  "name": "my_rest_tool",
-  "implementation": "sajha.tools.impl.rest_tool.RESTTool",
-  "version": "2.9.8",
+  "name": "get_weather_forecast",
+  "implementation": "sajha.tools.impl.rest_get_weather_forecast.RESTGetWeatherForecastTool",
+  "description": "Get weather forecast for a location",
+  "version": "<generator version>",
   "enabled": true,
-  "base_url": "https://api.example.com",
-  "endpoint": "/v1/resource",
-  "method": "GET",
-  "timeout": 30,
-  "retry_count": 3,
-  "retry_delay": 1
-}
-```
-
-### Supported HTTP Methods
-
-| Method | Use Case |
-|--------|----------|
-| **GET** | Retrieve data |
-| **POST** | Create resources, submit data |
-| **PUT** | Update/replace resources |
-| **PATCH** | Partial updates |
-| **DELETE** | Remove resources |
-
-### Headers Configuration
-
-```json
-{
-  "headers": {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-    "User-Agent": "SAJHA-MCP-Server/2.9.8",
-    "X-Custom-Header": "${custom.header.value}"
+  "metadata": {
+    "author": "MCP Studio - REST Generator",
+    "category": "Weather",
+    "tags": ["rest", "api"],
+    "rateLimit": 60,
+    "cacheTTL": 60,
+    "requiresApiKey": false,
+    "source": "rest_service",
+    "endpoint": "https://api.open-meteo.com/v1/forecast",
+    "method": "GET"
   }
 }
 ```
 
-### Query Parameters
-
-```json
-{
-  "query_params": {
-    "api_key": "${api.key}",
-    "format": "json",
-    "language": "en"
-  }
-}
-```
+Deploying fails if either file already exists. Remove the old files first, or choose another name.
 
 ---
 
-## Authentication Methods
+## Quick examples
 
-### 1. API Key Authentication
+The **Quick Examples** sidebar fills the form with a working configuration:
 
-**In Header:**
-```json
-{
-  "auth": {
-    "type": "api_key",
-    "location": "header",
-    "key_name": "X-API-Key",
-    "key_value": "${my.api.key}"
-  }
-}
-```
-
-**In Query String:**
-```json
-{
-  "auth": {
-    "type": "api_key",
-    "location": "query",
-    "key_name": "api_key",
-    "key_value": "${my.api.key}"
-  }
-}
-```
-
-### 2. Bearer Token
-
-```json
-{
-  "auth": {
-    "type": "bearer",
-    "token": "${bearer.token}"
-  }
-}
-```
-
-### 3. Basic Authentication
-
-```json
-{
-  "auth": {
-    "type": "basic",
-    "username": "${api.username}",
-    "password": "${api.password}"
-  }
-}
-```
-
-### 4. OAuth 2.0
-
-```json
-{
-  "auth": {
-    "type": "oauth2",
-    "client_id": "${oauth.client.id}",
-    "client_secret": "${oauth.client.secret}",
-    "token_url": "https://auth.example.com/oauth/token",
-    "scope": "read write"
-  }
-}
-```
+| Example | Method | Shows |
+|---------|--------|-------|
+| Open-Meteo Weather | GET | No-auth query parameters |
+| JSONPlaceholder Posts | POST | JSON request body |
+| GitHub User Info | GET | Path parameter (`/users/{username}`) |
+| Coinbase Prices | GET | Path parameter (`/prices/{currency_pair}/spot`) |
+| Random Cat Facts | GET | No parameters |
+| FRED Economic Data | GET | CSV response |
 
 ---
 
-## Request Configuration
+## Walkthrough: a weather tool
 
-### URL Path Parameters
+1. Click **Open-Meteo Weather** in Quick Examples, or fill the form yourself:
+   - **Tool Name**: `get_weather_forecast`
+   - **Category**: `Weather`
+   - **Description**: `Get weather forecast for a location`
+   - **Method**: GET
+   - **URL**: `https://api.open-meteo.com/v1/forecast`
+2. Enter the request schema:
+   ```json
+   {
+     "type": "object",
+     "properties": {
+       "latitude": {"type": "number", "description": "Latitude"},
+       "longitude": {"type": "number", "description": "Longitude"},
+       "current_weather": {"type": "boolean", "default": true}
+     },
+     "required": ["latitude", "longitude"]
+   }
+   ```
+3. Leave the response format as **JSON**.
+4. Click **Preview Tool** to see the generated JSON and the start of the Python file. **Deploy Tool** is enabled after a successful preview.
+5. Click **Deploy Tool** and confirm.
 
-For endpoints like `/users/{user_id}/posts/{post_id}`:
-
-```json
-{
-  "endpoint": "/users/{user_id}/posts/{post_id}",
-  "path_params": {
-    "user_id": {
-      "type": "string",
-      "required": true,
-      "description": "User identifier"
-    },
-    "post_id": {
-      "type": "string",
-      "required": true,
-      "description": "Post identifier"
-    }
-  }
-}
-```
-
-### Request Body (POST/PUT/PATCH)
-
-**JSON Body:**
-```json
-{
-  "body": {
-    "type": "json",
-    "schema": {
-      "title": {"type": "string", "required": true},
-      "content": {"type": "string", "required": true},
-      "tags": {"type": "array", "items": "string"}
-    }
-  }
-}
-```
-
-**Form Data:**
-```json
-{
-  "body": {
-    "type": "form",
-    "fields": {
-      "name": {"type": "string"},
-      "file": {"type": "file"}
-    }
-  }
-}
-```
-
-### Dynamic URL Construction
-
-```json
-{
-  "url_template": "https://api.example.com/{version}/users/{user_id}",
-  "url_params": {
-    "version": {"default": "v2"},
-    "user_id": {"required": true}
-  }
-}
-```
-
----
-
-## Response Handling
-
-### Response Mapping
-
-Extract and transform response data:
-
-```json
-{
-  "response": {
-    "type": "json",
-    "mapping": {
-      "id": "$.data.id",
-      "name": "$.data.attributes.name",
-      "items": "$.data.items[*]",
-      "total": "$.meta.total_count"
-    }
-  }
-}
-```
-
-### JSONPath Expressions
-
-| Expression | Description |
-|------------|-------------|
-| `$.field` | Root level field |
-| `$.data.nested` | Nested field |
-| `$.items[0]` | First array element |
-| `$.items[*]` | All array elements |
-| `$.items[?(@.active)]` | Filter active items |
-
-### Response Schema
-
-```json
-{
-  "outputSchema": {
-    "type": "object",
-    "properties": {
-      "success": {"type": "boolean"},
-      "data": {
-        "type": "object",
-        "properties": {
-          "id": {"type": "string"},
-          "name": {"type": "string"}
-        }
-      },
-      "metadata": {
-        "type": "object",
-        "properties": {
-          "request_id": {"type": "string"},
-          "timestamp": {"type": "string"}
-        }
-      }
-    }
-  }
-}
-```
-
----
-
-## Error Handling
-
-### HTTP Status Code Handling
-
-```json
-{
-  "error_handling": {
-    "400": {"message": "Bad request - check input parameters"},
-    "401": {"message": "Authentication failed - verify credentials"},
-    "403": {"message": "Access forbidden - insufficient permissions"},
-    "404": {"message": "Resource not found"},
-    "429": {"message": "Rate limit exceeded", "retry": true},
-    "500": {"message": "Server error - try again later", "retry": true}
-  }
-}
-```
-
-### Retry Configuration
-
-```json
-{
-  "retry": {
-    "enabled": true,
-    "max_attempts": 3,
-    "delay_seconds": 2,
-    "backoff_multiplier": 2,
-    "retry_on": [429, 500, 502, 503, 504]
-  }
-}
-```
-
-### Timeout Settings
-
-```json
-{
-  "timeout": {
-    "connect": 10,
-    "read": 30,
-    "total": 60
-  }
-}
-```
-
----
-
-## Testing and Validation
-
-### Built-in Test Feature
-
-1. Fill in all configuration fields
-2. Click **Test Connection** button
-3. Provide sample input values
-4. Review response preview
-
-### Validation Checks
-
-The creator validates:
-- ✅ Required fields are filled
-- ✅ URL format is valid
-- ✅ JSON schemas are valid
-- ✅ Authentication credentials are present
-- ✅ Input/output schemas match
-
-### Debug Mode
-
-Enable detailed logging:
-
-```json
-{
-  "debug": {
-    "enabled": true,
-    "log_requests": true,
-    "log_responses": true,
-    "log_headers": false
-  }
-}
-```
-
----
-
-## Best Practices
-
-### 1. Naming Conventions
-
-- Use `snake_case` for tool names
-- Prefix with service name: `github_get_repos`
-- Be descriptive: `stripe_create_payment_intent`
-
-### 2. Security
-
-- **Never hardcode credentials** - use `${variable}` syntax
-- Store API keys in `application.yml`
-- Use HTTPS endpoints only
-- Implement rate limiting
-
-### 3. Input Validation
-
-```json
-{
-  "inputSchema": {
-    "email": {
-      "type": "string",
-      "format": "email",
-      "required": true
-    },
-    "limit": {
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 100,
-      "default": 10
-    }
-  }
-}
-```
-
-### 4. Documentation
-
-- Write clear descriptions
-- Provide usage examples
-- Document error scenarios
-- Include rate limit info
-
-### 5. Performance
-
-- Set appropriate timeouts
-- Enable caching where applicable
-- Implement pagination for large datasets
-
----
-
-## Examples
-
-### Example 1: GitHub Repository Search
-
-```json
-{
-  "name": "github_search_repos",
-  "description": "Search GitHub repositories",
-  "base_url": "https://api.github.com",
-  "endpoint": "/search/repositories",
-  "method": "GET",
-  "headers": {
-    "Accept": "application/vnd.github.v3+json",
-    "Authorization": "Bearer ${github.token}"
-  },
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "query": {
-        "type": "string",
-        "required": true,
-        "description": "Search query"
-      },
-      "sort": {
-        "type": "string",
-        "enum": ["stars", "forks", "updated"],
-        "default": "stars"
-      },
-      "per_page": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 100,
-        "default": 10
-      }
-    }
-  },
-  "response": {
-    "mapping": {
-      "total_count": "$.total_count",
-      "repositories": "$.items[*]"
-    }
-  }
-}
-```
-
-### Example 2: Stripe Payment Creation
-
-```json
-{
-  "name": "stripe_create_payment",
-  "description": "Create a Stripe payment intent",
-  "base_url": "https://api.stripe.com",
-  "endpoint": "/v1/payment_intents",
-  "method": "POST",
-  "auth": {
-    "type": "bearer",
-    "token": "${stripe.secret.key}"
-  },
-  "body": {
-    "type": "form",
-    "fields": {
-      "amount": {"type": "integer", "required": true},
-      "currency": {"type": "string", "required": true},
-      "description": {"type": "string"}
-    }
-  }
-}
-```
-
-### Example 3: OpenWeather API
-
-```json
-{
-  "name": "weather_get_current",
-  "description": "Get current weather for a city",
-  "base_url": "https://api.openweathermap.org",
-  "endpoint": "/data/2.5/weather",
-  "method": "GET",
-  "query_params": {
-    "appid": "${openweather.api.key}",
-    "units": "metric"
-  },
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "city": {
-        "type": "string",
-        "required": true,
-        "description": "City name"
-      }
-    }
-  },
-  "response": {
-    "mapping": {
-      "temperature": "$.main.temp",
-      "humidity": "$.main.humidity",
-      "description": "$.weather[0].description",
-      "wind_speed": "$.wind.speed"
-    }
-  }
-}
-```
+> In 6.0.0 the Preview and Deploy buttons call server endpoints that are not registered. See [Known limitation: Studio action endpoints](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints).
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
-
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| Connection timeout | Slow API or network | Increase timeout value |
-| 401 Unauthorized | Invalid credentials | Check API key/token |
-| 400 Bad Request | Invalid input | Verify input schema |
-| SSL Certificate Error | Self-signed cert | Add to trusted certs |
-| Rate Limited (429) | Too many requests | Implement retry with backoff |
-
-### Debug Checklist
-
-1. ✅ Verify base URL is correct
-2. ✅ Check endpoint path
-3. ✅ Confirm HTTP method
-4. ✅ Validate authentication
-5. ✅ Test with curl/Postman first
-6. ✅ Check server logs
-
-### Log Analysis
-
-```bash
-# View REST tool logs
-tail -f logs/sajha_mcp.log | grep "REST"
-```
+| Symptom | Cause and fix |
+|---------|---------------|
+| "Invalid request schema JSON" | The request schema text is not valid JSON. |
+| "Endpoint must start with http:// or https://" | Use a full URL. |
+| "Request schema is required for POST/PUT/PATCH methods" | Provide a schema with the body properties. |
+| "Tool configuration already exists" / "Tool implementation already exists" | A tool with that name has already been generated. |
+| `HTTP error: 401 - Unauthorized` | Check the auth option, header name and key. |
+| A path parameter appears unreplaced in the URL | The argument name doesn't match the `{name}` in the URL, or isn't in the schema. |
+| GET endpoint rejects unexpected query parameters | Path-parameter arguments are also sent as query parameters on GET. |
+| CSV `data` is empty | Wrong delimiter or Skip Rows value, or rows have a different column count from the header. |
 
 ---
 
-## Related Documentation
+## Related documentation
 
-- [MCP Studio Overview](MCP_Studio_User_Guide.md)
-- [Variable Substitution Guide](../architecture/SAJHA_MCP_Server_Architecture.md)
-- [Authentication Configuration](../architecture/Glossary.md)
+- [MCP Studio User Guide](MCP%20Studio%20User%20Guide.md)
+- [Python Code Tool Creator Guide](MCP%20Studio%20Python%20Code%20Tool%20Creator%20Guide.md), for HTTP calls that need custom logic
+- [Architecture](../architecture/Architecture.md)
+- [Glossary](../../GLOSSARY.md)
 
 ---
 
-*SAJHA MCP Server v5.3.0 - REST Tool Creator Guide*
-*Copyright © 2025-2030 Ashutosh Sinha*
+Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.

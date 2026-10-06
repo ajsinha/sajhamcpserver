@@ -1,10 +1,4 @@
-# Yahoo Finance MCP Tool Reference Guide
-
-**Copyright © 2025-2030 Ashutosh Sinha**  
-**Email: ajsinha@gmail.com**  
-**All Rights Reserved**
-
----
+# Yahoo Finance Tool Reference Guide
 
 ## Table of Contents
 
@@ -13,20 +7,29 @@
 3. [System Requirements](#system-requirements)
 4. [Authentication & API Keys](#authentication--api-keys)
 5. [Tool Details](#tool-details)
-6. [Technical Implementation](#technical-implementation)
-7. [Schema Specifications](#schema-specifications)
-8. [Usage Examples](#usage-examples)
-9. [Limitations & Best Practices](#limitations--best-practices)
-10. [Error Handling](#error-handling)
-11. [Appendix](#appendix)
+6. [yfinance Library Tools (yf_)](#yfinance-library-tools-yf_)
+7. [Calling the Tools](#calling-the-tools)
+8. [Technical Implementation](#technical-implementation)
+9. [Schema Specifications](#schema-specifications)
+10. [Usage Examples](#usage-examples)
+11. [Limitations & Best Practices](#limitations--best-practices)
+12. [Error Handling](#error-handling)
+13. [Appendix](#appendix)
 
 ---
 
 ## Overview
 
-The Yahoo Finance MCP Tool is a comprehensive suite of three specialized financial data tools designed to interact with Yahoo Finance's public API. This tool suite provides seamless access to real-time stock quotes, historical price data, and symbol search capabilities without requiring API keys or complex authentication.
+SAJHA ships two families of Yahoo Finance tools. Neither needs an API key.
 
-### Key Features
+| Family | Prefix | Implementation | How it gets data |
+|--------|--------|----------------|------------------|
+| Direct API tools | `yahoo_` | `sajha/tools/impl/yahoo_finance_tool.py` | Calls Yahoo Finance's public JSON endpoints with the Python standard library |
+| yfinance tools | `yf_` | `sajha/tools/impl/yfinance_tools.py` | Uses the [`yfinance`](https://pypi.org/project/yfinance/) library |
+
+The `yahoo_` tools cover quotes, price history with corporate events, and symbol search; most of this guide (architecture, implementation, examples) describes them. The `yf_` tools add fundamentals, statements, holders, analyst data, options, screeners, ETFs, crypto, forex and indexes; they are listed in [yfinance Library Tools (yf_)](#yfinance-library-tools-yf_). The live catalog in the app (Tools page, or `tools/list`) is authoritative.
+
+### Key Features (`yahoo_` tools)
 
 - **No API Key Required**: Free access to Yahoo Finance's public API
 - **Real-Time Data**: Current stock prices and market statistics
@@ -34,10 +37,8 @@ The Yahoo Finance MCP Tool is a comprehensive suite of three specialized financi
 - **Symbol Search**: Find ticker symbols by company name or keyword
 - **Multi-Asset Support**: Stocks, ETFs, indices, mutual funds, cryptocurrencies
 - **Corporate Actions**: Dividend and stock split events tracking
-- **Rate Limiting**: Built-in rate limiting (60 requests per hour)
-- **Caching**: Variable TTL for improved performance (60-3600 seconds)
 
-### Tool Suite Components
+### Tool Suite Components (`yahoo_` tools)
 
 1. **yahoo_get_quote** - Real-time stock quotes with market statistics
 2. **yahoo_get_history** - Historical OHLCV data with corporate events
@@ -329,8 +330,6 @@ headers = {
 }
 ```
 
-**Rate Limiting**: 60 requests/hour  
-**Cache TTL**: 60 seconds
 
 ---
 
@@ -415,13 +414,11 @@ headers = {
 }
 ```
 
-**Rate Limiting**: 60 requests/hour  
-**Cache TTL**: 300 seconds (5 minutes)
 
 **Important Constraints**:
 - Intraday data (1m-1h) available for last 30 days only
 - Maximum data points vary by interval
-- Adjusted close accounts for splits and dividends
+- `adjusted_close` is currently populated from the chart's `close` series, so it equals `close`
 
 ---
 
@@ -451,6 +448,8 @@ headers = {
 - `LSE` - London Stock Exchange
 - `TSX` - Toronto Stock Exchange
 - `all` - All exchanges
+
+> **Note**: the filter is an exact match against the `exchange` code Yahoo returns for each result (for example `NMS` or `NGM` for NASDAQ, `NYQ` for NYSE), so the names above often match nothing. Use `all` and filter on the returned `exchange` field if results come back empty. The filter is applied after Yahoo returns `limit` results, so it can only shrink the result set.
 
 **Output Structure**:
 
@@ -483,8 +482,180 @@ headers = {
 - `FUTURE` - Futures contracts
 - `CURRENCY` - Currency pairs
 
-**Rate Limiting**: 60 requests/hour  
-**Cache TTL**: 3600 seconds (1 hour)
+
+---
+
+## yfinance Library Tools (yf_)
+
+These tools use the `yfinance` package (installed with SAJHA's requirements). Each one wraps a `yfinance.Ticker` property or a yfinance helper. Parameters marked *(required)* must be supplied; defaults shown are schema defaults (the implementation applies its own fallbacks when an argument is omitted).
+
+### Analyst
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_analyst_price_targets` | Get analyst price targets from Yahoo Finance — low, mean, median, high targets | `symbol` (required) |
+| `yf_recommendations` | Get analyst recommendations from Yahoo Finance — buy/hold/sell ratings over time | `symbol` (required) |
+| `yf_upgrades_downgrades` | Get analyst upgrades/downgrades from Yahoo Finance — rating changes by firm | `symbol` (required) |
+
+### Calendar
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_calendar` | Get earnings/dividend calendar from Yahoo Finance — upcoming events and dates | `symbol` (required) |
+| `yf_earnings_dates` | Get earnings dates from Yahoo Finance — past and upcoming earnings announcement dates | `symbol` (required) |
+
+### Company Data
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_shares_outstanding` | Get shares outstanding history from Yahoo Finance — track share count changes over time | `symbol` (required) |
+| `yf_stock_info` | Get comprehensive stock info from Yahoo Finance — price, market cap, sector, PE, dividend, 52-week range, analyst targets | `symbol` (required) |
+
+### Corporate Actions
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_actions` | Get all corporate actions from Yahoo Finance — dividends and splits combined | `symbol` (required) |
+| `yf_splits` | Get stock split history from Yahoo Finance — all historical splits with dates and ratios | `symbol` (required) |
+
+### Cryptocurrency
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_crypto_info` | Get cryptocurrency info from Yahoo Finance — BTC, ETH, SOL price and market data | `symbol` (required), default `BTC-USD` |
+
+### Derivatives
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_options_chain` | Get options chain from Yahoo Finance — calls and puts with strike, bid, ask, volume, OI | `symbol` (required); `expiry` |
+| `yf_options_expiries` | Get available options expiry dates from Yahoo Finance for a stock | `symbol` (required) |
+
+### Dividends
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_dividends` | Get dividend history from Yahoo Finance — all historical dividend payments with dates and amounts | `symbol` (required) |
+
+### ESG
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_sustainability` | Get ESG sustainability scores from Yahoo Finance — environmental, social, governance ratings | `symbol` (required) |
+
+### ETFs
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_etf_info` | Get ETF info from Yahoo Finance — category, family, assets, yield, expense ratio, returns | `symbol` (required) |
+
+### Earnings
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_earnings_history` | Get earnings history from Yahoo Finance — EPS estimates vs actuals, surprise % | `symbol` (required) |
+
+### Financial Analysis
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_compare_stocks` | Compare multiple stocks from Yahoo Finance — side-by-side market cap, PE, dividend, 52-week range | `symbols` (required) |
+
+### Financial Statements
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_balance_sheet` | Get balance sheet from Yahoo Finance — assets, liabilities, equity (annual or quarterly) | `symbol` (required); `quarterly`, default `False` |
+| `yf_cash_flow` | Get cash flow statement from Yahoo Finance — operating, investing, financing (annual or quarterly) | `symbol` (required); `quarterly`, default `False` |
+| `yf_income_statement` | Get income statement from Yahoo Finance — revenue, net income, EPS (annual or quarterly) | `symbol` (required); `quarterly`, default `False` |
+
+### Forex
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_forex_history` | Get forex pair history from Yahoo Finance — EURUSD, GBPJPY, USDINR, etc. | `pair` (required), default `EURUSD=X`; `period`, default `3mo` |
+
+### Indexes
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_index_history` | Get market index history from Yahoo Finance — S&P 500, NASDAQ, Dow Jones, Russell | `index` (required), default `^GSPC`; `period`, default `1y` |
+
+### Market Data
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_fast_info` | Get quick stock snapshot from Yahoo Finance — market cap, price, averages, 52-week range | `symbol` (required) |
+| `yf_market_summary` | Get market summary from Yahoo Finance — S&P 500, Dow, NASDAQ, VIX, Treasury yields at a glance | — |
+| `yf_multi_ticker_history` | Get price history for multiple stocks at once from Yahoo Finance — compare up to 10 tickers | `symbols` (required); `period`, default `1mo` |
+| `yf_stock_history` | Get historical stock price data from Yahoo Finance — OHLCV for any period (1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max) | `symbol` (required); `period`, default `1y`; `interval`: 1m / 5m / 15m / 1h / 1d / 1wk / 1mo, default `1d` |
+
+### Market Performance
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_sector_performance` | Get sector ETF performance from Yahoo Finance — XLK, XLF, XLV, etc. | — |
+| `yf_trending_tickers` | Get trending/most active tickers from Yahoo Finance — what the market is watching today | — |
+
+### News
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_news` | Get latest news from Yahoo Finance for a specific stock — headlines, links, publisher | `symbol` (required); `limit`, default `10` |
+
+### Ownership
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_insider_purchases` | Get insider purchase summary from Yahoo Finance — aggregated insider buying activity | `symbol` (required) |
+| `yf_insider_transactions` | Get insider transactions from Yahoo Finance — officer/director buys and sells | `symbol` (required) |
+| `yf_institutional_holders` | Get institutional holders from Yahoo Finance — major fund/institution positions | `symbol` (required) |
+| `yf_major_holders` | Get major holders breakdown from Yahoo Finance — insider vs institutional ownership percentages | `symbol` (required) |
+| `yf_mutual_fund_holders` | Get mutual fund holders from Yahoo Finance — which mutual funds hold this stock | `symbol` (required) |
+
+### Stock Screening
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `yf_screener` | Screen stocks using Yahoo Finance — gainers, losers, most active, undervalued, growth | `screen_type`: day_gainers / day_losers / most_actives / undervalued_large_caps / aggressive_small_caps / growth_technology_stocks / undervalued_growth_stocks, default `day_gainers` |
+
+Notes:
+
+- `yf_compare_stocks` takes `symbols` as a comma-separated string (`"AAPL,MSFT,GOOGL"`, up to 10); `yf_multi_ticker_history` takes a space-separated string (`"AAPL MSFT GOOGL"`).
+- `yf_options_chain` takes `expiry` as `YYYY-MM-DD`; list valid dates with `yf_options_expiries` first. When omitted, the nearest expiry is used.
+- `yf_forex_history` takes a Yahoo FX symbol such as `EURUSD=X`; `yf_index_history` takes an index symbol such as `^GSPC`.
+
+---
+
+## Calling the Tools
+
+Every tool can be called over MCP (a `tools/call` request on `POST /mcp`) or over the REST API (`POST /api/tools/execute`). Authenticate with an `X-API-Key: sja_...` header or an `Authorization: Bearer <token>` header. Sessions, protocol versions and headers are covered in the [MCP Protocol Guide](../../protocol/MCP%20Protocol%20Guide.md).
+
+**MCP (`POST /mcp`)**
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+ "params": {"name": "yahoo_get_history", "arguments": {"symbol": "AAPL", "period": "1y", "interval": "1d"}}}
+```
+
+**REST**
+
+```bash
+curl -X POST http://localhost:3002/api/tools/execute \
+  -H "X-API-Key: sja_your_key" -H "Content-Type: application/json" \
+  -d '{"tool": "yahoo_get_history", "arguments": {"symbol": "AAPL", "period": "1y", "interval": "1d"}}'
+```
+
+**Python client SDK**
+
+```python
+from sajhaclient import SajhaClient, SajhaConfig
+
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
+result = client.execute_tool("yahoo_get_history", symbol="AAPL", period="1y", interval="1d")
+```
+
+The Python examples later in this guide call the tool classes directly (for example `YahooGetQuoteTool().execute(Ellipsis)`), which is handy in tests and notebooks; through the server, use one of the forms above.
 
 ---
 
@@ -981,14 +1152,12 @@ print(f"Found {len(all_results)} technology companies across {len(exchanges)} ex
 
 ## Limitations & Best Practices
 
-### Rate Limiting
+### Rate Limiting and Caching
 
-**Configured Limits**:
-- **Rate Limit**: 60 requests per hour (all tools)
-- **Quote Cache TTL**: 60 seconds
-- **History Cache TTL**: 300 seconds (5 minutes)
-- **Search Cache TTL**: 3600 seconds (1 hour)
-- **Timeout**: 10 seconds per request
+**Server-side behaviour**:
+- The `yahoo_` and `yf_` tools do not rate-limit or cache by themselves. Caching is opt-in per tool: add `"cache_ttl": <seconds>` to a tool's JSON config in `config/tools/` (none of the shipped Yahoo configs set it).
+- **Timeout**: 10 seconds per request (`yahoo_` tools)
+- Yahoo throttles heavy unauthenticated use (HTTP 429), so space out bulk requests.
 
 **Best Practices**:
 ```python
@@ -1294,25 +1463,7 @@ tool_class = YAHOO_FINANCE_TOOLS[tool_name]
 tool_instance = tool_class()
 ```
 
-### E. Configuration Options
-
-```python
-# Default configuration
-config = {
-    'name': 'yahoo_get_quote',
-    'description': 'Retrieve real-time stock quotes',
-    'version': '1.0.0',
-    'enabled': True,
-    'rate_limit': 60,         # requests per hour
-    'cache_ttl': 60,          # seconds
-    'timeout': 10             # seconds
-}
-
-# Initialize with custom config
-tool = YahooGetQuoteTool(config)
-```
-
-### F. Common Use Cases
+### E. Common Use Cases
 
 **Portfolio Monitoring**:
 ```python
@@ -1351,24 +1502,7 @@ for sector in sectors:
     print(f"{sector.title()}: {results['result_count']} companies found")
 ```
 
-### G. Testing Checklist
-
-- [ ] Real-time quote retrieval
-- [ ] Historical data with various periods
-- [ ] Historical data with various intervals
-- [ ] Intraday minute data
-- [ ] Dividend event extraction
-- [ ] Stock split event extraction
-- [ ] Symbol search functionality
-- [ ] Exchange filtering
-- [ ] Index quote retrieval
-- [ ] ETF data retrieval
-- [ ] Error handling (invalid symbols)
-- [ ] Timeout handling
-- [ ] Rate limiting compliance
-- [ ] Null value handling
-
-### H. Troubleshooting Guide
+### F. Troubleshooting Guide
 
 **Problem**: "Symbol not found" error
 - **Solution**: Verify symbol format, try search tool first, check exchange suffix
@@ -1382,25 +1516,10 @@ for sector in sectors:
 **Problem**: Missing fundamental data (PE ratio, market cap)
 - **Solution**: Some securities don't have all metrics, handle nulls appropriately
 
-**Problem**: Rate limit exceeded
-- **Solution**: Implement delays between requests, use caching
+**Problem**: Rate limit exceeded (HTTP 429 from Yahoo)
+- **Solution**: Implement delays between requests, or set `cache_ttl` in the tool config
 
-### I. Version History
-
-- **v1.0.0** (2025): Initial release
-  - Three core tools implemented
-  - Multi-period and interval support
-  - Corporate events tracking
-  - Comprehensive error handling
-
-### J. Contributing
-
-For bugs, feature requests, or contributions:
-- **Email**: ajsinha@gmail.com
-- **Copyright**: © 2025-2030 Ashutosh Sinha
-- **License**: All Rights Reserved
-
-### K. Legal Disclaimer
+### G. Legal Disclaimer
 
 ⚠️ **Important**: This tool uses Yahoo Finance's unofficial API. Users should:
 
@@ -1417,38 +1536,6 @@ The tool author is not responsible for:
 - Terms of service violations
 
 **For commercial use, obtain proper data licenses from official providers.**
-
----
-
-## Conclusion
-
-The Yahoo Finance MCP Tool provides a robust, efficient, and easy-to-use interface to Yahoo Finance's financial data. With no authentication requirements, comprehensive error handling, and support for multiple asset types, it's an ideal solution for applications requiring stock market data.
-
-**Key Strengths**:
-- ✅ No API key required
-- ✅ Real-time and historical data
-- ✅ Corporate actions tracking
-- ✅ Multi-asset type support
-- ✅ Flexible time periods and intervals
-- ✅ Comprehensive error handling
-
-**Best For**:
-- Portfolio monitoring applications
-- Trading strategy backtesting
-- Financial research tools
-- Market analysis dashboards
-- Educational projects
-
-For questions, support, or feature requests, please contact:
-
-**Ashutosh Sinha**  
-Email: ajsinha@gmail.com
-
-**Copyright © 2025-2030 All Rights Reserved**
-
----
-
-*End of Document*
 
 ---
 
@@ -1472,4 +1559,8 @@ Email: ajsinha@gmail.com
 
 - **ETF (Exchange-Traded Fund)**: A fund traded on exchanges like stocks. Yahoo Finance tool supports ETF data retrieval.
 
-*For complete definitions, see the [Glossary](../architecture/Glossary.md).*
+*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+
+---
+
+*Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

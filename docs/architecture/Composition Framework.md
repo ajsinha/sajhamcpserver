@@ -1,6 +1,8 @@
-# SAJHA MCP Server — Composition Framework
+# Composition Framework
 
-**Version 5.3.0 · MCP 2025-11-25 Compliant** · Inspired by "On the Composability of Intelligence: A Category Theory Framework"
+Inspired by "On the Composability of Intelligence: A Category Theory Framework".
+
+> **Status in this release.** Composites are saved (database tables `composite_tools`, `composite_tool_steps`) and their schemas can be previewed, but registering a saved composite as a callable tool fails: `CompositeToolEngine` in `sajha/tools/composite_tool.py` calls `ToolsRegistry.register_tool` with two arguments, and it takes one. In Sibling mode, `$.field` resolves to an empty string and `$input.field` is passed through literally; the form that works is `$.input.field` ([Tutorial 3](../tutorials/TUTORIAL_03_build_a_composite_tool.md)). The design below is what the code implements once those are fixed.
 
 Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
 
@@ -289,5 +291,4 @@ Client pipelines use the same `$input.` / `$.` syntax as server composites, and 
 
 ---
 
-*SAJHA MCP Server v5.3.0 — Composition Framework*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

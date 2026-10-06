@@ -1,10 +1,4 @@
-# IMF MCP Tool Reference Guide
-
-**Copyright © 2025-2030 Ashutosh Sinha**  
-**Email:** ajsinha@gmail.com  
-**All Rights Reserved**
-
----
+# IMF Tool Reference Guide
 
 ## Table of Contents
 
@@ -14,22 +8,26 @@
 4. [Authentication & API Access](#authentication--api-access)
 5. [IMF Databases](#imf-databases)
 6. [Tool Descriptions](#tool-descriptions)
-7. [Common Indicators](#common-indicators)
-8. [Usage Examples](#usage-examples)
-9. [Schema Reference](#schema-reference)
-10. [Limitations](#limitations)
-11. [Error Handling](#error-handling)
-12. [Performance Considerations](#performance-considerations)
+7. [Calling the Tools](#calling-the-tools)
+8. [Common Indicators](#common-indicators)
+9. [Usage Examples](#usage-examples)
+10. [Schema Reference](#schema-reference)
+11. [Limitations](#limitations)
+12. [Error Handling](#error-handling)
+13. [Performance Considerations](#performance-considerations)
+14. [Appendix A: Country Codes](#appendix-a-country-codes)
+15. [Appendix B: Quick Reference](#appendix-b-quick-reference)
+16. [Appendix C: IMF Resources](#appendix-c-imf-resources)
 
 ---
 
 ## Overview
 
-The IMF MCP Tool Suite provides programmatic access to the International Monetary Fund's comprehensive economic databases. Access global economic statistics, financial indicators, and macroeconomic data for over 190 countries spanning decades of historical data.
+The IMF tools (prefix `imf_`, implementation `sajha/tools/impl/imf_tool_refactored.py`) provide programmatic access to the International Monetary Fund's economic databases: global economic statistics, financial indicators, and macroeconomic data for over 190 countries spanning decades of historical data.
 
 ### Key Features
 
-- **8 Specialized Tools**: From database discovery to country profiling
+- **Discovery to Profiling**: From database discovery to country profiles (the live catalog in the app, Tools page or `tools/list`, is authoritative)
 - **10 Major Databases**: IFS, WEO, BOP, FSI, DOT, and more
 - **190+ Countries**: Comprehensive global coverage
 - **Historical Data**: Decades of economic time series
@@ -63,7 +61,7 @@ The IMF MCP Tool Suite provides programmatic access to the International Monetar
                      │ MCP Protocol
                      │
 ┌────────────────────▼────────────────────────────────────┐
-│              MCP Tool Layer (8 Tools)                    │
+│              MCP Tool Layer (imf_ tools)                 │
 ├──────────────────────────────────────────────────────────┤
 │  • imf_get_databases       • imf_get_ifs_data           │
 │  • imf_get_dataflows       • imf_get_weo_data           │
@@ -245,15 +243,15 @@ The IMF Data Services API is **completely public and free**:
 - ✅ **No API Key Required**
 - ✅ **No Registration Required**
 - ✅ **No Cost**
-- ✅ **No Rate Limits** (reasonable use)
+- ✅ **No published rate limits** (fair use applies)
 - ✅ **Open Access**
 
 ### Configuration
 
 ```python
-from tools.impl.imf_tool_refactored import IMFGetWEODataTool
+from sajha.tools.impl.imf_tool_refactored import IMFGetWEODataTool
 
-# No configuration needed
+# No configuration needed (classes can be instantiated directly in tests/notebooks)
 tool = IMFGetWEODataTool()
 
 # Optional configuration for logging, etc.
@@ -312,7 +310,10 @@ While no explicit rate limits exist:
 
 **Purpose**: List all available IMF databases
 
-**Input**: None required
+This returns the built-in list of database codes known to the tool; it does not call the IMF API.
+
+**Parameters**: none.
+
 
 **Output**:
 ```json
@@ -341,6 +342,12 @@ While no explicit rate limits exist:
 ### 2. imf_get_dataflows
 
 **Purpose**: Get available dataflows and indicators for a specific database
+
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `database` | string | Yes | `IFS` | IMF database code. One of: `IFS`, `DOT`, `BOP`, `GFSR`, `FSI`, `WEO`, `GFSMAB`, `CDIS`, `CPIS`, `WHDREO` |
 
 **Input**:
 ```json
@@ -373,6 +380,17 @@ While no explicit rate limits exist:
 ### 3. imf_get_data
 
 **Purpose**: Generic data retrieval from any IMF database
+
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `database` | string | Yes | — | IMF database code. One of: `IFS`, `DOT`, `BOP`, `GFSR`, `FSI`, `WEO`, `GFSMAB`, `CDIS`, `CPIS`, `WHDREO` |
+| `country_code` | string | Yes | — | ISO 2-letter country code (e.g., 'US', 'CN', 'JP'). |
+| `indicator_code` | string | Yes | — | IMF indicator code. |
+| `start_year` | integer | No | — | Range 1950–2030. |
+| `end_year` | integer | No | — | Range 1950–2030. |
+| `frequency` | string | No | `A` | A=Annual, Q=Quarterly, M=Monthly. One of: `A`, `Q`, `M` |
 
 **Input**:
 ```json
@@ -412,11 +430,26 @@ While no explicit rate limits exist:
 - Advanced research
 - Specific indicator codes
 
+Note: the `database` value is placed in the request path as-is; only databases served by the IMF SDMX `CompactData` endpoint return data.
+
 ---
 
 ### 4. imf_get_ifs_data
 
 **Purpose**: Retrieve International Financial Statistics data
+
+Supply either `indicator` (shorthand) or `indicator_code`; one of them is required at run time. Frequency defaults to monthly (`M`).
+
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `country_code` | string | Yes | — | ISO 2-letter country code. |
+| `indicator` | string | No | — | Common IFS indicator name. One of 22 values (see [Common Indicators](#common-indicators)). |
+| `indicator_code` | string | No | — | IFS indicator code. |
+| `start_year` | integer | No | — | Range 1950–2030. |
+| `end_year` | integer | No | — | Range 1950–2030. |
+| `frequency` | string | No | `M` | One of: `A`, `Q`, `M` |
 
 **Pre-configured Indicators** (22 total):
 - Exchange rates (end period, average)
@@ -472,6 +505,18 @@ While no explicit rate limits exist:
 ### 5. imf_get_weo_data
 
 **Purpose**: Retrieve World Economic Outlook data with forecasts
+
+WEO data is always requested at annual frequency (`A`); the tool has no `frequency` parameter. Supply either `indicator` (shorthand) or `indicator_code`; one of them is required at run time.
+
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `country_code` | string | Yes | — | ISO 2-letter country code. |
+| `indicator` | string | No | — | Common WEO indicator name. One of: `gdp_growth`, `gdp_per_capita`, `inflation_avg`, `inflation_eop`, `unemployment`, `current_account`, `fiscal_balance`, `public_debt`, `exports_volume`, `imports_volume`, `population` |
+| `indicator_code` | string | No | — | WEO indicator code. |
+| `start_year` | integer | No | — | Range 1950–2030. |
+| `end_year` | integer | No | — | Range 1950–2030. |
 
 **Pre-configured Indicators** (11 total):
 - GDP growth
@@ -532,6 +577,16 @@ While no explicit rate limits exist:
 
 **Purpose**: Retrieve Balance of Payments data
 
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `country_code` | string | Yes | — | ISO 2-letter country code. |
+| `indicator_code` | string | Yes | — | BOP indicator code. |
+| `start_year` | integer | No | — | Range 1950–2030. |
+| `end_year` | integer | No | — | Range 1950–2030. |
+| `frequency` | string | No | `A` | One of: `A`, `Q` |
+
 **Input**:
 ```json
 {
@@ -574,6 +629,20 @@ While no explicit rate limits exist:
 ### 7. imf_compare_countries
 
 **Purpose**: Compare economic indicators across multiple countries
+
+The `indicator` shorthand is resolved against the WEO list when `database` is `WEO`, and against the IFS list otherwise. Supply `indicator` or `indicator_code`. A country that fails is returned with an `error` field instead of aborting the whole comparison.
+
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `country_codes` | array of string | Yes | — | List of ISO 2-letter country codes (minimum 2). |
+| `database` | string | No | `IFS` | IMF database to use. One of: `IFS`, `DOT`, `BOP`, `GFSR`, `FSI`, `WEO`, `GFSMAB`, `CDIS`, `CPIS`, `WHDREO` |
+| `indicator` | string | No | — | Common indicator name. |
+| `indicator_code` | string | No | — | Specific indicator code. |
+| `start_year` | integer | No | — | Range 1950–2030. |
+| `end_year` | integer | No | — | Range 1950–2030. |
+| `frequency` | string | No | `A` | One of: `A`, `Q`, `M` |
 
 **Input**:
 ```json
@@ -628,6 +697,12 @@ While no explicit rate limits exist:
 
 **Purpose**: Get comprehensive economic profile with key indicators
 
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `country_code` | string | Yes | — | ISO 2-letter country code (e.g., 'US', 'CN', 'JP', 'DE'). |
+
 **Input**:
 ```json
 {
@@ -668,6 +743,38 @@ While no explicit rate limits exist:
 - Investment research
 - Executive summaries
 - Dashboard creation
+
+---
+
+## Calling the Tools
+
+Every tool can be called over MCP (a `tools/call` request on `POST /mcp`) or over the REST API (`POST /api/tools/execute`). Authenticate with an `X-API-Key: sja_...` header or an `Authorization: Bearer <token>` header. Sessions, protocol versions and headers are covered in the [MCP Protocol Guide](../../protocol/MCP%20Protocol%20Guide.md).
+
+**MCP (`POST /mcp`)**
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+ "params": {"name": "imf_get_weo_data", "arguments": {"country_code": "US", "indicator": "gdp_growth", "start_year": 2020, "end_year": 2024}}}
+```
+
+**REST**
+
+```bash
+curl -X POST http://localhost:3002/api/tools/execute \
+  -H "X-API-Key: sja_your_key" -H "Content-Type: application/json" \
+  -d '{"tool": "imf_get_weo_data", "arguments": {"country_code": "US", "indicator": "gdp_growth", "start_year": 2020, "end_year": 2024}}'
+```
+
+**Python client SDK**
+
+```python
+from sajhaclient import SajhaClient, SajhaConfig
+
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
+result = client.execute_tool("imf_get_weo_data", country_code="US", indicator="gdp_growth", start_year=2020, end_year=2024)
+```
+
+The Python examples below instantiate the tool classes directly (useful in tests and notebooks); through the server, use one of the forms above.
 
 ---
 
@@ -752,7 +859,7 @@ While no explicit rate limits exist:
 ### Example 1: Get US GDP Growth
 
 ```python
-from tools.impl.imf_tool_refactored import IMFGetWEODataTool
+from sajha.tools.impl.imf_tool_refactored import IMFGetWEODataTool
 
 tool = IMFGetWEODataTool()
 
@@ -772,7 +879,7 @@ for obs in result['data']:
 ### Example 2: Compare G7 Inflation
 
 ```python
-from tools.impl.imf_tool_refactored import IMFCompareCountriesTool
+from sajha.tools.impl.imf_tool_refactored import IMFCompareCountriesTool
 
 tool = IMFCompareCountriesTool()
 
@@ -794,7 +901,7 @@ for country in result['countries']:
 ### Example 3: Get Country Economic Profile
 
 ```python
-from tools.impl.imf_tool_refactored import IMFGetCountryProfileTool
+from sajha.tools.impl.imf_tool_refactored import IMFGetCountryProfileTool
 
 tool = IMFGetCountryProfileTool()
 
@@ -815,7 +922,7 @@ for name, data in result['indicators'].items():
 ### Example 4: Track Japan CPI (Monthly)
 
 ```python
-from tools.impl.imf_tool_refactored import IMFGetIFSDataTool
+from sajha.tools.impl.imf_tool_refactored import IMFGetIFSDataTool
 
 tool = IMFGetIFSDataTool()
 
@@ -834,7 +941,7 @@ for obs in result['data'][-12:]:  # Last 12 months
 ### Example 5: Get Balance of Payments
 
 ```python
-from tools.impl.imf_tool_refactored import IMFGetBOPDataTool
+from sajha.tools.impl.imf_tool_refactored import IMFGetBOPDataTool
 
 tool = IMFGetBOPDataTool()
 
@@ -853,7 +960,7 @@ for obs in result['data']:
 ### Example 6: Discover Available Databases
 
 ```python
-from tools.impl.imf_tool_refactored import IMFGetDatabasesTool
+from sajha.tools.impl.imf_tool_refactored import IMFGetDatabasesTool
 
 tool = IMFGetDatabasesTool()
 
@@ -867,7 +974,7 @@ for db in result['databases']:
 ### Example 7: Generic Data Access
 
 ```python
-from tools.impl.imf_tool_refactored import IMFGetDataTool
+from sajha.tools.impl.imf_tool_refactored import IMFGetDataTool
 
 tool = IMFGetDataTool()
 
@@ -888,7 +995,7 @@ for obs in result['data']:
 ### Example 8: Emerging Markets Comparison
 
 ```python
-from tools.impl.imf_tool_refactored import IMFCompareCountriesTool
+from sajha.tools.impl.imf_tool_refactored import IMFCompareCountriesTool
 
 tool = IMFCompareCountriesTool()
 
@@ -910,7 +1017,7 @@ for country in result['countries']:
 ### Example 9: Multi-Year Analysis
 
 ```python
-from tools.impl.imf_tool_refactored import IMFGetWEODataTool
+from sajha.tools.impl.imf_tool_refactored import IMFGetWEODataTool
 import matplotlib.pyplot as plt
 
 tool = IMFGetWEODataTool()
@@ -943,7 +1050,7 @@ plt.show()
 ```python
 # Combine IFS and WEO data for comprehensive analysis
 
-from tools.impl.imf_tool_refactored import IMFGetIFSDataTool, IMFGetWEODataTool
+from sajha.tools.impl.imf_tool_refactored import IMFGetIFSDataTool, IMFGetWEODataTool
 
 ifs_tool = IMFGetIFSDataTool()
 weo_tool = IMFGetWEODataTool()
@@ -1108,7 +1215,7 @@ print(f"GDP Growth: {gdp['data'][-1]['value']}% in {gdp['data'][-1]['period']}")
 2. **Error Handling**:
    - HTTP 404 for missing data
    - No data returns empty array
-   - Network timeouts possible
+   - Network errors are raised as `ValueError`; data requests set no explicit socket timeout, so a stalled IMF endpoint can hold a call open
 
 3. **Country Codes**:
    - Must use ISO 2-letter codes
@@ -1278,6 +1385,8 @@ else:
 ## Performance Considerations
 
 ### Caching Strategy
+
+The IMF tools do not cache on their own. Server-side caching is opt-in per tool: add a top-level `"cache_ttl": <seconds>` to the tool's JSON config in `config/tools/` (none of the shipped `imf_` configs set it). The example below shows client-side caching instead.
 
 ```python
 from functools import lru_cache
@@ -1502,28 +1611,6 @@ def batch_country_comparison(
 
 ---
 
-## Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025 | Initial release with 8 tools |
-
----
-
-## Support & Contact
-
-**Author**: Ashutosh Sinha  
-**Email**: ajsinha@gmail.com  
-**Copyright**: © 2025-2030 All Rights Reserved
-
-For issues, questions, or feature requests, please contact the author directly.
-
----
-
-*End of IMF MCP Tool Reference Guide*
-
----
-
 ## Page Glossary
 
 **Key terms referenced in this document:**
@@ -1542,4 +1629,8 @@ For issues, questions, or feature requests, please contact the author directly.
 
 - **Current Account**: Part of balance of payments recording trade in goods, services, income, and current transfers.
 
-*For complete definitions, see the [Glossary](../architecture/Glossary.md).*
+*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+
+---
+
+*Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

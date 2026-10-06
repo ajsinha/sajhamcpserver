@@ -1,26 +1,24 @@
-# Reserve Bank of India (RBI) MCP Tools - Complete Documentation
-
-
-**Copyright All rights reserved 2025-2030 Ashutosh Sinha**  
-**Email: ajsinha@gmail.com**
-
+# Reserve Bank of India Tool Reference Guide
 
 ## Table of Contents
 1. [Overview](#overview)
 2. [Architecture](#architecture)
-3. [Quick Start](#quick-start)
-4. [Available Tools](#available-tools)
-5. [Detailed Tool Reference](#detailed-tool-reference)
-6. [Code Examples](#code-examples)
-7. [API Reference](#api-reference)
-8. [Common Use Cases](#common-use-cases)
-9. [Troubleshooting](#troubleshooting)
+3. [Data Source and Keys](#data-source-and-keys)
+4. [Quick Start](#quick-start)
+5. [Available Tools](#available-tools)
+6. [Detailed Tool Reference](#detailed-tool-reference)
+7. [Code Examples](#code-examples)
+8. [API Reference](#api-reference)
+9. [Common Use Cases](#common-use-cases)
+10. [Calling the Tools](#calling-the-tools)
+11. [Troubleshooting](#troubleshooting)
+12. [Support and Resources](#support-and-resources)
 
 ---
 
 ## Overview
 
-The Reserve Bank of India (RBI) MCP Tools provide comprehensive access to Indian economic and financial data through the RBI's Database on Indian Economy (DBIE) API. These tools enable you to retrieve:
+The Reserve Bank of India tools (prefix `rbi_`) return Indian rates, yields, exchange rates, inflation and reserves. Implementation: `sajha/tools/impl/india_central_bank.py`. The live catalog in the app (Tools page, or `tools/list`) is authoritative. These tools enable you to retrieve:
 
 - **Government Securities (G-Sec) Yields**: Access yield data for 1-year, 5-year, 10-year, and 30-year bonds
 - **Policy Rates**: Repo rate, reverse repo rate, bank rate, CRR, and SLR
@@ -51,7 +49,7 @@ The Reserve Bank of India (RBI) MCP Tools provide comprehensive access to Indian
                      │ MCP Protocol
                      │
 ┌────────────────────▼────────────────────────────────────┐
-│              MCP Tool Layer (5 Tools)                    │
+│              MCP Tool Layer                              │
 ├──────────────────────────────────────────────────────────┤
 │  • rbi_get_policy_rate    (Repo/Reverse Repo Rates)      │
 │  • rbi_get_inflation      (CPI/WPI Data)                 │
@@ -63,9 +61,9 @@ The Reserve Bank of India (RBI) MCP Tools provide comprehensive access to Indian
                      │ HTTP/HTTPS
                      │
 ┌────────────────────▼────────────────────────────────────┐
-│          RBIBaseTool (Shared Functionality)              │
+│          ReserveBankOfIndiaBaseTool                      │
 ├──────────────────────────────────────────────────────────┤
-│  • RBI Database Integration                              │
+│  • RBI series-code mapping and HTTP fetch                │
 │  • Data Transformation & Parsing                         │
 │  • Error Handling & Logging                              │
 │  • Response Normalization                                │
@@ -75,7 +73,7 @@ The Reserve Bank of India (RBI) MCP Tools provide comprehensive access to Indian
                      │
 ┌────────────────────▼────────────────────────────────────┐
 │          Reserve Bank of India Data Portal               │
-│           https://www.rbi.org.in/                        │
+│      https://rbi.org.in/Scripts/api/dbie                 │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -96,12 +94,25 @@ The Reserve Bank of India (RBI) MCP Tools provide comprehensive access to Indian
 
 ---
 
+## Data Source and Keys
+
+The tools send `GET https://rbi.org.in/Scripts/api/dbie?series=<code>&format=json[&fromDate=...&toDate=...]` with internal series codes (`RBI_REPO`, `GSEC_10Y`, `USD_INR`, `CPI_ALL`, `FOREX_RESERVES`, ...) and expect a JSON body with a `data` array. No API key is needed and there is no SAJHA config key for these tools (see the [Configuration Reference](../../getting-started/Configuration%20Reference.md) for keys used elsewhere).
+
+> **Caution:** The RBI does not document a public JSON API at this URL, and a request made during documentation review was rejected (HTTP 418). Expect these tools to return "Failed to get series data" until the implementation is pointed at a working source. RBI data is published through [DBIE](https://data.rbi.org.in/).
+
+Implementation notes:
+- `recent_periods` (default 10) is applied only when neither `start_date` nor `end_date` is given.
+- Unknown argument values raise an error.
+- Caching is opt-in per tool: add a top-level `"cache_ttl": <seconds>` to the tool's JSON config. The `metadata.rateLimit`/`metadata.cacheTTL` fields in the `rbi_` configs are informational and are not enforced.
+
+---
+
 ## Quick Start
 
 ### Installation
 
 ```python
-from tools.impl.india_central_bank import RESERVE_BANK_OF_INDIA_TOOLS
+from sajha.tools.impl.india_central_bank import RESERVE_BANK_OF_INDIA_TOOLS
 
 # Initialize a tool
 gsec_tool = RESERVE_BANK_OF_INDIA_TOOLS['rbi_get_gsec_yield']()
@@ -152,7 +163,7 @@ print(f"Repo Rate: {result['observations'][0]['value']}%")
   "bond_term": "10y",         // Required: "1y", "5y", "10y", or "30y"
   "start_date": "2024-01-01", // Optional: YYYY-MM-DD format
   "end_date": "2024-12-31",   // Optional: YYYY-MM-DD format
-  "recent_periods": 30        // Optional: 1-100 (default: 10)
+  "recent_periods": 30        // Optional (default: 10); ignored when a date is given
 }
 ```
 
@@ -296,7 +307,7 @@ print(f"Repo Rate: {result['observations'][0]['value']}%")
 ### Example 1: Monetary Policy Dashboard
 
 ```python
-from tools.impl.india_central_bank import RESERVE_BANK_OF_INDIA_TOOLS
+from sajha.tools.impl.india_central_bank import RESERVE_BANK_OF_INDIA_TOOLS
 import pandas as pd
 
 # Initialize tools
@@ -327,7 +338,7 @@ print("=" * 50)
 ### Example 2: Inflation Analysis
 
 ```python
-from tools.impl.india_central_bank import RESERVE_BANK_OF_INDIA_TOOLS
+from sajha.tools.impl.india_central_bank import RESERVE_BANK_OF_INDIA_TOOLS
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -367,7 +378,7 @@ plt.show()
 ### Example 3: Currency Basket Tracking
 
 ```python
-from tools.impl.india_central_bank import RESERVE_BANK_OF_INDIA_TOOLS
+from sajha.tools.impl.india_central_bank import RESERVE_BANK_OF_INDIA_TOOLS
 import pandas as pd
 
 fx_tool = RESERVE_BANK_OF_INDIA_TOOLS['rbi_get_exchange_rate']()
@@ -393,7 +404,7 @@ for pair, rate in latest_rates.items():
 ### Example 4: Forex Reserves Monitoring
 
 ```python
-from tools.impl.india_central_bank import RESERVE_BANK_OF_INDIA_TOOLS
+from sajha.tools.impl.india_central_bank import RESERVE_BANK_OF_INDIA_TOOLS
 import pandas as pd
 
 reserves_tool = RESERVE_BANK_OF_INDIA_TOOLS['rbi_get_forex_reserves']()
@@ -536,13 +547,43 @@ except Exception as e:
 
 ---
 
+## Calling the Tools
+
+Every tool can be called over MCP (a `tools/call` request on `POST /mcp`) or over the REST API (`POST /api/tools/execute`). Authenticate with an `X-API-Key: sja_...` header or an `Authorization: Bearer <token>` header. Sessions, protocol versions and headers are covered in the [MCP Protocol Guide](../../protocol/MCP%20Protocol%20Guide.md).
+
+**MCP (`POST /mcp`)**
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+ "params": {"name": "rbi_get_policy_rate", "arguments": {"rate_type": "repo_rate", "recent_periods": 5}}}
+```
+
+**REST**
+
+```bash
+curl -X POST http://localhost:3002/api/tools/execute \
+  -H "X-API-Key: sja_your_key" -H "Content-Type: application/json" \
+  -d '{"tool": "rbi_get_policy_rate", "arguments": {"rate_type": "repo_rate", "recent_periods": 5}}'
+```
+
+**Python client SDK**
+
+```python
+from sajhaclient import SajhaClient, SajhaConfig
+
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
+result = client.execute_tool("rbi_get_policy_rate", rate_type="repo_rate", recent_periods=5)
+```
+
+---
+
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Rate Limit Exceeded**
-   - Solution: Implement caching and space out requests
-   - Default limit: 120 requests/hour
+1. **"Failed to get series data" / HTTP errors**
+   - See the caution under [Data Source and Keys](#data-source-and-keys)
+   - For server-side caching set `cache_ttl` in the tool config
 
 2. **Data Not Available**
    - Some series may have publishing delays
@@ -567,59 +608,14 @@ except Exception as e:
 ### Official Resources
 
 - **RBI Website**: https://www.rbi.org.in/
-- **Database on Indian Economy**: https://dbie.rbi.org.in/
+- **Database on Indian Economy**: https://data.rbi.org.in/
 - **RBI Publications**: https://www.rbi.org.in/Scripts/Publications.aspx
 
-### Technical Support
-
-- Email: ajsinha@gmail.com
-- GitHub: [Project Repository]
-
 ---
----
-# Legal Notice & License
 
-### Copyright
+## Disclaimer
 
-**Copyright © 2025-2030 Ashutosh Sinha. All Rights Reserved.**
-
-This software and documentation are protected by copyright law. Unauthorized reproduction or distribution of this software, or any portion of it, may result in severe civil and criminal penalties, and will be prosecuted to the maximum extent possible under law.
-
-### License Terms
-
-This software is provided "as is" without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
-
-**Permitted Use:**
-- ✅ Personal research and analysis
-- ✅ Academic research
-- ✅ Internal business use
-- ✅ Non-commercial applications
-
-**Restrictions:**
-- ❌ Redistribution without permission
-- ❌ Commercial sale or licensing
-- ❌ Modification without attribution
-- ❌ Removal of copyright notices
-
-### Disclaimer
-
-**THIS TOOLKIT IS FOR INFORMATIONAL AND RESEARCH PURPOSES ONLY.**
-
-The author and contributors:
-- ❌ Do NOT provide investment advice
-- ❌ Do NOT provide financial advice
-- ❌ Do NOT provide legal advice
-- ❌ Do NOT provide accounting advice
-- ❌ Make NO warranties about data accuracy
-- ❌ Accept NO liability for investment decisions
-
-**Users acknowledge:**
-- All investment decisions are their own responsibility
-- Data may contain errors or be outdated
-- Professional advice should be sought for important decisions
-- SEC filings are the authoritative source
-- This toolkit is a convenience tool, not a substitute for due diligence
-
+Data is provided for information and research only and is not investment advice. The upstream statistical publishers are the authoritative sources; verify important figures there.
 
 ---
 
@@ -641,4 +637,8 @@ The author and contributors:
 
 - **G-Sec (Government Securities)**: Debt instruments issued by the Indian government.
 
-*For complete definitions, see the [Glossary](../architecture/Glossary.md).*
+*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
+
+---
+
+*Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

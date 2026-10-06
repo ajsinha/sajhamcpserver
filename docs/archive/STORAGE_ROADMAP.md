@@ -1,3 +1,5 @@
+> Archived: superseded by docs/getting-started/Storage Guide.md; not maintained.
+
 # Storage Abstraction Roadmap
 
 SAJHA routes IO through a pluggable storage backend (`sajha/core/storage.py`) so the

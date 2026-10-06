@@ -88,13 +88,15 @@ sudo systemctl reload nginx
 
 ## Nginx Configuration Highlights
 
-The provided `nginx.conf` handles all three transports:
+The provided `nginx.conf` proxies the HTTP, legacy SSE and WebSocket endpoints:
 
 | Path | Config | Why |
 |------|--------|-----|
 | `/` | Standard proxy | Regular HTTP requests |
 | `/mcp/sse` | `proxy_buffering off` + 1hr timeout | SSE requires unbuffered, long-lived connections |
 | `/mcp/ws` | `Upgrade: websocket` headers + 1hr timeout | WebSocket upgrade handshake |
+
+Note: `POST /mcp` also answers with SSE streams (streamed `tools/call`, `subscriptions/listen`, and server→client requests on the 2025-11-25 path). The shipped config serves `/mcp` through `location /` with default buffering, so those streams arrive late or in one piece behind nginx; add a `location = /mcp` block with `proxy_buffering off` and a long `proxy_read_timeout` if you use them.
 
 ## Management
 
@@ -150,5 +152,5 @@ The systemd service includes:
 
 ---
 
-*SAJHA MCP Server v5.3.0 — Bare Metal Deployment*
+*SAJHA MCP Server — Bare Metal Deployment*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

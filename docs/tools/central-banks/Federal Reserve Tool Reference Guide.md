@@ -1,10 +1,4 @@
-# Federal Reserve MCP Tool Reference Guide
-
-**Copyright © 2025-2030 Ashutosh Sinha**  
-**Email:** ajsinha@gmail.com  
-**All Rights Reserved**
-
----
+# Federal Reserve Tool Reference Guide
 
 ## Table of Contents
 
@@ -14,17 +8,18 @@
 4. [Authentication & API Keys](#authentication--api-keys)
 5. [Tool Descriptions](#tool-descriptions)
 6. [Common Indicators](#common-indicators)
-7. [Usage Examples](#usage-examples)
-8. [Schema Reference](#schema-reference)
-9. [Limitations](#limitations)
-10. [Error Handling](#error-handling)
-11. [Performance Considerations](#performance-considerations)
+7. [Calling the Tools](#calling-the-tools)
+8. [Usage Examples](#usage-examples)
+9. [Schema Reference](#schema-reference)
+10. [Limitations](#limitations)
+11. [Error Handling](#error-handling)
+12. [Performance Considerations](#performance-considerations)
 
 ---
 
 ## Overview
 
-The Federal Reserve MCP Tool Suite provides programmatic access to the Federal Reserve Economic Data (FRED) database - the premier source for US economic statistics. These 4 specialized tools enable retrieval of over 800,000 economic time series covering US and international economic data.
+The Federal Reserve MCP Tool Suite provides programmatic access to the Federal Reserve Economic Data (FRED) database - the premier source for US economic statistics. The `fed_` tools (implementation: `sajha/tools/impl/fed_reserve_tool_refactored.py`) enable retrieval of over 800,000 economic time series covering US and international economic data.
 
 ### Key Features
 
@@ -33,7 +28,7 @@ The Federal Reserve MCP Tool Suite provides programmatic access to the Federal R
 - **12 Common Indicators**: Pre-configured shortcuts for key metrics
 - **Search Functionality**: Discover data series by keyword
 - **Dashboard Support**: Batch retrieval of multiple indicators
-- **Demo Mode**: Test without API key (limited functionality)
+- **Demo Mode**: Without an API key the tools return synthetic data (see [Authentication & API Keys](#authentication--api-keys))
 
 ### Data Categories
 
@@ -59,10 +54,10 @@ The Federal Reserve MCP Tool Suite provides programmatic access to the Federal R
 │                   MCP Client Application                 │
 └────────────────────┬────────────────────────────────────┘
                      │
-                     │ MCP Protocol
+                     │ tools/call
                      │
 ┌────────────────────▼────────────────────────────────────┐
-│              MCP Tool Layer (4 Tools)                    │
+│              MCP Tool Layer (fed_ tools)                 │
 ├──────────────────────────────────────────────────────────┤
 │  • fed_get_series                                        │
 │  • fed_get_latest                                        │
@@ -139,7 +134,6 @@ Each tool specializes in a specific data retrieval pattern:
 - ✗ HTML Parsing
 - ✗ Database Queries
 - ✗ File System Access
-- ✗ WebSocket Streaming (use SSE transport)
 
 ### API Communication
 
@@ -169,7 +163,7 @@ GET /series/observations?series_id=GDP&api_key=abc123&file_type=json&limit=10
 - `observation_end`: End date (YYYY-MM-DD)
 - `search_text`: Search query string
 
-**Timeout**: Standard urllib timeout (default)
+**Timeout**: none set explicitly (urllib default)
 
 ### Response Parsing
 
@@ -207,7 +201,7 @@ The tools parse this structure and format it consistently.
 ### Demo Mode
 
 For testing without an API key, the tools include a demo mode that generates synthetic data:
-- Automatically activated when `api_key='demo'` or not configured
+- Automatically activated when the tool config has no `api_key` (or it is `demo`)
 - Returns realistic mock time series data
 - Supports all tool operations
 - Includes disclaimer in responses
@@ -216,62 +210,38 @@ For testing without an API key, the tools include a demo mode that generates syn
 
 ## Authentication & API Keys
 
-### API Key Required for Production
+### API Key Required for Live Data
 
-The FRED API **requires an API key** for production use but offers:
-- **Free Registration**: Create account at https://fred.stlouisfed.org
-- **Free API Key**: No cost for standard usage
-- **Demo Mode**: Test tools without registration
+The FRED API requires a free API key ([request one here](https://fred.stlouisfed.org/docs/api/api_key.html)). Without a key the tools run in **demo mode** and return synthetic data with a `note` field.
 
-### Obtaining an API Key
+The tool reads its key from the `api_key` field of its JSON config. **The shipped `config/tools/fed_*.json` configs do not set `api_key`, so out of the box the `fed_` tools always run in demo mode.** To get live data, add the same reference the `fred_` tools use to each `fed_` config:
 
-**Step 1: Register**
-1. Visit https://fred.stlouisfed.org
-2. Click "My Account" → "Register"
-3. Complete registration form
-
-**Step 2: Request API Key**
-1. Log in to your FRED account
-2. Navigate to "API Keys"
-3. Click "Request API Key"
-4. Accept terms and conditions
-5. Copy your API key (32-character string)
-
-**Step 3: Configure Tool**
-```python
-from tools.impl.fed_reserve_tool_refactored import FedGetSeriesTool
-
-# With API key
-tool = FedGetSeriesTool(config={'api_key': 'your_api_key_here'})
-
-# Demo mode (no API key)
-tool = FedGetSeriesTool()  # Uses demo mode
+```json
+"api_key": "${fred.api.key}"
 ```
 
-### API Key Security
+`fred.api.key` is defined in `config/application.yml` and bound to the `FRED_API_KEY` environment variable:
 
-**Best Practices**:
-- Store API keys in environment variables, not code
-- Never commit API keys to version control
-- Rotate keys periodically
-- Use different keys for dev/prod environments
+```yaml
+fred:
+  api:
+    key: ${FRED_API_KEY:}
+```
 
-**Example**:
+See the [Configuration Reference](../../getting-started/Configuration%20Reference.md) for how config keys and environment variables are resolved. For live FRED data with no config change, the [FRED tools](../market-data/FRED%20Tool%20Reference%20Guide.md) (`fred_` prefix) already reference `fred.api.key`.
+
+When instantiating a tool class directly (tests, notebooks), pass the key in the config:
+
 ```python
 import os
+from sajha.tools.impl.fed_reserve_tool_refactored import FedGetSeriesTool
 
-config = {
-    'api_key': os.environ.get('FRED_API_KEY', 'demo')
-}
-tool = FedGetSeriesTool(config=config)
+tool = FedGetSeriesTool(config={'api_key': os.environ.get('FRED_API_KEY', 'demo')})
 ```
 
 ### Rate Limits
 
-FRED API has generous rate limits:
-- **Standard**: 120 requests per minute
-- **No daily limit** for standard usage
-- **Fair use policy**: Avoid excessive automated queries
+FRED enforces its own per-key limit (currently documented as 120 requests per minute). The `fed_` tools do not rate-limit or cache on the server side; caching is opt-in by adding `"cache_ttl": <seconds>` to a tool config (none of the shipped `fed_` configs set it).
 
 ### Demo Mode Limitations
 
@@ -307,7 +277,7 @@ Demo mode provides:
   
   "start_date": "2020-01-01",      // Optional
   "end_date": "2024-12-31",        // Optional
-  "limit": 100                     // Optional (default: 100, max: 1000)
+  "limit": 100                     // Optional (default: 100)
 }
 ```
 
@@ -349,6 +319,8 @@ Demo mode provides:
 
 **Optimization**: Minimal payload - perfect for dashboards
 
+> **Known issue:** the implementation requests the series with `limit=1` and FRED's default ascending sort, so with a live API key it returns the **oldest** observation rather than the newest. `fed_get_common_indicators` has the same behaviour. Until this is fixed, use `fed_get_series` with a recent `start_date` and take the last observation.
+
 **Input Parameters**:
 ```json
 {
@@ -388,7 +360,7 @@ Demo mode provides:
 ```json
 {
   "query": "unemployment rate",    // Required
-  "limit": 20                      // Optional (default: 20, max: 100)
+  "limit": 20                      // Optional (default: 20)
 }
 ```
 
@@ -440,7 +412,7 @@ Demo mode provides:
 **Purpose**: Batch retrieval of multiple key economic indicators
 
 **Default Indicators** (if none specified):
-All 12 common indicators
+All 12 common indicators. Unknown names come back as `{"error": "Unknown indicator: <name>"}` inside `indicators`.
 
 **Input Parameters**:
 ```json
@@ -535,15 +507,48 @@ All 12 common indicators
 
 ---
 
+## Calling the Tools
+
+Every tool can be called over MCP (a `tools/call` request on `POST /mcp`) or over the REST API (`POST /api/tools/execute`). Authenticate with an `X-API-Key: sja_...` header or an `Authorization: Bearer <token>` header. Sessions, protocol versions and headers are covered in the [MCP Protocol Guide](../../protocol/MCP%20Protocol%20Guide.md).
+
+**MCP (`POST /mcp`)**
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+ "params": {"name": "fed_get_series", "arguments": {"indicator": "unemployment", "start_date": "2020-01-01"}}}
+```
+
+**REST**
+
+```bash
+curl -X POST http://localhost:3002/api/tools/execute \
+  -H "X-API-Key: sja_your_key" -H "Content-Type: application/json" \
+  -d '{"tool": "fed_get_series", "arguments": {"indicator": "unemployment", "start_date": "2020-01-01"}}'
+```
+
+**Python client SDK**
+
+```python
+from sajhaclient import SajhaClient, SajhaConfig
+
+client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_your_key"))
+result = client.execute_tool("fed_get_series", indicator="unemployment", start_date="2020-01-01")
+```
+
+The examples below instantiate the tool classes directly, which is useful in tests and notebooks.
+
+---
+
 ## Usage Examples
 
 ### Example 1: Get Current Unemployment Rate
 
 ```python
-from tools.impl.fed_reserve_tool_refactored import FedGetLatestTool
+import os
+from sajha.tools.impl.fed_reserve_tool_refactored import FedGetLatestTool
 
 # Configure with API key
-config = {'api_key': 'your_api_key_here'}
+config = {'api_key': os.environ['FRED_API_KEY']}
 tool = FedGetLatestTool(config)
 
 # Get latest value
@@ -558,10 +563,11 @@ print(f"Unemployment Rate: {result['value']}% as of {result['date']}")
 ### Example 2: Analyze GDP Trend
 
 ```python
-from tools.impl.fed_reserve_tool_refactored import FedGetSeriesTool
+import os
+from sajha.tools.impl.fed_reserve_tool_refactored import FedGetSeriesTool
 import matplotlib.pyplot as plt
 
-config = {'api_key': 'your_api_key_here'}
+config = {'api_key': os.environ['FRED_API_KEY']}
 tool = FedGetSeriesTool(config)
 
 # Get 5 years of GDP data
@@ -592,9 +598,10 @@ print(f"GDP Growth: {values[0]:.1f}B → {values[-1]:.1f}B")
 ### Example 3: Search for Housing Data
 
 ```python
-from tools.impl.fed_reserve_tool_refactored import FedSearchSeriesTool
+import os
+from sajha.tools.impl.fed_reserve_tool_refactored import FedSearchSeriesTool
 
-config = {'api_key': 'your_api_key_here'}
+config = {'api_key': os.environ['FRED_API_KEY']}
 tool = FedSearchSeriesTool(config)
 
 # Search for housing-related series
@@ -615,9 +622,10 @@ for series in result['results']:
 ### Example 4: Create Economic Dashboard
 
 ```python
-from tools.impl.fed_reserve_tool_refactored import FedGetCommonIndicatorsTool
+import os
+from sajha.tools.impl.fed_reserve_tool_refactored import FedGetCommonIndicatorsTool
 
-config = {'api_key': 'your_api_key_here'}
+config = {'api_key': os.environ['FRED_API_KEY']}
 tool = FedGetCommonIndicatorsTool(config)
 
 # Get key economic indicators
@@ -647,9 +655,10 @@ for indicator, data in result['indicators'].items():
 ### Example 5: Compare Yield Curve
 
 ```python
-from tools.impl.fed_reserve_tool_refactored import FedGetLatestTool
+import os
+from sajha.tools.impl.fed_reserve_tool_refactored import FedGetLatestTool
 
-config = {'api_key': 'your_api_key_here'}
+config = {'api_key': os.environ['FRED_API_KEY']}
 tool = FedGetLatestTool(config)
 
 # Get multiple treasury rates
@@ -677,9 +686,10 @@ else:
 ### Example 6: Historical Inflation Analysis
 
 ```python
-from tools.impl.fed_reserve_tool_refactored import FedGetSeriesTool
+import os
+from sajha.tools.impl.fed_reserve_tool_refactored import FedGetSeriesTool
 
-config = {'api_key': 'your_api_key_here'}
+config = {'api_key': os.environ['FRED_API_KEY']}
 tool = FedGetSeriesTool(config)
 
 # Get 10 years of CPI data
@@ -707,7 +717,7 @@ for i in range(12, len(observations), 12):
 ### Example 7: Demo Mode Testing
 
 ```python
-from tools.impl.fed_reserve_tool_refactored import FedGetSeriesTool
+from sajha.tools.impl.fed_reserve_tool_refactored import FedGetSeriesTool
 
 # No API key - uses demo mode
 tool = FedGetSeriesTool()
@@ -770,7 +780,6 @@ if 'note' in result:
   "limit": {
     "type": "integer",
     "minimum": 1,
-    "maximum": 1000,
     "default": 100,
     "description": "Maximum number of observations"
   }
@@ -846,8 +855,7 @@ if 'note' in result:
    - Recent data may have revisions
 
 3. **Series Limits**:
-   - Maximum 1000 observations per request
-   - Use pagination for larger datasets
+   - FRED caps observations per request (100,000); the tools do not paginate
    - Some series have limited history
 
 ### Demo Mode Limitations
@@ -878,7 +886,7 @@ if 'note' in result:
    - Values may be null (missing data)
 
 3. **Network**:
-   - Standard urllib timeouts
+   - No explicit timeout (urllib default)
    - No automatic retries
    - Network errors require handling
 
@@ -926,7 +934,7 @@ ValueError: Failed to get series data: Series does not exist
 ValueError: Failed to get series data: HTTP 429 Too Many Requests
 ```
 
-**Cause**: Exceeded 120 requests/minute  
+**Cause**: Exceeded FRED's per-key request limit  
 **Solution**: Implement rate limiting, add delays between requests
 
 #### 4. No Data Available
@@ -1223,28 +1231,6 @@ for indicator in ['gdp', 'unemployment', 'inflation']:
 
 ---
 
-## Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025 | Initial release with 4 tools |
-
----
-
-## Support & Contact
-
-**Author**: Ashutosh Sinha  
-**Email**: ajsinha@gmail.com  
-**Copyright**: © 2025-2030 All Rights Reserved
-
-For issues, questions, or feature requests, please contact the author directly.
-
----
-
-*End of Federal Reserve MCP Tool Reference Guide*
-
----
-
 ## Page Glossary
 
 **Key terms referenced in this document:**
@@ -1261,6 +1247,8 @@ For issues, questions, or feature requests, please contact the author directly.
 
 - **Economic Indicator**: A statistic about economic activity. FRED provides thousands of indicators including GDP, unemployment, and inflation.
 
-- **JSON-RPC**: The protocol used for MCP tool calls. All Fed tool requests use JSON-RPC 2.0 format.
+*For complete definitions, see the [Glossary](../../../GLOSSARY.md).*
 
-*For complete definitions, see the [Glossary](../architecture/Glossary.md).*
+---
+
+*Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

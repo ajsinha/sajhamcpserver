@@ -136,5 +136,5 @@ docker compose start
 
 ---
 
-*SAJHA MCP Server v5.3.0 — Hetzner Deployment*
+*SAJHA MCP Server — Hetzner Deployment*
 *Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.*

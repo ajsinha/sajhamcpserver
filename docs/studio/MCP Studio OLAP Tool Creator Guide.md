@@ -1,619 +1,187 @@
-# MCP Studio OLAP Tool Creator Guide
-## SAJHA MCP Server v5.3.0
+# MCP Studio OLAP Dataset Creator Guide
 
-## Overview
+The OLAP page in MCP Studio defines **datasets** for the OLAP semantic layer. A dataset is a source table, optional joins, and the dimensions and measures that analysts may use. Unlike the other creators, it does not generate a tool. The OLAP tools that query these datasets already ship with SAJHA. They are documented in the [OLAP Analytics Tool Reference Guide](../tools/analytics/OLAP%20Analytics%20Tool%20Reference%20Guide.md).
 
-The OLAP (Online Analytical Processing) Tool Creator enables you to build powerful analytical tools for multi-dimensional data analysis, pivot tables, time series analysis, cohort analytics, and statistical computations. Create business intelligence tools that transform raw data into actionable insights.
+Where Studio lives, the common create → preview → deploy workflow, where generated files are stored, hot reload and permissions are covered once in the [MCP Studio User Guide](MCP%20Studio%20User%20Guide.md).
 
-## Table of Contents
+## Contents
 
-1. [Getting Started](#getting-started)
-2. [OLAP Concepts](#olap-concepts)
-3. [Creating OLAP Tools](#creating-olap-tools)
-4. [Pivot Table Analysis](#pivot-table-analysis)
-5. [Time Series Analysis](#time-series-analysis)
-6. [Cohort Analysis](#cohort-analysis)
-7. [Statistical Analysis](#statistical-analysis)
-8. [Window Functions](#window-functions)
-9. [Customer Analytics Example](#customer-analytics-example)
-10. [Best Practices](#best-practices)
-11. [Troubleshooting](#troubleshooting)
+1. [Opening the creator](#opening-the-creator)
+2. [Concepts](#concepts)
+3. [Form reference](#form-reference)
+4. [What the page sends](#what-the-page-sends)
+5. [How datasets are stored and loaded](#how-datasets-are-stored-and-loaded)
+6. [Adding a dataset by hand](#adding-a-dataset-by-hand)
+7. [Troubleshooting](#troubleshooting)
 
 ---
 
-## Getting Started
+## Opening the creator
 
-### Accessing the OLAP Tool Creator
-
-1. Navigate to `http://localhost:3002/admin/studio`
-2. Click on **OLAP Analytics Tool** card
-3. Or access OLAP tools at: `http://localhost:3002/admin/studio/olap`
-
-### Prerequisites
-
-- Admin role access
-- DuckDB or compatible analytics database
-- Data files (CSV, Parquet, JSON) or database tables
-- Understanding of dimensional modeling
+The page is served at `/studio/olap` and titled **OLAP Dataset Creator**. You can open it from the **OLAP Analytics** card on the Studio home page, from **MCP Studio → OLAP dataset** in the top menu, or from the **OLAP** chip in the Studio sub-navigation.
 
 ---
 
-## OLAP Concepts
+## Concepts
 
-### Dimensions vs Measures
-
-| Concept | Description | Examples |
-|---------|-------------|----------|
-| **Dimensions** | Categorical attributes for grouping | Region, Product, Date, Customer Segment |
-| **Measures** | Numeric values for aggregation | Revenue, Quantity, Profit, Count |
-
-### OLAP Operations
-
-| Operation | Description |
-|-----------|-------------|
-| **Slice** | Select a single dimension value |
-| **Dice** | Select multiple dimension values |
-| **Roll-up** | Aggregate to higher level (City → Region → Country) |
-| **Drill-down** | Disaggregate to lower level (Year → Quarter → Month) |
-| **Pivot** | Rotate dimensions between rows and columns |
+| Term | Meaning |
+|------|---------|
+| **Dataset** | A named, business-friendly view over a source table plus its joins |
+| **Dimension** | A categorical attribute to group or filter by, such as region, product or date |
+| **Measure** | A numeric aggregation, such as `SUM(amount)` or `COUNT(DISTINCT order_id)` |
+| **Hierarchy** | A drill-down path inside a dimension, such as Year → Quarter → Month → Day |
+| **Default time dimension** | The time dimension that time-series analysis uses when the caller does not name one |
 
 ---
 
-## Creating OLAP Tools
+## Form reference
 
-### Step 1: Define Dataset
+### Dataset information
 
-```json
-{
-  "dataset": {
-    "name": "sales_analysis",
-    "display_name": "Sales Analysis Dataset",
-    "description": "Multi-dimensional sales data for analytics",
-    "source": {
-      "type": "csv",
-      "path": "${data.dir}/sales_data.csv"
-    }
-  }
-}
-```
+| Field | Required | Notes |
+|-------|----------|-------|
+| Dataset Name | Yes | Pattern `[a-z_]+`. Lowercase letters and underscores only, no digits. |
+| Display Name | No | |
+| Description | No | |
+| Source Table | Yes | A table or view name, or a DuckDB table function such as `read_csv_auto('${data.duckdb.dir}/sales.csv')`. |
 
-### Step 2: Define Dimensions
+### Table Joins (optional)
 
-```json
-{
-  "dimensions": {
-    "region": {
-      "column": "region",
-      "type": "string",
-      "hierarchy": ["country", "region", "city"]
-    },
-    "product_category": {
-      "column": "category",
-      "type": "string"
-    },
-    "order_date": {
-      "column": "order_date",
-      "type": "date",
-      "time_grains": ["year", "quarter", "month", "week", "day"]
-    },
-    "customer_segment": {
-      "column": "segment",
-      "type": "string",
-      "values": ["Consumer", "Corporate", "Enterprise", "Government"]
-    }
-  }
-}
-```
+Click **Add Join** for each join. Each join row has:
 
-### Step 3: Define Measures
+| Field | Values |
+|-------|--------|
+| Table name | A table, view or DuckDB table function |
+| Join type | `LEFT` (default), `INNER`, `RIGHT` or `FULL` |
+| ON clause | For example `sales_data.customer_id = customer_data.id` |
+| Alias | Optional |
 
-```json
-{
-  "measures": {
-    "total_revenue": {
-      "expression": "SUM(amount)",
-      "format": "currency"
-    },
-    "order_count": {
-      "expression": "COUNT(*)",
-      "format": "integer"
-    },
-    "avg_order_value": {
-      "expression": "AVG(amount)",
-      "format": "currency"
-    },
-    "profit_margin": {
-      "expression": "SUM(profit) / NULLIF(SUM(revenue), 0) * 100",
-      "format": "percentage"
-    }
-  }
-}
-```
+A join row is dropped unless it has both a table and an ON clause.
 
-### Step 4: Deploy Tool
+### Dimensions
 
-Click **Deploy Tool** to create the OLAP analytics tool.
+Click **Add Dimension**. Each row has **Name**, **Column**, and **Type** (`Standard` or `Time/Date`). Dimensions of type `Time/Date` appear in the **Default Time Dimension** list.
+
+### Measures
+
+Click **Add Measure**. Each row has **Name**, **Expression** (for example `SUM(amount)`), **Format** (`Number`, `Currency` or `Percentage`) and **Description**.
+
+### Time Configuration
+
+**Default Time Dimension** offers `None` plus every dimension of type `Time/Date`.
+
+### Buttons
+
+- **Validate**: runs in the browser and checks that the dataset name, the source table, at least one dimension and at least one measure are present.
+- **Reset**: clears the form.
+- **Deploy Dataset**: validates, then posts the configuration to `/admin/studio/olap/deploy`.
+
+> **Deploy in 6.0.0:** `/admin/studio/olap/deploy` is not registered by the server, so deploying from this page fails. See [Known limitation: Studio action endpoints](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints). Use the page to build and validate a definition, then add it by hand as described in [Adding a dataset by hand](#adding-a-dataset-by-hand).
 
 ---
 
-## Pivot Table Analysis
+## What the page sends
 
-### Basic Pivot Configuration
-
-```json
-{
-  "name": "sales_pivot",
-  "tool_type": "olap_pivot",
-  "dataset": "sales_analysis",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "rows": {
-        "type": "array",
-        "items": {"type": "string"},
-        "description": "Dimensions for row headers"
-      },
-      "columns": {
-        "type": "array",
-        "items": {"type": "string"},
-        "description": "Dimensions for column headers"
-      },
-      "measures": {
-        "type": "array",
-        "items": {"type": "string"},
-        "description": "Measures to aggregate"
-      },
-      "filters": {
-        "type": "object",
-        "description": "Filter conditions"
-      }
-    }
-  }
-}
-```
-
-### Example Usage
-
-**Input:**
-```json
-{
-  "rows": ["region", "product_category"],
-  "columns": ["quarter"],
-  "measures": ["total_revenue", "order_count"],
-  "filters": {
-    "year": 2024,
-    "customer_segment": ["Enterprise", "Corporate"]
-  }
-}
-```
-
-**Output:**
-```
-┌──────────┬─────────────┬─────────────────┬─────────────────┬─────────────────┬─────────────────┐
-│ Region   │ Category    │ Q1 Revenue      │ Q1 Orders       │ Q2 Revenue      │ Q2 Orders       │
-├──────────┼─────────────┼─────────────────┼─────────────────┼─────────────────┼─────────────────┤
-│ North    │ Electronics │ $125,450.00     │ 234             │ $142,890.00     │ 267             │
-│ North    │ Furniture   │ $89,230.00      │ 156             │ $95,670.00      │ 178             │
-│ South    │ Electronics │ $98,760.00      │ 189             │ $112,340.00     │ 215             │
-│ South    │ Furniture   │ $67,890.00      │ 123             │ $73,450.00      │ 134             │
-└──────────┴─────────────┴─────────────────┴─────────────────┴─────────────────┴─────────────────┘
-```
-
-### Pivot Options
+The **Configuration Preview** panel shows the exact body that **Deploy Dataset** posts:
 
 ```json
 {
-  "pivot_options": {
-    "include_totals": true,
-    "include_subtotals": true,
-    "sort_by": "total_revenue",
-    "sort_direction": "DESC",
-    "limit": 100,
-    "null_handling": "show_as_zero"
-  }
+  "name": "sales_analysis",
+  "display_name": "Sales Analysis",
+  "description": "Sales with customer and product attributes",
+  "source_table": "sales_data",
+  "joins": [
+    { "table": "customer_data", "type": "LEFT",
+      "on": "sales_data.customer_id = customer_data.id", "alias": "customers" }
+  ],
+  "dimensions": ["order_date", "region", "customer_segment"],
+  "measures": ["revenue", "order_count"],
+  "default_time_dimension": "order_date"
 }
 ```
+
+Only the **names** of dimensions and measures go into the body. Values typed into a dimension's Column and Type fields, or a measure's Expression, Format and Description fields, are not included. Those definitions belong in `dimensions.json` and `measures.json` (see below).
 
 ---
 
-## Time Series Analysis
+## How datasets are stored and loaded
 
-### Time Series Configuration
+There is no OLAP generator in `sajha/studio/`. The semantic layer (`sajha/olap/semantic_layer.py`) reads three files from `config/olap/`:
 
-```json
-{
-  "name": "revenue_trend",
-  "tool_type": "olap_timeseries",
-  "dataset": "sales_analysis",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "time_dimension": {
-        "type": "string",
-        "description": "Date/time column"
-      },
-      "time_grain": {
-        "type": "string",
-        "enum": ["year", "quarter", "month", "week", "day", "hour"]
-      },
-      "measures": {
-        "type": "array",
-        "items": {"type": "string"}
-      },
-      "comparison": {
-        "type": "string",
-        "enum": ["yoy", "qoq", "mom", "wow", "dod"]
-      }
-    }
-  }
-}
-```
+| File | Top-level key | Contents |
+|------|---------------|----------|
+| `datasets.json` | `datasets` | A map of dataset name to `display_name`, `description`, `source_table`, `joins`, `dimensions`, `measures`, `default_time_dimension` and optionally `row_level_security` |
+| `dimensions.json` | `dimensions` | A map of dimension name to `name`, `column`, `type` (`standard` or `time`), `description`, and optional `hierarchies`, where each hierarchy has `levels` of `{name, expression, column}` |
+| `measures.json` | `measures` | A map of measure name to `name`, `expression`, `format`, `description` and optional `requires_window` |
 
-### Example: Year-over-Year Comparison
+Name resolution works like this:
 
-**Input:**
-```json
-{
-  "time_dimension": "order_date",
-  "time_grain": "month",
-  "measures": ["total_revenue"],
-  "comparison": "yoy",
-  "date_range": {
-    "start": "2024-01-01",
-    "end": "2024-12-31"
-  }
-}
-```
+- A dimension name found in `dimensions.json` resolves to its `column`, or to a hierarchy level's `expression` when the caller asks for a hierarchy level. An unknown name is used as a raw column reference.
+- A measure name found in `measures.json` resolves to its `expression`. An unknown name becomes `SUM(<name>)`.
 
-**Output:**
-```json
-{
-  "data": [
-    {
-      "period": "2024-01",
-      "total_revenue": 125000,
-      "prior_period_revenue": 98000,
-      "yoy_change": 27551,
-      "yoy_change_pct": 28.1
-    },
-    {
-      "period": "2024-02",
-      "total_revenue": 142000,
-      "prior_period_revenue": 112000,
-      "yoy_change": 30000,
-      "yoy_change_pct": 26.8
-    }
-  ]
-}
-```
+The OLAP tool classes in `sajha/tools/impl/duckdb_olap_advanced.py` build a `SemanticLayer` when the tool is created. The directory comes from the tool config's `config_path`, or `config/olap` by default. The Studio hot-reload watcher covers `config/tools/` and `sajha/tools/impl/`, but not `config/olap/`. After editing these files, use **Reload All** on **Admin → Tools** (`POST /api/admin/tools/reload`) or restart the server.
 
-### Moving Averages and Trends
-
-```json
-{
-  "time_series_options": {
-    "fill_gaps": true,
-    "moving_average": {
-      "enabled": true,
-      "window": 7,
-      "type": "simple"
-    },
-    "trend_line": {
-      "enabled": true,
-      "type": "linear"
-    },
-    "seasonality_detection": true
-  }
-}
-```
+`${...}` placeholders in a source table or join, such as `${data.duckdb.dir}`, use the same `config/application.yml` variables as tool configs. The shipped `datasets.json` uses them for CSV-backed datasets.
 
 ---
 
-## Cohort Analysis
+## Adding a dataset by hand
 
-### Cohort Configuration
+1. Build the dataset on the page, click **Validate**, and copy the **Configuration Preview** JSON.
+2. Add it to `config/olap/datasets.json` under `datasets`, keyed by its name. Drop the inner `name` field, because the key is the name.
+3. For every dimension name that is not already defined, add an entry to `config/olap/dimensions.json`:
 
-```json
-{
-  "name": "customer_retention",
-  "tool_type": "olap_cohort",
-  "dataset": "customer_orders",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "cohort_date_column": {
-        "type": "string",
-        "description": "Column for cohort assignment (e.g., signup_date)"
-      },
-      "activity_date_column": {
-        "type": "string",
-        "description": "Column for activity tracking (e.g., order_date)"
-      },
-      "cohort_grain": {
-        "type": "string",
-        "enum": ["month", "week", "quarter"]
-      },
-      "metric": {
-        "type": "string",
-        "enum": ["retention", "revenue", "orders"]
-      }
-    }
-  }
-}
-```
+   ```json
+   "region": { "name": "Region", "column": "region", "type": "standard",
+               "description": "Sales region" }
+   ```
 
-### Example: Customer Retention Cohort
+   A time dimension with a calendar hierarchy:
 
-**Input:**
-```json
-{
-  "cohort_date_column": "signup_date",
-  "activity_date_column": "order_date",
-  "cohort_grain": "month",
-  "metric": "retention",
-  "periods": 6
-}
-```
+   ```json
+   "order_date": {
+     "name": "Order Date", "column": "order_date", "type": "time",
+     "hierarchies": { "calendar": { "levels": [
+       { "name": "Year",    "expression": "EXTRACT(YEAR FROM order_date)" },
+       { "name": "Quarter", "expression": "CONCAT('Q', EXTRACT(QUARTER FROM order_date))" },
+       { "name": "Month",   "expression": "STRFTIME(order_date, '%Y-%m')" }
+     ] } }
+   }
+   ```
 
-**Output:**
-```
-Cohort Retention Analysis
-┌─────────────┬─────────┬─────────┬─────────┬─────────┬─────────┬─────────┐
-│ Cohort      │ Month 0 │ Month 1 │ Month 2 │ Month 3 │ Month 4 │ Month 5 │
-├─────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
-│ Jan 2024    │ 100%    │ 45%     │ 32%     │ 28%     │ 25%     │ 23%     │
-│ Feb 2024    │ 100%    │ 48%     │ 35%     │ 30%     │ 27%     │ -       │
-│ Mar 2024    │ 100%    │ 52%     │ 38%     │ 33%     │ -       │ -       │
-│ Apr 2024    │ 100%    │ 50%     │ 36%     │ -       │ -       │ -       │
-└─────────────┴─────────┴─────────┴─────────┴─────────┴─────────┴─────────┘
-```
+4. For every new measure name, add an entry to `config/olap/measures.json`:
 
----
+   ```json
+   "revenue": { "name": "Revenue", "expression": "SUM(amount)",
+                "format": "currency", "description": "Total sales revenue" }
+   ```
 
-## Statistical Analysis
+5. Use **Reload All** on **Admin → Tools**, then call an OLAP tool such as `olap_pivot_table` with the new dataset name.
 
-### Descriptive Statistics
-
-```json
-{
-  "name": "sales_statistics",
-  "tool_type": "olap_stats",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "measure": {"type": "string"},
-      "group_by": {"type": "array", "items": {"type": "string"}},
-      "statistics": {
-        "type": "array",
-        "items": {
-          "type": "string",
-          "enum": ["mean", "median", "std", "variance", "min", "max", "percentile_25", "percentile_75", "percentile_90", "percentile_95", "percentile_99"]
-        }
-      }
-    }
-  }
-}
-```
-
-### Distribution Analysis
-
-```json
-{
-  "statistics_options": {
-    "histogram": {
-      "enabled": true,
-      "bins": 20
-    },
-    "distribution_fit": {
-      "enabled": true,
-      "test_distributions": ["normal", "lognormal", "exponential"]
-    },
-    "outlier_detection": {
-      "enabled": true,
-      "method": "iqr",
-      "threshold": 1.5
-    }
-  }
-}
-```
-
----
-
-## Window Functions
-
-### Ranking Analysis
-
-```json
-{
-  "name": "sales_ranking",
-  "tool_type": "olap_window",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "partition_by": {
-        "type": "array",
-        "items": {"type": "string"},
-        "description": "Columns to partition by"
-      },
-      "order_by": {
-        "type": "string",
-        "description": "Column to order by"
-      },
-      "window_functions": {
-        "type": "array",
-        "items": {
-          "type": "string",
-          "enum": ["rank", "dense_rank", "row_number", "ntile", "lead", "lag", "first_value", "last_value", "running_total", "running_avg", "percent_rank"]
-        }
-      }
-    }
-  }
-}
-```
-
-### Example: Running Totals
-
-**Input:**
-```json
-{
-  "partition_by": ["region"],
-  "order_by": "order_date",
-  "measure": "revenue",
-  "window_functions": ["running_total", "running_avg", "rank"]
-}
-```
-
-**Output:**
-```json
-{
-  "data": [
-    {
-      "region": "North",
-      "order_date": "2024-01-01",
-      "revenue": 5000,
-      "running_total": 5000,
-      "running_avg": 5000,
-      "rank": 1
-    },
-    {
-      "region": "North",
-      "order_date": "2024-01-02",
-      "revenue": 7500,
-      "running_total": 12500,
-      "running_avg": 6250,
-      "rank": 2
-    }
-  ]
-}
-```
-
----
-
-## Customer Analytics Example
-
-### Complete Customer OLAP Tool
-
-```json
-{
-  "name": "customer_olap_pivot",
-  "description": "Multi-dimensional customer analytics with pivot table support",
-  "implementation": "sajha.tools.impl.duckdb_olap_advanced.CustomerOLAPTool",
-  "version": "2.9.8",
-  "data_directory": "${data.duckdb.dir}",
-  "dimensions": {
-    "customer_segment": {
-      "column": "customers.customer_segment",
-      "values": ["Consumer", "Enterprise", "Small Business", "Government"]
-    },
-    "customer_tier": {
-      "column": "customers.customer_tier",
-      "values": ["Bronze", "Silver", "Gold", "Platinum"]
-    },
-    "region": {
-      "column": "customers.region",
-      "values": ["North", "South", "East", "West", "Central"]
-    },
-    "product_category": {
-      "column": "orders.product_category"
-    },
-    "acquisition_channel": {
-      "column": "customers.acquisition_channel"
-    }
-  },
-  "measures": {
-    "total_revenue": "ROUND(SUM(orders.quantity * orders.unit_price), 2)",
-    "order_count": "COUNT(DISTINCT orders.order_id)",
-    "customer_count": "COUNT(DISTINCT customers.customer_id)",
-    "avg_order_value": "ROUND(AVG(orders.quantity * orders.unit_price), 2)",
-    "gross_profit": "ROUND(SUM((orders.unit_price - products.unit_cost) * orders.quantity), 2)"
-  }
-}
-```
-
-### Usage Examples
-
-**Revenue by Segment and Region:**
-```json
-{
-  "rows": ["customer_segment", "region"],
-  "measures": ["total_revenue", "order_count", "customer_count"]
-}
-```
-
-**Product Performance by Tier:**
-```json
-{
-  "rows": ["product_category"],
-  "columns": ["customer_tier"],
-  "measures": ["total_revenue", "gross_profit"],
-  "filters": {"region": ["North", "East"]}
-}
-```
-
-**Sales Rep Analysis:**
-```json
-{
-  "rows": ["sales_rep"],
-  "measures": ["total_revenue", "order_count", "avg_order_value"],
-  "order_by": "-total_revenue",
-  "limit": 10
-}
-```
-
----
-
-## Best Practices
-
-### 1. Dimension Design
-
-- Use meaningful, business-friendly names
-- Define hierarchies for drill-down support
-- Limit cardinality for better performance
-
-### 2. Measure Optimization
-
-- Pre-aggregate common calculations
-- Use appropriate data types
-- Handle NULL values explicitly
-
-### 3. Query Performance
-
-- Add indexes on dimension columns
-- Partition large datasets by date
-- Use materialized views for common queries
-
-### 4. Data Quality
-
-- Validate dimension values
-- Handle missing data consistently
-- Document data lineage
+Use the shipped entries in `config/olap/*.json`, such as `sales_analysis`, as working references.
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
-
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| Slow queries | Large dataset | Add indexes, use partitioning |
-| Missing data | NULL handling | Use COALESCE or filters |
-| Wrong totals | Duplicate joins | Check join conditions |
-| Memory errors | Large result set | Add LIMIT, use pagination |
-
-### Debug Mode
-
-```json
-{
-  "debug": {
-    "show_sql": true,
-    "explain_query": true,
-    "log_execution_time": true
-  }
-}
-```
+| Symptom | Likely cause | What to check |
+|---------|--------------|---------------|
+| **Deploy Dataset** reports a deployment error | The endpoint is not registered | See [Known limitation](MCP%20Studio%20User%20Guide.md#known-limitation-studio-action-endpoints) and add the dataset by hand. |
+| Dataset name rejected by the browser | Pattern `[a-z_]+` | No digits, capitals or hyphens. |
+| New dataset not visible to the OLAP tools | Semantic layer not reloaded | Use **Reload All** on **Admin → Tools**, or restart the server. |
+| A measure aggregates the wrong thing | No definition in `measures.json`, so it fell back to `SUM(<name>)` | Add the measure definition. |
+| Errors loading datasets in the log | Invalid JSON, or a dataset without `source_table` | Validate the file, since `source_table` is required. |
 
 ---
 
-*SAJHA MCP Server v5.3.0 - OLAP Tool Creator Guide*
-*Copyright © 2025-2030 Ashutosh Sinha*
+## Related documentation
+
+- [MCP Studio User Guide](MCP%20Studio%20User%20Guide.md)
+- [OLAP Analytics Tool Reference Guide](../tools/analytics/OLAP%20Analytics%20Tool%20Reference%20Guide.md)
+- [DuckDB Tool Reference Guide](../tools/analytics/DuckDB%20Tool%20Reference%20Guide.md)
+- [Storage Guide](../getting-started/Storage%20Guide.md)
+- [Glossary](../../GLOSSARY.md)
+
+---
+
+Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
