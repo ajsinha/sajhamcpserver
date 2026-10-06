@@ -10,7 +10,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="sajhaclient",
-    version="5.3.0",
+    version="5.4.0",
     author="Ashutosh Sinha",
     author_email="ajsinha@gmail.com",
     description="Python Client SDK for SAJHA MCP Server — REST, MCP, and A2A protocols",
@@ -29,6 +29,8 @@ setup(
     install_requires=[],  # Zero dependencies — uses only Python stdlib
     extras_require={
         "dev": ["pytest", "pytest-asyncio"],
+        # Standard MCP client (SajhaMCPClient) — official MCP Python SDK v2
+        "mcp": ["mcp>=2.3,<3"],
     },
     classifiers=[
         "Development Status :: 4 - Beta",

@@ -49,7 +49,13 @@ class SajhaConfig:
 
     @property
     def mcp_sse_url(self) -> str:
-        """MCP Streamable HTTP endpoint (GET for SSE, POST for JSON-RPC). Per 2025-11-25 spec."""
+        """Endpoint used by the legacy MCPSSEClient (GET opens an SSE stream, POST sends JSON-RPC).
+
+        Note: MCPSSEClient implements the legacy MCP 2024-11-05 "HTTP+SSE" transport
+        pattern, not Streamable HTTP. It is deprecated in favour of
+        ``sajhaclient.SajhaMCPClient`` (official MCP SDK, Streamable HTTP, automatic
+        protocol-version negotiation) — ``pip install sajhaclient[mcp]``.
+        """
         return f"{self.base_url}/mcp"
 
     @property

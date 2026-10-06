@@ -19,6 +19,11 @@ Full MCP (Model Context Protocol) client implementing JSON-RPC 2.0.
     # List and get prompts
     prompts = mcp.list_prompts()
     prompt = mcp.get_prompt("code_review", arguments={"language": "python"})
+
+These are the zero-dependency (stdlib-only) clients. For a standards-based client
+that uses the official MCP Python SDK (Streamable HTTP, automatic protocol-version
+negotiation across 2024-11-05 ... 2026-07-28), use ``sajhaclient.SajhaMCPClient``
+(``pip install sajhaclient[mcp]``).
 """
 
 import json
@@ -222,10 +227,16 @@ class MCPClient:
 
 class MCPSSEClient:
     """
-    MCP client using Streamable HTTP transport (SSE).
+    MCP client using the legacy HTTP+SSE transport (MCP 2024-11-05 pattern).
 
-    Per MCP 2025-11-25: connects to GET /mcp for SSE stream,
-    POSTs JSON-RPC requests to POST /mcp.
+    Opens a GET /mcp SSE stream, reads the message-endpoint event, then POSTs
+    JSON-RPC requests to that endpoint. This is NOT the Streamable HTTP
+    transport of MCP 2025-03-26 and later.
+
+    Deprecated: prefer ``sajhaclient.SajhaMCPClient`` (official MCP SDK over
+    Streamable HTTP, with automatic protocol-version negotiation;
+    ``pip install sajhaclient[mcp]``). This class is kept for zero-dependency
+    environments and its behaviour is unchanged.
 
     Usage:
         sse = MCPSSEClient(config)
