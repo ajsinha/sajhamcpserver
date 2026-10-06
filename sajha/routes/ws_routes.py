@@ -147,6 +147,7 @@ async def mcp_websocket(ws: WebSocket):
 
     _ws_sessions[session_id] = session
     logger.info(f"WebSocket connected: {session_id} (user={session.user_id})")
+    forwarder = asyncio.create_task(_forward_changes(session))
 
     try:
         while True:
@@ -183,12 +184,13 @@ async def mcp_websocket(ws: WebSocket):
 
             # Send response (skip for notifications — requests without 'id')
             if 'id' in data:
+                if method == 'initialize':
+                    # this transport pushes list_changed (change bus -> _forward_changes)
+                    from sajha.routes.mcp_routes import with_push_capabilities
+                    response = with_push_capabilities(response)
                 await session.send(response)
-
-            # Push list_changed if tool state was modified
-            if 'enable' in method or 'disable' in method or 'reload' in method:
-                await session.send_notification(
-                    'notifications/tools/list_changed')
+            # Tool enable/disable/reload -> notifications/tools/list_changed arrives
+            # through the change bus (_forward_changes), for every connected client.
 
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected: {session_id} (user={session.user_id})")
@@ -200,7 +202,26 @@ async def mcp_websocket(ws: WebSocket):
             logger.warning(f"Error handled: {e}", exc_info=True)
             pass
     finally:
+        forwarder.cancel()
         _ws_sessions.pop(session_id, None)
+
+
+async def _forward_changes(session: 'WSSession'):
+    """Deliver change-bus events (tool/prompt/resource list changes) to one WebSocket client."""
+    from sajha.core.change_bus import get_change_bus, TOOLS, PROMPTS, RESOURCES
+    sub = get_change_bus().subscribe({TOOLS, PROMPTS, RESOURCES})
+    try:
+        while True:
+            event = await sub.get()
+            if event is None:
+                return
+            message = event.notification()
+            try:
+                await session.send_notification(message['method'], message.get('params'))
+            except Exception:
+                return          # socket gone; the receive loop cleans up
+    finally:
+        sub.close()
 
 
 # ── Admin: Active sessions API ───────────────────────────────

@@ -63,8 +63,12 @@ class MCPHandler:
 
         # Server capabilities (MCP 2025-11-25).  Only server-side capabilities
         # belong here; elicitation and sampling are *client* capabilities.
-        # listChanged/subscribe are false because the server does not
-        # currently emit list_changed or resources/updated notifications.
+        # listChanged is false here because a streamable-HTTP 2025-11-25
+        # session has no channel for it (SAJHA answers GET /mcp with 405);
+        # transports with a push channel (2024-11-05 SSE, WebSocket) flip it
+        # to true in their initialize response (mcp_routes.with_push_capabilities)
+        # and receive list_changed from the change bus.  2026-07-28 clients get
+        # listChanged/subscribe via subscriptions/listen (mcp_modern).
         self.capabilities = {
             "tools": {"listChanged": False},
             "prompts": {"listChanged": False},
@@ -227,7 +231,7 @@ class MCPHandler:
         from sajha.core.mcp_conformance_fixtures import get_conformance_fixtures
         return get_conformance_fixtures()
 
-    def handle_prompts_list(self, params: Optional[Dict] = None) -> Dict:
+    def handle_prompts_list(self, params: Optional[Dict] = None, era: str = 'legacy') -> Dict:
         """Handle prompts/list — returns the result object."""
         prompts = []
         if self.prompts_registry:
@@ -237,7 +241,7 @@ class MCPHandler:
                 prompts.append(entry)
         fixtures = self._fixtures()
         if fixtures:
-            prompts.extend(fixtures.prompt_definitions())
+            prompts.extend(fixtures.prompt_definitions(era))
         return {"prompts": prompts}
 
     def handle_prompts_get(self, params: Dict) -> Dict:
@@ -379,6 +383,8 @@ class MCPHandler:
                     if tool['name'] in accessible_tools
                 ]
         all_tools = sorted(all_tools, key=lambda t: str(t.get('name', '')))
+        if era == 'modern':
+            all_tools = [self._with_task_support(t) for t in all_tools]
         if fixtures:
             # Fixtures first so clients that read only page 1 see them
             all_tools = fixture_tools + list(all_tools)
@@ -402,6 +408,20 @@ class MCPHandler:
             result['nextCursor'] = str(start + page_size)
         
         return result
+
+    def tool_task_support(self, tool_name: str) -> Optional[str]:
+        """A registry tool's io.modelcontextprotocol/tasks support ("optional" | "required"), from its
+        config ``execution.taskSupport``; None (sync only) when absent or "forbidden"."""
+        tool = self.tools_registry.get_tool(tool_name) if self.tools_registry and tool_name else None
+        execution = ((getattr(tool, 'config', None) or {}).get('execution') or {}) if tool else {}
+        value = execution.get('taskSupport') if isinstance(execution, dict) else None
+        return value if value in ('optional', 'required') else None
+
+    def _with_task_support(self, tool_entry: Dict) -> Dict:
+        support = self.tool_task_support(tool_entry.get('name'))
+        if not support:
+            return tool_entry
+        return dict(tool_entry, execution={'taskSupport': support})
 
     def _handle_tool_input_schema(self, params: Dict, session: Optional[Dict]) -> Dict:
         if not self.tools_registry:

@@ -68,6 +68,39 @@ def _lookup_session(request: Request):
     return session, None
 
 
+def with_push_capabilities(response):
+    """
+    An initialize response for a transport with a server -> client push
+    channel (2024-11-05 HTTP+SSE stream, WebSocket): those receive
+    list_changed notifications from the change bus, so they advertise
+    listChanged.  Streamable-HTTP 2025-11-25 sessions do not (SAJHA offers no
+    GET stream there), so the shared handler capabilities keep it false.
+    """
+    import copy
+    if not isinstance(response, dict) or not isinstance(response.get('result'), dict):
+        return response
+    response = copy.deepcopy(response)
+    caps = response['result'].setdefault('capabilities', {})
+    for key in ('tools', 'prompts', 'resources'):
+        if isinstance(caps.get(key), dict):
+            caps[key]['listChanged'] = True
+    return response
+
+
+async def forward_changes(queue: asyncio.Queue):
+    """Copy change-bus list_changed events into a legacy push queue until cancelled."""
+    from sajha.core.change_bus import get_change_bus, TOOLS, PROMPTS, RESOURCES
+    sub = get_change_bus().subscribe({TOOLS, PROMPTS, RESOURCES})
+    try:
+        while True:
+            event = await sub.get()
+            if event is None:
+                return
+            await queue.put(event.notification())
+    finally:
+        sub.close()
+
+
 # ── Streamable HTTP: POST /mcp ───────────────────────────────────
 
 @router.post('/mcp')
@@ -113,8 +146,13 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
         else:
             auth = AuthManager.authenticate_request(request, db)
             session_data = auth.to_legacy_session() if auth.authenticated else None
-            status, payload = await _modern_server(mcp_handler).handle(
-                body, request.headers, list(request.headers.items()), session_data)
+            outcome = await _modern_server(mcp_handler).handle(
+                body, request.headers, list(request.headers.items()), session_data,
+                receive=request.receive)
+            if isinstance(outcome, mcp_modern.ModernStream):
+                # 2026-07-28 streams carry no event ids: there is no resumability
+                return EventSourceResponse(outcome.events(), ping=15)
+            status, payload = outcome
         if payload is None:
             return Response(status_code=status)
         return JSONResponse(payload, status_code=status)
@@ -169,6 +207,8 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
     # Legacy 2024-11-05 HTTP+SSE client: the response travels over its SSE stream
     legacy_sid = request.query_params.get('session')
     if legacy_sid and legacy_sid in _sse_sessions:
+        if method == 'initialize':
+            response = with_push_capabilities(response)
         await _sse_sessions[legacy_sid].put(response)
         return Response(status_code=202)
 
@@ -322,6 +362,7 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
     last_event_id = request.headers.get('Last-Event-ID')
 
     async def event_generator():
+        forwarder = asyncio.create_task(forward_changes(_sse_sessions[session_id]))
         try:
             if last_event_id:
                 for missed in tracker.get_events_after(last_event_id):
@@ -353,6 +394,7 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
                 except asyncio.TimeoutError:
                     yield {'event': 'ping', 'data': ''}
         finally:
+            forwarder.cancel()
             _sse_sessions.pop(session_id, None)
 
     return EventSourceResponse(event_generator())
@@ -384,17 +426,10 @@ async def mcp_message(request: Request, db: Session = Depends(get_db)):
     if not isinstance(body, dict):
         return _rpc_error(-32600, 'Invalid Request', 400)
     response = await run_in_threadpool(mcp_handler.handle_request, body, session_data)
-
-    # If a notification should go to the SSE stream
-    method = body.get('method', '')
-    if session_id and session_id in _sse_sessions:
-        # Push list_changed notification if tools were modified
-        if 'enable' in method or 'disable' in method or 'reload' in method:
-            await _sse_sessions[session_id].put({
-                'jsonrpc': '2.0',
-                'method': 'notifications/tools/list_changed',
-            })
-
+    # Tool enable/disable/reload reach the SSE stream as notifications/tools/list_changed
+    # through the change bus (registry -> forward_changes), not from here.
+    if body.get('method') == 'initialize' and session_id and session_id in _sse_sessions:
+        response = with_push_capabilities(response)
     return JSONResponse(response)
 
 

@@ -1,14 +1,14 @@
-# SAJHA MCP Server — MCP 2026-07-28 Compliance Report (Wave 1)
+# SAJHA MCP Server — MCP 2026-07-28 Compliance Report (Waves 1–3)
 
 **Protocol versions supported:** 2026-07-28 (stateless, "modern") **plus** 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05 (handshake-era, "legacy"). SAJHA is a *dual-era* server.
 **Transport:** Streamable HTTP on `/mcp`. Legacy HTTP+SSE (`GET /mcp/sse`) and the WebSocket extension (`/mcp/ws`) are legacy-era only.
-**Verified with:** `@modelcontextprotocol/conformance` 0.2.0-alpha.12 (the first release with 2026-07-28 scenarios; 0.1.16 does not know this version), 0.1.16 for 2025-11-25, and the official Python SDK client (`mcp` 2.3.0).
+**Verified with:** `@modelcontextprotocol/conformance` 0.2.0-alpha.12 (the first release with 2026-07-28 scenarios; 0.1.16 does not know this version) including the `io.modelcontextprotocol/tasks` extension scenarios, 0.1.16 for 2025-11-25, and the official Python SDK client (`mcp` 2.3.0).
 
 Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
 
 ---
 
-## 1. What Wave 1 implements
+## 1. Wave 1: the stateless envelope
 
 The modern path lives in `sajha/core/mcp_modern.py`. It reuses `MCPHandler`'s tools, prompts, resources and completion logic, and owns only the 2026-07-28 envelope.
 
@@ -44,20 +44,22 @@ The modern path lives in `sajha/core/mcp_modern.py`. It reuses `MCPHandler`'s to
 
 | Served on the modern path | Result extras |
 |---|---|
-| `server/discover` | `supportedVersions` (all five versions, newest first), `capabilities` (`tools`, `prompts`, `resources`, `completions`, `extensions: {}` and `experimental.sajha` without the legacy WebSocket entry), `instructions` |
+| `server/discover` | `supportedVersions` (all five versions, newest first), `capabilities` (see §2.4), `instructions` |
 | `tools/list`, `prompts/list`, `resources/list`, `resources/templates/list`, `resources/read` | cacheable |
-| `tools/call`, `prompts/get`, `completion/complete` | — |
+| `tools/call`, `prompts/get`, `completion/complete` | `tools/call`, `prompts/get` and `resources/read` may answer `input_required` (§3.1) |
+| `subscriptions/listen` | SSE stream (§2.2) |
+| `tasks/get`, `tasks/update`, `tasks/cancel` | tasks extension (§3.3) |
 
 These rules apply to every modern result:
 
-- **`resultType`.** Every result carries `resultType: "complete"`.
+- **`resultType`.** Every result carries `resultType`: `"complete"`, `"input_required"` (MRTR) or `"task"` (CreateTaskResult).
 - **Server identity.** Every result carries `_meta["io.modelcontextprotocol/serverInfo"]`.
 - **Cacheable results.** `server/discover` and the five cacheable methods above also carry `ttlMs` and `cacheScope`.
 
 **Not on the modern path (`404` / `-32601`):**
 
 - **Removed in 2026-07-28.** `initialize`, `ping`, `logging/setLevel`, `resources/subscribe`, `resources/unsubscribe` and the initialize-era notifications sent as requests.
-- **Core `tasks/*`.** These return with the tasks extension in Wave 3.
+- **`tasks/list` and `tasks/result`.** Not part of the tasks extension (the result is inlined on `tasks/get`). The legacy 2025-11-25 core `tasks/*` are untouched on the legacy path.
 - **SAJHA legacy aliases.** For example `api/tools/list` and `tool/schema`.
 - **Unknown methods.**
 
@@ -83,19 +85,21 @@ With `scope: auto`, `cacheScope` is `"private"` when a result depends on the cal
 | parse error, invalid request, batch | -32700 / -32600 | 400 |
 | missing `_meta` fields, bad params, unknown tool/prompt, **resource not found** (was -32002) | -32602 (`data.uri` for resources) | 400 |
 | header mismatch / missing header | -32020 | 400 |
-| missing client capability (`data.requiredCapabilities` is a ClientCapabilities object) | -32021 | 400 |
+| missing client capability (`data.requiredCapabilities` is a ClientCapabilities object), incl. input the client cannot provide and the tasks extension | -32021 | 400 |
+| `requestState` tampered, expired or replayed against another request; invalid `inputResponses`; unknown `taskId` | -32602 | 400 |
+| client closed the connection of a JSON `tools/call` (nobody reads it) | -32603 | 499 |
 | unsupported protocol version | -32022 | 400 |
 | unknown / removed method | -32601 | 404 |
-| access denied to a tool | -32003 (SAJHA, in the legacy sub-range -32000..-32019; -32002 is not emitted) | 200 |
+| access denied to a tool | -32010 (SAJHA, in the implementation-defined range -32000..-32019; -32002 is not emitted) | 200 |
 | internal error | -32603 | 200 |
 
 Any handler error in -32020..-32099 that the spec does not define is mapped to -32603. Tool execution failures remain `isError: true` results.
 
 ### 1.7 Logging
 
-The server stores the per-request `logLevel` and logs it at debug level. Wave 1 never opens a response stream, so it never sends `notifications/message`. That satisfies the MUST NOT without a `logLevel`, and the `logging` capability is not advertised on the modern path.
+See §2.1: `notifications/message` is sent only on a streamed `tools/call` and only at or above the request's `_meta["io.modelcontextprotocol/logLevel"]`; without a `logLevel` nothing is ever sent. The `logging` capability is advertised on the modern path.
 
-### 1.8 Conformance fixtures added for 2026-07-28
+### 1.8 Conformance fixtures (Wave 1)
 
 Fixtures stay off by default (`SAJHA_MCP_CONFORMANCE_FIXTURES=true` turns them on). Each fixture tool is tagged with an era:
 
@@ -111,34 +115,139 @@ Fixtures stay off by default (`SAJHA_MCP_CONFORMANCE_FIXTURES=true` turns them o
 
 ---
 
-## 2. Conformance results
+## 2. Wave 2: streaming, cancellation, subscriptions
+
+### 2.1 Streamed `tools/call` responses
+
+A modern `tools/call` is answered as `text/event-stream` when the client accepts SSE **and** asked for something to stream: `_meta.progressToken` and/or `_meta["io.modelcontextprotocol/logLevel"]`. Everything else stays plain JSON (a JSON-only client always gets JSON). The stream carries:
+
+- `notifications/progress` with the request's `progressToken`;
+- `notifications/message`, only at or above the requested level (RFC 5424 order);
+- the final JSON-RPC response (result or error), then the stream ends.
+
+It never carries a JSON-RPC *request*: a stateless server asks the client for input through MRTR (§3.1). There are no SSE event ids, no priming event and no `Last-Event-ID` handling: the modern path has **no resumability**; a dropped stream is a cancelled request.
+
+Who can report: the async conformance fixtures, through their `ctx`; and **every regular SAJHA tool** from its (thread-pool) `execute`, through `sajha.core.mcp_tool_context`:
+
+```python
+from sajha.core.mcp_tool_context import report_progress, report_log, is_cancelled
+report_progress(10, 100, "fetched page 1")     # no-op unless the caller sent a progressToken
+report_log("info", {"rows": 120})               # no-op unless the caller's logLevel <= info
+if is_cancelled(): return partial_result        # the client went away
+```
+
+### 2.2 Cancellation
+
+- **Streamed call:** when the client closes the response stream, the producer task is cancelled, the tool's context is flagged (`is_cancelled()`), and an in-flight thread-pool call is *abandoned* (`anyio.to_thread.run_sync(..., abandon_on_cancel=True)`): the server stops waiting and frees the request; Python cannot kill the worker thread, so a blocking tool runs to its end unless it polls `is_cancelled()`.
+- **JSON call:** a watcher on the ASGI `receive` channel sees `http.disconnect` and cancels the call the same way (polling `Request.is_disconnected()` does not work behind SAJHA's `BaseHTTPMiddleware` stack).
+- `notifications/cancelled` stays a legacy/WebSocket mechanism; on the modern path it is a dropped notification.
+
+### 2.3 `subscriptions/listen` and the change bus
+
+`subscriptions/listen` is a long-lived POST answered with SSE (a client that does not accept `text/event-stream` gets 406 / `-32600`). `params.notifications` is the opt-in filter: `toolsListChanged`, `promptsListChanged`, `resourcesListChanged`, `resourceSubscriptions: [uri, ...]`.
+
+1. The first message is `notifications/subscriptions/acknowledged` with the honored subset of the filter.
+2. Only opted-in notification types follow: `notifications/tools/list_changed`, `notifications/prompts/list_changed`, `notifications/resources/list_changed`, `notifications/resources/updated {uri}`.
+3. Every message carries `params._meta["io.modelcontextprotocol/subscriptionId"]` = the listen request's id.
+4. On server shutdown the stream ends with a `SubscriptionsListenResult` (`resultType: "complete"`, `_meta` with `subscriptionId` and `serverInfo`); if the client disconnects the subscription is dropped.
+
+The events come from `sajha/core/change_bus.py`, a thread-safe, coalescing fan-out (while an event is queued for a subscriber, identical events are dropped, so a reload of 200 tools is one notification):
+
+| Producer | Events |
+|---|---|
+| `ToolsRegistry` register / unregister / enable / disable / `reload_all_tools` (hot-reload, admin enable/disable, composite-tool save) | tools list_changed, resources list_changed, `resources/updated` for `sajha://tools/catalog` |
+| `PromptsRegistry` create / update / delete, and reloads that actually change the prompt set | prompts list_changed, resources list_changed, `resources/updated` for `sajha://prompts/catalog` |
+
+Consumers: `subscriptions/listen` streams; the legacy 2024-11-05 HTTP+SSE stream (`GET /mcp/sse`); the WebSocket transport (`/mcp/ws`). The old ad-hoc "push list_changed after a method name containing enable/disable/reload" code in `/mcp/message` and `/mcp/ws` is gone; the bus covers every change, whoever made it. `mcp.subscriptions.max_streams` (default 1000) caps concurrent listen streams.
+
+### 2.4 Capabilities (advertised truthfully)
+
+| | modern (`server/discover`) | legacy streamable HTTP `initialize` | legacy `/mcp/sse` and `/mcp/ws` `initialize` |
+|---|---|---|---|
+| `tools.listChanged`, `prompts.listChanged`, `resources.listChanged` | `true` | `false` (no push channel: GET /mcp is 405) | `true` |
+| `resources.subscribe` | `true` (catalog URIs are really updated) | `false` | `false` |
+| `logging` | `{}` | `{}` | `{}` |
+| `extensions["io.modelcontextprotocol/tasks"]` | `{}` (when `mcp.tasks.enabled`) | — | — |
+
+`resources.listChanged` fires on tool/prompt changes (the catalog entries change); new files dropped into `data/duckdb` or `data/sqlselect` are not watched.
+
+## 3. Wave 3: MRTR, elicitation, tasks
+
+### 3.1 Multi Round-Trip Requests (SEP-2322)
+
+`tools/call`, `prompts/get` and `resources/read` may answer
+
+```json
+{"resultType": "input_required",
+ "inputRequests": {"user_name": {"method": "elicitation/create", "params": {...}}},
+ "requestState": "<base64url(payload)>.<base64url(HMAC-SHA256)>"}
+```
+
+The client retries the same request with `inputResponses` (same keys) and the echoed `requestState`. A handler signals the need for input by raising `sajha.core.mcp_mrtr.InputRequired(requests, state=...)` (fixtures: `ctx.require_input(...)`) and is simply run again on the retry with `ctx.input_responses`.
+
+`requestState` (`sajha/core/mcp_mrtr.py`) is signed with `mcp.mrtr.state_secret` (env `SAJHA_MCP_MRTR_STATE_SECRET`; if empty, derived from `auth.session.secret_key`, which is random per process when unset). The payload binds it to the method, tool/prompt/URI, a digest of the arguments and the calling user, expires after `mcp.mrtr.state_ttl_seconds` (900), carries optional handler state, and **accumulates the answers of earlier rounds**, so multi-round flows need no server memory. It is signed, not encrypted: it only holds what the client sent. Rules:
+
+- a `requestState` that fails verification (tampered, expired, other tool/arguments/user) → `-32602`, HTTP 400;
+- `inputResponses: null`, or a non-object response value → `-32602`; unknown keys are ignored; missing keys are re-requested with a new `InputRequiredResult`;
+- input requests are checked against the declared client capabilities (`elicitation`, `sampling`, `roots`): a handler that needs one the client did not declare → `-32021`;
+- list methods never return `input_required`; nothing is ever sent as a JSON-RPC request on a response stream.
+
+### 3.2 Confirmation for destructive tools (elicitation, form mode)
+
+`mcp.confirm_destructive_tools: true` (default **false**) makes a modern `tools/call` of a registry tool whose config has `"annotations": {"destructiveHint": true}` ask first — only when the client declares form-mode elicitation (`elicitation: {}` or `{form: {}}`); otherwise the call runs exactly as before. The `InputRequiredResult` carries one `elicitation/create` (`mode: "form"`, a boolean `confirm`) under the key `sajha_confirm_destructive`. `accept` with `confirm: true` runs the tool; decline, cancel or `false` returns `isError: true` ("not run: the user did not confirm") without running it. It composes with tasks (the task parks in `input_required`).
+
+### 3.3 Tasks extension `io.modelcontextprotocol/tasks` (SEP-2663)
+
+Advertised under `capabilities.extensions` (never a v1 `capabilities.tasks`). A tool opts in with `"execution": {"taskSupport": "optional" | "required"}` in its config (shown in modern `tools/list`; legacy `tools/list` is unchanged). The client opts in per request with `_meta["io.modelcontextprotocol/clientCapabilities"].extensions["io.modelcontextprotocol/tasks"]`.
+
+| Situation | Answer |
+|---|---|
+| task-supporting tool, client declared the extension | flat `CreateTaskResult`: `resultType: "task"`, `taskId`, `status: "working"`, `createdAt`, `lastUpdatedAt`, `ttlMs`, `pollIntervalMs`; no `requestState`, no nested `task` |
+| `optional` tool, extension not declared | synchronous `CallToolResult` |
+| `required` tool, extension not declared | `-32021`, `data.requiredCapabilities.extensions["io.modelcontextprotocol/tasks"]` |
+| legacy `task: {ttl, pollInterval}` param | tolerated, ignored (never promotes a sync tool) |
+| `tasks/get` | DetailedTask + `resultType: "complete"`: `result` inlined when `completed` (a tool error is `completed` + `result.isError`), `error` when `failed` (protocol-level), `inputRequests` when `input_required` |
+| `tasks/update {taskId, inputResponses}` | `{resultType: "complete"}` ack; answered keys leave `inputRequests`; when none is left the tool resumes with every answer so far |
+| `tasks/cancel` | `{resultType: "complete"}` ack, idempotent on terminal tasks; the task settles to `cancelled` |
+| `tasks/*` without the extension declared | `-32021`; unknown / other user's `taskId` → `-32602` |
+| `tasks/list`, `tasks/result` | `-32601` / 404 |
+
+`tasks/get|update|cancel` require `Mcp-Name: <taskId>` like other name-bearing methods. MRTR composes with tasks: a tool can gather input synchronously (`input_required`) and create the task on the final round (fixture `test_tool_with_task`).
+
+**Store.** `sajha/core/mcp_tasks.py` keeps tasks in memory, in the server's event loop, scoped to the calling user, for `mcp.tasks.ttl_ms` (1 h) after their last update, at most `mcp.tasks.max_tasks` (1000; oldest terminal tasks are evicted first). It is deliberately **not** the `/admin/async-tasks` executor (`sajha/core/async_executor.py`): that is a fire-and-forget worker pool that delivers results to webhooks/Kafka/files, cannot park a job for client input, and cannot cancel a running job — the three things SEP-2663 needs. Being per process, tasks need a single worker or sticky routing. `notifications/tasks` on listen streams (optional in SEP-2663) is not sent.
+
+### 3.4 Fixtures added for Waves 2–3 (modern only, opt-in)
+
+- streaming / subscriptions: `test_streaming_elicitation` (MRTR elicitation, needs `elicitation`), `test_trigger_tool_change`, `test_trigger_prompt_change` (publish on the change bus);
+- MRTR: `test_input_required_result_elicitation | _sampling | _list_roots | _request_state | _multiple_inputs | _multi_round | _tampered_state | _capabilities`, and the prompt `test_input_required_result_prompt`;
+- tasks: `greet` (sync), `slow_compute` (optional), `failing_job` (required, tool error), `protocol_error_job` (optional, protocol error), `confirm_delete` and `multi_input` (optional, park for input), `test_tool_with_task` (required, MRTR then task).
+
+---
+
+## 4. Conformance results
 
 ```bash
 SAJHA_MCP_CONFORMANCE_FIXTURES=true python run_server.py --host 127.0.0.1 --port 3092
 npx -y @modelcontextprotocol/conformance@0.1.16        server --url http://127.0.0.1:3092/mcp --spec-version 2025-11-25 --suite all
 npx -y @modelcontextprotocol/conformance@0.2.0-alpha.12 server --url http://127.0.0.1:3092/mcp --spec-version 2026-07-28 --suite all
+# extension scenarios are not on the spec timeline; run them by name with --force:
+for s in tasks-lifecycle tasks-capability-negotiation tasks-wire-fields tasks-request-state-removal \
+         tasks-mrtr-input tasks-request-headers tasks-dispatch-and-envelope tasks-status-notifications \
+         tasks-required-task-error tasks-mrtr-composition; do
+  npx -y @modelcontextprotocol/conformance@0.2.0-alpha.12 server --url http://127.0.0.1:3092/mcp \
+      --spec-version 2026-07-28 --scenario $s --force
+done
 ```
 
-**2025-11-25 (legacy path):** 32/32 scenarios pass, with 43 checks passed and 0 failed. This is unchanged from 5.4.0.
+| Suite | Scenarios | Checks |
+|---|---|---|
+| 2025-11-25 (legacy path, 0.1.16) | 32/32 | **43 passed, 0 failed** (unchanged) |
+| 2026-07-28 `--suite all` (0.2.0-alpha.12) | 40/40 | **152 passed, 0 failed** (Wave 1: 125/137; before Wave 1: 11/119) |
+| tasks extension scenarios (`--force`) | 10/10 | **44 passed, 0 failed** |
 
-**2026-07-28 (modern path):** 28 of 40 scenarios pass, with 125 checks passed and 12 failed. The baseline before Wave 1 was 1 scenario passing, with 11 checks passed and 108 failed. Every remaining failure belongs to a later wave.
+`server-stateless` now runs all 30 checks, including the five `subscriptions/listen` checks (ack first, `subscriptionId` tagging, filter honored, tools and prompts list_changed) that were skipped while nothing advertised `listChanged`. `tasks-status-notifications` is a placeholder in this harness release (0 checks: "pending subscriptions/listen rewrite").
 
-| Scenario | Result | Wave |
-|---|:-:|:-:|
-| completion-complete, tools-list, tools-call-simple-text / image / audio / embedded-resource / mixed-content / error | ✅ | 1 |
-| json-schema-2020-12 (incl. SEP-2106 keywords) | ✅ | 1 |
-| resources-list, resources-read-text, resources-read-binary, resources-templates-read, sep-2164-resource-not-found | ✅ | 1 |
-| prompts-list, prompts-get-simple / with-args / embedded-resource / with-image | ✅ | 1 |
-| caching, http-header-validation, http-custom-header-server-validation, dns-rebinding-protection | ✅ | 1 |
-| server-sse-multiple-streams | ✅ | 1 |
-| input-required-result-missing-input-response, -unsupported-methods, -ignore-extra-params, -validate-input | ✅ | (3) |
-| server-stateless | 24/25 checks | 1 ✅ / 3 |
-| ↳ `sep-2575-http-server-no-independent-requests-on-stream` (needs the MRTR fixture `test_streaming_elicitation`) | ❌ | 3 |
-| ↳ subscriptions/listen checks | skipped: no listChanged/subscribe advertised | 2 |
-| tools-call-with-progress: no `notifications/progress` without a response stream | ❌ | 2 |
-| input-required-result-basic-elicitation / basic-sampling / basic-list-roots / request-state / multiple-input-requests / multi-round / non-tool-request / result-type / tampered-state / capability-check | ❌ | 3 |
-
-## 3. Official SDK client (`mcp` 2.3.0)
+## 5. Official SDK client (`mcp` 2.3.0)
 
 `mcp.Client("http://127.0.0.1:3092/mcp", mode=...)` was run in three modes:
 
@@ -146,34 +255,33 @@ npx -y @modelcontextprotocol/conformance@0.2.0-alpha.12 server --url http://127.
 - **`mode="auto"`:** runs `server/discover`, adopts `2026-07-28` and reports `serverInfo`.
 - **`mode="legacy"`:** uses the initialize handshake and negotiates `2025-11-25`.
 
-Each mode lists tools (`ttl_ms=60000`, `cache_scope="public"` on modern), calls `calc_percentage_change` (80 → 100 gives 25.0), lists 10 prompts, gets `bug_diagnosis` with its required arguments, lists resources and reads `sajha://tools/catalog`. `SajhaMCPClient` (default `mode="auto"`) now negotiates `2026-07-28`, and `clientsdk/tests` covers this.
+Each mode lists tools (`ttl_ms=60000`, `cache_scope="public"` on modern), calls `calc_percentage_change` (80 → 100 gives 25.0), lists 10 prompts, gets `bug_diagnosis` with its required arguments, lists resources and reads `sajha://tools/catalog`. `SajhaMCPClient` (default `mode="auto"`) negotiates `2026-07-28`, and `clientsdk/tests` covers this.
 
-## 4. Tests
+Waves 2–3 with the same SDK (auto mode, elicitation / sampling / roots callbacks):
 
-`tests/test_mcp_2026_07_28.py` covers:
+- `call_tool(..., progress_callback=...)` receives progress 0 → 50 → 100 over the streamed response;
+- `client.listen(tools_list_changed=True, prompts_list_changed=True, resource_subscriptions=["sajha://tools/catalog"])` is acknowledged with that filter and yields `ToolsListChanged` and `ResourceUpdated` after `test_trigger_tool_change`;
+- `call_tool` drives MRTR automatically through the callbacks (single, multi-round, elicitation + sampling + roots at once, requestState round trip), as does `get_prompt` for the MRTR prompt;
+- driving it by hand (`session.call_tool(..., allow_input_required=True)`, then `call_tool(..., input_responses=..., request_state=...)`) works, and a tampered `request_state` is rejected with `MCPError("requestState failed integrity verification")`.
 
-- era routing
-- `server/discover`
-- `_meta` validation
-- `-32020` for every header rule, including `Mcp-Param-*` and base64
-- `-32022`
-- `resultType` and `serverInfo` stamping
-- caching fields
-- resource-not-found `-32602`
-- `-32021`
-- removed and unknown methods (404 / `-32601`)
-- GET/DELETE 405
-- error-code mapping
+## 6. Tests
+
+`tests/test_mcp_2026_07_28.py` covers, besides the Wave 1 items (era routing, `server/discover`, `_meta` validation, every `-32020` header rule, `-32022`, `resultType`/`serverInfo`, caching fields, resource-not-found `-32602`, `-32021`, removed/unknown methods, GET/DELETE 405, error-code mapping):
+
+- streaming: progress and log notifications over SSE, level filtering, JSON when nothing to stream, `report_progress` / `report_log` from a registry tool;
+- cancellation: closing the stream cancels the producer and runs the cancel hooks; a disconnect cancels a JSON call; `is_cancelled()`;
+- change bus: filtering, coalescing, cross-thread publish, shutdown, registry hooks;
+- `subscriptions/listen`: ack first, `subscriptionId` tagging, filter honored, resource subscriptions, prompt-registry changes, graceful end on shutdown, validation; WebSocket push and `listChanged` per transport;
+- MRTR: round trip, tampered / foreign / expired `requestState` rejected, state bound to tool and arguments, multi-round accumulation, invalid `inputResponses`, capability checks, `prompts/get`, no requests on the stream;
+- destructive-tool confirmation: off by default, accept / decline, no elicitation capability, non-destructive tools;
+- tasks: create / get / complete, sync fallback, `required` → `-32021`, gating, unknown task, `Mcp-Name`, cancel (idempotent), tool error vs protocol error, partial `tasks/update`, MRTR → task, registry tool `execution.taskSupport`, per-user scoping.
 
 `tests/test_mcp_2025_11_25.py` still passes unchanged.
 
-## 5. Pending
+## 7. Known limits
 
-**Wave 2: streaming and subscriptions.**
-- Per-request SSE response streams on the modern path: `notifications/progress`, and `notifications/message` gated by `logLevel`.
-- `subscriptions/listen` with `notifications/subscriptions/acknowledged`, `subscriptionId` tagging and filtering.
-- `listChanged` support.
-
-**Wave 3: MRTR and tasks.**
-- `InputRequiredResult` (`resultType: "input_required"`) with `inputRequests` / `inputResponses` / `requestState` for sampling, elicitation and roots.
-- The `io.modelcontextprotocol/tasks` extension in `capabilities.extensions`.
+- **No resumability** on the modern path (by design of 2026-07-28); legacy streams keep SEP-1699 resumption.
+- **Thread-pool tools are abandoned, not killed** on cancel; they stop early only if they poll `is_cancelled()`.
+- **Tasks and listen streams are per process**: run one worker or sticky routing (the HMAC `requestState` is process-independent once `mcp.mrtr.state_secret` is set).
+- **Legacy streamable-HTTP sessions get no `list_changed`** (SAJHA has no GET stream; capability says `false`); 2024-11-05 SSE and WebSocket sessions do.
+- **`notifications/tasks`** (optional) is not emitted.

@@ -396,10 +396,13 @@ class PromptsRegistry:
                 })
         
         # Atomically replace the prompts and errors
+        changed = _fingerprint(getattr(self, 'prompts', None) or {}) != _fingerprint(new_prompts)
         self.prompts = new_prompts
         self.prompt_errors = new_errors
         
         logging.info(f"Loaded {len(self.prompts)} prompts, {len(self.prompt_errors)} errors")
+        if changed:
+            _publish_prompts_changed()
     
     def get_prompt(self, name: str) -> Optional[Prompt]:
         """
@@ -529,6 +532,7 @@ class PromptsRegistry:
             get_storage().write_json(f"{self._prompts_prefix}/{name}.json", config)
             
             logging.info(f"Created prompt: {name}")
+            _publish_prompts_changed()
             return True, f"Prompt '{name}' created successfully"
             
         except Exception as e:
@@ -569,6 +573,7 @@ class PromptsRegistry:
             get_storage().write_json(f"{self._prompts_prefix}/{name}.json", config)
             
             logging.info(f"Updated prompt: {name}")
+            _publish_prompts_changed()
             return True, f"Prompt '{name}' updated successfully"
             
         except Exception as e:
@@ -598,6 +603,7 @@ class PromptsRegistry:
             get_storage().delete(f"{self._prompts_prefix}/{name}.json")
             
             logging.info(f"Deleted prompt: {name}")
+            _publish_prompts_changed()
             return True, f"Prompt '{name}' deleted successfully"
             
         except Exception as e:
@@ -689,3 +695,23 @@ def get_prompts_registry(prompts_config_dir: str = None, force_reinit: bool = Fa
         logging.info(f"Forcing PromptsRegistry reinit with: {prompts_config_dir}")
     
     return PromptsRegistry(prompts_config_dir)
+
+
+def _fingerprint(prompts: Dict[str, Any]) -> Dict[str, Any]:
+    """What an MCP client sees of a prompt set (prompts/list entries + templates)."""
+    out = {}
+    for name, p in prompts.items():
+        try:
+            out[name] = (p.to_mcp_format(), getattr(p, 'template', None))
+        except Exception:
+            out[name] = repr(p)
+    return out
+
+
+def _publish_prompts_changed():
+    """Tell MCP clients (listen streams, legacy SSE, WebSocket) the prompt list changed."""
+    try:
+        from sajha.core.change_bus import get_change_bus
+        get_change_bus().prompts_changed()
+    except Exception as e:  # never let notification plumbing break the registry
+        logging.debug(f"prompts change notification failed: {e}")

@@ -164,8 +164,9 @@ async def _elicitation_enums(args, ctx):
 
 def _logging_tool(args):
     # 2026-07-28: the server MUST NOT emit notifications/message unless the
-    # request carried _meta["io.modelcontextprotocol/logLevel"].  The modern
-    # path has no response stream in Wave 1, so this never logs to the client.
+    # request carried _meta["io.modelcontextprotocol/logLevel"].  Without one
+    # the modern path does not even open a response stream for tools/call
+    # (test_tool_with_logging shows the logLevel-gated stream).
     return {"content": [_text("Logging tool executed")]}
 
 
@@ -178,12 +179,214 @@ def _custom_header(args):
     return {"content": [_text(f"Region: {args.get('region')}; query: {args.get('query')}")]}
 
 
-def _tool(name, description, fn, schema=None, is_async=False, era="both", requires=None):
+# ── 2026-07-28 fixtures: streaming, subscriptions, MRTR (SEP-2322), tasks (SEP-2663) ──
+
+def _trigger_tool_change(args):
+    from sajha.core.change_bus import get_change_bus
+    get_change_bus().tools_changed()
+    return {"content": [_text("Published notifications/tools/list_changed")]}
+
+
+def _trigger_prompt_change(args):
+    from sajha.core.change_bus import get_change_bus
+    get_change_bus().prompts_changed()
+    return {"content": [_text("Published notifications/prompts/list_changed")]}
+
+
+_NAME_FORM = {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}
+
+
+def _elicit_req(message, schema):
+    return {"method": "elicitation/create", "params": {"message": message, "requestedSchema": schema}}
+
+
+def _sampling_req(text, max_tokens=100):
+    return {"method": "sampling/createMessage", "params": {
+        "messages": [{"role": "user", "content": _text(text)}], "maxTokens": max_tokens}}
+
+
+_ROOTS_REQ = {"method": "roots/list", "params": {}}
+
+
+def _accepted(ctx, key):
+    """Content of an accepted ElicitResult for key, {} for decline/cancel, None when absent/invalid."""
+    resp = ctx.input_responses.get(key)
+    if not isinstance(resp, dict):
+        return None
+    if resp.get("action") == "accept":
+        return resp.get("content") if isinstance(resp.get("content"), dict) else {}
+    if resp.get("action") in ("decline", "cancel"):
+        return {}
+    return None
+
+
+def _sampled_text(resp):
+    content = (resp or {}).get("content") if isinstance(resp, dict) else None
+    if isinstance(content, list):
+        content = content[0] if content else {}
+    return content.get("text", "") if isinstance(content, dict) else ""
+
+
+async def _streaming_elicitation(args, ctx):
+    await ctx.progress(0, 1, "asking the user")
+    answer = _accepted(ctx, "confirm")
+    if answer is None:
+        ctx.require_input({"confirm": _elicit_req("Continue?", {
+            "type": "object", "properties": {"ok": {"type": "boolean"}}, "required": ["ok"]})})
+    await ctx.progress(1, 1, "done")
+    return {"content": [_text(f"Confirmed: {bool(answer.get('ok'))}")]}
+
+
+async def _irr_elicitation(args, ctx):
+    answer = _accepted(ctx, "user_name")
+    if answer is None:
+        ctx.require_input({"user_name": _elicit_req("What is your name?", _NAME_FORM)})
+    return {"content": [_text(f"Hello, {answer.get('name', 'anonymous')}!")]}
+
+
+async def _irr_sampling(args, ctx):
+    resp = ctx.input_responses.get("capital_question")
+    if not isinstance(resp, dict):
+        ctx.require_input({"capital_question": _sampling_req("What is the capital of France?")})
+    return {"content": [_text(f"LLM response: {_sampled_text(resp)}")]}
+
+
+async def _irr_list_roots(args, ctx):
+    resp = ctx.input_responses.get("client_roots")
+    if not isinstance(resp, dict) or not isinstance(resp.get("roots"), list):
+        ctx.require_input({"client_roots": _ROOTS_REQ})
+    uris = [r.get("uri") for r in resp["roots"] if isinstance(r, dict)]
+    return {"content": [_text(f"Client roots: {', '.join(uris) or '(none)'}")]}
+
+
+async def _irr_request_state(args, ctx):
+    answer = _accepted(ctx, "confirm")
+    if answer is None or not (ctx.state_verified and ctx.state.get("issued")):
+        ctx.require_input({"confirm": _elicit_req("Please confirm", {
+            "type": "object", "properties": {"ok": {"type": "boolean"}}, "required": ["ok"]})},
+            state={"issued": True})
+    return {"content": [_text(f"state-ok: confirmed={bool(answer.get('ok'))}")]}
+
+
+async def _irr_multiple_inputs(args, ctx):
+    name = _accepted(ctx, "user_name")
+    greeting = ctx.input_responses.get("greeting")
+    roots = ctx.input_responses.get("client_roots")
+    missing = {}
+    if name is None:
+        missing["user_name"] = _elicit_req("What is your name?", _NAME_FORM)
+    if not isinstance(greeting, dict):
+        missing["greeting"] = _sampling_req("Generate a greeting", 50)
+    if not isinstance(roots, dict):
+        missing["client_roots"] = _ROOTS_REQ
+    if missing:
+        ctx.require_input(missing)
+    return {"content": [_text(f"{_sampled_text(greeting)} {name.get('name', '')}; "
+                              f"{len(roots.get('roots') or [])} root(s)")]}
+
+
+async def _irr_multi_round(args, ctx):
+    step1 = _accepted(ctx, "step1")
+    if step1 is None:
+        ctx.require_input({"step1": _elicit_req("Step 1: What is your name?", _NAME_FORM)})
+    step2 = _accepted(ctx, "step2")
+    if step2 is None:
+        ctx.require_input({"step2": _elicit_req("Step 2: What is your favorite color?", {
+            "type": "object", "properties": {"color": {"type": "string"}}, "required": ["color"]})})
+    return {"content": [_text(f"{step1.get('name')} likes {step2.get('color')}")]}
+
+
+async def _irr_tampered_state(args, ctx):
+    answer = _accepted(ctx, "confirm")
+    if answer is None or not ctx.state_verified:
+        ctx.require_input({"confirm": _elicit_req("Please confirm", {
+            "type": "object", "properties": {"ok": {"type": "boolean"}}, "required": ["ok"]})},
+            state={"issued": True})
+    return {"content": [_text("state verified")]}
+
+
+async def _irr_capabilities(args, ctx):
+    wanted = {}
+    if ctx.client_supports("sampling") and not isinstance(ctx.input_responses.get("sample"), dict):
+        wanted["sample"] = _sampling_req("Say hello", 20)
+    if ctx.client_supports("elicitation") and _accepted(ctx, "ask") is None:
+        wanted["ask"] = _elicit_req("What is your name?", _NAME_FORM)
+    if wanted:
+        ctx.require_input(wanted)
+    return {"content": [_text("Collected input for the declared client capabilities")]}
+
+
+def _greet(args):
+    return {"content": [_text(f"Hello, {args.get('name', 'World')}!")]}
+
+
+async def _slow_compute(args, ctx):
+    try:
+        seconds = max(0.0, float(args.get("seconds", 1)))
+    except (TypeError, ValueError):
+        seconds = 1.0
+    label = args.get("label", "job")
+    waited = 0.0
+    while waited < seconds:
+        step = min(0.1, seconds - waited)
+        await asyncio.sleep(step)
+        waited += step
+        await ctx.progress(round(waited, 3), seconds)
+    return {"content": [_text(f"Computed {label} in {seconds:g}s")]}
+
+
+async def _failing_job(args, ctx):
+    await asyncio.sleep(1.0)
+    return {"content": [_text("failing_job: the job ran and reported an error")], "isError": True}
+
+
+async def _protocol_error_job(args, ctx):
+    from sajha.core.mcp_2025_11_25 import MCPError
+    await asyncio.sleep(0.2)
+    raise MCPError(-32603, "protocol_error_job: simulated internal failure")
+
+
+async def _confirm_delete(args, ctx):
+    filename = args.get("filename", "file")
+    answer = _accepted(ctx, "confirm")
+    if answer is None:
+        ctx.require_input({"confirm": _elicit_req(f"Delete {filename}?", {
+            "type": "object", "properties": {"confirm": {"type": "boolean"}}, "required": ["confirm"]})})
+    if answer.get("confirm"):
+        return {"content": [_text(f"Deleted {filename}")]}
+    return {"content": [_text(f"Deletion of {filename} cancelled")]}
+
+
+async def _multi_input(args, ctx):
+    first, second = _accepted(ctx, "first"), _accepted(ctx, "second")
+    missing = {}
+    if first is None:
+        missing["first"] = _elicit_req("First input?", _NAME_FORM)
+    if second is None:
+        missing["second"] = _elicit_req("Second input?", _NAME_FORM)
+    if missing:
+        ctx.require_input(missing)
+    return {"content": [_text(f"Got {first.get('name')} and {second.get('name')}")]}
+
+
+async def _tool_with_task(args, ctx):
+    answer = _accepted(ctx, "user_name")
+    if answer is None:
+        ctx.require_input({"user_name": _elicit_req("What is your name?", _NAME_FORM)})
+    await asyncio.sleep(0.2)
+    return {"content": [_text(f"Hello, {answer.get('name', 'anonymous')}! (computed in a task)")]}
+
+
+def _tool(name, description, fn, schema=None, is_async=False, era="both", requires=None,
+          task_support=None, task_after_input=False):
     """era: "both", "legacy" (needs server -> client requests) or "modern" (2026-07-28 only).
-    requires: client capabilities the tool needs, as a ClientCapabilities object."""
+    requires: client capabilities the tool needs, as a ClientCapabilities object.
+    task_support: None / "optional" / "required" (io.modelcontextprotocol/tasks, modern only).
+    task_after_input: gather MRTR input synchronously first, create the task on the final round."""
     return {"definition": {"name": name, "description": description,
                            "inputSchema": schema or dict(_EMPTY_SCHEMA)},
-            "fn": fn, "async": is_async, "era": era, "requires": requires or {}}
+            "fn": fn, "async": is_async, "era": era, "requires": requires or {},
+            "task_support": task_support, "task_after_input": task_after_input}
 
 
 _TOOLS: Dict[str, Dict] = {t["definition"]["name"]: t for t in [
@@ -241,6 +444,45 @@ _TOOLS: Dict[str, Dict] = {t["definition"]["name"]: t for t in [
               },
               "required": ["region"],
           }, era="modern"),
+    _tool("test_streaming_elicitation", "Needs a confirmation (MRTR) - never a request on the stream",
+          _streaming_elicitation, is_async=True, era="modern", requires={"elicitation": {}}),
+    _tool("test_trigger_tool_change", "Publishes notifications/tools/list_changed", _trigger_tool_change,
+          era="modern"),
+    _tool("test_trigger_prompt_change", "Publishes notifications/prompts/list_changed", _trigger_prompt_change,
+          era="modern"),
+    _tool("test_input_required_result_elicitation", "MRTR: one elicitation", _irr_elicitation,
+          is_async=True, era="modern"),
+    _tool("test_input_required_result_sampling", "MRTR: one sampling request", _irr_sampling,
+          is_async=True, era="modern"),
+    _tool("test_input_required_result_list_roots", "MRTR: one roots/list request", _irr_list_roots,
+          is_async=True, era="modern"),
+    _tool("test_input_required_result_request_state", "MRTR: requestState round trip", _irr_request_state,
+          is_async=True, era="modern"),
+    _tool("test_input_required_result_multiple_inputs", "MRTR: elicitation + sampling + roots at once",
+          _irr_multiple_inputs, is_async=True, era="modern"),
+    _tool("test_input_required_result_multi_round", "MRTR: two rounds", _irr_multi_round,
+          is_async=True, era="modern"),
+    _tool("test_input_required_result_tampered_state", "MRTR: rejects a tampered requestState",
+          _irr_tampered_state, is_async=True, era="modern"),
+    _tool("test_input_required_result_capabilities", "MRTR: asks only for declared capabilities",
+          _irr_capabilities, is_async=True, era="modern"),
+    # tasks extension (SEP-2663)
+    _tool("greet", "Sync-only: returns Hello, {name}!", _greet, {
+        "type": "object", "properties": {"name": {"type": "string"}}}, era="modern"),
+    _tool("slow_compute", "Task-supporting: sleeps `seconds` then returns", _slow_compute, {
+        "type": "object", "properties": {"seconds": {"type": "number"}, "label": {"type": "string"}}},
+          is_async=True, era="modern", task_support="optional"),
+    _tool("failing_job", "Task-required: reports a tool error after ~1s", _failing_job,
+          is_async=True, era="modern", task_support="required"),
+    _tool("protocol_error_job", "Task-supporting: fails with a protocol-level error", _protocol_error_job,
+          is_async=True, era="modern", task_support="optional"),
+    _tool("confirm_delete", "Task-supporting: asks for confirmation (elicitation) first", _confirm_delete, {
+        "type": "object", "properties": {"filename": {"type": "string"}}},
+          is_async=True, era="modern", task_support="optional"),
+    _tool("multi_input", "Task-supporting: asks for two inputs in parallel", _multi_input,
+          is_async=True, era="modern", task_support="optional"),
+    _tool("test_tool_with_task", "MRTR then task: gathers user_name, then runs as a task", _tool_with_task,
+          is_async=True, era="modern", task_support="required", task_after_input=True),
 ]}
 
 
@@ -261,7 +503,11 @@ _PROMPTS: Dict[str, Dict] = {
                                                           "required": True}]},
     "test_prompt_with_image": {"name": "test_prompt_with_image", "description": "A prompt with image content",
                                "arguments": []},
+    "test_input_required_result_prompt": {"name": "test_input_required_result_prompt",
+                                          "description": "MRTR on prompts/get: asks for context first",
+                                          "arguments": []},
 }
+_MODERN_ONLY_PROMPTS = {"test_input_required_result_prompt"}
 
 
 def _prompt_messages(name: str, args: Dict) -> Dict:
@@ -277,6 +523,8 @@ def _prompt_messages(name: str, args: Dict) -> Dict:
                 "text": "Embedded resource content for testing."}}},
             {"role": "user", "content": _text("Please process the embedded resource above.")},
         ]
+    elif name == "test_input_required_result_prompt":
+        msgs = [{"role": "user", "content": _text(f"Use this context: {args.get('context', '')}")}]
     else:
         msgs = [
             {"role": "user", "content": {"type": "image", "data": RED_PIXEL_PNG, "mimeType": "image/png"}},
@@ -309,7 +557,21 @@ class ConformanceFixtures:
     # tools
     def tool_definitions(self, era: str = "legacy") -> List[Dict]:
         """Fixture tools visible to a client of the given era ("legacy" or "modern")."""
-        return [dict(t["definition"]) for t in _TOOLS.values() if t["era"] in ("both", era)]
+        out = []
+        for t in _TOOLS.values():
+            if t["era"] not in ("both", era):
+                continue
+            d = dict(t["definition"])
+            if era == "modern" and t["task_support"]:
+                d["execution"] = {"taskSupport": t["task_support"]}
+            out.append(d)
+        return out
+
+    def task_support(self, name: str) -> Optional[str]:
+        return _TOOLS[name]["task_support"] if name in _TOOLS else None
+
+    def task_after_input(self, name: str) -> bool:
+        return name in _TOOLS and _TOOLS[name]["task_after_input"]
 
     def has_tool(self, name: str, era: str = "legacy") -> bool:
         return name in _TOOLS and _TOOLS[name]["era"] in ("both", era)
@@ -330,17 +592,31 @@ class ConformanceFixtures:
             return {"content": [_text(str(e))], "isError": True}
 
     async def call_tool_async(self, name: str, args: Dict, ctx) -> Dict:
+        from sajha.core.mcp_mrtr import InputRequired
+        from sajha.core.mcp_2025_11_25 import MCPError
         try:
             return await _TOOLS[name]["fn"](args or {}, ctx)
+        except (InputRequired, MCPError):
+            raise                    # MRTR signal / protocol error: the transport handles these
         except Exception as e:
             return {"content": [_text(str(e))], "isError": True}
 
     # prompts
-    def prompt_definitions(self) -> List[Dict]:
-        return [dict(p) for p in _PROMPTS.values()]
+    def prompt_definitions(self, era: str = "legacy") -> List[Dict]:
+        return [dict(p) for n, p in _PROMPTS.items() if era == "modern" or n not in _MODERN_ONLY_PROMPTS]
 
-    def has_prompt(self, name: str) -> bool:
-        return name in _PROMPTS
+    def has_prompt(self, name: str, era: str = "legacy") -> bool:
+        return name in _PROMPTS and (era == "modern" or name not in _MODERN_ONLY_PROMPTS)
+
+    def get_prompt_mrtr(self, name: str, args: Dict, ctx) -> Dict:
+        """prompts/get on the modern path: may raise InputRequired (SEP-2322)."""
+        if name == "test_input_required_result_prompt":
+            answer = _accepted(ctx, "user_context")
+            if answer is None:
+                ctx.require_input({"user_context": _elicit_req("What context should the prompt use?", {
+                    "type": "object", "properties": {"context": {"type": "string"}}, "required": ["context"]})})
+            return _prompt_messages(name, {"context": answer.get("context", "")})
+        return self.get_prompt(name, args)
 
     def get_prompt(self, name: str, args: Dict) -> Dict:
         for a in _PROMPTS[name]["arguments"]:

@@ -545,6 +545,11 @@ class SajhaMCPServerWebApp:
 
         # Shutdown
         logger.info('Shutting down SAJHA MCP Server v3...')
+        try:   # end MCP subscriptions/listen streams (and legacy push forwarders)
+            from sajha.core.change_bus import get_change_bus
+            get_change_bus().shutdown()
+        except Exception as e:
+            logger.debug(f'change bus shutdown: {e}')
         if config_reloader:
             config_reloader.stop()
         if tools_registry:

@@ -122,6 +122,31 @@ mcp:
     # auto: "private" when a result depends on the caller (per-user tool
     # filtering), else "public".  Or force "public" / "private".
     scope: auto
+  # MCP 2026-07-28 Multi Round-Trip Requests (SEP-2322): the opaque requestState
+  # returned with an InputRequiredResult is HMAC-SHA256 signed and bound to the
+  # method, tool/prompt/URI, arguments and caller.  Set a stable secret when
+  # running several workers or to keep states valid across restarts; when empty
+  # it is derived from auth.session.secret_key (random per process if unset).
+  # Env override: SAJHA_MCP_MRTR_STATE_SECRET
+  mrtr:
+    state_secret: ""
+    state_ttl_seconds: 900
+  # Ask the user (form-mode elicitation via MRTR) before running a tool whose
+  # config sets annotations.destructiveHint: true.  Only when the client
+  # declares the elicitation capability; otherwise the call runs as before.
+  confirm_destructive_tools: false
+  # Tasks extension io.modelcontextprotocol/tasks (SEP-2663), 2026-07-28 only.
+  # A tool opts in with "execution": {"taskSupport": "optional" | "required"}
+  # in its config.  Tasks live in memory in this process (use one worker or
+  # sticky routing), scoped to the calling user.
+  tasks:
+    enabled: true
+    ttl_ms: 3600000              # how long a task stays readable via tasks/get
+    poll_interval_ms: 500        # pollIntervalMs hint returned to clients
+    max_tasks: 1000
+  # subscriptions/listen (2026-07-28): max concurrent listen streams
+  subscriptions:
+    max_streams: 1000
 
 # ── Config Paths ─────────────────────────────────────────────────────────────
 

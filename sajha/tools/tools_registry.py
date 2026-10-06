@@ -277,6 +277,7 @@ class ToolsRegistry:
         with self._tools_lock:
             self.tools[tool.name] = tool
             self.logger.info(f"Tool registered: {tool.name}")
+        _publish_tools_changed()
     
     def unregister_tool(self, tool_name: str):
         """
@@ -289,6 +290,7 @@ class ToolsRegistry:
             if tool_name in self.tools:
                 del self.tools[tool_name]
                 self.logger.info(f"Tool unregistered: {tool_name}")
+        _publish_tools_changed()
     
     def get_tool(self, tool_name: str) -> Optional[BaseMCPTool]:
         """
@@ -325,14 +327,15 @@ class ToolsRegistry:
         """
         with self._tools_lock:
             tool = self.tools.get(tool_name)
-            if tool:
-                tool.enable()
-                # Update config file if exists
-                if tool_name in self.tool_configs:
-                    self.tool_configs[tool_name]['enabled'] = True
-                    self._save_tool_config(tool_name)
-                return True
-            return False
+            if not tool:
+                return False
+            tool.enable()
+            # Update config file if exists
+            if tool_name in self.tool_configs:
+                self.tool_configs[tool_name]['enabled'] = True
+                self._save_tool_config(tool_name)
+        _publish_tools_changed()
+        return True
     
     def disable_tool(self, tool_name: str) -> bool:
         """
@@ -346,14 +349,15 @@ class ToolsRegistry:
         """
         with self._tools_lock:
             tool = self.tools.get(tool_name)
-            if tool:
-                tool.disable()
-                # Update config file if exists
-                if tool_name in self.tool_configs:
-                    self.tool_configs[tool_name]['enabled'] = False
-                    self._save_tool_config(tool_name)
-                return True
-            return False
+            if not tool:
+                return False
+            tool.disable()
+            # Update config file if exists
+            if tool_name in self.tool_configs:
+                self.tool_configs[tool_name]['enabled'] = False
+                self._save_tool_config(tool_name)
+        _publish_tools_changed()
+        return True
     
     def _save_tool_config(self, tool_name: str):
         """Save tool configuration through the storage backend (local | s3 | azure | gcs)."""
@@ -553,6 +557,7 @@ class ToolsRegistry:
 
         # Notify listeners (e.g. the semantic search index) outside the lock
         self._notify_reload()
+        _publish_tools_changed()
 
     def add_reload_listener(self, callback):
         """Register a no-arg callback fired after tools are reloaded (add/remove/modify).
@@ -593,6 +598,15 @@ class ToolsRegistry:
             
             # Reload all tools
             self.reload_all_tools()
+
+
+def _publish_tools_changed():
+    """Tell MCP clients (listen streams, legacy SSE, WebSocket) the tool list changed."""
+    try:
+        from sajha.core.change_bus import get_change_bus
+        get_change_bus().tools_changed()
+    except Exception as e:  # never let notification plumbing break the registry
+        _logging.getLogger(__name__).debug(f"tools change notification failed: {e}")
 
 
 # Module-level logger for reset function
