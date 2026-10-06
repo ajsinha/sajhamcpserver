@@ -30,26 +30,7 @@ router = APIRouter(tags=['api'])
 
 
 # ── MCP Protocol Endpoint ────────────────────────────────────────
-
-@router.post('/mcp')
-@router.post('/api/mcp')
-async def mcp_endpoint(request: Request, db: Session = Depends(get_db)):
-    """MCP JSON-RPC 2.0 endpoint (same as v2)."""
-    from sajha.app import mcp_handler
-
-    auth = AuthManager.authenticate_request(request, db)
-    session_data = auth.to_legacy_session() if auth.authenticated else None
-
-    try:
-        request_data = await request.json()
-    except Exception as e:
-        return JSONResponse({
-            'jsonrpc': '2.0',
-            'error': {'code': -32700, 'message': 'Parse error'},
-        }, status_code=400)
-
-    response = mcp_handler.handle_request(request_data, session_data)
-    return JSONResponse(response)
+# POST/GET/DELETE /mcp (Streamable HTTP transport) live in mcp_routes.py.
 
 
 # ── Tool Execution API ───────────────────────────────────────────

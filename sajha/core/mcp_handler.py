@@ -8,6 +8,11 @@ import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
+from sajha.core.mcp_2025_11_25 import MCPError, negotiate_protocol_version
+
+# Content block types a tool may return directly as a list
+_CONTENT_TYPES = {"text", "image", "audio", "resource", "resource_link"}
+
 class MCPHandler:
     """
     Handles MCP protocol messages (JSON-RPC 2.0)
@@ -45,46 +50,54 @@ class MCPHandler:
         self.elicitation_manager = ElicitationManager()
         self.sampling_manager = SamplingManager()
 
-        self.server_info = {
-            "protocolVersion": "2025-11-25",
-            "serverInfo": {
-                "name": _s.app_name,
-                "version": _s.app_version,
-                "description": f"{_s.app_name} — Production MCP server with {len(tools_registry.tools) if tools_registry else 0} tools"
-            },
-            "capabilities": {
-                "tools": {
-                    "listChanged": True
-                },
-                "prompts": {
-                    "listChanged": True
-                },
-                "resources": {
-                    "subscribe": True,
-                    "listChanged": True
-                },
-                "logging": {},
-                "completions": {},
-                "elicitation": {
-                    "form": {},
-                    "url": {}
-                },
-                "sampling": {
-                    "tools": True
-                },
-                "tasks": {
-                    "experimental": True
-                },
-                "jsonSchema": {
-                    "dialect": "https://json-schema.org/draft/2020-12/schema"
-                },
-                "websocket": {
-                    "endpoint": "/mcp/ws",
-                    "authMethods": ["token", "api_key"]
-                }
-            }
+        # Implementation info returned as initialize.serverInfo
+        self.implementation = {
+            "name": _s.app_name,
+            "title": _s.app_name,
+            "version": _s.app_version,
+            "description": f"{_s.app_name} — MCP server exposing "
+                           f"{len(tools_registry.tools) if tools_registry else 0} tools",
         }
-    
+        if getattr(_s, 'app_github_repo', None):
+            self.implementation["websiteUrl"] = _s.app_github_repo
+
+        # Server capabilities (MCP 2025-11-25).  Only server-side capabilities
+        # belong here; elicitation and sampling are *client* capabilities.
+        # listChanged/subscribe are false because the server does not
+        # currently emit list_changed or resources/updated notifications.
+        self.capabilities = {
+            "tools": {"listChanged": False},
+            "prompts": {"listChanged": False},
+            "resources": {"subscribe": False, "listChanged": False},
+            "logging": {},
+            "completions": {},
+            "experimental": {
+                "sajha": {
+                    "websocket": {"endpoint": "/mcp/ws", "authMethods": ["token", "api_key"]},
+                    "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+                }
+            },
+        }
+
+        self.instructions = (
+            f"{_s.app_name} exposes a catalog of data and utility tools (finance, "
+            "economics, search, documents, analytics). Use tools/list to discover "
+            "tools and their input/output schemas, prompts/list for reusable prompt "
+            "templates, and resources/list for the tool and prompt catalogs. Tool "
+            "failures are reported as results with isError=true."
+        )
+
+    @property
+    def server_info(self) -> Dict:
+        """Initialize result for the latest protocol version (back-compat accessor)."""
+        from sajha.core.mcp_2025_11_25 import LATEST_PROTOCOL_VERSION
+        return {
+            "protocolVersion": LATEST_PROTOCOL_VERSION,
+            "capabilities": self.capabilities,
+            "serverInfo": self.implementation,
+            "instructions": self.instructions,
+        }
+
     def handle_request(self, request_data: Dict, session: Optional[Dict] = None) -> Dict:
         """
         Handle a JSON-RPC 2.0 request
@@ -99,14 +112,17 @@ class MCPHandler:
         # Validate JSON-RPC structure
         if not self._is_valid_jsonrpc(request_data):
             return self._create_error_response(
-                request_data.get('id'),
+                request_data.get('id') if isinstance(request_data, dict) else None,
                 self.INVALID_REQUEST,
                 "Invalid JSON-RPC 2.0 request"
             )
         
         request_id = request_data.get('id')
         method = request_data.get('method')
-        params = request_data.get('params', {})
+        params = request_data.get('params') or {}
+        if not isinstance(params, dict):
+            return self._create_error_response(
+                request_id, self.INVALID_PARAMS, "params must be an object")
         
         # Log request
         self.logger.debug(f"Handling request: {method} (ID: {request_id})")
@@ -115,7 +131,7 @@ class MCPHandler:
         try:
             if method == 'initialize':
                 result = self._handle_initialize(params, session)
-            elif method == 'initialized':
+            elif method in ('notifications/initialized', 'initialized'):
                 result = self._handle_initialized(params, session)
             elif method in [ 'tools/list' , 'api/tools/list', '/tools/list' , '/api/tools/list']:
                 result = self._handle_tools_list(params, session)
@@ -133,9 +149,9 @@ class MCPHandler:
             elif method in ['ping', 'api/ping', '/ping', '/api/ping']:
                 result = self._handle_ping(params, session)
             elif method in ['prompts/list', 'api/prompts/list','/prompts/list', '/api/prompts/list']:
-                return self.handle_prompts_list()
+                result = self.handle_prompts_list(params)
             elif method in ['prompts/get', 'api/prompts/get', '/prompts/get', '/api/prompts/get']:
-                return self.handle_prompts_get(request_data)
+                result = self.handle_prompts_get(params)
 
             # ── MCP v3 additions: Resources ──────────────────────
             elif method == 'resources/list':
@@ -172,6 +188,9 @@ class MCPHandler:
             # ── MCP 2025-11-25: Notifications ────────────────────
             elif method == 'notifications/cancelled':
                 result = self._handle_notification_cancelled(params)
+            elif method.startswith('notifications/'):
+                # Other client notifications need no handling
+                result = {}
 
             else:
                 return self._create_error_response(
@@ -181,7 +200,9 @@ class MCPHandler:
                 )
             
             return self._create_success_response(request_id, result)
-            
+
+        except MCPError as e:
+            return self._create_error_response(request_id, e.code, e.message, e.data)
         except PermissionError as e:
             return self._create_error_response(
                 request_id,
@@ -202,53 +223,49 @@ class MCPHandler:
                 "Internal server error"
             )
 
-    def handle_prompts_list(self):
-        """Handle prompts/list request"""
-        prompts = self.prompts_registry.get_all_prompts()
-        return {
-            "jsonrpc": "2.0",
-            "result": {
-                "prompts": [
-                    {
-                        "name": p["name"],
-                        "description": p["description"],
-                        "arguments": p.get("arguments", [])
-                    }
-                    for p in prompts
-                ]
-            }
-        }
+    def _fixtures(self):
+        from sajha.core.mcp_conformance_fixtures import get_conformance_fixtures
+        return get_conformance_fixtures()
 
-    def handle_prompts_get(self, request_data):
-        """Handle prompts/get request"""
-        params = request_data.get('params', {})
+    def handle_prompts_list(self, params: Optional[Dict] = None) -> Dict:
+        """Handle prompts/list — returns the result object."""
+        prompts = []
+        if self.prompts_registry:
+            for p in list(self.prompts_registry.prompts.values()):
+                entry = p.to_mcp_format()
+                entry['description'] = entry.get('description') or ''
+                prompts.append(entry)
+        fixtures = self._fixtures()
+        if fixtures:
+            prompts.extend(fixtures.prompt_definitions())
+        return {"prompts": prompts}
+
+    def handle_prompts_get(self, params: Dict) -> Dict:
+        """Handle prompts/get — returns the result object or raises MCPError."""
         name = params.get('name')
-        arguments = params.get('arguments', {})
-
-        try:
-            rendered = self.prompts_registry.render_prompt(name, arguments)
-            return {
-                "jsonrpc": "2.0",
-                "result": {
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": {
-                                "type": "text",
-                                "text": rendered
-                            }
-                        }
-                    ]
-                }
-            }
-        except Exception as e:
-            return {
-                "jsonrpc": "2.0",
-                "error": {
-                    "code": -32603,
-                    "message": str(e)
-                }
-            }
+        arguments = params.get('arguments') or {}
+        if not name:
+            raise MCPError(self.INVALID_PARAMS, "Prompt name is required")
+        fixtures = self._fixtures()
+        if fixtures and fixtures.has_prompt(name):
+            try:
+                return fixtures.get_prompt(name, arguments)
+            except ValueError as e:
+                raise MCPError(self.INVALID_PARAMS, str(e))
+        prompt = self.prompts_registry.get_prompt(name) if self.prompts_registry else None
+        if not prompt:
+            raise MCPError(self.INVALID_PARAMS, f"Unknown prompt: {name}")
+        ok, rendered = self.prompts_registry.render_prompt(name, arguments)
+        if not ok:
+            raise MCPError(self.INVALID_PARAMS, rendered)
+        result = {
+            "messages": [
+                {"role": "user", "content": {"type": "text", "text": rendered}}
+            ]
+        }
+        if prompt.description:
+            result["description"] = prompt.description
+        return result
 
     def _is_valid_jsonrpc(self, request: Dict) -> bool:
         """Check if request is valid JSON-RPC 2.0"""
@@ -278,13 +295,12 @@ class MCPHandler:
         if data is not None:
             error["data"] = data
         
-        response = {
+        # JSON-RPC 2.0: error responses always carry "id" (null when unknown)
+        return {
             "jsonrpc": "2.0",
+            "id": request_id,
             "error": error
         }
-        if request_id is not None:
-            response["id"] = request_id
-        return response
     
     def _handle_initialize(self, params: Dict, session: Optional[Dict]) -> Dict:
         """
@@ -298,11 +314,18 @@ class MCPHandler:
             Server information and capabilities
         """
         # Client info
-        client_info = params.get('clientInfo', {})
+        client_info = params.get('clientInfo') or {}
+        requested = params.get('protocolVersion')
+        version = negotiate_protocol_version(requested)
         self.logger.info(f"Client initializing: {client_info.get('name', 'Unknown')} "
-                        f"v{client_info.get('version', 'Unknown')}")
-        
-        return self.server_info
+                        f"v{client_info.get('version', 'Unknown')} "
+                        f"(requested protocol {requested}, using {version})")
+        return {
+            "protocolVersion": version,
+            "capabilities": self.capabilities,
+            "serverInfo": self.implementation,
+            "instructions": self.instructions,
+        }
     
     def _handle_initialized(self, params: Dict, session: Optional[Dict]) -> Dict:
         """
@@ -329,11 +352,14 @@ class MCPHandler:
         Returns:
             List of available tools
         """
+        fixtures = self._fixtures()
         if not self.tools_registry:
-            return {"tools": []}
+            return {"tools": fixtures.tool_definitions() if fixtures else []}
         
         # Get all tools
         all_tools = self.tools_registry.get_all_tools()
+        if not self._advertise_output_schema():
+            all_tools = [{k: v for k, v in t.items() if k != 'outputSchema'} for t in all_tools]
         
         # Filter based on user permissions if authenticated
         if session and self.auth_manager:
@@ -343,6 +369,9 @@ class MCPHandler:
                     tool for tool in all_tools
                     if tool['name'] in accessible_tools
                 ]
+        if fixtures:
+            # Fixtures first so clients that read only page 1 see them
+            all_tools = fixtures.tool_definitions() + list(all_tools)
         
         # Pagination support (MCP spec)
         cursor = params.get('cursor')
@@ -357,17 +386,7 @@ class MCPHandler:
         
         page = all_tools[start:start + page_size]
         
-        # MCP 2025-11-25: Add icon metadata if configured (SEP-973)
-        from sajha.core.mcp_2025_11_25 import add_tool_icon
-        enriched = []
-        for tool_dict in page:
-            tool_name = tool_dict.get('name', '')
-            tool_obj = self.tools_registry.get_tool(tool_name) if self.tools_registry else None
-            if tool_obj:
-                cfg = getattr(tool_obj, 'config', {}) or {}
-                tool_dict = add_tool_icon(tool_dict, cfg)
-            enriched.append(tool_dict)
-        
+        enriched = page
         result = {"tools": enriched}
         if start + page_size < len(all_tools):
             result['nextCursor'] = str(start + page_size)
@@ -459,13 +478,23 @@ class MCPHandler:
         Returns:
             Tool execution result
         """
-        if not self.tools_registry:
-            raise ValueError("Tools registry not available")
-        
         tool_name = params.get('name')
         if not tool_name:
             raise ValueError("Tool name is required")
-        
+        arguments = params.get('arguments') or {}
+        if not isinstance(arguments, dict):
+            raise ValueError("arguments must be an object")
+
+        fixtures = self._fixtures()
+        if fixtures and fixtures.has_tool(tool_name):
+            if fixtures.is_async_tool(tool_name):
+                raise MCPError(self.INVALID_REQUEST,
+                               f"Tool {tool_name} needs a streaming transport; call it via POST /mcp")
+            return fixtures.call_tool(tool_name, arguments)
+
+        if not self.tools_registry:
+            raise ValueError("Tools registry not available")
+
         # Check if user has access to the tool
         if session and self.auth_manager:
             if not self.auth_manager.has_tool_access(session, tool_name):
@@ -477,20 +506,13 @@ class MCPHandler:
             raise ValueError(f"Tool not found: {tool_name}")
         
         # Execute the tool
-        arguments = params.get('arguments', {})
-        self.logger.info(f"Executing tool: {tool_name} (User: {session.get('user_id', 'anonymous')})")
+        user_id = (session or {}).get('user_id', 'anonymous')
+        self.logger.info(f"Executing tool: {tool_name} (User: {user_id})")
         
         try:
-            result = tool.execute(arguments)
-            
-            # Format result according to MCP spec
-            if isinstance(result, str):
-                result = [{"type": "text", "text": result}]
-            elif not isinstance(result, list):
-                result = [{"type": "text", "text": str(result)}]
-            
-            return {"content": result}
-            
+            # the same path as the REST API: enabled check, argument validation, cache,
+            # circuit breaker and metrics all live in execute_with_tracking
+            result = tool.execute_with_tracking(arguments)
         except Exception as e:
             # MCP 2025-11-25 Minor 5: Return as Tool Execution Error (isError: true)
             # instead of Protocol Error — enables model self-correction
@@ -499,6 +521,54 @@ class MCPHandler:
                 "content": [{"type": "text", "text": f"Tool execution failed: {str(e)}"}],
                 "isError": True
             }
+        return self._format_tool_result(tool, result)
+
+    def _advertise_output_schema(self) -> bool:
+        from sajha.core.config import _bool
+        return _bool('mcp.tools.advertise_output_schema', True)
+
+    def _format_tool_result(self, tool, result: Any) -> Dict:
+        """Turn a tool's return value into a CallToolResult."""
+        # Already a list of MCP content blocks
+        if isinstance(result, list) and result and all(
+                isinstance(b, dict) and b.get('type') in _CONTENT_TYPES for b in result):
+            return {"content": result}
+        if isinstance(result, str):
+            return {"content": [{"type": "text", "text": result}]}
+
+        try:
+            json_value = json.loads(json.dumps(result, default=str))
+            text = json.dumps(json_value, indent=2, ensure_ascii=False)
+        except (TypeError, ValueError):
+            json_value, text = None, str(result)
+        response = {"content": [{"type": "text", "text": text}]}
+
+        # Structured output: when the tool advertises an outputSchema and the
+        # result is a JSON object, return it as structuredContent as well.
+        schema = self._tool_output_schema(tool)
+        if schema and isinstance(json_value, dict):
+            response["structuredContent"] = json_value
+            try:
+                import jsonschema
+                jsonschema.validate(json_value, schema)
+            except ImportError:
+                pass
+            except Exception as e:
+                self.logger.warning(
+                    f"Tool {getattr(tool, 'name', '?')} result does not match its outputSchema: "
+                    f"{str(e).splitlines()[0]}")
+        return response
+
+    def _tool_output_schema(self, tool) -> Optional[Dict]:
+        if not self._advertise_output_schema():
+            return None
+        try:
+            schema = tool.output_schema
+        except Exception:
+            return None
+        if isinstance(schema, dict) and schema.get('type') == 'object':
+            return schema
+        return None
     
     def _handle_notification_cancelled(self, params: Dict) -> Dict:
         """Handle notifications/cancelled — client cancels a pending request."""
@@ -511,11 +581,8 @@ class MCPHandler:
         return {}
 
     def _handle_ping(self, params: Dict, session: Optional[Dict]) -> Dict:
-        """Handle ping request"""
-        return {
-            "status": "ok",
-            "timestamp": datetime.now().isoformat() + "Z"
-        }
+        """Handle ping request — the spec result is an empty object."""
+        return {}
 
     # ═════════════════════════════════════════════════════════════
     # MCP v3: Resources
@@ -568,6 +635,10 @@ class MCPHandler:
         else:
             start = 0
 
+        fixtures = self._fixtures()
+        if fixtures:
+            resources.extend(fixtures.resources())
+
         page = resources[start:start + page_size]
         result = {'resources': page}
         if start + page_size < len(resources):
@@ -579,6 +650,14 @@ class MCPHandler:
         """Handle resources/read — read a resource by URI."""
         import json as _json
         uri = params.get('uri', '')
+        if not uri:
+            raise MCPError(self.INVALID_PARAMS, "uri is required")
+
+        fixtures = self._fixtures()
+        if fixtures:
+            fixture_result = fixtures.read_resource(uri)
+            if fixture_result is not None:
+                return fixture_result
 
         if uri == 'sajha://tools/catalog':
             tools = self.tools_registry.get_all_tools() if self.tools_registry else []
@@ -617,14 +696,21 @@ class MCPHandler:
                             }]
                         }
                     except Exception as e:
-                        return {'contents': [{'uri': uri, 'mimeType': 'text/plain', 'text': f'Error reading file: {e}'}]}
+                        raise MCPError(self.INTERNAL_ERROR, f'Error reading resource: {e}')
 
-        return {'contents': [{'uri': uri, 'mimeType': 'text/plain', 'text': f'Resource not found: {uri}'}]}
+        # MCP spec: unknown resource -> -32002 Resource not found
+        raise MCPError(-32002, 'Resource not found', {'uri': uri})
 
     def _handle_resources_templates_list(self, params: Dict) -> Dict:
         """Handle resources/templates/list — parameterized resource templates."""
-        return {
-            'resourceTemplates': [
+        templates = self._sajha_resource_templates()
+        fixtures = self._fixtures()
+        if fixtures:
+            templates.extend(fixtures.resource_templates())
+        return {'resourceTemplates': templates}
+
+    def _sajha_resource_templates(self) -> List[Dict]:
+        return list([
                 {
                     'uriTemplate': 'sajha://tools/{tool_name}/schema',
                     'name': 'Tool Schema',
@@ -636,11 +722,14 @@ class MCPHandler:
                     'name': 'Data File',
                     'description': 'Read a data file from the server data directory',
                 },
-            ]
-        }
+            ])
 
     def _handle_resources_subscribe(self, params: Dict) -> Dict:
-        """Handle resources/subscribe — subscribe to resource changes."""
+        """
+        Handle resources/subscribe.  Accepted for compatibility, but the
+        server advertises resources.subscribe=false because it does not send
+        notifications/resources/updated.
+        """
         uri = params.get('uri', '')
         self.logger.info(f"Client subscribed to resource: {uri}")
         return {}
@@ -657,10 +746,10 @@ class MCPHandler:
 
     def _handle_completion_complete(self, params: Dict) -> Dict:
         """Handle completion/complete — auto-complete for tool/prompt arguments."""
-        ref = params.get('ref', {})
-        argument = params.get('argument', {})
+        ref = params.get('ref') or {}
+        argument = params.get('argument') or {}
         arg_name = argument.get('name', '')
-        partial = argument.get('value', '')
+        partial = str(argument.get('value', '') or '')
 
         values = []
 
@@ -672,7 +761,7 @@ class MCPHandler:
                 prop = schema.get('properties', {}).get(arg_name, {})
                 # Suggest from enum values
                 if 'enum' in prop:
-                    values = [v for v in prop['enum'] if partial.lower() in v.lower()]
+                    values = [str(v) for v in prop['enum'] if partial.lower() in str(v).lower()]
                 # Suggest from default
                 elif 'default' in prop and partial == '':
                     values = [str(prop['default'])]
@@ -681,10 +770,9 @@ class MCPHandler:
             prompt_name = ref.get('name', '')
             if self.prompts_registry:
                 prompt = self.prompts_registry.get_prompt(prompt_name)
-                if prompt and 'arguments' in prompt:
-                    for arg in prompt.get('arguments', []):
-                        if arg.get('name') == arg_name and 'enum' in arg:
-                            values = [v for v in arg['enum'] if partial.lower() in v.lower()]
+                for arg in (getattr(prompt, 'arguments', None) or []):
+                    if isinstance(arg, dict) and arg.get('name') == arg_name and 'enum' in arg:
+                        values = [str(v) for v in arg['enum'] if partial.lower() in str(v).lower()]
 
         return {
             'completion': {
@@ -700,18 +788,17 @@ class MCPHandler:
 
     def _handle_logging_set_level(self, params: Dict) -> Dict:
         """Handle logging/setLevel — dynamically adjust server log level."""
-        level = params.get('level', 'info').upper()
-        valid = {'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL',
-                 'ALERT', 'NOTICE', 'EMERGENCY'}  # MCP spec levels
+        level = str(params.get('level', '')).lower()
+        # MCP (RFC 5424) levels -> Python logging levels
         level_map = {
-            'ALERT': 'CRITICAL', 'NOTICE': 'INFO', 'EMERGENCY': 'CRITICAL',
-            'DEBUG': 'DEBUG', 'INFO': 'INFO', 'WARNING': 'WARNING',
-            'ERROR': 'ERROR', 'CRITICAL': 'CRITICAL',
+            'debug': 'DEBUG', 'info': 'INFO', 'notice': 'INFO', 'warning': 'WARNING',
+            'error': 'ERROR', 'critical': 'CRITICAL', 'alert': 'CRITICAL', 'emergency': 'CRITICAL',
         }
-        if level not in valid:
-            return {'error': f'Invalid level: {level}'}
+        if level not in level_map:
+            raise MCPError(self.INVALID_PARAMS, f'Invalid log level: {params.get("level")!r}',
+                           {'validLevels': list(level_map)})
 
-        python_level = level_map.get(level, 'INFO')
+        python_level = level_map[level]
         logging.getLogger().setLevel(getattr(logging, python_level))
         self.logger.info(f'Log level changed to {level} (Python: {python_level})')
         return {}

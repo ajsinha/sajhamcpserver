@@ -1,6 +1,6 @@
 # SAJHA MCP Server
 
-**Version 5.3.0** · FastAPI · Python 3.9+ · **MCP Protocol 2025-11-25** (latest)
+**Version 5.4.0** · FastAPI · Python 3.9+ · **MCP Protocol 2025-11-25** (conformance verified)
 
 **Copyright © 2025–2030, Ashutosh Sinha** · ajsinha@gmail.com · [GitHub](https://github.com/ajsinha/sajhamcpserver)
 
@@ -8,7 +8,7 @@
 
 ## What is SAJHA?
 
-SAJHA (Hindi: साझा — "shared, collaborative") is a production-grade [Model Context Protocol](https://modelcontextprotocol.io) server built on FastAPI. It is **fully compliant with MCP specification 2025-11-25** — the latest protocol version — including Tasks, Elicitation, Sampling with tool calling, tool icons, and all authorization enhancements.
+SAJHA (Hindi: साझा — "shared, collaborative") is a production-grade [Model Context Protocol](https://modelcontextprotocol.io) server built on FastAPI. It speaks **MCP specification 2025-11-25** (and negotiates 2025-06-18, 2025-03-26 and 2024-11-05), verified against the official MCP conformance suite: 32/32 server scenarios, 43/43 checks.
 
 The server exposes **497 tools** across financial markets, government data, search, analytics, and enterprise integrations through three MCP transports (HTTP POST, SSE, WebSocket), a REST API, and an A2A agent protocol.
 
@@ -16,25 +16,23 @@ The server exposes **497 tools** across financial markets, government data, sear
 
 ## MCP 2025-11-25 Compliance
 
-SAJHA implements all 9 major and 10 minor changes from the [2025-11-25 specification](https://modelcontextprotocol.io/specification/2025-11-25):
+Verified with the official [MCP conformance suite](https://github.com/modelcontextprotocol/conformance) 0.1.16 — **32/32 server scenarios, 43 passed, 0 failed** — and with the official Python SDK 2.3.0 client. Details, and what is deliberately not implemented, are in [docs/MCP_2025_11_25_Compliance.md](docs/MCP_2025_11_25_Compliance.md).
 
-| Feature | SEP | Status |
-|---------|-----|:------:|
-| **Tasks** — async tracking for long-running requests | SEP-1686 | ✅ |
-| **Elicitation** — server-initiated user input (form + URL modes) | SEP-1330, SEP-1036 | ✅ |
-| **Sampling with Tools** — server-initiated LLM calls with tool use | SEP-1577 | ✅ |
-| **Tool Icons** — icon metadata for tools, resources, prompts | SEP-973 | ✅ |
-| **OAuth CIMD** — Client ID Metadata Documents | SEP-991 | ✅ |
-| **OIDC Discovery** — `/.well-known/openid-configuration` | PR #797 | ✅ |
-| **Incremental Scope** — `WWW-Authenticate` with scope parameter | SEP-835 | ✅ |
-| **Tool Name Guidance** — provider_action naming convention | SEP-986 | ✅ |
-| **RFC 9728 PRM** — `/.well-known/oauth-protected-resource` | SEP-985 | ✅ |
-| **Origin Validation** — HTTP 403 for invalid Origin in SSE | PR #1439 | ✅ |
-| **Tool Execution Errors** — `isError: true` (not protocol errors) | SEP-1303 | ✅ |
-| **SSE Event IDs** — stream resumption via `Last-Event-ID` | SEP-1699 | ✅ |
-| **JSON Schema 2020-12** — declared as default dialect | SEP-1613 | ✅ |
+```bash
+SAJHA_MCP_CONFORMANCE_FIXTURES=true python run_server.py --port 3002
+npx -y @modelcontextprotocol/conformance@0.1.16 server --url http://127.0.0.1:3002/mcp --spec-version 2025-11-25 --suite all
+```
 
-**Protocol version declared:** `2025-11-25` in `initialize` response.
+| Area | What SAJHA does |
+|---------|------|
+| Lifecycle | Version negotiation in `initialize` (2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05); `notifications/initialized`; `ping` |
+| Streamable HTTP | `POST /mcp` with `Mcp-Session-Id` sessions, `DELETE /mcp`, `MCP-Protocol-Version` validation, 202 for notifications, 400 for batches |
+| Security | `Origin` allow-list (`mcp.allowed_origins`), 403 otherwise (DNS-rebinding protection) |
+| Tools | `title`, `outputSchema`, `annotations`, `icons[]`; `structuredContent` in results; tool errors as `isError: true` |
+| Prompts, resources | Arguments listed; templates; completion; `logging/setLevel` |
+| Legacy | 2024-11-05 HTTP+SSE (`GET /mcp/sse` + `POST /mcp/message`) kept for older clients; WebSocket `/mcp/ws` as a SAJHA extension |
+| Not implemented | Server-initiated sampling/elicitation outside the conformance fixtures, tasks, OAuth authorization server, `Last-Event-ID` replay |
+
 
 ---
 
@@ -70,7 +68,7 @@ python run_server.py --log-level DEBUG             # Verbose logging
 | **Tools** | 497 built-in: FMP (100), OpenBB (70), FRED (55), Alpha Vantage (35), Yahoo Finance (35), CoinGecko (25), EDGAR (20), Calculators (19), World Bank (10), and more |
 | **Composition** | Composite tools with Kleisli arrows (StepResult envelope), ParamLens (surgical param projection), EntropyGuard (cumulative confidence tracking with parallel-aware model) |
 | **LLM Gateway** | 6 providers: Anthropic, OpenAI, AWS Bedrock, Together.ai, Ollama, Azure OpenAI. DB-managed models. Semantic tool discovery via embeddings |
-| **Auth** | Cookie JWT (web UI) · Bearer JWT (API) · API Key (automation) · OAuth SSO (Azure AD, Okta, Auth0, Keycloak) · OIDC Discovery · CIMD |
+| **Auth** | Cookie JWT (web UI) · Bearer JWT (API) · API Key (automation). No OAuth authorization server yet; `/mcp` accepts unauthenticated calls, with per-tool access applied when a credential is sent |
 | **Caching** | Per-tool output cache with configurable TTL. FRED: 1hr, FMP: 5min, Yahoo: 30s. LRU eviction. Cache stats API |
 | **Circuit Breakers** | Per-provider circuit breakers: CLOSED → OPEN (5 failures) → HALF_OPEN (probe). Prevents cascading failures |
 | **Webhooks** | Subscribe to events (tool.completed, task.failed, circuit.opened). Async delivery with retry + exponential backoff |
@@ -112,10 +110,6 @@ run_server.py → SajhaMCPServerWebApp (FastAPI)
   ├── OpenTelemetry (metrics, alerts, health)
   ├── TenantManager (multi-tenant isolation)
   ├── PluginManager (discover → validate → load)
-  └── OAuth Discovery
-        ├── /.well-known/openid-configuration
-        ├── /.well-known/oauth-protected-resource
-        └── /.well-known/oauth-client/{id}
 ```
 
 **Composition Framework** (from "On the Composability of Intelligence"):

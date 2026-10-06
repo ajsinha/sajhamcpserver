@@ -60,7 +60,6 @@ async def login_form(
 async def api_login(request: Request, db: Session = Depends(get_db)):
     from sajha.security import check_auth_rate_limit
     if not check_auth_rate_limit(request):
-        from fastapi.responses import JSONResponse
         return JSONResponse({'error': 'Too many login attempts. Try again in 60 seconds.'}, status_code=429)
     """API login endpoint — returns JWT token."""
     data = await request.json()

@@ -19,6 +19,32 @@ logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════════════════
+# PROTOCOL VERSION NEGOTIATION + JSON-RPC ERRORS
+# ═══════════════════════════════════════════════════
+
+# Newest first.  2024-11-05 is kept for legacy HTTP+SSE clients.
+SUPPORTED_PROTOCOL_VERSIONS: List[str] = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"]
+LATEST_PROTOCOL_VERSION: str = SUPPORTED_PROTOCOL_VERSIONS[0]
+
+
+def negotiate_protocol_version(requested: Optional[str]) -> str:
+    """Echo the client's version when supported, otherwise offer the latest."""
+    if isinstance(requested, str) and requested in SUPPORTED_PROTOCOL_VERSIONS:
+        return requested
+    return LATEST_PROTOCOL_VERSION
+
+
+class MCPError(Exception):
+    """Raised by MCP method handlers to produce a JSON-RPC error response."""
+
+    def __init__(self, code: int, message: str, data: Any = None):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.data = data
+
+
+# ═══════════════════════════════════════════════════
 # TASKS (SEP-1686) — Async tracking for durable requests
 # ═══════════════════════════════════════════════════
 
@@ -132,10 +158,10 @@ class TaskManager:
         """Handle tasks/get MCP method."""
         task_id = params.get("taskId")
         if not task_id:
-            return {"error": {"code": -32602, "message": "taskId required"}}
+            raise MCPError(-32602, "taskId required")
         task = self.get_task(task_id)
         if not task:
-            return {"error": {"code": -32602, "message": f"Task {task_id} not found"}}
+            raise MCPError(-32602, f"Task {task_id} not found")
         return task.to_dict()
 
     def handle_tasks_list(self, params: Dict) -> Dict:
@@ -146,10 +172,10 @@ class TaskManager:
         """Handle tasks/cancel MCP method."""
         task_id = params.get("taskId")
         if not task_id:
-            return {"error": {"code": -32602, "message": "taskId required"}}
+            raise MCPError(-32602, "taskId required")
         if self.cancel_task(task_id):
             return {"cancelled": True, "taskId": task_id}
-        return {"error": {"code": -32602, "message": "Task not found or not cancellable"}}
+        raise MCPError(-32602, "Task not found or not cancellable")
 
 
 # ═══════════════════════════════════════════════════
@@ -260,13 +286,13 @@ class ElicitationManager:
         action = params.get("action", "submit")
         content = params.get("content", {})
         if not request_id:
-            return {"error": {"code": -32602, "message": "requestId required"}}
+            raise MCPError(-32602, "requestId required")
         if action == "cancel":
             self.cancel(request_id)
             return {"cancelled": True}
         if self.respond(request_id, content):
             return {"accepted": True}
-        return {"error": {"code": -32602, "message": "Request not found or already responded"}}
+        raise MCPError(-32602, "Request not found or already responded")
 
 
 # ═══════════════════════════════════════════════════
@@ -353,95 +379,105 @@ class SamplingManager:
 # TOOL ICONS & ANNOTATIONS (SEP-973)
 # ═══════════════════════════════════════════════════
 
-def add_tool_icon(tool_dict: Dict, tool_config: Dict) -> Dict:
-    """Add icon metadata to a tool's MCP format if configured."""
-    icon = tool_config.get('icon')
-    if icon:
-        tool_dict['icon'] = icon  # e.g., {"type": "url", "url": "https://..."} or {"type": "emoji", "emoji": "📊"}
-    # Annotations (from 2025-06-18, carried forward)
-    annotations = tool_config.get('annotations')
-    if annotations:
-        tool_dict['annotations'] = annotations
-    return tool_dict
+def build_tool_icons(tool_config: Dict) -> List[Dict]:
+    """
+    Build the spec ``icons`` array ([{src, mimeType?, sizes?}]) from tool config.
+
+    Accepts ``icons`` (already in spec shape) or the legacy single ``icon``
+    setting: a URL string, {"type": "url", "url": ...} or
+    {"type": "emoji", "emoji": ...} (rendered as an SVG data URI).
+    """
+    icons: List[Dict] = []
+    for item in tool_config.get('icons') or []:
+        if isinstance(item, str):
+            icons.append({"src": item})
+        elif isinstance(item, dict) and item.get('src'):
+            icons.append({k: v for k, v in item.items() if k in ('src', 'mimeType', 'sizes', 'theme')})
+    legacy = tool_config.get('icon')
+    if isinstance(legacy, str) and legacy:
+        icons.append({"src": legacy})
+    elif isinstance(legacy, dict):
+        if legacy.get('url') or legacy.get('src'):
+            icon = {"src": legacy.get('url') or legacy.get('src')}
+            if legacy.get('mimeType'):
+                icon['mimeType'] = legacy['mimeType']
+            icons.append(icon)
+        elif legacy.get('emoji'):
+            from urllib.parse import quote
+            svg = ("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>"
+                   f"<text x='50%' y='55%' font-size='52' text-anchor='middle' "
+                   f"dominant-baseline='middle'>{legacy['emoji']}</text></svg>")
+            icons.append({"src": "data:image/svg+xml," + quote(svg), "mimeType": "image/svg+xml"})
+    return icons
 
 
 # ═══════════════════════════════════════════════════
 # ORIGIN VALIDATION (Minor 3)
 # ═══════════════════════════════════════════════════
 
-def validate_origin(request_origin: Optional[str], allowed_origins: List[str] = None) -> bool:
+_LOCAL_ORIGIN_HOSTS = {"localhost", "127.0.0.1", "[::1]"}
+
+
+def get_allowed_origins() -> List[str]:
     """
-    Validate Origin header per MCP 2025-11-25 Streamable HTTP transport.
-    Servers MUST respond with 403 for invalid Origin headers.
+    Read ``mcp.allowed_origins`` (YAML list or comma-separated string;
+    env override SAJHA_MCP_ALLOWED_ORIGINS="https://a.example,https://b.example").
+    Entries are exact origins (scheme://host[:port]) or "*".
+    Localhost origins on any port are always allowed.
+    """
+    from sajha.core.config import _get
+    raw = _get('mcp.allowed_origins', '')
+    if not raw:
+        return []
+    raw = raw.strip()
+    if raw.startswith('['):
+        import ast
+        try:
+            return [str(x).strip().rstrip('/') for x in ast.literal_eval(raw) if str(x).strip()]
+        except (ValueError, SyntaxError):
+            raw = raw.strip('[]')
+    return [x.strip().strip('\'"').rstrip('/') for x in raw.split(',') if x.strip()]
+
+
+def is_local_origin(origin: str) -> bool:
+    from urllib.parse import urlsplit
+    try:
+        parts = urlsplit(origin)
+        host = parts.hostname or ''
+    except ValueError:
+        return False
+    if parts.scheme not in ('http', 'https'):
+        return False
+    host = f"[{host}]" if ':' in host else host
+    return host.lower() in _LOCAL_ORIGIN_HOSTS
+
+
+def validate_origin(request_origin: Optional[str], allowed_origins: Optional[List[str]] = None) -> bool:
+    """
+    Validate the Origin header (MCP 2025-11-25 Streamable HTTP, DNS-rebinding
+    protection).  Servers MUST respond 403 to an invalid Origin.
+
+    - No Origin header (non-browser clients): allowed.
+    - localhost / 127.0.0.1 / [::1] on any port: allowed.
+    - Otherwise the origin must be listed in ``mcp.allowed_origins``
+      (or the list must contain "*").
     """
     if not request_origin:
-        return True  # No origin = same-origin or non-browser
-    if not allowed_origins:
-        return True  # No restrictions configured
+        return True
+    if allowed_origins is None:
+        allowed_origins = get_allowed_origins()
     if '*' in allowed_origins:
         return True
-    return request_origin in allowed_origins
+    if is_local_origin(request_origin):
+        return True
+    return request_origin.rstrip('/') in allowed_origins
 
 
-# ═══════════════════════════════════════════════════
-# OIDC DISCOVERY (Major 1) & PRM (Minor 8) & CIMD (Major 8)
-# ═══════════════════════════════════════════════════
-
-def build_openid_configuration(issuer_url: str, server_url: str) -> Dict:
-    """
-    Build an OpenID Connect Discovery 1.0 document.
-    MCP 2025-11-25 Major 1: Enhance auth server discovery with OIDC Discovery.
-    Served at: GET /.well-known/openid-configuration
-    """
-    return {
-        "issuer": issuer_url,
-        "authorization_endpoint": f"{server_url}/oauth/authorize",
-        "token_endpoint": f"{server_url}/oauth/token",
-        "jwks_uri": f"{server_url}/oauth/jwks",
-        "registration_endpoint": f"{server_url}/oauth/register",
-        "scopes_supported": ["openid", "profile", "tools:read", "tools:execute", "admin"],
-        "response_types_supported": ["code"],
-        "grant_types_supported": ["authorization_code", "client_credentials", "refresh_token"],
-        "token_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post"],
-        "code_challenge_methods_supported": ["S256"],
-        "subject_types_supported": ["public"],
-        "id_token_signing_alg_values_supported": ["RS256", "HS256"],
-    }
-
-
-def build_protected_resource_metadata(server_url: str) -> Dict:
-    """
-    Build an OAuth 2.0 Protected Resource Metadata document per RFC 9728.
-    MCP 2025-11-25 Minor 8: Align with RFC 9728.
-    Served at: GET /.well-known/oauth-protected-resource
-    """
-    return {
-        "resource": server_url,
-        "authorization_servers": [server_url],
-        "bearer_methods_supported": ["header"],
-        "scopes_supported": ["tools:read", "tools:execute", "admin"],
-        "resource_documentation": f"{server_url}/docs",
-    }
-
-
-def build_client_id_metadata_document(client_id: str, client_name: str,
-                                       redirect_uris: List[str] = None) -> Dict:
-    """
-    Build a Client ID Metadata Document (CIMD) per SEP-991.
-    MCP 2025-11-25 Major 8: Recommended client registration mechanism.
-    Served at: GET /.well-known/oauth-client/{client_id}
-    """
-    doc = {
-        "client_id": client_id,
-        "client_name": client_name,
-        "redirect_uris": redirect_uris or [f"http://localhost:3002/oauth/callback"],
-        "grant_types": ["authorization_code"],
-        "response_types": ["code"],
-        "token_endpoint_auth_method": "client_secret_basic",
-        "scope": "tools:read tools:execute",
-    }
-    return doc
-
+# OAuth discovery documents (/.well-known/openid-configuration,
+# /.well-known/oauth-protected-resource, /.well-known/oauth-client/{id}) were
+# removed: SAJHA does not run an OAuth authorization server, so those
+# documents advertised endpoints (/oauth/authorize, /oauth/token, ...) that
+# did not exist.  MCP clients treat a 404 on the PRM URL as "no OAuth".
 
 # ═══════════════════════════════════════════════════
 # SSE EVENT IDs + RESUMPTION (Minor 7)

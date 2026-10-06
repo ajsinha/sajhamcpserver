@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 5.3.0
+  version: 5.4.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   email: ajsinha@gmail.com
@@ -95,6 +95,23 @@ oauth:
     tenant_id: ${AZURE_TENANT_ID:}
     client_id: ${AZURE_CLIENT_ID:}
     client_secret: ${AZURE_CLIENT_SECRET:}
+
+# ── MCP transport (Streamable HTTP, spec 2025-11-25) ────────────────────────
+mcp:
+  # Browser Origins allowed to call /mcp (DNS-rebinding protection; others get 403).
+  # Requests without an Origin header and http(s)://localhost, 127.0.0.1 or
+  # [::1] on any port are always allowed.  Add exact origins
+  # (scheme://host[:port]) for browser-based MCP clients, or "*" to disable.
+  # Env override: SAJHA_MCP_ALLOWED_ORIGINS="https://a.example.com,https://b.example.com"
+  allowed_origins: []
+  tools:
+    # Emit each tool's outputSchema in tools/list and return structuredContent
+    # from tools/call. MCP clients validate structuredContent against it.
+    advertise_output_schema: true
+  # Expose the official conformance-suite test tools/prompts/resources
+  # (test_simple_text, test://static-text, ...). For protocol testing only.
+  # Env override: SAJHA_MCP_CONFORMANCE_FIXTURES=true
+  conformance_fixtures: false
 
 # ── Config Paths ─────────────────────────────────────────────────────────────
 

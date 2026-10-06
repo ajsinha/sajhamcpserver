@@ -12,8 +12,9 @@ import asyncio
 import logging
 from datetime import datetime
 
+from starlette.concurrency import run_in_threadpool
 from fastapi import APIRouter, Request, Depends
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sse_starlette.sse import EventSourceResponse
 from sqlalchemy.orm import Session
 
@@ -23,51 +24,254 @@ from sajha.auth import AuthManager, AuthContext
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=['mcp'])
 
-# ── Active SSE sessions ──────────────────────────────────────────
+# ── Legacy (2024-11-05) SSE sessions ─────────────────────────────
 _sse_sessions: dict[str, asyncio.Queue] = {}
 
+_SESSION_HEADER = 'mcp-session-id'
+_VERSION_HEADER = 'mcp-protocol-version'
+
+
+def _rpc_error(code: int, message: str, status: int, rid=None, headers=None) -> JSONResponse:
+    return JSONResponse({'jsonrpc': '2.0', 'id': rid, 'error': {'code': code, 'message': message}},
+                        status_code=status, headers=headers)
+
+
+def _check_origin(request: Request):
+    """403 for a disallowed Origin (DNS-rebinding protection), else None."""
+    from sajha.core.mcp_2025_11_25 import validate_origin
+    origin = request.headers.get('origin')
+    if not validate_origin(origin):
+        logger.warning(f"Rejected MCP request from disallowed Origin: {origin}")
+        return _rpc_error(-32000, 'Forbidden: Origin not allowed', 403)
+    return None
+
+
+def _check_protocol_header(request: Request):
+    """400 when MCP-Protocol-Version names a version this server does not support."""
+    from sajha.core.mcp_2025_11_25 import SUPPORTED_PROTOCOL_VERSIONS
+    version = request.headers.get(_VERSION_HEADER)
+    if version and version not in SUPPORTED_PROTOCOL_VERSIONS:
+        return _rpc_error(-32000, f'Unsupported MCP-Protocol-Version: {version}. '
+                                  f'Supported: {", ".join(SUPPORTED_PROTOCOL_VERSIONS)}', 400)
+    return None
+
+
+def _lookup_session(request: Request):
+    """Return (session, error_response). Unknown session id -> 404."""
+    from sajha.core.mcp_sessions import get_session_store
+    sid = request.headers.get(_SESSION_HEADER)
+    if not sid:
+        return None, None
+    session = get_session_store().get(sid)
+    if session is None:
+        return None, _rpc_error(-32001, 'Session not found', 404)
+    return session, None
+
+
+# ── Streamable HTTP: POST /mcp ───────────────────────────────────
+
+@router.post('/mcp')
+@router.post('/api/mcp')
+async def mcp_post(request: Request, db: Session = Depends(get_db)):
+    """
+    MCP Streamable HTTP transport (2025-11-25) — client -> server messages.
+
+    - request      -> JSON-RPC response (application/json), or an SSE stream
+                      for tools that talk to the client while running
+    - notification -> 202 Accepted, empty body
+    - response     -> 202 Accepted (answer to a server -> client request)
+    - JSON array   -> 400 / -32600 (batching was removed in 2025-06-18;
+                      the WebSocket transport still accepts batches)
+    """
+    from sajha.app import mcp_handler
+    from sajha.core.mcp_sessions import get_session_store
+
+    for check in (_check_origin, _check_protocol_header):
+        err = check(request)
+        if err is not None:
+            return err
+    mcp_session, err = _lookup_session(request)
+    if err is not None:
+        return err
+
+    try:
+        body = await request.json()
+    except Exception:
+        return _rpc_error(-32700, 'Parse error', 400)
+
+    if isinstance(body, list):
+        return _rpc_error(-32600, 'Invalid Request: JSON-RPC batches are not supported '
+                                  'on this transport (removed in MCP 2025-06-18)', 400)
+    if not isinstance(body, dict):
+        return _rpc_error(-32600, 'Invalid Request', 400)
+
+    store = get_session_store()
+
+    # A JSON-RPC response from the client (to sampling/elicitation etc.)
+    if 'method' not in body and 'id' in body and ('result' in body or 'error' in body):
+        if not store.resolve_response(mcp_session, body):
+            logger.debug(f"Unmatched client response id={body.get('id')!r}")
+        return Response(status_code=202)
+
+    auth = AuthManager.authenticate_request(request, db)
+    session_data = auth.to_legacy_session() if auth.authenticated else None
+
+    # Notification: no id -> 202, no body
+    if body.get('jsonrpc') == '2.0' and isinstance(body.get('method'), str) and 'id' not in body:
+        await run_in_threadpool(mcp_handler.handle_request, body, session_data)
+        if mcp_session and body['method'] in ('notifications/initialized', 'initialized'):
+            mcp_session.initialized = True
+        return Response(status_code=202)
+
+    method = body.get('method')
+    params = body.get('params') if isinstance(body.get('params'), dict) else {}
+
+    # Tools that interact with the client while running (conformance fixtures)
+    if method == 'tools/call':
+        from sajha.core.mcp_conformance_fixtures import get_conformance_fixtures
+        fixtures = get_conformance_fixtures()
+        if fixtures and fixtures.is_async_tool(params.get('name', '')):
+            return await _stream_tool_call(request, body, params, fixtures, mcp_session)
+
+    response = await run_in_threadpool(mcp_handler.handle_request, body, session_data)
+
+    # Legacy 2024-11-05 HTTP+SSE client: the response travels over its SSE stream
+    legacy_sid = request.query_params.get('session')
+    if legacy_sid and legacy_sid in _sse_sessions:
+        await _sse_sessions[legacy_sid].put(response)
+        return Response(status_code=202)
+
+    headers = {}
+    if method == 'initialize' and isinstance(response, dict) and 'result' in response:
+        new_session = store.create(
+            protocol_version=response['result'].get('protocolVersion'),
+            client_info=params.get('clientInfo') or {},
+            client_capabilities=params.get('capabilities') or {},
+            user_id=(session_data or {}).get('user_id'),
+        )
+        headers['Mcp-Session-Id'] = new_session.session_id
+
+    status = 400 if 'error' in response and response['error'].get('code') in (-32700, -32600) else 200
+    return JSONResponse(response, status_code=status, headers=headers)
+
+
+async def _stream_tool_call(request: Request, body: dict, params: dict, fixtures, mcp_session):
+    """Run an async tool, streaming its notifications/requests and final result over SSE."""
+    from sajha.core.mcp_sessions import ToolCallContext
+
+    rid = body.get('id')
+    name = params.get('name', '')
+    args = params.get('arguments') or {}
+    meta = params.get('_meta') or {}
+    wants_sse = 'text/event-stream' in request.headers.get('accept', '')
+
+    if not wants_sse:
+        ctx = ToolCallContext(mcp_session, None, meta.get('progressToken'))
+        result = await fixtures.call_tool_async(name, args, ctx)
+        return JSONResponse({'jsonrpc': '2.0', 'id': rid, 'result': result})
+
+    queue: asyncio.Queue = asyncio.Queue()
+    ctx = ToolCallContext(mcp_session, queue, meta.get('progressToken'))
+    stream_id = uuid.uuid4().hex[:12]
+
+    async def events():
+        counter = 0
+
+        def next_id():
+            nonlocal counter
+            counter += 1
+            return f"{stream_id}:{counter}"
+
+        # Priming event (id + empty data) so the client can resume (SEP-1699)
+        yield {'id': next_id(), 'data': ''}
+        task = asyncio.create_task(fixtures.call_tool_async(name, args, ctx))
+        try:
+            while True:
+                getter = asyncio.create_task(queue.get())
+                done, _ = await asyncio.wait({getter, task}, return_when=asyncio.FIRST_COMPLETED)
+                if getter in done:
+                    yield {'id': next_id(), 'event': 'message', 'data': json.dumps(getter.result())}
+                    continue
+                getter.cancel()
+                while not queue.empty():
+                    yield {'id': next_id(), 'event': 'message', 'data': json.dumps(queue.get_nowait())}
+                result = task.result()
+                yield {'id': next_id(), 'event': 'message',
+                       'data': json.dumps({'jsonrpc': '2.0', 'id': rid, 'result': result})}
+                return
+        finally:
+            if not task.done():
+                task.cancel()
+
+    return EventSourceResponse(events())
+
+
+# ── Streamable HTTP: DELETE /mcp ─────────────────────────────────
+
+@router.delete('/mcp')
+@router.delete('/api/mcp')
+async def mcp_delete(request: Request):
+    """Terminate an MCP session: 204 on success, 404 if unknown, 400 if no header."""
+    from sajha.core.mcp_sessions import get_session_store
+    err = _check_origin(request)
+    if err is not None:
+        return err
+    sid = request.headers.get(_SESSION_HEADER)
+    if not sid:
+        return _rpc_error(-32600, 'Mcp-Session-Id header required', 400)
+    if not get_session_store().delete(sid):
+        return _rpc_error(-32001, 'Session not found', 404)
+    return Response(status_code=204)
+
+
+# ── GET /mcp ─────────────────────────────────────────────────────
 
 @router.get('/mcp')
 @router.get('/mcp/sse')
 async def mcp_sse(request: Request, db: Session = Depends(get_db)):
     """
-    MCP 2025-11-25 Streamable HTTP transport — GET endpoint.
+    GET on the MCP endpoint.
 
-    Per spec: "The server MUST provide a single HTTP endpoint path
-    that supports both POST and GET methods."
-
-    GET /mcp opens an SSE stream for server → client notifications.
-    POST /mcp sends JSON-RPC requests (handled in api_routes.py).
-
-    The /mcp/sse path is kept for backwards compatibility with
-    2024-11-05 HTTP+SSE clients.
+    * Streamable HTTP clients (2025-03-26 and later) identify themselves with
+      the Mcp-Session-Id and/or MCP-Protocol-Version header.  SAJHA does not
+      push unsolicited server -> client messages, so — as the spec allows —
+      it answers 405 Method Not Allowed instead of opening an idle stream
+      (unknown session id -> 404).
+    * Requests without those headers (and every GET /mcp/sse) get the legacy
+      2024-11-05 HTTP+SSE stream whose first event is ``endpoint``, so old
+      clients keep working.
     """
-    # MCP 2025-11-25 Minor 3: Validate Origin header
-    from sajha.core.mcp_2025_11_25 import validate_origin
-    origin = request.headers.get('origin')
-    if not validate_origin(origin):
-        from fastapi.responses import JSONResponse
-        return JSONResponse({"error": "Forbidden: invalid Origin"}, status_code=403)
+    err = _check_origin(request)
+    if err is not None:
+        return err
+
+    if request.url.path.rstrip('/') == '/mcp' and (
+            request.headers.get(_SESSION_HEADER) or request.headers.get(_VERSION_HEADER)):
+        err = _check_protocol_header(request)
+        if err is not None:
+            return err
+        _, err = _lookup_session(request)
+        if err is not None:
+            return err
+        return JSONResponse({'error': 'Method Not Allowed: this server does not offer a '
+                                      'standalone server-to-client SSE stream'},
+                            status_code=405, headers={'Allow': 'POST, DELETE'})
 
     auth = AuthManager.authenticate_request(request, db)
     session_id = str(uuid.uuid4())
     _sse_sessions[session_id] = asyncio.Queue()
 
-    # MCP 2025-11-25 Minor 7: SSE event IDs for stream resumption
     from sajha.core.mcp_2025_11_25 import SSEEventTracker
     tracker = SSEEventTracker()
     last_event_id = request.headers.get('Last-Event-ID')
 
     async def event_generator():
         try:
-            # Replay missed events if client reconnects with Last-Event-ID
             if last_event_id:
                 for missed in tracker.get_events_after(last_event_id):
                     yield {'id': missed['id'], 'event': missed['event'], 'data': missed['data']}
 
-            # First event: tell the client where to POST
-            # 2025-11-25: POST to same /mcp endpoint (Streamable HTTP)
-            # Also include session for backwards compat with /mcp/message
+            # First event: tell the legacy client where to POST
             eid = tracker.next_id(session_id)
             endpoint_data = f'/mcp?session={session_id}'
             tracker.record_event(eid, 'endpoint', endpoint_data)
@@ -81,7 +285,7 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
                 if await request.is_disconnected():
                     break
                 try:
-                    notification = _sse_sessions[session_id].get_nowait()
+                    notification = await asyncio.wait_for(_sse_sessions[session_id].get(), timeout=5)
                     eid = tracker.next_id(session_id)
                     data = json.dumps(notification)
                     tracker.record_event(eid, 'message', data)
@@ -90,10 +294,8 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
                         'event': 'message',
                         'data': data,
                     }
-                except asyncio.QueueEmpty:
-                    # Keep-alive
+                except asyncio.TimeoutError:
                     yield {'event': 'ping', 'data': ''}
-                    await asyncio.sleep(5)
         finally:
             _sse_sessions.pop(session_id, None)
 
@@ -108,6 +310,9 @@ async def mcp_message(request: Request, db: Session = Depends(get_db)):
     """
     from sajha.app import mcp_handler
 
+    err = _check_origin(request)
+    if err is not None:
+        return err
     session_id = request.query_params.get('session')
     auth = AuthManager.authenticate_request(request, db)
     session_data = auth.to_legacy_session() if auth.authenticated else None
@@ -120,12 +325,14 @@ async def mcp_message(request: Request, db: Session = Depends(get_db)):
             'error': {'code': -32700, 'message': 'Parse error'},
         }, status_code=400)
 
-    response = mcp_handler.handle_request(body, session_data)
+    if not isinstance(body, dict):
+        return _rpc_error(-32600, 'Invalid Request', 400)
+    response = await run_in_threadpool(mcp_handler.handle_request, body, session_data)
 
     # If a notification should go to the SSE stream
+    method = body.get('method', '')
     if session_id and session_id in _sse_sessions:
         # Push list_changed notification if tools were modified
-        method = body.get('method', '')
         if 'enable' in method or 'disable' in method or 'reload' in method:
             await _sse_sessions[session_id].put({
                 'jsonrpc': '2.0',

@@ -121,6 +121,7 @@ class SajhaMCPServerWebApp:
             allow_credentials=True,
             allow_methods=['*'],
             allow_headers=['*'],
+            expose_headers=['Mcp-Session-Id'],
         )
 
         # Security headers middleware

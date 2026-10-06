@@ -240,11 +240,30 @@ class BaseMCPTool(ABC):
         Returns:
             MCP formatted tool dictionary
         """
-        return {
+        tool = {
             "name": self.name,
             "description": self.description,
             "inputSchema": self.input_schema
         }
+        config = self.config or {}
+        title = config.get('title') or (self._metadata or {}).get('title')
+        if title:
+            tool["title"] = title
+        # outputSchema must be a JSON Schema object of type "object" (MCP 2025-11-25)
+        try:
+            output_schema = self.output_schema
+        except Exception:
+            output_schema = None
+        if isinstance(output_schema, dict) and output_schema.get('type') == 'object':
+            tool["outputSchema"] = output_schema
+        annotations = config.get('annotations')
+        if isinstance(annotations, dict) and annotations:
+            tool["annotations"] = annotations
+        from sajha.core.mcp_2025_11_25 import build_tool_icons
+        icons = build_tool_icons(config)
+        if icons:
+            tool["icons"] = icons
+        return tool
     
     def load_from_config(self, config_path: str):
         """

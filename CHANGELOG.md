@@ -1,6 +1,41 @@
 # SAJHA MCP Server — Changelog
 
-## Unreleased — MAYA design language and themes
+## v5.4.0 (October 2026) — MCP 2025-11-25, verified
+
+This release makes SAJHA's MCP 2025-11-25 support match what it claims, proven by the official
+MCP conformance suite 0.1.16: **32/32 server scenarios, 43 checks passed, 0 failed**, plus the
+official Python SDK 2.3.0 client. It is tagged `v5.4.0` and `mcp-2025-11-25`.
+
+### Protocol and transport
+- `initialize` negotiates the version (2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05) instead of ignoring the client's.
+- Streamable HTTP on `/mcp`:
+  - `Mcp-Session-Id` sessions; `DELETE /mcp` ends a session.
+  - The `MCP-Protocol-Version` header is validated.
+  - Notifications get 202 with no body; JSON-RPC batches get 400.
+  - `GET /mcp` returns 405 to Streamable HTTP clients.
+- `Origin` allow-list (`mcp.allowed_origins`, env `SAJHA_MCP_ALLOWED_ORIGINS`) with 403 for other origins.
+- The legacy 2024-11-05 HTTP+SSE flow now delivers responses over its stream.
+- MCP tool calls run off the event loop. They now use the same path as the REST API: disabled tools are refused, and arguments, cache, circuit breaker and metrics all apply.
+
+### Tools, prompts, resources
+- `tools/list` emits `title`, `outputSchema`, `annotations` and `icons[]`.
+- `tools/call` returns JSON text plus `structuredContent`. Turn this off with `mcp.tools.advertise_output_schema: false`.
+- `prompts/list` includes arguments, and prompts responses carry their `id`.
+- `prompts/get` returns real messages.
+- Errors are proper JSON-RPC errors, not error objects inside `result`.
+
+### Honesty fixes (breaking)
+- Server capabilities no longer advertise client-only `elicitation`/`sampling`, or a `tasks` shape that never ran. `listChanged` and `subscribe` are `false` until notifications exist. Custom keys moved under `experimental.sajha`.
+- Removed `/.well-known/openid-configuration`, `/.well-known/oauth-protected-resource` and `/.well-known/oauth-client/{id}`. They advertised OAuth endpoints that did not exist.
+- `ping` returns `{}`. Unknown resources return `-32002`. Tool icons are `icons[]`.
+
+### Also
+- Opt-in conformance fixtures: `mcp.conformance_fixtures` / `SAJHA_MCP_CONFORMANCE_FIXTURES=true`.
+- Client SDK: `SajhaMCPClient`, a wrapper over the official `mcp` SDK v2 (`pip install sajhaclient[mcp]`), with SAJHA's REST, A2A and WebSocket extras.
+- Fixed: `POST /api/auth/login` 500; prompt pages' Save/Delete/Test endpoints; prompt detail 500.
+- WCAG AA contrast pass across all screens and themes.
+
+### Design: MAYA design language and themes
 
 SAJHA now uses MAYA's look and MAYA's four themes, with the same names and the same colour values.
 

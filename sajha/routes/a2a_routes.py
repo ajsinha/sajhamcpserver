@@ -248,34 +248,11 @@ _A2A_METHODS = {
 
 
 # ═══════════════════════════════════════════════════
-# MCP 2025-11-25: OAuth Discovery Endpoints
+# OAuth discovery
 # ═══════════════════════════════════════════════════
-
-@router.get('/.well-known/openid-configuration')
-async def openid_configuration(request: Request):
-    """MCP 2025-11-25 Major 1: OpenID Connect Discovery document."""
-    from sajha.core.mcp_2025_11_25 import build_openid_configuration
-    from sajha.core.config import get_settings
-    _s = get_settings()
-    server_url = f"{request.url.scheme}://{request.url.netloc}"
-    return build_openid_configuration(server_url, server_url)
-
-
-@router.get('/.well-known/oauth-protected-resource')
-async def oauth_protected_resource(request: Request):
-    """MCP 2025-11-25 Minor 8: Protected Resource Metadata per RFC 9728."""
-    from sajha.core.mcp_2025_11_25 import build_protected_resource_metadata
-    server_url = f"{request.url.scheme}://{request.url.netloc}"
-    return build_protected_resource_metadata(server_url)
-
-
-@router.get('/.well-known/oauth-client/{client_id}')
-async def oauth_client_metadata(client_id: str, request: Request):
-    """MCP 2025-11-25 Major 8: Client ID Metadata Document (CIMD)."""
-    from sajha.core.mcp_2025_11_25 import build_client_id_metadata_document
-    # Look up client from API keys or return default
-    return build_client_id_metadata_document(
-        client_id=client_id,
-        client_name=f"SAJHA Client {client_id}",
-        redirect_uris=[f"{request.url.scheme}://{request.url.netloc}/oauth/callback"]
-    )
+# /.well-known/openid-configuration, /.well-known/oauth-protected-resource and
+# /.well-known/oauth-client/{id} are intentionally NOT served: SAJHA does not
+# run an OAuth authorization server, and the documents previously served here
+# advertised /oauth/* endpoints that never existed.  /mcp authenticates with
+# SAJHA JWTs or API keys (Authorization: Bearer / X-API-Key); MCP clients
+# treat a 404 on the protected-resource metadata URL as "no OAuth".

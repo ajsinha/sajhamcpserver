@@ -213,7 +213,7 @@ class TestMCPProtocol:
     def test_ping(self, client):
         r = self._mcp(client, 'ping')
         assert r.status_code == 200
-        assert r.json()['result']['status'] == 'ok'
+        assert r.json()['result'] == {}  # MCP spec: ping result is an empty object
 
     def test_invalid_method(self, client):
         r = self._mcp(client, 'nonexistent/method')
