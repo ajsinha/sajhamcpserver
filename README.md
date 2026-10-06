@@ -1,6 +1,6 @@
 # SAJHA MCP Server
 
-**Version 5.4.0** · FastAPI · Python 3.9+ · **MCP Protocol 2025-11-25** (conformance verified)
+**Version 6.0.0** · FastAPI · Python 3.9+ · **MCP 2026-07-28 and 2025-11-25** (dual-era, conformance verified)
 
 **Copyright © 2025–2030, Ashutosh Sinha** · ajsinha@gmail.com · [GitHub](https://github.com/ajsinha/sajhamcpserver)
 
@@ -8,13 +8,24 @@
 
 ## What is SAJHA?
 
-SAJHA (Hindi: साझा — "shared, collaborative") is a production-grade [Model Context Protocol](https://modelcontextprotocol.io) server built on FastAPI. It speaks **MCP specification 2025-11-25** (and negotiates 2025-06-18, 2025-03-26 and 2024-11-05), verified against the official MCP conformance suite: 32/32 server scenarios, 43/43 checks.
+SAJHA (Hindi: साझा — "shared, collaborative") is a production-grade [Model Context Protocol](https://modelcontextprotocol.io) server built on FastAPI. It is a **dual-era** server: stateless **MCP 2026-07-28** and session-based **2025-11-25** (plus 2025-06-18, 2025-03-26, 2024-11-05) on the same `/mcp` endpoint, each verified in CI against the official MCP conformance suite.
 
 The server exposes **497 tools** across financial markets, government data, search, analytics, and enterprise integrations through three MCP transports (HTTP POST, SSE, WebSocket), a REST API, and an A2A agent protocol.
 
 ---
 
-## MCP 2025-11-25 Compliance
+## MCP compliance
+
+Every push runs the official [MCP conformance suite](https://github.com/modelcontextprotocol/conformance) against a live server, once per spec version ([workflow](.github/workflows/mcp-conformance.yml)):
+
+| Spec version | Suite | Result | Details |
+|---|---|---|---|
+| **2026-07-28** (stateless) | 0.2.0-alpha.12 | 40/40 scenarios, 152/152 checks; tasks extension 44/44 | [docs/MCP_2026_07_28_Compliance.md](docs/MCP_2026_07_28_Compliance.md) |
+| **2025-11-25** (sessions) | 0.1.16 | 32/32 scenarios, 43/43 checks | [docs/MCP_2025_11_25_Compliance.md](docs/MCP_2025_11_25_Compliance.md) |
+
+A request whose `_meta` carries `io.modelcontextprotocol/protocolVersion` is served statelessly (2026-07-28: `server/discover`, required `Mcp-Method`/`Mcp-Name` headers, cacheable results, streamed progress, `subscriptions/listen`, Multi Round-Trip Requests, the tasks extension). `initialize` selects the 2025-11-25 session path, which is unchanged. The last 2025-only release is tagged `v5.4.0` / `mcp-2025-11-25`.
+
+### Previous: MCP 2025-11-25 Compliance
 
 Verified with the official [MCP conformance suite](https://github.com/modelcontextprotocol/conformance) 0.1.16 — **32/32 server scenarios, 43 passed, 0 failed** — and with the official Python SDK 2.3.0 client. Details, and what is deliberately not implemented, are in [docs/MCP_2025_11_25_Compliance.md](docs/MCP_2025_11_25_Compliance.md).
 
@@ -63,7 +74,7 @@ python run_server.py --log-level DEBUG             # Verbose logging
 
 | Category | Details |
 |----------|---------|
-| **MCP Protocol** | 2025-11-25 (latest). 15 MCP methods: initialize, tools/list, tools/call, tasks/get, tasks/list, tasks/cancel, elicitation/respond, notifications/cancelled, resources/list, resources/read, prompts/list, prompts/get, completion/complete, logging/setLevel, ping |
+| **MCP Protocol** | Dual-era: 2026-07-28 (stateless: server/discover, subscriptions/listen, MRTR, tasks extension) and 2025-11-25 (sessions). tools, prompts, resources, completion, streamed progress and cancellation in both |
 | **Transports** | HTTP POST `/mcp` (stateless) · SSE `/mcp/sse` (server-push with event IDs) · WebSocket `/mcp/ws` (full-duplex) |
 | **Tools** | 497 built-in: FMP (100), OpenBB (70), FRED (55), Alpha Vantage (35), Yahoo Finance (35), CoinGecko (25), EDGAR (20), Calculators (19), World Bank (10), and more |
 | **Composition** | Composite tools with Kleisli arrows (StepResult envelope), ParamLens (surgical param projection), EntropyGuard (cumulative confidence tracking with parallel-aware model) |
@@ -95,7 +106,7 @@ python run_server.py --log-level DEBUG             # Verbose logging
 ```
 run_server.py → SajhaMCPServerWebApp (FastAPI)
   ├── 14 route modules, 79+ REST endpoints
-  ├── MCPHandler (MCP 2025-11-25, 15 methods)
+  ├── MCPHandler (2025-11-25 sessions) + MCPModern (2026-07-28 stateless)
   │     ├── TaskManager        → async task tracking
   │     ├── ElicitationManager → form + URL user input
   │     └── SamplingManager    → LLM calls with tools
@@ -164,7 +175,7 @@ storage:
 
 ## Client SDK
 
-Zero-dependency Python (stdlib only). `pip install sajhaclient`
+Zero-dependency Python core (stdlib only): `pip install sajhaclient`. The standard MCP client adds the official SDK: `pip install sajhaclient[mcp]`.
 
 ```python
 from sajhaclient import SajhaClient, SajhaConfig, ApiKeyAuth, ClientPipeline
@@ -174,12 +185,13 @@ client = SajhaClient(SajhaConfig(base_url="http://localhost:3002"), auth=ApiKeyA
 # Simple tool call
 result = client.execute_tool("yahoo_quote", symbol="AAPL")
 
-# MCP client (protocol version 2025-11-25)
-from sajhaclient import MCPClient
-mcp = MCPClient(SajhaConfig(base_url="http://localhost:3002"), auth=ApiKeyAuth("sja_key"))
-caps = mcp.initialize()  # Negotiates 2025-11-25
-tools = mcp.list_tools()
-result = mcp.call_tool("fred_gdp")
+# Standard MCP client: the official MCP SDK under a SAJHA wrapper (pip install sajhaclient[mcp])
+from sajhaclient import SajhaMCPSyncClient
+with SajhaMCPSyncClient("http://localhost:3002", api_key="sja_key") as mcp:
+    print(mcp.negotiated_protocol_version)   # 2026-07-28 (falls back to 2025-11-25 on older servers)
+    tools = mcp.list_tools()
+    result = mcp.call_tool("calc_percentage_change", {"old_value": 80, "new_value": 100})
+    health = mcp.rest.health()                # SAJHA extras ride on the same object
 
 # Client-side pipeline with confidence tracking
 pipeline = ClientPipeline(client)
@@ -237,7 +249,7 @@ assert bisimilar(HTTPTransport(config, auth), WSTransport(config, auth),
 | 12 | Tool versioning + contracts | ❌ | ❌ | ❌ | **✅ v1/v2 side-by-side** |
 | 13 | OpenTelemetry observability | ❌ | ❌ | Some | **✅ p50/p95/p99 + alerting** |
 | | **PLATFORM** | | | | |
-| 14 | MCP 2025-11-25 compliance | Partial | Partial | Varies | **✅ Full (18/18)** |
+| 14 | MCP compliance (official conformance suite) | Partial | Partial | Varies | **✅ 2026-07-28 + 2025-11-25, in CI** |
 | 15 | Built-in tools | 0 | 0 | 1–20 | **497** |
 | 16 | Web UI (4 themes) | ❌ | ❌ | Some | **✅ 42+ screens** |
 | 17 | Client SDK + transport coalgebra | — | — | — | **✅ 5 clients + pipelines** |

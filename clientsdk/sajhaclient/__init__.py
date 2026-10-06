@@ -32,7 +32,7 @@ Standard MCP client (official MCP Python SDK; pip install sajhaclient[mcp]):
         tools = await mcp.list_all_tools()
 """
 
-__version__ = "5.4.0"
+__version__ = "6.0.0"
 __author__ = "Ashutosh Sinha"
 __email__ = "ajsinha@gmail.com"
 

@@ -1,5 +1,33 @@
 # SAJHA MCP Server — Changelog
 
+## v6.0.0 (October 2026) — MCP 2026-07-28, dual-era
+
+SAJHA now serves the stateless **MCP 2026-07-28** protocol and the session-based **2025-11-25**
+protocol on the same `/mcp` endpoint. The request's `_meta` decides which: a protocol version
+there means stateless, `initialize` means a 2025-11-25 session. Both are verified in CI by the
+official conformance suite (`.github/workflows/mcp-conformance.yml`):
+- **2026-07-28:** 40/40 scenarios, 152/152 checks; tasks extension 44/44.
+- **2025-11-25:** 32/32 scenarios, 43/43 checks.
+
+### 2026-07-28 (new)
+- `server/discover`.
+- Version, capabilities and log level read from `_meta` on every request.
+- Required `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers (-32020); version errors are -32022.
+- `resultType` and `ttlMs`/`cacheScope` on results.
+- `GET`/`DELETE /mcp` return 405 for these clients.
+- Streamed `tools/call` with progress and log notifications. Closing the stream cancels the call.
+- `subscriptions/listen`, fed by a change bus over the tool and prompt registries. The legacy `/mcp/sse` and `/mcp/ws` streams receive the same events.
+- Multi Round-Trip Requests with an HMAC-signed `requestState`, and elicitation through them. Optional confirmation for destructive tools: `mcp.confirm_destructive_tools`.
+- Tasks extension `io.modelcontextprotocol/tasks`. Tools opt in with `execution.taskSupport`.
+- Tool context API (`report_progress`, `report_log`, `is_cancelled`) for long-running tools.
+
+### Client SDK
+- `SajhaMCPClient` / `SajhaMCPSyncClient` (from 5.4.0) negotiate 2026-07-28 automatically through the official SDK (`pip install sajhaclient[mcp]`).
+
+### Compatibility
+- 2025-11-25 clients are unaffected.
+- `v5.4.0` (also tagged `mcp-2025-11-25`) remains the last 2025-only release.
+
 ## v5.4.0 (October 2026) — MCP 2025-11-25, verified
 
 This release makes SAJHA's MCP 2025-11-25 support match what it claims, proven by the official

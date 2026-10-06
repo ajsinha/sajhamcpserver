@@ -1,0 +1,58 @@
+# Runs the official MCP conformance suite against a live SAJHA server, once per spec version
+# SAJHA serves. A release is only as compliant as the last green run of this workflow.
+name: MCP conformance
+
+on:
+  push:
+    branches: [develop, main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - spec: 2025-11-25
+            suite: '@modelcontextprotocol/conformance@0.1.16'
+          - spec: 2026-07-28
+            suite: '@modelcontextprotocol/conformance@0.2.0-alpha.12'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install the server's core dependencies
+        # the full requirements.txt pulls data-provider SDKs the protocol tests never touch
+        run: |
+          pip install "fastapi<1" "uvicorn[standard]<1" "pydantic<3" "pydantic-settings<3" python-multipart \
+            jinja2 "sqlalchemy<3" "python-jose[cryptography]<4" "bcrypt<5" "sse-starlette<3" \
+            httpx requests jsonschema python-dotenv pyyaml duckdb psutil
+      - name: Start SAJHA with the conformance fixtures
+        env:
+          SAJHA_MCP_CONFORMANCE_FIXTURES: 'true'
+        run: |
+          nohup python run_server.py --host 127.0.0.1 --port 3002 > server.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null http://127.0.0.1:3002/login && exit 0
+            sleep 2
+          done
+          cat server.log; exit 1
+      - name: Conformance ${{ matrix.spec }}
+        run: |
+          npx -y ${{ matrix.suite }} server --url http://127.0.0.1:3002/mcp \
+            --spec-version ${{ matrix.spec }} --suite all | tee conformance-${{ matrix.spec }}.txt
+          grep -q "0 failed" conformance-${{ matrix.spec }}.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: conformance-${{ matrix.spec }}
+          path: |
+            conformance-${{ matrix.spec }}.txt
+            server.log
