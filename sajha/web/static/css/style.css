@@ -323,6 +323,8 @@ pre, code { color: var(--t-text) !important; }
 pre { background: var(--t-inp) !important; border: 1px solid var(--t-card-b) !important; border-radius: var(--radius) !important; padding: 1rem !important; }
 pre.bg-light { background: var(--t-inp) !important; color: var(--t-text) !important; }
 pre.bg-dark { background: var(--sajha-nav-to) !important; color: var(--sajha-on-nav) !important; }
+/* code inside a dark block takes the block's ground and text, not the global code chip */
+pre.bg-dark code, .bg-dark code, pre code { background: transparent !important; color: inherit !important; padding: 0; }
 code { font-size: 0.875em; }
 
 /* ── bg-light / bg-dark / bg-white — remap to theme ── */

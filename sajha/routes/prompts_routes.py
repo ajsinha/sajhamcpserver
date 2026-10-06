@@ -48,9 +48,13 @@ async def prompt_detail(prompt_name: str, request: Request, auth: AuthContext = 
             'message': f'Prompt "{prompt_name}" does not exist',
         }, status_code=404)
 
+    # The template reads usage_count/last_used under prompt.metadata and embeds the JSON
+    # for its viewer and editor, so it needs the dict form, not the Prompt object
+    prompt_data = prompt.to_dict()
     return render(request, 'prompts/prompt_detail.html', {
         'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
-        'prompt': prompt,
+        'prompt': prompt_data,
+        'prompt_json': json.dumps(prompt_data, indent=2),
         'prompt_name': prompt_name,
         'is_admin': auth.is_admin,
     })
