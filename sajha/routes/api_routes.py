@@ -63,6 +63,8 @@ async def api_tool_execute(
     start = time.time()
     from sajha.observability.caller import from_auth, set_caller
     set_caller(from_auth(auth))      # the usage ledger's caller (this request's context only)
+    from sajha.policy.context import set_source      # policy rules can match the source
+    set_source('playground' if request.headers.get('X-SAJHA-Client') == 'playground' else 'rest')
     try:
         result = tool.execute_with_tracking(arguments)
         duration_ms = int((time.time() - start) * 1000)
@@ -81,6 +83,10 @@ async def api_tool_execute(
 
         return JSONResponse({'success': True, 'result': result})
     except Exception as e:
+        from sajha.accounts.errors import ConnectedAccountRequired
+        if isinstance(e, ConnectedAccountRequired):     # 428 + connect_url (sajha/accounts/respond.py)
+            from sajha.accounts.respond import rest_response
+            return rest_response(e)
         duration_ms = int((time.time() - start) * 1000)
         usage_dao.log_execution(
             tool_name=tool_name,
@@ -92,24 +98,56 @@ async def api_tool_execute(
             arguments=arguments,
             client_ip=request.client.host if request.client else None,
         )
-        return JSONResponse({'success': False, 'error': str(e)}, status_code=500)
+        from sajha.tools.base_mcp_tool import ToolArgumentError
+        from sajha.policy.errors import ApprovalRequired, PolicyError, RateLimited
+        if isinstance(e, PolicyError):
+            # 403 denied, 202 approval pending, 429 rate limited (docs/architecture/Policy and Audit.md)
+            body = {'success': False, 'error': str(e), 'policy': e.to_dict()}
+            if isinstance(e, ApprovalRequired):
+                body['approval_id'] = e.approval_id
+            headers = {'Retry-After': str(int(e.retry_after or 1))} if isinstance(e, RateLimited) else None
+            return JSONResponse(body, status_code=e.http_status, headers=headers)
+        status = 400 if isinstance(e, ToolArgumentError) else 500   # 400: arguments fail the inputSchema
+        return JSONResponse({'success': False, 'error': str(e)}, status_code=status)
 
 
 # ── Tool Listing API ─────────────────────────────────────────────
 
+async def _catalog_policy(request: Request, db: Session):
+    """(ToolPolicy, error response) for the REST catalog: the same gate and visibility as
+    MCP ``tools/list`` (sajha/auth/access.py). Signed-in users see their roles' tools, API
+    keys their allowlist, credential-less callers the ``mcp.anonymous`` policy; a 401 where
+    ``/mcp`` would answer one (``mcp.auth.mode: required``, anonymous access disabled, or
+    credentials that do not authenticate)."""
+    from sajha.auth.access import policy_for
+    from sajha.auth.oauth.resource_server import authorize_mcp
+    auth, err = await authorize_mcp(request, db, 'tools/list')
+    if err is not None:
+        return None, err
+    return policy_for(auth), None
+
+
 @router.get('/api/tools/list')
-async def api_tools_list():
-    """Get list of all tools (public)."""
+async def api_tools_list(request: Request, db: Session = Depends(get_db)):
+    """The tools this caller may see (the MCP tools/list policy)."""
     from sajha.app import tools_registry
+    policy, err = await _catalog_policy(request, db)
+    if err is not None:
+        return err
     tools = tools_registry.get_all_tools() if tools_registry else []
+    if not policy.unrestricted():
+        tools = [t for t in tools if policy.can_see(t.get('name'))]
     return JSONResponse({'tools': tools})
 
 
 @router.get('/api/tools/{tool_name}/schema')
-async def api_tool_schema(tool_name: str):
+async def api_tool_schema(tool_name: str, request: Request, db: Session = Depends(get_db)):
     from sajha.app import tools_registry
+    policy, err = await _catalog_policy(request, db)
+    if err is not None:
+        return err
     tool = tools_registry.get_tool(tool_name) if tools_registry else None
-    if not tool:
+    if not tool or not policy.can_see(tool_name):     # a hidden tool is indistinguishable from none
         return JSONResponse({'error': 'Tool not found'}, status_code=404)
     return JSONResponse(tool.to_mcp_format())
 
@@ -278,9 +316,12 @@ async def api_delete_user(uid: str, auth: AuthContext = Depends(require_admin), 
 # ── Tool Groups API (used by Help page) ─────────────────────────
 
 @router.get('/api/tool-groups/search')
-async def api_tool_group_search(q: str = ''):
-    """Search tools by name or description across all groups."""
+async def api_tool_group_search(request: Request, q: str = '', db: Session = Depends(get_db)):
+    """Search the tools this caller may see by name or description."""
     from sajha.app import tools_registry
+    policy, err = await _catalog_policy(request, db)
+    if err is not None:
+        return err
     if not tools_registry or not q or len(q) < 2:
         return JSONResponse({'results': [], 'count': 0, 'query': q})
 
@@ -290,6 +331,8 @@ async def api_tool_group_search(q: str = ''):
     results = []
 
     for name, tool in tools_registry.tools.items():
+        if not policy.can_see(name):
+            continue
         cfg = getattr(tool, 'config', {}) or {}
         desc = cfg.get('description', '')
         if query_lower in name.lower() or query_lower in desc.lower():
@@ -309,16 +352,19 @@ async def api_tool_group_search(q: str = ''):
 
 
 @router.get('/api/tool-groups/{group_name}')
-async def api_tool_group_detail(group_name: str):
-    """Get all tools belonging to a specific tool group."""
+async def api_tool_group_detail(group_name: str, request: Request, db: Session = Depends(get_db)):
+    """The tools of one tool group that this caller may see."""
     from sajha.app import tools_registry
+    policy, err = await _catalog_policy(request, db)
+    if err is not None:
+        return err
     if not tools_registry:
         return JSONResponse({'error': 'Tools not loaded'}, status_code=503)
 
     tools_in_group = []
     for name, tool in tools_registry.tools.items():
         prefix = name.split('_')[0] if '_' in name else name
-        if prefix == group_name:
+        if prefix == group_name and policy.can_see(name):
             cfg = getattr(tool, 'config', {}) or {}
             tools_in_group.append({
                 'name': name,

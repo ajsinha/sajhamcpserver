@@ -38,6 +38,14 @@ kubectl apply -k deployment/k8s/overlays/prod     # after setting the host in it
 
 The prod overlay expects a PostgreSQL server reachable as `postgres:5432` (database and
 user `sajha`) and ingress-nginx; change `values-prod.yaml` and re-render for anything else.
+Its tables must exist first: SAJHA never creates them, and the pods refuse to start until
+an operator has run the schema file and the seed file once
+([Database Setup](../../docs/getting-started/Database%20Setup.md)):
+
+```bash
+psql -v ON_ERROR_STOP=1 "postgresql://sajha@postgres:5432/sajha" -f db/scripts/postgresql/schema.sql
+psql -v ON_ERROR_STOP=1 "postgresql://sajha@postgres:5432/sajha" -f db/scripts/postgresql/seed.sql
+```
 
 ## Re-render after a chart change
 

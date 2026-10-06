@@ -2,7 +2,7 @@
 SAJHA MCP Server — the usage ledger behind the Usage & cost dashboard.
 
 One row per tool call and per LLM call in ``obs_usage_events`` (SAJHA's database; the
-table is created here with CREATE TABLE IF NOT EXISTS, no SQL script needed). Rows are
+table is defined in ``db/scripts/<dialect>/schema.sql``, and is created here only on SQLite). Rows are
 queued and written in batches by a daemon thread, so the database is never on a call's
 path; the queue is bounded and drops (``sajha_usage_events_dropped_total``) rather than
 grow. :func:`report` answers every figure the dashboard shows, :func:`csv_rows` its CSV
@@ -21,8 +21,8 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, Iterable, List, Optional
 
-from sqlalchemy import (Column, DateTime, Float, Index, Integer, MetaData, String, Table, and_, delete,
-                        select)
+from sqlalchemy import (BigInteger, Column, DateTime, Float, Index, Integer, MetaData, String, Table, and_,
+                        delete, select)
 
 from sajha.observability import settings as S
 
@@ -32,7 +32,7 @@ metadata = MetaData()
 
 usage_events = Table(
     'obs_usage_events', metadata,
-    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('id', BigInteger().with_variant(Integer, 'sqlite'), primary_key=True, autoincrement=True),
     Column('ts', DateTime, nullable=False),
     Column('day', String(10), nullable=False),
     Column('kind', String(8), nullable=False),            # tool | llm
@@ -51,6 +51,7 @@ usage_events = Table(
     Column('cost_usd', Float),
     Index('ix_obs_usage_day_kind', 'day', 'kind'),
     Index('ix_obs_usage_user_day', 'user_id', 'day'),
+    Index('ix_obs_usage_ts', 'ts'),
 )
 
 _queue: Optional[queue.Queue] = None
@@ -59,6 +60,7 @@ _stop = threading.Event()
 _created_for = None
 _lock = threading.Lock()
 _last_purge = 0.0
+_warned_missing = False
 
 
 def enabled() -> bool:
@@ -74,7 +76,7 @@ def _engine():
 
 
 def ensure_table(engine=None) -> bool:
-    global _created_for
+    global _created_for, _warned_missing
     engine = engine or _engine()
     if engine is None:
         return False
@@ -82,7 +84,19 @@ def ensure_table(engine=None) -> bool:
         return True
     with _lock:
         if _created_for is not engine:
-            metadata.create_all(engine, tables=[usage_events], checkfirst=True)
+            if engine.dialect.name == 'sqlite':
+                metadata.create_all(engine, tables=[usage_events], checkfirst=True)
+            else:
+                from sqlalchemy import inspect
+                if not inspect(engine).has_table('obs_usage_events'):
+                    # No DDL outside SQLite: the table comes from db/scripts/<dialect>/schema.sql.
+                    if _warned_missing:
+                        return False
+                    _warned_missing = True
+                    from sajha.db.schema import apply_command
+                    logger.warning('Usage ledger off: table obs_usage_events is missing; create it from the '
+                                   f'schema file:  {apply_command(engine)}  (docs/getting-started/Database Setup.md)')
+                    return False
             _created_for = engine
     return True
 

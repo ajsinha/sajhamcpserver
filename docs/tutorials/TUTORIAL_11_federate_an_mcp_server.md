@@ -1,4 +1,4 @@
-# Tutorial 11: Federate an MCP server
+# Tutorial 11: Federate an MCP Server
 
 Put another MCP server behind SAJHA: run a small upstream server, add it to SAJHA, approve
 its tools, and call them through SAJHA from the standard MCP client and from Ask SAJHA.
@@ -152,10 +152,15 @@ tool error naming the upstream; after repeated failures its circuit breaker open
 the server again: SAJHA reconnects in the background (backoff up to a minute) and the
 calls work again. Use **Refresh** to reconnect and re-discover at once.
 
-## What's next
+## What next
 
 - Credentials for a real upstream (`bearer`, an API-key header or OAuth client
   credentials, always as secret references) and the SSRF settings:
   [Federation, sections 3 and 9](../architecture/Federation.md#3-credentials-sent-to-an-upstream)
 - Grant federated tools to roles and keys: [Security Model](../security/Security%20Model.md)
 - Chain a federated tool with native ones: [Tutorial 3](TUTORIAL_03_build_a_composite_tool.md)
+- Next tutorial: [Analyse a Tool's Result in the Python Playground](TUTORIAL_12_python_playground.md)
+
+---
+
+Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.

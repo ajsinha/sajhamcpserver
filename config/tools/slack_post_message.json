@@ -1,0 +1,93 @@
+{
+  "name": "slack_post_message",
+  "implementation": "sajha.accounts.tools.slack.SlackPostMessageTool",
+  "title": "Post a Slack message",
+  "description": "Post a message to a Slack channel or direct message as the signed-in user, through their connected Slack account (a user token with chat:write). Returns the channel and message timestamp.",
+  "version": "1.0.0",
+  "enabled": true,
+  "auth": {
+    "connected_account": "slack",
+    "scopes": [
+      "chat:write"
+    ]
+  },
+  "annotations": {
+    "title": "Post a Slack message",
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": true
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "channel": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "description": "Channel ID (C0123...) or name (#general), or a user ID for a DM"
+      },
+      "text": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 40000,
+        "description": "Message text (Slack mrkdwn)"
+      },
+      "thread_ts": {
+        "type": "string",
+        "pattern": "^[0-9]+\\.[0-9]+$",
+        "description": "Reply in this thread (the parent message ts)"
+      }
+    },
+    "required": [
+      "channel",
+      "text"
+    ],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "ok": {
+        "type": "boolean"
+      },
+      "channel": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "ts": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "text": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "ok"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Connected Accounts",
+    "tags": [
+      "connected-account",
+      "slack",
+      "messaging"
+    ],
+    "note": "Posts as the caller; marked destructive so Ask SAJHA and MCP clients confirm first.",
+    "examples": [
+      {
+        "description": "Say hello",
+        "input": {
+          "channel": "#general",
+          "text": "Hello from SAJHA"
+        }
+      }
+    ]
+  }
+}

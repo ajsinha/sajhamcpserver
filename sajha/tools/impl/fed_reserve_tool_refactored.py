@@ -48,7 +48,8 @@ class FedReserveBaseTool(BaseMCPTool):
         series_id: str,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-        limit: int = 100
+        limit: int = 100,
+        sort_order: str = 'asc'
     ) -> Dict:
         """
         Get time series data from FRED
@@ -58,19 +59,25 @@ class FedReserveBaseTool(BaseMCPTool):
             start_date: Start date (YYYY-MM-DD)
             end_date: End date (YYYY-MM-DD)
             limit: Number of observations
-            
+            sort_order: 'asc' (oldest first, FRED's default) or 'desc' (newest first);
+                with ``limit`` it picks which end of the series is returned
+
         Returns:
             Time series data
         """
         # For demo mode, return mock data
         if self.api_key == 'demo':
-            return self._get_demo_series(series_id, start_date, end_date, limit)
-        
+            demo = self._get_demo_series(series_id, start_date, end_date, limit)
+            if sort_order == 'desc':
+                demo['observations'].reverse()
+            return demo
+
         params = {
             'series_id': series_id,
             'api_key': self.api_key,
             'file_type': 'json',
-            'limit': limit
+            'limit': limit,
+            'sort_order': 'desc' if sort_order == 'desc' else 'asc'
         }
         
         if start_date:
@@ -139,6 +146,17 @@ class FedReserveBaseTool(BaseMCPTool):
             'observations': observations,
             'note': 'Demo mode - Configure API key for real FRED data'
         }
+
+
+    #: Observations fetched (newest first) when looking for the latest value: FRED marks a
+    #: missing value as '.', so the newest row can be empty.
+    LATEST_WINDOW = 10
+
+    def _get_latest(self, series_id: str):
+        """(series data, the newest observation that has a value, or None)."""
+        series_data = self._get_series_data(series_id, limit=self.LATEST_WINDOW, sort_order='desc')
+        latest = next((o for o in series_data['observations'] if o.get('value') is not None), None)
+        return series_data, latest
 
 
 class FedGetSeriesTool(FedReserveBaseTool):
@@ -346,11 +364,10 @@ class FedGetLatestTool(FedReserveBaseTool):
         if not series_id:
             raise ValueError("Either 'series_id' or 'indicator' is required")
         
-        # Get last observation
-        series_data = self._get_series_data(series_id, limit=1)
-        
-        if series_data['observations']:
-            latest = series_data['observations'][-1]
+        # The most recent observation (FRED returns oldest first unless asked for desc)
+        series_data, latest = self._get_latest(series_id)
+
+        if latest:
             return {
                 'series_id': series_id,
                 'title': series_data['title'],
@@ -617,10 +634,9 @@ class FedGetCommonIndicatorsTool(FedReserveBaseTool):
                 continue
             
             try:
-                series_data = self._get_series_data(series_id, limit=1)
-                
-                if series_data['observations']:
-                    latest = series_data['observations'][-1]
+                series_data, latest = self._get_latest(series_id)
+
+                if latest:
                     indicators[indicator] = {
                         'series_id': series_id,
                         'title': series_data['title'],

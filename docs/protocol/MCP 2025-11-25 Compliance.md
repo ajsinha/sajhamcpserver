@@ -1,7 +1,7 @@
 # SAJHA MCP Server — MCP 2025-11-25 Compliance Report
 
 **Scope:** the handshake-era ("legacy") path of SAJHA's dual-era `/mcp` endpoint: protocol versions 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05 (legacy HTTP+SSE). The stateless 2026-07-28 path is covered by [MCP 2026-07-28 Compliance](MCP%202026-07-28%20Compliance.md); how the two fit together is in the [MCP Protocol Guide](MCP%20Protocol%20Guide.md).
-**Transport:** Streamable HTTP on `/mcp` (plus legacy HTTP+SSE and a WebSocket extension)
+**Transport:** Streamable HTTP on `/mcp` (plus legacy HTTP+SSE and a WebSocket extension); stdio for desktop clients ([MCP Protocol Guide §4](MCP%20Protocol%20Guide.md#stdio))
 **Verified with:** the official conformance suite, `@modelcontextprotocol/conformance` 0.1.16, and the official Python SDK client (`mcp` 2.3.0)
 
 Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
@@ -151,9 +151,11 @@ and their response is delivered on that SSE stream.
 **Sessions** are kept in the state store (`sajha/core/mcp_sessions.py`): process memory by
 default, so a restart invalidates them and clients get 404 and re-initialize. With a shared
 backend every worker knows them ([Scaling and State](../architecture/Scaling%20and%20State.md)). Requests without a session
-header are still accepted, which keeps simple `curl` clients working. Authentication
-on `/mcp` stays optional. Credentials (JWT or `X-API-Key`) are accepted, but per-role tool
-filtering is not active: `MCPHandler` is created without an auth manager.
+header are still accepted, which keeps simple `curl` clients working. Whether `/mcp`
+demands credentials depends on `mcp.auth.mode` (§8). `tools/list` and `tools/call` apply
+the caller's tool access (`sajha/auth/access.py`; a refused call is `-32002`): users by
+their roles, API keys by their access mode, anonymous callers by `mcp.anonymous.*`. See
+[Tool access](../security/Security%20Model.md#tool-access).
 
 **Origin policy** is set by `mcp.allowed_origins` in `config/application.yml`, or the
 `SAJHA_MCP_ALLOWED_ORIGINS` environment variable (comma-separated):
@@ -209,7 +211,7 @@ filtering is not active: `MCPHandler` is created without an auth manager.
 | Origin validation (HTTP 403) | It used to be a no-op (no allow-list, and it was never called on POST). **Now enforced** on POST, GET and DELETE `/mcp`. |
 | Incremental scope consent (`WWW-Authenticate … scope=`) | Was informational only in 5.4.0. **Now real** on `/mcp` when `mcp.auth.mode` is `optional`/`required` (§8): 401 challenges carry `resource_metadata` and `scope`, and a token lacking a scope gets 403 `insufficient_scope`. |
 | "Security best practices: PKCE, OAuth SSO (Azure/Okta/…)" | **Now real** (§8): a built-in OAuth 2.1 authorization server with mandatory PKCE S256, or validation of tokens from an external IdP. Password hashing (bcrypt), API-key hashing (SHA-256), JWT and RBAC are unchanged. |
-| SSE event IDs and resumption (`Last-Event-ID`) | Event IDs exist on the legacy stream and on SSE tool-call streams. Replay on reconnect is **not** implemented: the tracker is per-connection. |
+| SSE event IDs and resumption (`Last-Event-ID`) | Event IDs exist on the legacy stream and on SSE tool-call streams. Replay on reconnect is **not** implemented: a stream belongs to one connection, and `Last-Event-ID` is ignored. |
 | `ping` returned `{status, timestamp}`; prompts responses had no `id`; JSON array bodies returned 500; `notifications/initialized` returned `-32601` | **Fixed** (§2, §3). |
 
 ## 7. Not implemented on this path

@@ -128,6 +128,8 @@ class ChangeBus:
         self._store = None
         self._unsubscribe_store: Optional[Callable[[], None]] = None
         self.origin = uuid.uuid4().hex          # tags this bus's relayed events (skip our own echo)
+        self._relay_window: dict = {}           # event -> repeated within the open relay window
+        self.relayed = 0                        # events written to the store (observability, tests)
 
     # -- cross-worker ---------------------------------------------------
 
@@ -190,12 +192,40 @@ class ChangeBus:
             raise ValueError(f"unknown change kind: {kind}")
         event = ChangeEvent(kind, uri if kind == RESOURCE_UPDATED else None)
         self._fan_out(event, listeners=True)
+        if self._store is not None:
+            self._relay(event)
+
+    #: Identical events relayed to other workers within this window are coalesced: the first
+    #: goes out at once, any repeats become one trailing relay when the window ends.  A burst
+    #: (a bulk reload) is then O(distinct events) store writes, not one per tool.
+    RELAY_WINDOW_SECONDS = 0.5
+
+    def _relay(self, event: ChangeEvent) -> None:
+        with self._lock:
+            if event in self._relay_window:
+                self._relay_window[event] = True        # repeat: one trailing relay
+                return
+            self._relay_window[event] = False
+        self._send(event)
+        timer = threading.Timer(self.RELAY_WINDOW_SECONDS, self._close_window, (event,))
+        timer.daemon = True
+        timer.start()
+
+    def _close_window(self, event: ChangeEvent) -> None:
+        with self._lock:
+            repeated = self._relay_window.pop(event, False)
+        if repeated:
+            self._relay(event)
+
+    def _send(self, event: ChangeEvent) -> None:
         store = self._store
-        if store is not None:
-            try:
-                store.publish(CHANGES_CHANNEL, {"kind": event.kind, "uri": event.uri, "origin": self.origin})
-            except Exception as e:   # other workers miss this event; this one is unaffected
-                logger.warning(f"change-bus relay to other workers failed: {e}")
+        if store is None:
+            return
+        self.relayed += 1
+        try:
+            store.publish(CHANGES_CHANNEL, {"kind": event.kind, "uri": event.uri, "origin": self.origin})
+        except Exception as e:   # other workers miss this event; this one is unaffected
+            logger.warning(f"change-bus relay to other workers failed: {e}")
 
     def _fan_out(self, event: ChangeEvent, listeners: bool) -> None:
         with self._lock:

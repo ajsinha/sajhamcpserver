@@ -49,6 +49,9 @@ def get_tool_ttl(tool_name: str, tool_config: dict = None) -> int:
     Default: 0 (no caching). Tool opts in via "cache_ttl" field.
     """
     if tool_config and isinstance(tool_config, dict):
+        auth = tool_config.get('auth')
+        if isinstance(auth, dict) and auth.get('connected_account'):
+            return 0        # per-user results (connected accounts) are never shared through the cache
         ttl = tool_config.get('cache_ttl', 0)
         if isinstance(ttl, (int, float)) and ttl > 0:
             return int(ttl)

@@ -120,11 +120,17 @@ async def glossary(request: Request, auth: AuthContext = Depends(get_current_use
 
 # ── The live tool catalog ───────────────────────────────────────────────────
 
+def _can_see(auth: AuthContext):
+    """The viewer's tools/list visibility: the help pages name no tool it would hide."""
+    from sajha.auth.access import policy_for
+    return policy_for(auth).can_see
+
+
 @router.get('/help/tools', name='help_tools_page')
 async def help_tools_page(request: Request, auth: AuthContext = Depends(get_current_user)):
     from sajha.web.help_catalog import live_tool_groups, related_for
     return render(request, 'help/help_tools.html', {
-        **_user_ctx(auth), 'catalog_live': live_tool_groups(),
+        **_user_ctx(auth), 'catalog_live': live_tool_groups(visible=_can_see(auth)),
         'help_related': related_for('help_tools_page')})
 
 
@@ -137,7 +143,7 @@ async def about_page(request: Request, auth: AuthContext = Depends(get_current_u
     from sajha.web.help_catalog import live_tool_groups, related_for
     ctx = {
         **_user_ctx(auth),
-        'catalog_live': live_tool_groups(),
+        'catalog_live': live_tool_groups(visible=_can_see(auth)),
         'prompts_count': len(prompts_registry.prompts) if prompts_registry else 0,
         'modern_versions': MODERN_PROTOCOL_VERSIONS,
         'handshake_versions': HANDSHAKE_PROTOCOL_VERSIONS,

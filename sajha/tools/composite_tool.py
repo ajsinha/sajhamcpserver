@@ -326,6 +326,12 @@ class CompositeToolEngine:
                 tools_registry._composite_listener_added = True
 
     def load_from_db(self, db_session) -> int:
+        """See :meth:`_load_from_db`; the registry announces the result once, not per tool."""
+        from sajha.tools.tools_registry import registry_bulk
+        with registry_bulk(self._registry):
+            return self._load_from_db(db_session)
+
+    def _load_from_db(self, db_session) -> int:
         """Load all enabled composite tools from DB, build and register them."""
         from sajha.db.models import CompositeToolRecord, CompositeToolStepRecord
 
@@ -379,6 +385,12 @@ class CompositeToolEngine:
             self._registry.unregister_tool(name)
 
     def reregister(self) -> int:
+        """See :meth:`_reregister`; the registry announces the result once, not per tool."""
+        from sajha.tools.tools_registry import registry_bulk
+        with registry_bulk(self._registry):
+            return self._reregister()
+
+    def _reregister(self) -> int:
         """Rebuild and re-register the composites this engine knows (after a registry reload)."""
         count = 0
         for name, old in list(self._composite_tools.items()):
@@ -396,6 +408,12 @@ class CompositeToolEngine:
         return tool._definition if tool else None
 
     def reload(self, db_session) -> int:
+        """See :meth:`_reload`; the registry announces the result once, not per tool."""
+        from sajha.tools.tools_registry import registry_bulk
+        with registry_bulk(self._registry):
+            return self._reload(db_session)
+
+    def _reload(self, db_session) -> int:
         """Unregister existing composites and reload from DB."""
         for name in list(self._composite_tools.keys()):
             self._registry.unregister_tool(name)

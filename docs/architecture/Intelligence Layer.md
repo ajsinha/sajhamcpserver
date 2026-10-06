@@ -18,7 +18,8 @@ layer (a new provider, model or planner, step by step, with tested examples) is
 ```
  consumers      POST /api/ai/ask (and the Ask SAJHA page, /ask) · sajha_ask MCP tool · /api/ai/*
                                    │
- service        IntelligenceService (sajha/ai/intelligence.py): shortlist → tool loop → synthesis
+ service        IntelligenceService (sajha/ai/intelligence.py): memory → shortlist → planner → synthesis
+                planners (react | plan_execute | recipes | router) · conversation memory · RAG index
                                    │
  gateway        LLMGateway (sajha/ai/gateway.py): aliases, capability match, policy, budgets,
                 retries + fallback, circuit breaker, response cache, OpenTelemetry span
@@ -51,6 +52,9 @@ dependency; without it the Bedrock provider reports itself down with an install 
 | `sajha/ai/llm/legacy.py` | `LegacyProviderAdapter` for providers written against the old ABC |
 | `sajha/ai/gateway.py` | `LLMGateway`, `build_gateway`, `init_gateway`, `get_gateway` |
 | `sajha/ai/intelligence.py` | `IntelligenceService`, `AskResult`, `AskStep`, the event stream |
+| `sajha/ai/planners.py` | the `Planner` protocol (`PlanState`, `CallTools`, `Answer`, `Emit`), its registry, and the `react`, `plan_execute`, `recipes` and `router` strategies |
+| `sajha/ai/memory.py` | conversation memory: `ConversationStore` (tables `ai_conversations`, `ai_conversation_turns`), `ConversationMemory` |
+| `sajha/ai/rag/` | document retrieval: `chunking.py`, `stores.py` (in process, pgvector), `index.py` (`DocIndex`), `tool.py` (`sajha_search_docs`) |
 | `sajha/ai/ask_tool.py` | the optional `sajha_ask` MCP tool |
 | `sajha/routes/ai_routes.py` | `POST /api/ai/ask`, `GET /api/ai/config` and the older `/api/ai/*` routes |
 
@@ -225,24 +229,52 @@ methods, `get_stats`, `get_token_usage` and `get_total_cost`.
 
 ## 6. The intelligence service
 
-`IntelligenceService.ask(question, ctx)` is a bounded tool-use loop:
+`IntelligenceService.ask(question, ctx)` is a bounded tool-use loop. With a `conversation_id` it
+first loads the conversation (below); then:
 
 1. **Shortlist.** The tool resolver (vector search when an embedder is configured, lexical
    BM25 otherwise) ranks tools; disabled tools and tools the caller may not run
    (`AuthContext.has_tool_access`, the same check as `POST /api/tools/execute`) are dropped;
    the top `ai.ask.shortlist` go to the model as `ToolSpec`s. Role policy without tools
    means no shortlist.
-2. **Plan and act.** The model answers or calls tools. Each call runs through
+2. **Plan and act.** The planner (`ai.ask.planner`, section "Planners" below) answers or asks
+   for tool calls; by default (`react`) that is one model call per step. Each call runs through
    `tool.execute_with_tracking` (enabled check, validation, cache, circuit breaker,
    metrics). A call to a tool that was not offered is refused. A tool marked destructive
-   (`annotations.destructiveHint: true`) is not run: the ask stops with
+   (`annotations.destructiveHint: true`, or `metadata.destructive: true`) is not run while
+   `ai.ask.confirm_destructive` is on (the default): the ask stops with
    `stopped_by: needs_confirmation` and a fingerprint per pending call; re-asking with
    `confirm: [fingerprint]` runs it. Results are capped at `ai.ask.max_result_chars` and
    returned as `ToolResultPart` data; the system prompt states that tool output is data,
    never instructions.
-3. **Synthesize.** A final structured-output call produces `{answer, citations, caveats}`;
-   citations are filtered to successful tool calls. If no capable model is available, the
-   loop's own answer is used.
+3. **Synthesize.** A final structured-output call (`ai.ask.synthesize`) produces
+   `{answer, citations, caveats}`; citations are filtered to successful tool calls. If no
+   capable model is available, the loop's own answer is used.
+
+What the model is sent at each step, and exactly when the loop stops, is laid out for
+planner authors in
+[Extending the Intelligence Layer §4.1](Extending%20the%20Intelligence%20Layer.md#41-how-planning-works-today).
+
+### Planners
+
+The planner decides only what happens next: answer, or which calls to make. Everything that
+protects the caller stays in the service and applies to every planner: the RBAC-filtered
+shortlist, refusing calls to tools that were not offered, destructive-tool confirmation,
+running tools through `execute_with_tracking`, result caps, the limits, synthesis, confidence,
+audit and the event schema. A planner reaches a model only through the gateway (so policy,
+budgets, fallback and the `model` event apply) and never touches a tool.
+
+| Planner | What it does | Model calls for a two-tool question |
+|---|---|---|
+| `react` (default; `model` is an alias) | one model call per step: answer, or call which offered tools | one per step, plus synthesis |
+| `plan_execute` | one structured-output planning call returns a plan: steps with a tool, arguments and dependencies (`{{s1.field}}` passes a result forward); independent steps run together in one step; after a failed step it re-plans once (`max_replans`); an empty plan hands the ask to `fallback` | one, plus synthesis |
+| `recipes` | regular-expression or keyword recipes from config (`ai.ask.planner_config.recipes`) map a question to a tool and its arguments, and optionally an answer template; anything else goes to `fallback` | none when the recipe has an answer template |
+| `router` | chooses per question: configured `rules`, then `recipes` when one matches, then `plan_execute` for questions with several parts (compare, and then, versus, two questions), else `react` | as the chosen planner |
+
+`ai.ask.planner` sets the default; an admin may pass `planner` on one `POST /api/ai/ask`. The
+chosen chain is reported as `planner` in the result (`router>plan_execute`). `GET /api/ai/planners`
+lists the registered planners. Writing one, the protocol and its tests:
+[Extending the Intelligence Layer §4.5](Extending%20the%20Intelligence%20Layer.md#45-a-planner-extension-point).
 
 **Limits**: `max_steps`, `max_tool_calls`, `max_tokens` (all model calls of one ask) and
 `timeout_s`; the reason the loop stopped is reported as `stopped_by`: `answer`,
@@ -255,14 +287,69 @@ loop 0.8; an answer resting on no tool result is 0.5; no answer is 0. The `confi
 event carries the guard's per-step basis. Freshness and cross-source agreement are not yet
 scored.
 
-**Audit**: each ask writes an `ai_ask` audit-log entry (question, tools, models, tokens,
-outcome, confidence) unless `ai.ask.audit` is false.
+**Audit**: each ask writes an `ai_ask` audit-log entry (question, tools, models, planner,
+tokens, outcome, confidence) unless `ai.ask.audit` is false.
+
+### Conversation memory
+
+An ask that sends `conversation_id` is a turn of a conversation: `"new"` starts one, and the
+id the result returns continues it. Without `conversation_id` an ask is answered on its own and
+nothing is kept. For a turn of a conversation the service:
+
+1. loads the conversation, only if it belongs to the caller (another user's id, or an expired
+   one, is "not found": the route answers 404);
+2. sends the last `ai.memory.history_turns` turns (question and answer) as earlier messages,
+   and a summary of the older ones in the system prompt; the summary is written through the
+   gateway (`ai.memory.model`) once turns leave the verbatim window, and kept;
+3. rewrites the question as a standalone question (`ai.memory.condense`), so "and from 100 to
+   150?" after a percentage-change question shortlists the right tool; the rewrite is
+   `standalone_question` in the result;
+4. records the turn (question, rewrite, answer, tools, outcome, confidence) after the answer.
+
+Memory is per user and is never shared: every read, write and delete is filtered by the
+caller's user id. It is stored in the `ai_conversations` and `ai_conversation_turns` tables
+(SQLite creates them; on PostgreSQL they come from `db/scripts/postgresql/schema.sql`).
+Conversations idle for `ai.memory.retention_days` are deleted, as are a user's oldest beyond
+`ai.memory.max_conversations_per_user`. A user lists, reads and deletes their own with
+`GET /api/ai/conversations`, `GET` and `DELETE /api/ai/conversations/{id}`, and deletes all of
+them with `DELETE /api/ai/conversations`. The mock answers the summary and rewrite calls
+deterministically (an extractive summary; a follow-up with no topic of its own takes the
+previous question's wording with its new numbers or symbols).
+
+### Document search (RAG)
+
+`sajha_search_docs` is an ordinary tool (`config/tools/sajha_search_docs.json`, so it is in
+`tools/list`, its access follows role permissions, and any planner can call it) over a document
+index (`sajha/ai/rag/`):
+
+- **Sources.** SAJHA's own guides (every guide the help pages serve), each passage citing
+  `/help/guides/<name>#<section>`; each `ai.rag.sources` entry (files matching a pattern in a
+  folder of the storage backend: local, S3, Azure or GCS); and files an admin uploads
+  (`POST /api/ai/docs/uploads`, kept under `ai.rag.uploads_dir`). Text formats only: Markdown,
+  text, reStructuredText and HTML.
+- **Passages.** Markdown is split at headings (each passage keeps its section path and anchor),
+  then into passages of about `ai.rag.chunk_chars` characters at paragraph boundaries.
+- **Embeddings** come from the gateway's `ai.rag.embedding_model` alias (`embedding`, which is
+  `mock/mock-embed` out of the box); `none` means lexical search only.
+- **Stores.** In process by default (pure Python, persisted through the storage backend, so a
+  restart re-embeds only changed documents); pgvector when the database is PostgreSQL with the
+  `vector` extension and the `rag_chunks` table, which is an optional section of
+  `db/scripts/postgresql/schema.sql` that a DBA runs (SAJHA runs no DDL there).
+- **Search** fuses the vector ranking with a BM25 ranking of the same passages (reciprocal rank
+  fusion, the vector side weighted `ai.rag.vector_weight`). Each result has a citation number,
+  source, document, title, section, link (for guides), a relative score and the passage.
+- **Syncing.** The index is built in the background at startup and re-synced by content hash
+  (`POST /api/ai/docs/reindex`, admin); `GET /api/ai/docs/status` (admin) reports it.
+
+The help page's **Ask the docs** box (signed-in users) calls `POST /api/ai/docs/search`; a
+caller who may not run `sajha_search_docs` searches SAJHA's guides only.
 
 ### `POST /api/ai/ask`
 
 Authentication as for the other `/api` routes (session cookie, JWT or API key). Body:
-`{"question": "...", "model": "<alias or provider/model>", "confirm": ["<fingerprint>"]}`
-(only `question` is required). The response is the `AskResult` as JSON, or, when the
+`{"question": "...", "model": "<alias or provider/model>", "confirm": ["<fingerprint>"],
+"conversation_id": "new" | "<id>", "planner": "<name>"}` (only `question` is required;
+`planner` is for admins). The response is the `AskResult` as JSON, or, when the
 request sends `Accept: text/event-stream` or `?stream=1`, a Server-Sent Events stream: each
 event is `event: <type>` with `data:` the JSON below. Every event has `type` and an
 increasing `seq`; the order is fixed: `shortlist` first, `done` last, a `tool_call` before
@@ -272,6 +359,7 @@ its `tool_result`, all tool results before the answer.
 |---|---|
 | `shortlist` | `tools: [{name, description, score}]` |
 | `model` | `model` (`provider/model`), `step` |
+| `plan` (optional) | `planner`, `revision`, `steps: [{id, tool, arguments, depends_on, why, status, call_id}]`: sent by planners that plan ahead, after the `model` event of the call that made the plan and before the `tool_call`s it schedules; `call_id` is the id of the step's `tool_call` |
 | `tool_call` | `id`, `name`, `arguments`, `step` |
 | `tool_result` | `id`, `name`, `ok`, `summary`, `latency_ms` |
 | `needs_confirmation` | `id`, `name`, `arguments`, `fingerprint`, `reason` |
@@ -283,7 +371,10 @@ its `tool_result`, all tool results before the answer.
 
 `AskResult` fields: `question`, `answer`, `confidence`, `steps` (`id`, `name`, `arguments`,
 `ok`, `status`, `summary`, `latency_ms`, `confidence`, `fingerprint`), `citations`,
-`caveats`, `usage`, `models`, `stopped_by`, `shortlist`, `pending`, `duration_ms`, `error`.
+`caveats`, `usage`, `models`, `stopped_by`, `shortlist`, `pending`, `connections`,
+`duration_ms`, `error`, `planner`, `plan` (the last plan, each step with its final status),
+`conversation_id` and `turn` (for a turn of a conversation) and `standalone_question` (when the
+question was rewritten).
 
 ### Using Ask SAJHA
 
@@ -293,14 +384,17 @@ is a chat over this endpoint. It is built from `sajha/web/templates/ai/ask.html`
 shares with the landing page).
 
 - **Asking.** Type a question and press Enter (Shift+Enter for a new line), or pick an
-  example chip. Each question is sent on its own, with no earlier turns: the service has
-  no conversation memory. The model picker sends `model`: admins see the gateway's aliases
+  example chip. The page keeps a conversation: the first question sends
+  `conversation_id: "new"` and later ones the id the server returned, so a follow-up ("and
+  from 100 to 150?") is answered with the earlier turns as context. The model picker sends `model`: admins see the gateway's aliases
   (from `GET /api/ai/config`), other users the enabled tool-capable models from
   `GET /api/ai/models`; "default" sends none.
 - **Streaming.** The page posts with `Accept: text/event-stream` and reads the stream with
   `fetch` (EventSource cannot POST), using the session cookie like the other console
   pages. Stop (or Escape) aborts the request, which ends the server's stream.
 - **What it shows.** Each answer lists the shortlist ("Considered N tools", with scores),
+  the plan when the planner made one ("Plan: N steps", each step ticking off as its call
+  returns),
   one chip per tool call with its result summary and latency (open a chip for its
   arguments and result), the answer, its confidence, the cited calls as sources, and the
   caveats. A `needs_confirmation` event becomes a card with Confirm and Cancel; Confirm
@@ -317,8 +411,10 @@ shares with the landing page).
   `mock/...`). The mock planner answers from keywords and numbers in the question, so the
   example chips are calculator questions it can fill in; anything else needs a real
   provider (section 4).
-- **History** is kept per browser tab in `sessionStorage` and cleared by *New chat*; it is
-  never sent back to the server.
+- **History.** The bubbles are kept per browser tab in `sessionStorage`; the conversation the
+  server remembers is the one in "Conversation memory" above. *New chat* clears the tab and
+  starts a new conversation; an expired conversation is reported and the next question starts
+  a new one.
 
 A walkthrough is [Tutorial 10: Ask SAJHA](../tutorials/TUTORIAL_10_ask_sajha.md).
 
@@ -350,18 +446,22 @@ live runs when a vendor key is present; gateway tests for resolution, retries, f
 breaker, budgets, policy, cache, configuration precedence, registry loading, secrets and
 the legacy shims; ask-loop tests over the real offline `calc_*` tools, including step
 limits, confirmation, injected instructions in tool output, RBAC and the event order; and
-the HTTP route in JSON and SSE.
+the HTTP route in JSON and SSE. `tests/ai/test_planners.py` runs every built-in planner through
+the same safety tests (RBAC, tools not offered, confirmation, limits, injection, event order)
+and tests each strategy; `tests/ai/test_memory.py` covers multi-turn asks, summaries, privacy
+between users, retention and the conversation routes; `tests/ai/test_rag.py` the chunking,
+the index, uploads, the stores and the search route; `tests/ai/test_tool_index_sync.py` that a
+tool registered by any path is shortlisted without a reload.
 
 ## 9. Not built yet
 
-- Conversation memory: each ask is answered on its own, so Ask SAJHA cannot follow up on
-  an earlier answer.
 - Native async providers (the layer is sync with thread-pool async wrappers).
 - Vertex AI for Gemini and Claude; Entra ID token acquisition for Azure (a bearer token can
   be supplied as the key with `auth: bearer`).
 - Over MCP 2026-07-28, destructive-tool confirmation inside `sajha_ask` as a Multi
   Round-Trip Request (it is returned as `needs_confirmation` today).
 - Freshness and agreement in the confidence score; trimming history on `ContextTooLong`.
-- A pluggable planner: the planner is the model `ai.ask.model` resolves to, inside a fixed
-  loop. A `Planner` extension point (`ai.ask.planner`) is designed in
-  [Extending the Intelligence Layer §4.5](Extending%20the%20Intelligence%20Layer.md#45-proposed-a-planner-extension-point-not-built-yet).
+- Document connectors (SharePoint, Drive, Confluence) as RAG sources, and binary formats
+  (PDF, Word); today a source is a folder of text files in the storage backend, or an upload.
+- Conversation memory for `sajha_ask` over MCP (its caller has no user identity), and a page
+  for browsing past conversations (the API exists).

@@ -10,6 +10,8 @@ import logging
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
+from sajha.olap import sql_safety as sq
+
 logger = logging.getLogger(__name__)
 
 
@@ -114,23 +116,22 @@ class TimeSeriesEngine:
             raise ValueError(f"Dataset '{spec.dataset}' not found")
         
         # Resolve time dimension
-        time_col = self.semantic.resolve_dimension(spec.time_dimension, dataset)
+        time_col = sq.dimension_expr(self.semantic, dataset, spec.time_dimension)
+        if spec.time_grain not in self.TIME_GRAINS:
+            raise sq.OLAPQueryError(f"Unsupported time_grain {spec.time_grain!r}. "
+                                    f"Allowed: {sorted(self.TIME_GRAINS)}")
         grain_expr = self.TIME_GRAINS[spec.time_grain].format(col=time_col)
         
         # Build measure expressions
         measure_exprs = []
         for m in spec.measures:
-            measure = self.semantic.get_measure(m)
             alias = self._safe_alias(m)
-            if measure:
-                measure_exprs.append(f"{measure.expression} AS {alias}")
-            else:
-                measure_exprs.append(f"SUM({m}) AS {alias}")
+            measure_exprs.append(f"{sq.measure_expr(self.semantic, dataset, m)} AS {alias}")
         
         # Build dimension expressions
         dim_exprs = []
         for d in spec.dimensions:
-            col = self.semantic.resolve_dimension(d, dataset)
+            col = sq.dimension_expr(self.semantic, dataset, d)
             alias = self._safe_alias(d)
             dim_exprs.append(f"{col} AS {alias}")
         
@@ -151,52 +152,31 @@ class TimeSeriesEngine:
     
     def _build_base_query(self, dataset, filters: List[Dict], 
                            date_range: Optional[Dict], time_col: str) -> str:
-        """Build the base SELECT with joins, filters, and date range."""
-        sql = f"SELECT * FROM {dataset.source_table}"
-        
-        for join in dataset.joins:
-            alias = f" AS {join.alias}" if join.alias else ""
-            sql += f"\n{join.join_type} JOIN {join.table}{alias} ON {join.on_clause}"
-        
-        where_clauses = []
-        
-        # Add regular filters
-        if filters:
-            where_clauses.extend(self._build_filters(filters, dataset))
-        
-        # Add date range filter
+        """Build the base SELECT with joins, filters, and date range (all values bound)."""
+        extra = []
         if date_range:
+            if not isinstance(date_range, dict):
+                raise sq.OLAPQueryError("date_range must be an object with start_date / end_date")
             if date_range.get("start_date"):
-                where_clauses.append(f"{time_col} >= '{date_range['start_date']}'")
+                extra.append(f"{time_col} >= ${sq.PARAM_PREFIX}start_date")
             if date_range.get("end_date"):
-                where_clauses.append(f"{time_col} <= '{date_range['end_date']}'")
-        
-        if where_clauses:
-            sql += f"\nWHERE {' AND '.join(where_clauses)}"
-        
-        return sql
+                extra.append(f"{time_col} <= ${sq.PARAM_PREFIX}end_date")
+        return sq.base_query(self.semantic, dataset, filters, extra)
     
     def _build_filters(self, filters: List[Dict], dataset) -> List[str]:
-        """Build WHERE clause components."""
-        clauses = []
-        for f in filters:
-            dim = f.get("dimension", f.get("column"))
-            op = f.get("operator", "=")
-            val = f.get("value")
-            
-            col = self.semantic.resolve_dimension(dim, dataset)
-            
-            if op.upper() == "IN":
-                if isinstance(val, list):
-                    formatted = ", ".join(f"'{v}'" if isinstance(v, str) else str(v) for v in val)
-                else:
-                    formatted = f"'{val}'" if isinstance(val, str) else str(val)
-                clauses.append(f"{col} IN ({formatted})")
-            else:
-                formatted = f"'{val}'" if isinstance(val, str) else str(val)
-                clauses.append(f"{col} {op} {formatted}")
-        
-        return clauses
+        """WHERE clause components; values are $olap_* parameters (see sql_safety)."""
+        return sq.compile_filters(self.semantic, dataset, filters)[0]
+
+    def _params(self, spec: TimeSeriesSpec) -> Dict[str, Any]:
+        dataset = self.semantic.get_dataset(spec.dataset)
+        params = sq.filter_params(self.semantic, dataset, spec.filters) if dataset else {}
+        for key in ("start_date", "end_date"):
+            value = (spec.date_range or {}).get(key)
+            if value:
+                if not isinstance(value, str):
+                    raise sq.OLAPQueryError(f"date_range.{key} must be a date string")
+                params[f"{sq.PARAM_PREFIX}{key}"] = value
+        return params
     
     def _build_simple_time_series(self, base_sql: str, grain_expr: str,
                                     measure_exprs: List[str], 
@@ -220,7 +200,7 @@ ORDER BY time_period
 """
         
         if spec.limit:
-            sql += f"LIMIT {spec.limit}\n"
+            sql += f"LIMIT {sq.integer(spec.limit, 'limit', 1)}\n"
         
         return sql
     
@@ -229,7 +209,7 @@ ORDER BY time_period
                                   spec: TimeSeriesSpec) -> str:
         """Build query with gap filling using generate_series."""
         interval = self.INTERVALS.get(spec.time_grain, "INTERVAL '1 day'")
-        fill_value = spec.fill_value if spec.fill_value is not None else 0
+        fill_value = sq.number(spec.fill_value if spec.fill_value is not None else 0, "fill_value")
         
         # Build COALESCE expressions for measures
         coalesce_exprs = []
@@ -269,14 +249,19 @@ ORDER BY ds.time_period
 """
         
         if spec.limit:
-            sql += f"LIMIT {spec.limit}\n"
+            sql += f"LIMIT {sq.integer(spec.limit, 'limit', 1)}\n"
         
         return sql
     
     def _add_comparison(self, sql: str, spec: TimeSeriesSpec) -> str:
         """Add period-over-period comparison columns."""
         comparison = spec.comparison
+        if not isinstance(comparison, dict):
+            raise sq.OLAPQueryError("comparison must be an object such as {\"type\": \"yoy\"}")
         period_type = comparison.get("type", "yoy")
+        if period_type not in self.COMPARISON_OFFSETS:
+            raise sq.OLAPQueryError(f"Unsupported comparison type {period_type!r}. "
+                                    f"Allowed: {sorted(self.COMPARISON_OFFSETS)}")
         
         offset = self.COMPARISON_OFFSETS.get(period_type)
         if not offset:
@@ -337,7 +322,7 @@ ORDER BY c.time_period
         sql = self.build_time_series_query(spec)
         
         try:
-            result = self.conn.execute(sql).fetchall()
+            result = sq.execute(self.conn, sql, self._params(spec)).fetchall()
             columns = [desc[0] for desc in self.conn.description]
             
             # Convert to list of dicts

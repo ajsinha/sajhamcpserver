@@ -20,6 +20,7 @@ guide; this tutorial is the hands-on path through it.
 - [kind](https://kind.sigs.k8s.io/), `kubectl` and [Helm](https://helm.sh/) 3.8 or later
 - A SAJHA checkout (you build the image from it)
 - `curl` and `openssl`
+- Helpful: [Tutorial 13](TUTORIAL_13_run_sajha_on_several_workers.md), which shows why several replicas need a shared state store
 
 ## Steps
 
@@ -125,8 +126,19 @@ kubectl -n sajha expose deployment postgres --port=5432
 kubectl -n sajha rollout status deployment/postgres
 ```
 
-(`--prefix=POSTGRES_` turns the Secret's `password` key into `POSTGRES_PASSWORD`.) Now
-scale, with the bundled Redis as the state store and no `ReadWriteOnce` data volume:
+(`--prefix=POSTGRES_` turns the Secret's `password` key into `POSTGRES_PASSWORD`.)
+
+SAJHA does not create tables on PostgreSQL: that is a DBA's step, and pods pointed at an
+empty database refuse to start, naming the missing tables. Play the DBA: feed the schema
+file, then the seed file (default roles and admin), from your checkout to `psql` in the
+database pod ([Database Setup](../getting-started/Database%20Setup.md)):
+
+```bash
+kubectl -n sajha exec -i deploy/postgres -- psql -v ON_ERROR_STOP=1 -U sajha -d sajha < db/scripts/postgresql/schema.sql
+kubectl -n sajha exec -i deploy/postgres -- psql -v ON_ERROR_STOP=1 -U sajha -d sajha < db/scripts/postgresql/seed.sql
+```
+
+Now scale, with the bundled Redis as the state store and no `ReadWriteOnce` data volume:
 
 ```bash
 helm upgrade sajha charts/sajha -n sajha --reuse-values \
@@ -186,12 +198,13 @@ kind delete cluster --name sajha
   chart refuses anything else
 - `config.overrides` changes any part of `application.yml` without rebuilding the image
 
-## Next steps
+## What next
 
 - Without Helm: `kubectl apply -k deployment/k8s/overlays/prod` (section 9 of the guide)
 - Lock the network down with `networkPolicy.enabled=true` (section 8 of the guide)
 - Read [Scaling and State](../architecture/Scaling%20and%20State.md) for what is shared
   between pods, and what stays in each one
+- This is the last tutorial; the [documentation index](../README.md) lists every guide
 
 ---
 

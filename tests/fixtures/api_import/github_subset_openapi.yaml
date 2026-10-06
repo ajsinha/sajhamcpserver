@@ -1,0 +1,218 @@
+# A small subset in the shape of GitHub's REST description (api.github.com): operationIds
+# with slashes, shared components/parameters and components/responses, nested and
+# recursive $refs, nullable fields, and a $ref into a second document
+# (github_subset_common.yaml), resolved relative to this file's URL.
+openapi: 3.0.3
+info:
+  title: GitHub v3 REST API (subset)
+  version: 1.1.4
+servers:
+  - url: /api/v3
+security:
+  - bearerAuth: []
+tags:
+  - name: repos
+  - name: issues
+  - name: users
+paths:
+  /repos/{owner}/{repo}:
+    get:
+      summary: Get a repository
+      operationId: repos/get
+      tags: [repos]
+      parameters:
+        - $ref: '#/components/parameters/owner'
+        - $ref: '#/components/parameters/repo'
+      responses:
+        '200':
+          description: Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/full-repository'
+        '404':
+          $ref: '#/components/responses/not_found'
+    delete:
+      summary: Delete a repository
+      operationId: repos/delete
+      tags: [repos]
+      parameters:
+        - $ref: '#/components/parameters/owner'
+        - $ref: '#/components/parameters/repo'
+      responses:
+        '204':
+          description: Response
+  /repos/{owner}/{repo}/issues:
+    get:
+      summary: List repository issues
+      operationId: issues/list-for-repo
+      tags: [issues]
+      parameters:
+        - $ref: '#/components/parameters/owner'
+        - $ref: '#/components/parameters/repo'
+        - name: state
+          in: query
+          schema:
+            type: string
+            enum: [open, closed, all]
+            default: open
+        - name: labels
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/per-page'
+        - $ref: '#/components/parameters/page'
+      responses:
+        '200':
+          description: Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/issue'
+    post:
+      summary: Create an issue
+      operationId: issues/create
+      tags: [issues]
+      parameters:
+        - $ref: '#/components/parameters/owner'
+        - $ref: '#/components/parameters/repo'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title:
+                  type: string
+                body:
+                  type: string
+                labels:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/issue'
+  /user:
+    get:
+      summary: Get the authenticated user
+      operationId: users/get-authenticated
+      tags: [users]
+      responses:
+        '200':
+          description: Response
+          content:
+            application/json:
+              schema:
+                $ref: 'github_subset_common.yaml#/components/schemas/simple-user'
+  /meta:
+    get:
+      summary: Get GitHub meta information
+      operationId: meta/get
+      tags: [meta]
+      security: []
+      responses:
+        '200':
+          description: Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verifiable_password_authentication:
+                    type: boolean
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    owner:
+      name: owner
+      in: path
+      required: true
+      description: The account owner of the repository.
+      schema:
+        type: string
+    repo:
+      name: repo
+      in: path
+      required: true
+      description: The name of the repository without the .git extension.
+      schema:
+        type: string
+    per-page:
+      name: per_page
+      in: query
+      description: The number of results per page (max 100).
+      schema:
+        type: integer
+        default: 30
+    page:
+      name: page
+      in: query
+      description: The page number of the results to fetch.
+      schema:
+        type: integer
+        default: 1
+  responses:
+    not_found:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/basic-error'
+  schemas:
+    basic-error:
+      type: object
+      properties:
+        message:
+          type: string
+        documentation_url:
+          type: string
+    full-repository:
+      type: object
+      required: [id, name, full_name, owner]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        full_name:
+          type: string
+        owner:
+          $ref: 'github_subset_common.yaml#/components/schemas/simple-user'
+        description:
+          type: string
+          nullable: true
+        parent:
+          $ref: '#/components/schemas/full-repository'
+    issue:
+      type: object
+      required: [id, number, title]
+      properties:
+        id:
+          type: integer
+        number:
+          type: integer
+        title:
+          type: string
+        state:
+          type: string
+        user:
+          $ref: 'github_subset_common.yaml#/components/schemas/simple-user'
+        labels:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string

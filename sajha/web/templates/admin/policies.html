@@ -1,0 +1,150 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Policies (administration): the policy files, their rules, and the test bench.
+Design: docs/architecture/Policy and Audit.md
+-->
+{% block title %}Policies - Admin - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.pol-file{border:1px solid var(--t-card-b);border-radius:var(--radius-lg);background:var(--t-card);margin-bottom:1rem}
+.pol-head{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:space-between;padding:.6rem 1rem;border-bottom:1px solid var(--t-card-b);background:var(--t-card-hdr)}
+.pol-head h2{font-size:1rem;margin:0;font-weight:700;color:var(--t-heading)}
+.pol-meta{font-size:.8rem;color:var(--t-muted)}
+.pol-match{font-size:.75rem;white-space:pre-wrap;word-break:break-word;max-width:28rem;margin:0;color:var(--t-text)}
+.pol-err{color:var(--sajha-bad);font-size:.85rem;padding:.6rem 1rem;word-break:break-word}
+.pol-bench textarea{font-family:var(--bs-font-monospace);font-size:.8rem}
+.pol-out pre{background:var(--t-inp);color:var(--t-text);padding:.6rem;border-radius:6px;font-size:.78rem;max-height:340px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.eff{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:.72rem;font-weight:600;color:var(--sajha-on-crimson)}
+.eff-allow{background:var(--sajha-ok)}.eff-deny{background:var(--sajha-bad)}.eff-require_approval{background:var(--sajha-warn)}.eff-none{background:var(--sajha-slate)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-shield-check me-2" aria-hidden="true"></i>Policies</h1>
+      <small class="text-muted">Rules evaluated before every tool call, on every path. Files live in <code>{{ summary.directory }}</code> (storage backend) and reload on change.</small>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_approvals_page') }}"><i class="bi bi-person-check me-1" aria-hidden="true"></i>Approvals</a>
+      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_audit_page') }}"><i class="bi bi-journal-check me-1" aria-hidden="true"></i>Audit</a>
+      <button type="button" class="btn btn-sm btn-primary" id="polReload"><i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>Reload now</button>
+    </div>
+  </div>
+
+  {% if not summary.enabled %}<div class="alert alert-warning" role="status">The policy engine is off (<code>policy.enabled: false</code>): no rule is enforced.</div>{% endif %}
+
+  <div class="acct-tiles mb-3">
+    <div class="obs-tile obs-tile-accent"><div class="obs-label">Enforced rules</div><div class="obs-value">{{ summary.enforced_rules }}</div><div class="obs-sub">{{ 'engine active' if summary.active else 'engine idle: every call allowed' }}</div></div>
+    <div class="obs-tile"><div class="obs-label">Default effect</div><div class="obs-value">{{ summary.default_effect }}</div><div class="obs-sub">policy.default_effect</div></div>
+    <div class="obs-tile"><div class="obs-label">Policy files</div><div class="obs-value">{{ summary.policies|length }}</div><div class="obs-sub">{{ summary.policies|selectattr('error')|list|length }} broken (policy.on_error: {{ summary.on_error }})</div></div>
+    <div class="obs-tile"><div class="obs-label">Loaded</div><div class="obs-value obs-value-sm">{{ summary.loaded_at or '—' }}</div><div class="obs-sub">rechecked every policy.reload_seconds</div></div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-xl-7">
+      {% for p in summary.policies %}
+      <section class="pol-file" aria-label="Policy {{ p.name }}">
+        <div class="pol-head">
+          <h2>{{ p.name }} {% if p.error %}<span class="eff eff-deny">broken</span>{% elif p.enabled %}<span class="eff eff-allow">enforced</span>{% else %}<span class="eff eff-none">disabled</span>{% endif %}</h2>
+          <span class="pol-meta"><code>{{ p.source }}</code></span>
+        </div>
+        {% if p.description %}<div class="pol-meta px-3 pt-2">{{ p.description }}</div>{% endif %}
+        {% if p.error %}<div class="pol-err" role="alert">{{ p.error }}</div>{% endif %}
+        {% if p.rules %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0 obs-table">
+            <thead><tr><th scope="col">Rule</th><th scope="col">Match</th><th scope="col">Effect</th><th scope="col">Obligations</th></tr></thead>
+            <tbody>
+            {% for r in p.rules %}
+              <tr>
+                <td><strong>{{ r.id }}</strong>{% if r.description %}<div class="pol-meta">{{ r.description }}</div>{% endif %}</td>
+                <td><pre class="pol-match">{{ r.match|tojson(indent=1) if r.match else 'every call' }}</pre></td>
+                <td>{% if r.effect %}<span class="eff eff-{{ r.effect }}">{{ r.effect|replace('_', ' ') }}</span>{% if r.approver %}<div class="pol-meta">approver: {{ r.approver }}</div>{% endif %}{% else %}<span class="pol-meta">—</span>{% endif %}
+                  {% if r.reason %}<div class="pol-meta">{{ r.reason }}</div>{% endif %}</td>
+                <td>{% for o in r.obligations %}<div class="pol-meta">{{ o }}</div>{% else %}<span class="pol-meta">—</span>{% endfor %}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% elif not p.error %}<div class="pol-meta px-3 py-2">No rules.</div>{% endif %}
+      </section>
+      {% else %}
+      <div class="alert alert-info" role="status">No policy files in <code>{{ summary.directory }}</code>: every call is allowed.</div>
+      {% endfor %}
+    </div>
+
+    <div class="col-xl-5">
+      <section class="card pol-bench" aria-labelledby="benchTitle">
+        <div class="card-header"><h2 class="h6 mb-0" id="benchTitle"><i class="bi bi-clipboard-check me-1" aria-hidden="true"></i>Test bench: would this call be allowed?</h2></div>
+        <div class="card-body">
+          <form id="benchForm" class="row g-2">
+            <div class="col-12"><label class="form-label small" for="bTool">Tool</label>
+              <input class="form-control form-control-sm" id="bTool" list="toolNames" required placeholder="e.g. duckdb_query">
+              <datalist id="toolNames">{% for t in tool_names %}<option value="{{ t }}">{% endfor %}</datalist></div>
+            <div class="col-12"><label class="form-label small" for="bArgs">Arguments (JSON)</label>
+              <textarea class="form-control" id="bArgs" rows="3">{}</textarea></div>
+            <div class="col-sm-6"><label class="form-label small" for="bUser">User</label>
+              <input class="form-control form-control-sm" id="bUser" value="{{ user.user_id }}"></div>
+            <div class="col-sm-6"><label class="form-label small" for="bRoles">Roles (comma separated)</label>
+              <input class="form-control form-control-sm" id="bRoles" value="{{ user.roles|join(',') }}"></div>
+            <div class="col-sm-6"><label class="form-label small" for="bKey">API key name</label>
+              <input class="form-control form-control-sm" id="bKey" placeholder="none"></div>
+            <div class="col-sm-6"><label class="form-label small" for="bSource">Source</label>
+              <select class="form-select form-select-sm" id="bSource">{% for s in sources %}<option{% if s == 'mcp' %} selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+            <div class="col-sm-6"><label class="form-label small" for="bTime">Time (ISO, blank = now)</label>
+              <input class="form-control form-control-sm" id="bTime" placeholder="2026-10-06T22:00:00Z"></div>
+            <div class="col-sm-6 d-flex flex-column justify-content-end">
+              <div class="form-check"><input class="form-check-input" type="checkbox" id="bAnon"><label class="form-check-label small" for="bAnon">Anonymous caller</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" id="bDisabled"><label class="form-check-label small" for="bDisabled">Include disabled policies</label></div>
+            </div>
+            <div class="col-12"><label class="form-label small" for="bOut">Sample result (optional: preview redaction and screening)</label>
+              <textarea class="form-control" id="bOut" rows="2" placeholder="Contact jane@example.com, card 4111 1111 1111 1111"></textarea></div>
+            <div class="col-12"><button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-play me-1" aria-hidden="true"></i>Evaluate</button>
+              <span class="pol-meta ms-2">Nothing runs; no counter moves.</span></div>
+          </form>
+          <div class="pol-out mt-3" id="benchOut" aria-live="polite"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  var CSRF = {{ csrf|tojson }};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function post(url, body){
+    return fetch(url,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},body:JSON.stringify(body||{})})
+      .then(function(r){return r.json().catch(function(){return {}}).then(function(d){if(!r.ok){throw new Error(d.error||('HTTP '+r.status))}return d})});
+  }
+  document.getElementById('polReload').addEventListener('click',function(){
+    post('/api/policy/reload',{}).then(function(){location.reload()}).catch(function(e){alert(e.message)});
+  });
+  document.getElementById('benchForm').addEventListener('submit',function(ev){
+    ev.preventDefault();
+    var out=document.getElementById('benchOut'), args;
+    try{args=JSON.parse(document.getElementById('bArgs').value||'{}')}catch(e){out.innerHTML='<div class="alert alert-danger">Arguments are not valid JSON.</div>';return}
+    post('/api/policy/test',{tool:document.getElementById('bTool').value,arguments:args,
+      user:document.getElementById('bUser').value,roles:document.getElementById('bRoles').value,
+      api_key:document.getElementById('bKey').value,source:document.getElementById('bSource').value,
+      time:document.getElementById('bTime').value||null,anonymous:document.getElementById('bAnon').checked,
+      include_disabled:document.getElementById('bDisabled').checked,output:document.getElementById('bOut').value||null})
+    .then(function(d){
+      var dec=d.decision, cls=dec.effect==='allow'?'success':dec.effect==='deny'?'danger':'warning';
+      var h='<div class="alert alert-'+cls+'" role="status"><strong>'+esc(dec.effect.replace('_',' '))+'</strong>'+(dec.reason?': '+esc(dec.reason):'')+
+        (d.tool_known?'':'<div class="small">This tool is not loaded; annotation conditions cannot match.</div>')+'</div>';
+      h+='<pre>'+esc(JSON.stringify(dec,null,2))+'</pre>';
+      if(d.output){h+='<h3 class="h6 mt-2">Result as the caller would see it</h3><pre>'+esc(d.output.blocked?'(withheld: prompt injection markers)':d.output.result)+'</pre>'+
+        '<div class="pol-meta">redactions: '+esc(JSON.stringify(d.output.redactions))+' · injection markers: '+d.output.injection_markers+'</div>'}
+      out.innerHTML=h;
+    }).catch(function(e){out.innerHTML='<div class="alert alert-danger">'+esc(e.message)+'</div>'});
+  });
+})();
+</script>
+{% endblock %}

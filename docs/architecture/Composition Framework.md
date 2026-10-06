@@ -208,22 +208,15 @@ confidence = master_conf × min(child_a_conf, child_b_conf)
 
 ## Tool Confidence Registry
 
-Every tool is pre-classified by reliability:
+Every tool starts from a prior confidence chosen by its name prefix: `TOOL_CONFIDENCE` and
+`get_tool_confidence` in `sajha/core/composition.py` are the only copy of the values. In
+outline, deterministic local tools (calculators, OLAP and DuckDB) are 1.0, data and
+enterprise APIs a little below that, search and web crawling lower still, and any
+tool whose prefix is not listed (Studio, federated and user-defined tools included) takes
+the `_default`. The prior is by prefix only; a tool's JSON config cannot override it.
 
-| Category | Prefix | Confidence | Rationale |
-|----------|--------|:----------:|-----------|
-| Calculators | `calc_` | 1.00 | Pure math, no external dependency |
-| OLAP | `olap_`, `duckdb_` | 1.00 | Local DB query, deterministic |
-| Central Banks | `fred_`, `ecb_` | 0.95 | Stable government APIs |
-| Financial Data | `fmp_` | 0.93 | Reliable commercial API |
-| Market Data | `yahoo_`, `alpha_` | 0.91-0.92 | Free APIs, occasional gaps |
-| Enterprise | `powerbi_`, `sharepoint_` | 0.90-0.95 | Internal, usually reliable |
-| Crypto | `coingecko_` | 0.88 | Volatile data, rate limits |
-| Search | `tavily_`, `google_` | 0.85 | Web results vary |
-| Web Crawl | `web_` | 0.80 | External sites, unpredictable |
-| User-defined | (default) | 0.90 | Unknown reliability |
-
-These defaults can be overridden per-tool in the tool's JSON config.
+The same priors drive the confidence Ask SAJHA reports for an answer
+([Intelligence Layer](Intelligence%20Layer.md#6-the-intelligence-service)).
 
 ---
 
@@ -283,11 +276,11 @@ Client pipelines use the same `$input.` / `$.` syntax as server composites, and 
 
 ## Files
 
-| File | Lines | Purpose |
-|------|------:|---------|
-| `sajha/core/composition.py` | 430 | StepResult, PipelineResult, ParamLens, EntropyGuard, execute_step, TOOL_CONFIDENCE |
-| `sajha/tools/composite_tool.py` | 372 | CompositeTool (uses composition framework), CompositeToolEngine |
-| `clientsdk/sajhaclient/mcp_client.py` | 817 | TransportCoalgebra, HTTPTransport, SSETransport, WSTransport, bisimilar, ClientPipeline |
+| File | Purpose |
+|------|---------|
+| `sajha/core/composition.py` | StepResult, PipelineResult, ParamLens, EntropyGuard, execute_step, TOOL_CONFIDENCE |
+| `sajha/tools/composite_tool.py` | CompositeTool (uses composition framework), CompositeToolEngine |
+| `clientsdk/sajhaclient/mcp_client.py` | TransportCoalgebra, HTTPTransport, SSETransport, WSTransport, bisimilar, ClientPipeline |
 
 ---
 

@@ -30,9 +30,11 @@ runcmd:
   - git clone https://github.com/ajsinha/sajhamcpserver.git /opt/sajha
   - cd /opt/sajha/deployment/hetzner
   - cp .env.example .env
-  - docker compose up -d
+  # The database only: SAJHA does not create PostgreSQL tables. Apply the schema by hand
+  # (deployment/hetzner/README.md, "Database schema"), then: docker compose up -d
+  - docker compose up -d postgres
 
   # Log completion
   - echo "SAJHA MCP Server deployed at $(date)" >> /var/log/sajha-deploy.log
 
-final_message: "SAJHA MCP Server is starting. Access at https://your-domain after DNS setup."
+final_message: "PostgreSQL is up. Apply the SAJHA schema (deployment/hetzner/README.md), then docker compose up -d in /opt/sajha/deployment/hetzner."

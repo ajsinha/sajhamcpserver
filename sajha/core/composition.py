@@ -458,7 +458,12 @@ def execute_step(tool, arguments: Dict, step_name: str = "") -> StepResult:
 
     start = time.time()
     try:
+        # each step is governed like a direct call (sajha/policy; docs/architecture/Policy and Audit.md)
+        from sajha import policy as _policy
+        enforcement = _policy.enforce(tool, arguments) if hasattr(tool, 'name') else None
         result = tool.execute(arguments)
+        if enforcement is not None:
+            result = enforcement.apply_output(result)
         duration = (time.time() - start) * 1000
 
         # Check if tool returned an error dict

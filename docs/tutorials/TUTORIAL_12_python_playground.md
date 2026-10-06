@@ -1,4 +1,4 @@
-# Tutorial 12: Analyse a tool's result in the Python Playground
+# Tutorial 12: Analyse a Tool's Result in the Python Playground
 
 Call a SAJHA tool from Python running in your browser, turn its result into a pandas
 DataFrame, and chart it with matplotlib, without installing anything. The playground is
@@ -131,9 +131,14 @@ Python and clears every variable.
 A notebook that fetches data from a SAJHA tool, analyses it with pandas and charts it, all
 in the browser. Nothing ran on the server except the tool itself, under your permissions.
 
-## Next steps
+## What next
 
 - The **Examples** menu has SciPy, scikit-learn and Ask SAJHA (`sajha.ask()`) notebooks.
 - Building a tool in MCP Studio's Python code creator? **Open in playground** sends the
   function here, with a cell that calls it.
 - Headers, asset options and limits: [Python Playground](../getting-started/Python%20Playground.md).
+- Next tutorial: [Run SAJHA on Several Workers](TUTORIAL_13_run_sajha_on_several_workers.md)
+
+---
+
+Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.

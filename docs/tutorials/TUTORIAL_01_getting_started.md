@@ -33,7 +33,7 @@ Open `http://localhost:3002/login` and sign in as:
 |------|----------|
 | `admin` | `admin123` |
 
-This account is created by the database seed script (`db/scripts/<db>/002_seed.sql`). Change its password straight after your first login.
+This account is created by the database seed script (`db/scripts/<db>/seed.sql`). Change its password straight after your first login.
 
 ### 3. Browse tools
 
@@ -137,29 +137,28 @@ Some tools mark arguments with `x-mcp-header` in their input schema, and those a
 
 ### 8. Use the REST API
 
-The REST API sits under `/api`. An API key can list tools and read schemas:
+The REST API sits under `/api` and takes the same credentials as `/mcp`:
 
 ```bash
 curl -s http://localhost:3002/api/tools/list -H "X-API-Key: $SAJHA_KEY"
 curl -s http://localhost:3002/api/tools/calc_percentage_change/schema -H "X-API-Key: $SAJHA_KEY"
+
+curl -s -X POST http://localhost:3002/api/tools/execute \
+  -H "X-API-Key: $SAJHA_KEY" -H 'Content-Type: application/json' \
+  -d '{"tool":"calc_percentage_change","arguments":{"old_value":100,"new_value":125}}'
+# -> {"success": true, "result": {"old_value": 100, "new_value": 125, "percentage_change": 25.0}}
 ```
 
-REST execution (`POST /api/tools/execute`) checks the caller's role permissions, so use a user login (JWT) for it:
+Execution checks the caller's tool access: an API key's tool access mode, or a user's role permissions (the [Security Model](../security/Security%20Model.md) has the rules). Programs that sign in as a user get a JWT from `POST /api/auth/login`; later tutorials keep it as `$TOKEN`:
 
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:3002/api/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"user_id":"admin","password":"admin123"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
-
-curl -s -X POST http://localhost:3002/api/tools/execute \
-  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d '{"tool":"calc_percentage_change","arguments":{"old_value":100,"new_value":125}}'
-# -> {"success": true, "result": {"old_value": 100, "new_value": 125, "percentage_change": 25.0}}
+curl -s http://localhost:3002/api/tools/list -H "Authorization: Bearer $TOKEN"
 ```
 
-> **Note:** In the current build, `POST /api/tools/execute` answers `403 Access denied to tool` for API-key callers. An API key has no user roles, so the role-permission check fails. Use an API key over MCP (steps 6–7), or a JWT over REST.
-
-> **Authentication on `/mcp`:** `mcp.auth.mode` in `config/application.yml` is `"off"` by default, which allows anonymous MCP calls. Set it to `required` to enforce credentials (API key, SAJHA JWT or OAuth bearer token).
+> **Authentication on `/mcp`:** `mcp.auth.mode` in `config/application.yml` is `"off"` by default, so a call without credentials is accepted, but as the anonymous caller, who sees only the tools in `mcp.anonymous.tools` (none by default). Set the mode to `required` to refuse such calls outright. The modes, and OAuth bearer tokens, are in the [OAuth Guide](../protocol/OAuth%20Guide.md).
 
 ## What next
 

@@ -71,7 +71,7 @@ The European Central Bank (ECB) MCP Tool Suite is a collection of specialized to
 │   EuropeanCentralBankBaseTool (Shared Functionality)    │
 ├──────────────────────────────────────────────────────────┤
 │  • API URL: data-api.ecb.europa.eu/service/data         │
-│  • Common Series Definitions (21 indicators)             │
+│  • Common Series Definitions                             │
 │  • HTTP Client (urllib)                                  │
 │  • JSON Parser                                           │
 │  • Date Range Calculator                                 │

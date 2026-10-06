@@ -145,7 +145,7 @@ class ToolEmbeddingIndex:
         import numpy as np
 
         desired = {}
-        for name, tool in tools_registry.tools.items():
+        for name, tool in list(tools_registry.tools.items()):
             cfg = getattr(tool, 'config', {}) or {}
             try:
                 schema = tool.get_input_schema() if hasattr(tool, 'get_input_schema') else {}
@@ -259,6 +259,41 @@ class ToolResolver:
         self.index = ToolEmbeddingIndex(persist=persist) if embedder is not None else None
         self._bm25 = BM25Index()          # default + always-available lexical tier
         self._built = False               # True only when a vector index is active + built
+        self._lexical_stale = False       # the catalog changed since the BM25 build
+        self._vector_stale = False        # ... since the last vector sync (BM25 serves meanwhile)
+        self._sync_lock = threading.Lock()
+        self._sync_running = False
+        self._sync_again = False
+        add = getattr(tools_registry, 'add_change_listener', None)
+        if callable(add):                 # every register/unregister, coalesced by registry.bulk()
+            add(self.on_tools_changed)
+
+    def on_tools_changed(self) -> None:
+        """The registry's catalog changed (any path: Studio, composites, federation, API import,
+        the file watcher). The lexical tier rebuilds on its next search; the vector tier re-syncs
+        in the background, and BM25 answers until it has."""
+        self._lexical_stale = True
+        if self.embedder is None or self.index is None:
+            return
+        self._vector_stale = True
+        with self._sync_lock:
+            if self._sync_running:
+                self._sync_again = True
+                return
+            self._sync_running = True
+        threading.Thread(target=self._background_sync, name='tool-index-resync', daemon=True).start()
+
+    def _background_sync(self) -> None:
+        while True:
+            try:
+                self.sync()
+            except Exception as e:
+                logger.warning(f"tool index re-sync failed: {e}", exc_info=True)
+            with self._sync_lock:
+                if not self._sync_again:
+                    self._sync_running = False
+                    return
+                self._sync_again = False
 
     def build_index(self) -> int:
         """Build the search index. BM25 always; vector index too if an embedder is set."""
@@ -276,14 +311,21 @@ class ToolResolver:
         self.refresh_lexical()
         if self.embedder is None or self.index is None:
             return {'embedded': 0, 'removed': 0, 'total': 0, 'mode': 'bm25'}
-        result = self.index.sync(self.tools_registry, self.embedder)
+        stale_before = self._vector_stale
+        self._vector_stale = False
+        try:
+            result = self.index.sync(self.tools_registry, self.embedder)
+        except Exception:
+            self._vector_stale = stale_before
+            raise
         self._built = result['total'] > 0
         return result
 
     def refresh_lexical(self) -> int:
         """(Re)build the BM25 lexical index from the current tools (fast, dependency-free)."""
         items = {}
-        for name, tool in self.tools_registry.tools.items():
+        self._lexical_stale = False
+        for name, tool in list(self.tools_registry.tools.items()):
             cfg = getattr(tool, 'config', {}) or {}
             try:
                 schema = tool.get_input_schema() if hasattr(tool, 'get_input_schema') else {}
@@ -311,8 +353,8 @@ class ToolResolver:
         Returns:
             List of ToolMatch objects sorted by confidence
         """
-        if not self._built:
-            # Lexical BM25 mode (default) or vector index not ready yet.
+        if not self._built or self._vector_stale:
+            # Lexical BM25 mode (default), or the vector index is not built or not yet re-synced.
             if self.embedder is not None:
                 logger.debug("Vector index not built yet; using BM25 lexical search")
             return self._fallback_search(query, top_k)
@@ -347,7 +389,7 @@ class ToolResolver:
         Ranks over the same rich text the embedder uses (name + description + parameters +
         tags + literature) with IDF weighting, so distinctive terms outrank common ones.
         """
-        if not self._bm25.built:
+        if not self._bm25.built or self._lexical_stale:
             self.refresh_lexical()
         rows = self._bm25.search(query, top_k)
         return [ToolMatch(tool_name=n, description=d, confidence=c, category=cat)

@@ -3,15 +3,18 @@
  * Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
  *
  * The answer arrives as a Server-Sent Events stream (docs/architecture/Intelligence Layer.md,
- * "POST /api/ai/ask"): shortlist, model, tool_call, tool_result, needs_confirmation,
- * answer_delta, answer, confidence, error, done. EventSource cannot POST, so the stream is
+ * "POST /api/ai/ask"): shortlist, model, plan, tool_call, tool_result, needs_confirmation, needs_connection,
+ * answer_delta, answer, confidence, error, done. A planner that plans ahead (plan_execute, recipes)
+ * sends a plan event, shown as a collapsible list whose steps tick off as their calls return. EventSource cannot POST, so the stream is
  * read with fetch + ReadableStream. The events are played through a short queue so each step
  * is visible (the mock planner answers in milliseconds); the conversation bubble and the sky
  * (static/js/constellation.js) change together. With prefers-reduced-motion nothing moves: each
  * event is applied at once and the sky shows the chain's final state.
  *
- * The conversation is kept for the tab in sessionStorage; Stop aborts the fetch, which ends
- * the server's stream.
+ * The conversation is a server-side conversation (conversation memory): the first question sends
+ * conversation_id "new", later ones the id the server returned, so follow-ups are answered with
+ * the earlier turns as context. New chat starts a new conversation. The bubbles are kept for the
+ * tab in sessionStorage; Stop aborts the fetch, which ends the server's stream.
  */
 (function () {
   'use strict';
@@ -25,7 +28,7 @@
       mockPill = $('askMock'), statusText = $('askSkyStatusText'), statusBox = $('askSkyStatus');
 
   /* ── storage (per tab; every access may throw in a private window) ───────────────────── */
-  var KEY = 'sajha.ask.v1.' + (D.user || ''), MKEY = 'sajha.ask.model';
+  var KEY = 'sajha.ask.v1.' + (D.user || ''), MKEY = 'sajha.ask.model', CKEY = 'sajha.ask.conv.' + (D.user || '');
   function sget(k) { try { return window.sessionStorage.getItem(k); } catch (e) { return null; } }
   function sset(k, v) { try { window.sessionStorage.setItem(k, v); } catch (e) { /* storage off */ } }
   function sdel(k) { try { window.sessionStorage.removeItem(k); } catch (e) { /* storage off */ } }
@@ -251,7 +254,8 @@
     return { id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), q: q,
              note: (extra && extra.note) || '', confirm: (extra && extra.confirm) || [],
              model: (extra && extra.model) || '', status: 'running', models: [], shortlist: [], steps: [],
-             answer: '', confidence: null, citations: [], caveats: [], pending: [], decisions: {}, error: null,
+             answer: '', confidence: null, citations: [], caveats: [], pending: [], connections: [], decisions: {}, error: null,
+             plan: null,
              stopped_by: '', duration_ms: null, open: {} };
   }
 
@@ -268,7 +272,7 @@
     var av = el('div', 'ask-avatar'); av.setAttribute('aria-hidden', 'true'); av.appendChild(icon('stars'));
     var ab = el('div', 'ask-bubble ask-bubble-sajha');
     ab.setAttribute('aria-label', 'SAJHA’s answer');
-    ['head', 'short', 'chain', 'confirm', 'answer', 'cites', 'foot'].forEach(function (k) {
+    ['head', 'short', 'plan', 'chain', 'confirm', 'answer', 'cites', 'foot'].forEach(function (k) {
       var part = el('div', 'ask-part ask-' + k); part.setAttribute('data-part', k); ab.appendChild(part);
     });
     aRow.appendChild(av); aRow.appendChild(ab);
@@ -283,7 +287,7 @@
     var h = part(t, 'head'); h.textContent = '';
     h.appendChild(el('span', 'ask-who', 'SAJHA'));
     if (t.models.length) h.appendChild(el('span', 'ask-model-tag', t.models.join(', ')));
-    if (t.confidence != null && !t.pending.length) {      // a paused ask has no answer to score
+    if (t.confidence != null && !t.pending.length && !(t.connections || []).length) {      // a paused ask has no answer to score
       var b = el('span', 'ask-conf ask-conf-' + tone(t.confidence));
       b.title = 'Confidence comes from the tool results the answer rests on (the composition framework), not from the model.';
       b.appendChild(el('span', 'ask-conf-l', 'confidence '));
@@ -328,9 +332,37 @@
     d.appendChild(ul);
     s.appendChild(d);
   }
+  function paintPlan(t) {
+    var p = part(t, 'plan'); p.textContent = '';
+    if (!t.plan || !(t.plan.steps || []).length) return;
+    var d = el('details', 'ask-shortlist ask-plan');
+    if (t.open.plan) d.open = true;
+    d.addEventListener('toggle', function () { t.open.plan = d.open; save(); });
+    var sum = el('summary');
+    sum.appendChild(icon('list-check'));
+    var n = t.plan.steps.length;
+    sum.appendChild(document.createTextNode(' Plan: ' + n + ' step' + (n === 1 ? '' : 's') +
+      (t.plan.planner ? ' (' + t.plan.planner + (t.plan.revision ? ', revised' : '') + ')' : '')));
+    d.appendChild(sum);
+    var ol = el('ol', 'ask-plan-list');
+    ol.style.margin = '.35rem 0 0'; ol.style.paddingLeft = '1.4rem'; ol.style.fontSize = '.8rem';
+    t.plan.steps.forEach(function (ps) {
+      var run = t.steps.filter(function (st) { return st.id === ps.call_id; })[0];
+      var state = run ? (!run.done ? 'running' : run.ok ? 'done' : (run.status || 'failed').replace(/_/g, ' ')) : (ps.status || 'pending');
+      var li = el('li');
+      li.appendChild(el('code', '', ps.tool));
+      if (ps.depends_on && ps.depends_on.length) li.appendChild(document.createTextNode(' after ' + ps.depends_on.join(', ')));
+      if (ps.why) li.appendChild(document.createTextNode(' · ' + ps.why));
+      li.appendChild(el('span', 'ask-score', ' ' + state));
+      li.title = ps.id + ' ' + pretty(ps.arguments || {});
+      ol.appendChild(li);
+    });
+    d.appendChild(ol);
+    p.appendChild(d);
+  }
   function stepState(st) {
     if (!st.done) return 'run';
-    if (st.status === 'needs_confirmation') return 'wait';
+    if (st.status === 'needs_confirmation' || st.status === 'needs_connection') return 'wait';
     return st.ok ? 'ok' : 'bad';
   }
   function paintChain(t) {
@@ -347,7 +379,9 @@
       var stIcon = { ok: 'check-circle-fill', bad: 'x-circle-fill', run: 'hourglass-split', wait: 'pause-circle-fill' }[stepState(st)];
       btn.appendChild(icon(stIcon));
       btn.appendChild(el('code', 'ask-step-name', st.name));
-      var meta = st.done ? (st.status === 'needs_confirmation' ? 'waiting for you' : (st.latency_ms != null ? st.latency_ms + ' ms' : ''))
+      var meta = st.done ? (st.status === 'needs_confirmation' ? 'waiting for you'
+                            : st.status === 'needs_connection' ? 'needs your account'
+                            : (st.latency_ms != null ? st.latency_ms + ' ms' : ''))
                          : 'running';
       if (meta) btn.appendChild(el('span', 'ask-step-meta', meta));
       if (cited >= 0) btn.appendChild(el('span', 'ask-cite-no', '[' + (cited + 1) + ']'));
@@ -403,6 +437,33 @@
       }
       c.appendChild(card);
     });
+    (t.connections || []).forEach(function (p) {
+      // a connected-accounts tool and no usable link: send the user to link it, then ask again
+      var card = el('div', 'ask-confirm-card ask-connect-card'); card.setAttribute('role', 'group');
+      card.setAttribute('aria-label', 'Connect ' + p.provider_title);
+      var h = el('div', 'ask-confirm-h'); h.appendChild(icon('link-45deg'));
+      h.appendChild(document.createTextNode(' Connect ' + p.provider_title));
+      card.appendChild(h);
+      card.appendChild(el('p', 'ask-confirm-why', (p.reason === 'reauth_required'
+        ? p.provider_title + ' no longer accepts your linked account. '
+        : p.reason === 'insufficient_scope' ? 'Your linked ' + p.provider_title + ' account does not grant what ' + p.name + ' needs. '
+        : p.reason === 'sign_in_required' ? 'Connected accounts belong to signed-in users. '
+        : 'Your ' + p.provider_title + ' account is not linked yet. ') +
+        p.name + ' acts as you in ' + p.provider_title + '. Link it (it opens in a new tab), then ask again.'));
+      var bar = el('div', 'ask-confirm-bar');
+      if (p.reason !== 'sign_in_required') {
+        var go = el('a', 'btn btn-sm btn-primary', 'Connect ' + p.provider_title);
+        go.href = p.connect_url; go.target = '_blank'; go.rel = 'noopener';
+        bar.appendChild(go);
+      }
+      var again = el('button', 'btn btn-sm btn-outline-secondary', 'I have connected it: ask again'); again.type = 'button';
+      again.addEventListener('click', function () {
+        if (busy) return;
+        ask(t.q, { note: 'Connected ' + p.provider_title + ': asking again' });
+      });
+      bar.appendChild(again); card.appendChild(bar);
+      c.appendChild(card);
+    });
   }
   function paintAnswer(t) {
     var a = part(t, 'answer'); a.textContent = '';
@@ -452,15 +513,15 @@
     if (bits.length) f.appendChild(el('span', '', bits.join(' · ')));
   }
   function paint(t, parts) {
-    (parts || ['head', 'short', 'chain', 'confirm', 'answer', 'cites', 'foot']).forEach(function (k) {
-      ({ head: paintHead, short: paintShort, chain: paintChain, confirm: paintConfirm, answer: paintAnswer,
+    (parts || ['head', 'short', 'plan', 'chain', 'confirm', 'answer', 'cites', 'foot']).forEach(function (k) {
+      ({ head: paintHead, short: paintShort, plan: paintPlan, chain: paintChain, confirm: paintConfirm, answer: paintAnswer,
          cites: paintCites, foot: paintFoot })[k](t);
     });
   }
 
   /* ── applying one event (to the turn, the bubble and the sky) ─────────────────────────── */
   // how long each event holds the stage before the next is played (ms)
-  var HOLD = { shortlist: 900, model: 250, tool_call: 650, tool_result: 600, needs_confirmation: 300,
+  var HOLD = { shortlist: 900, model: 250, plan: 700, tool_call: 650, tool_result: 600, needs_confirmation: 300, needs_connection: 300,
                answer_delta: 45, answer: 0, confidence: 900, error: 0, done: 0 };
 
   function apply(t, ev) {
@@ -478,6 +539,11 @@
         paint(t, ['head']);
         setStatus('Planning with ' + ev.model, 'busy');
         break;
+      case 'plan':
+        t.plan = { planner: ev.planner || '', revision: ev.revision || 0, steps: ev.steps || [] };
+        paint(t, ['plan']);
+        setStatus('Planned ' + t.plan.steps.length + ' step' + (t.plan.steps.length === 1 ? '' : 's'), 'busy');
+        break;
       case 'tool_call':
         t.steps.push({ id: ev.id, name: ev.name, arguments: ev.arguments, done: false });
         paint(t, ['chain']);
@@ -491,9 +557,9 @@
           st.done = true; st.ok = !!ev.ok; st.summary = ev.summary; st.latency_ms = ev.latency_ms;
           if (!st.status) st.status = ev.ok ? 'ok' : 'error';
         });
-        paint(t, ['chain']);
-        var waiting = t.steps.some(function (st) { return st.id === ev.id && st.status === 'needs_confirmation'; });
-        skyResult(ev.id, waiting ? null : !!ev.ok, waiting ? 'waiting for your confirmation' : ev.summary, now);
+        paint(t, ['chain', 'plan']);
+        var waiting = t.steps.some(function (st) { return st.id === ev.id && (st.status === 'needs_confirmation' || st.status === 'needs_connection'); });
+        skyResult(ev.id, waiting ? null : !!ev.ok, waiting ? 'waiting for you' : ev.summary, now);
         if (!waiting) setStatus(ev.name + (ev.ok ? ' answered' : ' failed'), ev.ok ? 'busy' : 'bad');
         break;
       case 'needs_confirmation':
@@ -501,6 +567,15 @@
         t.steps.forEach(function (st) { if (st.id === ev.id) st.status = 'needs_confirmation'; });
         paint(t, ['confirm']);
         setStatus(ev.name + ' needs your confirmation', 'wait');
+        break;
+      case 'needs_connection':
+        t.connections = t.connections || [];
+        if (!t.connections.some(function (c) { return c.provider === ev.provider; }))
+          t.connections.push({ id: ev.id, name: ev.name, provider: ev.provider, provider_title: ev.provider_title,
+                               connect_url: ev.connect_url, reason: ev.reason });
+        t.steps.forEach(function (st) { if (st.id === ev.id) st.status = 'needs_connection'; });
+        paint(t, ['confirm']);
+        setStatus(ev.name + ' needs your ' + ev.provider_title + ' account', 'wait');
         break;
       case 'answer_delta':
         t.answer += ev.text || ''; t.answering = true;
@@ -540,12 +615,15 @@
         });
       });
       if (r.error && !t.error && r.stopped_by === 'error') t.error = { code: 'error', message: r.error };
+      if (r.plan && r.plan.length) t.plan = { planner: r.planner || (t.plan && t.plan.planner) || '', revision: t.plan ? t.plan.revision : 0, steps: r.plan };
+      if (r.conversation_id) sset(CKEY, r.conversation_id);    // later questions continue this conversation
     }
     if (t.status === 'running') t.status = t.error ? 'error' : 'done';
     t.answering = false;
     paint(t);
     sk.phase = 'done';
-    if (t.pending.length && !t.error) setStatus('Waiting for your confirmation', 'wait');
+    if ((t.connections || []).length && !t.error) setStatus('Waiting for you to connect ' + t.connections.map(function (c) { return c.provider_title; }).join(', '), 'wait');
+    else if (t.pending.length && !t.error) setStatus('Waiting for your confirmation', 'wait');
     else if (t.error) setStatus('Error', 'bad');
     else setStatus('Answered' + (t.confidence != null ? ' · confidence ' + t.confidence.toFixed(2) : ''), 'done');
     var msg = t.error ? 'Error: ' + t.error.message
@@ -607,7 +685,7 @@
     if (narrow.matches) turnEl(t).scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
     skyReset(); setStatus('Finding tools for your question', 'busy');
     startBusy();
-    var body = { question: q };
+    var body = { question: q, conversation_id: sget(CKEY) || 'new' };
     if (model) body.model = model;
     if (opts.confirm && opts.confirm.length) body.confirm = opts.confirm;
     ctrl = window.AbortController ? new AbortController() : null;
@@ -632,6 +710,10 @@
             enqueue({ type: 'answer', text: j.answer }); enqueue({ type: 'confidence', value: j.confidence });
             gotDone = true; enqueue({ type: 'done', result: j });
             return;
+          }
+          if (r.status === 404 && j && j.error === 'conversation not found') {
+            sdel(CKEY);               // expired or deleted: the next question starts a new conversation
+            return fail(t, 'This conversation is no longer kept on the server. Ask again to start a new one.');
           }
           fail(t, (j && j.error) || ('The server answered ' + r.status + '.'));
           gotDone = true;
@@ -696,7 +778,7 @@
   });
   newBtn.addEventListener('click', function () {
     if (busy) stop();
-    turns = []; sdel(KEY);
+    turns = []; sdel(KEY); sdel(CKEY);           // the next question starts a new conversation
     Array.prototype.forEach.call(logEl.querySelectorAll('.ask-turn'), function (a) { a.remove(); });
     emptyEl.hidden = false;
     skyReset(); setStatus('Waiting for a question', 'idle');
@@ -740,8 +822,8 @@
     skyShortlist(lt.shortlist, past);
     lt.steps.forEach(function (st) {
       skyCall(st.id, st.name, past);
-      if (st.done) skyResult(st.id, st.status === 'needs_confirmation' ? null : !!st.ok,
-                             st.status === 'needs_confirmation' ? 'waiting for your confirmation' : st.summary || '', past);
+      var held = st.status === 'needs_confirmation' || st.status === 'needs_connection';
+      if (st.done) skyResult(st.id, held ? null : !!st.ok, held ? 'waiting for you' : st.summary || '', past);
     });
     setStatus(lt.status === 'done' ? 'Answered' + (lt.confidence != null ? ' · confidence ' + lt.confidence.toFixed(2) : '') : 'Waiting for a question',
               lt.status === 'done' ? 'done' : 'idle');

@@ -1,0 +1,46 @@
+# Example policy (disabled): shows every effect and obligation. Set enabled: true to try it,
+# or test it on the Policies page with "Include disabled policies".
+# Rule language: docs/architecture/Policy and Audit.md, section 3.
+name: example-guardrails
+description: Example guardrails for destructive tools, anonymous callers, SQL, PII and federated output.
+enabled: false
+rules:
+  - id: no-anonymous-destructive
+    description: Unauthenticated callers never run tools marked destructive.
+    match:
+      annotations: {destructiveHint: true}
+      callers: {anonymous: true}
+    effect: deny
+    reason: Sign in to run tools that change or delete data.
+
+  - id: approve-destructive
+    description: Signed-in users confirm destructive tools themselves (MRTR or Ask SAJHA); others wait for an admin.
+    match:
+      annotations: {destructiveHint: true}
+    effect: require_approval
+    reason: This tool can change or delete data
+    approval: {approver: caller, ttl: 4h}
+
+  - id: sql-read-only
+    description: Queries may not contain DDL or DML keywords, and stay short.
+    match: {tools: ["duckdb_*", "sqlselect_*"]}
+    constraints:
+      sql: {not_pattern: "(?i)\\b(drop|delete|update|insert|alter|truncate|attach)\\b", max_length: 4000}
+      query: {not_pattern: "(?i)\\b(drop|delete|update|insert|alter|truncate|attach)\\b", max_length: 4000}
+
+  - id: market-data-limits
+    description: Per-user rate limit and daily quota on market data tools.
+    match: {groups: [yahoo, alpha, fmp]}
+    rate_limit: {limit: 30, window: 1m, per: [user]}
+    quota: {limit: 2000, period: day, per: [user]}
+
+  - id: no-pii-out
+    description: Mask personal data in every result for callers who are not administrators.
+    match:
+      exclude_tools: ["admin_*"]
+    redact: {emails: true, phones: true, cards: true, national_ids: true, mode: mask}
+
+  - id: screen-federated
+    description: Strip prompt-injection markers from results of federated tools (<prefix>__<tool>).
+    match: {tools: ["*__*"]}
+    screen_output: strip

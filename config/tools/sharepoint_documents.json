@@ -17,17 +17,31 @@
         "properties": {
             "operation": {
                 "type": "string",
-                "required": true,
-                "enum": ["list_files", "get_file", "download", "upload", "search", "get_metadata", "update_metadata", "check_out", "check_in", "get_versions", "delete", "move", "copy"],
-                "description": "Document operation to perform"
+                "enum": [
+                    "list_files",
+                    "get_file",
+                    "download",
+                    "upload",
+                    "search",
+                    "get_metadata",
+                    "update_metadata",
+                    "check_out",
+                    "check_in",
+                    "get_versions",
+                    "delete",
+                    "move",
+                    "copy"
+                ],
+                "description": "Document operation to perform",
+                "default": "list_files"
             },
             "folder_path": {
                 "type": "string",
-                "description": "Folder path (e.g., /Shared Documents/Project)"
+                "description": "Folder in the site's default document library: library-relative (/Project) or server-relative (/sites/team/Shared Documents/Project)"
             },
             "file_url": {
                 "type": "string",
-                "description": "Server-relative file URL"
+                "description": "File path: library-relative (/Project/plan.docx) or server-relative (/sites/team/Shared Documents/Project/plan.docx)"
             },
             "file_name": {
                 "type": "string",
@@ -47,35 +61,100 @@
             },
             "destination_url": {
                 "type": "string",
-                "description": "Destination URL for move/copy"
+                "description": "Destination file path for move/copy (same forms as file_url)"
             },
             "overwrite": {
                 "type": "boolean",
-                "default": false
+                "default": false,
+                "description": "upload, move, copy: replace an existing file"
             },
             "recursive": {
                 "type": "boolean",
-                "default": false
+                "default": false,
+                "description": "list_files: include subfolders (at most 1000 items)"
+            },
+            "source_url": {
+                "type": "string",
+                "description": "move, copy: the source file (file_url is accepted too)"
+            },
+            "return_content": {
+                "type": "boolean",
+                "default": false,
+                "description": "download: include the content as base64"
+            },
+            "comment": {
+                "type": "string",
+                "description": "check_in: the check-in comment"
+            },
+            "publish": {
+                "type": "boolean",
+                "default": false,
+                "description": "check_in: publish a major version"
+            },
+            "recycle": {
+                "type": "boolean",
+                "default": true,
+                "description": "delete: send to the recycle bin (false: delete permanently)"
+            },
+            "file_types": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "pattern": "^\\.?[A-Za-z0-9]{1,10}$"
+                },
+                "description": "search: keep only these extensions (e.g. ['docx', 'pdf'])"
+            },
+            "max_results": {
+                "type": "integer",
+                "default": 50,
+                "minimum": 1,
+                "maximum": 500,
+                "description": "search: maximum results"
             }
-        }
+        },
+        "required": [
+            "operation"
+        ]
     },
     "outputSchema": {
         "type": "object",
         "properties": {
-            "success": {"type": "boolean"},
-            "files": {"type": "array"},
-            "file_url": {"type": "string"},
-            "metadata": {"type": "object"},
-            "versions": {"type": "array"},
-            "results": {"type": "array"},
-            "execution_time_ms": {"type": "number"},
-            "error": {"type": "string"}
+            "success": {
+                "type": "boolean"
+            },
+            "files": {
+                "type": "array"
+            },
+            "file_url": {
+                "type": "string"
+            },
+            "metadata": {
+                "type": "object"
+            },
+            "versions": {
+                "type": "array"
+            },
+            "results": {
+                "type": "array"
+            },
+            "execution_time_ms": {
+                "type": "number"
+            },
+            "error": {
+                "type": "string"
+            }
         }
     },
     "metadata": {
         "author": "Ashutosh Sinha",
         "category": "Document Management",
-        "tags": ["sharepoint", "documents", "microsoft", "ecm", "office365"],
+        "tags": [
+            "sharepoint",
+            "documents",
+            "microsoft",
+            "ecm",
+            "office365"
+        ],
         "rateLimit": 100,
         "cacheTTL": 300,
         "examples": [

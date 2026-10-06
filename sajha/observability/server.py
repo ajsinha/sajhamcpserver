@@ -102,7 +102,7 @@ def start_metrics_server() -> bool:
         def log_message(self, fmt, *args):
             logger.debug('metrics listener: ' + fmt % args)
 
-    host = S.get_str('observability.metrics.host', '127.0.0.1') or '127.0.0.1'
+    host = S.get_str('observability.metrics.host', '0.0.0.0') or '0.0.0.0'
     try:
         _server = ThreadingHTTPServer((host, port), Handler)
     except OSError as e:

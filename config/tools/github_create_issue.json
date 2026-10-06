@@ -1,0 +1,110 @@
+{
+  "name": "github_create_issue",
+  "implementation": "sajha.accounts.tools.github.GithubCreateIssueTool",
+  "title": "Create a GitHub issue",
+  "description": "Open a new issue in a GitHub repository as the signed-in user, through their connected GitHub account (needs the repo scope). Returns the issue number and URL.",
+  "version": "1.0.0",
+  "enabled": true,
+  "auth": {
+    "connected_account": "github",
+    "scopes": [
+      "repo"
+    ]
+  },
+  "annotations": {
+    "title": "Create a GitHub issue",
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": true
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "owner": {
+        "type": "string",
+        "description": "Repository owner (user or organization)",
+        "pattern": "^[A-Za-z0-9_.-]{1,100}$"
+      },
+      "repo": {
+        "type": "string",
+        "description": "Repository name",
+        "pattern": "^[A-Za-z0-9_.-]{1,100}$"
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256,
+        "description": "Issue title"
+      },
+      "body": {
+        "type": "string",
+        "maxLength": 65536,
+        "description": "Issue body (Markdown)"
+      },
+      "labels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "maxItems": 20,
+        "description": "Label names"
+      }
+    },
+    "required": [
+      "owner",
+      "repo",
+      "title"
+    ],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "number": {
+        "type": "integer"
+      },
+      "url": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      },
+      "state": {
+        "type": "string"
+      },
+      "created_by": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "required": [
+      "number",
+      "url"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Connected Accounts",
+    "tags": [
+      "connected-account",
+      "github",
+      "issues"
+    ],
+    "note": "Writes to GitHub as the caller; marked destructive so Ask SAJHA and MCP clients confirm first.",
+    "examples": [
+      {
+        "description": "File a bug",
+        "input": {
+          "owner": "octocat",
+          "repo": "hello-world",
+          "title": "Crash on start",
+          "body": "Steps to reproduce..."
+        }
+      }
+    ]
+  }
+}

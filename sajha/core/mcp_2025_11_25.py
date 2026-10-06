@@ -485,15 +485,13 @@ def validate_origin(request_origin: Optional[str], allowed_origins: Optional[Lis
 
 class SSEEventTracker:
     """
-    Tracks SSE event IDs for stream resumption.
-    MCP 2025-11-25 Minor 7: Event IDs encode stream identity.
-    Clients send Last-Event-ID to resume from where they left off.
+    SSE event IDs (``<session>:<n>``; MCP 2025-11-25 Minor 7: ids encode stream identity).
+    Ids only: a stream belongs to one connection, so nothing is kept for replay and a
+    reconnect with Last-Event-ID starts a fresh stream.
     """
 
-    def __init__(self, max_buffer: int = 1000):
+    def __init__(self):
         self._counter = 0
-        self._buffer: List[Dict] = []  # Ring buffer of recent events
-        self._max_buffer = max_buffer
         self._lock = __import__('threading').Lock()
 
     def next_id(self, session_id: str) -> str:
@@ -501,30 +499,6 @@ class SSEEventTracker:
         with self._lock:
             self._counter += 1
             return f"{session_id}:{self._counter}"
-
-    def record_event(self, event_id: str, event_type: str, data: str):
-        """Store event for replay on reconnection."""
-        with self._lock:
-            self._buffer.append({
-                "id": event_id,
-                "event": event_type,
-                "data": data,
-                "timestamp": time.time(),
-            })
-            if len(self._buffer) > self._max_buffer:
-                self._buffer = self._buffer[-self._max_buffer:]
-
-    def get_events_after(self, last_event_id: str) -> List[Dict]:
-        """Get all events after a given ID for stream resumption."""
-        with self._lock:
-            found = False
-            result = []
-            for evt in self._buffer:
-                if found:
-                    result.append(evt)
-                elif evt["id"] == last_event_id:
-                    found = True
-            return result
 
     def format_sse_event(self, event_type: str, data: str,
                          event_id: str = None) -> str:

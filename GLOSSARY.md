@@ -19,14 +19,14 @@ Written for someone who does *not* already know the field. Where a term has a ge
 
 | Term | Meaning |
 |---|---|
-| **SAJHA** (*साझा*) | Hindi/Urdu for "shared", "common" or "collaborative". The name reflects the server's purpose: one shared bridge between AI systems and enterprise data sources. |
+| **SAJHA** (*साझा*) | Hindi/Urdu for "shared", "common" or "collaborative". The name is the idea: one governed catalog of tools that every MCP client and agent shares, composed on demand. |
 | **SAJHA MCP Server** | A Python MCP server that exposes a large catalogue of data and analytics tools, prompts and resources to AI clients, with a web console for administration, monitoring and tool creation (MCP Studio). It speaks both MCP eras (see **dual-era**). |
 | **SajhaMCPServerWebApp** | The main application class in `sajha/app.py`. Creates the FastAPI app, initialises every subsystem and manages the lifecycle. |
 | **FastAPI** | The ASGI web framework SAJHA runs on (it replaced Flask). Provides async request handling, dependency injection and generated OpenAPI docs. |
 | **Uvicorn** | The ASGI server that runs the FastAPI application. |
 | **Lifespan** | The FastAPI async context manager (`_lifespan()` in `app.py`) that runs initialisation on startup and cleanup on shutdown. |
 | **Route module** | An `APIRouter` in `sajha/routes/` (MCP, OAuth, admin, studio, API, A2A, WebSocket, …) registered with the app at startup. |
-| **application.yml** | The single configuration file, `config/application.yml`. Drives paths, database, logging, storage, MCP, OAuth, AI and plugin settings. Supports `${ENV_VAR:default}` substitution, and every key can be overridden with a `SAJHA_`-prefixed environment variable (e.g. `SAJHA_MCP_AUTH_MODE`). |
+| **application.yml** | The single configuration file, `config/application.yml`. Drives paths, database, logging, storage, MCP, OAuth, AI and plugin settings. Supports `${ENV_VAR:default}` substitution, and keys read through `sajha/core/config.py` can be overridden with a `SAJHA_`-prefixed environment variable (e.g. `SAJHA_MCP_AUTH_MODE`); the Configuration Reference says which subsystems read differently. |
 | **Settings** | A dataclass in `sajha/core/config.py` exposing typed configuration values derived from `application.yml`. |
 | **PropertiesConfigurator** | A singleton (`sajha/core/properties_configurator.py`) that resolves `${variable}` references in tool JSON configs from the flattened YAML configuration. |
 | **DAO** (*Data Access Object*) | The classes in `sajha/db/dao/` that encapsulate database queries (users, roles, permissions, API keys, executions, errors, sessions). |
@@ -35,7 +35,9 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Jinja2** | The template engine behind the web console pages and behind prompt templates, supporting variable substitution, conditions and loops. |
 | **Client SDK** | The Python package in `clientsdk/` (`sajhaclient`). `SajhaMCPClient` wraps the official MCP SDK and by default (`mode="auto"`) probes `server/discover` and adopts 2026-07-28; it also has REST, A2A and transport-level clients. |
 | **sajha CLI** | The `sajha` command (`clientsdk/sajhaclient/cli/`): login and profiles, tools and prompts over MCP, a streamed `ask`, Studio deploy, federation, shell completion, and `serve --stdio`. Exit codes say what failed. |
+| **CLI profile** | A named server URL and its stored credentials for the `sajha` command (`sajha profile add`, `use`, `list`, `remove`), kept in the CLI's `config.json`; chosen by `--profile` or `SAJHA_PROFILE`. |
 | **Plugin** | An extension package in `config/plugins/` (setting `plugins.dir`) with a `plugin.json` manifest, containing tool configs and optionally Python classes. Flow: `discover()`, `validate()` (checksum), `load_plugin()` (install dependencies, register tools). |
+| **Plugin manifest** | A plugin's `plugin.json`: its name, version, the tools it provides, an optional `sha256:` checksum over its files (a mismatch fails loading) and informational fields; read by `discover()`, checked by `validate()`. |
 | **Tenant** | An isolated customer or team in multi-tenant mode (`sajha/core/tenancy.py`): tenant-scoped tool configs, its own API key pool, usage quotas (tool calls per day/month, sessions, LLM tokens) and allowed providers. |
 | **A2A** (*Agent-to-Agent*) | A protocol for inter-agent communication. SAJHA publishes an agent card at `/.well-known/agent.json` and serves the task lifecycle (`tasks/send`, `tasks/get`, `tasks/cancel`) as JSON-RPC on `POST /a2a`. These A2A tasks are unrelated to MCP tasks. |
 | **Agent card** | The A2A discovery document at `/.well-known/agent.json` describing the agent's name, skills and endpoint. |
@@ -59,7 +61,7 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **_meta** | The reserved metadata object in `params` and results. On the modern path it carries the per-request context (`io.modelcontextprotocol/protocolVersion`, `clientCapabilities`, `clientInfo`, `logLevel`, `progressToken`, trace context) and results carry `io.modelcontextprotocol/serverInfo`. |
 | **Tool** | A callable function exposed over MCP: a `name`, `description`, `inputSchema` and optional `title`, `outputSchema`, `annotations`, `icons`. Listed by `tools/list`, invoked by `tools/call`. |
 | **Resource** | Read-only content addressed by a URI (e.g. `sajha://tools/catalog`, `ui://sajha/…`), listed by `resources/list` and fetched by `resources/read`. |
-| **Prompt** (*MCP*) | A server-provided message template with named arguments, listed by `prompts/list` and rendered by `prompts/get`. |
+| **Prompt** | A reusable message template with named arguments that SAJHA keeps in `config/prompts/` and serves over MCP: listed by `prompts/list`, rendered by `prompts/get`. |
 | **inputSchema** | The JSON Schema (2020-12 dialect) describing a tool's arguments. SAJHA passes it through untouched, so `$schema`, `$defs` and `additionalProperties` survive. |
 | **outputSchema** | An optional JSON Schema for a tool's result object. When advertised, the result is also returned as `structuredContent` and validated (mismatches are logged). Switch off with `mcp.tools.advertise_output_schema: false`. |
 | **structuredContent** | The machine-readable JSON object in a `tools/call` result, alongside the human-readable `content` blocks; clients validate it against the tool's `outputSchema`. |
@@ -77,7 +79,7 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Roots** | The filesystem or URI roots a client exposes (`roots/list`). A client capability, requested through MRTR on the modern path. |
 | **list_changed** | Notifications (`notifications/tools/list_changed`, `prompts/…`, `resources/…`) telling a client that a list has changed and should be fetched again. SAJHA sends them on `subscriptions/listen` streams, the legacy HTTP+SSE stream and WebSocket, fed by the change bus; legacy Streamable HTTP sessions advertise `listChanged: false`. |
 | **resources/subscribe** | The legacy per-URI subscription method (accepted, returns `{}`). Removed in 2026-07-28 in favour of `resourceSubscriptions` on `subscriptions/listen`. |
-| **MCPHandler** | The core legacy-era handler (`sajha/core/mcp_handler.py`) that routes every MCP JSON-RPC method. It has hooks for role-based tool access, inactive in this release because it is created without an auth manager. Shared by the Streamable HTTP, HTTP+SSE and WebSocket transports, and reused by the modern path for business logic. |
+| **MCPHandler** | The core legacy-era handler (`sajha/core/mcp_handler.py`) that routes every MCP JSON-RPC method. It is created with `SessionToolAccess` (`sajha/auth/access.py`), so every transport lists and runs only the tools the caller may use. Shared by the Streamable HTTP, HTTP+SSE and WebSocket transports, and reused by the modern path for business logic. |
 | **SEP** (*Specification Enhancement Proposal*) | A numbered proposal that changes the MCP spec, e.g. SEP-2322 (MRTR), SEP-2549 (caching hints), SEP-2663 (tasks extension). |
 | **Conformance suite** | The official `@modelcontextprotocol/conformance` test harness. SAJHA passes it for 2025-11-25 (legacy path), for 2026-07-28 including the tasks-extension scenarios, and for the `authorization` scenarios; it runs in CI. |
 | **Conformance fixtures** | The test tools, prompts and resources the suite expects (`test_simple_text`, `test://static-text`, …), in `sajha/core/mcp_conformance_fixtures.py`. Off by default; enabled with `mcp.conformance_fixtures` or `SAJHA_MCP_CONFORMANCE_FIXTURES=true`. For protocol testing only. |
@@ -168,7 +170,7 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Session token** | The SAJHA JWT issued after a successful web login, stored in the `sajha_token` cookie. |
 | **API key** | A long-lived credential for programs, prefixed `sja_`, sent in the `X-API-Key` header (or `?api_key=` on WebSocket). Stored as a SHA-256 hash; carries a tool access mode, optional rate limits and an expiry. Works in every `mcp.auth.mode` and is not scope-checked. |
 | **X-API-Key header** | The HTTP header that carries a SAJHA API key, e.g. `curl -H "X-API-Key: sja_…"`. |
-| **Tool access** | Which tools a caller may list and run (`sajha/auth/access.py`), enforced on the REST API, every MCP transport, A2A and async execution: users by their roles' tool permissions (`execute` to run, `read` to see), API keys by their tool access mode, anonymous callers by `mcp.anonymous.*`. Disallowed calls get 403 (REST), `-32002` (2025-11-25) or `-32010` (2026-07-28). |
+| **Tool access** | Which tools a caller may run (`sajha/auth/access.py`), enforced on the REST API, every MCP transport, A2A and async execution, and which it sees in MCP `tools/list` (the REST catalog routes are not filtered): users by their roles' tool permissions (`execute` to run, `read` to see), API keys by their tool access mode, anonymous callers by `mcp.anonymous.*`. Disallowed calls get 403 (REST), `-32002` (2025-11-25) or `-32010` (2026-07-28). |
 | **Anonymous access** | MCP or A2A calls with no credentials, possible while `mcp.auth.mode` is `off` or `optional` and `mcp.anonymous.enabled` is true. Anonymous callers see and run only the tools matched by `mcp.anonymous.tools` (default: none) plus the tool permissions of `mcp.anonymous.role`. |
 | **Tool access mode** | How an API key's tool permissions are decided: `all`, `allowlist`, `denylist` or `regex`. |
 | **Allowlist** | API key tool access mode where only the selected tools are permitted. |
@@ -188,14 +190,36 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Server secrets file** | `<data.dir>/secrets/server_secrets.json` (mode 0600, git-ignored): the JWT secret and session secret SAJHA generates once when none is configured. Publicly known placeholder secrets are refused at start-up. |
 | **Password hash** | The stored form of a password: bcrypt (cost 12), used directly rather than through passlib. Passwords are never stored in plain text. |
 | **AuthContext** | The dataclass the auth dependencies return to routes: `user_id`, `user_name`, `roles`, `is_admin`, auth type. |
-| **AuthManager** | The authentication orchestrator (`sajha/auth/__init__.py`, with `sajha/core/auth_manager.py`) that resolves cookies, bearer tokens, API keys and OAuth tokens into an `AuthContext`. |
+| **AuthManager** | The authentication orchestrator (`sajha/auth/__init__.py`) that resolves cookies, bearer tokens, API keys and OAuth tokens into an `AuthContext`. |
 | **Consent page** | The built-in AS's approval page (`/oauth/authorize`): CSRF-protected, frame-blocked, sign-in rate-limited, never redirecting to an unregistered URI. |
 | **AuditLogger** | Structured security event logging (`sajha/core/audit.py`) to the `audit_log` table: logins, logouts, user and API key changes, tool executions, config and permission changes, account locks. |
 | **Audit log** | The record of user and security actions kept for security and compliance review. |
-| **SSRF** (*Server-Side Request Forgery*) | Tricking a server into fetching internal URLs. CIMD fetches and async webhook deliveries are guarded against it (vetted, pinned public IPs; no redirects). |
+| **SSRF** (*Server-Side Request Forgery*) | Tricking a server into fetching internal URLs. CIMD fetches, async webhook deliveries, federation upstreams and API Import (specs, `$ref` documents and every imported call) are guarded against it (vetted, pinned public IPs; no redirects). |
 | **Sandbox** | Where SAJHA runs code it did not ship (Studio Python code and script tools, the admin shell): a separate process per call with no server environment, a temp work dir, limits, and per backend no access to the server's files, processes or network (`sajha/sandbox/`). |
 | **Sandbox backend** | How a sandbox is launched: `subprocess` (default; on Linux with namespaces, Landlock and seccomp), `bwrap`, `nsjail` or `docker`. Chosen by `sandbox.default_backend` or a tool's `sandbox.backend`; `GET /api/sandbox/status` reports what each enforces on the host. |
 | **Sandbox policy** | A tool's `sandbox` block (network, allowed hosts, time, memory, processes, output, packages, secrets, env) over the administrator's `sandbox.defaults`, capped by `sandbox.max`. |
+| **Connected account** | A user's link to their own account at a third-party service (GitHub, Slack, Google, Microsoft 365, Atlassian, Notion, or any configured OAuth 2.0 service), made once on `/account/connections`. Tools that declare `"auth": {"connected_account": "<provider>"}` then call that service as the user (`sajha/accounts/`). |
+| **Connected-account provider** | A third-party service users can link: a built-in template (endpoints, default scopes, PKCE, `api_hosts`) switched on with a client id and a `client_secret_ref` under `accounts.providers.<id>`, or a custom OAuth 2.0 service described there in full. |
+| **Token vault** | The `connected_accounts` table (in the schema files under `db/scripts/`): one row per user and provider holding the tokens as AES-256-GCM ciphertext bound to that user and provider, beside clear metadata (account, scopes, expiry, status). Administrators see the metadata, never a token. |
+| **Vault key** | The data key that encrypts the token vault: `accounts.vault.key` (env `SAJHA_ACCOUNTS_VAULT_KEY`), else one generated into the server secrets file, or one from a key-provider hook (KMS). Old keys stay readable from `accounts.vault.previous_keys` until rows are re-encrypted. |
+| **URLElicitationRequiredError** | The MCP 2025-11-25 JSON-RPC error `-32042` whose `data.elicitations` asks the client to send the user to a URL. SAJHA returns it when a connected-accounts tool runs for a caller with no usable link and the client declared URL-mode elicitation; on 2026-07-28 the same request travels as an MRTR input request. |
+| **Token passthrough** | A federated upstream with `auth.type: connected_account` receives the calling user's own token for that provider on every tool call (a short-lived connection per call), so the upstream acts as that user; discovery uses a separate service credential or none. |
+| **Policy engine** | The declarative rules SAJHA evaluates before every tool call on every path, at `BaseMCPTool.execute_with_tracking` (`sajha/policy/`): allow, deny, require approval, argument constraints, rate limits, quotas, output redaction and injection screening. Rules live in `config/policies/` and reload on change; the shipped policy has no rules. |
+| **Policy rule** | One entry in a policy file: a `match` (tool globs, groups, annotations, callers, sources, time window, argument conditions), an optional `effect` and obligations (`constraints`, `rate_limit`, `quota`, `redact`, `screen_output`). |
+| **Policy effect** | What a rule decides about access: `allow`, `deny` (with a reason) or `require_approval`. Effects of all matching rules combine deny-overrides; with `policy.default_effect: deny` a call needs an explicit `allow`. |
+| **Argument constraint** | A condition a call's arguments must meet under a policy rule (`enum`, `min`/`max`, `pattern`, `not_pattern`, `max_length`, `type`, `required`); a violation denies the call, naming the argument. |
+| **Quota** | A cap on calls per UTC calendar period (hour, day, week, month) under a policy rule, counted in the state store per tool, user, API key or caller. |
+| **Output redaction** | A policy obligation that replaces or masks personal data in a tool result before the caller sees it: emails, phone numbers, card numbers that pass the Luhn check, national IDs and custom regexes. |
+| **Output screening** | A policy obligation that looks for prompt-injection markers in a tool result: `flag` (audit only), `strip` (replace them) or `block` (withhold the result). |
+| **Require approval** | The policy effect that holds a call for a human: the caller confirms it (MRTR or Ask SAJHA, `approver: caller`) or an administrator approves it on the Approvals page (`approver: admin`). |
+| **Approval grant** | What approving a held call creates: the same caller making the same call (same fingerprint) within `policy.approvals.grant_ttl_seconds` runs it, once. |
+| **Call fingerprint** | SHA-256 of a tool name and its canonical arguments; ties an approval to exactly the call that was approved. |
+| **Policy test bench** | The form on the Policies page that evaluates a described call (tool, arguments, caller, source, time) and shows the decision, matching rules and obligations without running the tool. |
+| **Audit hash chain** | The tamper-evident form of the audit log: each record carries the SHA-256 hash of the one before, so editing, removing or reordering any record breaks every hash after it. One chain per SAJHA process, in the `audit_chain` table. |
+| **Audit anchor** | A checkpoint of an audit hash chain: its head hash and sequence number signed (RS256) with the server's OAuth signing key, stored in `audit_anchors` and in the chain, so a rewritten chain cannot reproduce it. |
+| **SIEM export** | Streaming audit records to a security information and event management system: syslog (RFC 5424 over TCP or TLS), HTTP (Splunk HEC, Datadog, generic) or a rotated JSON Lines file (`audit.export.sinks`). |
+| **CEF** (*Common Event Format*) | ArcSight's one-line event format: a `CEF:0` header of vendor, product, version, event id, name and severity, then key=value extensions; one of the SIEM export formats. |
+| **OCSF** (*Open Cybersecurity Schema Framework*) | A vendor-neutral JSON schema for security events; SAJHA's `ocsf` export format maps audit records to its API Activity, Authentication and Account Change classes. |
 
 ---
 
@@ -223,7 +247,6 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Tool versioning** | Running v1 and v2 of a tool side by side with a lifecycle `active`, `deprecated`, `sunset` (still registered, returns a warning), `retired` (removed from `tools/list`), plus contract testing (`sajha/core/tool_versioning.py`). |
 | **Literature** | Contextual documentation attached to a tool to help an AI understand when and how to use it; also indexed by semantic tool search. |
 | **Catalog resources** | `sajha://tools/catalog` and `sajha://prompts/catalog`: resources listing the tools and prompts, updated (with `resources/updated`) whenever they change. |
-| **Prompt** | A text instruction or template given to an AI system. SAJHA manages reusable prompt templates and serves them over MCP. |
 | **Prompt template** / **Template** | A prompt's raw text with `{{variable}}` placeholders that are filled in at runtime. |
 | **Variable substitution** | Replacing placeholders like `{{variable}}` with actual values when a prompt is rendered. |
 | **Arguments** (*prompt*) | The named variables a prompt template accepts, each with a description and a required flag. |
@@ -238,6 +261,9 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Federation** | SAJHA fronting other MCP servers and re-exposing their tools (and optionally prompts and resources) as registry tools under its own access control, audit, cache, circuit breakers and rate limits (`sajha/federation/`); off by default (`federation.enabled`). |
 | **Upstream** | An MCP server SAJHA federates: an id, a transport (Streamable HTTP, legacy SSE or stdio), credentials by secret reference, and the approval state of everything it offers. |
 | **Namespaced tool** | A federated tool's name in SAJHA, `<prefix>__<upstream tool name>` (for example `weather__get_forecast`), so upstream names never collide with each other or with native tools. |
+| **Approval** (*federation*) | The review gate for federated items (`federation.require_approval`, on by default): a discovered tool, prompt or resource is `pending` until an administrator approves it; one whose definition later changes goes back to `changed` and is hidden again. |
+| **Tool poisoning** | Instructions hidden in a tool's name, description or schema to steer the LLM that reads them. SAJHA strips control characters, caps and screens federated text, and flagged items always wait for a person's approval. |
+| **Federation store** | `FederationStore` (`sajha/federation/store.py`): one JSON document at `federation.state_path` holding the upstreams added on the admin page and every approval, read and written through the storage backend. |
 
 ---
 
@@ -260,6 +286,13 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Content-Type** | The HTTP header naming the request or response body format, e.g. `application/json`. |
 | **Basic authentication** | HTTP authentication with a username and password in the `Authorization` header. |
 | **API key** (*REST creator*) | A token for the external API being wrapped, passed in a header the creator configures. Not a SAJHA `sja_` key. |
+| **API Import** | The Studio page (`/studio/api-import`, admins) that turns an OpenAPI 3.x or Swagger 2.0 description, or a GraphQL schema read by introspection, into one tool per selected operation. Every imported tool runs on one generic executor configured by its JSON config; no code is generated. |
+| **OpenAPI** | A machine-readable description of an HTTP API (servers, paths, operations, parameters, schemas, security schemes), version 3.x. API Import reads it. |
+| **Swagger 2.0** | The predecessor of OpenAPI 3; API Import converts a Swagger 2.0 document to the 3.0 shape before reading it. |
+| **GraphQL introspection** | The standard query a GraphQL server answers with its own schema (types, queries, mutations); API Import builds one tool per query and mutation from it. |
+| **$ref** | A JSON reference from one part of an API description to another, or into another document. API Import inlines every one (remote documents through the SSRF guard) so each tool schema stands alone. |
+| **Import record** | The JSON document `config/api_imports/<api_id>.json` that remembers an import's source, server, credential references and a fingerprint per deployed operation, so importing again shows what was added, changed or removed. |
+| **Secret reference** | A pointer to a secret instead of the secret: `env:NAME`, `file:/path` or `db:llm_providers/<type>`. Resolved when used, never written to a config or logged. Used by LLM providers, federation upstreams and API Import credentials. |
 | **Query template** | A DB Query tool's SQL with parameter placeholders filled in at call time. |
 | **Parameter escaping** | Automatic quoting and escaping of parameter values to prevent SQL injection. |
 | **Connection string** | The database connection details: host, port, credentials and database name. |
@@ -270,6 +303,8 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Composite tool** | A tool that orchestrates several tools in one call, defined declaratively in the database with schemas built at load time (`sajha/tools/composite_tool.py`). Arrangements: sibling and parent-child. |
 | **Sibling** (*composite*) | A parallel composite: all steps run concurrently on shared or mapped inputs and their outputs are merged. |
 | **Parent-child** (*composite*) | A fan-out composite: the parent runs first, then the child runs once per record of the parent's output. |
+| **Master tool** / **Master output key** | The tool a composite runs first, with the composite's own arguments; its result is stored under the master output key (default `master`) for the steps to read. |
+| **Record path** | In a parent-child composite, the dot path (`rows`, `result.data`) to the array in the master's output; the child runs once per record. |
 | **Kleisli composition** | From category theory: composing functions that return wrapped (monadic) values. In SAJHA every tool is a Kleisli arrow `Dict → StepResult`, composed with `bind()`: errors short-circuit, traces accumulate, confidence compounds. |
 | **StepResult** | The monadic result envelope (`sajha/core/composition.py`): value, error, trace, duration, confidence, step name. `pure()` lifts a value (confidence 1.0), `fail()` an error (0.0), `bind()` chains. |
 | **PipelineResult** | The final output of a composite pipeline: merged tool outputs plus a `_composition` block (confidence, entropy bits, trace, guard result, steps executed). |
@@ -304,8 +339,9 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **State store** | Where SAJHA keeps state that every worker must see: OAuth codes and refresh tokens, MCP sessions, task records, rate-limit windows, LLM budgets, and the pub/sub channel for change notifications (`sajha/core/state/`). `state.backend` is `memory` (one process, the default), `redis` or `database`. |
 | **Durable task** | An MCP 2026-07-28 task whose record is kept in the database (`state.tasks.durable`, on by default with a shared state backend): it survives a restart, any worker can read, cancel or resume it, and a task whose worker died is failed rather than re-run. |
 | **Orphaned task** | A `working` task, or a queued or running async job, whose worker no longer heart-beats in the state store. It is reported `failed` when it is read. |
+| **Worker ID** / **Heartbeat** | Each process's identity (`host:pid:random`) and, with a shared state backend, the `worker:<id>` key it refreshes every few seconds; a task whose worker has no heartbeat is orphaned. |
 | **Shell tools** / **ShellExecutor** | Admin Python and Bash execution (`sajha/core/shell_executor.py`), disabled by default: an import and command filter, then the **Sandbox**. Every run is audit-logged. |
-| **PythonSandbox** | Tier-1 execution: Python in a subprocess with restricted imports, environment, time and memory, from a temporary file deleted afterwards. |
+| **PythonSandbox** | The admin shell's Python executor (`sajha/core/shell_executor.py`): `SecurityValidator` filters the code first, then it runs through the **Sandbox** backend like any other user code. |
 | **SecurityValidator** | Pre-execution checks for shell tools: blocks dangerous Python imports and builtins (`os`, `subprocess`, `eval`, …) and non-allowlisted or chained shell commands. |
 | **Monitoring** | Observing tool and user activity and health in the console's monitoring pages, refreshed periodically. |
 | **Execution count** | The number of times a tool has been called since the server started. |
@@ -329,12 +365,14 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Label cardinality** | The number of distinct label sets a metric has; each is a separate time series. SAJHA caps it per family (`observability.metrics.max_series`) and never labels by user. |
 | **Latency percentile** | The latency below which a given share of calls finished: p50 (median), p95, p99. |
 | **Usage ledger** | The `obs_usage_events` table: one row per tool call and per LLM call with caller, outcome, latency, tokens and cost, behind the Usage & cost page (`sajha/observability/usage.py`). |
+| **Usage & cost** | The console page over the usage ledger (`/monitoring/usage`): tokens, LLM spend, tool calls, errors and latency by user, key, role, model and tool, with today's budgets and the alert rules. |
 | **Token budget** | A daily cap on LLM tokens per user or per role (`ai.budgets`), enforced by the LLM gateway's token tracker; a call over it fails with `BudgetExceeded`. |
 | **Alert rule** | A condition on a metric over a window (`observability.alerts`) that, when it holds, sends one message to a log, an allow-listed webhook or email; or a Prometheus alerting rule. |
 | **Helm chart** | The Kubernetes package in `charts/sajha`: a Deployment with a seed init container, Service, Ingress pair, HPA, PodDisruptionBudget, optional Redis, NetworkPolicies and ServiceMonitor, configured by `values.yaml` and checked by `values.schema.json`. See the Kubernetes Deployment guide. |
 | **Seed init container** | The first container of each SAJHA pod in the Helm chart: copies the image's `config/` and `sajha/tools/impl/` into writable volumes, merges `config.overrides` into `application.yml`, and waits for Redis and PostgreSQL. |
 | **Streams Ingress** | The second Ingress object of the Helm chart, carrying only the long-lived paths (`/mcp`, `/api/mcp`, `/api/ai/ask`) with proxy buffering off and one-hour timeouts. |
 | **Kustomize overlay** | A directory of `deployment/k8s/overlays/` (dev, prod) that `kubectl apply -k` builds on `deployment/k8s/base`; SAJHA's are rendered from the Helm chart by `deployment/k8s/render.py`. |
+| **Schema file** | `db/scripts/<dialect>/schema.sql` (dialect `sqlite` or `postgresql`): every table, column, key and index SAJHA uses, as idempotent `CREATE ... IF NOT EXISTS` statements, with `seed.sql` beside it for the default roles and admin. There are no migrations: SQLite runs it at start-up; on PostgreSQL an operator runs it with `psql` and SAJHA only checks the result (`db.schema_check`). |
 
 ---
 
@@ -343,11 +381,26 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | Term | Meaning |
 |---|---|
 | **LLM gateway** | `LLMGateway` (`sajha/ai/gateway.py`): the one entry point for LLM calls. It resolves an alias (`default`, `fast`, `reasoning`, `embedding`) to a provider/model, applies role policy and budgets, retries, falls back and caches. Providers talk to vendor APIs directly over HTTP; out of the box only the mock provider is enabled. See the Intelligence Layer guide. |
+| **Model alias** | A name the gateway resolves to an ordered list of `provider/model` candidates (`ai.aliases`: `default`, `fast`, `reasoning`, `embedding`); on errors that allow fallback the next candidate is tried. Out of the box every alias points at the mock provider. |
 | **Intelligence layer** | The part of SAJHA that answers a question itself (`sajha/ai/intelligence.py`): it shortlists tools from the catalog, lets a model call them under the caller's permissions, and returns the answer with the tool calls it rests on and a confidence score. Served at `POST /api/ai/ask`. |
 | **Ask SAJHA** | The console's chat page (`/ask`) over the intelligence layer: it streams each step of an answer (the shortlist, every tool call and result, the answer and its confidence) and draws the tool chain on the live tool catalog. |
+| **sajha_ask** | The optional MCP tool (`ai.ask.mcp_tool_enabled`, off by default) that exposes the intelligence layer to MCP clients; its inner tool calls are limited to the anonymous policy plus `ai.ask.mcp_allowed_tools`. |
+| **Constellation** | The tool catalog drawn as a night sky, one star per loaded tool clustered by tool group (`static/js/constellation.js`): the landing page plays scripted questions on it, and Ask SAJHA draws each live answer's tool calls across it. |
 | **LLM provider** | A subclass of `LLMProvider` (`sajha/ai/llm/provider.py`) for one vendor or service: it owns the key, the HTTP client and the model list, and creates the models the gateway calls. Its settings are a pydantic `config_model`, each field overridable as `SAJHA_AI_<PROVIDER>_<FIELD>`. |
 | **Model capabilities** | What a model declares it can do (`ModelCapabilities`): tools, structured output, vision, streaming, context window, prices and tags. The gateway sends a request only to a model whose capabilities cover it. |
-| **Planner** | What decides each step of an ask: answer now, or call which of the offered tools. Today it is the model the `ai.ask.model` alias resolves to (`mock-planner` out of the box); a pluggable planner is proposed in the Extending the Intelligence Layer guide. |
+| **Planner** | What decides each step of an ask: answer now, or call which of the offered tools (`ai.ask.planner`, `sajha/ai/planners.py`). The service keeps RBAC, refusal of tools not offered, confirmation, limits, synthesis and confidence whatever the planner decides. Built in: `react` (default), `plan_execute`, `recipes`, `router`. |
+| **ReAct** (*Reason + Act*) | The default planner (`react`): one model call per step, which either answers or calls offered tools; the results feed the next step. |
+| **Plan-and-execute** | The `plan_execute` planner: one structured-output call returns a plan of tool steps with dependencies; independent steps run in parallel, and a failed step triggers one re-plan. |
+| **Recipe** (*planner*) | A configured rule of the `recipes` planner: a regular expression or keywords over the question, the tool to call, its arguments and optionally an answer template, so a known question shape is answered with no planning call. |
+| **Router** (*planner*) | The `router` planner: picks a strategy per question from configured rules, a matching recipe, or the question's shape (several parts go to `plan_execute`, others to `react`). |
+| **Plan event** | The optional `plan` event of the ask stream: the steps a planner intends to run, with dependencies; Ask SAJHA shows it as a collapsible list. |
+| **Conversation memory** | Per-user multi-turn context for asks (`sajha/ai/memory.py`): recent turns are sent verbatim, older ones as a gateway-written summary, and a follow-up is rewritten as a standalone question. Never shared between users; deleted after `ai.memory.retention_days`. |
+| **Standalone question** | A follow-up rewritten so it can be understood without the conversation ("and from 100 to 150?" becomes "What is the percentage change from 100 to 150?"); the shortlist and planner use it. |
+| **RAG** (*Retrieval-augmented generation*) | Answering from retrieved passages of documents rather than from model recall; in SAJHA, the `sajha_search_docs` tool over the document index (`sajha/ai/rag/`). |
+| **sajha_search_docs** | The tool that searches SAJHA's guides and admin-configured document sources and returns passages with citations (document, section, link); also behind the help page's Ask the docs box. |
+| **Vector store** | Where the document index keeps passages and their embeddings: in process by default (persisted through storage), or a pgvector table in PostgreSQL. |
+| **pgvector** | A PostgreSQL extension that adds a `vector` column type and similarity search; SAJHA uses it for the document index when the extension and the optional `rag_chunks` table exist. |
+| **Reciprocal rank fusion** | Combining rankings by summing 1/(k + rank) per item; the document search fuses its vector and BM25 rankings this way. |
 | **Mock provider** | The built-in LLM provider that needs no network or key (`sajha/ai/llm/mock.py`). Its `mock-planner` model picks tools from keywords and numbers in the question; it serves every model alias until a real provider is enabled. |
 | **Semantic tool search** | Natural-language tool discovery (`sajha/ai/tool_resolver.py`, `POST /api/ai/resolve-tool`): ranks tools by a query over their name, description, parameters, tags and literature. The embedder is set by `ai.tool_search.embedder`. |
 | **bm25** (*embedder*) | The default tool-search ranker: a dependency-free lexical BM25 index (`sajha/ai/lexical.py`) with IDF weighting, needing no model and no network. |
@@ -362,7 +415,7 @@ Written for someone who does *not* already know the field. Where a term has a ge
 |---|---|
 | **Theme** | One of four colour schemes over one design, shared with MAYA: **Crimson** (the default, stored as `light`), **Dark**, **Blue** and **Green**. Chosen from the palette menu and stored per browser (`sajha.theme`); applied as `data-theme` on `<html>`. With no choice stored the page follows the system light/dark preference. |
 | **Design tokens** | The `--sajha-*` CSS custom properties in `static/css/tokens.css`, the only place colours are defined; `style.css` maps its `--t-*` roles onto them. |
-| **Page glossary** | The collapsible list of terms at the foot of a console page, linking to this full glossary. |
+| **About this page** | The panel at the foot of every console page (`sajha/web/page_help.py`): what the page is for, the terms it uses (defined only here), the guide that owns its topic, and related help from the help catalog. |
 | **JSON editor** | The console's visual editor for JSON configuration data. |
 | **User configuration** | The settings and preferences of a user account, viewable and editable as JSON. |
 | **Copy** | Copying rendered output to the clipboard for use elsewhere. |
@@ -381,13 +434,12 @@ Written for someone who does *not* already know the field. Where a term has a ge
 |---|---|
 | **FMP** (*Financial Modeling Prep*) | A market and fundamentals data API. `FMPGenericTool` maps tool names onto FMP endpoints, so a new FMP tool needs only a JSON config. |
 | **OpenBB** | An open-source financial data platform. `OpenBBGenericTool` maps tool names onto OpenBB SDK commands. |
-| **FRED** (*Federal Reserve Economic Data*) | The St. Louis Fed's economic time-series database, served by the FRED tools including `FREDCustomSeriesTool`. |
+| **FRED** (*Federal Reserve Economic Data*) | The St. Louis Fed's economic time-series database and its web API. The FRED tools (including `FREDCustomSeriesTool`), the Federal Reserve tools and the `boj_` and `pboc_` tools fetch their series from it; it needs a free API key. |
 | **OLAP** (*Online Analytical Processing*) | Multi-dimensional analysis (pivots, time series, cohorts, statistics); the OLAP creator builds such tools over SAJHA's data. |
 | **Power BI** | Microsoft's business intelligence service. The Power BI creator builds tools that query reports and refresh datasets. |
 | **DAX** (*Data Analysis Expressions*) | Power BI's query and formula language; the Power BI DAX creator builds tools that run DAX queries against datasets. |
 | **LiveLink** | OpenText Content Server (formerly Livelink), an enterprise content management system; the LiveLink creator builds document search, browse and retrieval tools. |
 | **SharePoint** | Microsoft's document and list platform in Microsoft 365; the SharePoint creator builds document, list and search tools over it. |
-| **FRED API** | The St. Louis Fed's web API over FRED. The Federal Reserve tools and the `boj_` and `pboc_` tools fetch their series from it; it needs a free API key. |
 | **Time series** | A sequence of data points indexed by time (GDP by quarter, a yield by day). FRED, the World Bank and the other data tools return them. |
 | **Economic indicator** | A statistic about economic activity, such as GDP, unemployment or inflation. |
 | **Indicator** | A specific measurable value tracked over time (literacy rate, life expectancy); UN and World Bank tools look data up by indicator. |

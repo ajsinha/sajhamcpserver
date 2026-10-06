@@ -10,6 +10,8 @@ import logging
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
+from sajha.olap import sql_safety as sq
+
 logger = logging.getLogger(__name__)
 
 
@@ -134,19 +136,15 @@ class WindowEngine:
         # Build dimension columns
         dim_cols = []
         for d in spec.base_dimensions:
-            col = self.semantic.resolve_dimension(d, dataset)
+            col = sq.dimension_expr(self.semantic, dataset, d)
             alias = self._safe_alias(d)
             dim_cols.append(f"{col} AS {alias}")
         
         # Build base measure columns
         measure_cols = []
         for m in spec.base_measures:
-            measure = self.semantic.get_measure(m)
             alias = self._safe_alias(m)
-            if measure:
-                measure_cols.append(f"{measure.expression} AS {alias}")
-            else:
-                measure_cols.append(f"{m} AS {alias}")
+            measure_cols.append(f"{sq.measure_expr(self.semantic, dataset, m)} AS {alias}")
         
         # Build window calculation columns
         window_cols = []
@@ -171,7 +169,7 @@ class WindowEngine:
         
         # Need to aggregate first, then apply windows
         # Build aggregation CTE
-        group_dims = [self.semantic.resolve_dimension(d, dataset) for d in spec.base_dimensions]
+        group_dims = [sq.dimension_expr(self.semantic, dataset, d) for d in spec.base_dimensions]
         
         sql = f"""
 WITH aggregated AS (
@@ -188,46 +186,21 @@ FROM aggregated
 """
         
         if spec.limit:
-            sql += f"\nLIMIT {spec.limit}"
+            sql += f"\nLIMIT {sq.integer(spec.limit, 'limit', 1)}"
         
         return sql
     
     def _build_base_query(self, dataset, filters: List[Dict]) -> str:
-        """Build the base SELECT with joins and filters."""
-        sql = f"SELECT * FROM {dataset.source_table}"
-        
-        for join in dataset.joins:
-            alias = f" AS {join.alias}" if join.alias else ""
-            sql += f"\n{join.join_type} JOIN {join.table}{alias} ON {join.on_clause}"
-        
-        if filters:
-            where_clauses = self._build_filters(filters, dataset)
-            if where_clauses:
-                sql += f"\nWHERE {' AND '.join(where_clauses)}"
-        
-        return sql
+        """Build the base SELECT with joins and (parameterised) filters."""
+        return sq.base_query(self.semantic, dataset, filters)
     
     def _build_filters(self, filters: List[Dict], dataset) -> List[str]:
-        """Build WHERE clause components."""
-        clauses = []
-        for f in filters:
-            dim = f.get("dimension", f.get("column"))
-            op = f.get("operator", "=")
-            val = f.get("value")
-            
-            col = self.semantic.resolve_dimension(dim, dataset)
-            
-            if op.upper() == "IN":
-                if isinstance(val, list):
-                    formatted = ", ".join(f"'{v}'" if isinstance(v, str) else str(v) for v in val)
-                else:
-                    formatted = f"'{val}'" if isinstance(val, str) else str(val)
-                clauses.append(f"{col} IN ({formatted})")
-            else:
-                formatted = f"'{val}'" if isinstance(val, str) else str(val)
-                clauses.append(f"{col} {op} {formatted}")
-        
-        return clauses
+        """WHERE clause components; values are $olap_* parameters (see sql_safety)."""
+        return sq.compile_filters(self.semantic, dataset, filters)[0]
+
+    def _params(self, spec: WindowSpec) -> Dict[str, Any]:
+        dataset = self.semantic.get_dataset(spec.dataset)
+        return sq.filter_params(self.semantic, dataset, spec.filters) if dataset else {}
     
     def _build_window_function(self, calc: WindowCalculation, dataset) -> str:
         """Build a single window function expression."""
@@ -248,15 +221,12 @@ FROM aggregated
         # Build order clause
         order = calc.order_by or calc.measure
         order_col = self._safe_alias(order)
-        direction = calc.order_direction or "ASC"
+        direction = sq.direction(calc.order_direction)
         
-        # Format default value for lag/lead
+        # Default value for lag/lead: a numeric literal or NULL, never caller text
         default_val = "NULL"
         if calc.default_value is not None:
-            if isinstance(calc.default_value, str):
-                default_val = f"'{calc.default_value}'"
-            else:
-                default_val = str(calc.default_value)
+            default_val = sq.number(calc.default_value, "default_value")
         
         # Build the expression
         expr = template.format(
@@ -264,10 +234,10 @@ FROM aggregated
             partition=partition,
             order=order_col,
             direction=direction,
-            window_size=calc.window_size - 1,  # -1 because PRECEDING is exclusive
-            offset=calc.offset,
+            window_size=sq.integer(calc.window_size, "window_size", 1, 10_000) - 1,  # PRECEDING excludes the current row
+            offset=sq.integer(calc.offset, "offset", 0, 10_000),
             default=default_val,
-            buckets=calc.buckets
+            buckets=sq.integer(calc.buckets, "buckets", 1, 10_000)
         )
         
         return expr
@@ -295,7 +265,7 @@ FROM aggregated
         sql = self.build_window_query(spec)
         
         try:
-            result = self.conn.execute(sql).fetchall()
+            result = sq.execute(self.conn, sql, self._params(spec)).fetchall()
             columns = [desc[0] for desc in self.conn.description]
             
             # Convert to list of dicts

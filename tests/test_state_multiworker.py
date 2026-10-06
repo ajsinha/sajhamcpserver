@@ -77,6 +77,8 @@ def _env(tmp, backend, prefix):
         "SAJHA_STATE_KEY_PREFIX": prefix,
         "SAJHA_STATE_DATABASE_POLL_INTERVAL_MS": "100",
         "SAJHA_MCP_CONFORMANCE_FIXTURES": "true",
+        "SAJHA_AI_RAG_PERSIST": "false",            # never write the document index under data/
+        "SAJHA_AI_RAG_BUILD_ON_START": "false",
         "SAJHA_MCP_AUTH_MODE": "optional",
         "SAJHA_MCP_AUTH_PUBLIC_URL": PUBLIC,
         "SAJHA_MCP_AUTH_BUILTIN_SIGNING_KEY_PATH": str(tmp / "signing_key.pem"),

@@ -6,6 +6,7 @@
             <a href="{{ url_for('studio_home') }}" class="filter-chip {% if request.path == '/studio' %}active{% endif %}"><i class="bi bi-house me-1"></i>Home</a>
             <a href="{{ url_for('studio_home') }}#python-creator" class="filter-chip"><i class="bi bi-code-slash me-1"></i>Python</a>
             <a href="{{ url_for('studio_rest') }}" class="filter-chip {% if 'rest' in request.path %}active{% endif %}"><i class="bi bi-cloud-arrow-up me-1"></i>REST</a>
+            <a href="{{ url_for('studio_api_import') }}" class="filter-chip {% if 'api-import' in request.path %}active{% endif %}"><i class="bi bi-filetype-json me-1"></i>Import an API</a>
             <a href="{{ url_for('studio_dbquery') }}" class="filter-chip {% if 'dbquery' in request.path %}active{% endif %}"><i class="bi bi-database me-1"></i>DB Query</a>
             <a href="{{ url_for('studio_script') }}" class="filter-chip {% if 'script' in request.path %}active{% endif %}"><i class="bi bi-terminal me-1"></i>Script</a>
             <a href="{{ url_for('studio_powerbi') }}" class="filter-chip {% if 'powerbi' in request.path and 'dax' not in request.path %}active{% endif %}"><i class="bi bi-bar-chart-fill me-1"></i>PowerBI</a>

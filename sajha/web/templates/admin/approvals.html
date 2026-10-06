@@ -1,0 +1,84 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Approvals (administration): tool calls a policy rule holds for a human decision.
+Design: docs/architecture/Policy and Audit.md, section 5
+-->
+{% block title %}Approvals - Admin - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.appr-args{font-size:.75rem;white-space:pre-wrap;word-break:break-word;max-height:12rem;overflow:auto;margin:0;background:var(--t-inp);color:var(--t-text);padding:.4rem;border-radius:6px}
+.appr-meta{font-size:.8rem;color:var(--t-muted)}
+.appr-actions form{display:inline}
+.appr-actions input[name=note]{max-width:12rem}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-person-check me-2" aria-hidden="true"></i>Approvals</h1>
+      <small class="text-muted">Tool calls a policy rule holds for a human decision. Once approved, the same caller making the same call runs it, once.</small>
+    </div>
+    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_policies_page') }}"><i class="bi bi-shield-check me-1" aria-hidden="true"></i>Policies</a>
+  </div>
+
+  {% if notice %}<div class="alert alert-success" role="status">{{ notice }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+  {% if not store_shared %}<div class="alert alert-info" role="status">Approvals are kept in this worker's memory (<code>state.backend: memory</code>): with several workers, use <code>redis</code> or <code>database</code> so every worker sees them.</div>{% endif %}
+
+  <h2 class="h5">Pending ({{ pending|length }})</h2>
+  <div class="card mb-4">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">Requested</th><th scope="col">Caller</th><th scope="col">Tool and arguments</th><th scope="col">Rule and reason</th><th scope="col"><span class="visually-hidden">Decision</span></th></tr></thead>
+        <tbody>
+        {% for r in pending %}
+          <tr>
+            <td>{{ r.created }}<div class="appr-meta">expires {{ r.expires }}</div><div class="appr-meta"><code>{{ r.id }}</code></div></td>
+            <td>{{ r.caller.user_id }}{% if r.caller.api_key %}<div class="appr-meta">key {{ r.caller.api_key }}</div>{% endif %}<div class="appr-meta">via {{ r.source }}</div></td>
+            <td><strong>{{ r.tool }}</strong><pre class="appr-args">{{ r.arguments_json }}</pre></td>
+            <td><code>{{ r.rule }}</code><div class="appr-meta">{{ r.reason }}</div></td>
+            <td class="appr-actions text-nowrap">
+              <form method="post" action="/admin/approvals/{{ r.id }}/decide" class="d-flex flex-wrap gap-1">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <label class="visually-hidden" for="note-{{ r.id }}">Note</label>
+                <input class="form-control form-control-sm" id="note-{{ r.id }}" name="note" placeholder="note (optional)">
+                <button class="btn btn-sm btn-success" type="submit" name="decision" value="approve" aria-label="Approve {{ r.tool }} for {{ r.caller.user_id }}"><i class="bi bi-check-lg" aria-hidden="true"></i> Approve</button>
+                <button class="btn btn-sm btn-outline-danger" type="submit" name="decision" value="deny" aria-label="Deny {{ r.tool }} for {{ r.caller.user_id }}"><i class="bi bi-x-lg" aria-hidden="true"></i> Deny</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-muted text-center py-3">Nothing is waiting for approval.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2 class="h5">Recent decisions</h2>
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">Requested</th><th scope="col">Caller</th><th scope="col">Tool</th><th scope="col">Status</th><th scope="col">Decided by</th><th scope="col">Note</th></tr></thead>
+        <tbody>
+        {% for r in decided %}
+          <tr>
+            <td>{{ r.created }}</td>
+            <td>{{ r.caller.user_id }}</td>
+            <td>{{ r.tool }}<div class="appr-meta"><code>{{ r.rule }}</code></div></td>
+            <td>{% if r.status in ('approved', 'used') %}<span class="obs-pill obs-ok">{{ r.status }}</span>{% else %}<span class="obs-pill obs-bad">{{ r.status }}</span>{% endif %}</td>
+            <td>{{ r.decided_by or '—' }}<div class="appr-meta">{{ r.decided }}</div></td>
+            <td>{{ r.note or '—' }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="text-muted text-center py-3">No decisions yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

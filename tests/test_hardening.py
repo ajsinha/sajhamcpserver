@@ -595,7 +595,7 @@ def test_nginx_does_not_buffer_mcp_streams():
     assert 'add_header' not in block      # would drop the server-level security headers
 
 
-# ── auth error responses and schema migration ────────────────────
+# ── auth error responses and the schema ──────────────────────────
 
 class TestAuthErrorsAndSchema:
     def test_api_and_json_requests_get_json_401(self, client):
@@ -618,25 +618,20 @@ class TestAuthErrorsAndSchema:
         r = client.get('/api/ws/sessions', headers=user_headers)
         assert r.status_code == 403 and 'error' in r.json()
 
-    def test_missing_column_is_added_at_startup(self, tmp_path):
-        from sqlalchemy import create_engine, inspect, text
-        from sajha.db import engine as eng
-        url = f'sqlite:///{tmp_path / "old.db"}'
-        old = create_engine(url)
+    def test_old_sqlite_database_without_the_column_is_reported(self, tmp_path):
+        """No migrations: SAJHA never alters a table; a dev database that lacks a column is named."""
+        from sqlalchemy import create_engine, text
+        from sajha.db import schema
+        old = create_engine(f'sqlite:///{tmp_path / "old.db"}')
         with old.begin() as c:
             c.execute(text('CREATE TABLE users (id VARCHAR(36) PRIMARY KEY, user_id VARCHAR(100))'))
-        saved = eng._engine
-        try:
-            eng._engine = old
-            eng._ensure_columns()
-            eng._ensure_columns()          # idempotent
-        finally:
-            eng._engine = saved
-        assert 'must_change_password' in {c['name'] for c in inspect(old).get_columns('users')}
+        schema.create_sqlite(old)
+        with pytest.raises(schema.SchemaNotReady, match='must_change_password'):
+            schema.check(old, 'strict')
 
     def test_schema_scripts_declare_the_column(self):
         for d in ('sqlite', 'postgresql'):
-            assert 'must_change_password' in Path(f'db/scripts/{d}/001_schema.sql').read_text()
+            assert 'must_change_password' in Path(f'db/scripts/{d}/schema.sql').read_text()
 
 
 # The REST mirrors of three MCP methods had no auth check at all.

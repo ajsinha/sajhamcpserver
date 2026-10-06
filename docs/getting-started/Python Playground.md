@@ -65,6 +65,7 @@ only the Python runtime itself.
 | `sajha.schema(name)` | One tool's MCP description, including `inputSchema` (`GET /api/tools/{name}/schema`) |
 | `sajha.call(name, **arguments)` | Runs the tool on the server through `POST /api/tools/execute` and returns its result as Python data. Use `sajha.call(name, {"arg": 1})` for argument names that are not Python identifiers. |
 | `sajha.ask(question, model=None)` | Asks SAJHA (`POST /api/ai/ask`) and returns the answer: `answer`, `steps`, `citations`, `confidence` |
+| `sajha.server()` | The origin these calls go to (the page's own) |
 | `sajha.ToolError` | Raised when a call is refused or fails; `.status` is the HTTP status (401 when your session has expired, 403 for a tool you may not use, 404 for an unknown tool) |
 
 Calls are synchronous (a blocking request is allowed in a worker), so they need no `await`.

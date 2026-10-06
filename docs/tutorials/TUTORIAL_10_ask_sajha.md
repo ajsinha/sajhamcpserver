@@ -72,8 +72,10 @@ every provider). The pill disappears, and the model picker lists the aliases.
 - **Stop** (or Escape) abandons a question while it is running.
 - A tool marked destructive is never run without you: the answer shows a card naming the
   call and its arguments, with **Confirm and run** and **Cancel**.
-- Each question is answered on its own; SAJHA does not see your earlier questions. The
-  conversation stays in this browser tab until you click **New chat** or close the tab.
+- The page keeps a conversation: a follow-up such as "And from 100 to 150?" is answered with
+  your earlier questions as context. **New chat** starts a new conversation.
+  [Tutorial 21](TUTORIAL_21_planners_memory_and_rag.md) shows how that works, and how to
+  delete your history.
 
 ### 7. Ask from code
 
@@ -93,6 +95,7 @@ The JSON result has `answer`, `confidence`, `steps`, `citations` and `caveats`. 
 - [Intelligence Layer](../architecture/Intelligence%20Layer.md): providers, the gateway, the ask loop and its event stream
 - [Composition Framework](../architecture/Composition%20Framework.md): where the confidence score comes from
 - [API Reference](../protocol/API%20Reference.md): every endpoint
+- Next tutorial: [Federate an MCP Server](TUTORIAL_11_federate_an_mcp_server.md)
 
 ---
 

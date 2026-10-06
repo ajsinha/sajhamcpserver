@@ -10,6 +10,8 @@ import logging
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
+from sajha.olap import sql_safety as sq
+
 logger = logging.getLogger(__name__)
 
 
@@ -124,17 +126,14 @@ class CohortEngine:
         base_sql = self._build_base_query(dataset, spec.filters)
         
         # Resolve columns
-        cohort_col = self.semantic.resolve_dimension(spec.cohort_dimension, dataset)
-        time_col = self.semantic.resolve_dimension(spec.time_dimension, dataset)
-        entity_col = self.semantic.resolve_dimension(spec.entity_dimension, dataset)
+        cohort_col = sq.dimension_expr(self.semantic, dataset, spec.cohort_dimension)
+        time_col = sq.dimension_expr(self.semantic, dataset, spec.time_dimension)
+        entity_col = sq.dimension_expr(self.semantic, dataset, spec.entity_dimension)
         
-        # Get measure expression
-        measure_obj = self.semantic.get_measure(spec.measure)
-        if measure_obj:
-            # For cohort, we need the raw column, not the aggregation
-            measure_col = self._extract_column_from_expression(measure_obj.expression)
-        else:
-            measure_col = spec.measure
+        # For cohort, we need the raw column behind the (declared) measure
+        measure_col = sq.measure_column(self.semantic, dataset, spec.measure)
+        self._check_grain(spec.time_grain)
+        periods = sq.integer(spec.periods, "periods", 0, 1000)
         
         # Build time grain expression
         time_trunc = self.TIME_GRAIN_TRUNC[spec.time_grain].format(col=time_col)
@@ -178,7 +177,7 @@ cohort_activity AS (
         {period_diff} AS period_number,
         {agg_expr.replace(entity_col, 'cd.entity_id').replace(measure_col, 'cd.measure_value')} AS measure_value
     FROM cohort_data cd
-    WHERE {period_diff} >= 0 AND {period_diff} <= {spec.periods}
+    WHERE {period_diff} >= 0 AND {period_diff} <= {periods}
     GROUP BY cd.cohort_period, {period_diff}
 )
 SELECT 
@@ -215,11 +214,13 @@ ORDER BY ca.cohort_period, ca.period_number
         base_sql = self._build_base_query(dataset, spec.filters)
         
         # Resolve columns
-        cohort_col = self.semantic.resolve_dimension(spec.cohort_dimension, dataset)
-        activity_col = self.semantic.resolve_dimension(spec.activity_dimension, dataset)
-        entity_col = self.semantic.resolve_dimension(spec.entity_dimension, dataset)
+        cohort_col = sq.dimension_expr(self.semantic, dataset, spec.cohort_dimension)
+        activity_col = sq.dimension_expr(self.semantic, dataset, spec.activity_dimension)
+        entity_col = sq.dimension_expr(self.semantic, dataset, spec.entity_dimension)
         
         # Build time expressions
+        self._check_grain(spec.time_grain)
+        periods = sq.integer(spec.periods, "periods", 0, 1000)
         cohort_trunc = self.TIME_GRAIN_TRUNC[spec.time_grain].format(col=cohort_col)
         activity_trunc = self.TIME_GRAIN_TRUNC[spec.time_grain].format(col=activity_col)
         period_diff = self.TIME_GRAIN_DIFF[spec.time_grain].format(
@@ -253,7 +254,7 @@ cohort_activity AS (
         ea.entity_id
     FROM entity_cohorts ec
     JOIN entity_activities ea ON ec.entity_id = ea.entity_id
-    WHERE {period_diff} >= 0 AND {period_diff} <= {spec.periods}
+    WHERE {period_diff} >= 0 AND {period_diff} <= {periods}
 ),
 -- Count cohort sizes
 cohort_sizes AS (
@@ -307,7 +308,7 @@ ORDER BY rc.cohort_period, rc.period_number
         
         # Build pivot columns for each period
         pivot_cols = []
-        for i in range(spec.periods + 1):
+        for i in range(sq.integer(spec.periods, "periods", 0, 1000) + 1):
             if spec.show_percentages:
                 pivot_cols.append(
                     f"MAX(CASE WHEN period_number = {i} THEN retention_pct END) AS period_{i}_pct"
@@ -354,7 +355,9 @@ ORDER BY cohort_period
         base_cohort_sql = self.build_cohort_analysis(spec)
         
         if baseline_cohort:
-            baseline_filter = f"WHERE cohort_period = '{baseline_cohort}'"
+            # A value, so a parameter: bind {"olap_baseline_cohort": baseline_cohort} (plus the
+            # filter parameters) when executing this SQL.
+            baseline_filter = f"WHERE cohort_period = ${sq.PARAM_PREFIX}baseline_cohort"
         else:
             baseline_filter = ""
         
@@ -390,41 +393,21 @@ ORDER BY cd.cohort_period, cd.period_number
         return sql
     
     def _build_base_query(self, dataset, filters: List[Dict]) -> str:
-        """Build the base SELECT with joins and filters."""
-        sql = f"SELECT * FROM {dataset.source_table}"
-        
-        for join in dataset.joins:
-            alias = f" AS {join.alias}" if join.alias else ""
-            sql += f"\n{join.join_type} JOIN {join.table}{alias} ON {join.on_clause}"
-        
-        if filters:
-            where_clauses = self._build_filters(filters, dataset)
-            if where_clauses:
-                sql += f"\nWHERE {' AND '.join(where_clauses)}"
-        
-        return sql
+        """Build the base SELECT with joins and (parameterised) filters."""
+        return sq.base_query(self.semantic, dataset, filters)
     
     def _build_filters(self, filters: List[Dict], dataset) -> List[str]:
-        """Build WHERE clause components."""
-        clauses = []
-        for f in filters:
-            dim = f.get("dimension", f.get("column"))
-            op = f.get("operator", "=")
-            val = f.get("value")
-            
-            col = self.semantic.resolve_dimension(dim, dataset)
-            
-            if op.upper() == "IN":
-                if isinstance(val, list):
-                    formatted = ", ".join(f"'{v}'" if isinstance(v, str) else str(v) for v in val)
-                else:
-                    formatted = f"'{val}'" if isinstance(val, str) else str(val)
-                clauses.append(f"{col} IN ({formatted})")
-            else:
-                formatted = f"'{val}'" if isinstance(val, str) else str(val)
-                clauses.append(f"{col} {op} {formatted}")
-        
-        return clauses
+        """WHERE clause components; values are $olap_* parameters (see sql_safety)."""
+        return sq.compile_filters(self.semantic, dataset, filters)[0]
+
+    def _params(self, spec) -> Dict[str, Any]:
+        dataset = self.semantic.get_dataset(spec.dataset)
+        return sq.filter_params(self.semantic, dataset, spec.filters) if dataset else {}
+
+    def _check_grain(self, grain: str) -> None:
+        if grain not in self.TIME_GRAIN_TRUNC:
+            raise sq.OLAPQueryError(f"Unsupported time_grain {grain!r}. "
+                                    f"Allowed: {sorted(self.TIME_GRAIN_TRUNC)}")
     
     def _extract_column_from_expression(self, expression: str) -> str:
         """Extract column name from aggregation expression like SUM(amount)."""
@@ -457,7 +440,7 @@ ORDER BY cd.cohort_period, cd.period_number
         sql = self.build_cohort_pivot(spec)
         
         try:
-            result = self.conn.execute(sql).fetchall()
+            result = sq.execute(self.conn, sql, self._params(spec)).fetchall()
             columns = [desc[0] for desc in self.conn.description]
             
             # Convert to list of dicts
@@ -506,7 +489,7 @@ ORDER BY cd.cohort_period, cd.period_number
         sql = self.build_retention_analysis(spec)
         
         try:
-            result = self.conn.execute(sql).fetchall()
+            result = sq.execute(self.conn, sql, self._params(spec)).fetchall()
             columns = [desc[0] for desc in self.conn.description]
             
             # Convert to list of dicts
@@ -585,7 +568,7 @@ SELECT
 FROM cohort_data
 """
             
-            result = self.conn.execute(summary_sql).fetchone()
+            result = sq.execute(self.conn, summary_sql, self._params(spec)).fetchone()
             columns = [desc[0] for desc in self.conn.description]
             
             summary = dict(zip(columns, result))

@@ -1,0 +1,96 @@
+{
+  "name": "github_list_my_repos",
+  "implementation": "sajha.accounts.tools.github.GithubListMyReposTool",
+  "title": "List my GitHub repositories",
+  "description": "List the GitHub repositories the signed-in user can access (owned, collaborator and organization), as that user, through their connected GitHub account. Returns name, visibility, description, URL, language, stars and open issues, most recently updated first.",
+  "version": "1.0.0",
+  "enabled": true,
+  "auth": {
+    "connected_account": "github",
+    "scopes": []
+  },
+  "annotations": {
+    "title": "List my GitHub repositories",
+    "readOnlyHint": true,
+    "openWorldHint": true
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 30,
+        "description": "How many repositories to return"
+      },
+      "sort": {
+        "type": "string",
+        "enum": [
+          "updated",
+          "created",
+          "pushed",
+          "full_name"
+        ],
+        "default": "updated",
+        "description": "Sort order"
+      },
+      "visibility": {
+        "type": "string",
+        "enum": [
+          "all",
+          "public",
+          "private"
+        ],
+        "default": "all",
+        "description": "Which repositories"
+      },
+      "affiliation": {
+        "type": "string",
+        "description": "Comma-separated: owner, collaborator, organization_member",
+        "default": "owner,collaborator,organization_member",
+        "pattern": "^(owner|collaborator|organization_member)(,(owner|collaborator|organization_member))*$"
+      }
+    },
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "account": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "repositories": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      }
+    },
+    "required": [
+      "count",
+      "repositories"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Connected Accounts",
+    "tags": [
+      "connected-account",
+      "github",
+      "repositories"
+    ],
+    "note": "Acts as the caller: needs a linked GitHub account (Connected accounts).",
+    "examples": [
+      {
+        "description": "My ten most recently updated repositories",
+        "input": {
+          "limit": 10
+        }
+      }
+    ]
+  }
+}

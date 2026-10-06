@@ -185,7 +185,6 @@ Example calls:
     "properties": {
       "operation": {
         "type": "string",
-        "required": true,
         "enum": ["list_files", "get_file", "download", "search", "get_metadata"],
         "description": "Operation to perform"
       },
@@ -195,7 +194,8 @@ Example calls:
       "query": {"type": "string", "description": "Search query"},
       "metadata": {"type": "object", "description": "Metadata fields"},
       "destination_url": {"type": "string", "description": "Destination for move/copy"}
-    }
+    },
+    "required": ["operation"]
   },
   "outputSchema": {
     "type": "object",
@@ -290,9 +290,13 @@ The page's setup panel lists these steps:
 
 These notes come from `sajha/tools/impl/sharepoint_tool.py`:
 
-- Requests go to the SharePoint REST API at `<site_url>/_api/...` with `Accept: application/json;odata=verbose`.
-- The client-credentials token is requested from `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token` with scope `https://graph.microsoft.com/.default`.
-- `certificate` and `user_credentials` raise `NotImplementedError`. The authenticator also reads the key `auth_type`, while the generated config writes `authentication.type`. In practice, every generated tool authenticates with client credentials.
+- Requests go to Microsoft Graph (`https://graph.microsoft.com/v1.0`), the API the
+  client-credentials token (scope `https://graph.microsoft.com/.default`) is valid for. What
+  each operation calls, and the Graph permissions the app needs, are in the
+  [SharePoint Tool Reference Guide](../tools/enterprise/SharePoint%20Tool%20Reference%20Guide.md).
+- Only `client_credentials` is implemented (read from `authentication.type`); any other type
+  answers with an error saying so.
+- The `operation` enum is enforced: the server validates every call against the input schema.
 - The `options` and `caching` blocks are stored in the config, but the current SharePoint classes do not enforce them. That covers `max_file_size_mb`, `allowed_file_types`, the version-control and metadata switches, and the cache TTL. What limits which operations a client sees is the `operation` enum in the input schema.
 
 ---
@@ -303,9 +307,9 @@ These notes come from `sajha/tools/impl/sharepoint_tool.py`:
 |---------|--------------|---------------|
 | Deploy shows an error | The name is taken or invalid, or a required field is missing | The alert gives the validation message. Fix the field, or delete the existing Studio tool first. |
 | `Tenant ID required for client credentials auth` | Validation failed | Set Tenant ID and Client ID, or use their variables. |
-| `NotImplementedError: Certificate auth not yet implemented` | A non-client-credentials auth path was used | Use client credentials. |
-| HTTP 401 or 403 from `/_api/` | Token or permissions problem | Check the tenant, client ID, secret and granted API permissions. |
-| `${sharepoint.site.url}` appears literally in errors | Variable not defined | Add the key to `config/application.yml`. |
+| `Unsupported SharePoint authentication type` | A non-client-credentials auth type was chosen | Use client credentials. |
+| `Microsoft Graph ... failed: HTTP 401` or `403` | Token or permissions problem | Check the tenant, client ID, secret and the Graph application permissions (`Sites.Read.All` / `Sites.ReadWrite.All`). |
+| `SharePoint is not configured: ...` | The site URL or credentials are empty | Set `SHAREPOINT_SITE_URL`, `AZURE_TENANT_ID`, `SHAREPOINT_CLIENT_ID`, `SHAREPOINT_CLIENT_SECRET` (read by `sharepoint.*` / `azure.tenant.id` in `config/application.yml`). |
 
 Token check outside SAJHA:
 

@@ -31,17 +31,25 @@ router = APIRouter(tags=['a2a'])
 # ── Agent Card ───────────────────────────────────────────────────
 
 @router.get('/.well-known/agent.json')
-async def agent_card():
+async def agent_card(auth: AuthContext = Depends(get_current_user)):
     """
     A2A Agent Card — tells other agents what this server can do.
+
+    The skills are the tools the caller may see (the tools/list policy,
+    sajha/auth/access.py). A credential-less caller gets the anonymous policy
+    (``mcp.anonymous.*``, by default nothing): a generic card with no tool inventory.
     """
     settings = get_settings()
     from sajha.app import tools_registry
+    from sajha.auth.access import policy_for
 
-    # Build skills from tool registry
+    policy = policy_for(auth)
+
+    # Build skills from the tools this caller may see
     skills = []
     if tools_registry:
-        for tool_name, tool in list(tools_registry.tools.items())[:50]:
+        visible = [(n, t) for n, t in list(tools_registry.tools.items()) if policy.can_see(n)]
+        for tool_name, tool in visible[:50]:
             tool_data = tool.to_mcp_format()
             skills.append({
                 'id': tool_name,
@@ -139,6 +147,11 @@ async def _tasks_send(params: dict, auth: AuthContext, db: Session) -> dict:
     from sajha.app import tools_registry
     from sajha.auth.access import policy_for
     policy = policy_for(auth)
+    # who is calling, and through what, for the usage ledger and the policy engine
+    from sajha.observability.caller import from_auth, set_caller
+    from sajha.policy.context import set_source
+    set_caller(from_auth(auth))
+    set_source('a2a')
 
     message = params.get('message', {})
     session_id = params.get('sessionId')

@@ -6,7 +6,7 @@ Imports users and API keys from legacy JSON config files (v2 format)
 into the database. Safe to run every startup — skips existing records.
 
 Schema creation and default seed data (roles, permissions, admin user)
-are handled by SQL scripts in db/scripts/.
+are in db/scripts/<dialect>/schema.sql and seed.sql.
 """
 
 import json
@@ -45,7 +45,7 @@ def import_legacy_users(db: Session, json_path: str) -> int:
 
     for u in data.get('users', []):
         uid = u.get('user_id')
-        if not uid or uid == 'admin':  # admin is created by 002_seed.sql
+        if not uid or uid == 'admin':  # admin is created by seed.sql
             continue
         if user_dao.user_exists(uid):
             continue

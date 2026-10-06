@@ -4,7 +4,15 @@
 # Usage:
 #   scp -r . root@<your-server>:~/sajha/
 #   ssh root@<your-server>
-#   cd ~/sajha && docker compose up -d
+#   cd ~/sajha && docker compose up -d postgres
+#   # SAJHA does not create PostgreSQL tables: run the schema file once (then the seed file:
+#   # default roles and admin), then start the rest. docs/getting-started/Database Setup.md
+#   # (python -m sajha.db sql prints db/scripts/postgresql/schema.sql from the image; --seed the seed file)
+#   docker compose run --rm --no-deps --entrypoint python3 sajha -m sajha.db sql --dialect postgresql \
+#     | docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U sajha -d sajha
+#   docker compose run --rm --no-deps --entrypoint python3 sajha -m sajha.db sql --dialect postgresql --seed \
+#     | docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U sajha -d sajha
+#   docker compose up -d
 #
 version: "3.9"
 
@@ -27,8 +35,11 @@ services:
       - SAJHA_DB_NAME=sajha
       - SAJHA_DB_USER=sajha
       - SAJHA_DB_PASSWORD=${DB_PASSWORD:-sajha_secure_2025}
+      - SAJHA_DB_SCHEMA_CHECK=strict     # refuse to start while tables or columns are missing (or warn)
       # empty: generated once and kept in the sajha-data volume (data/secrets/)
       - SAJHA_JWT_SECRET=${JWT_SECRET:-}
+      # the web session cookie key; empty: generated once into data/secrets/ like the JWT secret
+      - SAJHA_AUTH_SESSION_SECRET_KEY=${SESSION_SECRET:-}
       - SAJHA_STORAGE_BACKEND=local
       # Several workers (UVICORN_WORKERS > 1) or several hosts need shared state:
       #   SAJHA_STATE_BACKEND=redis  and  docker compose --profile scale up -d  (starts the redis service)

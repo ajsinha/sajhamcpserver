@@ -28,13 +28,15 @@ This script:
 1. Copies files to your Hetzner server
 2. Installs Docker if needed
 3. Generates secure passwords
-4. Starts SAJHA + PostgreSQL + Caddy
-5. Caddy auto-provisions SSL
+4. Starts PostgreSQL and prints the schema step ([Database schema](#database-schema))
+5. After you apply the schema: `docker compose up -d` starts SAJHA and Caddy, and Caddy
+   provisions SSL
 
 ## Option 2: Cloud-Init (fully automated)
 
 ```bash
-# Create server with cloud-init (auto-deploys on first boot)
+# Create server with cloud-init (installs and starts PostgreSQL on first boot; then
+# apply the schema and run docker compose up -d, see "Database schema")
 hcloud server create \
   --name sajha \
   --type cx22 \
@@ -61,9 +63,24 @@ nano .env  # Set domain, passwords, API keys
 # Update Caddyfile with your domain
 sed -i 's/sajha.example.com/your-domain.com/' Caddyfile
 
-# Deploy
+# Deploy: the database, the schema (see "Database schema"), then everything
+docker compose up -d postgres
+docker compose run --rm --no-deps --entrypoint python3 sajha -m sajha.db sql --dialect postgresql \
+  | docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U sajha -d sajha
+docker compose run --rm --no-deps --entrypoint python3 sajha -m sajha.db sql --dialect postgresql --seed \
+  | docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U sajha -d sajha
 docker compose up -d
 ```
+
+## Database schema
+
+SAJHA does not create PostgreSQL tables; with tables missing it refuses to start and logs
+which. There are no migrations: run the schema file (`db/scripts/postgresql/schema.sql`,
+printed from the image by `python -m sajha.db sql`) once after the first
+`docker compose up -d postgres`, then the seed file (`--seed`: default roles and admin), as
+in the commands above. An upgrade that changes the schema lists the SQL to run in the
+CHANGELOG. The procedure, upgrades and the start-up check are in
+[Database Setup](../../docs/getting-started/Database%20Setup.md).
 
 ## Several Workers (optional)
 

@@ -72,7 +72,7 @@ The Federal Reserve MCP Tool Suite provides programmatic access to the Federal R
 ├──────────────────────────────────────────────────────────┤
 │  • API URL: api.stlouisfed.org/fred                     │
 │  • API Key Management (optional/demo mode)               │
-│  • Common Series Definitions (12 indicators)             │
+│  • Common Series Definitions                             │
 │  • HTTP Client (urllib)                                  │
 │  • JSON Parser                                           │
 │  • Demo Data Generator                                   │
@@ -319,7 +319,7 @@ Demo mode provides:
 
 **Optimization**: Minimal payload - perfect for dashboards
 
-> **Known issue:** the implementation requests the series with `limit=1` and FRED's default ascending sort, so with a live API key it returns the **oldest** observation rather than the newest. `fed_get_common_indicators` has the same behaviour. Until this is fixed, use `fed_get_series` with a recent `start_date` and take the last observation.
+The tool asks FRED for the newest observations first (`sort_order=desc`, a small window) and returns the most recent one that has a value (FRED marks a missing value as `.`). `fed_get_common_indicators` does the same for each indicator.
 
 **Input Parameters**:
 ```json

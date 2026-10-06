@@ -25,7 +25,7 @@ The DuckDB tools run read-only SQL analytics over local CSV, TSV, Parquet and JS
 | `duckdb_get_stats` | `DuckDbGetStatsTool` | Column statistics and percentiles |
 | `duckdb_aggregate` | `DuckDbAggregateTool` | Grouped aggregation without writing SQL |
 | `duckdb_list_files` | `DuckDbListFilesTool` | List data files in the data directory |
-| `duckdb_refresh_views` | `DuckDbRefreshViewsTool` | Re-validate views and reload changed files |
+| `duckdb_refresh_views` | `DuckDbRefreshViewsTool` | Re-check tables and reload changed files |
 | `duckdb_sql` | `duckdb_olap_advanced.DuckDBSQLTool` | Lightweight SQL over `customers`, `orders`, `products` CSVs |
 
 For semantic-layer pivots and time series over the same data, see the [OLAP Analytics Tool Reference Guide](OLAP%20Analytics%20Tool%20Reference%20Guide.md). For SQL over a separately configured set of sources, see the [SQL Select Tool Reference Guide](SQL%20Select%20Tool%20Reference%20Guide.md).
@@ -40,21 +40,22 @@ For semantic-layer pivots and time series over the same data, see the [OLAP Anal
        ▼
  ┌─────────────────────────────────────────────┐
  │ duckdb_* tools (DuckDbBaseTool)             │
- │  • one DuckDB connection per tool instance  │
- │  • a view per data file, named after it     │
+ │  • one shared sandbox (DuckDbSandbox) per   │
+ │    data directory: in-memory DuckDB, a table│
+ │    per data file, external access disabled │
+ │    and the configuration locked             │
  │  • background auto-refresh of changed files │
  └──────────────────────┬──────────────────────┘
-                        ▼
+                        ▼  (read only while loading)
  ┌─────────────────────────────────────────────┐
  │ <data.duckdb.dir>/                          │
  │   *.csv  *.tsv  *.parquet *.pq *.json *.jsonl│
- │   duckdb_analytics.db                       │
  └─────────────────────────────────────────────┘
 ```
 
-On start-up each `duckdb_*` tool scans the data directory and creates one view per file, using `read_csv_auto`, `read_parquet` or `read_json_auto`. The view name is the file name without extension, with non-alphanumeric characters replaced by `_` (so `sales-2024.csv` becomes `sales_2024`). Metadata is kept in `duckdb_analytics.db` in the same directory. When `auto_refresh_enabled` is true, a background thread re-scans every `auto_refresh_interval` seconds and recreates views for new or changed files.
+The first `duckdb_*` tool built for a data directory creates its sandbox: an in-memory DuckDB into which every data file is copied as a table, using `read_csv_auto`, `read_parquet` or `read_json_auto` (the path is a bound parameter). The table name is the file name without extension, with non-alphanumeric characters replaced by `_` (so `sales-2024.csv` becomes `sales_2024`). Then `enable_external_access` is switched off and `lock_configuration` on, so no query can read or write a file or URL, `ATTACH`, `COPY` or `INSTALL`, or switch either setting back. The other `duckdb_*` tools for the same directory share that sandbox (each call runs on its own cursor). A reload (`duckdb_refresh_views` with `reload_external_files`, or auto-refresh) builds a new sandbox the same way and swaps it in. When `auto_refresh_enabled` is true, a background thread checks the directory every `auto_refresh_interval` seconds and reloads when a file was added, removed or changed. Nothing is written to the data directory.
 
-`duckdb_sql` is separate: it opens an in-memory DuckDB connection and creates only the `customers`, `orders` and `products` views from the matching CSV files.
+`duckdb_sql` is separate: it opens an in-memory DuckDB connection, loads the matching CSV files into `customers`, `orders` and `products` tables, then disables DuckDB's external access and locks the configuration, so its queries see only those three tables.
 
 ---
 
@@ -97,7 +98,7 @@ Returns `table_name`, `table_type`, `columns` (`column_name`, `data_type`, `null
 | `limit` | integer | No | 100 | 1–10000; appended as `LIMIT` when the query has none |
 | `output_format` | string | No | `json` | `json`, `csv`, `table` (accepted, but results are currently always returned as JSON rows) |
 
-Queries containing `DROP`, `DELETE`, `TRUNCATE`, `ALTER`, `CREATE`, `INSERT` or `UPDATE` (anywhere in the text, case-insensitive) are rejected. Returns `query`, `columns`, `rows`, `row_count`, `execution_time_ms` and `limited` (true when the row cap was reached).
+Exactly one statement is accepted, and DuckDB's parser must classify it as `SELECT` (which includes `WITH`, `FROM`-first, `DESCRIBE`, `SHOW`, `SUMMARIZE` and `PRAGMA` queries) or `EXPLAIN`: `SELECT 1; DROP TABLE orders`, `WITH ... INSERT`, DDL, DML, `COPY`, `ATTACH`, `SET`, `INSTALL` and `CALL` are refused. File and URL table functions (`read_text`, `read_csv`, `read_parquet`, `glob`, `https://...`) fail because the sandbox has no external access. `LIMIT <limit>` is appended (on its own line) to a `SELECT`/`WITH`/`FROM` query with no `LIMIT` of its own, and at most `limit` rows are returned either way. Returns `query` (the text that ran), `columns`, `rows`, `row_count`, `execution_time_ms` and `limited` (true when the row cap was reached).
 
 ```json
 {
@@ -106,17 +107,17 @@ Queries containing `DROP`, `DELETE`, `TRUNCATE`, `ALTER`, `CREATE`, `INSERT` or 
 }
 ```
 
-Files can also be queried directly, e.g. `SELECT * FROM read_parquet('data/duckdb/events.parquet')`.
+Files are queried through their tables (`SELECT * FROM events` for `events.parquet`), not by path.
 
 ### duckdb_get_stats
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `table_name` | string | Yes | | Table to analyze |
-| `columns` | array of string | No | all numeric columns | Columns to analyze |
+| `columns` | array of string | No | all columns | Columns to analyze |
 | `include_percentiles` | boolean | No | true | Add `percentile_25`, `median`, `percentile_75` |
 
-Returns `table_name`, `total_rows` and `column_statistics` keyed by column. Numeric columns get `count`, `null_count`, `min`, `max`, `unique_count`, `mean`, `std_dev`; non-numeric columns get the counts, `min` and `max`.
+`table_name` and `columns` must exist in the catalog (matched case-insensitively). Returns `table_name`, `total_rows` and `column_statistics` keyed by column (each with its `sql_type`). Numeric columns get `count`, `null_count`, `min`, `max`, `unique_count`, `mean`, `std_dev`; non-numeric columns get the counts, `min` and `max`.
 
 ### duckdb_aggregate
 
@@ -125,11 +126,11 @@ Returns `table_name`, `total_rows` and `column_statistics` keyed by column. Nume
 | `table_name` | string | Yes | | Table to aggregate |
 | `aggregations` | object | Yes | | `{"column": "function"}`; function is `sum`, `avg`, `count`, `min`, `max` or `count_distinct` |
 | `group_by` | array of string | No | | Grouping columns |
-| `having` | string | No | | HAVING condition on aggregate aliases |
+| `having` | string | No | | `<name> <op> <value>` conditions joined by `AND` |
 | `order_by` | array of object | No | | `{"column": "...", "direction": "asc" \| "desc"}` |
 | `limit` | integer | No | 100 | 1–10000 |
 
-Each aggregate is aliased `<function>_<column>` (e.g. `sum_revenue`, `count_distinct_customer_id`); use those names in `having` and `order_by`. Returns `table_name`, `aggregations_applied`, `grouped_by`, `results`, `row_count`, `execution_time_ms`.
+Each aggregate is aliased `<function>_<column>` (e.g. `sum_revenue`, `count_distinct_customer_id`). `table_name`, the `aggregations` columns and `group_by` must exist in the catalog; functions come from the list above. `having` is one or more `<name> <op> <value>` conditions joined by `AND`, where `<name>` is an aggregate alias or a `group_by` column, `<op>` is `=`, `!=`, `<>`, `>`, `<`, `>=` or `<=`, and `<value>` is a number or a single-quoted string (bound as a parameter). `order_by` columns must be aggregate aliases or `group_by` columns; `direction` is `asc` or `desc`. Anything else is refused before SQL is built. Returns `table_name`, `aggregations_applied`, `grouped_by`, `results`, `row_count`, `execution_time_ms`.
 
 ```json
 {
@@ -154,8 +155,8 @@ Returns `data_directory`, `files` (`filename`, `file_type`, `file_path`, and wit
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `view_name` | string | No | all views | View to refresh |
-| `reload_external_files` | boolean | No | false | Re-scan the data directory and recreate views first |
+| `view_name` | string | No | all tables | Table to check (must exist in the catalog) |
+| `reload_external_files` | boolean | No | false | Re-scan the data directory and rebuild the sandbox first |
 
 Returns `refreshed_views` (`view_name`, `status`, `row_count`, `refresh_time_ms` or `error_message`), `total_refreshed` and `external_files_reloaded`.
 
@@ -166,9 +167,9 @@ Returns `refreshed_views` (`view_name`, `status`, `row_count`, `refresh_time_ms`
 | `sql` | string | Yes | | Query over `customers`, `orders`, `products` |
 | `limit` | integer | No | 100 | 1–1000 |
 
-Only statements starting with `SELECT`, `WITH`, `EXPLAIN`, `DESCRIBE`, `SHOW` or `PRAGMA` are accepted. Returns `success`, `columns`, `data`, `row_count`, `sql`, `execution_time_ms`, `tables_available`.
+Exactly one read-only statement is accepted: it must start with `SELECT`, `WITH`, `FROM`, `EXPLAIN`, `DESCRIBE`, `SHOW`, `SUMMARIZE` or `PRAGMA`, and DuckDB's parser must classify the text that will run as a single `SELECT` or `EXPLAIN` statement. `SELECT 1; DROP TABLE orders`, `WITH ... INSERT`, `COPY`, `ATTACH`, `SET`, `INSTALL` and `CALL` are refused. File and URL table functions (`read_text`, `read_csv_auto('/etc/passwd')`, `https://...`) fail because external access is disabled. Returns `success`, `columns`, `data`, `row_count`, `sql`, `execution_time_ms`, `tables_available`.
 
-`LIMIT <limit>` is appended to `SELECT`/`WITH` queries that have no `LIMIT` clause of their own; other statement types are run as written. A CSV file missing from the data directory leaves that view undefined (logged as a warning) instead of failing the tool.
+`LIMIT <limit>` is appended to `SELECT`/`WITH`/`FROM` queries that have no `LIMIT` clause of their own; other statement types are run as written. A CSV file missing from the data directory leaves that table undefined (logged as a warning) instead of failing the tool. The tables are copies loaded at start-up: a CSV changed afterwards is seen after a restart.
 
 ---
 
@@ -194,10 +195,10 @@ Over REST, `POST /api/tools/execute` with `{"tool": "duckdb_query", "arguments":
 
 ## Limitations
 
-- **Read-only.** `duckdb_query` rejects write/DDL keywords by substring match, so a column or literal containing e.g. `UPDATE` is also rejected.
+- **Read-only and sandboxed.** Every `duckdb_*` tool works on in-memory copies of the data files with external access disabled; `duckdb_query` and `duckdb_sql` run one read-only statement. Table and column arguments are looked up in the catalog and quoted; values are bound (`sajha/olap/sql_safety.py`). Tests: `tests/test_duckdb_tools_sandbox.py`, `tests/test_olap_sql_injection.py`.
+- **Memory.** The data files are held in memory (one copy per data directory for the `duckdb_*` tools, another for `duckdb_sql`), so the data directory is meant for analysis-sized files.
 - **Row caps.** `limit` maxes out at 10,000 (`duckdb_query`, `duckdb_aggregate`) or 1,000 (`duckdb_sql`); results are held in memory.
 - **No per-file access control.** Every file in the data directory is queryable by anyone allowed to call the tools; restrict tool access with SAJHA roles/API-key scopes instead.
-- **Trusted identifiers.** `table_name`, `group_by`, `having` and `order_by` are interpolated into SQL; they are meant for trusted callers.
 - **File formats.** CSV needs consistent column counts and ideally a header row; JSON must be JSON or JSON Lines.
 
 ---
@@ -206,10 +207,11 @@ Over REST, `POST /api/tools/execute` with `{"tool": "duckdb_query", "arguments":
 
 | Symptom | Fix |
 |---------|-----|
-| Table not found | Run `duckdb_list_tables`; check the view name derived from the file name; or query the file with `read_csv_auto('<path>')` |
+| Table not found | Run `duckdb_list_tables`; check the table name derived from the file name |
 | New file not visible | Wait for auto refresh or call `duckdb_refresh_views` with `reload_external_files: true` |
-| "Forbidden operation" | The query contains a write/DDL keyword; rephrase (e.g. alias columns) |
-| CSV parsed wrongly | Query with `read_csv('<path>', delim=',', header=true, columns={...})` |
+| "Exactly one statement" / "Only read-only queries" | Send one `SELECT`-type statement per call |
+| "file system operations are disabled" | Table functions over paths and URLs are not available; query the file's table |
+| CSV parsed wrongly | Give the file a header row and consistent columns; tables are loaded with `read_csv_auto` |
 | Dates read as strings | Convert with `STRPTIME(col, '%Y-%m-%d')` or `CAST(col AS DATE)` |
 | Slow or memory-heavy query | Filter early, select only needed columns, prefer Parquet for large data, use `EXPLAIN` |
 

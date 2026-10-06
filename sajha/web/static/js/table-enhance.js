@@ -59,8 +59,10 @@
         `;
 
         // Insert controls before table, pagination after
-        table.parentNode.insertBefore(controls, table);
-        table.parentNode.insertBefore(paginationWrap, table.nextSibling);
+        // Outside a horizontal-scroll wrapper, so the controls stay put while the table scrolls
+        const anchor = table.closest('.table-responsive') || table;
+        anchor.parentNode.insertBefore(controls, anchor);
+        anchor.parentNode.insertBefore(paginationWrap, anchor.nextSibling);
 
         const searchInput = controls.querySelector('[data-role="table-search"]');
         const clearBtn = controls.querySelector('[data-role="table-clear"]');

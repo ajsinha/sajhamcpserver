@@ -1,16 +1,27 @@
 # Tutorial 16: Metrics, Costs and Alerts
 
-You will scrape SAJHA's Prometheus metrics, import the Grafana dashboard, read the
-**Usage & cost** page, and make an alert fire. The design behind every step is in
+Scrape SAJHA's Prometheus metrics, import the Grafana dashboard, read the **Usage & cost**
+page, and make an alert fire. The design behind every step is in
 [Observability](../architecture/Observability.md); every key is in the
 [Configuration Reference](../getting-started/Configuration%20Reference.md#observability).
 
-You need SAJHA running ([Tutorial 1](TUTORIAL_01_getting_started.md)) and, for steps 3
-and 4, Docker.
+## What you'll learn
 
----
+- How `/metrics` is protected, and how to give Prometheus a token
+- How to scrape SAJHA with the shipped Prometheus job and alert rules, and import the Grafana dashboard
+- How to read tool and LLM usage and cost per user, key, role, provider and tool
+- How SAJHA evaluates simple alert rules itself
+- How to see SAJHA's spans in an OpenTelemetry trace
 
-## 1. Look at `/metrics` in the browser
+## Prerequisites
+
+- A running server you can sign in to as an administrator ([Tutorial 1](TUTORIAL_01_getting_started.md))
+- A question asked on Ask SAJHA helps step 5 ([Tutorial 10](TUTORIAL_10_ask_sajha.md))
+- Docker, for steps 3, 4 and 7
+
+## Steps
+
+### 1. Look at `/metrics` in the browser
 
 Sign in as an administrator and open `http://localhost:3002/metrics`. By default
 (`observability.metrics.auth: admin`) only a signed-in administrator may read it; without
@@ -29,7 +40,7 @@ sajha_http_requests_total{method="POST",route="/api/tools/execute",status="200"}
 `route` is the route template, never the raw path, and no metric is labelled by user;
 per-user figures live in the usage ledger (step 5).
 
-## 2. Give Prometheus a token
+### 2. Give Prometheus a token
 
 Prometheus cannot sign in, so switch `/metrics` to token mode. The token is a secret:
 environment only.
@@ -52,7 +63,7 @@ To keep scrapes off the public port, also set `observability.metrics.port: 9464`
 then serves `/metrics` (same rule) on `127.0.0.1:9464` as well
 (`observability.metrics.host`).
 
-## 3. Scrape with Prometheus
+### 3. Scrape with Prometheus
 
 The repository ships a scrape job, alert rules and a dashboard in
 `deployment/observability/`. Copy them to a scratch folder, put the token where
@@ -80,11 +91,11 @@ sum(increase(sajha_llm_cost_usd_total[1h]))
 **Alerts** (`http://localhost:9090/alerts`) lists the rules from `sajha-alerts.yml`;
 route them with Alertmanager as you would any other rules.
 
-Running SAJHA with several workers on one port? Read section 2.4 of the guide first: with a
+Running SAJHA with several workers on one port? Read [Observability §2.4](../architecture/Observability.md#24-several-workers) first: with a
 shared `state.backend`, each scrape carries every worker under a `worker` label, so sum
 with `sum without (worker) (...)`.
 
-## 4. Import the Grafana dashboard
+### 4. Import the Grafana dashboard
 
 ```bash
 docker run --rm -p 3000:3000 --add-host=host.docker.internal:host-gateway grafana/grafana
@@ -97,7 +108,7 @@ tool rate and error rate, LLM spend and tokens for the range, HTTP status and la
 percentiles, MCP requests by era and method, top tools, LLM cost by model, ask runs by stop
 reason, auth failures, open breakers, federated upstreams, sandbox runs, memory and CPU.
 
-## 5. Read the Usage & cost page
+### 5. Read the Usage & cost page
 
 Back in SAJHA: **Tools → Monitor → Usage & cost** (`/monitoring/usage`). Ask a question
 on **AI → Ask SAJHA** first so there are LLM calls too (the mock provider answers when no
@@ -117,7 +128,7 @@ Change the range with **Today / 7 days / 30 days / 90 days** or the date fields,
 filter by user, API key, role, provider, model or tool. Sign in as a non-administrator:
 the same page shows only that user's own calls (the server enforces the filter).
 
-## 6. Make an alert fire, without Prometheus
+### 6. Make an alert fire, without Prometheus
 
 For a single server, SAJHA can evaluate simple rules itself. Add to
 `config/application.yml`:
@@ -149,7 +160,7 @@ use `channel: {type: webhook, url: https://hooks.example.com/sajha}` and allow-l
 prefix in `observability.alerts_webhook.allowed_urls`; a URL outside the list, or a host
 that resolves to a private address, is refused (the same SSRF guard as async webhooks).
 
-## 7. Optional: traces with OpenTelemetry
+### 7. Optional: traces with OpenTelemetry
 
 ```bash
 pip install opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
@@ -162,6 +173,11 @@ Call a tool over MCP, open Jaeger at `http://localhost:16686`, pick service
 span and, for Ask SAJHA, `llm.chat` spans beneath. An MCP client that sends
 `params._meta.traceparent` sees SAJHA's spans inside its own trace.
 
+## What next
+
+- [Observability](../architecture/Observability.md): every metric family, label, span and limit
+- Next tutorial: [Deploy SAJHA on Kubernetes](TUTORIAL_17_deploy_sajha_on_kubernetes.md)
+
 ---
 
-Next: [Observability](../architecture/Observability.md) for every family, label and limit.
+Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.

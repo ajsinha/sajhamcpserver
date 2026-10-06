@@ -1,0 +1,114 @@
+{
+  "name": "connected_http_request",
+  "implementation": "sajha.accounts.tools.http_request.ConnectedHttpRequestTool",
+  "title": "GitHub API request (as me)",
+  "description": "Call a read-only GitHub REST API endpoint as the signed-in user, through their connected GitHub account: GET under /user, /users, /repos, /orgs, /search, /notifications or /issues. An administrator binding of the generic connected_http_request implementation; copy this file to bind another provider's endpoints.",
+  "version": "1.0.0",
+  "enabled": true,
+  "auth": {
+    "connected_account": "github",
+    "scopes": []
+  },
+  "http": {
+    "base_url": "https://api.github.com",
+    "methods": [
+      "GET"
+    ],
+    "paths": [
+      "/user",
+      "/user/*",
+      "/users/*",
+      "/repos/*",
+      "/orgs/*",
+      "/search/*",
+      "/notifications",
+      "/issues"
+    ],
+    "headers": {}
+  },
+  "annotations": {
+    "title": "GitHub API request (as me)",
+    "readOnlyHint": true,
+    "openWorldHint": true
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "method": {
+        "type": "string",
+        "enum": [
+          "GET"
+        ],
+        "default": "GET",
+        "description": "HTTP method"
+      },
+      "path": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500,
+        "pattern": "^/",
+        "description": "API path, e.g. /user/repos or /repos/octocat/hello-world/pulls"
+      },
+      "query": {
+        "type": "object",
+        "description": "Query parameters",
+        "additionalProperties": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        }
+      },
+      "body": {
+        "type": "object",
+        "description": "JSON body (write methods only)"
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "integer"
+      },
+      "ok": {
+        "type": "boolean"
+      },
+      "content_type": {
+        "type": "string"
+      },
+      "body": {}
+    },
+    "required": [
+      "status",
+      "ok"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Connected Accounts",
+    "tags": [
+      "connected-account",
+      "github",
+      "http",
+      "generic"
+    ],
+    "note": "Generic binding: the implementation reads http.base_url, http.methods and http.paths from this file; the token only ever goes to the provider's api_hosts.",
+    "examples": [
+      {
+        "description": "My open pull requests",
+        "input": {
+          "path": "/search/issues",
+          "query": {
+            "q": "is:pr is:open author:@me"
+          }
+        }
+      }
+    ]
+  }
+}

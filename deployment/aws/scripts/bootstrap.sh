@@ -1,13 +1,14 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
 # SAJHA MCP Server — Container Bootstrap Script
-# Runs before uvicorn. Handles S3 sync, secrets injection,
-# and database initialization.
+# Runs before uvicorn. Handles S3 sync, secrets injection and
+# waiting for the database (whose schema an operator creates from
+# db/scripts/postgresql/schema.sql; docs/getting-started/Database Setup.md).
 # ═══════════════════════════════════════════════════════════════
 set -e
 
 echo "╔══════════════════════════════════════════════╗"
-echo "║  SAJHA MCP Server v3.1.0 — Bootstrap        ║"
+echo "║  SAJHA MCP Server — Bootstrap                ║"
 echo "║  Storage: ${SAJHA_STORAGE_BACKEND:-local}    ║"
 echo "╚══════════════════════════════════════════════╝"
 
@@ -18,11 +19,14 @@ if [ -n "$SAJHA_SECRETS_ARN" ]; then
         --secret-id "$SAJHA_SECRETS_ARN" \
         --query SecretString --output text 2>/dev/null || echo "{}")
     
-    # Export each key as SAJHA_ env var
+    # Export each key twice: as SAJHA_<KEY> (Settings keys, e.g. AI_OPENAI_API_KEY) and as
+    # <KEY> itself, the variable application.yml's placeholders read (e.g. FRED_API_KEY for
+    # ${FRED_API_KEY:} under fred.api.key, which tool configs use).
     for key in $(echo "$SECRETS" | python3 -c "import sys,json; [print(k) for k in json.load(sys.stdin)]" 2>/dev/null); do
         value=$(echo "$SECRETS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('$key',''))")
         export "SAJHA_${key^^}"="$value"
-        echo "[bootstrap]   Set SAJHA_${key^^}"
+        export "${key^^}"="$value"
+        echo "[bootstrap]   Set SAJHA_${key^^} and ${key^^}"
     done
 fi
 

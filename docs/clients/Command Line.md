@@ -46,12 +46,13 @@ shortened).
 
 ```bash
 sajha login                          # prompts for user and password; stores a token
-sajha login -u admin --password-stdin < pw.txt
+sajha login -u admin --password-stdin < pw.txt   # or set SAJHA_PASSWORD
 sajha login --with-api-key sja_...   # store an API key instead (validated first)
 sajha logout                         # forget this profile's credentials
 sajha profile add prod https://sajha.example.com
 sajha profile use prod
 sajha profile list
+sajha profile remove prod
 ```
 
 Profiles and credentials live in one file, `config.json`, in `$SAJHA_CONFIG_DIR`, else
@@ -73,15 +74,18 @@ nothing and says so.
 | `sajha tools call NAME --json '{...}'` | Arguments as a JSON object (`-` reads stdin, `@file` a file) | MCP `tools/call` |
 | `sajha prompts list [--filter REGEX]` | Prompts and their arguments (`?` marks optional) | MCP `prompts/list` |
 | `sajha prompts get NAME --arg k=v ...` | Render a prompt | MCP `prompts/get` |
-| `sajha ask "QUESTION"` | Ask; the step events stream to the terminal as they happen | `POST /api/ai/ask` (SSE) |
+| `sajha ask "QUESTION" [--model ALIAS] [--verbose]` | Ask; the step events stream to the terminal as they happen. `--model` takes an alias or `provider/model`; `-` as the question reads stdin | `POST /api/ai/ask` (SSE) |
 | `sajha studio deploy FILE.py [--name N] [--dry-run]` | Deploy a `@sajhamcptool` function (admin); `--dry-run` only analyses | `POST /admin/studio/deploy` (`/analyze`) |
+| `sajha studio import-openapi URL\|FILE [--prefix P] [--base-url U] [--server-index N] [--tag T] [--method M] [--path P] [--select 'GET /path'] [--auth JSON] [--graphql] [--dry-run]` | Import an OpenAPI 3.x / Swagger 2.0 spec (or, with `--graphql`, a GraphQL endpoint or introspection file) as tools (admin): `--dry-run` lists the operations and their proposed names; otherwise every selectable operation, or each `--select`, is deployed. Credentials in `--auth` are secret references ([API Import](../architecture/API%20Import.md)) | `POST /admin/studio/api-import/parse`, `/deploy` |
 | `sajha studio delete NAME` | Delete a Studio-generated tool (admin) | `POST /admin/studio/delete` |
 | `sajha federation list` | Upstream MCP servers, state, approved items (admin) | `GET /api/federation/upstreams` |
 | `sajha federation add --id ID --url URL ...` | Add an upstream (`--def JSON` for the whole definition) (admin) | `POST /api/federation/upstreams` |
 | `sajha federation refresh ID` / `remove ID` | Reconnect and re-list / remove a run-time upstream (admin) | `/api/federation/upstreams/{id}` |
 | `sajha config show [--remote]` | Effective CLI settings; `--remote`: the server's effective `ai.*` configuration (admin) | local / `GET /api/ai/config` |
 | `sajha serve [--stdio]` | Run the server from a checkout (see §5) | |
+| `sajha db check\|sql ...` | Database schema helper (no migrations; it changes nothing): runs `python -m sajha.db` in the server checkout (`--root` or `SAJHA_HOME` before the subcommand; the Python running `sajha` needs the server's requirements) | the database, not HTTP ([Database Setup](../getting-started/Database%20Setup.md)) |
 | `sajha completion bash\|zsh\|fish` | Print a shell completion script | |
+| `sajha version` (or `--version`) | Print the CLI version | |
 
 The federation commands need a server with the federation API; on one without it they
 exit 5. The server has no general "effective configuration" endpoint; `config show

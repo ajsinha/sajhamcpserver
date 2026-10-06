@@ -1,0 +1,128 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Audit (administration): hash-chain integrity, recent records, SIEM sinks.
+Design: docs/architecture/Policy and Audit.md, sections 7 and 8
+-->
+{% block title %}Audit - Admin - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.aud-meta{font-size:.8rem;color:var(--t-muted)}
+.aud-hash{font-family:var(--bs-font-monospace);font-size:.72rem;word-break:break-all}
+.aud-details{font-size:.72rem;white-space:pre-wrap;word-break:break-word;max-width:30rem;margin:0}
+.aud-chain{border:1px solid var(--t-card-b);border-radius:var(--radius-lg);padding:.6rem .9rem;margin-bottom:.6rem;background:var(--t-card)}
+.aud-chain ul{margin:.3rem 0 0;padding-left:1.1rem;font-size:.8rem}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-journal-check me-2" aria-hidden="true"></i>Audit</h1>
+      <small class="text-muted">Every audit record is hash-chained to the one before it and anchored with the server's signature. Verify proves nobody edited, removed or reordered them.</small>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <button type="button" class="btn btn-sm btn-primary" id="audVerify"><i class="bi bi-patch-check me-1" aria-hidden="true"></i>Verify</button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="audAnchor"><i class="bi bi-pin-angle me-1" aria-hidden="true"></i>Anchor now</button>
+    </div>
+  </div>
+
+  {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+
+  <div class="acct-tiles mb-3">
+    {% set w = status.writer %}
+    <div class="obs-tile obs-tile-accent"><div class="obs-label">This worker's chain</div><div class="obs-value aud-hash">{{ w.chain_id if w else '—' }}</div><div class="obs-sub">{{ (w.seq + 1) if w else 0 }} record(s), last anchored at seq {{ w.last_anchor_seq if w else '—' }}</div></div>
+    <div class="obs-tile"><div class="obs-label">Unwritten</div><div class="obs-value">{{ w.pending if w else 0 }}</div><div class="obs-sub">{{ w.last_error if w and w.last_error else 'database writes up to date' }}</div></div>
+    <div class="obs-tile"><div class="obs-label">SIEM sinks</div><div class="obs-value">{{ status.export.sinks|length }}</div><div class="obs-sub">audit.export.sinks</div></div>
+  </div>
+
+  <section class="mb-4" aria-labelledby="intTitle">
+    <h2 class="h5" id="intTitle">Chain integrity</h2>
+    <div id="audResult" aria-live="polite"><p class="aud-meta">Press Verify to check every chain (one per worker process).</p></div>
+  </section>
+
+  {% if status.export.sinks or status.export.errors %}
+  <section class="mb-4" aria-labelledby="sinkTitle">
+    <h2 class="h5" id="sinkTitle">SIEM sinks</h2>
+    {% for e in status.export.errors %}<div class="alert alert-danger" role="alert">{{ e }}</div>{% endfor %}
+    <div class="card"><div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">Sink</th><th scope="col">Target</th><th scope="col">Format</th><th scope="col">Queued</th><th scope="col">Sent</th><th scope="col">Failed</th><th scope="col">Dropped</th><th scope="col">Last error</th></tr></thead>
+        <tbody>
+        {% for s in status.export.sinks %}
+          <tr><td>{{ s.name }}<div class="aud-meta">{{ s.type }}</div></td><td><code>{{ s.target }}</code></td><td>{{ s.format }}</td>
+            <td>{{ s.queued }}</td><td>{{ s.sent }}</td><td>{{ s.failed }}</td><td>{{ s.dropped }}</td><td class="aud-meta">{{ s.last_error or '—' }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div></div>
+  </section>
+  {% endif %}
+
+  <section aria-labelledby="recTitle">
+    <h2 class="h5" id="recTitle">Recent records (all chains, newest first)</h2>
+    <form class="row g-2 align-items-end mb-2" method="get" action="/admin/audit">
+      <div class="col-sm-4 col-md-3"><label class="form-label small" for="fEvent">Event (glob)</label>
+        <input class="form-control form-control-sm" id="fEvent" name="event" value="{{ filter_event }}" placeholder="policy.*"></div>
+      <div class="col-sm-4 col-md-3"><label class="form-label small" for="fActor">User</label>
+        <input class="form-control form-control-sm" id="fActor" name="actor" value="{{ filter_actor }}" placeholder="any"></div>
+      <div class="col-auto"><button class="btn btn-sm btn-primary" type="submit">Filter</button></div>
+    </form>
+    <div class="card"><div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">Time (UTC)</th><th scope="col">Event</th><th scope="col">User</th><th scope="col">Resource</th><th scope="col">Outcome</th><th scope="col">Details</th><th scope="col">Chain / seq / hash</th></tr></thead>
+        <tbody>
+        {% for r in records %}
+          <tr>
+            <td class="text-nowrap">{{ r.ts }}</td>
+            <td><code>{{ r.event }}</code></td>
+            <td>{{ (r.actor or {}).get('user', '—') }}</td>
+            <td>{% if r.resource %}{{ r.resource.get('type', '') }}:{{ r.resource.get('id', '') }}{% else %}—{% endif %}</td>
+            <td>{{ r.outcome or '—' }}</td>
+            <td><pre class="aud-details">{{ r.details_json }}</pre></td>
+            <td><div class="aud-meta">{{ r.chain }} #{{ r.seq }}</div><div class="aud-hash" title="{{ r.hash }}">{{ (r.hash or '')[:16] }}…</div></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" class="text-muted text-center py-3">No audit records{% if filter_event or filter_actor %} match the filter{% endif %}.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div></div>
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  var CSRF = {{ csrf|tojson }};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function call(method,url){
+    return fetch(url,{method:method,credentials:'same-origin',headers:{'X-CSRF-Token':CSRF}})
+      .then(function(r){return r.json().catch(function(){return {}}).then(function(d){if(!r.ok){throw new Error(d.error||('HTTP '+r.status))}return d})});
+  }
+  var out=document.getElementById('audResult');
+  document.getElementById('audVerify').addEventListener('click',function(){
+    out.innerHTML='<p class="aud-meta">Verifying…</p>';
+    call('GET','/api/audit/verify').then(function(d){
+      var h='<div class="alert alert-'+(d.ok?'success':'danger')+'" role="status"><strong>'+(d.ok?'Intact':'Tampered or broken')+'</strong>: '+
+        (d.chains||[]).length+' chain(s), '+(d.records||0)+' record(s).'+(d.note?' '+esc(d.note):'')+'</div>';
+      (d.chains||[]).forEach(function(c){
+        h+='<div class="aud-chain"><span class="obs-pill '+(c.ok?'obs-ok':'obs-bad')+'">'+(c.ok?'ok':'broken')+'</span> <code>'+esc(c.chain_id)+'</code>'+
+          ' <span class="aud-meta">'+c.records+' record(s), '+c.anchors+' valid anchor(s), '+(c.closed?'closed':'open')+', last '+esc(c.last_ts||'')+'</span>';
+        var items=(c.problems||[]).map(function(p){return '<li class="text-danger">'+esc(p)+'</li>'}).concat((c.warnings||[]).map(function(w){return '<li class="aud-meta">'+esc(w)+'</li>'}));
+        if(items.length)h+='<ul>'+items.join('')+'</ul>';
+        h+='</div>';
+      });
+      out.innerHTML=h;
+    }).catch(function(e){out.innerHTML='<div class="alert alert-danger">'+esc(e.message)+'</div>'});
+  });
+  document.getElementById('audAnchor').addEventListener('click',function(){
+    call('POST','/api/audit/anchor').then(function(d){
+      out.innerHTML='<div class="alert alert-info" role="status">'+(d.anchored?'Anchored this worker\'s chain at seq '+d.anchor.seq+'.':'Nothing new to anchor since the last anchor.')+'</div>';
+    }).catch(function(e){out.innerHTML='<div class="alert alert-danger">'+esc(e.message)+'</div>'});
+  });
+})();
+</script>
+{% endblock %}

@@ -21,7 +21,7 @@
       "language": {
         "type": "string",
         "description": "Wikipedia language edition (e.g., 'en', 'es', 'fr', 'de', 'zh')",
-        "pattern": "^[a-z]{2,3}$",
+        "pattern": "^[a-z][a-z-]{1,15}$",
         "default": "en"
       },
       "redirect": {

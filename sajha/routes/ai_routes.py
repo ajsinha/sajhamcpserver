@@ -378,11 +378,14 @@ ASK_EXAMPLES = [
 ]
 
 
-def _tool_blurbs(limit: int = 120) -> dict:
-    """{tool name: its description's first line, clipped}: the sky's hover tooltips."""
+def _tool_blurbs(limit: int = 120, visible=None) -> dict:
+    """{tool name: its description's first line, clipped}: the sky's hover tooltips
+    (only the tools ``visible(name)`` allows, when given)."""
     from sajha.app import tools_registry
     out = {}
     for name, tool in (getattr(tools_registry, 'tools', None) or {}).items():
+        if visible is not None and not visible(name):
+            continue
         try:
             d = str(getattr(tool, 'description', '') or '').strip().split('\n')[0]
         except Exception:
@@ -397,15 +400,17 @@ async def ask_page(request: Request, auth: AuthContext = Depends(require_auth)):
     """Ask SAJHA: a chat over POST /api/ai/ask, with the tool chain drawn live on the catalog's sky."""
     from sajha.web.help_catalog import live_tool_groups
     from sajha.ai.intelligence import get_intelligence
+    from sajha.auth.access import policy_for
     svc = get_intelligence()
-    live = live_tool_groups(with_names=True)
+    can_see = policy_for(auth).can_see       # name only the tools tools/list shows this user
+    live = live_tool_groups(with_names=True, visible=can_see)
     return render(request, 'ai/ask.html', {
         'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
         'is_admin': auth.is_admin,
         'ask_data': {
             'groups': [[g['name'], g['tool_count'], g['tools']] for g in live['groups']],
             'total': live['total_tools'],
-            'descriptions': _tool_blurbs(),
+            'descriptions': _tool_blurbs(visible=can_see),
             'examples': ASK_EXAMPLES,
             'is_admin': bool(auth.is_admin),
             'enabled': bool(svc is not None and svc.settings.enabled),
@@ -448,7 +453,8 @@ def _sse(event: dict) -> str:
 @router.post('/api/ai/ask')
 async def api_ask(request: Request, auth: AuthContext = Depends(require_auth)):
     """Answer a question with SAJHA's tools. JSON AskResult, or an SSE step stream when the client
-    sends Accept: text/event-stream or ?stream=1. Body: {question, model?, confirm?: [fingerprint]}."""
+    sends Accept: text/event-stream or ?stream=1. Body: {question, model?, confirm?: [fingerprint],
+    conversation_id?: "new" | id, planner?: name (admins)}."""
     from starlette.concurrency import run_in_threadpool
     from fastapi.responses import StreamingResponse
     from sajha.ai.intelligence import get_intelligence
@@ -473,6 +479,32 @@ async def api_ask(request: Request, auth: AuthContext = Depends(require_auth)):
     if model is not None and not isinstance(model, str):
         return JSONResponse({'error': 'model must be a string (an alias or provider/model)'}, status_code=400)
     confirm = [str(c) for c in (data.get('confirm') or []) if c] if isinstance(data.get('confirm'), list) else []
+    # conversation memory: "new" starts a conversation, an id continues one of this user's
+    conversation_id = data.get('conversation_id') or None
+    if conversation_id is not None:
+        from sajha.ai.memory import NEW, valid_id
+        if not isinstance(conversation_id, str) or not (conversation_id == NEW or valid_id(conversation_id)):
+            return JSONResponse({'error': 'conversation_id must be "new" or a conversation id'}, status_code=400)
+        if not auth.user_id:
+            return JSONResponse({'error': 'conversations belong to signed-in users'}, status_code=400)
+        if conversation_id != NEW:
+            try:
+                found = await run_in_threadpool(lambda: svc.memory.exists(conversation_id, auth.user_id))
+            except Exception as e:
+                logger.warning(f'conversation memory unavailable: {e}')
+                found = True       # the service answers without memory and says so in a caveat
+            if not found:
+                return JSONResponse({'error': 'conversation not found'}, status_code=404)
+    # the planning strategy for this ask (admins only): a registered name or package.module:Class
+    planner = data.get('planner') or None
+    if planner is not None:
+        if not auth.is_admin:
+            return JSONResponse({'error': 'only administrators may choose the planner'}, status_code=403)
+        from sajha.ai.planners import planner_class
+        try:
+            planner_class(str(planner))
+        except Exception as e:
+            return JSONResponse({'error': str(e)[:300]}, status_code=400)
 
     access_cache: dict = {}
 
@@ -487,10 +519,12 @@ async def api_ask(request: Request, auth: AuthContext = Depends(require_auth)):
     want_stream = ('text/event-stream' in request.headers.get('accept', '')
                    or request.query_params.get('stream', '').lower() in ('1', 'true', 'yes'))
     if not want_stream:
-        result = await run_in_threadpool(lambda: svc.ask(question, ctx, model=model, confirm=confirm))
+        result = await run_in_threadpool(lambda: svc.ask(question, ctx, model=model, confirm=confirm,
+                                                         conversation_id=conversation_id, planner=planner))
         return JSONResponse(result.to_dict())
 
-    gen = svc.stream_ask(question, ctx, model=model, confirm=confirm)
+    gen = svc.stream_ask(question, ctx, model=model, confirm=confirm, conversation_id=conversation_id,
+                         planner=planner)
     # The shortlist (the only step that consults RBAC) runs now, while the request's DB session is open.
     first = await run_in_threadpool(next, gen)
 
@@ -506,3 +540,178 @@ async def api_ask(request: Request, auth: AuthContext = Depends(require_auth)):
 
     return StreamingResponse(events(), media_type='text/event-stream',
                              headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+
+
+# ── Conversation memory (sajha/ai/memory.py): each user sees and deletes only their own ──
+
+def _memory_or_error():
+    from sajha.ai.intelligence import get_intelligence
+    svc = get_intelligence()
+    if svc is None:
+        return None, JSONResponse({'error': 'Intelligence service not initialized'}, status_code=503)
+    return svc.memory, None
+
+
+@router.get('/api/ai/conversations')
+async def api_list_conversations(auth: AuthContext = Depends(require_auth)):
+    """The caller's conversations, most recent first."""
+    from starlette.concurrency import run_in_threadpool
+    from sajha.ai.memory import conversation_view
+    mem, err = _memory_or_error()
+    if err:
+        return err
+    if not auth.user_id:
+        return JSONResponse({'conversations': []})
+    rows = await run_in_threadpool(lambda: mem.store.list(auth.user_id))
+    return JSONResponse({'conversations': [conversation_view(r) for r in rows],
+                         'retention_days': mem.settings.retention_days, 'enabled': mem.enabled})
+
+
+@router.get('/api/ai/conversations/{conversation_id}')
+async def api_get_conversation(conversation_id: str, auth: AuthContext = Depends(require_auth)):
+    from starlette.concurrency import run_in_threadpool
+    from sajha.ai.memory import conversation_view, turn_view
+    mem, err = _memory_or_error()
+    if err:
+        return err
+    conv = await run_in_threadpool(lambda: mem.store.get(conversation_id, auth.user_id or ''))
+    if conv is None:
+        return JSONResponse({'error': 'conversation not found'}, status_code=404)
+    turns = await run_in_threadpool(lambda: mem.store.turns(conversation_id, auth.user_id))
+    return JSONResponse({**conversation_view(conv), 'summary': conv.get('summary') or '',
+                         'turns': [turn_view(t) for t in turns]})
+
+
+@router.delete('/api/ai/conversations/{conversation_id}')
+async def api_delete_conversation(conversation_id: str, auth: AuthContext = Depends(require_auth)):
+    from starlette.concurrency import run_in_threadpool
+    mem, err = _memory_or_error()
+    if err:
+        return err
+    ok = await run_in_threadpool(lambda: mem.store.delete(conversation_id, auth.user_id or ''))
+    if not ok:
+        return JSONResponse({'error': 'conversation not found'}, status_code=404)
+    return JSONResponse({'deleted': 1})
+
+
+@router.delete('/api/ai/conversations')
+async def api_delete_my_history(auth: AuthContext = Depends(require_auth)):
+    """Delete every conversation of the caller (and only the caller's)."""
+    from starlette.concurrency import run_in_threadpool
+    mem, err = _memory_or_error()
+    if err:
+        return err
+    if not auth.user_id:
+        return JSONResponse({'deleted': 0})
+    n = await run_in_threadpool(lambda: mem.store.delete_all(auth.user_id))
+    return JSONResponse({'deleted': n})
+
+
+@router.get('/api/ai/planners')
+async def api_planners(auth: AuthContext = Depends(require_auth)):
+    """The registered planning strategies and the configured default (ai.ask.planner)."""
+    from sajha.ai.intelligence import get_intelligence
+    from sajha.ai.planners import describe_planners
+    svc = get_intelligence()
+    return JSONResponse({'planners': describe_planners(),
+                         'default': svc.settings.planner if svc is not None else None,
+                         'aliases': {'model': 'react'}})
+
+
+# ── Documents (RAG, sajha/ai/rag): search, status, uploads ────────
+
+def _doc_index_or_error():
+    from sajha.ai.rag.index import get_doc_index
+    idx = get_doc_index()
+    if idx is None:
+        return None, JSONResponse({'error': 'document search is off (ai.rag.enabled: false)'}, status_code=503)
+    return idx, None
+
+
+@router.post('/api/ai/docs/search')
+async def api_docs_search(request: Request, auth: AuthContext = Depends(require_auth)):
+    """Ask the docs: {query, top_k?, source?} -> cited passages. Callers who may not run
+    sajha_search_docs search SAJHA's own guides only."""
+    from starlette.concurrency import run_in_threadpool
+    from sajha.ai.rag.index import SAJHA_DOCS
+    idx, err = _doc_index_or_error()
+    if err:
+        return err
+    try:
+        data = await request.json()
+    except Exception:
+        data = None
+    if not isinstance(data, dict) or not str(data.get('query') or '').strip():
+        return JSONResponse({'error': 'body must be JSON: {"query": "..."}'}, status_code=400)
+    query = str(data['query']).strip()[:1000]
+    try:
+        top_k = int(data.get('top_k') or 0) or None
+    except (TypeError, ValueError):
+        return JSONResponse({'error': 'top_k must be an integer'}, status_code=400)
+    source = str(data.get('source') or '').strip() or None
+    sources = [source] if source else None
+    if not auth.has_tool_access('sajha_search_docs'):
+        if source and source != SAJHA_DOCS:
+            return JSONResponse({'error': 'you may search only SAJHA\'s own guides'}, status_code=403)
+        sources = [SAJHA_DOCS]
+    results = await run_in_threadpool(lambda: idx.search(query, top_k, sources))
+    return JSONResponse({'query': query, 'results': results, 'count': len(results)})
+
+
+@router.get('/api/ai/docs/status')
+async def api_docs_status(auth: AuthContext = Depends(require_admin)):
+    from starlette.concurrency import run_in_threadpool
+    idx, err = _doc_index_or_error()
+    if err:
+        return err
+    return JSONResponse(await run_in_threadpool(idx.stats))
+
+
+@router.post('/api/ai/docs/reindex')
+async def api_docs_reindex(request: Request, auth: AuthContext = Depends(require_admin)):
+    """Re-sync the index now ({"force": true} re-embeds everything)."""
+    from starlette.concurrency import run_in_threadpool
+    idx, err = _doc_index_or_error()
+    if err:
+        return err
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    force = bool((data or {}).get('force')) if isinstance(data, dict) else False
+    return JSONResponse(await run_in_threadpool(lambda: idx.build(force=force)))
+
+
+@router.post('/api/ai/docs/uploads')
+async def api_docs_upload(request: Request, auth: AuthContext = Depends(require_admin)):
+    """Add a document: JSON {filename, content} (UTF-8 text: .md, .txt, .rst, .html)."""
+    from starlette.concurrency import run_in_threadpool
+    idx, err = _doc_index_or_error()
+    if err:
+        return err
+    try:
+        data = await request.json()
+    except Exception:
+        data = None
+    if not isinstance(data, dict) or not data.get('filename') or not isinstance(data.get('content'), str):
+        return JSONResponse({'error': 'body must be JSON: {"filename": "...", "content": "..."}'}, status_code=400)
+    try:
+        out = await run_in_threadpool(lambda: idx.save_upload(str(data['filename']), data['content'].encode('utf-8')))
+    except ValueError as e:
+        return JSONResponse({'error': str(e)}, status_code=400)
+    return JSONResponse(out, status_code=201)
+
+
+@router.delete('/api/ai/docs/uploads/{filename}')
+async def api_docs_delete_upload(filename: str, auth: AuthContext = Depends(require_admin)):
+    from starlette.concurrency import run_in_threadpool
+    idx, err = _doc_index_or_error()
+    if err:
+        return err
+    try:
+        ok = await run_in_threadpool(lambda: idx.delete_upload(filename))
+    except ValueError as e:
+        return JSONResponse({'error': str(e)}, status_code=400)
+    if not ok:
+        return JSONResponse({'error': 'no such upload'}, status_code=404)
+    return JSONResponse({'deleted': filename})

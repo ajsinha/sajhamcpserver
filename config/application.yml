@@ -1,5 +1,5 @@
 # ============================================================================
-# SAJHA MCP Server v3 — Application Configuration
+# SAJHA MCP Server — Application Configuration (the version is app.version below)
 # Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 #
 # Features:
@@ -26,10 +26,10 @@ server:
   debug: false
 
 # ── Database ─────────────────────────────────────────────────────────────────
-# SAJHA uses SQL scripts only — no migrations, no Alembic, no ORM auto-create.
-# Scripts are dialect-specific; the engine runs db/scripts/<db.type>/ in sorted order:
-#   db/scripts/sqlite/      001_schema.sql + 002_seed.sql   (db.type: sqlite)
-#   db/scripts/postgresql/  001_schema.sql + 002_seed.sql   (db.type: postgresql)
+# One schema file per dialect, no migrations: db/scripts/<sqlite|postgresql>/schema.sql
+# (+ seed.sql: default roles and admin).  SQLite: SAJHA runs them at start-up.
+# PostgreSQL: SAJHA runs no DDL; an operator runs them once with psql.
+# docs/getting-started/Database Setup.md
 # Both are idempotent (CREATE TABLE IF NOT EXISTS / INSERT ... safe to re-run).
 #
 # Default: SQLite (zero config, single file, good for dev/small production).
@@ -73,7 +73,10 @@ db:
   pool:
     size: ${DB_POOL_SIZE:10}
   echo: false                             # Log all SQL statements (debug only)
-  scripts_dir: db/scripts                 # Location of 001_schema.sql + 002_seed.sql
+  scripts_dir: db/scripts                 # <scripts_dir>/<sqlite|postgresql>/schema.sql and seed.sql
+  # Start-up check of the tables and columns SAJHA uses (python -m sajha.db check runs it too).
+  # strict = refuse to start while any is missing, naming them and the psql command; warn = log and start.
+  schema_check: strict                    # strict | warn  (env SAJHA_DB_SCHEMA_CHECK)
 
 # ── Process-shared state (several workers / hosts) ───────────────────────────
 # OAuth codes, MCP sessions and tasks, rate limits, LLM budgets and change
@@ -112,16 +115,6 @@ auth:
     lockout_minutes: 15
     ip_max_failures: 20                   # failed sign-ins per client IP per window -> 429
     ip_window_seconds: 300
-
-# ── OAuth (optional) ────────────────────────────────────────────────────────
-
-oauth:
-  mode: none                            # none | internal | external | hybrid
-  provider: ""                          # azure | okta | auth0 | keycloak
-  azure:
-    tenant_id: ${AZURE_TENANT_ID:}
-    client_id: ${AZURE_CLIENT_ID:}
-    client_secret: ${AZURE_CLIENT_SECRET:}
 
 # ── MCP transport (Streamable HTTP, spec 2025-11-25) ────────────────────────
 mcp:
@@ -169,6 +162,14 @@ mcp:
     enabled: true                 # false: credentials required on every MCP transport and /a2a
     role: ""                      # optional: also grant the tool permissions of this SAJHA role
     tools: []
+    # Prompts an anonymous caller may list/get (fnmatch). Signed-in callers see every
+    # prompt. The tool and prompt catalogs (resources), completion/complete and
+    # /.well-known/agent.json follow the same rules. Env: SAJHA_MCP_ANONYMOUS_PROMPTS
+    prompts: []
+    # Data-file resources (sajha://data/<file>) an anonymous caller may list/read:
+    # fnmatch over the URI, e.g. ["sajha://data/products.csv"] or ["sajha://data/*"].
+    # Signed-in callers read every one. Env: SAJHA_MCP_ANONYMOUS_RESOURCES
+    resources: []
   # Ask the user (form-mode elicitation via MRTR) before running a tool whose
   # config sets annotations.destructiveHint: true.  Only when the client
   # declares the elicitation capability; otherwise the call runs as before.
@@ -353,6 +354,20 @@ alpha_vantage:
   api:
     key: ${ALPHA_VANTAGE_API_KEY:}
 
+# SharePoint tools (config/tools/sharepoint_*.json) call Microsoft Graph with an Entra ID
+# app registration (client-credentials grant). Empty by default: the tools answer
+# "SharePoint is not configured" until these are set. Secrets come from the environment.
+sharepoint:
+  site:
+    url: ${SHAREPOINT_SITE_URL:}               # e.g. https://contoso.sharepoint.com/sites/team
+  client:
+    id: ${SHAREPOINT_CLIENT_ID:}
+    secret: ${SHAREPOINT_CLIENT_SECRET:}
+
+azure:
+  tenant:
+    id: ${AZURE_TENANT_ID:}                    # the Entra ID (Azure AD) tenant of that app
+
 # ── AI Integration (intelligence layer) ─────────────────────────────────────
 # Full reference: docs/architecture/Intelligence Layer.md (every key, its env override, defaults).
 #
@@ -420,6 +435,9 @@ ai:
     shortlist: 12
     max_result_chars: 4000
     mcp_tool_enabled: false            # register the sajha_ask MCP tool
+    planner: react                     # react | plan_execute | recipes | router (sajha/ai/planners.py)
+  # Conversation memory (ai.memory.*) and document search (ai.rag.*) use their defaults:
+  # docs/getting-started/Configuration Reference.md lists every key.
   # Semantic tool search — natural-language query → top-k matching tools.
   tool_search:
     enabled: true
@@ -553,6 +571,44 @@ federation:
   state_path: config/federation/federation.json   # upstreams added on /admin/federation + approvals
   upstreams: []                    # e.g. - {id: units, url: "http://127.0.0.1:8765/mcp"}
 
+# ── API Import: OpenAPI / Swagger / GraphQL → tools (Studio → Import an API) ──
+# Every key: docs/getting-started/Configuration Reference.md#api-import; design:
+# docs/architecture/API Import.md. Credentials are secret references (env:NAME), never values.
+api_import:
+  allow_localhost: false           # SSRF guard: allow loopback spec, $ref, server and token URLs
+  allow_private_networks: false    # SSRF guard: allow RFC 1918 / ULA addresses (never link-local)
+  allowed_hosts: []                # fnmatch host patterns; empty = any host the guard allows
+  max_tools: 200                   # tools one imported API may have
+  max_spec_bytes: 10485760         # largest spec (or introspection result) read
+  max_ref_documents: 20            # remote documents one spec's $refs may pull in
+  timeout_seconds: 30              # one call's deadline (per-import override on the page)
+  max_response_bytes: 5242880      # largest API answer read
+  graphql_depth: 2                 # selection-set depth generated for GraphQL tools (1-5)
+  records_dir: config/api_imports  # import records (storage backend)
+
+# ── Connected accounts: users link GitHub, Slack, Google, ... once; tools act as them ──
+# Every key: docs/getting-started/Configuration Reference.md#connected-accounts; design:
+# docs/architecture/Connected Accounts.md. Secrets never go here: the vault key comes from
+# SAJHA_ACCOUNTS_VAULT_KEY (or is generated into the server secrets file) and each client
+# secret is a reference (client_secret_ref: env:NAME).
+accounts:
+  enabled: true                    # master switch (SAJHA_ACCOUNTS_ENABLED)
+  public_url: ""                   # origin in redirect and connect URLs; empty: mcp.auth.public_url, else the request
+  flow_ttl_seconds: 600            # how long a started "Connect" may take
+  refresh_skew_seconds: 120        # refresh an access token this long before it expires
+  http_timeout_seconds: 20         # token endpoint and provider API calls
+  max_response_bytes: 2000000      # cap on one provider API response
+  vault:
+    key: ""                        # SAJHA_ACCOUNTS_VAULT_KEY; empty: generated once into the secrets file
+    previous_keys: []              # old keys, still readable during a rotation
+    key_provider: ""               # package.module:factory (a KMS hook), instead of key
+  # A built-in provider (github, slack, google, microsoft, atlassian, notion) is enabled by a
+  # client id; any field can be overridden, and a new id with every endpoint is a custom one.
+  providers: {}
+  #  github:
+  #    client_id: ${GITHUB_OAUTH_CLIENT_ID:}
+  #    client_secret_ref: env:GITHUB_OAUTH_CLIENT_SECRET
+
 # ── Observability: Prometheus /metrics, OpenTelemetry, usage ledger, alerts ──
 # Every key: docs/getting-started/Configuration Reference.md#observability;
 # design: docs/architecture/Observability.md. Secrets (the metrics token, OTLP headers,
@@ -562,7 +618,7 @@ observability:
     enabled: true                  # /metrics and the in-process metric families
     auth: admin                    # none | token (SAJHA_OBSERVABILITY_METRICS_TOKEN) | admin
     port: 0                        # > 0: also serve /metrics on a separate listener
-    host: 127.0.0.1                # that listener's bind address
+    host: 0.0.0.0                  # that listener's bind address (all interfaces, like the server)
     tool_label: name               # name | group | none: the tool label's cardinality
     max_series: 2000               # label sets per family; beyond it values fold into _other
     multiworker: auto              # auto: merge workers' snapshots via a shared state store | off
@@ -591,3 +647,33 @@ observability:
     from: sajha@localhost
     starttls: true
     username: ''
+
+# ── Policy engine: rules evaluated before every tool call, on every path ──
+# Rules live in policy.dir (storage backend, hot-reloaded); the shipped file has none, so
+# nothing changes by default. Every key: docs/getting-started/Configuration Reference.md#policy-and-audit;
+# design: docs/architecture/Policy and Audit.md.
+policy:
+  enabled: true                    # false: no rule is evaluated
+  dir: config/policies             # *.yaml | *.yml | *.json, read through the storage backend
+  reload_seconds: 5                # recheck the directory at most this often (on the next call)
+  default_effect: allow            # allow | deny (deny: only calls a rule explicitly allows run)
+  on_error: ignore                 # a broken policy file: ignore (not enforced) | deny (every call fails closed)
+  fail_closed: true                # an error inside evaluation denies the call
+  audit_allow: false               # also audit plain allows (one record per call)
+  audit_arguments: false           # put argument values (not only names) in policy audit records
+  approvals:
+    ttl_seconds: 86400             # how long a pending approval waits
+    grant_ttl_seconds: 3600        # how long an approval may be used (once) after it is granted
+    allow_self_approval: false     # may an administrator approve their own call
+    notify_url: ''                 # announce new approvals (must be in observability.alerts_webhook.allowed_urls)
+    notify_format: generic         # generic | slack
+
+# ── Tamper-evident audit: hash chain, signed anchors, SIEM export ──
+audit:
+  chain:
+    enabled: true                  # store the hash chain (audit_chain, audit_anchors)
+    anchor_every: 100              # sign the chain head every N records
+    anchor_interval_seconds: 300   # ... and at least this often while records arrive (0: off)
+  export:
+    allowed_urls: []               # URL prefixes HTTP sinks may post to (empty: any public host)
+    sinks: []                      # syslog | http | file sinks: see docs/architecture/Policy and Audit.md#8-siem-export

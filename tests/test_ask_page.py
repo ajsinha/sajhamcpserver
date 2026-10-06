@@ -97,11 +97,21 @@ def test_ask_sky_has_tooltips_and_a_labelled_cosmetic_filter(web):
     assert 'function tips(' in js and 'aria-live' in js and 'S.nearest' in js
 
 
-def test_landing_sky_names_every_star(web):
-    c, _ = web
+def _landing_groups(c):
     t = _get(c, '/').text
     m = re.search(r'<script type="application/json" id="lpData">(.*?)</script>', t, re.S)
     assert m
-    groups = json.loads(m.group(1))['groups']
-    assert groups and all(len(g) == 3 and len(g[2]) == g[1] for g in groups)
-    assert 'calc_percentage_change' in {n for g in groups for n in g[2]}
+    return json.loads(m.group(1))['groups']
+
+
+def test_landing_sky_names_only_tools_anonymous_callers_may_see(web, monkeypatch):
+    """The public landing page draws every group from its count, but names a star only when
+    an anonymous MCP caller could see that tool (mcp.anonymous.tools; empty by default)."""
+    c, _ = web
+    groups = _landing_groups(c)
+    assert groups and all(len(g) == 3 and g[1] > 0 for g in groups)
+    assert not any(g[2] for g in groups)            # default policy: no tool names leak
+    monkeypatch.setenv('SAJHA_MCP_ANONYMOUS_TOOLS', 'calc_*')
+    names = {n for g in _landing_groups(c) for n in g[2]}
+    assert 'calc_percentage_change' in names
+    assert names and all(n.startswith('calc_') for n in names)

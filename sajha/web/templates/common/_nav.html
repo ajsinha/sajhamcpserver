@@ -30,12 +30,14 @@
       (url_for('studio_home'), 'house', 'Studio home', 'Everything you can build here'),
       (url_for('studio_home') ~ '#python-creator', 'code-slash', 'Python code tool', 'Turn a Python function into a tool (on Studio home)'),
       (url_for('studio_rest'), 'cloud-arrow-up', 'REST service tool', 'Wrap an HTTP endpoint as a tool'),
+      (url_for('studio_api_import'), 'filetype-json', 'Import an API', 'OpenAPI, Swagger or GraphQL: one tool per operation'),
       (url_for('studio_dbquery'), 'database', 'DB query tool', 'A parameterised SQL query as a tool'),
       (url_for('studio_script'), 'terminal', 'Script tool', 'Run a shell or Python script as a tool')]),
     ('Enterprise sources', [
       (url_for('studio_powerbi'), 'bar-chart-fill', 'PowerBI report', 'Export a report page as a tool'),
       (url_for('studio_powerbidax'), 'braces', 'PowerBI DAX query', 'A DAX query against a dataset'),
       (url_for('studio_livelink'), 'folder2-open', 'IBM LiveLink', 'Search and fetch documents'),
+      (url_for('studio_sharepoint'), 'microsoft', 'SharePoint', 'Documents, lists or search on a SharePoint site'),
       (url_for('studio_olap'), 'graph-up-arrow', 'OLAP dataset', 'Slice a cube as a tool')]),
     ('Compose', [
       (url_for('composite_builder'), 'boxes', 'Composite builder', 'Chain tools into one')])]),
@@ -45,7 +47,12 @@
       (url_for('admin_users'), 'people', 'Users', 'Accounts and roles'),
       (url_for('admin_prompts'), 'chat-square-text', 'Prompts', 'Create, edit and retire prompts'),
       (url_for('admin_apikeys'), 'key', 'API keys', 'Keys, scopes and expiry'),
-      (url_for('admin_federation_page'), 'diagram-2', 'Federation', 'Other MCP servers behind SAJHA: upstreams and approvals')]),
+      (url_for('admin_federation_page'), 'diagram-2', 'Federation', 'Other MCP servers behind SAJHA: upstreams and approvals'),
+      (url_for('admin_connections_page'), 'link-45deg', 'Connected accounts', 'Which services each user linked; revoke; vault keys')]),
+    ('Governance', [
+      (url_for('admin_policies_page'), 'shield-check', 'Policies', 'Rules on every tool call; the test bench'),
+      (url_for('admin_approvals_page'), 'person-check', 'Approvals', 'Tool calls waiting for a human decision'),
+      (url_for('admin_audit_page'), 'journal-check', 'Audit', 'Hash-chained audit records, integrity, SIEM sinks')]),
     ('Operations', [
       ('/admin/system-monitor', 'activity', 'System monitor', 'CPU, memory and connections'),
       ('/admin/async-tasks', 'skip-forward-circle', 'Async tasks', 'Long-running calls in flight'),
@@ -103,6 +110,7 @@
             <div class="px-3 py-2"><div class="fw-semibold">{{ user.user_name }}</div><div class="small-muted">{{ (user.roles or [])|join(', ') or 'no roles' }}</div></div>
             <div class="dropdown-divider"></div>
             <a class="dropdown-item" href="{{ url_for('change_password_page') }}"><i class="bi bi-key" aria-hidden="true"></i> Change password</a>
+            <a class="dropdown-item" href="{{ url_for('account_connections_page') }}"><i class="bi bi-link-45deg" aria-hidden="true"></i> Connected accounts</a>
             <a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Log out</a>
           </div>
         </div>

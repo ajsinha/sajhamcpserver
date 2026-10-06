@@ -96,7 +96,12 @@ details.schema pre{background:var(--t-inp);color:var(--t-text);padding:.5rem;bor
             <option value="bearer">Bearer token</option>
             <option value="header">API-key header</option>
             <option value="oauth_client_credentials">OAuth client credentials</option>
+            <option value="connected_account">Each user's connected account</option>
           </select></div>
+        <div class="col-md-3 a-ca" style="display:none"><label class="form-label" for="fCaProvider">Provider (connected accounts)</label>
+          <input class="form-control form-control-sm" id="fCaProvider" placeholder="github"></div>
+        <div class="col-md-3 a-ca" style="display:none"><label class="form-label" for="fCaScopes">Scopes the user must grant</label>
+          <input class="form-control form-control-sm" id="fCaScopes" placeholder="repo"></div>
         <div class="col-md-3 a-bearer" style="display:none"><label class="form-label" for="fTokenRef">Token reference</label>
           <input class="form-control form-control-sm" id="fTokenRef" placeholder="env:WEATHER_TOKEN"></div>
         <div class="col-md-3 a-header" style="display:none"><label class="form-label" for="fHeader">Header</label>
@@ -230,6 +235,7 @@ function formData(){
   if(at==='bearer')d.auth={type:at,token_ref:v('fTokenRef')};
   else if(at==='header')d.auth={type:at,header:v('fHeader'),value_ref:v('fValueRef')};
   else if(at==='oauth_client_credentials')d.auth={type:at,token_url:v('fTokenUrl'),client_id:v('fClientId'),client_secret_ref:v('fSecretRef'),scope:v('fScope')};
+  else if(at==='connected_account')d.auth={type:at,provider:v('fCaProvider'),scopes:list(v('fCaScopes').replace(/\s+/g,','))};
   if(v('fTimeout'))d.timeout_seconds=Number(v('fTimeout'));
   if(v('fRate'))d.max_calls_per_minute=Number(v('fRate'));
   if(v('fCache'))d.cache_ttl=Number(v('fCache'));
@@ -261,6 +267,7 @@ function editUp(uid){
   set('fUrl',d.url);set('fProtocol',d.protocol||'auto');set('fCommand',d.command);set('fArgs',(d.args||[]).join(', '));
   var a=d.auth||{};set('fAuth',a.type||'none');set('fTokenRef',a.token_ref);set('fHeader',a.header);set('fValueRef',a.value_ref);
   set('fTokenUrl',a.token_url);set('fClientId',a.client_id);set('fSecretRef',a.client_secret_ref);set('fScope',a.scope);
+  set('fCaProvider',a.provider);set('fCaScopes',(a.scopes||[]).join(' '));
   set('fTimeout',d.timeout_seconds);set('fRate',d.max_calls_per_minute);set('fCache',d.cache_ttl);
   set('fInclude',(d.include_tools||[]).join(', '));set('fExclude',(d.exclude_tools||[]).join(', '));
   document.getElementById('fEnabled').checked=d.enabled!==false;document.getElementById('fPrompts').checked=!!d.expose_prompts;
@@ -273,7 +280,8 @@ function transportChanged(){var s=v('fTransport')==='stdio';
 function authChanged(){var t=v('fAuth');
   document.querySelectorAll('.a-bearer').forEach(function(e){e.style.display=t==='bearer'?'':'none'});
   document.querySelectorAll('.a-header').forEach(function(e){e.style.display=t==='header'?'':'none'});
-  document.querySelectorAll('.a-oauth').forEach(function(e){e.style.display=t==='oauth_client_credentials'?'':'none'})}
+  document.querySelectorAll('.a-oauth').forEach(function(e){e.style.display=t==='oauth_client_credentials'?'':'none'});
+  document.querySelectorAll('.a-ca').forEach(function(e){e.style.display=t==='connected_account'?'':'none'})}
 load();
 setInterval(load, 15000);
 </script>

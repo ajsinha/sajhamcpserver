@@ -34,11 +34,47 @@ import shutil
 import hashlib
 import logging
 import importlib
+import importlib.util
+import inspect
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from sajha.tools.base_mcp_tool import BaseMCPTool
+
 logger = logging.getLogger(__name__)
+
+
+def _release_tuple(text: str) -> tuple:
+    import re
+    parts = []
+    for piece in text.split('.'):
+        m = re.match(r'\d+', piece)
+        parts.append(int(m.group()) if m else 0)
+    while len(parts) > 1 and parts[-1] == 0:
+        parts.pop()
+    return tuple(parts)
+
+
+def version_less_than(a, b) -> bool:
+    """True when version ``a`` is older than ``b``, compared as versions, not strings
+    ("4.9.2" < "4.10.0", which string order gets wrong).
+
+    Uses ``packaging.version`` (PEP 440, so 5.0.0rc1 < 5.0.0) when it is installed and both
+    strings parse; otherwise the leading integer of each dot-separated part, so that
+    "5.0" == "5.0.0".
+    """
+    a = str(a or '').strip().lstrip('vV')
+    b = str(b or '').strip().lstrip('vV')
+    try:
+        from packaging.version import Version, InvalidVersion
+        try:
+            return Version(a) < Version(b)
+        except InvalidVersion:
+            pass
+    except ImportError:
+        pass
+    return _release_tuple(a) < _release_tuple(b)
 
 
 @dataclass
@@ -138,7 +174,7 @@ class PluginManager:
 
         # Version check
         from sajha.app import VERSION
-        if manifest.min_sajha_version > VERSION:
+        if version_less_than(VERSION, manifest.min_sajha_version):
             errors.append(f"Requires SAJHA >= {manifest.min_sajha_version} (current: {VERSION})")
 
         # Check tools directory exists
@@ -194,6 +230,8 @@ class PluginManager:
                         tool_config = json.load(f)
                     tool_name = tool_config.get('name', fname.replace('.json', ''))
                     self._registry.register_tool_from_dict(tool_config, source=fname)
+                    if tool_name not in manifest.tools:
+                        manifest.tools.append(tool_name)
                     tools_loaded += 1
                 except Exception as e:
                     logger.warning(f"Failed to load plugin tool {fname}: {e}", exc_info=True)
@@ -204,15 +242,23 @@ class PluginManager:
                     spec = importlib.util.spec_from_file_location(fname[:-3], fpath)
                     mod = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(mod)
-                    # Look for classes that extend BaseMCPTool
+                    # Register every concrete BaseMCPTool subclass the file defines (not
+                    # ones it merely imports). A tool keeps the name it gives itself; one
+                    # that does not set a name is registered under its class name, lower-cased.
                     for attr_name in dir(mod):
                         attr = getattr(mod, attr_name)
-                        if (isinstance(attr, type) and
-                            hasattr(attr, 'execute') and
-                            attr_name != 'BaseMCPTool'):
-                            instance = attr({})
-                            self._registry.register_tool(attr_name.lower(), instance)
-                            tools_loaded += 1
+                        if not (isinstance(attr, type) and issubclass(attr, BaseMCPTool)
+                                and attr is not BaseMCPTool
+                                and getattr(attr, '__module__', None) == mod.__name__
+                                and not inspect.isabstract(attr)):
+                            continue
+                        instance = attr({})
+                        if instance.name == attr.__name__:
+                            instance._name = attr_name.lower()
+                        self._registry.register_tool(instance)
+                        if instance.name not in manifest.tools:
+                            manifest.tools.append(instance.name)     # so unload_plugin removes it
+                        tools_loaded += 1
                 except Exception as e:
                     logger.warning(f"Failed to load plugin Python tool {fname}: {e}", exc_info=True)
 

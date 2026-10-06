@@ -851,7 +851,7 @@ def get_value(data_dict, key):
 
 ### Input Schema Pattern
 
-All tools follow a consistent input schema pattern with JSON Schema validation:
+The `symbol` parameter of `yahoo_get_quote` and `yahoo_get_history` advertises this schema:
 
 ```json
 {
@@ -860,12 +860,14 @@ All tools follow a consistent input schema pattern with JSON Schema validation:
     "symbol": {
       "type": "string",
       "description": "Stock ticker symbol",
-      "pattern": "^[A-Z^.]{1,10}$"
+      "pattern": "^[A-Za-z0-9^.=-]{1,20}$"
     }
   },
   "required": ["symbol"]
 }
 ```
+
+The server validates every call against this schema (a mismatch is refused before the tool runs; see "Argument validation" in the [MCP Protocol Guide](../../protocol/MCP%20Protocol%20Guide.md)). The pattern admits letters (either case; the tool upper-cases the symbol), digits, `^`, `.`, `=` and `-`, up to 20 characters, so every form in the [Symbol Format Examples](#a-symbol-format-examples) is accepted: `BRK-A`, `BTC-USD`, `7203.T`, `EURUSD=X`, `ES=F`, `^GSPC`.
 
 ### Output Schema Pattern
 
@@ -1211,7 +1213,7 @@ except ValueError as e:
 def validate_symbol(symbol):
     """Validate stock symbol format"""
     import re
-    pattern = r'^[A-Z^.]{1,10}$'
+    pattern = r'^[A-Za-z0-9^.=-]{1,20}$'     # the tool's own inputSchema pattern
     if not re.match(pattern, symbol.upper()):
         raise ValueError(f"Invalid symbol format: {symbol}")
     return symbol.upper()
@@ -1337,15 +1339,7 @@ urllib.error.URLError
 
 ### Error Response Format
 
-```python
-{
-    "error": {
-        "type": "ValueError",
-        "message": "Symbol or resource not found",
-        "code": "SYMBOL_NOT_FOUND"
-    }
-}
-```
+The tools raise `ValueError` with a message such as `Symbol or resource not found` or `Failed to get quote for XYZ: ...`. Over REST (`POST /api/tools/execute`) that becomes HTTP 500 with `{"success": false, "error": "<message>"}`; over MCP it is a `tools/call` result with `isError: true` and the message as text content.
 
 ### Handling Examples
 

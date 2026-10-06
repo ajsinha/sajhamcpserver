@@ -14,6 +14,7 @@ All Studio pages are server-rendered under `/studio` (see `sajha/routes/studio_r
 |------|------|------------|
 | Studio home | `/studio` | Cards for every creator, plus the Python Code Tool Creator itself (lower on the same page) |
 | REST service tool | `/studio/rest` | REST Tool Creator |
+| Import an API | `/studio/api-import` | API Import: an OpenAPI 3.x / Swagger 2.0 spec or a GraphQL schema to one tool per selected operation (section below) |
 | DB query tool | `/studio/dbquery` | Database Query Tool Creator |
 | Script tool | `/studio/script` | Script Tool Creator |
 | PowerBI report | `/studio/powerbi` | PowerBI Report Tool Creator |
@@ -25,8 +26,8 @@ All Studio pages are server-rendered under `/studio` (see `sajha/routes/studio_r
 
 How to get there in the UI:
 
-- **Top navigation → MCP Studio** (shown to administrators). It lists Studio home, the Python, REST, DB query and script creators, the PowerBI, PowerBI DAX, LiveLink and OLAP creators, and the Composite builder.
-- **Studio sub-navigation**: a row of chips at the top of each Studio page (Home, Python, REST, DB Query, Script, PowerBI, DAX, LiveLink, SharePoint, OLAP, Composite).
+- **Top navigation → MCP Studio** (shown to administrators). It lists Studio home, the Python, REST, Import an API, DB query and script creators, the PowerBI, PowerBI DAX, LiveLink and OLAP creators, and the Composite builder.
+- **Studio sub-navigation**: a row of chips at the top of each Studio page (Home, Python, REST, Import an API, DB Query, Script, PowerBI, DAX, LiveLink, SharePoint, OLAP, Composite).
 - **Studio home cards**: one card per creator. The SharePoint creator is not in the top navigation menu; use its card, its sub-navigation chip or the direct URL.
 - The **Dashboard** quick actions also link to `/studio`.
 
@@ -80,6 +81,7 @@ The generator classes in `sajha.studio` (`ToolCodeGenerator`, `RESTToolGenerator
 | PowerBI DAX | `config/tools/<name>.json` | `sajha/tools/impl/powerbidax_<name>.py` | none |
 | IBM LiveLink | `config/tools/<name>.json` | `sajha/tools/impl/livelink_<name>.py` | none |
 | SharePoint | `config/tools/<name>.json` | none (points at the built-in `sajha.tools.impl.sharepoint_tool` classes) | none |
+| Import an API | `config/tools/<name>.json`, one per operation | none (every tool uses `sajha.api_import.executor.ImportedAPITool`) | the import record, `config/api_imports/<api_id>.json` |
 | OLAP dataset | none | none | dataset definitions under `config/olap/` |
 
 Tool configs are written through the storage layer (`write_tool_config` in `sajha/core/storage`). They land at the storage key `config/tools/<name>.json` in whichever backend is configured: local disk, S3, Azure Blob or GCS. Generated `.py` files, and script files, are always written to the local filesystem of the instance that ran the generator, because Python has to import them from the package. In a multi-instance or cloud-storage deployment, every instance therefore needs those generated modules. See the [Storage Guide](../getting-started/Storage%20Guide.md).
@@ -94,6 +96,45 @@ Tool configs are written through the storage layer (`write_tool_config` in `sajh
 - OLAP dataset definitions in `config/olap/` are not watched. A Studio OLAP deploy or delete re-creates the OLAP tools itself; after editing the files by hand, use **Reload All** on the Tools admin page, or restart the server.
 - When the registry changes, connected MCP clients that support it get a `tools/list_changed` notification.
 - Python code tools and script tools are loaded as sandboxed stand-ins: their code runs in the [sandbox](../architecture/Sandbox.md) at call time and is never imported into the server, so an edit to the generated module or script takes effect on the next call. The other creators generate in-process tools from SAJHA's own templates.
+
+---
+
+## Sandboxed creators
+
+The Python code and script creators write a `sandbox` block into the tool config (`{"network": "none"}`, plus the script's timeout for script tools); keys it leaves out take the administrator's `sandbox.defaults`, and every value is capped by `sandbox.max`. The **Runs in the sandbox** panel on those creator pages shows the policy a new tool gets and what the active backend enforces on this host. With `sandbox.enforce_for_generated_tools: false` the panel says the sandbox is off and these tools load in-process. What each backend guarantees, and every key of a tool's `sandbox` block, is in [Sandbox](../architecture/Sandbox.md); [Tutorial 14](../tutorials/TUTORIAL_14_sandboxed_studio_tools.md) walks through it.
+
+## Import an API
+
+**Import an API** (`/studio/api-import`) builds many tools at once from an API description
+instead of one endpoint at a time:
+
+1. **Source.** An OpenAPI 3.x or Swagger 2.0 spec by URL (fetched through the SSRF guard),
+   upload or paste; or, with **GraphQL**, an endpoint (read by introspection) or an
+   introspection result. Pick a **prefix**: it starts every tool name and identifies the import.
+2. **API and base URL.** Choose one of the spec's servers and its variables, or type a base
+   URL; set a per-call timeout and an optional calls-per-minute limit.
+3. **Authentication.** One row per security scheme the spec declares (API key, bearer,
+   basic, OAuth 2.0 client credentials, or the caller's connected account when that feature
+   is installed); secrets are secret references such as `env:PETSTORE_KEY`. **Add a
+   credential** applies one to every operation.
+4. **Operations.** Filter by tag, method or path; each row shows the proposed tool name
+   (editable), its hints (read-only, destructive, idempotent, paged) and any flag
+   (unsupported multipart body, a name already used by another tool). Select and **Deploy
+   selected**: the configs are written and the tools are live at once.
+5. **Test-call** any operation once without deploying it.
+
+Importing again under the same prefix compares the spec with the import record: each
+operation is **new**, **changed** or **unchanged**, and those gone from the spec are listed
+for removal; a deploy updates changed tools in place. **Imported APIs** lists every import
+with **Re-import** and **Delete** (which removes all its tools). Studio's ordinary delete
+also removes a single imported tool. The mapping rules, the guard and the limits are in
+[API Import](../architecture/API%20Import.md); [Tutorial 19](../tutorials/TUTORIAL_19_import_an_openapi_spec.md)
+walks through the petstore spec.
+
+## Other ways in
+
+- **Command line:** `sajha studio deploy <file.py>` analyses and deploys a decorated function, `sajha studio import-openapi <url|file>` imports an API description, and `sajha studio delete <name>` removes a tool ([Command Line](../clients/Command%20Line.md)).
+- **Python Playground:** **Open in playground** on the Python creator sends the function to the [Python Playground](../getting-started/Python%20Playground.md) with a cell that calls it, so you can try it before deploying.
 
 ---
 
@@ -114,6 +155,7 @@ Generated tools are ordinary tools once registered. Who can see and run them is 
 |---------|------|-------|
 | Python code (`@sajhamcptool`) | `/studio` | [Python Code Tool Creator Guide](MCP%20Studio%20Python%20Code%20Tool%20Creator%20Guide.md) |
 | REST service | `/studio/rest` | [REST Tool Creator Guide](MCP%20Studio%20REST%20Tool%20Creator%20Guide.md) |
+| Import an API | `/studio/api-import` | [API Import](../architecture/API%20Import.md) |
 | Database query | `/studio/dbquery` | [DBQuery Tool Creator Guide](MCP%20Studio%20DBQuery%20Tool%20Creator%20Guide.md) |
 | Script | `/studio/script` | [Script Tool Creator Guide](MCP%20Studio%20Script%20Tool%20Creator%20Guide.md) |
 | PowerBI report | `/studio/powerbi` | [PowerBI Tool Creator Guide](MCP%20Studio%20PowerBI%20Tool%20Creator%20Guide.md) |

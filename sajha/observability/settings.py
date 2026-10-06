@@ -118,7 +118,7 @@ def describe() -> Dict[str, Any]:
         'metrics': {'enabled': metrics_enabled(), 'auth': metrics_auth(),
                     'token_set': bool(metrics_token()),
                     'port': get_int('observability.metrics.port', 0),
-                    'host': get_str('observability.metrics.host', '127.0.0.1'),
+                    'host': get_str('observability.metrics.host', '0.0.0.0'),
                     'tool_label': tool_label_mode(), 'max_series': max_series(),
                     'multiworker': get_str('observability.metrics.multiworker', 'auto')},
         'otel': {'enabled': get_bool('observability.otel.enabled', False)},

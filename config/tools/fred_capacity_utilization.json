@@ -9,7 +9,7 @@
     "properties": {
       "limit": {
         "type": "integer",
-        "description": "Number of records",
+        "description": "Number of most recent observations to return (newest first)",
         "default": 30
       }
     },

@@ -1587,3 +1587,150 @@ pre.pg-repr { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--sajha-indigo) 5
 @media (max-width: 1200px) { .obs-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 576px) { .obs-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .obs-chart { height: 220px; } }
 /* ==== end of Usage & cost ================================================================== */
+
+/* ==== Connected accounts (/account/connections, /admin/connections; templates/account, admin/connections.html) ==== */
+.acct-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: 1rem; }
+.acct-card { background: var(--t-card); border: 1px solid var(--t-card-b); border-radius: var(--radius-lg, 12px); padding: 1rem; display: flex; flex-direction: column; gap: .6rem; min-width: 0; }
+.acct-card.acct-wanted { border-color: var(--sajha-crimson); box-shadow: 0 0 0 3px var(--sajha-crimson-tint); }
+.acct-card.acct-attn { border-left: 4px solid var(--sajha-bad); }
+.acct-head { display: flex; align-items: center; gap: .75rem; }
+.acct-icon { flex: 0 0 2.4rem; height: 2.4rem; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.25rem; background: var(--sajha-crimson-tint); color: var(--sajha-crimson); }
+.acct-title { flex: 1 1 auto; min-width: 0; }
+.acct-title h2 { color: var(--t-heading); }
+.acct-badge { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: .15rem .55rem; border-radius: 999px; border: 1px solid var(--t-card-b); color: var(--t-muted); white-space: nowrap; }
+.acct-badge.acct-ok { background: var(--sajha-ok); border-color: var(--sajha-ok); color: var(--sajha-on-crimson); }
+.acct-badge.acct-bad { background: var(--sajha-bad); border-color: var(--sajha-bad); color: var(--sajha-on-crimson); }
+.acct-facts { display: grid; grid-template-columns: max-content 1fr; gap: .2rem .75rem; margin: 0; font-size: .85rem; }
+.acct-facts dt { color: var(--t-muted); font-weight: 600; }
+.acct-facts dd { margin: 0; color: var(--t-text); overflow-wrap: anywhere; }
+.acct-scope { display: inline-block; margin: 0 .25rem .15rem 0; padding: 0 .35rem; border-radius: 4px; background: var(--t-card-hdr); color: var(--t-text2); font-size: .75rem; }
+.acct-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.acct-foot { border-top: 1px dashed var(--t-card-b); padding-top: .5rem; overflow-wrap: anywhere; }
+.acct-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+.acct-kid { font-family: var(--font-mono, monospace); font-size: 1.05rem; }
+.ask-connect-card .ask-confirm-h .bi { color: var(--sajha-crimson); }
+@media (max-width: 768px) { .acct-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* ==== end of Connected accounts ============================================================ */
+
+/* ==== Mobile (phones and tablets; checked by scripts/check_mobile.py) ======================
+   Small-screen rules for the whole UI. main.js puts every data table in .sajha-xscroll and
+   labels .sajha-stack cells; guide_view.html makes the guide contents a disclosure. */
+.sajha-xscroll { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+.sajha-xscroll > table { margin-bottom: 0; }
+.sajha-chart { position: relative; height: 240px; }
+.sajha-tap-tip { position: absolute; z-index: 2100; max-width: min(90vw, 320px); padding: .4rem .65rem; border-radius: 8px;
+  font-size: 13px; line-height: 1.35; color: var(--sajha-surface); background: var(--sajha-ink); box-shadow: 0 8px 20px -8px rgba(0,0,0,.5); }
+.guide-toc > summary { list-style: none; cursor: default; }
+.guide-toc > summary::-webkit-details-marker { display: none; }
+/* Long words and URLs wrap instead of widening the page */
+.sajha-content { overflow-wrap: break-word; }
+.sajha-content code { overflow-wrap: anywhere; }
+.sajha-foot { padding-bottom: max(.8rem, env(safe-area-inset-bottom)); }
+.help-topic-hero > div { min-width: 0; }
+/* viewport-fit=cover (base, landing, login): keep content clear of notches in landscape */
+.sajha-public { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+
+@media (max-width: 991.98px) {
+  /* Navigation: the mega menu becomes a scrollable accordion under the hamburger */
+  .sajha-nav { padding-left: max(.75rem, env(safe-area-inset-left)); padding-right: max(.75rem, env(safe-area-inset-right)); }
+  .sajha-nav .navbar-toggler { min-width: 44px; min-height: 44px; display: inline-grid; place-items: center; padding: .25rem .5rem; margin: 10px 0; }
+  .sajha-nav .sajha-brand { min-height: 64px; }
+  .sajha-nav .navbar-collapse { max-height: calc(100vh - 64px); max-height: calc(100dvh - 64px); overscroll-behavior: contain;
+    padding-bottom: max(.8rem, env(safe-area-inset-bottom)); }
+  .sajha-nav .mega > .nav-link { display: flex; align-items: center; min-height: 44px; }
+  .sajha-nav .mega > .nav-link::after { content: "\F282"; font-family: "bootstrap-icons"; display: inline-block !important; border: 0;
+    margin-left: auto; transition: transform .15s; }
+  .sajha-nav .mega > .nav-link.show::after { transform: rotate(180deg); }
+  .sajha-nav .nav-link.active::before, .sajha-nav .nav-link.show::before { display: none; }
+  .mega-panel.show { animation: none; padding: .7rem .6rem; }
+  .mega-item { align-items: center; min-height: 44px; }
+  .sajha-tools { flex-wrap: wrap; padding: .4rem 0; }
+  .sajha-tools .tool { min-height: 44px; }
+  .sajha-user-menu .dropdown-item { min-height: 44px; }
+  .sajha-content { padding: 1rem max(.85rem, env(safe-area-inset-right)) 2.5rem max(.85rem, env(safe-area-inset-left)); }
+  /* The landing page's full-bleed bands cancel that padding exactly */
+  .sajha-content > .lp2-hero { margin: -1rem calc(-1 * max(.85rem, env(safe-area-inset-right))) 0 calc(-1 * max(.85rem, env(safe-area-inset-left))); }
+  .sajha-content > .lp2-cta { margin-left: calc(-1 * max(.85rem, env(safe-area-inset-left))); margin-right: calc(-1 * max(.85rem, env(safe-area-inset-right))); }
+  /* Guide contents: a closed "Contents" disclosure above the guide */
+  .guide-toc > summary.head { cursor: pointer; display: flex; align-items: center; min-height: 44px; margin: 0; font-size: 12px; }
+  .guide-toc { padding-top: .2rem; padding-bottom: .2rem; }
+  .guide-toc > summary::after { content: "\F282"; font-family: "bootstrap-icons"; margin-left: auto; }
+  .guide-toc[open] > summary::after { content: "\F286"; }
+  .guide-toc a { padding: .45rem 0; }
+  .help-toolbar { top: 64px; }
+}
+
+@media (max-width: 767.98px), (pointer: coarse) {
+  /* Touch targets of at least 40-44px, and 16px inputs so iOS does not zoom on focus */
+  .sajha-content .btn, .sajha-public .btn { min-height: 40px; min-width: 40px; display: inline-flex; align-items: center; justify-content: center; gap: .3rem; }
+  .sajha-content .tag-input { min-height: 40px; font-size: 16px; }
+  .sajha-content .btn-sm, .sajha-content .btn-group-sm > .btn { min-height: 40px; min-width: 40px; }
+  .sajha-content .form-control, .sajha-content .form-select, .sajha-public .form-control, .sajha-public .form-select,
+  .sajha-content .input-group-text { min-height: 44px; font-size: 16px; }
+  .sajha-content textarea.form-control { min-height: 5rem; }
+  .sajha-content .form-check-input { width: 1.25em; height: 1.25em; }
+  .sajha-content .nav-tabs .nav-link, .sajha-content .nav-pills .nav-link { min-height: 44px; display: flex; align-items: center; }
+  .sajha-content .page-link { min-width: 40px; min-height: 40px; display: grid; place-items: center; }
+  .sajha-content .dropdown-item { min-height: 44px; display: flex; align-items: center; }
+  .lp2-sky-btn { min-height: 40px; }
+  .ask-chip { min-height: 40px; }
+  .pg-cell-run, .pg-cell-tools button { min-width: 40px; min-height: 40px; }
+  .format-btn { min-height: 44px; }
+  /* Readable small print: nothing under 12px */
+  .sajha-content small, .sajha-content .small, .sajha-content .badge, .sajha-content .form-text,
+  .sajha-content .small-muted, .sajha-content .text-muted.small, .sajha-brand small, .mega-desc,
+  .filter-chip, .transport-badge, .metric-label, .sajha-content .progress-bar, .ask-chip, .ask-pill, .pg-cell-count,
+  .method-badge, .db-badge, .help-text, .variable-hint, .monitor-card .mc-label, .monitor-card .mc-sub, .obs-page .form-label,
+  .lp2-sky-who { font-size: max(12px, .8em) !important; }
+  .sajha-content code, .sajha-content kbd { font-size: max(12px, .875em); }
+  .sajha-content th { font-size: max(12px, 1em); }
+}
+
+@media (max-width: 767.98px) {
+  /* Rows of buttons, pagers and filter bars wrap instead of running off the screen */
+  .sajha-content .d-flex:not(.flex-nowrap):has(> .btn), .sajha-content .d-flex:has(> nav > .pagination),
+  .sajha-content .btn-toolbar, .sajha-content .card-header.d-flex { flex-wrap: wrap; gap: .5rem; }
+  .sajha-content .pagination { flex-wrap: wrap; row-gap: .3rem; }
+  .sajha-content .d-flex.justify-content-between:has(> .btn) > :not(.btn):not(.btn-group) { flex: 1 1 12rem; min-width: 0; }
+  /* Ask SAJHA: the model picker takes the free width; 16px compose text (no iOS zoom) */
+  .ask-model { flex: 1 1 10rem; min-width: 0; }
+  .ask-model select { max-width: none; width: 100%; }
+  .ask-input-wrap textarea { font-size: 16px; }
+  .sajha-content .btn-group { flex-wrap: wrap; }
+  .page-help .ph-more { white-space: normal; margin-left: 0; }
+  /* Hero blocks: less padding, smaller headings */
+  .sajha-welcome, .help-hero, .about-hero, .creator-header { padding: 1.2rem 1rem !important; border-radius: 16px; }
+  .sajha-welcome h1, .help-hero h1, .about-hero h1 { font-size: 1.5rem; }
+  .creator-header > .d-flex { flex-direction: column; align-items: stretch !important; gap: .8rem; }
+  .help-topic-hero { padding: 1rem; gap: .8rem; align-items: flex-start; }
+  .help-topic-hero .ico { flex-basis: 44px; height: 44px; font-size: 1.3rem; border-radius: 12px; }
+  .help-topic-hero .cmp-asof { white-space: normal; }
+  .creator-header > .d-flex > .d-flex { flex-wrap: wrap; }
+  h1, .h1 { font-size: 1.4rem; }
+  /* Studio and other two-column forms already use Bootstrap's grid; make the editors fit */
+  .sajha-content .CodeMirror, .sajha-content .jsoneditor, .sajha-content .script-editor, .sajha-content .code-textarea { max-width: 100%; }
+  .btn-action, .btn-studio { padding: .55rem 1rem !important; }
+  /* Charts: shorter, still readable */
+  .sajha-chart { height: 220px; }
+  /* Modals: full width with a margin, body scrolls */
+  .modal-dialog { margin: .5rem; }
+  .modal-content { max-height: calc(100dvh - 1rem); }
+  .modal-body { overflow-y: auto; }
+}
+
+@media (max-width: 575.98px) {
+  /* Tables marked .sajha-stack become one card per row; others scroll sideways in .sajha-xscroll */
+  table.sajha-stack, table.sajha-stack tbody, table.sajha-stack tr, table.sajha-stack td { display: block; width: 100%; }
+  table.sajha-stack thead { display: none; }  /* each cell carries its heading in data-label */
+  table.sajha-stack tr { border: 1px solid var(--sajha-border); border-radius: 12px; margin-bottom: .7rem; padding: .35rem .2rem;
+    background: var(--sajha-surface); }
+  table.sajha-stack tr[style*="display: none"] { display: none; }
+  table.sajha-stack td { display: flex; gap: .8rem; align-items: baseline; justify-content: space-between; border: 0 !important;
+    padding: .3rem .7rem; text-align: right; overflow-wrap: anywhere; }
+  table.sajha-stack td::before { content: attr(data-label); flex: 0 0 auto; max-width: 45%; text-align: left; font-size: 12px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--t-muted); }
+  table.sajha-stack td:not([data-label])::before, table.sajha-stack td[data-label=""]::before { content: none; }
+  table.sajha-stack td > .btn-group, table.sajha-stack td > .d-flex { flex-wrap: wrap; justify-content: flex-end; }
+  .sajha-xscroll:has(> table.sajha-stack), .table-responsive:has(> table.sajha-stack) { overflow-x: visible; }
+}
+/* ==== end of Mobile ======================================================================== */

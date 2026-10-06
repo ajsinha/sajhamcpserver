@@ -10,6 +10,8 @@ import logging
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
+from sajha.olap import sql_safety as sq
+
 logger = logging.getLogger(__name__)
 
 
@@ -95,50 +97,16 @@ class PivotEngine:
         return sql
     
     def _build_base_query(self, dataset, filters: List[Dict]) -> str:
-        """Build the base SELECT with joins and filters."""
-        sql = f"SELECT * FROM {dataset.source_table}"
-        
-        # Add joins
-        for join in dataset.joins:
-            alias = f" AS {join.alias}" if join.alias else ""
-            sql += f"\n{join.join_type} JOIN {join.table}{alias} ON {join.on_clause}"
-        
-        # Add filters
-        if filters:
-            where_clauses = self._build_filters(filters, dataset)
-            if where_clauses:
-                sql += f"\nWHERE {' AND '.join(where_clauses)}"
-        
-        return sql
+        """Build the base SELECT with joins and (parameterised) filters."""
+        return sq.base_query(self.semantic, dataset, filters)
     
     def _build_filters(self, filters: List[Dict], dataset) -> List[str]:
-        """Build WHERE clause components."""
-        clauses = []
-        for f in filters:
-            dim = f.get("dimension", f.get("column"))
-            op = f.get("operator", "=")
-            val = f.get("value")
-            
-            col = self.semantic.resolve_dimension(dim, dataset)
-            
-            if op.upper() == "IN":
-                if isinstance(val, list):
-                    formatted = ", ".join(f"'{v}'" if isinstance(v, str) else str(v) for v in val)
-                else:
-                    formatted = f"'{val}'" if isinstance(val, str) else str(val)
-                clauses.append(f"{col} IN ({formatted})")
-            elif op.upper() == "BETWEEN":
-                if isinstance(val, (list, tuple)) and len(val) == 2:
-                    v1 = f"'{val[0]}'" if isinstance(val[0], str) else str(val[0])
-                    v2 = f"'{val[1]}'" if isinstance(val[1], str) else str(val[1])
-                    clauses.append(f"{col} BETWEEN {v1} AND {v2}")
-            elif op.upper() in ("IS NULL", "IS NOT NULL"):
-                clauses.append(f"{col} {op}")
-            else:
-                formatted = f"'{val}'" if isinstance(val, str) else str(val)
-                clauses.append(f"{col} {op} {formatted}")
-        
-        return clauses
+        """WHERE clause components; values are $olap_* parameters (see sql_safety)."""
+        return sq.compile_filters(self.semantic, dataset, filters)[0]
+
+    def _params(self, spec: PivotSpec) -> Dict[str, Any]:
+        dataset = self.semantic.get_dataset(spec.dataset)
+        return sq.filter_params(self.semantic, dataset, spec.filters) if dataset else {}
     
     def _build_pivot_with_columns(self, base_sql: str, dataset, spec: PivotSpec) -> str:
         """
@@ -148,25 +116,18 @@ class PivotEngine:
         then creates CASE WHEN expressions for each value.
         """
         # Resolve row and column dimensions
-        row_cols = [self.semantic.resolve_dimension(r, dataset) for r in spec.rows]
+        row_cols = [sq.dimension_expr(self.semantic, dataset, r) for r in spec.rows]
         row_aliases = [self._safe_alias(r) for r in spec.rows]
         
-        pivot_col = self.semantic.resolve_dimension(spec.columns[0], dataset)
+        pivot_col = sq.dimension_expr(self.semantic, dataset, spec.columns[0])
         pivot_alias = self._safe_alias(spec.columns[0])
         
         # Build measure expressions
         measure_exprs = []
         for val in spec.values:
             measure_name = val.get("measure")
-            agg = val.get("aggregation", "SUM")
-            measure = self.semantic.get_measure(measure_name)
-            
-            if measure:
-                # Extract the column from the measure expression
-                # For simple measures like SUM(amount), extract 'amount'
-                expr = measure.expression
-            else:
-                expr = f"{agg}({measure_name})"
+            agg = sq.aggregation_name(val.get("aggregation"))
+            expr = sq.measure_expr(self.semantic, dataset, measure_name, agg)
             
             measure_exprs.append({
                 "name": measure_name,
@@ -205,19 +166,13 @@ ORDER BY {', '.join(row_aliases)}, {pivot_alias}
     
     def _build_simple_aggregation(self, base_sql: str, dataset, spec: PivotSpec) -> str:
         """Build a simple aggregation query without pivot columns."""
-        row_cols = [self.semantic.resolve_dimension(r, dataset) for r in spec.rows]
+        row_cols = [sq.dimension_expr(self.semantic, dataset, r) for r in spec.rows]
         row_aliases = [self._safe_alias(r) for r in spec.rows]
         
         measure_exprs = []
         for val in spec.values:
             measure_name = val.get("measure")
-            agg = val.get("aggregation", "SUM")
-            measure = self.semantic.get_measure(measure_name)
-            
-            if measure:
-                expr = measure.expression
-            else:
-                expr = f"{agg}({measure_name})"
+            expr = sq.measure_expr(self.semantic, dataset, measure_name, val.get("aggregation"))
             
             measure_exprs.append(f"{expr} AS {self._safe_alias(measure_name)}")
         
@@ -234,7 +189,7 @@ GROUP BY {', '.join(row_cols)}
             sort_parts = []
             for s in spec.sort:
                 col = s.get("column")
-                direction = s.get("direction", "ASC")
+                direction = sq.direction(s.get("direction"))
                 sort_parts.append(f"{self._safe_alias(col)} {direction}")
             sql += f"ORDER BY {', '.join(sort_parts)}\n"
         else:
@@ -242,7 +197,7 @@ GROUP BY {', '.join(row_cols)}
         
         # Add limit
         if spec.limit:
-            sql += f"LIMIT {spec.limit}\n"
+            sql += f"LIMIT {sq.integer(spec.limit, 'limit', 1)}\n"
         
         return sql
     
@@ -275,7 +230,7 @@ GROUP BY {', '.join(row_cols)}
         sql = self.build_pivot_query(spec)
         
         try:
-            result = self.conn.execute(sql).fetchall()
+            result = sq.execute(self.conn, sql, self._params(spec)).fetchall()
             columns = [desc[0] for desc in self.conn.description]
             
             # Convert to list of dicts
@@ -318,11 +273,11 @@ GROUP BY {', '.join(row_cols)}
     def _measure_expressions(self, spec: PivotSpec) -> List[Dict[str, str]]:
         """The aggregate SQL for each requested measure, as the row queries use it."""
         out = []
+        dataset = self.semantic.get_dataset(spec.dataset)
         for val in spec.values:
             measure_name = val.get("measure")
-            agg = val.get("aggregation", "SUM")
-            measure = self.semantic.get_measure(measure_name)
-            expr = measure.expression if measure else f"{agg}({measure_name})"
+            agg = sq.aggregation_name(val.get("aggregation"))
+            expr = sq.measure_expr(self.semantic, dataset, measure_name, agg)
             out.append({"alias": self._safe_alias(measure_name), "expression": expr,
                         "aggregation": str(agg).upper()})
         return out
@@ -360,7 +315,8 @@ GROUP BY {', '.join(row_cols)}
 
         if self.conn is not None:
             try:
-                row = self.conn.execute(self.build_totals_query(spec)).fetchone()
+                totals_sql = self.build_totals_query(spec)
+                row = sq.execute(self.conn, totals_sql, self._params(spec)).fetchone()
                 names = [d[0] for d in self.conn.description]
                 if row is not None:
                     totals.update(dict(zip(names, row)))
@@ -404,7 +360,7 @@ GROUP BY {', '.join(row_cols)}
             return []
         
         base_sql = self._build_base_query(dataset, spec.filters)
-        pivot_col = self.semantic.resolve_dimension(spec.columns[0], dataset)
+        pivot_col = sq.dimension_expr(self.semantic, dataset, spec.columns[0])
         
         sql = f"""
 SELECT DISTINCT {pivot_col} AS pivot_val
@@ -414,7 +370,7 @@ ORDER BY pivot_val
 """
         
         try:
-            result = self.conn.execute(sql).fetchall()
+            result = sq.execute(self.conn, sql, self._params(spec)).fetchall()
             return [row[0] for row in result]
         except Exception as e:
             logger.error(f"Error getting pivot values: {e}", exc_info=True)

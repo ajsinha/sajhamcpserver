@@ -43,15 +43,18 @@ sed -i "s/your-jwt-secret-here/\${JWT_SEC}/" .env
 # Firewall
 ufw allow 80/tcp && ufw allow 443/tcp && ufw --force enable 2>/dev/null || true
 
-# Deploy
+# Deploy the database only: SAJHA does not create PostgreSQL tables, and refuses to
+# start until the schema is applied (docs/getting-started/Database Setup.md).
 docker compose pull 2>/dev/null || docker compose build
-docker compose up -d
-
-echo "SAJHA deployed. Point DNS A record for ${DOMAIN} to ${SERVER_IP}"
-echo "Then access: https://${DOMAIN}"
+docker compose up -d postgres
 REMOTE
 
-echo "═══ Deployment complete ═══"
-echo "1. Point DNS A record for ${DOMAIN} → ${SERVER_IP}"
-echo "2. Caddy will auto-provision SSL certificate"
-echo "3. Access: https://${DOMAIN}"
+echo "═══ Database is up; the schema is a manual step ═══"
+echo "1. On ${SERVER_IP}, in ~/sajha-deploy: create the schema and the default roles/admin, once:"
+echo "     docker compose run --rm --no-deps --entrypoint python3 sajha -m sajha.db sql --dialect postgresql > schema.sql"
+echo "     docker compose run --rm --no-deps --entrypoint python3 sajha -m sajha.db sql --dialect postgresql --seed > seed.sql"
+echo "     docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U sajha -d sajha < schema.sql"
+echo "     docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U sajha -d sajha < seed.sql"
+echo "2. Start SAJHA and Caddy:  docker compose up -d"
+echo "3. Point DNS A record for ${DOMAIN} → ${SERVER_IP}; Caddy provisions the certificate"
+echo "4. Access: https://${DOMAIN}"

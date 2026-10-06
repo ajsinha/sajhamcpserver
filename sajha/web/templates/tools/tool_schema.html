@@ -187,6 +187,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <button class="btn btn-sm btn-outline-primary mt-2" onclick="copyToClipboard('config')">
                     <i class="bi bi-clipboard"></i> Copy to Clipboard
                 </button>
+            {% elif not is_admin %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> The configuration is shown to administrators only (it holds resolved settings).
+                </div>
             {% else %}
                 <div class="alert alert-info">
                     <i class="bi bi-info-circle"></i> No configuration file found for this tool in config/tools folder.

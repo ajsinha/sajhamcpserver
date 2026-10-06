@@ -102,23 +102,54 @@ class TestAuthAPI:
 
 # ── Tools API ────────────────────────────────────────────────────────────
 
+def _anonymous_get(client, url):
+    """GET with no credentials (the module client may hold a session cookie)."""
+    saved = dict(client.cookies)
+    client.cookies.clear()
+    try:
+        return client.get(url)
+    finally:
+        for k, v in saved.items():
+            client.cookies.set(k, v)
+
+
 class TestToolsAPI:
-    def test_list_tools(self, client):
-        r = client.get('/api/tools/list')
+    """The REST catalog follows the MCP tools/list policy (sajha/auth/access.py)."""
+
+    def test_admin_lists_every_tool(self, client, auth_headers):
+        from sajha.app import tools_registry
+        r = client.get('/api/tools/list', headers=auth_headers)
         assert r.status_code == 200
-        tools = r.json()['tools']
-        assert len(tools) > 0
+        names = {t['name'] for t in r.json()['tools']}
+        # every tool tools/list would show (a connected-accounts tool is listed only while its
+        # provider is configured: sajha/accounts/tools/base.py)
+        assert names and names == {n for n, t in tools_registry.tools.items() if t.enabled}
 
-    def test_tool_schema(self, client):
-        # Get first tool name
-        tools = client.get('/api/tools/list').json()['tools']
-        if tools:
-            name = tools[0]['name'] if isinstance(tools[0], dict) else tools[0]
-            r = client.get(f'/api/tools/{name}/schema')
-            assert r.status_code == 200
+    def test_anonymous_sees_only_what_mcp_anonymous_allows(self, client, monkeypatch):
+        r = _anonymous_get(client, '/api/tools/list')
+        assert r.status_code == 200 and r.json()['tools'] == []     # default: mcp.anonymous.tools = []
+        assert _anonymous_get(client, '/api/tools/calc_percentage_change/schema').status_code == 404
+        monkeypatch.setenv('SAJHA_MCP_ANONYMOUS_TOOLS', 'calc_*')
+        names = {t['name'] for t in _anonymous_get(client, '/api/tools/list').json()['tools']}
+        assert 'calc_percentage_change' in names and all(n.startswith('calc_') for n in names)
+        assert _anonymous_get(client, '/api/tools/calc_percentage_change/schema').status_code == 200
+        groups = _anonymous_get(client, '/api/tool-groups/search?q=calc').json()['results']
+        assert groups and all(g['name'].startswith('calc_') for g in groups)
 
-    def test_tool_not_found(self, client):
-        r = client.get('/api/tools/nonexistent_tool_xyz/schema')
+    def test_anonymous_refused_where_mcp_requires_auth(self, client, monkeypatch):
+        monkeypatch.setenv('SAJHA_MCP_ANONYMOUS_ENABLED', 'false')
+        for url in ('/api/tools/list', '/api/tools/calc_percentage_change/schema',
+                    '/api/tool-groups/calc', '/api/tool-groups/search?q=calc'):
+            assert _anonymous_get(client, url).status_code == 401, url
+
+    def test_tool_schema(self, client, auth_headers):
+        tools = client.get('/api/tools/list', headers=auth_headers).json()['tools']
+        name = tools[0]['name']
+        r = client.get(f'/api/tools/{name}/schema', headers=auth_headers)
+        assert r.status_code == 200 and r.json()['name'] == name
+
+    def test_tool_not_found(self, client, auth_headers):
+        r = client.get('/api/tools/nonexistent_tool_xyz/schema', headers=auth_headers)
         assert r.status_code == 404
 
 
@@ -228,13 +259,16 @@ class TestMCPProtocol:
 # ── A2A Protocol ─────────────────────────────────────────────────────────
 
 class TestA2AProtocol:
-    def test_agent_card(self, client):
+    def test_agent_card(self, client, auth_headers):
+        # Anonymous: a generic card; the skills follow the anonymous tool policy (none by default)
         r = client.get('/.well-known/agent.json')
         assert r.status_code == 200
         card = r.json()
         assert card['name'] == 'SAJHA MCP Server'
-        assert 'skills' in card
         assert 'capabilities' in card
+        assert card['skills'] == []
+        # Signed in: the tools this caller may see
+        card = client.get('/.well-known/agent.json', headers=auth_headers).json()
         assert len(card['skills']) > 0
 
     def test_task_send(self, client):
@@ -307,9 +341,9 @@ class TestWebPages:
         r = client.get('/dashboard', follow_redirects=False)
         assert r.status_code in (302, 401, 403)
 
-    def test_root_redirect(self, client):
-        r = client.get('/', follow_redirects=False)
-        assert r.status_code == 302
+    def test_root_shows_landing_page_when_signed_out(self, client):
+        r = client.get('/', follow_redirects=False)      # signed-in visitors are redirected to /dashboard
+        assert r.status_code == 200
 
     def test_swagger_docs(self, client):
         r = client.get('/api/docs')

@@ -234,7 +234,7 @@ access list, `--user` (or `SAJHA_STDIO_USER`) a SAJHA user's roles, and with nei
 caller is anonymous (`mcp.anonymous.*`, no registry tools by default). The process opens
 the server's database and configuration directly, so whoever can launch it can already
 read them; no password is asked for. Client configuration snippets are in
-[Command Line](../clients/Command%20Line.md#desktop-clients-stdio).
+[Command Line](../clients/Command%20Line.md#4-desktop-clients-stdio).
 
 ---
 
@@ -245,20 +245,42 @@ These behave the same on both paths:
 - **`tools/list`** returns `name`, `title`, `description`, `inputSchema` (passed
   through untouched, JSON Schema 2020-12), `outputSchema`, `annotations` and
   `icons[]`, paginated with `nextCursor`. Order is deterministic (sorted by name).
-  It is not filtered by role (see §6).
+  It lists only the tools the caller may see (see §6).
 - **`tools/call`** returns content blocks plus `structuredContent` when the tool has an
   object `outputSchema` (`mcp.tools.advertise_output_schema`). Tool failures are
   results with `isError: true`, not protocol errors.
-- **Prompts** list their arguments; `prompts/get` returns messages.
+- **Argument validation.** Before a registry tool runs, its arguments are validated
+  against its advertised `inputSchema` with `jsonschema` (`required`, `type`, `enum`,
+  `pattern`, `minimum`/`maximum`, `additionalProperties`, ...), in one place
+  (`BaseMCPTool.validate_arguments`, called by `execute_with_tracking`), so MCP, REST,
+  A2A and Ask SAJHA all apply it. A mismatch never reaches the tool. **The answer
+  differs by era on purpose**, because the two revisions prescribe different things:
+
+  | Path | Arguments that fail the `inputSchema` | Why |
+  |---|---|---|
+  | 2026-07-28 | JSON-RPC error `-32602` (Invalid params), no `result` | that revision's `InvalidParamsError` covers invalid tool arguments |
+  | 2025-11-25 (and earlier) | a `tools/call` **result** with `isError: true` and the message as text content | SEP-1303: input validation is a tool execution error, so the model sees it and can correct the call |
+  | `POST /api/tools/execute` | HTTP 400 | REST |
+
+  The message names the tool and the first offending argument. An *unknown tool* is
+  `-32602` on both paths; a tool that fails while running is `isError: true` on both.
+  A tool whose schema is not itself valid JSON Schema logs a warning and is checked for
+  `required` only. (`sajha/core/mcp_handler.py`, the `ToolArgumentError` branch of
+  `tools/call`.)
+- **Prompts** list their arguments; `prompts/get` returns messages. Anonymous callers
+  see only the prompts in `mcp.anonymous.prompts` (none by default; see §6).
 - **Resources** include the tool and prompt catalogs (`sajha://tools/catalog`,
   `sajha://prompts/catalog`) and resource templates; `completion/complete` completes
-  prompt arguments and tool enum values.
+  prompt arguments and tool enum values. The catalogs and completions cover only the
+  tools and prompts the caller may see.
 - **Origin check.** A browser `Origin` that is not loopback and not listed in
   `mcp.allowed_origins` gets 403 (DNS-rebinding protection). Requests without an
   `Origin` header are allowed.
 
 The live tool, prompt and resource catalog is whatever the server has loaded: ask
-`tools/list`, or open the Tools page in the web UI. No document lists it.
+`tools/list`, or open the Tools page in the web UI. No document lists it. Approved
+items from federated upstream MCP servers appear in it under namespaced names and
+behave like local ones on both paths ([Federation](../architecture/Federation.md#4-namespacing)).
 
 ---
 
@@ -273,7 +295,7 @@ built-in authorization server and external identity providers are in the
 [OAuth Guide](OAuth%20Guide.md); the wider picture is in the
 [Security Model](../security/Security%20Model.md).
 
-`tools/list` and `tools/call` apply the caller's tool access on both eras and every transport (`sajha/auth/access.py`): users by their roles, API keys by their tool access mode, anonymous callers by `mcp.anonymous.*` (no registry tools by default; `mcp.anonymous.enabled: false` demands credentials). A refused call is `-32002` on 2025-11-25 and `-32010` on 2026-07-28, and an authenticated caller's `tools/list` is `cacheScope: private`. The conformance fixtures are callable by anyone when enabled. See [Tool access](../security/Security%20Model.md#tool-access).
+`tools/list` and `tools/call` apply the caller's tool access on both eras and every transport (`sajha/auth/access.py`): users by their roles, API keys by their tool access mode, anonymous callers by `mcp.anonymous.*` (no registry tools by default; `mcp.anonymous.enabled: false` demands credentials). A refused call is `-32002` on 2025-11-25 and `-32010` on 2026-07-28, and an authenticated caller's `tools/list` is `cacheScope: private`. The conformance fixtures are callable by anyone when enabled. The same policy covers the rest of the catalog: the `sajha://tools/catalog` resource, tool completions and the `tool/schema`-style methods show only visible tools; signed-in callers see every prompt and anonymous callers only `mcp.anonymous.prompts` (`prompts/list`, `prompts/get`, prompt completions, `sajha://prompts/catalog`; a hidden prompt is `-32602` Unknown prompt). See [Tool access](../security/Security%20Model.md#tool-access).
 
 ---
 

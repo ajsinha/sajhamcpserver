@@ -43,6 +43,7 @@ def _request(method, path, payload=None):
     xhr.open(method, path, False)  # synchronous: allowed in a Web Worker
     xhr.timeout = TIMEOUT_S * 1000
     xhr.setRequestHeader('Accept', 'application/json')
+    xhr.setRequestHeader('X-SAJHA-Client', 'playground')  # policy rules can match sources: [playground]
     body = None
     if payload is not None:
         xhr.setRequestHeader('Content-Type', 'application/json')

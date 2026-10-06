@@ -6,7 +6,7 @@ Deploy SAJHA to AWS ECS Fargate using AWS CDK (Python).
 
 ```
 Internet → ALB (port 443/80)
-             → ECS Fargate (port 3002) ← S3 (configs, plugins)
+             → ECS Fargate (port 3002) ← S3 (tool and prompt configs, Studio .py files)
                   → RDS PostgreSQL (port 5432)
                   → Secrets Manager (API keys, JWT)
                   → CloudWatch (logs, metrics, dashboard)
@@ -100,25 +100,45 @@ To use ElastiCache Redis instead of RDS, set `SAJHA_STATE_BACKEND=redis` and
 |----------|-----------|-------------|
 | `SAJHA_STORAGE_BACKEND` | `s3` | Use S3 for tool configs |
 | `SAJHA_S3_BUCKET` | Auto | S3 bucket name |
+| `SAJHA_S3_PREFIX` | `config/` | Key prefix: SAJHA reads `config/tools/*.json` at `s3://<bucket>/config/config/tools/` |
 | `SAJHA_DB_TYPE` | `postgresql` | Database type |
 | `SAJHA_DB_HOST` | From Secrets | RDS endpoint |
 | `SAJHA_DB_PASSWORD` | From Secrets | DB password |
-| `SAJHA_JWT_SECRET` | From Secrets | JWT signing key |
+| `SAJHA_JWT_SECRET` | From Secrets (`sajha/<env>/jwt`) | JWT signing key |
+| `SAJHA_SECRET_KEY` | From Secrets (`sajha/<env>/session`) | Session secret |
+| `SAJHA_STATE_BACKEND` | `database` | Shared state through RDS |
+| `SAJHA_MCP_AUTH_BUILTIN_SIGNING_KEY_PEM` | From Secrets, with `-c oauth_signing_key_secret=...` | Built-in OAuth signing key |
 
 ## Post-Deploy Setup
 
+**Database schema first.** SAJHA does not create tables on RDS; the tasks refuse to start
+(and the service stays unhealthy) until an operator runs the schema file and the seed file
+(default roles and admin) once, after the first deploy. There are no migrations. From a
+checkout on a host that reaches RDS:
+
 ```bash
-# Upload tool configs to S3
-aws s3 sync config/ s3://<bucket>/config/
-
-# Upload plugins
-aws s3 sync config/plugins/ s3://<bucket>/config/plugins/
-
-# Set application secrets
-aws secretsmanager put-secret-value \
-  --secret-id sajha/dev/app \
-  --secret-string '{"jwt_secret":"your-secret","anthropic_api_key":"sk-..."}'
+psql -v ON_ERROR_STOP=1 "postgresql://<user>@<rds-endpoint>:5432/sajha" -f db/scripts/postgresql/schema.sql
+psql -v ON_ERROR_STOP=1 "postgresql://<user>@<rds-endpoint>:5432/sajha" -f db/scripts/postgresql/seed.sql
 ```
+
+Upgrades that change the schema list their SQL in the CHANGELOG. Details:
+[Database Setup](../../docs/getting-started/Database%20Setup.md).
+
+```bash
+# Upload tool and prompt configs and Studio .py files under the stack's prefix (config/),
+# from the repository root
+deployment/aws/scripts/sync_to_s3.sh <bucket> config/
+```
+
+The script also uploads `config/application.yml`; keep secrets out of it (they come from
+Secrets Manager). Plugins are not read from S3 (only from a local `config/plugins`, which this image does not include).
+What goes through storage is in the [Storage Guide](../../docs/getting-started/Storage%20Guide.md).
+
+Provider API keys (LLM, FMP, FRED, SharePoint, ...) go in the `sajha/<env>/app` secret the
+stack creates, as one JSON object keyed by the variable names `config/application.yml` reads,
+e.g. `{"FRED_API_KEY": "...", "OPENAI_API_KEY": "..."}`. The stack passes its ARN to the tasks
+as `SAJHA_SECRETS_ARN`; `bootstrap.sh` reads it at container start and exports each key both
+as itself and as `SAJHA_<KEY>`. A key added later reaches tasks when they restart.
 
 ## Useful Commands
 

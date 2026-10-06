@@ -2,7 +2,7 @@
 # ═══════════════════════════════════════════════════════════════
 # Upload local config/tools to S3 for ECS containers to consume
 # Run this from the project root on your dev machine:
-#   ./aws/scripts/sync_to_s3.sh my-sajha-bucket v3.1.0
+#   deployment/aws/scripts/sync_to_s3.sh my-sajha-bucket [prefix/]
 # ═══════════════════════════════════════════════════════════════
 set -e
 
@@ -11,7 +11,7 @@ PREFIX="${2:-}"
 
 echo "Uploading SAJHA configs to s3://$BUCKET/$PREFIX ..."
 
-# Tool JSON configs (501 files)
+# Tool JSON configs (every file in config/tools; the count is printed below)
 aws s3 sync config/tools/ "s3://$BUCKET/${PREFIX}config/tools/" \
     --exclude "*.md" --delete
 echo "  ✓ config/tools/ → $(aws s3 ls "s3://$BUCKET/${PREFIX}config/tools/" | wc -l) files"

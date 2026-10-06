@@ -12,7 +12,7 @@
         "description": "List of country codes to compare (2-10 countries)",
         "items": {
           "type": "string",
-          "pattern": "^[A-Z]{2,3}$"
+          "pattern": "^[A-Za-z]{2,3}$"
         },
         "minItems": 2,
         "maxItems": 10

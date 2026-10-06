@@ -22,7 +22,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 
 | Folder | What is in it |
 |---|---|
-| `getting-started/` | The map, quick start, configuration reference, storage, Kubernetes |
+| `getting-started/` | The map, quick start, configuration reference, database setup, storage, Kubernetes |
 | `protocol/` | MCP protocol guide, the two compliance reports, API reference, OAuth, MCP Apps and headers |
 | `architecture/` | How the server is built; the composition framework; the intelligence layer and how to extend it |
 | `studio/` | MCP Studio and its creators |
@@ -38,6 +38,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [How SAJHA Fits Together](getting-started/How%20SAJHA%20Fits%20Together.md)
 - [Quick Start](getting-started/Quick%20Start.md)
 - [Configuration Reference](getting-started/Configuration%20Reference.md)
+- [Database Setup](getting-started/Database%20Setup.md): SQLite for development; PostgreSQL from one schema file an operator runs; upgrades
 - [Storage Guide](getting-started/Storage%20Guide.md)
 - [Python Playground](getting-started/Python%20Playground.md)
 - [Kubernetes Deployment](getting-started/Kubernetes%20Deployment.md): the image, the Helm chart, Kustomize manifests, several replicas
@@ -58,9 +59,12 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Intelligence Layer](architecture/Intelligence%20Layer.md)
 - [Extending the Intelligence Layer](architecture/Extending%20the%20Intelligence%20Layer.md): writing a provider, a model and a planner
 - [Federation](architecture/Federation.md): other MCP servers' tools behind SAJHA's governance
+- [API Import](architecture/API%20Import.md): an OpenAPI, Swagger or GraphQL description to a reviewed set of tools
+- [Connected Accounts](architecture/Connected%20Accounts.md): users link GitHub, Slack, Google, Microsoft 365 and other accounts once; tools and federated servers act as them
 - [Sandbox](architecture/Sandbox.md): where user code (Studio Python and script tools, the shell) runs, and what each backend guarantees
 - [Scaling and State](architecture/Scaling%20and%20State.md): several workers or hosts; the state store (memory, Redis, database), durable tasks, and what stays per process
 - [Observability](architecture/Observability.md): Prometheus `/metrics`, OpenTelemetry traces over OTLP, the usage and cost dashboard, alert rules
+- [Policy and Audit](architecture/Policy%20and%20Audit.md): declarative rules on every tool call (deny, approval, argument constraints, rate limits, quotas, redaction, injection screening); the hash-chained, signed audit and SIEM export
 
 ## MCP Studio
 
@@ -99,6 +103,7 @@ These guides document each provider's tools, parameters and API keys.
   [Financial Calculators](tools/analytics/Financial%20Calculators%20Tool%20Reference%20Guide.md) ·
   [OLAP Analytics](tools/analytics/OLAP%20Analytics%20Tool%20Reference%20Guide.md) ·
   [SQL Select](tools/analytics/SQL%20Select%20Tool%20Reference%20Guide.md)
+- **Enterprise:** [SharePoint](tools/enterprise/SharePoint%20Tool%20Reference%20Guide.md), [Connected account tools](tools/enterprise/Connected%20Account%20Tools%20Reference%20Guide.md) (GitHub, Slack, Google Drive, Outlook, as the user)
 - **Prompts:** [Prompts Management Guide](tools/prompts/Prompts%20Management%20Guide.md)
 
 ## Tutorials
@@ -120,6 +125,10 @@ These guides document each provider's tools, parameters and API keys.
 15. [Tutorial 15: The sajha CLI and Claude Desktop](tutorials/TUTORIAL_15_sajha_cli_and_claude_desktop.md)
 16. [Tutorial 16: Metrics, Costs and Alerts](tutorials/TUTORIAL_16_metrics_costs_and_alerts.md)
 17. [Tutorial 17: Deploy SAJHA on Kubernetes](tutorials/TUTORIAL_17_deploy_sajha_on_kubernetes.md)
+18. [Tutorial 18: Connect your accounts](tutorials/TUTORIAL_18_connect_your_accounts.md)
+19. [Tutorial 19: Import an OpenAPI Spec](tutorials/TUTORIAL_19_import_an_openapi_spec.md)
+20. [Tutorial 20: Policies, approvals and a tamper-evident audit](tutorials/TUTORIAL_20_policies_approvals_and_audit.md)
+21. [Tutorial 21: Planners, Conversation Memory and Document Search](tutorials/TUTORIAL_21_planners_memory_and_rag.md)
 
 ## Clients and security
 
@@ -131,3 +140,4 @@ These guides document each provider's tools, parameters and API keys.
 
 - [Deployment recipes](../deployment/README.md): AWS CDK, Hetzner, bare metal, Kubernetes
 - [Archive](archive/README.md): old audits and notes, not maintained
+- How SAJHA compares with other MCP products: the server's `/comparison` page (data in `sajha/web/competitive.py`)

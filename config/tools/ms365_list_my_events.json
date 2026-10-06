@@ -1,0 +1,92 @@
+{
+  "name": "ms365_list_my_events",
+  "implementation": "sajha.accounts.tools.microsoft.MS365ListMyEventsTool",
+  "title": "List my Outlook calendar events",
+  "description": "List the signed-in user's Outlook calendar events in a time window (default: the next 7 days), through their connected Microsoft 365 account and Microsoft Graph. Times are UTC.",
+  "version": "1.0.0",
+  "enabled": true,
+  "auth": {
+    "connected_account": "microsoft",
+    "scopes": [
+      "Calendars.Read"
+    ]
+  },
+  "annotations": {
+    "title": "List my Outlook calendar events",
+    "readOnlyHint": true,
+    "openWorldHint": true
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "start": {
+        "type": "string",
+        "maxLength": 40,
+        "description": "Window start, ISO 8601 (default: now)"
+      },
+      "end": {
+        "type": "string",
+        "maxLength": 40,
+        "description": "Window end, ISO 8601 (default: start + days)"
+      },
+      "days": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 92,
+        "default": 7,
+        "description": "Window length when end is not given"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 25,
+        "description": "How many events"
+      }
+    },
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "from": {
+        "type": "string"
+      },
+      "to": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "events": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      }
+    },
+    "required": [
+      "count",
+      "events"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Connected Accounts",
+    "tags": [
+      "connected-account",
+      "microsoft",
+      "outlook",
+      "calendar"
+    ],
+    "note": "Acts as the caller: needs a linked Microsoft 365 account with Calendars.Read.",
+    "examples": [
+      {
+        "description": "This week's meetings",
+        "input": {
+          "days": 7
+        }
+      }
+    ]
+  }
+}

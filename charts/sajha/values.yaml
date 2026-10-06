@@ -168,6 +168,12 @@ database:
     # Alternative: a whole SQLAlchemy URL in a Secret (db.url); wins over the fields above.
     urlSecret: ""
     urlKey: url
+    # SAJHA never creates tables on PostgreSQL: before the first install an operator runs
+    # db/scripts/postgresql/schema.sql and seed.sql once (no migrations; an upgrade that
+    # changes the schema lists its SQL in the CHANGELOG). With tables or columns missing the
+    # pods refuse to start (strict) and log what is missing and the psql command; warn starts
+    # them anyway. docs/getting-started/Database Setup.md
+    schemaCheck: strict      # strict | warn
 
 # ── Shared state (state.backend) ───────────────────────────────────────────
 state:

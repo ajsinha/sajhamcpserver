@@ -140,5 +140,12 @@ Delete both tools from Studio (**Delete if Exists**), or
 - A tool's `sandbox` block grants network hosts, limits and secrets; the administrator's
   defaults and caps bound it.
 
-Next: [Sandbox](../architecture/Sandbox.md) for the threat model and the backends, and the
-[Security Model](../security/Security%20Model.md) for the rest of the server.
+## What next
+
+- [Sandbox](../architecture/Sandbox.md): the threat model and the backends
+- [Security Model](../security/Security%20Model.md): the rest of the server
+- Next tutorial: [The sajha CLI and Claude Desktop](TUTORIAL_15_sajha_cli_and_claude_desktop.md)
+
+---
+
+Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.

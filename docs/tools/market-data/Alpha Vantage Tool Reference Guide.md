@@ -6,12 +6,10 @@ The Alpha Vantage tools (prefix `av_`) wrap the [Alpha Vantage](https://www.alph
 
 ## API Key
 
-All `av_` tool configs read their key from the config key `alpha_vantage.api.key` (`"api_key": "${alpha_vantage.api.key}"`). This key is **not** defined in the shipped `config/application.yml`, so add it alongside the other external API keys:
+All `av_` tool configs read their key from the config key `alpha_vantage.api.key` (`"api_key": "${alpha_vantage.api.key}"`), which the shipped `config/application.yml` binds to the `ALPHA_VANTAGE_API_KEY` environment variable:
 
-```yaml
-alpha_vantage:
-  api:
-    key: ${ALPHA_VANTAGE_API_KEY:}
+```bash
+export ALPHA_VANTAGE_API_KEY=...
 ```
 
 Get a free key at [alphavantage.co](https://www.alphavantage.co/support/#api-key) (the free tier is rate-limited to a small number of requests per day). See the [Configuration Reference](../../getting-started/Configuration%20Reference.md) for how config keys and environment variables are resolved.

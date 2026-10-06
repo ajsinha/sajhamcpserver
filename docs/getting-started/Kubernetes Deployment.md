@@ -89,7 +89,8 @@ Three ways in, in order of preference:
    `SAJHA_*` environment variables.
 2. **`config.overrides`**: any part of `application.yml`, deep-merged by the seed step. Maps
    merge; lists (such as `ai.providers`) and scalars replace. This is the way to change
-   `ai.*`, which ignores `SAJHA_*` environment variables.
+   nested structures such as `ai.providers` or `ai.policy`; single `ai.*` fields can also be
+   set as `SAJHA_AI_<SECTION>_<FIELD>` variables.
 3. **`config.env` / `config.extraEnv` / `config.envFrom`**: raw environment variables, for
    example `SAJHA_HOT_RELOAD_INTERVAL_SECONDS: 60`.
 
@@ -212,12 +213,20 @@ With TLS the public URL defaults to `https://<first host>`; it becomes
 | `database.type` | `SAJHA_DB_TYPE` (`sqlite` keeps `/app/data/sajha.db`) |
 | `database.postgresql.host`, `port`, `name`, `user`, `existingSecret`/`passwordKey` | `SAJHA_DB_HOST`, `SAJHA_DB_PORT`, `SAJHA_DB_NAME`, `SAJHA_DB_USER`, `SAJHA_DB_PASSWORD` |
 | `database.postgresql.urlSecret`/`urlKey` | `SAJHA_DB_URL` (wins over the fields) |
+| `database.postgresql.schemaCheck` | `SAJHA_DB_SCHEMA_CHECK` (`strict` default, or `warn`) |
 | `state.backend` | `SAJHA_STATE_BACKEND` after resolving `auto` |
 | `redis.enabled`, `state.redis.url`, `state.redis.existingSecret` | `SAJHA_STATE_REDIS_URL` |
 | `storage.backend` and `storage.s3/azure/gcs.*` | `SAJHA_STORAGE_BACKEND`, `SAJHA_S3_BUCKET`, `SAJHA_S3_PREFIX`, `AWS_DEFAULT_REGION`, `SAJHA_S3_ENDPOINT_URL`, `SAJHA_AZURE_CONTAINER`, `SAJHA_AZURE_ACCOUNT_URL`, `SAJHA_GCS_BUCKET`, `GOOGLE_CLOUD_PROJECT`; every cache directory is `/tmp/sajha-cache` |
 
 The image needs the matching extra: `redis` for the Redis backend, `s3`, `azure` or `gcs`
 for a bucket (section 1).
+
+**PostgreSQL schema.** The chart never creates tables, and there are no migrations. Before
+the first install an operator runs `db/scripts/postgresql/schema.sql` and `seed.sql` with
+`psql` (the chart's install notes print the commands; the procedure, and what an upgrade
+that changes the schema needs, are in [Database Setup](Database%20Setup.md)). Until then
+the pods exit with `Refusing to start: database schema is not ready` and the missing
+tables, and restart.
 
 ---
 
@@ -313,6 +322,7 @@ against a local server; the commands are in the
 |---|---|---|
 | `helm install` fails with "more than one pod ..." | A multi-pod setting without PostgreSQL, a shared store, or with a `ReadWriteOnce` volume | Section 4 |
 | `values don't meet the specifications of the schema` | A misspelled or unknown key | Compare with `charts/sajha/values.yaml` |
+| Pods crash-loop with `Refusing to start: database schema is not ready` | The PostgreSQL schema file has not been run | [Database Setup](Database%20Setup.md) |
 | Pod restarts once at install with "the store does not answer" | Redis was not up yet and the seed step's wait timed out | The seed step waits up to 180 s; check the Redis pod and `networkPolicy.egress` |
 | Users signed out when a request lands on another pod | Pods have different JWT or session secrets | Use one Secret for all pods (section 3); never set `JWT_SECRET` per pod |
 | Streams cut after 60 s | The request did not hit the streams Ingress, or another controller is buffering | Section 5 |

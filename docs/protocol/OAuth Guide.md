@@ -38,8 +38,9 @@ Quote `"off"` in YAML: bare `off` is a boolean. Environment override:
 
 In every mode, SAJHA's own credentials keep working on `/mcp`: an `X-API-Key`
 (`sja_…` keys), a SAJHA login JWT, or the `sajha_token` cookie. They are not
-scope-checked. (Note: per-role tool filtering is not active on MCP endpoints in this
-release; see the [Security Model](../security/Security%20Model.md).) OAuth access
+scope-checked. Whatever the credential, `tools/list` and `tools/call` apply the
+caller's tool access (roles, an API key's access mode, or the anonymous policy); see
+[Tool access](../security/Security%20Model.md#tool-access). OAuth access
 tokens, in turn, are accepted **only** on the MCP endpoints (`/mcp`, `/api/mcp`,
 `GET /mcp/sse`, `POST /mcp/message`, `DELETE /mcp`), never on the REST API. The
 WebSocket transport (`/mcp/ws`) accepts SAJHA JWTs and API keys only.

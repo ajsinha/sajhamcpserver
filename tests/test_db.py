@@ -14,47 +14,28 @@ os.chdir(str(Path(__file__).parent.parent))
 
 
 def _make_db(tmp_dir: str):
-    """Create a fresh test DB with SQL scripts executed."""
-    from sqlalchemy import create_engine, text, inspect
+    """Create a fresh SQLite test DB from db/scripts/sqlite/schema.sql and seed.sql."""
+    from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
+    from sajha.db import schema
 
-    db_path = os.path.join(tmp_dir, 'test.db')
-    url = f'sqlite:///{db_path}'
-    engine = create_engine(url, connect_args={'check_same_thread': False})
-
-    # Run schema script
-    schema = Path('db/scripts/001_schema.sql').read_text()
-    seed = Path('db/scripts/002_seed.sql').read_text()
-
-    with engine.connect() as conn:
-        for sql in [schema, seed]:
-            for stmt in sql.split(';'):
-                stmt = stmt.strip()
-                lines = [l for l in stmt.split('\n') if l.strip() and not l.strip().startswith('--')]
-                if lines:
-                    try:
-                        conn.execute(text(stmt))
-                    except Exception as e:
-                        logger.warning(f"Error handled: {e}", exc_info=True)
-                        pass
-            conn.commit()
-
+    engine = create_engine(f"sqlite:///{os.path.join(tmp_dir, 'test.db')}",
+                           connect_args={'check_same_thread': False})
+    assert schema.create_sqlite(engine) is True
     Session = sessionmaker(bind=engine)
     return engine, Session()
 
 
 class TestSQLScripts:
-    """Test that SQL scripts create correct schema and seed data."""
+    """db/scripts/sqlite/schema.sql and seed.sql create the schema and seed data."""
 
     def test_schema_creates_all_tables(self):
         with tempfile.TemporaryDirectory() as tmp:
             engine, db = _make_db(tmp)
             from sqlalchemy import inspect
-            tables = inspect(engine).get_table_names()
-            expected = ['a2a_tasks', 'api_keys', 'audit_log', 'permissions',
-                        'roles', 'tool_usage_events', 'user_roles', 'user_sessions', 'users']
-            for t in expected:
-                assert t in tables, f'Missing table: {t}'
+            from sajha.db import schema
+            tables = set(inspect(engine).get_table_names())
+            assert tables == set(schema.tables())      # every table the code uses, nothing else
             db.close()
 
     def test_seed_creates_roles(self):
@@ -62,24 +43,19 @@ class TestSQLScripts:
             engine, db = _make_db(tmp)
             from sqlalchemy import text
             roles = db.execute(text('SELECT name FROM roles ORDER BY name')).fetchall()
-            role_names = [r[0] for r in roles]
-            assert 'admin' in role_names
-            assert 'user' in role_names
-            assert 'analyst' in role_names
-            assert 'viewer' in role_names
-            assert 'tool_developer' in role_names
-            assert 'api_consumer' in role_names
-            assert len(role_names) == 6
+            assert [r[0] for r in roles] == ['admin', 'developer', 'user', 'viewer']
             db.close()
 
     def test_seed_creates_admin_user(self):
         with tempfile.TemporaryDirectory() as tmp:
             engine, db = _make_db(tmp)
             from sqlalchemy import text
-            admin = db.execute(text("SELECT user_id, user_name FROM users WHERE user_id='admin'")).fetchone()
+            admin = db.execute(text("SELECT user_id, user_name, must_change_password FROM users "
+                                    "WHERE user_id='admin'")).fetchone()
             assert admin is not None
             assert admin[0] == 'admin'
             assert admin[1] == 'Administrator'
+            assert admin[2] == 1                      # the seed password must be changed
             db.close()
 
     def test_seed_creates_permissions(self):
@@ -87,7 +63,7 @@ class TestSQLScripts:
             engine, db = _make_db(tmp)
             from sqlalchemy import text
             perms = db.execute(text('SELECT COUNT(*) FROM permissions')).scalar()
-            assert perms >= 10  # 11 permissions in seed
+            assert perms == 5
             db.close()
 
     def test_seed_assigns_admin_role(self):
@@ -97,35 +73,33 @@ class TestSQLScripts:
             ur = db.execute(text(
                 "SELECT r.name FROM user_roles ur "
                 "JOIN roles r ON ur.role_id = r.id "
-                "WHERE ur.user_id = 'user-admin-0001'"
+                "WHERE ur.user_id = 'u-admin'"
             )).fetchall()
             assert any(r[0] == 'admin' for r in ur)
             db.close()
 
     def test_scripts_are_idempotent(self):
-        """Running scripts twice should not duplicate data."""
+        """Running the schema and seed files again changes nothing."""
         with tempfile.TemporaryDirectory() as tmp:
             engine, db = _make_db(tmp)
-            # Run again
             from sqlalchemy import text
-            schema = Path('db/scripts/001_schema.sql').read_text()
-            seed = Path('db/scripts/002_seed.sql').read_text()
-            with engine.connect() as conn:
-                for sql in [schema, seed]:
-                    for stmt in sql.split(';'):
-                        stmt = stmt.strip()
-                        lines = [l for l in stmt.split('\n') if l.strip() and not l.strip().startswith('--')]
-                        if lines:
-                            try:
-                                conn.execute(text(stmt))
-                            except Exception as e:
-                                logger.warning(f"Error handled: {e}", exc_info=True)
-                                pass
-                    conn.commit()
-            roles = db.execute(text('SELECT COUNT(*) FROM roles')).scalar()
-            assert roles == 6  # Not 12
-            users = db.execute(text('SELECT COUNT(*) FROM users')).scalar()
-            assert users == 1  # Not 2
+            from sajha.db import schema
+            schema.run_script(engine, schema.schema_file('sqlite'))
+            schema.run_script(engine, schema.seed_file('sqlite'))
+            assert db.execute(text('SELECT COUNT(*) FROM roles')).scalar() == 4
+            assert db.execute(text('SELECT COUNT(*) FROM users')).scalar() == 1
+            db.close()
+
+    def test_existing_database_is_not_reseeded(self):
+        """A deleted seed admin stays deleted: seed.sql runs only when the database is new."""
+        with tempfile.TemporaryDirectory() as tmp:
+            engine, db = _make_db(tmp)
+            from sqlalchemy import text
+            from sajha.db import schema
+            with engine.begin() as c:
+                c.execute(text("DELETE FROM users WHERE user_id = 'admin'"))
+            assert schema.create_sqlite(engine) is False
+            assert db.execute(text('SELECT COUNT(*) FROM users')).scalar() == 0
             db.close()
 
 
@@ -206,7 +180,7 @@ class TestDAOs:
             db, eng = self._setup_orm_db(tmp)
             from sajha.db.dao import RoleDAO
             roles = RoleDAO(db).get_all()
-            assert len(roles) == 6
+            assert sorted(r.name for r in roles) == ['admin', 'developer', 'user', 'viewer']  # seed.sql
             db.close()
             eng._engine = None; eng._SessionLocal = None
 
@@ -331,7 +305,7 @@ class TestDAOs:
 
             login_only = dao.get_recent(10, action='user.login')
             assert len(login_only) == 1
-            assert login_only[0].actor_id == 'admin'
+            assert login_only[0].user_id == 'admin'
             db.close()
             eng._engine = None; eng._SessionLocal = None
 

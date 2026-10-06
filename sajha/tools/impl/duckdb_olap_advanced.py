@@ -24,6 +24,7 @@ from sajha.olap.timeseries_engine import TimeSeriesEngine, TimeSeriesSpec
 from sajha.olap.stats_engine import StatsEngine, StatsSpec, HistogramSpec
 from sajha.olap.cohort_engine import CohortEngine, CohortSpec, RetentionSpec
 from sajha.olap.sample_data_generator import SampleDataGenerator
+from sajha.olap import sql_safety as sq
 
 logger = logging.getLogger(__name__)
 
@@ -710,6 +711,8 @@ class DuckDBOLAPAdvancedTool(BaseMCPTool):
         
         try:
             return await handler(arguments)
+        except sq.OLAPQueryError as e:
+            return {"success": False, "error": str(e)}
         except Exception as e:
             logger.error(f"Error in {name}: {e}", exc_info=True)
             return {"error": str(e)}
@@ -842,27 +845,30 @@ class DuckDBOLAPAdvancedTool(BaseMCPTool):
         
         dimensions = args['dimensions']
         measure = args['measure']
-        n = args.get('n', 10)
+        n = sq.integer(args.get('n', 10), 'n', 1, 10_000)
         direction = args.get('direction', 'top')
         within_groups = args.get('within_groups', [])
         include_others = args.get('include_others', False)
+        if not isinstance(dimensions, list) or not dimensions:
+            raise sq.OLAPQueryError("dimensions must be a non-empty list of dimension names")
         
-        # Build the query
-        dim_cols = [self.semantic.resolve_dimension(d, dataset) for d in dimensions]
+        # Build the query (declared dimensions and measures only; filter values bound)
+        dim_cols = [sq.dimension_expr(self.semantic, dataset, d) for d in dimensions]
         dim_aliases = [self._safe_alias(d) for d in dimensions]
         
-        measure_obj = self.semantic.get_measure(measure)
-        if measure_obj:
-            measure_expr = measure_obj.expression
-        else:
-            measure_expr = f"SUM({measure})"
+        measure_expr = sq.measure_expr(self.semantic, dataset, measure)
         
         order_dir = "DESC" if direction == "top" else "ASC"
         
-        base_sql = self._build_base_query(dataset, args.get('filters', []))
+        filters = args.get('filters', [])
+        base_sql = self._build_base_query(dataset, filters)
+        params = sq.filter_params(self.semantic, dataset, filters)
         
         if within_groups:
             # Top N within groups using window function
+            unknown = [g for g in within_groups if g not in dimensions]
+            if unknown:
+                raise sq.OLAPQueryError(f"within_groups {unknown} must also be in dimensions")
             partition_cols = [self._safe_alias(g) for g in within_groups]
             sql = f"""
 WITH aggregated AS (
@@ -899,7 +905,7 @@ LIMIT {n}
 """
         
         try:
-            result = self.conn.execute(sql).fetchall()
+            result = sq.execute(self.conn, sql, params).fetchall()
             columns = [desc[0] for desc in self.conn.description]
             
             data = []
@@ -933,16 +939,14 @@ LIMIT {n}
         measure = args['measure']
         include_pareto = args.get('include_pareto', True)
         
-        dim_col = self.semantic.resolve_dimension(dimension, dataset)
+        dim_col = sq.dimension_expr(self.semantic, dataset, dimension)
         dim_alias = self._safe_alias(dimension)
         
-        measure_obj = self.semantic.get_measure(measure)
-        if measure_obj:
-            measure_expr = measure_obj.expression
-        else:
-            measure_expr = f"SUM({measure})"
+        measure_expr = sq.measure_expr(self.semantic, dataset, measure)
         
-        base_sql = self._build_base_query(dataset, args.get('filters', []))
+        filters = args.get('filters', [])
+        base_sql = self._build_base_query(dataset, filters)
+        params = sq.filter_params(self.semantic, dataset, filters)
         
         sql = f"""
 WITH aggregated AS (
@@ -965,7 +969,7 @@ ORDER BY {self._safe_alias(measure)} DESC
 """
         
         try:
-            result = self.conn.execute(sql).fetchall()
+            result = sq.execute(self.conn, sql, params).fetchall()
             columns = [desc[0] for desc in self.conn.description]
             
             data = []
@@ -1101,36 +1105,13 @@ ORDER BY {self._safe_alias(measure)} DESC
         return result
     
     def _build_base_query(self, dataset, filters: List[Dict]) -> str:
-        """Build the base SELECT with joins and filters."""
-        sql = f"SELECT * FROM {dataset.source_table}"
-        
-        for join in dataset.joins:
-            alias = f" AS {join.alias}" if join.alias else ""
-            sql += f"\n{join.join_type} JOIN {join.table}{alias} ON {join.on_clause}"
-        
-        if filters:
-            where_clauses = []
-            for f in filters:
-                dim = f.get("dimension", f.get("column"))
-                op = f.get("operator", "=")
-                val = f.get("value")
-                
-                col = self.semantic.resolve_dimension(dim, dataset)
-                
-                if op.upper() == "IN":
-                    if isinstance(val, list):
-                        formatted = ", ".join(f"'{v}'" if isinstance(v, str) else str(v) for v in val)
-                    else:
-                        formatted = f"'{val}'" if isinstance(val, str) else str(val)
-                    where_clauses.append(f"{col} IN ({formatted})")
-                else:
-                    formatted = f"'{val}'" if isinstance(val, str) else str(val)
-                    where_clauses.append(f"{col} {op} {formatted}")
-            
-            if where_clauses:
-                sql += f"\nWHERE {' AND '.join(where_clauses)}"
-        
-        return sql
+        """Build the base SELECT with joins and filters.
+
+        Filter columns must be dimensions the dataset declares; filter values are DuckDB
+        named parameters (bind them with ``sq.filter_params`` / ``sq.execute``), never
+        interpolated into the SQL text. See ``sajha/olap/sql_safety.py``.
+        """
+        return sq.base_query(self.semantic, dataset, filters)
     
     def _safe_alias(self, name: str) -> str:
         """Convert a name to a safe SQL alias."""
@@ -1147,9 +1128,14 @@ ORDER BY {self._safe_alias(measure)} DESC
         import asyncio
         arguments = dict(arguments or {})
         # Each config (olap_pivot_table, olap_time_series, ...) registers this class
-        # under its own name; that name selects the handler.
-        tool_name = arguments.pop('_tool_name', None) or self.name
-        coro = self.call_tool(tool_name, arguments)
+        # under its own name; that name, and only that name, selects the handler.
+        # A caller-supplied operation selector would let any advertised OLAP tool run
+        # every other operation (including unadvertised ones that write files), so it
+        # is refused rather than honoured.
+        if '_tool_name' in arguments:
+            raise ValueError(
+                "'_tool_name' is not an accepted argument; call the OLAP tool by its own name")
+        coro = self.call_tool(self.name, arguments)
         try:
             asyncio.get_running_loop()
         except RuntimeError:
@@ -1245,12 +1231,18 @@ class CustomerOLAPTool(BaseMCPTool):
         """Get the data directory path from config or dynamically."""
         # Try to get from config first (supports ${variable} substitution)
         if self.config and 'data_directory' in self.config:
-            data_dir = self.config['data_directory']
+            from sajha.core.config import resolve_placeholders
+            data_dir = resolve_placeholders(self.config['data_directory'])
+            if '${' in str(data_dir):
+                data_dir = None             # unresolved: use the default below, never the literal
+        else:
+            data_dir = None
+        if data_dir:
             # If it's a relative path, make it absolute from project root
             if data_dir and not os.path.isabs(data_dir):
                 module_dir = os.path.dirname(os.path.abspath(__file__))
                 project_root = os.path.dirname(os.path.dirname(os.path.dirname(module_dir)))
-                data_dir = os.path.join(project_root, data_dir.lstrip('./'))
+                data_dir = os.path.join(project_root, os.path.normpath(data_dir))
             return data_dir
         
         # Fall back to relative path from module location
@@ -1270,23 +1262,37 @@ class CustomerOLAPTool(BaseMCPTool):
             ON orders.product_name = products.product_name
         """
     
-    def _build_filter_clause(self, filters: Dict) -> str:
-        """Build WHERE clause from filters."""
+    def _build_filter_clause(self, filters: Dict, params: Optional[Dict[str, Any]] = None) -> str:
+        """Build WHERE clause from filters.
+
+        Keys must be known dimensions (an unknown key is an error, not silently dropped);
+        values become ``$olap_c<i>`` parameters added to ``params``, never SQL text.
+        """
         if not filters:
             return ""
+        if not isinstance(filters, dict):
+            raise sq.OLAPQueryError("filters must be an object of {dimension: value or [values]}")
+        if params is None:
+            params = {}
         
         conditions = []
-        for key, value in filters.items():
-            if key in self.DIMENSIONS:
-                col = self.DIMENSIONS[key]
-                if isinstance(value, list):
-                    # IN clause for multiple values
-                    values_str = ", ".join([f"'{v}'" if isinstance(v, str) else str(v) for v in value])
-                    conditions.append(f"{col} IN ({values_str})")
-                elif isinstance(value, str):
-                    conditions.append(f"{col} = '{value}'")
-                else:
-                    conditions.append(f"{col} = {value}")
+        for i, (key, value) in enumerate(filters.items()):
+            if key not in self.DIMENSIONS:
+                raise sq.OLAPQueryError(
+                    f"Unknown filter dimension: {key}. Available: {list(self.DIMENSIONS.keys())}")
+            col = self.DIMENSIONS[key]
+            values = list(value) if isinstance(value, (list, tuple)) else [value]
+            if not values or len(values) > sq.MAX_LIST_VALUES:
+                raise sq.OLAPQueryError(f"filter {key}: 1..{sq.MAX_LIST_VALUES} values")
+            names = []
+            for j, v in enumerate(values):
+                name = f"{sq.PARAM_PREFIX}c{i}_{j}"
+                params[name] = sq._value(v, f"filter {key}")
+                names.append(f"${name}")
+            if len(names) == 1 and not isinstance(value, (list, tuple)):
+                conditions.append(f"{col} = {names[0]}")
+            else:
+                conditions.append(f"{col} IN ({', '.join(names)})")
         
         return "WHERE " + " AND ".join(conditions) if conditions else ""
     
@@ -1385,16 +1391,24 @@ class CustomerOLAPTool(BaseMCPTool):
             # Build query
             select_clause = ", ".join(select_parts)
             base_query = self._get_base_query()
-            filter_clause = self._build_filter_clause(filters)
+            params: Dict[str, Any] = {}
+            filter_clause = self._build_filter_clause(filters, params)
             group_by_clause = f"GROUP BY {', '.join(group_by_parts)}" if group_by_parts else ""
+            limit = sq.integer(limit if limit is not None else 100, 'limit', 1, 1000)
             
-            # Build ORDER BY clause
+            # Build ORDER BY clause: only a selected dimension or measure, by name
             order_clause = ""
             if order_by:
-                if order_by.startswith('-'):
-                    order_clause = f"ORDER BY {order_by[1:]} DESC"
-                else:
-                    order_clause = f"ORDER BY {order_by} ASC"
+                key = str(order_by)
+                desc = key.startswith('-')
+                key = key[1:] if desc else key
+                if key not in all_dims and key not in measures:
+                    return {
+                        "success": False,
+                        "error": f"order_by must name a selected dimension or measure "
+                                 f"(prefix '-' for descending): {all_dims + measures}"
+                    }
+                order_clause = f"ORDER BY {key} {'DESC' if desc else 'ASC'}"
             elif measures:
                 order_clause = f"ORDER BY {measures[0]} DESC"
             
@@ -1408,8 +1422,8 @@ class CustomerOLAPTool(BaseMCPTool):
             LIMIT {limit}
             """
             
-            # Execute query
-            result = self.conn.execute(query)
+            # Execute query (filter values bound as parameters)
+            result = sq.execute(self.conn, query, params)
             
             # Get column names
             result_columns = [desc[0] for desc in result.description]
@@ -1443,6 +1457,8 @@ class CustomerOLAPTool(BaseMCPTool):
                 "available_measures": list(self.MEASURES.keys())
             }
             
+        except sq.OLAPQueryError as e:
+            return {"success": False, "error": str(e)}
         except Exception as e:
             logger.error(f"CustomerOLAPTool execution error: {e}", exc_info=True)
             return {
@@ -1512,12 +1528,18 @@ class DuckDBSQLTool(BaseMCPTool):
         """Get the data directory path from config or dynamically."""
         # Try to get from config first (supports ${variable} substitution)
         if self.config and 'data_directory' in self.config:
-            data_dir = self.config['data_directory']
+            from sajha.core.config import resolve_placeholders
+            data_dir = resolve_placeholders(self.config['data_directory'])
+            if '${' in str(data_dir):
+                data_dir = None             # unresolved: use the default below, never the literal
+        else:
+            data_dir = None
+        if data_dir:
             # If it's a relative path, make it absolute from project root
             if data_dir and not os.path.isabs(data_dir):
                 module_dir = os.path.dirname(os.path.abspath(__file__))
                 project_root = os.path.dirname(os.path.dirname(os.path.dirname(module_dir)))
-                data_dir = os.path.join(project_root, data_dir.lstrip('./'))
+                data_dir = os.path.join(project_root, os.path.normpath(data_dir))
             return data_dir
         
         # Fall back to relative path from module location
@@ -1525,12 +1547,22 @@ class DuckDBSQLTool(BaseMCPTool):
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(module_dir)))
         return os.path.join(project_root, 'data', 'duckdb')
     
+    # Statement types a caller may run (DESCRIBE, SHOW, SUMMARIZE and PRAGMA queries
+    # parse as SELECT). Everything else (DDL, DML, COPY, ATTACH, SET, INSTALL/LOAD,
+    # CALL, ...) is refused by the parser-level check in execute().
+    ALLOWED_STATEMENT_TYPES = ("SELECT", "EXPLAIN")
+
     def _init_connection(self):
-        """Initialize DuckDB connection and create views for CSV files."""
+        """Load the CSV files into an in-memory database, then sandbox it.
+
+        The tables are copied in (not views over ``read_csv_auto``) so that file access can
+        then be switched off: ``enable_external_access = false`` stops queries reading or
+        writing any file or URL (``read_text('/etc/passwd')``, ``COPY ... TO``, ``ATTACH``,
+        ``INSTALL``), and ``lock_configuration = true`` stops a query switching it back on.
+        """
         try:
             self.conn = duckdb.connect(":memory:")
             
-            # Create views for each CSV file
             csv_files = ['customers', 'orders', 'products']
             for table_name in csv_files:
                 file_path = f"{self.data_dir}/{table_name}.csv"
@@ -1538,11 +1570,11 @@ class DuckDBSQLTool(BaseMCPTool):
                     # Missing sample file: the tool still loads; queries on that table fail clearly
                     logger.warning(f"DuckDBSQLTool: {file_path} not found; table '{table_name}' unavailable")
                     continue
-                create_view = f"""
-                    CREATE OR REPLACE VIEW {table_name} AS 
-                    SELECT * FROM read_csv_auto('{file_path}')
-                """
-                self.conn.execute(create_view)
+                self.conn.execute(
+                    f"CREATE OR REPLACE TABLE {table_name} AS SELECT * FROM read_csv_auto(?)",
+                    [file_path])
+            self.conn.execute("SET enable_external_access = false")
+            self.conn.execute("SET lock_configuration = true")
             
             logger.info(f"DuckDBSQLTool: Initialized with tables from {self.data_dir}")
         except Exception as e:
@@ -1578,17 +1610,36 @@ class DuckDBSQLTool(BaseMCPTool):
             sql_normalized = re.sub(r'--[^\n]*', ' ', sql_normalized)  # Strip line comments
             sql_normalized = sql_normalized.strip()
             first_keyword = sql_normalized.split()[0].upper() if sql_normalized.split() else ''
-            if first_keyword not in ('SELECT', 'WITH', 'EXPLAIN', 'DESCRIBE', 'SHOW', 'PRAGMA'):
+            if first_keyword not in ('SELECT', 'WITH', 'FROM', 'EXPLAIN', 'DESCRIBE', 'SHOW',
+                                     'SUMMARIZE', 'PRAGMA'):
                 return {
                     "success": False,
                     "error": f"Only SELECT/WITH/EXPLAIN queries are permitted. Got: {first_keyword}"
                 }
-            
             # Add LIMIT if not present (row-returning queries only: DESCRIBE/SHOW/PRAGMA/EXPLAIN
             # do not accept a trailing LIMIT clause)
             sql_upper = sql_normalized.upper()
-            if first_keyword in ('SELECT', 'WITH') and not re.search(r'\bLIMIT\b', sql_upper):
-                sql = f"{sql_normalized.rstrip().rstrip(';')} LIMIT {int(limit)}"
+            if first_keyword in ('SELECT', 'WITH', 'FROM') and not re.search(r'\bLIMIT\b', sql_upper):
+                sql = f"{sql_normalized.rstrip().rstrip(';')} LIMIT {sq.integer(limit, 'limit', 1, 1000)}"
+            
+            # The keyword check alone is not enough ("SELECT 1; DROP TABLE orders"):
+            # DuckDB's own parser must see exactly one statement of a read-only type, checked
+            # on the exact text that will run (after any LIMIT is appended).
+            try:
+                statements = self.conn.extract_statements(sql)
+            except Exception as e:
+                return {"success": False, "error": f"SQL parse error: {e}"}
+            if len(statements) != 1:
+                return {
+                    "success": False,
+                    "error": f"Exactly one statement is permitted; got {len(statements)}"
+                }
+            stmt_type = str(statements[0].type).rsplit('.', 1)[-1]
+            if stmt_type not in self.ALLOWED_STATEMENT_TYPES:
+                return {
+                    "success": False,
+                    "error": f"Only read-only queries are permitted. Got a {stmt_type} statement"
+                }
             
             # Execute query
             result = self.conn.execute(sql)

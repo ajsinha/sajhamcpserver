@@ -109,8 +109,8 @@ async def api_report_audit(
     entries = dao.get_recent(limit=limit, action=action)
     return JSONResponse({'audit': [
         {
-            'timestamp': e.timestamp.isoformat(),
-            'actor': e.actor_id,
+            'timestamp': e.created_at.isoformat() if e.created_at else None,
+            'actor': e.user_id,
             'action': e.action,
             'resource_type': e.resource_type,
             'resource_id': e.resource_id,

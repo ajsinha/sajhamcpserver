@@ -10,7 +10,7 @@ Combine several existing tools into one composite tool with the Composite Builde
 
 ## Prerequisites
 
-- A running server, signed in as an administrator. Saving, updating and deleting composites requires the admin role.
+- A running server, signed in as an administrator ([Tutorial 1](TUTORIAL_01_getting_started.md)). Saving, updating and deleting composites requires the admin role.
 - The calculator tools `calc_percentage_change` and `calc_future_value`. They need no external API keys.
 
 > Saving a composite registers it as a tool straight away: it appears in MCP `tools/list` and can be called with `tools/call`. Deleting it unregisters it.

@@ -15,6 +15,9 @@ shutil.copytree(Path('data/duckdb'), _DUCKDB_TMP / 'duckdb', dirs_exist_ok=True)
 os.environ['data.duckdb.dir'] = str(_DUCKDB_TMP / 'duckdb')       # tool-config ${data.duckdb.dir}
 os.environ['SAJHA_DATA_DUCKDB_DIR'] = str(_DUCKDB_TMP / 'duckdb')  # sajha.core.config
 atexit.register(shutil.rmtree, _DUCKDB_TMP, True)
+# The document index (ai.rag) builds on first search and is not persisted under data/.
+os.environ.setdefault('SAJHA_AI_RAG_BUILD_ON_START', 'false')
+os.environ.setdefault('SAJHA_AI_RAG_PERSIST', 'false')
 
 
 import pytest

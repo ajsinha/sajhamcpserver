@@ -259,9 +259,12 @@ class PropertiesConfigurator:
                 else:
                     break
 
-            # Replace all simple ${key} references
+            # Replace all simple ${key} / ${key:default} references
             for match in reversed(matches):
                 ref_key = match.group(1)
+                default = None
+                if ':' in ref_key:      # ${key:default}: the default applies when key is unset
+                    ref_key, default = ref_key.split(':', 1)
 
                 # Check for circular reference
                 if ref_key in visited:
@@ -274,9 +277,10 @@ class PropertiesConfigurator:
                     if replacement is None:
                         replacement = os.environ.get(ref_key)
 
-                    # Finally check properties
+                    # Finally check properties, then the inline default
                     if replacement is None:
-                        replacement = properties.get(ref_key, match.group(0))
+                        replacement = properties.get(
+                            ref_key, default if default is not None else match.group(0))
 
                         # Recursively resolve the replacement
                         if replacement != match.group(0):

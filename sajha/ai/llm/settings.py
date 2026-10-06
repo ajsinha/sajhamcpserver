@@ -321,12 +321,55 @@ class AskSettings(Layered):
     # sajha_ask has no caller identity for its inner calls: it may run what an anonymous MCP
     # caller may run (mcp.anonymous.*) plus these fnmatch patterns
     mcp_allowed_tools: List[str] = Field(default_factory=list)
+    # the planning strategy (sajha/ai/planners.py): a registered name (react, plan_execute,
+    # recipes, router; "model" is an alias of react) or package.module:Class
+    planner: str = "react"
+    # per-planner settings, keyed by planner name, each validated by that planner's config model
+    planner_config: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+
+
+class MemorySettings(Layered):
+    """Conversation memory for multi-turn asks (sajha/ai/memory.py)."""
+    enabled: bool = True
+    history_turns: int = 6                     # most recent turns sent verbatim as context
+    max_turn_chars: int = 2000                 # each stored answer is clipped to this
+    summarize: bool = True                     # summarise turns older than the verbatim window
+    summary_max_chars: int = 2000
+    condense: bool = True                      # rewrite a follow-up into a standalone question
+    model: str = "fast"                        # alias for the summary and rewrite calls
+    retention_days: int = 30                   # conversations idle longer than this are deleted
+    max_conversations_per_user: int = 200      # the oldest beyond this are deleted
+
+
+class RagSource(Layered):
+    name: str
+    path: str                                  # a folder in the storage backend (storage-relative)
+    pattern: str = "*.md"                      # glob of the files to index (md, markdown, txt, rst, html)
+    title: str = ""
+
+
+class RagSettings(Layered):
+    """Retrieval over documents (sajha/ai/rag): SAJHA's own guides and admin-configured sources."""
+    enabled: bool = True
+    index_sajha_docs: bool = True              # docs/** guides (archive excluded)
+    sources: List[RagSource] = Field(default_factory=list)
+    uploads_dir: str = "data/rag/uploads"      # admin-uploaded files (storage-relative)
+    embedding_model: str = "embedding"         # gateway alias; "none" = lexical (BM25) only
+    store: Literal["auto", "memory", "pgvector"] = "auto"
+    persist: bool = True                       # persist the in-process index through storage
+    index_path: str = "data/rag/index.json"
+    chunk_chars: int = 1200
+    chunk_overlap: int = 150
+    top_k: int = 5
+    vector_weight: float = 0.5                 # the vector ranking's weight in the fusion (BM25's is 1)
+    max_upload_bytes: int = 2_000_000
+    build_on_start: bool = True                # build in a background thread at start-up
 
 
 SECTION_MODELS: Dict[str, Type[Layered]] = {
     "policy": PolicySettings, "budgets": BudgetSettings, "cache": CacheSettings,
     "retry": RetrySettings, "breaker": BreakerSettings, "gateway": GatewaySettings,
-    "ask": AskSettings,
+    "ask": AskSettings, "memory": MemorySettings, "rag": RagSettings,
 }
 RESERVED_SECTIONS = set(SECTION_MODELS) | {"aliases", "providers", "tool_search"}
 

@@ -9,6 +9,67 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
+class ToolArgumentError(ValueError):
+    """Tool arguments that do not satisfy the tool's input schema.
+
+    MCP 2026-07-28 answers it with -32602 (Invalid params); MCP 2025-11-25 with a
+    CallToolResult carrying ``isError: true`` (input validation is a tool execution error
+    there); the REST API with 400."""
+
+    def __init__(self, tool_name: str, detail: str, count: int = 1):
+        more = f" (and {count - 1} more problem{'s' if count > 2 else ''})" if count > 1 else ''
+        super().__init__(f"Invalid arguments for tool {tool_name}: {detail}{more}")
+        self.tool_name = tool_name
+        self.detail = detail
+
+
+_VALIDATORS: Dict[str, Any] = {}       # json.dumps(schema) -> validator, or None (unusable schema)
+
+
+def _schema_validator(schema: Dict, tool_name: str, logger):
+    """A cached jsonschema validator for ``schema``; None when the schema is not usable."""
+    if not isinstance(schema, dict) or not schema:
+        return None
+    try:
+        key = json.dumps(schema, sort_keys=True, default=str)
+    except (TypeError, ValueError):
+        return None
+    if key in _VALIDATORS:
+        return _VALIDATORS[key]
+    try:
+        import jsonschema
+        cls = jsonschema.validators.validator_for(schema, default=jsonschema.Draft202012Validator)
+        cls.check_schema(schema)
+        validator = cls(schema)
+    except ImportError:
+        validator = None
+    except Exception as e:
+        logger.warning(f"Tool {tool_name}: inputSchema is not valid JSON Schema "
+                       f"({str(e).splitlines()[0]}); only its 'required' list is enforced")
+        validator = None
+    if len(_VALIDATORS) > 2048:
+        _VALIDATORS.clear()
+    _VALIDATORS[key] = validator
+    return validator
+
+
+def _error_order(err) -> tuple:
+    # missing required arguments first, then the shallowest problem
+    return (0 if err.validator == 'required' else 1, len(err.absolute_path), str(err.message))
+
+
+def _describe_schema_error(err) -> str:
+    where = '.'.join(str(p) for p in err.absolute_path)
+    if err.validator == 'required':
+        # "'symbol' is a required property" -> "Missing required parameter: symbol"
+        missing = err.message.split(' is a required property')[0].strip("'")
+        prefix = f"'{where}': " if where else ''
+        return f"{prefix}Missing required parameter: {missing}"
+    if err.validator == 'additionalProperties':
+        return err.message + (f" (in '{where}')" if where else '')
+    return f"'{where}': {err.message}" if where else err.message
+
+
 class BaseMCPTool(ABC):
     """
     Abstract base class for all MCP tools
@@ -119,26 +180,35 @@ class BaseMCPTool(ABC):
 
     def validate_arguments(self, arguments: Dict[str, Any]) -> bool:
         """
-        Validate arguments against input schema
-        
-        Args:
-            arguments: Tool arguments
-            
-        Returns:
-            True if valid
+        Validate arguments against the tool's input schema (JSON Schema: required,
+        type, enum, pattern, minimum/maximum, additionalProperties, ...).
+
+        Raises :class:`ToolArgumentError` (a ValueError) naming the first offending
+        argument. A schema that is itself not valid JSON Schema is reported once in the
+        log and only its ``required`` list is enforced, so a broken config never blocks
+        every call.
         """
-        # Basic validation - can be enhanced with jsonschema
-        required_params = self.input_schema.get('required', [])
-        for param in required_params:
-            if param not in arguments:
-                raise ValueError(f"Missing required parameter: {param}")
+        if not isinstance(arguments, dict):
+            raise ToolArgumentError(self.name, "arguments must be an object")
+        schema = self.input_schema or {}
+        validator = _schema_validator(schema, self.name, self.logger)
+        if validator is None:
+            for param in schema.get('required', []) or []:
+                if param not in arguments:
+                    raise ToolArgumentError(self.name, f"Missing required parameter: {param}")
+            return True
+        errors = sorted(validator.iter_errors(arguments), key=_error_order)
+        if errors:
+            raise ToolArgumentError(self.name, _describe_schema_error(errors[0]), len(errors))
         return True
-    
+
     def execute_with_tracking(self, arguments: Dict[str, Any]) -> Any:
         """
-        Execute tool with performance tracking: the enabled check, argument validation,
-        the tool cache, the circuit breaker, and observability (a ``tool`` span, the
-        ``sajha_tool_*`` metrics and a usage-ledger row; sajha/observability/).
+        Execute tool with performance tracking: the policy engine (sajha/policy/: rules,
+        approvals, limits before the call; redaction and screening of the result), the
+        enabled check, argument validation, the tool cache, the circuit breaker, and
+        observability (a ``tool`` span, the ``sajha_tool_*`` metrics and a usage-ledger row;
+        sajha/observability/). Every path that runs a tool comes through here.
 
         Args:
             arguments: Tool arguments
@@ -150,6 +220,7 @@ class BaseMCPTool(ABC):
         from sajha.core.mcp_mrtr import InputRequired
         from sajha.observability import metrics as _metrics, tracing as _tracing
         from sajha.observability.caller import current as _caller
+        from sajha.policy.errors import PolicyError as _PolicyError
         outcome = {'v': 'ok'}
         error = ''
         t0 = _time.perf_counter()
@@ -157,9 +228,24 @@ class BaseMCPTool(ABC):
                                                  'sajha.tool.group': _metrics.tool_group(self.name),
                                                  'enduser.id': _caller().user_id}) as span:
             try:
-                return self._execute_tracked(arguments, outcome)
+                # Connected accounts: a tool whose config declares auth.connected_account runs with
+                # the caller's token bound (sajha/accounts/injection.py); a no-op for every other tool
+                from sajha.accounts.injection import bind as _bind_account
+                # Policy (docs/architecture/Policy and Audit.md): may deny, ask for approval or
+                # rate-limit (raises); a None enforcement means nothing to do with the result
+                from sajha import policy as _policy
+                enforcement = _policy.enforce(self, arguments)
+                with _bind_account(self, arguments):
+                    result = self._execute_tracked(arguments, outcome)
+                return result if enforcement is None else enforcement.apply_output(result)
             except InputRequired:
                 outcome['v'] = 'input_required'
+                raise
+            except _PolicyError as e:
+                outcome['v'] = {'approval_required': 'approval_required',
+                                'rate_limited': 'rate_limited'}.get(e.kind, 'policy_denied')
+                error = str(e)
+                _tracing.set_error(span, error)
                 raise
             except Exception as e:
                 if outcome['v'] == 'ok':

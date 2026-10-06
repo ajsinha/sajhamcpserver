@@ -60,6 +60,8 @@ systemctl start $PG_SERVICE
 
 sudo -u postgres psql -c "CREATE USER sajha WITH PASSWORD 'sajha_secure_2025';" 2>/dev/null || true
 sudo -u postgres psql -c "CREATE DATABASE sajha OWNER sajha;" 2>/dev/null || true
+# SAJHA does not create PostgreSQL tables: you create them once from the schema file
+# (printed at the end; docs/getting-started/Database Setup.md).
 
 # ── 6. Environment file ──
 echo "→ Creating environment file..."
@@ -86,8 +88,7 @@ chown -R sajha:sajha /opt/sajha
 echo "→ Installing systemd service..."
 cp /opt/sajha/deployment/baremetal/sajha.service /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable sajha
-systemctl start sajha
+systemctl enable sajha     # started after the schema step below: it refuses to start without it
 
 # ── 9. Nginx ──
 echo "→ Configuring Nginx..."
@@ -100,10 +101,15 @@ echo "════════════════════════�
 echo "  SAJHA MCP Server installed!"
 echo ""
 echo "  Next steps:"
-echo "  1. Edit /opt/sajha/.env (set API keys)"
-echo "  2. Edit /etc/nginx/sites-available/sajha (set domain)"
-echo "  3. sudo certbot --nginx -d your-domain.com"
-echo "  4. sudo systemctl restart sajha"
+echo "  1. Create the database schema, once (SAJHA never creates PostgreSQL tables;"
+echo "     the second file adds the default roles and the admin user):"
+echo "       cd /opt/sajha"
+echo "       sudo -u postgres env PGOPTIONS='-c role=sajha' psql -v ON_ERROR_STOP=1 -d sajha -f db/scripts/postgresql/schema.sql"
+echo "       sudo -u postgres env PGOPTIONS='-c role=sajha' psql -v ON_ERROR_STOP=1 -d sajha -f db/scripts/postgresql/seed.sql"
+echo "  2. Edit /opt/sajha/.env (set API keys)"
+echo "  3. Edit /etc/nginx/sites-available/sajha (set domain)"
+echo "  4. sudo certbot --nginx -d your-domain.com"
+echo "  5. sudo systemctl start sajha"
 echo ""
 echo "  Status: sudo systemctl status sajha"
 echo "  Logs:   sudo journalctl -u sajha -f"

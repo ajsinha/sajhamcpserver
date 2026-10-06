@@ -180,38 +180,7 @@ memory
       key: {{ .Values.secrets.keys.oauthSigningKey }}
       optional: true
 {{- /* database */}}
-- name: SAJHA_DB_TYPE
-  value: {{ .Values.database.type | quote }}
-{{- if eq .Values.database.type "postgresql" }}
-{{- with .Values.database.postgresql }}
-{{- if .urlSecret }}
-- name: SAJHA_DB_URL
-  valueFrom:
-    secretKeyRef:
-      name: {{ .urlSecret }}
-      key: {{ .urlKey }}
-{{- else }}
-- name: SAJHA_DB_HOST
-  value: {{ .host | quote }}
-- name: SAJHA_DB_PORT
-  value: {{ .port | quote }}
-- name: SAJHA_DB_NAME
-  value: {{ .name | quote }}
-- name: SAJHA_DB_USER
-  value: {{ .user | quote }}
-{{- if .existingSecret }}
-- name: SAJHA_DB_PASSWORD
-  valueFrom:
-    secretKeyRef:
-      name: {{ .existingSecret }}
-      key: {{ .passwordKey }}
-{{- end }}
-{{- end }}
-{{- end }}
-{{- else }}
-- name: SAJHA_DB_PATH
-  value: /app/data/sajha.db
-{{- end }}
+{{ include "sajha.dbEnv" . }}
 {{- /* shared state */}}
 - name: SAJHA_STATE_BACKEND
   value: {{ $state | quote }}
@@ -308,5 +277,43 @@ memory
 {{- end }}
 {{- with .Values.config.extraEnv }}
 {{ toYaml . }}
+{{- end }}
+{{- end -}}
+
+{{/* Database environment of the server. */}}
+{{- define "sajha.dbEnv" -}}
+- name: SAJHA_DB_TYPE
+  value: {{ .Values.database.type | quote }}
+{{- if eq .Values.database.type "postgresql" }}
+{{- with .Values.database.postgresql }}
+- name: SAJHA_DB_SCHEMA_CHECK
+  value: {{ .schemaCheck | default "strict" | quote }}
+{{- if .urlSecret }}
+- name: SAJHA_DB_URL
+  valueFrom:
+    secretKeyRef:
+      name: {{ .urlSecret }}
+      key: {{ .urlKey }}
+{{- else }}
+- name: SAJHA_DB_HOST
+  value: {{ .host | quote }}
+- name: SAJHA_DB_PORT
+  value: {{ .port | quote }}
+- name: SAJHA_DB_NAME
+  value: {{ .name | quote }}
+- name: SAJHA_DB_USER
+  value: {{ .user | quote }}
+{{- if .existingSecret }}
+- name: SAJHA_DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ .existingSecret }}
+      key: {{ .passwordKey }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- else }}
+- name: SAJHA_DB_PATH
+  value: /app/data/sajha.db
 {{- end }}
 {{- end -}}

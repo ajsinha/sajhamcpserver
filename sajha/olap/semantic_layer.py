@@ -146,6 +146,9 @@ class SemanticLayer:
         self.datasets: Dict[str, Dataset] = {}
         self.measures: Dict[str, Measure] = {}
         self.dimensions: Dict[str, Dimension] = {}
+        # dataset name -> the table expressions exactly as written in datasets.json
+        # (with ${...} placeholders), so saving never writes resolved local paths back.
+        self._unresolved_tables: Dict[str, Dict[str, Any]] = {}
         self._load_configuration()
     
     def _default_config_path(self) -> str:
@@ -180,11 +183,14 @@ class SemanticLayer:
         try:
             with open(file_path, 'r') as f:
                 data = json.load(f)
-            
+            # Table expressions name their files with ${data.duckdb.dir}; resolve it here
+            # (env → SAJHA_DATA_DUCKDB_DIR → application.yml), as tool configs are resolved.
+            from sajha.core.config import resolve_placeholders
+
             for name, config in data.get("datasets", {}).items():
                 joins = [
                     Join(
-                        table=j["table"],
+                        table=resolve_placeholders(j["table"]),
                         join_type=j.get("type", "LEFT"),
                         on_clause=j["on"],
                         alias=j.get("alias")
@@ -196,7 +202,7 @@ class SemanticLayer:
                     name=name,
                     display_name=config.get("display_name", name),
                     description=config.get("description", ""),
-                    source_table=config["source_table"],
+                    source_table=resolve_placeholders(config["source_table"]),
                     joins=joins,
                     dimensions=config.get("dimensions", []),
                     measures=config.get("measures", []),
@@ -204,6 +210,10 @@ class SemanticLayer:
                     row_level_security=config.get("row_level_security")
                 )
                 self.datasets[name] = dataset
+                self._unresolved_tables[name] = {
+                    "source_table": config["source_table"],
+                    "joins": [j["table"] for j in config.get("joins", [])],
+                }
                 
         except Exception as e:
             logger.error(f"Error loading datasets: {e}", exc_info=True)
@@ -294,8 +304,12 @@ class SemanticLayer:
             return {"error": f"Dataset '{name}' not found"}
         
         # Get full measure definitions
+        # (an inline {"name": ...} entry in the dataset wins over the shared definition)
         measures_info = []
         for m_name in dataset.measures:
+            if isinstance(m_name, dict):
+                measures_info.append(dict(m_name))
+                continue
             measure = self.get_measure(m_name)
             if measure:
                 measures_info.append(measure.to_dict())
@@ -305,6 +319,9 @@ class SemanticLayer:
         # Get full dimension definitions
         dimensions_info = []
         for d_name in dataset.dimensions:
+            if isinstance(d_name, dict):
+                dimensions_info.append(dict(d_name))
+                continue
             dimension = self.get_dimension(d_name)
             if dimension:
                 dimensions_info.append(dimension.to_dict())
@@ -336,10 +353,20 @@ class SemanticLayer:
         Returns:
             SQL expression for the dimension
         """
+        # Only names the dataset declares are resolvable: the caller's string is never
+        # SQL, the configured expression is (sajha/olap/sql_safety.py).
+        from sajha.olap.sql_safety import check_dimension, _inline
+        check_dimension(dataset, dim_name)
         dimension = self.get_dimension(dim_name)
+        # A dataset's own (inline) definition wins over the shared dimensions.json entry
+        # of the same name; a shared hierarchy level is still used when one is asked for.
+        inline = _inline(dataset.dimensions, dim_name)
+        inline_expr = inline and (inline.get("expression") or inline.get("column"))
         
         if not dimension:
-            # Assume it's a direct column reference
+            if inline_expr:
+                return inline_expr
+            # A declared name with no definition is a column of the same name
             return dim_name
         
         if hierarchy and level and hierarchy in dimension.hierarchies:
@@ -348,7 +375,7 @@ class SemanticLayer:
                 if lvl.name == level:
                     return lvl.expression if lvl.expression else lvl.column
         
-        return dimension.column
+        return inline_expr or dimension.column
     
     def resolve_measure(self, measure_name: str, aggregation: str = None) -> str:
         """
@@ -364,9 +391,12 @@ class SemanticLayer:
         measure = self.get_measure(measure_name)
         
         if not measure:
-            # Assume it's a direct column, apply default aggregation
-            agg = aggregation or "SUM"
-            return f"{agg}({measure_name})"
+            # An undefined name is a plain column with an allowlisted aggregation; anything
+            # that is not a bare identifier is refused rather than interpolated.
+            from sajha.olap.sql_safety import AGGREGATIONS, aggregation_name, _IDENT, OLAPQueryError
+            if not isinstance(measure_name, str) or not _IDENT.match(measure_name):
+                raise OLAPQueryError(f"Invalid measure name: {measure_name!r}")
+            return AGGREGATIONS[aggregation_name(aggregation)].format(x=measure_name)
         
         if aggregation:
             # Override the aggregation in the expression
@@ -399,11 +429,30 @@ class SemanticLayer:
         config_dir.mkdir(parents=True, exist_ok=True)
         
         data = {
-            "datasets": {name: ds.to_dict() for name, ds in self.datasets.items()}
+            "datasets": {name: self._dataset_for_save(ds) for name, ds in self.datasets.items()}
         }
         
         with open(config_dir / "datasets.json", 'w') as f:
             json.dump(data, f, indent=2)
+    
+    def _dataset_for_save(self, ds: "Dataset") -> Dict[str, Any]:
+        """``ds.to_dict()`` with each table expression put back as it was written.
+
+        Loading resolves ``${data.duckdb.dir}`` (and other placeholders) to local paths;
+        writing those back would pin this machine's paths into a tracked file. A table
+        that still equals what its original text resolves to is saved as that text.
+        """
+        from sajha.core.config import resolve_placeholders
+        out = ds.to_dict()
+        raw = self._unresolved_tables.get(ds.name)
+        if not raw:
+            return out
+        if resolve_placeholders(raw["source_table"]) == ds.source_table:
+            out["source_table"] = raw["source_table"]
+        for j, raw_table in zip(out["joins"], raw["joins"]):
+            if resolve_placeholders(raw_table) == j["table"]:
+                j["table"] = raw_table
+        return out
     
     def _save_measures(self):
         """Save measures to configuration file."""
@@ -451,14 +500,17 @@ class SemanticLayer:
             return {"valid": False, "errors": errors, "warnings": warnings}
         
         # Validate dimensions
+        from sajha.olap.sql_safety import _declared_names
+        declared_dims = _declared_names(dataset.dimensions) or set()
+        declared_measures = _declared_names(dataset.measures) or set()
         for dim in dimensions:
-            if dim not in dataset.dimensions and not self.get_dimension(dim):
+            if dim not in declared_dims:
                 errors.append(f"Dimension '{dim}' not found in dataset")
         
         # Validate measures
         for measure in measures:
-            if measure not in dataset.measures and not self.get_measure(measure):
-                warnings.append(f"Measure '{measure}' not in dataset definition, will use as raw expression")
+            if measure not in declared_measures:
+                errors.append(f"Measure '{measure}' not found in dataset")
         
         return {
             "valid": len(errors) == 0,

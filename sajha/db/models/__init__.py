@@ -2,7 +2,9 @@
 SAJHA MCP Server v3 — SQLAlchemy ORM Models
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
-All persistent state lives here. No loose SQL anywhere else.
+The tables come from db/scripts/<sqlite|postgresql>/schema.sql (SQLite: SAJHA runs it;
+PostgreSQL: the operator does). tests/test_db_schema.py keeps these models and both
+files in step; change all three together.
 """
 
 import uuid
@@ -57,8 +59,7 @@ class User(Base):
     failed_attempts = Column(Integer, default=0, nullable=False)
     locked_until = Column(DateTime, nullable=True)
 
-    # Password must be changed at next sign-in (seed admin, admin-set passwords);
-    # added by db/scripts/<type>/003_password_policy.sql
+    # Password must be changed at next sign-in (seed admin, admin-set passwords)
     must_change_password = Column(Boolean, default=False, nullable=False)
 
     # Relationships
@@ -174,6 +175,7 @@ class UserSession(Base):
 
     __table_args__ = (
         Index('ix_session_expires', 'expires_at'),
+        Index('ix_session_user', 'user_id'),
     )
 
     def __repr__(self):
@@ -356,6 +358,10 @@ class CompositeToolStepRecord(Base):
     condition         = Column(Text)    # Optional: expression for conditional execution
 
     composite_tool = relationship('CompositeToolRecord', back_populates='steps')
+
+    __table_args__ = (
+        Index('ix_composite_steps_tool', 'composite_tool_id'),
+    )
 
 
 # ── Tenant (v4.5.0 — multi-tenancy) ─────────────────────────

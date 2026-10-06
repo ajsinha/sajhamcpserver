@@ -12,12 +12,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=['ops'])
 
 # ── Health Probes ─────────────────────────────────────────────
-
-@router.get('/health')
-async def health_liveness():
-    from sajha.observability import get_health
-    h = get_health()
-    return JSONResponse(h.liveness() if h else {'status': 'ok'})
+# GET /health is sajha/routes/health_routes.py (registered first; this module used to
+# declare a second, unreachable /health).
 
 @router.get('/ready')
 async def health_readiness():

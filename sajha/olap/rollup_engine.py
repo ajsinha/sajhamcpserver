@@ -9,6 +9,8 @@ import logging
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
+from sajha.olap import sql_safety as sq
+
 logger = logging.getLogger(__name__)
 
 
@@ -81,13 +83,13 @@ class RollupEngine:
         dim_cols = []
         dim_aliases = []
         for d in spec.dimensions:
-            col = self.semantic.resolve_dimension(d, dataset)
+            col = sq.dimension_expr(self.semantic, dataset, d)
             alias = self._safe_alias(d)
             dim_cols.append(col)
             dim_aliases.append(alias)
         
         # Build measure expressions
-        measure_exprs = self._build_measure_expressions(spec.measures)
+        measure_exprs = self._build_measure_expressions(spec.measures, dataset)
         
         # Build grouping clause
         if spec.operation.upper() == "GROUPING_SETS" and spec.grouping_sets:
@@ -123,62 +125,29 @@ GROUP BY {grouping}
         return sql
     
     def _build_base_query(self, dataset, filters: List[Dict]) -> str:
-        """Build the base SELECT with joins and filters."""
-        sql = f"SELECT * FROM {dataset.source_table}"
-        
-        for join in dataset.joins:
-            alias = f" AS {join.alias}" if join.alias else ""
-            sql += f"\n{join.join_type} JOIN {join.table}{alias} ON {join.on_clause}"
-        
-        if filters:
-            where_clauses = self._build_filters(filters, dataset)
-            if where_clauses:
-                sql += f"\nWHERE {' AND '.join(where_clauses)}"
-        
-        return sql
+        """Build the base SELECT with joins and (parameterised) filters."""
+        return sq.base_query(self.semantic, dataset, filters)
     
     def _build_filters(self, filters: List[Dict], dataset) -> List[str]:
-        """Build WHERE clause components."""
-        clauses = []
-        for f in filters:
-            dim = f.get("dimension", f.get("column"))
-            op = f.get("operator", "=")
-            val = f.get("value")
-            
-            col = self.semantic.resolve_dimension(dim, dataset)
-            
-            if op.upper() == "IN":
-                if isinstance(val, list):
-                    formatted = ", ".join(f"'{v}'" if isinstance(v, str) else str(v) for v in val)
-                else:
-                    formatted = f"'{val}'" if isinstance(val, str) else str(val)
-                clauses.append(f"{col} IN ({formatted})")
-            elif op.upper() == "BETWEEN":
-                if isinstance(val, (list, tuple)) and len(val) == 2:
-                    v1 = f"'{val[0]}'" if isinstance(val[0], str) else str(val[0])
-                    v2 = f"'{val[1]}'" if isinstance(val[1], str) else str(val[1])
-                    clauses.append(f"{col} BETWEEN {v1} AND {v2}")
-            else:
-                formatted = f"'{val}'" if isinstance(val, str) else str(val)
-                clauses.append(f"{col} {op} {formatted}")
-        
-        return clauses
+        """WHERE clause components; values are $olap_* parameters (see sql_safety)."""
+        return sq.compile_filters(self.semantic, dataset, filters)[0]
+
+    def _params(self, spec: RollupSpec) -> Dict[str, Any]:
+        dataset = self.semantic.get_dataset(spec.dataset)
+        return sq.filter_params(self.semantic, dataset, spec.filters) if dataset else {}
     
-    def _build_measure_expressions(self, measures: List[Dict]) -> List[str]:
-        """Build measure aggregation expressions."""
+    def _build_measure_expressions(self, measures: List[Dict], dataset=None) -> List[str]:
+        """Build measure aggregation expressions (declared measures only)."""
         exprs = []
         for m in measures:
+            if isinstance(m, str):
+                m = {"measure": m}
+            if not isinstance(m, dict):
+                raise sq.OLAPQueryError("each measure must be a name or {measure, aggregation, alias}")
             measure_name = m.get("measure")
-            agg = m.get("aggregation", "SUM")
-            alias = self._safe_alias(m.get("alias", measure_name))
-            
-            measure = self.semantic.get_measure(measure_name)
-            if measure:
-                # Use the defined expression
-                exprs.append(f"{measure.expression} AS {alias}")
-            else:
-                # Direct column with aggregation
-                exprs.append(f"{agg}({measure_name}) AS {alias}")
+            alias = self._safe_alias(m.get("alias") or measure_name)
+            expr = sq.measure_expr(self.semantic, dataset, measure_name, m.get("aggregation"))
+            exprs.append(f"{expr} AS {alias}")
         
         return exprs
     
@@ -193,7 +162,11 @@ GROUP BY {grouping}
             if not group_set:
                 sets.append("()")  # Empty set for grand total
             else:
-                cols = [alias_to_col.get(self._safe_alias(g), g) for g in group_set]
+                unknown = [g for g in group_set if self._safe_alias(g) not in alias_to_col]
+                if unknown:
+                    raise sq.OLAPQueryError(
+                        f"Grouping set names {unknown} are not among the query's dimensions")
+                cols = [alias_to_col[self._safe_alias(g)] for g in group_set]
                 sets.append(f"({', '.join(cols)})")
         
         return f"GROUPING SETS ({', '.join(sets)})"
@@ -221,7 +194,7 @@ GROUP BY {grouping}
         sql = self.build_rollup_query(spec)
         
         try:
-            result = self.conn.execute(sql).fetchall()
+            result = sq.execute(self.conn, sql, self._params(spec)).fetchall()
             columns = [desc[0] for desc in self.conn.description]
             
             # Convert to list of dicts
@@ -244,7 +217,7 @@ GROUP BY {grouping}
                 "columns": columns,
                 "row_count": len(data),
                 "dimensions": spec.dimensions,
-                "measures": [m.get("measure") for m in spec.measures],
+                "measures": [m.get("measure") if isinstance(m, dict) else m for m in spec.measures],
                 "operation": spec.operation,
                 "hierarchy_info": hierarchy_info,
                 "sql": sql

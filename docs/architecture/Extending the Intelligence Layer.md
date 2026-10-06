@@ -21,6 +21,7 @@ and through `IntelligenceService.ask`, and fails if an excerpt here stops matchi
 | `sajha/examples/intelligence/acme_fake_server.py` | Acme's API faked: an `httpx.MockTransport` for tests and a small local HTTP server for trying the provider in Ask SAJHA |
 | `sajha/examples/intelligence/custom_models.py` | `@register_model`: a fine-tuned OpenAI model with its own behaviour, on the built-in `openai` provider |
 | `sajha/examples/intelligence/recipe_planner.py` | A planning strategy written as a model: fixed question-to-tool recipes that defer to the next model in the alias |
+| `sajha/examples/intelligence/docs_first_planner.py` | A `Planner`: search SAJHA's guides first for how-to questions, then hand the ask to `react` |
 
 ---
 
@@ -32,14 +33,15 @@ and through `IntelligenceService.ask`, and fails if an excerpt here stops matchi
         ▼
  IntelligenceService.stream_ask (sajha/ai/intelligence.py)
    1 shortlist   ToolResolver ranks tools; RBAC and policy filter them      (not pluggable)
-   2 loop        for each step: gateway.chat(ChatRequest, model=ai.ask.model)
+   2 loop        for each step: the PLANNER (ai.ask.planner, section 4.5) decides; the default,
+                 react, calls gateway.chat(ChatRequest, model=ai.ask.model)
                    │                                      ▲
                    │                                      │ ChatResponse: text and/or ToolCallParts
                    ▼                                      │
                  LLMGateway: alias → candidates → policy, budget, retries, fallback, cache
                    │
                    ▼
-                 ChatModel.generate(request)      ◄── a MODEL (section 3); today it is also the PLANNER (section 4)
+                 ChatModel.generate(request)      ◄── a MODEL (section 3); under react it plans too (section 4)
                    │
                  LLMProvider: key, httpx client, catalogue, health   ◄── a PROVIDER (section 2)
                  the loop runs each tool call (offered? destructive? execute_with_tracking)
@@ -54,7 +56,7 @@ and through `IntelligenceService.ask`, and fails if an excerpt here stops matchi
 | A model id the provider does not know, with different capabilities or prices | nothing: a `models:` entry in the provider's config | configuration | 3.6 |
 | A model with its own behaviour on an existing provider | a `ChatModel` subclass (usually of that provider's model class) | `@register_model(provider=..., model_id=...)` | 3.6 |
 | Real planning in Ask SAJHA | nothing: enable a tool-capable provider and point the `default` alias at it | configuration | 4.3 |
-| Your own planning strategy | today: a `ChatModel` that decides tool calls; proposed: a `Planner` | an alias / `ai.ask.planner` (proposed) | 4.4, 4.5 |
+| Your own planning strategy | a `Planner` (or a `ChatModel` that decides tool calls) | `ai.ask.planner` (or an alias) | 4.4, 4.5 |
 
 Terms used throughout (definitions in the [glossary](../../GLOSSARY.md)): a **provider**
 owns credentials, the HTTP client and the model list, and creates models; a **model** does
@@ -555,9 +557,9 @@ load by class path or entry point. Use it like any model: `SAJHA_AI_ALIASES_DEFA
 
 ### 4.1 How planning works today
 
-There is **no separate planner component**. The planner is whichever `ChatModel` the
-`ai.ask.model` alias (default `default`) resolves to, called once per step of a fixed loop in
-`IntelligenceService.stream_ask`. `mock-planner` is such a model (`PlannerModel` in
+The planner is a strategy chosen by `ai.ask.planner` (section 4.5). The default, `react`, is
+the loop described here: the planner is whichever `ChatModel` the `ai.ask.model` alias
+(default `default`) resolves to, called once per step in `IntelligenceService.stream_ask`. `mock-planner` is such a model (`PlannerModel` in
 `sajha/ai/llm/mock.py`): it scores the offered `ToolSpec`s against the question's keywords,
 fills arguments from numbers and ticker symbols in the question, and answers from the tool
 results. It plans only from the question, never from tool output. Replacing it means
@@ -614,19 +616,23 @@ An answer that rests on no tool result scores 0.5.
 
 **7. Events.** `stream_ask` yields `shortlist`, then per step `model`, `tool_call`,
 `tool_result` (and `needs_confirmation`), then `answer_delta`, `answer`, `confidence` and
-`done`. The schema is fixed and is what the Ask SAJHA page renders.
+`done`. The schema is fixed and is what the Ask SAJHA page renders; a planner that plans ahead
+adds an optional `plan` event.
+
+With conversation memory (a `conversation_id` on the ask), `messages` starts with the earlier
+turns and the question is the standalone rewrite; `system` carries the summary of older turns.
 
 So "the planner" decides only one thing, at each step: answer now, or call which of the
 offered tools with which arguments. There are three ways to make that decision real.
 
 ### 4.2 Choosing an approach
 
-| | 4.3 A real tool-capable model | 4.4 A strategy written as a model | 4.5 A `Planner` (proposed) |
+| | 4.3 A real tool-capable model | 4.4 A strategy written as a model | 4.5 A `Planner` |
 |---|---|---|---|
-| Code | none | a `ChatModel` (and a small provider) | a `Planner` class |
-| Plans | open questions, adaptively | the questions you wrote recipes for | anything: ReAct, plan-then-execute, recipes, hybrids |
-| Sees | the question, tool specs, results | the same, one step at a time | the whole ask state, scores, budgets |
-| Status | works today | works today | not built yet |
+| Code | none | a `ChatModel` (and a small provider) | a `Planner` class, or configuration of a built-in one |
+| Plans | open questions, adaptively | the questions you wrote recipes for | anything: ReAct, plan-then-execute, recipes, routing, hybrids |
+| Sees | the question, tool specs, results | the same, one step at a time | the whole ask state, scores, remaining limits |
+| Status | works | works | built: `react`, `plan_execute`, `recipes`, `router` ship |
 
 ### 4.3 A real model as the planner
 
@@ -727,85 +733,112 @@ for confirmation; the limits, the synthesis, the confidence and the events are u
 Its limits: it decides one step at a time, sees no shortlist scores or remaining budget, and
 cannot add events of its own. Those are what 4.5 adds.
 
-### 4.5 Proposed: a `Planner` extension point (not built yet)
+### 4.5 A `Planner` extension point
 
-> **Status: proposed, not built.** Nothing in this section exists in the code. It is the
-> recommended next build step for the intelligence layer: it turns "the planner is the
-> model" into a named, configurable strategy without loosening any of the loop's guarantees.
+`ai.ask.planner` names the strategy that decides each step of an ask; `sajha/ai/planners.py`
+holds the protocol, the registry and the four built-in strategies (their behaviour is in the
+[Intelligence Layer](Intelligence%20Layer.md#planners)).
 
 **The split.** The service keeps everything that protects the caller; the planner only
 decides.
 
-| Stays in `IntelligenceService` (unchanged) | Moves to the planner |
+| Stays in `IntelligenceService` | The planner's job |
 |---|---|
 | the shortlist and its RBAC filter; policy without tools | what to do next: answer, or which calls |
 | refusing calls to tools not offered | whether to plan once, step by step, or by recipe |
-| destructive-tool confirmation and fingerprints | how to use a model (or several, or none) |
-| running tools through `execute_with_tracking`, result caps | re-planning after a failed call |
-| `max_steps`, `max_tool_calls`, `max_tokens`, `timeout_s` | |
-| synthesis (optional per planner), confidence, audit, the event stream | |
+| destructive-tool confirmation and fingerprints; policy approval | how to use a model (or several, or none) |
+| running tools through `execute_with_tracking` (independent calls in parallel), result caps | re-planning after a failed call |
+| `max_steps`, `max_tool_calls`, `max_tokens`, `timeout_s` | whether to synthesise the final answer |
+| synthesis, confidence, audit, the event stream, conversation memory | |
 
-**The protocol** (a new module `planners.py` under `sajha/ai/`):
+**The protocol.** One planner instance serves one ask, so it may keep state:
 
+| Piece | What it is |
+|---|---|
+| `Planner.start(state)` | called once before the first step; may plan up front |
+| `Planner.next_action(state)` | called before every step; returns an action |
+| `CallTools(calls, message=None, parallel=False)` | run these `ToolCallPart`s; `parallel=True` says they are independent, so the service runs them together |
+| `Answer(text, synthesize=True, message=None)` | stop; synthesise the answer from the history, or use `text` as it is |
+| `Emit(event)` | publish an event (a `plan`) and ask again |
+| `PlanState` | `question` (the standalone question), `ctx`, `shortlist` (`ShortlistEntry`: name, `ToolSpec`, score), `messages` (earlier turns, the question, every call and result), `steps` (the `AskStep`s so far), `remaining` (`Limits`: steps, tool calls, tokens, seconds), `system`, `temperature`, `chat`, `emit`, `data` (scratch space) |
+| `state.chat(request, needs=None, model=None)` | the gateway bound to the caller: aliases, role policy, budgets, fallback and the cache apply, tokens count toward the ask, and each call emits a `model` event |
+| `state.emit(event)` | queue an event; it is sent, in order, before the step's tool calls |
+| `DelegatingPlanner.hand_to(name, state)` | give the rest of the ask to another planner (fallbacks, routing); the chain is reported as `planner` (`router>plan_execute`) |
+
+The planner never touches a tool or the gateway directly: the service validates every
+`CallTools` against the shortlist exactly as for a model's tool calls. A `plan` event has
+`planner`, `revision` and `steps` (`id`, `tool`, `arguments`, `depends_on`, `why`, `status`,
+`call_id`); give each step the id its `tool_call` will carry, and Ask SAJHA ticks the step off
+when that call returns. Keep a callable or list of those dicts in `state.data["plan"]` and the
+result's `plan` reports each step's final status.
+
+**A worked example.** `DocsFirstPlanner` answers how-to questions by searching the guides
+first and handing the rest of the ask to `react`, which then sees the passages:
+
+```python
+# sajha/examples/intelligence/docs_first_planner.py
+class DocsFirstConfig(PlannerConfig):
+    pattern: str = r"\b(how (do|can) i|configure|set up|enable|what is)\b"
+    top_k: int = 3
+    then: str = "react"                      # the planner that finishes the ask
+
+
+@register_planner
+class DocsFirstPlanner(DelegatingPlanner):
+    name = "docs_first"
+    description = "Searches SAJHA's documentation first for how-to questions, then hands over to react."
+    config_model = DocsFirstConfig
+
+    def start(self, state: PlanState) -> None:
+        self.searched = False
+        wants_docs = re.search(self.config.pattern, state.question, re.IGNORECASE) is not None
+        if not wants_docs or SEARCH_TOOL not in state.offered:
+            self.hand_to(self.config.then, state)        # not a how-to question, or not allowed
 ```
-class Planner(Protocol):
-    name: ClassVar[str]
-    def start(self, state: PlanState) -> None: ...            # optional: plan up front
-    def next_action(self, state: PlanState) -> Action: ...    # called before every step
 
-@dataclass
-class PlanState:                     # read-only view, rebuilt by the service each step
-    question: str
-    ctx: RequestContext
-    shortlist: List[ShortlistEntry]  # ToolSpec + resolver score
-    messages: List[Message]          # the history the model would see
-    steps: List[AskStep]             # what ran, with status and summaries
-    remaining: Limits                # steps, tool calls, tokens, seconds
-    chat: Callable[..., ChatResponse]   # gateway.chat bound to ctx: counts tokens, emits "model" events
-
-Action = CallTools(calls: List[ToolCallPart], message: Message)
-       | Answer(text: str, synthesize: bool = True)
-       | Emit(event: dict)           # optional "plan" event: {"type": "plan", "steps": [...]}
+```python
+# sajha/examples/intelligence/docs_first_planner.py
+        if not self.searched:
+            self.searched = True
+            call = ToolCallPart("docs_1", SEARCH_TOOL, {"query": state.question, "top_k": self.config.top_k})
+            # ...
+            return CallTools([call])
+        self.hand_to(self.config.then, state)            # the passages are in state.messages now
+        return self.delegate.next_action(state)
 ```
 
-The planner never touches tools or the gateway directly: `state.chat` is the only way to
-reach a model, so policy, budgets, fallback and the `model` event apply; the service
-validates every `CallTools` against the shortlist exactly as it does today.
-
-**Strategies it enables:**
-
-- `model` (the default): today's loop body, moved verbatim, so behaviour and the existing
-  `tests/ai/test_ask.py` are unchanged;
-- `plan_execute`: one structured-output call returns a plan (steps with tool, arguments and
-  dependencies), then the planner issues the calls without further model calls, re-planning
-  once on a failure; fewer tokens, and independent steps can run in one `CallTools`;
-- `recipes`: the 4.4 strategy without the alias trick, with a `plan` event the UI can show;
-- `router`: recipes first, then `plan_execute` or `model` by question shape.
+It only proposes `sajha_search_docs` when the shortlist offered it, but even a planner that
+forgot to check could not run it for a caller without access: the service refuses calls to
+tools that were not offered.
 
 **Configuration**, following the provider pattern:
 
 ```yaml
 ai:
   ask:
-    planner: model                 # a registered name, or package.module:Class
-    planner_config: {}             # validated by the planner's own pydantic model
+    planner: router                # a registered name, or package.module:Class
+    planner_config:                # per planner, validated by its config_model
+      recipes:
+        recipes:
+          - name: pct
+            tool: calc_percentage_change
+            match: 'percentage change from (?P<old_value>[\d.,]+) to (?P<new_value>[\d.,]+)'
+            answer: 'From {old_value} to {new_value} is a change of {percentage_change}%.'
+      plan_execute: {max_parallel: 4, max_replans: 1}
+      router: {rules: [{match: '\bcompare\b', planner: plan_execute}]}
 ```
 
-with `SAJHA_AI_ASK_PLANNER` as the environment override, registration by a
-`register_planner` decorator, a class path or a `sajha.planners` entry-point group, and an
-optional `planner` field on `POST /api/ai/ask` (admins only).
+`SAJHA_AI_ASK_PLANNER` overrides the name and `SAJHA_AI_ASK_PLANNER_CONFIG` (JSON) the
+settings. An unknown planner or an invalid setting fails at startup. Registration, like
+providers: the `@register_planner` decorator on a class imported at startup, a class path in
+`ai.ask.planner`, or an entry point in the `sajha.planners` group. An admin can try a planner
+on one ask with `"planner": "<name>"` in the `POST /api/ai/ask` body; `GET /api/ai/planners`
+lists what is registered.
 
-**Events.** The existing event types and their order stay as documented in the
-[Intelligence Layer](Intelligence%20Layer.md#post-apiaiask). A new optional `plan` event
-may precede the first `model` event; the Ask SAJHA page ignores event types it does not
-know, so it keeps working and can learn to draw the plan later.
-
-**Build order.** (1) Extract today's loop body into `ModelPlanner` with no behaviour change;
-(2) add `PlanState`, `Action` and the protocol; (3) settings, registry and entry points;
-(4) a planner contract suite that runs every registered planner through the existing
-safety tests (RBAC, refusal of tools not offered, confirmation, limits, injected
-instructions in tool results, event order); (5) `plan_execute` and `recipes`; (6) the
-`plan` event in the UI.
+**Tests.** `tests/ai/test_planners.py` runs every built-in planner through the same safety
+tests (`test_contract_*`: answers and event order, RBAC, tools not offered, destructive
+confirmation, injected instructions, limits). Add yours to `BUILT_IN` there, or copy the
+pattern; the example above is tested in `tests/ai/test_extension_examples.py`.
 
 ---
 
@@ -953,6 +986,9 @@ proves the wiring, not the intelligence.
       limits and budgets are set for its cost and latency; write tools are marked destructive.
 - [ ] With a strategy model: it only calls offered tools, defers with `UnsupportedFeature`,
       and passes the safety tests in `tests/ai/test_ask.py` when put first in the alias.
+- [ ] With a `Planner`: it reaches models only through `state.chat`, proposes only offered
+      tools, gives `plan` steps the ids of their tool calls, validates its settings with a
+      `config_model`, and passes the `test_contract_*` tests in `tests/ai/test_planners.py`.
 
 **Documentation** (one owner per topic)
 

@@ -26,8 +26,10 @@ sajha/core); every claim links to the guide that owns it. Nothing is counted by 
                         statistics, filings, search, analytics, calculators) and reusable prompts into something
                         any MCP client can discover and call: an AI assistant, an agent framework or a script.</p>
                     <p class="mb-0">Around that core it adds what running such a server needs: a web console, users
-                        and roles, API keys, OAuth 2.1 on <code>/mcp</code>, a visual tool builder, tool composition,
-                        caching, circuit breakers, observability and pluggable storage.
+                        and roles, API keys, OAuth 2.1 on <code>/mcp</code>, a sandbox for user code, a visual tool builder,
+                        tool composition, federation of other MCP servers, an intelligence layer that answers questions
+                        with the tools, caching, circuit breakers, observability, shared state for several workers and
+                        pluggable storage.
                         <a href="{{ guide_url('How SAJHA Fits Together.md') }}">How SAJHA fits together</a> ·
                         <a href="{{ url_for('comparison_page') }}">How it compares</a>.</p>
                 </div>
@@ -112,7 +114,11 @@ sajha/core); every claim links to the guide that owns it. Nothing is counted by 
                     ('bi-hdd-stack', 'Storage', 'Configs, prompts, Studio output and docs on local disk, S3, Azure Blob or GCS.', 'Storage Guide.md'),
                     ('bi-speedometer2', 'Caching and circuit breakers', 'Opt-in per-tool caching, and breakers that stop calls to a failing provider.', 'TUTORIAL_06_configure_tool_caching.md'),
                     ('bi-window-stack', 'MCP Apps', 'Interactive tool views, and arguments mirrored into headers.', 'MCP Apps and Headers Guide.md'),
-                    ('bi-cpu', 'LLM gateway', 'LLM providers for the console, and semantic search over the tool catalog.', 'Architecture.md'),
+                    ('bi-stars', 'Intelligence layer', 'LLM providers and models behind one gateway, Ask SAJHA, and semantic search over the tool catalog.', 'Intelligence Layer.md'),
+                    ('bi-diagram-2', 'Federation', "Other MCP servers' tools in the same catalog, behind the same access control and approval.", 'Federation.md'),
+                    ('bi-shield-check', 'Sandbox', 'Studio Python and script tools and the shell run in a separate, confined process.', 'Sandbox.md'),
+                    ('bi-hdd-network', 'Several workers', 'Sessions, tasks, OAuth codes and rate limits in a shared state store (Redis or the database).', 'Scaling and State.md'),
+                    ('bi-activity', 'Observability', 'Prometheus metrics, OpenTelemetry traces, the usage and cost page, alert rules.', 'Observability.md'),
                     ('bi-plug', 'Client SDK', 'A Python client on the official MCP SDK, plus REST and A2A clients.', 'Client SDK Guide.md'),
                 ] %}
                 {% for icon, title, desc, guide in caps %}

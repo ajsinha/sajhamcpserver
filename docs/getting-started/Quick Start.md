@@ -18,7 +18,9 @@ CI runs on Python 3.12. The server listens on `http://localhost:3002`
 
 `run_server.py` options: `--config <file.yml>`, `--host`, `--port`, `--reload`
 (development auto-reload), `--workers` (keep 1 unless `state.backend` is `redis` or
-`database`, see [Scaling and State](../architecture/Scaling%20and%20State.md)), `--log-level`.
+`database`, see [Scaling and State](../architecture/Scaling%20and%20State.md)), `--log-level`,
+`--stdio` (serve MCP on stdin/stdout for a desktop client instead of HTTP; see
+[Command Line](../clients/Command%20Line.md)).
 
 ## 2. Sign in and secure the defaults
 
@@ -81,10 +83,11 @@ the client is documented in the [Client SDK Guide](../clients/Client%20SDK%20Gui
 ## 4. Add API keys for data providers
 
 Many tools call external data services. Keys are read from configuration, usually via
-environment variables, for example `FRED_API_KEY`, `FMP_API_KEY`, `GOOGLE_API_KEY` with
-`GOOGLE_SEARCH_ENGINE_ID`, and `TAVILY_API_KEY`. A tool whose provider key is missing cannot
-reach that service; tools that need no key are unaffected. Each provider's guide under `docs/tools/` says what it
-needs.
+environment variables, for example `FRED_API_KEY`, `FMP_API_KEY`, `ALPHA_VANTAGE_API_KEY`,
+`GOOGLE_API_KEY` with `GOOGLE_SEARCH_ENGINE_ID`, and `TAVILY_API_KEY` (the full list is under
+[External API keys](Configuration%20Reference.md#external-api-keys)). A tool whose provider key
+is missing cannot reach that service; tools that need no key are unaffected. Each provider's
+guide under `docs/tools/` says what it needs.
 
 ## 5. Where next
 
@@ -96,7 +99,8 @@ needs.
   tools.
 - [OAuth Guide](../protocol/OAuth%20Guide.md): require OAuth 2.1 on `/mcp`.
 - [Storage Guide](Storage%20Guide.md): run from S3, Azure Blob or GCS.
-- Deployment recipes (AWS, Hetzner, bare metal): [`deployment/`](../../deployment/README.md).
+- Deployment recipes (AWS, Hetzner, bare metal, Kubernetes): [`deployment/`](../../deployment/README.md),
+  and [Kubernetes Deployment](Kubernetes%20Deployment.md).
 
 ---
 

@@ -144,7 +144,7 @@ The generated config sets `implementation` to the wrapper's dotted class path, `
 | `Invalid script type` | `script_type` is not one of the types above. |
 | `exit_code: -2`, `Script file not found` | The script is not in `config/scripts/`, or the interpreter is not installed. |
 | `exit_code: -1` | The script ran longer than the timeout. |
-| Tool does not appear after deploy | See [the known issue](#known-issue-the-config-format-does-not-match-the-registry) above, and check the tool errors on the Tools admin page. |
+| Deploy answers `success: false` with a load error | The generated tool failed to load, so its files were removed. The error names the cause; it is also kept in the tool errors on the Tools admin page. |
 
 ---
 

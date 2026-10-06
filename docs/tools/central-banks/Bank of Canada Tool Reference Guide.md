@@ -25,7 +25,7 @@ The Bank of Canada MCP Tool Suite provides a comprehensive interface to access C
 - **15 Shorthand Indicators** covering FX, rates, bonds, and macro data
 - **Flexible Time Ranges** with support for date ranges and recent periods
 - **Zero Authentication** required - public API access
-- **Type-Safe Schemas** with JSON Schema validation
+- **Typed Schemas**: each tool advertises a JSON Schema for its arguments
 - **Performance Tracking** built-in metrics for all operations
 - **Error Resilience** with graceful degradation
 
@@ -56,7 +56,7 @@ The Bank of Canada MCP Tool Suite provides a comprehensive interface to access C
 │  ┌─────────────────────────────────────────────────┐    │
 │  │  Abstract Base Class                             │    │
 │  │  - Tool lifecycle management                     │    │
-│  │  - Input/Output schema validation                │    │
+│  │  - Required-argument check                       │    │
 │  │  - Performance tracking & metrics                │    │
 │  │  - Configuration management                      │    │
 │  └─────────────────────────────────────────────────┘    │
@@ -69,7 +69,7 @@ The Bank of Canada MCP Tool Suite provides a comprehensive interface to access C
 │  ┌─────────────────────────────────────────────────┐    │
 │  │  Shared BoC Functionality                        │    │
 │  │  - API endpoint configuration                    │    │
-│  │  - Common series mapping (15 indicators)         │    │
+│  │  - Common series mapping                         │    │
 │  │  - Shared _fetch_series() method                 │    │
 │  │  - Error handling (no automatic retry)           │    │
 │  └─────────────────────────────────────────────────┘    │
@@ -122,7 +122,7 @@ The foundation class providing core MCP tool functionality.
 - `get_input_schema()` - Returns JSON schema for inputs
 - `get_output_schema()` - Returns JSON schema for outputs
 - `execute_with_tracking()` - Executes with performance metrics
-- `validate_arguments()` - Validates input against schema
+- `validate_arguments()` - Validates the arguments against the input schema (JSON Schema)
 - `get_metrics()` - Returns execution statistics
 - `to_mcp_format()` - Converts to MCP protocol format
 

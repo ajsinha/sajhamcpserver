@@ -13,7 +13,7 @@ Add a new tool by writing a small Python class and a JSON config. SAJHA picks up
 - A running server ([Tutorial 1](TUTORIAL_01_getting_started.md)) using the default **local** storage backend
 - Write access to the server's `sajha/tools/impl/` and `config/tools/` directories
 
-> **About MCP Studio:** The **MCP Studio** menu (`/studio`, `/studio/rest`, `/studio/dbquery`, `/studio/script`, …) opens the tool-creator pages. In the current build, their **Preview Tool** and **Deploy Tool** buttons post to `/admin/studio/...` endpoints that the server does not register, so they return 404. Until those endpoints come back, create tools by hand as shown below. The result is the same pair of files that Studio generates.
+> **Hand-written or generated.** MCP Studio (`/studio`) generates the same pair of files from a form and deploys them for you ([MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md); [Tutorial 14](TUTORIAL_14_sandboxed_studio_tools.md) uses it). This tutorial writes them by hand, so you see what a tool is made of.
 
 ## Steps
 

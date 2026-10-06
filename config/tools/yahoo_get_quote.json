@@ -9,8 +9,8 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol (e.g., AAPL, GOOGL, MSFT, TSLA, ^GSPC for S&P 500)",
-        "pattern": "^[A-Z^.]{1,10}$",
+        "description": "Stock ticker symbol (e.g., AAPL, BRK-A, ^GSPC for the S&P 500, BTC-USD, EURUSD=X, 7203.T)",
+        "pattern": "^[A-Za-z0-9^.=-]{1,20}$",
         "x-mcp-header": "Symbol"
       }
     },

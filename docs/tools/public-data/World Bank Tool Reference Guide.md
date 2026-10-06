@@ -1604,15 +1604,15 @@ result = tool.execute({
                        │ MCP Protocol
                        │
 ┌──────────────────────▼──────────────────────────────────────┐
-│            World Bank MCP Tools (10 Tools)                   │
+│            World Bank MCP Tools                              │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │         Metadata Tools (5)                           │   │
+│  │         Metadata Tools                               │   │
 │  │  • wb_get_countries     • wb_get_income_levels       │   │
 │  │  • wb_get_indicators    • wb_get_lending_types       │   │
 │  │  • wb_get_regions                                    │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │         Data Query Tools (5)                         │   │
+│  │         Data Query Tools                             │   │
 │  │  • wb_get_country_data   • wb_compare_countries      │   │
 │  │  • wb_get_indicator_data • wb_search_indicators      │   │
 │  │  • wb_get_topic_indicators                           │   │

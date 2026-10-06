@@ -9,6 +9,8 @@ import logging
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
 
+from sajha.olap import sql_safety as sq
+
 logger = logging.getLogger(__name__)
 
 
@@ -80,10 +82,13 @@ class SortSpec:
     nulls: Optional[str] = None  # FIRST or LAST
     
     def to_sql(self) -> str:
-        """Convert to SQL ORDER BY component."""
-        sql = f"{self.column} {self.direction}"
+        """Convert to SQL ORDER BY component (the column is an output alias)."""
+        sql = f"{sq.safe_alias(self.column)} {sq.direction(self.direction)}"
         if self.nulls:
-            sql += f" NULLS {self.nulls}"
+            nulls = str(self.nulls).upper()
+            if nulls not in ("FIRST", "LAST"):
+                raise sq.OLAPQueryError(f"nulls must be FIRST or LAST, got {self.nulls!r}")
+            sql += f" NULLS {nulls}"
         return sql
 
 
@@ -120,43 +125,19 @@ class OLAPQueryBuilder:
         if not dataset:
             raise ValueError(f"Dataset '{dataset_name}' not found")
         
-        # Start with source table
-        sql = f"SELECT * FROM {dataset.source_table}"
-        
-        # Add joins
-        for join in dataset.joins:
-            alias = f" AS {join.alias}" if join.alias else ""
-            sql += f"\n{join.join_type} JOIN {join.table}{alias} ON {join.on_clause}"
-        
-        # Add filters
-        if filters:
-            where_clauses = self._build_filters(filters, dataset)
-            if where_clauses:
-                sql += f"\nWHERE {' AND '.join(where_clauses)}"
-        
-        return sql
+        # Filter columns are declared dimensions; values are $olap_* parameters, so
+        # execute the result with filter_params(dataset_name, filters) (see sql_safety).
+        return sq.base_query(self.semantic, dataset, filters)
     
     def _build_filters(self, filters: List[Dict[str, Any]], 
                        dataset) -> List[str]:
         """Build WHERE clause components from filter specifications."""
-        clauses = []
-        
-        for f in filters:
-            dim_name = f.get("dimension") or f.get("column")
-            operator = f.get("operator", "=")
-            value = f.get("value")
-            
-            # Resolve dimension to column expression
-            col_expr = self.semantic.resolve_dimension(dim_name, dataset)
-            
-            filter_obj = Filter(
-                dimension=dim_name,
-                operator=operator,
-                value=value
-            )
-            clauses.append(filter_obj.to_sql(col_expr))
-        
-        return clauses
+        return sq.compile_filters(self.semantic, dataset, filters)[0]
+
+    def filter_params(self, dataset_name: str, filters: List[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """The parameter values the SQL from build_base_query/build_aggregation_query binds."""
+        dataset = self.semantic.get_dataset(dataset_name)
+        return sq.filter_params(self.semantic, dataset, filters) if dataset else {}
     
     def build_select_columns(self, dimensions: List[str], 
                              measures: List[Dict[str, Any]],
@@ -169,7 +150,7 @@ class OLAPQueryBuilder:
         """
         dim_exprs = []
         for dim in dimensions:
-            expr = self.semantic.resolve_dimension(dim, dataset)
+            expr = sq.dimension_expr(self.semantic, dataset, dim)
             dim_exprs.append(f"{expr} AS {self._safe_alias(dim)}")
         
         measure_exprs = []
@@ -181,7 +162,7 @@ class OLAPQueryBuilder:
             aggregation = m.get("aggregation")
             alias = m.get("alias", measure_name)
             
-            expr = self.semantic.resolve_measure(measure_name, aggregation)
+            expr = sq.measure_expr(self.semantic, dataset, measure_name, aggregation)
             measure_exprs.append(f"{expr} AS {self._safe_alias(alias)}")
         
         return dim_exprs, measure_exprs
@@ -193,8 +174,7 @@ class OLAPQueryBuilder:
         
         exprs = []
         for dim in dimensions:
-            expr = self.semantic.resolve_dimension(dim, dataset)
-            exprs.append(expr)
+            exprs.append(sq.dimension_expr(self.semantic, dataset, dim))
         
         return f"GROUP BY {', '.join(exprs)}"
     
@@ -260,7 +240,7 @@ FROM ({base_sql}) AS base
             sql += f"\n{self.build_order_by(sort)}"
         
         if limit:
-            sql += f"\nLIMIT {limit}"
+            sql += f"\nLIMIT {sq.integer(limit, 'limit', 1)}"
         
         return sql.strip()
     

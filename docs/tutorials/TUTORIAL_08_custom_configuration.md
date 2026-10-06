@@ -83,6 +83,8 @@ Resolution order, highest first:
 2. The YAML value, after `${VAR:default}` substitution
 3. The built-in default
 
+Not every section follows this rule exactly: `storage.*` also honours a few shorter names, `ai.*` uses its own `SAJHA_AI_<SECTION>_<FIELD>` form ([Intelligence Layer](../architecture/Intelligence%20Layer.md#4-configuration)), and the `${key}` references inside tool configs read the YAML only, so use a `${VAR:default}` placeholder there. Which reader applies to each key is in the [Configuration Reference](../getting-started/Configuration%20Reference.md#three-readers).
+
 ### 6. Understand the flattened keys
 
 Nested YAML is flattened to dot notation, and the code reads settings by these names:
@@ -97,11 +99,9 @@ db:
 
 A key with an empty value (`key: ""`) counts as set to the empty string. A key that is absent or null falls back to the built-in default.
 
-> **Known gap:** In the current build, the `shell:` and `async:` sections are not read. Their setting fields in `sajha/core/config.py` sit after the `return` in `get_settings()`, so they are never defined. As a result, the shell sandbox stays disabled whatever `shell.enabled` says, and the async executor runs on its built-in defaults.
-
 ## What next
 
-- [Quick Start](../getting-started/Quick%20Start.md)
+- [Configuration Reference](../getting-started/Configuration%20Reference.md): every key, its default and its reader
 - [Storage Guide](../getting-started/Storage%20Guide.md): `storage.backend` (local, s3, azure, gcs)
 - [MCP Protocol Guide](../protocol/MCP%20Protocol%20Guide.md): the `mcp:` settings, including authentication
 - Next tutorial: [Call SAJHA from the Standard MCP Client](TUTORIAL_09_call_sajha_from_the_standard_mcp_client.md)

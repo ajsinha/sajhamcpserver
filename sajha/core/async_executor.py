@@ -41,6 +41,19 @@ class AsyncTaskStatus(str, Enum):
     DELIVERED = "delivered"
 
 
+def _run_as_submitter(task, fn):
+    """Run ``fn`` as the task's submitter with source ``async`` (policy rules, usage ledger)."""
+    from sajha.observability.caller import Caller, reset, set_caller
+    from sajha.policy.context import reset_source, set_source
+    who = getattr(task, '_caller', None) or Caller(user_id=task.user_id or 'anonymous')
+    t_caller, t_source = set_caller(who), set_source('async')
+    try:
+        return fn()
+    finally:
+        reset(t_caller)
+        reset_source(t_source)
+
+
 @dataclass
 class AsyncTask:
     """A background tool execution task."""
@@ -478,6 +491,12 @@ class AsyncExecutor:
         )
         from sajha.core.state import WORKER_ID
         task.worker = WORKER_ID
+        try:   # the submitter, for the usage ledger and the policy engine (not persisted)
+            from sajha.observability.caller import current as _current_caller
+            who = _current_caller()
+            task._caller = who if who.user_id == (user_id or who.user_id) else None
+        except Exception:
+            task._caller = None
 
         with self._lock:
             self._tasks[task.task_id] = task
@@ -595,7 +614,7 @@ class AsyncExecutor:
                 raise ValueError(f"Tool not found: {task.tool_name}")
 
             # Execute (reuses cache, circuit breaker, replay)
-            result = tool.execute_with_tracking(task.arguments)
+            result = _run_as_submitter(task, lambda: tool.execute_with_tracking(task.arguments))
             task.result = result
             task.status = AsyncTaskStatus.COMPLETED
             task.completed_at = time.time()

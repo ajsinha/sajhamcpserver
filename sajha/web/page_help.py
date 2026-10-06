@@ -86,9 +86,11 @@ PAGE_HELP: dict = {
     # ── AI ───────────────────────────────────────────────────────────────────
     'ask_page': {
         'what': 'Ask a question in plain words: SAJHA picks tools, runs them with your permissions, '
-                'and answers with its sources and a confidence score, drawing each step on the tool sky.',
+                'and answers with its sources and a confidence score, drawing each step on the tool sky. '
+                'Follow-up questions use the earlier turns; New chat starts a new conversation.',
         'terms': ['Ask SAJHA', 'Intelligence layer', 'Semantic tool search', 'Confidence score',
-                  'destructiveHint', 'Mock provider'],
+                  'destructiveHint', 'Mock provider', 'Planner', 'Plan event', 'Conversation memory',
+                  'sajha_search_docs'],
         'guide': 'Intelligence Layer.md'},
     'playground_page': {
         'what': 'Run Python in your browser (Pyodide): numpy, pandas and matplotlib, with import sajha '
@@ -96,10 +98,10 @@ PAGE_HELP: dict = {
         'terms': ['Playground', 'Pyodide', 'WebAssembly', 'Cross-origin isolation', 'Tool'],
         'guide': 'Python Playground.md'},
     'ai_settings_page': {
-        'what': 'LLM providers, their models and the default the server uses.',
-        'terms': ['LLM gateway', 'Semantic tool search', 'Embedding', 'bm25 (embedder)',
-                  'gateway (embedder)'],
-        'guide': 'Architecture.md'},
+        'what': 'LLM providers, their models and the default the server uses, and how tools are found by search.',
+        'terms': ['LLM gateway', 'LLM provider', 'Mock provider', 'Semantic tool search',
+                  'Embedding', 'bm25 (embedder)', 'gateway (embedder)'],
+        'guide': 'Intelligence Layer.md'},
     # ── Monitor ──────────────────────────────────────────────────────────────
     'monitoring_tools': {
         'what': 'Calls, latency and errors per tool, refreshed while the page is open.',
@@ -131,6 +133,15 @@ PAGE_HELP: dict = {
         'what': 'Change your own password; required while it is a default or an administrator set it.',
         'terms': ['Password hash', 'Must change password', 'Account lockout', 'Session token'],
         'guide': 'Security Model.md'},
+    'account_connections_page': {
+        'what': 'Link your accounts at other services once (GitHub, Slack, Google, Microsoft 365, ...); tools that '
+                'need one then act as you there. Tokens stay encrypted on the server and are never shown.',
+        'terms': ['Connected account', 'Connected-account provider', 'Token vault', 'PKCE', 'Scope'],
+        'guide': 'Connected Accounts.md'},
+    'account_connections_callback': {
+        'what': 'Where a service sends you back after you approve a link; on a problem it explains what went wrong.',
+        'terms': ['Connected account', 'PKCE', 'Token vault'],
+        'guide': 'Connected Accounts.md'},
     'admin_user_create_page': {
         'what': 'Create an account and give it a role.',
         'terms': ['User ID', 'RBAC', 'Password hash', 'Role', 'Tool access', 'Account status'],
@@ -159,6 +170,27 @@ PAGE_HELP: dict = {
         'what': 'Upstream MCP servers whose tools SAJHA re-exposes: their state, and approval of what they offer.',
         'terms': ['Federation', 'Upstream', 'Namespaced tool', 'Circuit breaker', 'Tool access'],
         'guide': 'Federation.md'},
+    'admin_connections_page': {
+        'what': 'Which services each user has linked, with what access and when last used; unlink an account, '
+                're-encrypt the vault after a key change. Never a token.',
+        'terms': ['Connected account', 'Token vault', 'Vault key', 'Audit log'],
+        'guide': 'Connected Accounts.md'},
+    'admin_policies_page': {
+        'what': 'The policy files: rules evaluated before every tool call on every path, and a test bench that '
+                'answers "would this call be allowed?" without running it.',
+        'terms': ['Policy engine', 'Policy rule', 'Policy effect', 'Argument constraint', 'Quota',
+                  'Output redaction', 'Output screening', 'Policy test bench'],
+        'guide': 'Policy and Audit.md'},
+    'admin_approvals_page': {
+        'what': 'Tool calls a policy holds for a human decision: approve or deny each; an approval lets the '
+                'same caller make the same call once.',
+        'terms': ['Require approval', 'Approval grant', 'Call fingerprint', 'State store'],
+        'guide': 'Policy and Audit.md'},
+    'admin_audit_page': {
+        'what': 'The tamper-evident audit: verify every hash chain, read recent records across workers, '
+                'anchor the chain head, watch the SIEM sinks.',
+        'terms': ['Audit log', 'Audit hash chain', 'Audit anchor', 'SIEM export', 'CEF', 'OCSF'],
+        'guide': 'Policy and Audit.md'},
     'admin_async_tasks_page': {
         'what': 'Background tool runs submitted for asynchronous execution, and where their results go.',
         'terms': ['Async execution', 'AsyncTask', 'DeliveryRouter', 'Backpressure'],
@@ -178,6 +210,11 @@ PAGE_HELP: dict = {
         'terms': ['REST', 'HTTP method', 'Endpoint', 'Path parameter', 'Content-Type',
                   'Basic authentication', 'API key (REST creator)', 'JSON Schema'],
         'guide': 'MCP Studio REST Tool Creator Guide.md'},
+    'studio_api_import': {
+        'what': 'Import an OpenAPI, Swagger or GraphQL API: preview its operations, set credentials, test one, deploy the ones you choose.',
+        'terms': ['API Import', 'OpenAPI', 'Swagger 2.0', 'GraphQL introspection', '$ref', 'Import record',
+                  'Secret reference', 'Annotations', 'SSRF'],
+        'guide': 'API Import.md'},
     'studio_dbquery': {
         'what': 'Turn a parameterised SQL query into a tool.',
         'terms': ['Query template', 'Parameter escaping', 'Connection string', 'DuckDB',

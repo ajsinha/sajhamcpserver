@@ -17,13 +17,22 @@
         "properties": {
             "operation": {
                 "type": "string",
-                "required": true,
-                "enum": ["get_lists", "get_list_items", "get_item", "create_item", "update_item", "delete_item", "get_list_schema", "query_items"],
-                "description": "List operation to perform"
+                "enum": [
+                    "get_lists",
+                    "get_list_items",
+                    "get_item",
+                    "create_item",
+                    "update_item",
+                    "delete_item",
+                    "get_list_schema",
+                    "query_items"
+                ],
+                "description": "List operation to perform",
+                "default": "get_lists"
             },
             "list_name": {
                 "type": "string",
-                "description": "SharePoint list name"
+                "description": "List title (or id)"
             },
             "item_id": {
                 "type": "integer",
@@ -35,36 +44,51 @@
             },
             "filter": {
                 "type": "string",
-                "description": "OData filter query"
+                "description": "OData $filter over item columns, addressed as fields/<Column>, e.g. fields/Status eq 'Active'"
             },
             "select_fields": {
                 "type": "array",
-                "items": {"type": "string"},
+                "items": {
+                    "type": "string"
+                },
                 "description": "Fields to select"
             },
             "order_by": {
                 "type": "string",
-                "description": "Order by field"
+                "description": "OData $orderby, e.g. fields/Created desc"
             },
             "top": {
                 "type": "integer",
                 "default": 100,
-                "description": "Number of items to return"
+                "description": "Number of items to return",
+                "minimum": 0,
+                "maximum": 5000
             },
             "skip": {
                 "type": "integer",
                 "default": 0,
-                "description": "Number of items to skip"
+                "description": "Number of items to skip",
+                "minimum": 0
             }
-        }
+        },
+        "required": [
+            "operation"
+        ]
     },
     "metadata": {
         "author": "Ashutosh Sinha",
-        "tags": ["sharepoint", "lists", "microsoft", "office365"],
+        "tags": [
+            "sharepoint",
+            "lists",
+            "microsoft",
+            "office365"
+        ],
         "examples": [
             {
                 "description": "Get all lists",
-                "input": {"operation": "get_lists"}
+                "input": {
+                    "operation": "get_lists"
+                }
             },
             {
                 "description": "Get items from a list",
@@ -79,7 +103,7 @@
                 "input": {
                     "operation": "query_items",
                     "list_name": "Projects",
-                    "filter": "Status eq 'Active'"
+                    "filter": "fields/Status eq 'Active'"
                 }
             }
         ]

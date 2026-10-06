@@ -1,4 +1,4 @@
-# Tutorial 13: Run SAJHA on several workers
+# Tutorial 13: Run SAJHA on Several Workers
 
 In this tutorial you run SAJHA as more than one process and let the processes share their
 state through Redis. You will see what SAJHA warns about when the state is not shared,
@@ -135,10 +135,15 @@ hosts, use PostgreSQL (`db.type: postgresql`) or Redis. SQLite cannot be shared 
   budgets
 - A change notification that reaches clients whichever worker they are connected to
 
-## Next steps
+## What next
 
 - For production compose files, use the optional `scale` profile in
   [deployment/hetzner/docker-compose.yml](../../deployment/hetzner/docker-compose.yml), and
   read [deployment/README.md](../../deployment/README.md#several-workers-or-hosts)
 - Before you add a second host, check the secrets that every worker must share in
   [Scaling and State §5](../architecture/Scaling%20and%20State.md#5-secrets-every-worker-must-share)
+- Next tutorial: [Sandboxed Studio Tools](TUTORIAL_14_sandboxed_studio_tools.md)
+
+---
+
+Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.

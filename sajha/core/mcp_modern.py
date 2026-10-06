@@ -622,6 +622,8 @@ class ModernMCPServer:
     def _caller_scoped(self, method: str, session: Optional[Dict]) -> bool:
         if method == "tools/list":
             return self.handler.tools_list_is_caller_scoped(session)
+        if method in ("prompts/list", "resources/list", "resources/read"):
+            return self.handler.catalog_is_caller_scoped(session)
         return False
 
     # -- entry point -----------------------------------------------
@@ -640,6 +642,8 @@ class ModernMCPServer:
         meta = meta if isinstance(meta, dict) else {}
         tp, ts = meta.get("traceparent"), meta.get("tracestate")
         token = _caller.set_caller(_caller.from_session(session))
+        from sajha.policy import context as _pctx
+        src_token = _pctx.ensure_source("mcp")      # stdio sets "stdio" first
         t0 = _time.perf_counter()
         outcome = "error"
         try:
@@ -666,6 +670,7 @@ class ModernMCPServer:
             _metrics.record_mcp("modern", name, outcome, _time.perf_counter() - t0)
             if outcome != "stream":          # a stream's tool runs later, as this caller
                 _caller.reset(token)
+                _pctx.reset_source(src_token)
 
     async def _handle(self, body: Any, headers: Mapping[str, str], raw_headers: List[Tuple[str, str]],
                       session: Optional[Dict], receive: Optional[Callable[[], Awaitable[Dict[str, Any]]]] = None
@@ -805,9 +810,9 @@ class ModernMCPServer:
         elif method in MRTR_METHODS:
             result = await self._with_mrtr(method, params, ctx, raw_headers, session, scope)
         elif method == "prompts/list":
-            result = await run_in_threadpool(h.handle_prompts_list, params, "modern")
+            result = await run_in_threadpool(h.handle_prompts_list, params, "modern", session)
         elif method == "resources/list":
-            result = await run_in_threadpool(h._handle_resources_list, params)
+            result = await run_in_threadpool(h._handle_resources_list, params, session)
             if mcp_apps.apps_enabled() and not result.get("nextCursor"):
                 # MCP Apps ui:// views ride on the last page
                 result = dict(result, resources=list(result.get("resources") or []) + mcp_apps.resources())
@@ -816,7 +821,7 @@ class ModernMCPServer:
         elif method in self.TASK_METHODS:
             result = self._task_method(method, params, ctx, session)
         else:  # completion/complete
-            result = await run_in_threadpool(h._handle_completion_complete, params)
+            result = await run_in_threadpool(h._handle_completion_complete, params, session)
         return self._finish(method, dict(result or {}), session)
 
     def _finish(self, method: str, result: Dict[str, Any], session: Optional[Dict]) -> Dict[str, Any]:
@@ -870,13 +875,13 @@ class ModernMCPServer:
             if method == "tools/call":
                 return await self._tools_call(params, ctx, raw_headers, session, tool_ctx)
             if method == "prompts/get":
-                return await self._prompts_get(params, tool_ctx)
+                return await self._prompts_get(params, tool_ctx, session)
             uri = params.get("uri")
             if isinstance(uri, str) and uri.startswith("ui://") and mcp_apps.apps_enabled():
                 view = await run_in_threadpool(mcp_apps.read, uri)
                 if view is not None:
                     return view
-            return await run_in_threadpool(self.handler._handle_resources_read, params)
+            return await run_in_threadpool(self.handler._handle_resources_read, params, session)
         except InputRequired as ir:
             missing = missing_capabilities_for(ir.requests, ctx.client_capabilities)
             if missing:
@@ -892,7 +897,8 @@ class ModernMCPServer:
                                            round_no=int(round_no) + 1),
             }
 
-    async def _prompts_get(self, params: Dict[str, Any], tool_ctx: ModernToolContext) -> Dict[str, Any]:
+    async def _prompts_get(self, params: Dict[str, Any], tool_ctx: ModernToolContext,
+                           session: Optional[Dict] = None) -> Dict[str, Any]:
         fixtures = self.handler._fixtures()
         name = params.get("name")
         if fixtures and isinstance(name, str) and fixtures.has_prompt(name, "modern"):
@@ -901,7 +907,7 @@ class ModernMCPServer:
                                                tool_ctx)
             except ValueError as e:
                 raise MCPError(INVALID_PARAMS, str(e))
-        return await run_in_threadpool(self.handler.handle_prompts_get, params)
+        return await run_in_threadpool(self.handler.handle_prompts_get, params, session)
 
     # -- tools/call ------------------------------------------------------
 

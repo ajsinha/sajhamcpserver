@@ -1,0 +1,99 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Connected accounts (administration): who linked which service. Never a token.
+Design: docs/architecture/Connected Accounts.md
+-->
+{% block title %}Connected accounts (all users) - SAJHA MCP Server{% endblock %}
+
+{% block content %}
+<div class="container-fluid acct-page">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-link-45deg me-2" aria-hidden="true"></i>Connected accounts: all users</h1>
+      <small class="text-muted">Which services each user has linked, with what access and when it was last used. Tokens are encrypted in the vault and are never shown, here or anywhere.</small>
+    </div>
+    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('account_connections_page') }}"><i class="bi bi-person me-1" aria-hidden="true"></i>My connections</a>
+  </div>
+
+  {% if notice %}<div class="alert alert-success" role="status">{{ notice }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+  {% if not enabled %}<div class="alert alert-info" role="status">Connected accounts are turned off (<code>accounts.enabled</code>).</div>{% endif %}
+
+  <div class="acct-tiles mb-3">
+    <div class="obs-tile obs-tile-accent"><div class="obs-label">Links</div><div class="obs-value">{{ rows|length }}</div><div class="obs-sub">matching the filter</div></div>
+    <div class="obs-tile"><div class="obs-label">Need reconnecting</div><div class="obs-value">{{ rows|selectattr('status', 'ne', 'active')|list|length }}</div><div class="obs-sub">refresh refused or token revoked</div></div>
+    <div class="obs-tile"><div class="obs-label">Providers enabled</div><div class="obs-value">{{ providers|selectattr('configured')|list|length }}</div><div class="obs-sub">of {{ providers|length }} known</div></div>
+    <div class="obs-tile"><div class="obs-label">Vault key</div><div class="obs-value acct-kid">{{ current_key or '—' }}</div><div class="obs-sub">{{ key_usage.get(current_key, 0) }} link(s) under it</div></div>
+  </div>
+
+  {% if key_usage|length > 1 %}
+  <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" role="status">
+    <span>Some links are still encrypted with an earlier key ({% for k, n in key_usage.items() if k != current_key %}<code>{{ k }}</code>: {{ n }}{% if not loop.last %}, {% endif %}{% endfor %}). Keep it in <code>accounts.vault.previous_keys</code> until they are re-encrypted.</span>
+    <form method="post" action="/admin/connections/rotate" class="ms-auto">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="btn btn-sm btn-warning" type="submit"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Re-encrypt with the current key</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <form class="row g-2 align-items-end mb-3" method="get" action="/admin/connections">
+    <div class="col-sm-4 col-md-3"><label class="form-label small" for="fUser">User</label>
+      <input class="form-control form-control-sm" id="fUser" name="user" value="{{ filter_user }}" placeholder="any"></div>
+    <div class="col-sm-4 col-md-3"><label class="form-label small" for="fProv">Provider</label>
+      <select class="form-select form-select-sm" id="fProv" name="provider">
+        <option value="">any</option>
+        {% for p in providers %}<option value="{{ p.id }}"{% if p.id == filter_provider %} selected{% endif %}>{{ p.title }}</option>{% endfor %}
+      </select></div>
+    <div class="col-auto"><button class="btn btn-sm btn-primary" type="submit">Filter</button></div>
+  </form>
+
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">User</th><th scope="col">Provider</th><th scope="col">Account</th><th scope="col">Scopes</th>
+          <th scope="col">Status</th><th scope="col">Expires</th><th scope="col">Last used</th><th scope="col">Linked</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>{{ r.user_id }}</td>
+            <td>{{ r.provider }}</td>
+            <td>{{ r.account_login or '—' }}</td>
+            <td>{% for s in r.scopes %}<code class="acct-scope">{{ s }}</code>{% endfor %}</td>
+            <td>{% if r.status == 'active' %}<span class="obs-pill obs-ok">active</span>{% else %}<span class="obs-pill obs-bad" title="{{ r.last_error }}">reconnect</span>{% endif %}</td>
+            <td>{{ r.expires_at or 'never' }}{% if r.refreshable %} <i class="bi bi-arrow-repeat" title="refreshable" aria-label="refreshable"></i>{% endif %}</td>
+            <td>{{ r.last_used_at or '—' }}</td>
+            <td>{{ r.created_at }}</td>
+            <td class="text-end">
+              <form method="post" action="/admin/connections/revoke" onsubmit="return confirm('Unlink {{ r.provider }} for {{ r.user_id }}? The token is revoked where the service allows it and deleted.');">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <input type="hidden" name="user_id" value="{{ r.user_id }}">
+                <input type="hidden" name="provider" value="{{ r.provider }}">
+                <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Unlink {{ r.provider }} for {{ r.user_id }}"><i class="bi bi-x-circle" aria-hidden="true"></i></button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="9" class="text-muted text-center py-3">No connected accounts{% if filter_user or filter_provider %} match the filter{% endif %}.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2 class="h6 mt-4">Providers</h2>
+  <div class="table-responsive">
+    <table class="table table-sm obs-table">
+      <thead><tr><th scope="col">Id</th><th scope="col">Service</th><th scope="col">State</th><th scope="col">PKCE</th><th scope="col">Default scopes</th><th scope="col">Token sent only to</th></tr></thead>
+      <tbody>{% for p in providers %}
+        <tr><td><code>{{ p.id }}</code></td><td>{{ p.title }}</td>
+          <td>{% if p.configured %}<span class="obs-pill obs-ok">enabled</span>{% elif config_errors.get(p.id) %}<span class="obs-pill obs-bad" title="{{ config_errors[p.id] }}">invalid</span>{% else %}<span class="text-muted">no client id</span>{% endif %}</td>
+          <td>{{ 'yes' if p.pkce else 'no' }}</td>
+          <td>{% for s in p.scopes %}<code class="acct-scope">{{ s }}</code>{% endfor %}</td>
+          <td>{{ p.api_hosts|join(', ') }}</td></tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+  {% for k, v in config_errors.items() %}<div class="alert alert-warning small mb-1"><code>{{ k }}</code>: {{ v }}</div>{% endfor %}
+</div>
+{% endblock %}

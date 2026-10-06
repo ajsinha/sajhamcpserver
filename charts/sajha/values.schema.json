@@ -437,6 +437,13 @@
             },
             "urlKey": {
               "type": "string"
+            },
+            "schemaCheck": {
+              "type": "string",
+              "enum": [
+                "strict",
+                "warn"
+              ]
             }
           },
           "additionalProperties": false

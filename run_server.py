@@ -101,7 +101,9 @@ def main():
     logger.info(f'  Python:  {sys.version.split()[0]}')
     logger.info(f'  CWD:     {os.getcwd()}')
     logger.info(f'  Config:  {settings.config_source}')
-    logger.info(f'  DB:      {settings.db_type} → {settings.db_path}')
+    where = settings.db_path if settings.db_type == 'sqlite' else \
+        ('db.url' if settings.db_url else f'{settings.db_host}:{settings.db_port}/{settings.db_name}')
+    logger.info(f'  DB:      {settings.db_type} → {where}')
     logger.info(f'  Server:  http://{host}:{port}')
     logger.info('')
 

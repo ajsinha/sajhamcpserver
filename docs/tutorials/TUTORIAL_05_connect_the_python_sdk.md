@@ -56,11 +56,11 @@ print(result)
 from sajhaclient import SajhaClient, SajhaConfig, ApiKeyAuth
 
 keyed = SajhaClient(SajhaConfig(base_url="http://localhost:3002"), auth=ApiKeyAuth("sja_your_key"))
-keyed.list_tools()                     # works
-keyed.get_tool_schema("calc_npv")      # works
+keyed.list_tools()
+keyed.execute_tool("calc_npv", discount_rate=8, cash_flows=[-1000, 300, 400, 500])
 ```
 
-> In the current build, `execute_tool` with an API key raises `SajhaPermissionError` (HTTP 403 from `POST /api/tools/execute`). The REST execute path checks user role permissions, which an API key does not have. To execute tools with an API key, use the MCP clients in steps 5–6, or `SajhaMCPClient` in [Tutorial 9](TUTORIAL_09_call_sajha_from_the_standard_mcp_client.md).
+An API key runs exactly the tools its tool access mode allows; a tool outside it raises `SajhaPermissionError` (HTTP 403).
 
 ### 4. Chain tools on the client with `ClientPipeline`
 

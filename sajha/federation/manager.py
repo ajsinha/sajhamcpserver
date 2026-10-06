@@ -69,7 +69,10 @@ class _Upstream:
         self.limiter = None
         if config.max_calls_per_minute:
             from sajha.security import RateLimiter
-            self.limiter = RateLimiter(max_requests=config.max_calls_per_minute, window_seconds=60)
+            # Named per upstream: the window key is ratelimit:<name>:calls, so a shared
+            # default name would put every upstream in one window.
+            self.limiter = RateLimiter(max_requests=config.max_calls_per_minute, window_seconds=60,
+                                       name=f'federation:{config.id}')
 
 
 class FederationManager:
@@ -445,7 +448,13 @@ class FederationManager:
         return out
 
     def _sync_registry(self, changed_upstream: Optional[str] = None) -> None:
-        """Make the registry's federated tools match the approved set (thread-safe, idempotent)."""
+        """Make the registry's federated tools match the approved set (thread-safe, idempotent);
+        the registry announces the result once, not once per federated tool."""
+        from sajha.tools.tools_registry import registry_bulk
+        with registry_bulk(self.registry):
+            self._sync_registry_now(changed_upstream)
+
+    def _sync_registry_now(self, changed_upstream: Optional[str] = None) -> None:
         reg = self.registry
         with self._lock:
             desired = self._desired_tools()
@@ -556,10 +565,17 @@ class FederationManager:
         up.calls += 1
         up.last_call = started
         try:
+            # Per-user token passthrough (auth.type connected_account): the caller's own token,
+            # on a connection of its own; ConnectedAccountRequired when the caller has none.
+            user_token = self._caller_token(up, tool) if self._passthrough(up) else None
             for attempt in range(attempts):
                 try:
-                    result = self._wait(up.conn.call_tool(tool.upstream_name, arguments, timeout, progress,
-                                                          responses, request_state), timeout + 5.0, ctx)
+                    if user_token is not None:
+                        result = self._call_as_user(up, tool, user_token, arguments, timeout, progress,
+                                                    responses, request_state, ctx)
+                    else:
+                        result = self._wait(up.conn.call_tool(tool.upstream_name, arguments, timeout, progress,
+                                                              responses, request_state), timeout + 5.0, ctx)
                     break
                 except UpstreamUnavailable:
                     if attempt + 1 >= attempts:
@@ -589,6 +605,38 @@ class FederationManager:
             raise
         finally:
             up.total_ms += (time.time() - started) * 1000
+
+    @staticmethod
+    def _passthrough(up: _Upstream) -> bool:
+        return (up.config.auth or {}).get('type') == 'connected_account'
+
+    @staticmethod
+    def _caller_token(up: _Upstream, tool: FederatedTool):
+        """The calling user's token for the upstream's provider (sajha/accounts); raises
+        ConnectedAccountRequired (an InputRequired) when there is no usable link."""
+        from sajha.accounts.injection import caller_user_id
+        from sajha.accounts.service import get_service
+        a = up.config.auth or {}
+        return get_service().resolve(caller_user_id(), str(a.get('provider')), list(a.get('scopes') or []),
+                                     tool=tool.name)
+
+    def _call_as_user(self, up: _Upstream, tool: FederatedTool, token, arguments, timeout, progress,
+                      responses, request_state, ctx):
+        """tools/call with the user's bearer token; on HTTP 401 refresh once, then ask to reconnect."""
+        from sajha.accounts.service import get_service
+        from sajha.federation.connection import UpstreamUnauthorized
+        for attempt in range(2):
+            try:
+                return self._wait(up.conn.call_tool_as(token.access_token, tool.upstream_name, arguments, timeout,
+                                                       progress, responses, request_state), timeout + 5.0, ctx)
+            except UpstreamUnauthorized:
+                svc = get_service()
+                if attempt == 0:
+                    token = svc.refresh_after_rejection(token, tool=tool.name)
+                    continue
+                svc.mark_rejected(token, f'upstream {up.config.id} refused the token')
+                raise svc.required(token.provider.id, 'reauth_required', token.user_id, tool=tool.name)
+        raise AssertionError('unreachable')
 
     def _wait(self, coro, timeout: float, ctx=None):
         """Wait for a coroutine on the federation loop; cancel it when the caller is cancelled."""

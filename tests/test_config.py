@@ -35,7 +35,7 @@ class TestYamlFlattening:
         assert flat['x.flag'] == 'True'
         assert flat['x.count'] == '42'
         assert flat['x.name'] == 'test'
-        assert flat['x.empty'] == ''
+        assert 'x.empty' not in flat      # None is left out so the code default applies
 
     def test_empty_dict(self):
         from sajha.core.config import _flatten

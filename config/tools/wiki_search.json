@@ -23,7 +23,7 @@
       "language": {
         "type": "string",
         "description": "Wikipedia language edition (e.g., 'en' for English, 'es' for Spanish, 'fr' for French)",
-        "pattern": "^[a-z]{2,3}$",
+        "pattern": "^[a-z][a-z-]{1,15}$",
         "default": "en"
       }
     },

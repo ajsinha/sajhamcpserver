@@ -23,6 +23,8 @@ There are two kinds of FRED tool:
 - **Fixed-series tools** (Kind = fixed below; a dedicated class per series, e.g. `fred_gdp`, `fred_unemployment`) accept one optional argument, `limit` (number of observations).
 - **Series-ID tools** (Kind = series-ID below, e.g. `fred_5yr_treasury`, `fred_gold_price`, `fred_custom_series`) are implemented by `FREDCustomSeriesTool` and accept `series_id` and `limit`. Their configs give `series_id` a default (the series named in the table), but schema defaults are not applied server-side, so **pass `series_id` explicitly**. For `fred_custom_series` it is required.
 
+Every tool returns the **most recent** `limit` observations, **newest first**: the request sends `sort_order=desc` (FRED's own default is ascending, where `limit` would return the oldest observations, e.g. GDP from 1947). Reverse the list for a chronological chart. When `limit` is omitted the tool's own default applies (40 for `fred_gdp`, `fred_gdp_growth` and `fred_national_debt`, 60 otherwise; the configs' schema default of 30 is not applied server-side).
+
 ## Tools
 
 The tables below are generated from the tool configs in `config/tools/`; the live catalog in the app (Tools page, or `tools/list`) is authoritative.

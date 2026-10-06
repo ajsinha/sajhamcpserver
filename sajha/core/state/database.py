@@ -3,8 +3,9 @@ Database state store (``state.backend: database``, and the durable task store).
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 
 Uses SAJHA's SQLAlchemy engine (``db.*``: SQLite or PostgreSQL) unless
-``state.database.url`` names another database.  Two tables, created on first
-use (they are not part of ``db/scripts``):
+``state.database.url`` names another database.  Two tables, defined in
+``db/scripts/<dialect>/schema.sql`` (created on first use on SQLite only; on
+PostgreSQL a missing table is an error, never created here):
 
     sajha_state         k (PK), v (JSON text), ver (optimistic version), expires_at
     sajha_state_events  id (autoincrement), channel, payload, created_at
@@ -27,8 +28,8 @@ import threading
 import time
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
-from sqlalchemy import (Column, Float, Integer, MetaData, String, Table, Text, and_, delete, func, insert,
-                        or_, select, update)
+from sqlalchemy import (BigInteger, Column, Float, Integer, MetaData, String, Table, Text, and_, delete, func,
+                        insert, or_, select, update)
 from sqlalchemy.exc import IntegrityError
 
 from sajha.core.state.base import MessageHandler, StateStore, dumps, loads
@@ -45,11 +46,33 @@ STATE_TABLE = Table(
 )
 EVENTS_TABLE = Table(
     "sajha_state_events", _meta,
-    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("id", BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True),
     Column("channel", String(200), nullable=False),
     Column("payload", Text, nullable=False),
     Column("created_at", Float, nullable=False),
 )
+
+class StateSchemaMissing(RuntimeError):
+    """The state tables are missing on a database SAJHA must not change (run schema.sql there)."""
+
+
+def ensure_tables(engine) -> None:
+    """SQLite (development): create the two tables if missing.  Any other database: no DDL; the
+    tables come from db/scripts/<dialect>/schema.sql, and their absence is a clear error."""
+    if engine.dialect.name == "sqlite":
+        _meta.create_all(engine, checkfirst=True)
+        return
+    from sqlalchemy import inspect
+    insp = inspect(engine)
+    missing = [t.name for t in (STATE_TABLE, EVENTS_TABLE) if not insp.has_table(t.name)]
+    if missing:
+        from sajha.db.schema import apply_command
+        raise StateSchemaMissing(
+            f"state.backend database: table(s) {', '.join(missing)} missing in "
+            f"{engine.url.render_as_string(hide_password=True)}. SAJHA does not create tables on "
+            f"{engine.dialect.name}; create them from the schema file:  {apply_command(engine)}  "
+            f"(see docs/getting-started/Database Setup.md)")
+
 
 _EVENT_RETENTION_SECONDS = 60
 _RETRIES = 200
@@ -92,7 +115,7 @@ class DatabaseStateStore(StateStore):
         if not self._ready:
             with self._init_lock:
                 if not self._ready:
-                    _meta.create_all(self._engine, checkfirst=True)
+                    ensure_tables(self._engine)
                     self._ready = True
         return self._engine
 
@@ -308,6 +331,8 @@ class DatabaseStateStore(StateStore):
             with self.engine.connect() as c:
                 c.execute(select(1))
             return True
+        except StateSchemaMissing:
+            raise                    # its own message names the missing tables
         except Exception:
             return False
 

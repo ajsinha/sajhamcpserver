@@ -1,7 +1,7 @@
 # SAJHA MCP Server — MCP 2026-07-28 Compliance Report
 
 **Protocol versions supported:** 2026-07-28 (stateless, "modern") **plus** 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05 (handshake-era, "legacy"). SAJHA is a *dual-era* server.
-**Transport:** Streamable HTTP on `/mcp`. Legacy HTTP+SSE (`GET /mcp/sse`) and the WebSocket extension (`/mcp/ws`) are legacy-era only.
+**Transport:** Streamable HTTP on `/mcp`, and stdio for desktop clients (both eras; [MCP Protocol Guide §4](MCP%20Protocol%20Guide.md#stdio)). Legacy HTTP+SSE (`GET /mcp/sse`) and the WebSocket extension (`/mcp/ws`) are legacy-era only.
 **Verified with:** `@modelcontextprotocol/conformance` 0.2.0-alpha.12 (the first release with 2026-07-28 scenarios; 0.1.16 does not know this version) including the `io.modelcontextprotocol/tasks` extension scenarios, 0.1.16 for 2025-11-25, and the official Python SDK client (`mcp` 2.3.0).
 
 Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.
@@ -76,7 +76,7 @@ mcp:
     scope: auto               # auto | public | private
 ```
 
-With `scope: auto`, `cacheScope` is `"private"` when a result depends on the caller (per-user `tools/list` filtering through `MCPHandler.auth_manager`) and `"public"` otherwise. In this release the handler has no auth manager, so lists are always `"public"`. Environment overrides follow the usual pattern, for example `SAJHA_MCP_CACHE_LIST_TTL_MS`.
+With `scope: auto`, `cacheScope` is `"private"` when a result depends on the caller (an authenticated caller's `tools/list`, filtered by their tool access through `MCPHandler.auth_manager`) and `"public"` otherwise (anonymous callers all see the same anonymous-policy list). Environment overrides follow the usual pattern, for example `SAJHA_MCP_CACHE_LIST_TTL_MS`.
 
 ### 1.6 Error codes on the modern path
 
@@ -237,7 +237,7 @@ The same rules apply to the 2026-07-28 and 2025-11-25 paths of `POST /mcp` (and 
 | `optional` | OAuth bearer tokens are validated and accepted; anonymous calls still allowed; an *invalid* bearer gets 401 `error="invalid_token"`. |
 | `required` | No valid credential → **401** with `WWW-Authenticate: Bearer resource_metadata="<base>/.well-known/oauth-protected-resource/mcp", scope="mcp:read mcp:tools"`. |
 
-Existing SAJHA credentials (`X-API-Key` / `sja_` keys, SAJHA login JWTs, the `sajha_token` cookie) keep working in every mode and are not scope-checked (they identify the caller; per-role tool filtering on MCP is not active in this release, see the [Security Model](../security/Security%20Model.md)). OAuth access tokens are accepted **only** on the MCP endpoints, never on the REST API.
+Existing SAJHA credentials (`X-API-Key` / `sja_` keys, SAJHA login JWTs, the `sajha_token` cookie) keep working in every mode and are not scope-checked (they identify the caller, whose tool access then applies to `tools/list` and `tools/call`; see [Tool access](../security/Security%20Model.md#tool-access)). OAuth access tokens are accepted **only** on the MCP endpoints, never on the REST API.
 
 **Resource server (RFC 9728, RFC 8707, RFC 6750).**
 - Protected Resource Metadata at `/.well-known/oauth-protected-resource`, `/.well-known/oauth-protected-resource/mcp` and `.../api/mcp`: `resource` (= `<public_url>/mcp`), `authorization_servers`, `scopes_supported` (`mcp:read mcp:tools`, never `offline_access`), `bearer_methods_supported: ["header"]`.
@@ -262,7 +262,7 @@ Example: `calc_loan_amortization` now also returns `yearly_schedule` (principal,
 
 ### 4.3 `x-mcp-header` annotations on tool configs
 
-Tool configs may annotate a top-level (or nested, through `properties` only) `string`/`integer`/`boolean` input property with `"x-mcp-header": "<Token>"`; 2026-07-28 clients then mirror the argument as `Mcp-Param-<Token>`, and SAJHA rejects a missing, extra or different header with `-32020` (§1.3). Because clients must drop a whole tool whose annotations are invalid, SAJHA removes invalid annotations when the schema is loaded (not reachable via `properties`, not an RFC 9110 token, on a `number`/object/array property, or a case-insensitive duplicate) and logs one warning per tool. Annotated: `symbol` → `Mcp-Param-Symbol` on `yahoo_get_quote`, `av_stock_quote` and `fmp_stock_quote`.
+Tool configs may annotate a top-level (or nested, through `properties` only) `string`/`integer`/`boolean` input property with `"x-mcp-header": "<Token>"`; 2026-07-28 clients then mirror the argument as `Mcp-Param-<Token>`, and SAJHA rejects a missing, extra or different header with `-32020` (§1.3). Because clients must drop a whole tool whose annotations are invalid, SAJHA removes invalid annotations when the schema is loaded (not reachable via `properties`, not an RFC 9110 token, on a `number`/object/array property, or a case-insensitive duplicate) and logs one warning per tool. The shipped stock-quote tools annotate `symbol` → `Mcp-Param-Symbol`; how to find the current list is in the [MCP Apps and Headers Guide](MCP%20Apps%20and%20Headers%20Guide.md#2-x-mcp-header-arguments-as-http-headers).
 
 ---
 
@@ -339,7 +339,7 @@ Waves 2–3 with the same SDK (auto mode, elicitation / sampling / roots callbac
 
 ## 8. Known limits
 
-- **No resumability** on the modern path (by design of 2026-07-28); legacy streams keep SEP-1699 resumption.
+- **No resumability** on the modern path (by design of 2026-07-28). Legacy streams carry event IDs (and a priming event on streamed tool calls) but do not replay on reconnect: `Last-Event-ID` is ignored, because a stream belongs to one connection (see the 2025-11-25 report §7).
 - **Thread-pool tools are abandoned, not killed** on cancel; they stop early only if they poll `is_cancelled()`.
 - **Tasks and listen streams are per process with `state.backend: memory`** (the default): run one worker, or use `redis` or `database`, which share task records and relay change events to every worker's listen streams (the HMAC `requestState` is process-independent once `mcp.mrtr.state_secret` is set).
 - **Legacy streamable-HTTP sessions get no `list_changed`** (SAJHA has no GET stream; capability says `false`); 2024-11-05 SSE and WebSocket sessions do.

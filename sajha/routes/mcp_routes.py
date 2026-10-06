@@ -192,6 +192,8 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
         return Response(status_code=202)
 
     session_data = auth.to_legacy_session()  # identity + tool policy (anonymous too)
+    if mcp_session is not None:     # what the client can do (URL elicitation: sajha/accounts/respond.py)
+        session_data['client_capabilities'] = dict(mcp_session.client_capabilities or {})
 
     # Notification: no id -> 202, no body
     if body.get('jsonrpc') == '2.0' and isinstance(body.get('method'), str) and 'id' not in body:
@@ -370,21 +372,17 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
     session_id = str(uuid.uuid4())
     sse_queue = _sse_relay.register(session_id)
 
+    # Every connection is a new session with its own stream, so there is nothing to resume:
+    # events carry ids but Last-Event-ID is not honoured (the legacy transport never had it).
     from sajha.core.mcp_2025_11_25 import SSEEventTracker
     tracker = SSEEventTracker()
-    last_event_id = request.headers.get('Last-Event-ID')
 
     async def event_generator():
         forwarder = asyncio.create_task(forward_changes(sse_queue))
         try:
-            if last_event_id:
-                for missed in tracker.get_events_after(last_event_id):
-                    yield {'id': missed['id'], 'event': missed['event'], 'data': missed['data']}
-
             # First event: tell the legacy client where to POST
             eid = tracker.next_id(session_id)
             endpoint_data = f'/mcp?session={session_id}'
-            tracker.record_event(eid, 'endpoint', endpoint_data)
             yield {
                 'id': eid,
                 'event': 'endpoint',
@@ -398,7 +396,6 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
                     notification = await asyncio.wait_for(sse_queue.get(), timeout=5)
                     eid = tracker.next_id(session_id)
                     data = json.dumps(notification)
-                    tracker.record_event(eid, 'message', data)
                     yield {
                         'id': eid,
                         'event': 'message',
@@ -456,31 +453,27 @@ async def mcp_message(request: Request, db: Session = Depends(get_db)):
 
 @router.post('/api/resources/list')
 async def resources_list(request: Request, auth: AuthContext = Depends(require_auth)):
-    """MCP resources/list — expose datasets, docs, tool catalog."""
+    """MCP resources/list — expose datasets, docs, tool catalog (counting only the tools
+    this caller may see: the tools/list policy, sajha/auth/access.py)."""
     from sajha.app import tools_registry
+    from sajha.auth.access import policy_for
 
+    policy = policy_for(auth)
     resources = []
 
     # Tool catalog as a resource
+    visible = [n for n in (tools_registry.tools if tools_registry else {}) if policy.can_see(n)]
     resources.append({
         'uri': 'sajha://tools/catalog',
         'name': 'Tool Catalog',
         'mimeType': 'application/json',
-        'description': f'Catalog of {len(tools_registry.tools)} available MCP tools',
+        'description': f'Catalog of {len(visible)} available MCP tools',
     })
 
-    # Data directory files
-    import os
-    data_dir = 'data/duckdb'
-    if os.path.isdir(data_dir):
-        for fname in os.listdir(data_dir):
-            if fname.endswith(('.csv', '.parquet', '.json')):
-                resources.append({
-                    'uri': f'sajha://data/{fname}',
-                    'name': fname,
-                    'mimeType': 'application/octet-stream',
-                    'description': f'Data file: {fname}',
-                })
+    # Data directory files: the same listing and policy as MCP resources/list
+    from sajha.auth.access import mcp_session_for
+    from sajha.core import data_resources
+    resources.extend(data_resources.list_resources(mcp_session_for(auth)))
 
     return JSONResponse({
         'jsonrpc': '2.0',
@@ -490,14 +483,18 @@ async def resources_list(request: Request, auth: AuthContext = Depends(require_a
 
 @router.post('/api/resources/read')
 async def resources_read(request: Request, auth: AuthContext = Depends(require_auth)):
-    """MCP resources/read — read a resource by URI."""
+    """MCP resources/read — read a resource by URI (the tool catalog holds only the tools
+    this caller may see)."""
     from sajha.app import tools_registry
+    from sajha.auth.access import policy_for
 
     body = await request.json()
     uri = body.get('params', {}).get('uri', '')
 
     if uri == 'sajha://tools/catalog':
+        policy = policy_for(auth)
         tools = tools_registry.get_all_tools() if tools_registry else []
+        tools = [t for t in tools if policy.can_see(t.get('name'))]
         return JSONResponse({
             'jsonrpc': '2.0',
             'result': {
@@ -509,6 +506,21 @@ async def resources_read(request: Request, auth: AuthContext = Depends(require_a
             },
         })
 
+    if isinstance(uri, str) and uri.startswith('sajha://data/'):
+        # the same reader, path-traversal guard and policy as MCP resources/read
+        from sajha.auth.access import mcp_session_for
+        from sajha.core import data_resources
+        try:
+            result = data_resources.read_resource(uri, mcp_session_for(auth))
+        except Exception as e:
+            return JSONResponse({'jsonrpc': '2.0',
+                                 'error': {'code': -32603, 'message': f'Error reading resource: {e}'}})
+        if result is not None:
+            return JSONResponse({'jsonrpc': '2.0', 'result': result})
+        return JSONResponse({'jsonrpc': '2.0',
+                             'error': {'code': -32002, 'message': 'Resource not found',
+                                       'data': {'uri': uri}}})
+
     return JSONResponse({
         'jsonrpc': '2.0',
         'error': {'code': -32602, 'message': f'Unknown resource: {uri}'},
@@ -519,8 +531,9 @@ async def resources_read(request: Request, auth: AuthContext = Depends(require_a
 
 @router.post('/api/completion/complete')
 async def completion_complete(request: Request, auth: AuthContext = Depends(require_auth)):
-    """MCP completion/complete — argument auto-complete for tools."""
+    """MCP completion/complete — argument auto-complete for tools the caller may see."""
     from sajha.app import tools_registry
+    from sajha.auth.access import policy_for
 
     body = await request.json()
     params = body.get('params', {})
@@ -532,7 +545,7 @@ async def completion_complete(request: Request, auth: AuthContext = Depends(requ
         partial_value = params.get('argument', {}).get('value', '')
 
         tool = tools_registry.get_tool(tool_name) if tools_registry else None
-        if tool:
+        if tool and policy_for(auth).can_see(tool_name):
             schema = tool.input_schema
             prop = schema.get('properties', {}).get(argument_name, {})
             # If the property has an enum, filter by partial match

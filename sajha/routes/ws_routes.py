@@ -115,6 +115,8 @@ async def mcp_websocket(ws: WebSocket):
     Protocol: send/receive JSON-RPC 2.0 text frames.
     """
     from sajha.app import mcp_handler
+    from sajha.policy.context import set_source
+    set_source('websocket')      # policy rules can match sources: [websocket]; this connection's context only
 
     await ws.accept()
     session_id = str(uuid.uuid4())

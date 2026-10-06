@@ -160,7 +160,12 @@ The stdio process acts as one caller, mapped through SAJHA's access control:
 - `run_server.py --stdio` (or `sajha serve --stdio`) serves MCP to desktop clients, as
   the user or API key you choose
 
-## Next
+## What next
 
 - [Command Line](../clients/Command%20Line.md): every command, option and exit code
 - [Client SDK Guide](../clients/Client%20SDK%20Guide.md): the same operations from Python
+- Next tutorial: [Metrics, Costs and Alerts](TUTORIAL_16_metrics_costs_and_alerts.md)
+
+---
+
+Copyright © 2025–2030, Ashutosh Sinha. All rights reserved.

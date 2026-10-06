@@ -1,0 +1,16 @@
+# The second document of the GitHub-like subset (see github_subset_openapi.yaml).
+components:
+  schemas:
+    simple-user:
+      type: object
+      required: [login, id]
+      properties:
+        login:
+          type: string
+        id:
+          type: integer
+        site_admin:
+          type: boolean
+        email:
+          type: string
+          nullable: true

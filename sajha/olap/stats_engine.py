@@ -10,6 +10,8 @@ import logging
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
+from sajha.olap import sql_safety as sq
+
 logger = logging.getLogger(__name__)
 
 
@@ -116,6 +118,8 @@ class StatsEngine:
             
             if "percentiles" in spec.statistics:
                 for p in spec.percentiles:
+                    if isinstance(p, bool) or not isinstance(p, (int, float)) or not 0 <= p <= 1:
+                        raise sq.OLAPQueryError(f"percentiles must be numbers in [0, 1], got {p!r}")
                     p_name = f"p{int(p*100)}"
                     stats_functions.append(
                         f"PERCENTILE_CONT({p}) WITHIN GROUP (ORDER BY {col}) AS {alias}_{p_name}"
@@ -137,11 +141,11 @@ class StatsEngine:
         if spec.group_by:
             group_cols = []
             for g in spec.group_by:
-                col = self.semantic.resolve_dimension(g, dataset)
+                col = sq.dimension_expr(self.semantic, dataset, g)
                 alias = self._safe_alias(g)
                 group_cols.append(f"{col} AS {alias}")
             select_cols = ", ".join(group_cols) + ", "
-            group_clause = f"GROUP BY {', '.join([self.semantic.resolve_dimension(g, dataset) for g in spec.group_by])}"
+            group_clause = f"GROUP BY {', '.join([sq.dimension_expr(self.semantic, dataset, g) for g in spec.group_by])}"
         
         sql = f"""
 SELECT 
@@ -208,22 +212,23 @@ FROM ({base_sql}) AS base
         col = self._resolve_measure_column(spec.measure, dataset)
         
         # Use provided bounds or calculate from data
-        min_expr = str(spec.min_value) if spec.min_value is not None else f"MIN({col})"
-        max_expr = str(spec.max_value) if spec.max_value is not None else f"MAX({col})"
+        min_expr = sq.number(spec.min_value, "min_value") if spec.min_value is not None else f"MIN({col})"
+        max_expr = sq.number(spec.max_value, "max_value") if spec.max_value is not None else f"MAX({col})"
+        bins = sq.integer(spec.bins, "bins", 1, 1000)
         
         sql = f"""
 WITH bounds AS (
     SELECT 
         {min_expr} AS min_val,
         {max_expr} AS max_val,
-        ({max_expr} - {min_expr}) / {spec.bins}.0 AS bin_width
+        ({max_expr} - {min_expr}) / {bins}.0 AS bin_width
     FROM ({base_sql}) AS b
 ),
 binned AS (
     SELECT 
         CASE 
             WHEN bin_width = 0 THEN 0
-            ELSE LEAST(FLOOR(({col} - min_val) / NULLIF(bin_width, 0)), {spec.bins - 1})
+            ELSE LEAST(FLOOR(({col} - min_val) / NULLIF(bin_width, 0)), {bins - 1})
         END AS bin_num,
         min_val,
         bin_width,
@@ -323,55 +328,20 @@ FROM ({base_sql}) AS base
         return sql
     
     def _build_base_query(self, dataset, filters: List[Dict]) -> str:
-        """Build the base SELECT with joins and filters."""
-        sql = f"SELECT * FROM {dataset.source_table}"
-        
-        for join in dataset.joins:
-            alias = f" AS {join.alias}" if join.alias else ""
-            sql += f"\n{join.join_type} JOIN {join.table}{alias} ON {join.on_clause}"
-        
-        if filters:
-            where_clauses = self._build_filters(filters, dataset)
-            if where_clauses:
-                sql += f"\nWHERE {' AND '.join(where_clauses)}"
-        
-        return sql
+        """Build the base SELECT with joins and (parameterised) filters."""
+        return sq.base_query(self.semantic, dataset, filters)
     
     def _build_filters(self, filters: List[Dict], dataset) -> List[str]:
-        """Build WHERE clause components."""
-        clauses = []
-        for f in filters:
-            dim = f.get("dimension", f.get("column"))
-            op = f.get("operator", "=")
-            val = f.get("value")
-            
-            col = self.semantic.resolve_dimension(dim, dataset)
-            
-            if op.upper() == "IN":
-                if isinstance(val, list):
-                    formatted = ", ".join(f"'{v}'" if isinstance(v, str) else str(v) for v in val)
-                else:
-                    formatted = f"'{val}'" if isinstance(val, str) else str(val)
-                clauses.append(f"{col} IN ({formatted})")
-            else:
-                formatted = f"'{val}'" if isinstance(val, str) else str(val)
-                clauses.append(f"{col} {op} {formatted}")
-        
-        return clauses
+        """WHERE clause components; values are $olap_* parameters (see sql_safety)."""
+        return sq.compile_filters(self.semantic, dataset, filters)[0]
+
+    def _params(self, spec) -> Dict[str, Any]:
+        dataset = self.semantic.get_dataset(spec.dataset)
+        return sq.filter_params(self.semantic, dataset, spec.filters) if dataset else {}
     
     def _resolve_measure_column(self, measure: str, dataset) -> str:
-        """Resolve a measure name to its column expression."""
-        m = self.semantic.get_measure(measure)
-        if m:
-            # Extract column from expression like "SUM(amount)"
-            expr = m.expression
-            # Simple extraction - real implementation would parse properly
-            if "(" in expr and ")" in expr:
-                start = expr.index("(") + 1
-                end = expr.rindex(")")
-                return expr[start:end]
-            return expr
-        return measure
+        """The un-aggregated column behind a declared measure."""
+        return sq.measure_column(self.semantic, dataset, measure)
     
     def _safe_alias(self, name: str) -> str:
         """Convert a name to a safe SQL alias."""
@@ -396,7 +366,7 @@ FROM ({base_sql}) AS base
         sql = self.build_summary_statistics(spec)
         
         try:
-            result = self.conn.execute(sql).fetchall()
+            result = sq.execute(self.conn, sql, self._params(spec)).fetchall()
             columns = [desc[0] for desc in self.conn.description]
             
             # Convert to list of dicts
@@ -444,7 +414,7 @@ FROM ({base_sql}) AS base
         sql = self.build_histogram(spec)
         
         try:
-            result = self.conn.execute(sql).fetchall()
+            result = sq.execute(self.conn, sql, self._params(spec)).fetchall()
             columns = [desc[0] for desc in self.conn.description]
             
             data = []
@@ -487,7 +457,7 @@ FROM ({base_sql}) AS base
         sql = self.build_correlation_matrix(spec)
         
         try:
-            result = self.conn.execute(sql).fetchone()
+            result = sq.execute(self.conn, sql, self._params(spec)).fetchone()
             columns = [desc[0] for desc in self.conn.description]
             
             # Build correlation matrix

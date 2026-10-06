@@ -74,8 +74,8 @@ class YahooGetQuoteTool(YahooFinanceBaseTool):
             "properties": {
                 "symbol": {
                     "type": "string",
-                    "description": "Stock ticker symbol (e.g., AAPL, GOOGL, MSFT, TSLA, ^GSPC for S&P 500)",
-                    "pattern": "^[A-Z^.]{1,10}$"
+                    "description": "Stock ticker symbol (e.g., AAPL, BRK-A, ^GSPC for the S&P 500, BTC-USD, EURUSD=X, 7203.T)",
+                    "pattern": "^[A-Za-z0-9^.=-]{1,20}$"
                 }
             },
             "required": ["symbol"]
@@ -113,7 +113,7 @@ class YahooGetQuoteTool(YahooFinanceBaseTool):
         symbol = arguments['symbol'].upper()
         
         # Build Yahoo Finance API URL for quote
-        url = f"{self.base_url}/v10/finance/quoteSummary/{symbol}"
+        url = f"{self.base_url}/v10/finance/quoteSummary/{urllib.parse.quote(symbol, safe='')}"
         params = {
             'modules': 'price,summaryDetail,defaultKeyStatistics'
         }
@@ -211,7 +211,7 @@ class YahooGetHistoryTool(YahooFinanceBaseTool):
                 "symbol": {
                     "type": "string",
                     "description": "Stock ticker symbol",
-                    "pattern": "^[A-Z^.]{1,10}$"
+                    "pattern": "^[A-Za-z0-9^.=-]{1,20}$"
                 },
                 "period": {
                     "type": "string",
@@ -289,7 +289,7 @@ class YahooGetHistoryTool(YahooFinanceBaseTool):
             period2 = now
         
         # Build API URL
-        url = f"{self.base_url}/v8/finance/chart/{symbol}"
+        url = f"{self.base_url}/v8/finance/chart/{urllib.parse.quote(symbol, safe='')}"
         params = {
             'period1': period1,
             'period2': period2,

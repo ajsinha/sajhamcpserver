@@ -36,6 +36,17 @@ the same thing, merge them and leave a link.
 
 | Topic | Owner |
 |---|---|
+| Database schema (SQLite and PostgreSQL schema files, manual setup) | `docs/getting-started/Database Setup.md` |
+| Federation (other MCP servers' tools) | `docs/architecture/Federation.md` |
+| Sandboxed code tools | `docs/architecture/Sandbox.md` |
+| Metrics, tracing, usage and cost, alerts | `docs/architecture/Observability.md` |
+| Intelligence layer (LLM providers, models, Ask SAJHA) | `docs/architecture/Intelligence Layer.md` |
+| Extending the intelligence layer | `docs/architecture/Extending the Intelligence Layer.md` |
+| Connected accounts (per-user OAuth, token vault) | `docs/architecture/Connected Accounts.md` |
+| OpenAPI / GraphQL import | `docs/architecture/API Import.md` |
+| Command line and stdio for desktop clients | `docs/clients/Command Line.md` |
+| Kubernetes and Helm | `docs/getting-started/Kubernetes Deployment.md` |
+| Python playground | `docs/getting-started/Python Playground.md` |
 | Protocol behaviour (eras, transports, streaming, MRTR, tasks) | `docs/protocol/MCP Protocol Guide.md` |
 | Protocol evidence (requirements, conformance results, limits) | `docs/protocol/MCP 2026-07-28 Compliance.md`, `docs/protocol/MCP 2025-11-25 Compliance.md` |
 | OAuth on `/mcp` | `docs/protocol/OAuth Guide.md` |
@@ -132,6 +143,10 @@ the disagreement.
   YAML (with `${ENV:default}`) → code default, but not every subsystem reads through
   `_get` (storage and `${...}` in tool configs use `PropertiesConfigurator`; `ai.*`
   reads the raw YAML). The Configuration Reference records which keys behave how.
+- No database migrations. `db/scripts/<dialect>/schema.sql` (+ `seed.sql`) is the schema.
+  SAJHA never runs DDL on PostgreSQL (an operator runs the files with psql); only SQLite
+  creates tables itself. Change a model and both schema files together;
+  `tests/test_db_schema.py` enforces it. App code uses SQLAlchemy, not hand-written SQL.
 - Secrets never go in `config/application.yml`; it is tracked. Use environment
   variables. The OAuth signing key lives in `data/oauth/` (git-ignored).
 - Shared protocol state (MCP sessions, tasks, listen events, OAuth codes and refresh

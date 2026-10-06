@@ -119,6 +119,30 @@ def _get(key: str, default: str = '') -> str:
     return default
 
 
+def resolve_placeholders(text: str) -> str:
+    """
+    Resolve ``${key}`` and ``${key:default}`` in ``text`` the way tool configs are resolved:
+    the environment variable named ``key`` → ``SAJHA_<KEY>`` → YAML → the inline default.
+    A reference with no value and no default is left as written.
+
+    For values that may reach a tool without passing through the tools registry (a config
+    read straight from disk): a path such as ``${data.duckdb.dir:./data/duckdb}`` must never
+    be used literally, or a directory of that name appears in the working directory.
+    """
+    if not isinstance(text, str) or '${' not in text:
+        return text
+
+    def _replace(m):
+        key, default = m.group(1), m.group(2)
+        value = os.environ.get(key)
+        if value is None:
+            value = _get(key, None)
+        if value is None:
+            value = default
+        return m.group(0) if value is None else str(value)
+    return _VAR_PATTERN.sub(_replace, text)
+
+
 def _bool(key: str, default: bool = False) -> bool:
     val = _get(key, str(default))
     return parse_bool(val, default) if val else default
@@ -212,18 +236,12 @@ class Settings(BaseSettings):
     db_pool_size: int = Field(default_factory=lambda: _int('db.pool.size', 10))
     db_echo: bool = Field(default_factory=lambda: _bool('db.echo', False))
     db_scripts_dir: str = Field(default_factory=lambda: _get('db.scripts_dir', 'db/scripts'))
+    db_schema_check: str = Field(default_factory=lambda: _get('db.schema_check', 'strict'))
 
     # JWT
     jwt_secret: str = Field(default_factory=lambda: _get('auth.jwt.secret', ''))
     jwt_algorithm: str = Field(default_factory=lambda: _get('auth.jwt.algorithm', 'HS256'))
     jwt_expiry_minutes: int = Field(default_factory=lambda: _int('auth.jwt.expiry_minutes', 60))
-
-    # OAuth
-    oauth_mode: str = Field(default_factory=lambda: _get('oauth.mode', 'none'))
-    oauth_provider: str = Field(default_factory=lambda: _get('oauth.provider', ''))
-    oauth_azure_tenant_id: str = Field(default_factory=lambda: _get('oauth.azure.tenant_id', ''))
-    oauth_azure_client_id: str = Field(default_factory=lambda: _get('oauth.azure.client_id', ''))
-    oauth_azure_client_secret: str = Field(default_factory=lambda: _get('oauth.azure.client_secret', ''))
 
     # Config paths
     config_tools_dir: str = Field(default_factory=lambda: _get('config.tools.dir', 'config/tools'))
@@ -325,6 +343,8 @@ _KNOWN_ENV_ONLY = frozenset({
     'SAJHA_RELOAD_INTERVAL', 'SAJHA_MCP_AUTH_BUILTIN_CLIENTS',
     # observability secrets and the alert-rule list (sajha/observability/settings.py)
     'SAJHA_OBSERVABILITY_METRICS_TOKEN', 'SAJHA_OBSERVABILITY_ALERTS_EMAIL_PASSWORD', 'SAJHA_OBSERVABILITY_ALERTS',
+    # the SIEM sink list (sajha/audit/sinks.py)
+    'SAJHA_AUDIT_EXPORT_SINKS',
 })
 
 
@@ -354,7 +374,9 @@ def unknown_sajha_env_names(names) -> list[str]:
         if not upper.startswith('SAJHA_') or upper in known:
             continue
         # a dotted key the code reads with a default but the YAML leaves out (SAJHA_MCP_APPS_DIR, ...)
-        if upper.startswith(('SAJHA_MCP_', 'SAJHA_AUTH_', 'SAJHA_STORAGE_', 'SAJHA_ASYNC_', 'SAJHA_SHELL_')):
+        # SAJHA_ACCOUNTS_PROVIDERS[_<ID>_<FIELD>]: connected-account providers (sajha/accounts/providers.py)
+        if upper.startswith(('SAJHA_MCP_', 'SAJHA_AUTH_', 'SAJHA_STORAGE_', 'SAJHA_ASYNC_', 'SAJHA_SHELL_',
+                             'SAJHA_ACCOUNTS_')):
             continue
         out.append(name)
     return out

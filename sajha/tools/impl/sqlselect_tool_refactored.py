@@ -19,7 +19,12 @@ class SqlSelectBaseTool(BaseMCPTool):
         """Initialize SQL Select base tool"""
         super().__init__(config)
         
-        self.data_directory = self.config.get('data_directory', 'data/sqlselect')
+        # never use (and mkdir) an unresolved ${data.sqlselect.dir:...} literally
+        from sajha.core.config import resolve_placeholders, _get
+        self.data_directory = resolve_placeholders(
+            self.config.get('data_directory') or _get('data.sqlselect.dir', './data/sqlselect'))
+        if '${' in self.data_directory:
+            self.data_directory = _get('data.sqlselect.dir', './data/sqlselect')
         self.data_sources = self.config.get('data_sources', {})
         self.connection = None
         self._initialize_connection()

@@ -127,8 +127,8 @@ Authenticated endpoints accept a browser session, `Authorization: Bearer <token>
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| GET | `/api/prompts/list` | None | Summary of every prompt: `name`, `description`, `category`, `tags`, `author`, `version`, `argument_count`, `usage_count`, `last_used`. |
-| GET | `/api/prompts/{name}` | None | Full prompt: `name`, `description`, `template`, `arguments`, `metadata`. 404 if unknown. |
+| GET | `/api/prompts/list` | Optional | Summary of every prompt the caller may see (all for a signed-in caller; anonymous callers only `mcp.anonymous.prompts`, none by default): `name`, `description`, `category`, `tags`, `author`, `version`, `argument_count`, `usage_count`, `last_used`. |
+| GET | `/api/prompts/{name}` | Optional | Full prompt: `name`, `description`, `template`, `arguments`, `metadata`. 404 if unknown or hidden from the caller. |
 | POST | `/api/prompts/{name}/render` | User | Body `{"arguments": {...}}`. Returns `{"success": true, "rendered": "..."}`, or 400 with `error`. |
 | POST | `/api/prompts/create` | Admin | Body: `name` plus the prompt fields. Writes `<name>.json` to the prompts directory. |
 | POST | `/api/prompts/{name}/update` | Admin | Body: the prompt fields. The template may be sent as `prompt_template` or `template`. |
@@ -142,9 +142,9 @@ TOKEN=$(curl -s -X POST http://localhost:3002/api/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"user_id":"admin","password":"<password>"}' | jq -r .token)
 
-# List and fetch
-curl -s http://localhost:3002/api/prompts/list
-curl -s http://localhost:3002/api/prompts/code_review
+# List and fetch (anonymous callers see only mcp.anonymous.prompts)
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3002/api/prompts/list
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3002/api/prompts/code_review
 
 # Render
 curl -s -X POST http://localhost:3002/api/prompts/code_review/render \

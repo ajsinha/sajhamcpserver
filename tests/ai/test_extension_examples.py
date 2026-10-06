@@ -265,3 +265,43 @@ def test_guide_code_blocks_are_excerpts_of_the_examples():
             at = source.find(chunk, pos)
             assert at >= 0, f"guide block from {path} is not in the file (or out of order):\n{chunk[:400]}"
             pos = at + len(chunk)
+
+
+# ── the Planner example (section 4.5) ──────────────────────────────────────
+
+DOCS_FIRST = "sajha.examples.intelligence.docs_first_planner:DocsFirstPlanner"
+
+
+def _docs_toolbox(tmp_path, monkeypatch):
+    from sajha.ai.llm.settings import RagSettings
+    from sajha.ai.rag.index import DocIndex, set_doc_index
+    from sajha.ai.rag.tool import SajhaSearchDocsTool
+    from sajha.core.storage import LocalStorageBackend
+    st = LocalStorageBackend(str(tmp_path))
+    st.write_text("kb/guide.md", "# Guide\n\n## Retention\n\nConversations are kept for thirty days by default.")
+    monkeypatch.setattr("sajha.ai.rag.index._storage", lambda: st)
+    set_doc_index(DocIndex(RagSettings(index_sajha_docs=False, persist=False, store="memory",
+                                       sources=[{"name": "kb", "path": "kb"}]), make_gateway()))
+    tb = ToolBox()
+    tb.add(SajhaSearchDocsTool(json.load(open(os.path.join(REPO, "config/tools/sajha_search_docs.json")))))
+    return tb
+
+
+def test_docs_first_planner_searches_then_hands_over(tmp_path, monkeypatch):
+    from sajha.ai.rag.index import set_doc_index
+    tb = _docs_toolbox(tmp_path, monkeypatch)
+    try:
+        svc = IntelligenceService(make_gateway(), tb, settings=AskSettings(planner=DOCS_FIRST, audit=False))
+        events = list(svc.stream_ask("How do I configure how long conversations are kept? Search the docs.",
+                                     RequestContext(user_id="u")))
+        types = [e["type"] for e in events]
+        r = events[-1]["result"]
+        assert r["planner"] == "docs_first>react" and r["steps"][0]["name"] == "sajha_search_docs"
+        assert types.index("plan") < types.index("tool_call") and "thirty days" in r["answer"]
+        r = svc.ask(QUESTION, RequestContext(user_id="u"))                  # not a how-to question
+        assert r.planner == "docs_first>react" and r.steps[0].name == "calc_percentage_change"
+        r = svc.ask("How do I configure retention? Search the docs.",
+                    RequestContext(user_id="u", can_use_tool=lambda n: n != "sajha_search_docs"))
+        assert all(s.name != "sajha_search_docs" for s in r.steps)       # RBAC: never offered, never run
+    finally:
+        set_doc_index(None)

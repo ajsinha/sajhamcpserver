@@ -45,6 +45,18 @@ sudo -u postgres psql -c "CREATE USER sajha WITH PASSWORD 'your-password';"
 sudo -u postgres psql -c "CREATE DATABASE sajha OWNER sajha;"
 ```
 
+SAJHA does not create PostgreSQL tables: after step 3, run the schema file and then the
+seed file (default roles and admin) once, as the `sajha` role
+([Database Setup](../../docs/getting-started/Database%20Setup.md)):
+
+```bash
+cd /opt/sajha
+sudo -u postgres env PGOPTIONS='-c role=sajha' psql -v ON_ERROR_STOP=1 -d sajha -f db/scripts/postgresql/schema.sql
+sudo -u postgres env PGOPTIONS='-c role=sajha' psql -v ON_ERROR_STOP=1 -d sajha -f db/scripts/postgresql/seed.sql
+```
+
+`install.sh` prints these commands and starts nothing until you have run them.
+
 ### 3. Application
 
 ```bash
@@ -88,15 +100,16 @@ sudo systemctl reload nginx
 
 ## Nginx Configuration Highlights
 
-The provided `nginx.conf` proxies the HTTP, legacy SSE and WebSocket endpoints:
+The provided `nginx.conf` proxies the HTTP, Streamable HTTP, legacy SSE and WebSocket endpoints:
 
 | Path | Config | Why |
 |------|--------|-----|
 | `/` | Standard proxy | Regular HTTP requests |
-| `/mcp/sse` | `proxy_buffering off` + 1hr timeout | SSE requires unbuffered, long-lived connections |
-| `/mcp/ws` | `Upgrade: websocket` headers + 1hr timeout | WebSocket upgrade handshake |
-
-Note: `POST /mcp` also answers with SSE streams (streamed `tools/call`, `subscriptions/listen`, and server→client requests on the 2025-11-25 path). The shipped config serves `/mcp` through `location /` with default buffering, so those streams arrive late or in one piece behind nginx; add a `location = /mcp` block with `proxy_buffering off` and a long `proxy_read_timeout` if you use them.
+| `/mcp`, `/api/mcp` | `proxy_buffering off`, no request buffering, HTTP/1.1, 1 hr timeouts | `POST /mcp` may answer with an SSE stream (progress, elicitation, tasks, `subscriptions/listen`) |
+| `/mcp/sse` | `proxy_buffering off` + 1 hr timeout | Legacy SSE needs unbuffered, long-lived connections |
+| `/mcp/ws` | `Upgrade: websocket` headers + 1 hr timeout | WebSocket upgrade handshake |
+| `/api/ai/ask` | `proxy_buffering off` + 10 min timeout | The Ask SAJHA step stream (SSE) arrives step by step |
+| `/static/` | Served from disk | Static assets |
 
 ## Management
 
@@ -130,7 +143,7 @@ The systemd service includes:
 | `ProtectSystem=strict` | Mounts filesystem read-only except allowed paths |
 | `ProtectHome=true` | Hides /home from the service |
 | `PrivateTmp=true` | Isolated /tmp namespace |
-| `ReadWritePaths` | Only /opt/sajha/data and /opt/sajha/config writable |
+| `ReadWritePaths` | Only `data/`, `config/`, `sajha/tools/impl/` (Studio-generated modules), `logs/`, `temp/` under `/opt/sajha`, and `/tmp`, are writable |
 
 ## Files
 

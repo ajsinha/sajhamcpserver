@@ -21,7 +21,11 @@ Who gets what:
 * **Anonymous** callers (no credentials, possible while ``mcp.auth.mode`` is ``off`` or
   ``optional``): ``mcp.anonymous.tools`` (fnmatch allowlist, default empty) plus the tool
   permissions of ``mcp.anonymous.role``; refused entirely when ``mcp.anonymous.enabled``
-  is false.
+  is false.  Prompts follow :func:`can_see_prompt`: every prompt for a signed-in caller,
+  ``mcp.anonymous.prompts`` (fnmatch allowlist, default empty) for an anonymous one.
+  Data resources (``sajha://data/*``) follow :func:`can_read_resource`: every one for a
+  signed-in caller, ``mcp.anonymous.resources`` (fnmatch over the URI, default empty) for
+  an anonymous one.
 
 The policy travels inside the MCP "session" dict (``mcp_session_for``), so the MCP handler
 needs no database access to apply it.
@@ -55,6 +59,16 @@ def anonymous_tool_patterns() -> List[str]:
 def anonymous_role() -> str:
     from sajha.core.config import _get
     return (_get('mcp.anonymous.role', '') or '').strip()
+
+
+def anonymous_prompt_patterns() -> List[str]:
+    from sajha.core.config import _list
+    return _list('mcp.anonymous.prompts', [])
+
+
+def anonymous_resource_patterns() -> List[str]:
+    from sajha.core.config import _list
+    return _list('mcp.anonymous.resources', [])
 
 
 # ── pattern helpers ─────────────────────────────────────────────────
@@ -240,6 +254,46 @@ def mcp_session_for(auth) -> Dict:
     return session
 
 
+# ── prompts and other catalog surfaces ──────────────────────────────
+
+def session_is_authenticated(session: Optional[Dict]) -> bool:
+    """True for a session dict that belongs to a signed-in caller (see mcp_session_for)."""
+    if not isinstance(session, dict):
+        return False
+    if session.get('authenticated') or session.get('is_admin'):
+        return True
+    user = session.get('user_id')
+    return 'authenticated' not in session and bool(user) and user != ANONYMOUS_USER_ID
+
+
+def can_see_prompt(session: Optional[Dict], prompt_name: str) -> bool:
+    """
+    May this caller see (list, get, complete) a prompt?  Signed-in callers see every
+    prompt; anonymous callers only those matching ``mcp.anonymous.prompts`` (fnmatch,
+    default empty), and none when ``mcp.anonymous.enabled`` is false.  The same rule
+    applies to prompts/list, prompts/get, completion/complete, the ``sajha://prompts/catalog``
+    resource and the REST prompt endpoints.
+    """
+    if session_is_authenticated(session):
+        return True
+    return anonymous_enabled() and matches(prompt_name, anonymous_prompt_patterns())
+
+
+def can_read_resource(session: Optional[Dict], uri: str) -> bool:
+    """
+    May this caller see (list) and read a server data resource (``sajha://data/<file>``)?
+    Signed-in callers: yes. Anonymous callers: only URIs matching
+    ``mcp.anonymous.resources`` (fnmatch over the full URI, e.g. ``sajha://data/products.csv``
+    or ``sajha://data/*``; default empty), and none when ``mcp.anonymous.enabled`` is false.
+    Applies to resources/list and resources/read in both protocol eras and to
+    ``/api/resources/*``. The tool and prompt catalog resources follow the tool and prompt
+    rules instead.
+    """
+    if session_is_authenticated(session):
+        return True
+    return anonymous_enabled() and matches(uri, anonymous_resource_patterns())
+
+
 class SessionToolAccess:
     """
     The ``auth_manager`` MCPHandler is constructed with: answers from the policy carried
@@ -261,3 +315,6 @@ class SessionToolAccess:
 
     def is_admin(self, session: Optional[Dict]) -> bool:
         return bool(isinstance(session, dict) and session.get('is_admin'))
+
+    def can_see_prompt(self, session: Optional[Dict], prompt_name: str) -> bool:
+        return can_see_prompt(session, prompt_name)

@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v5.3.0 — Structured Audit Log
+SAJHA MCP Server — Structured Audit Log
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Records security-sensitive events to the audit_log DB table.
@@ -20,7 +20,15 @@ class AuditLogger:
 
     def log(self, action: str, user_id: str = None, resource_type: str = None,
             resource_id: str = None, details: str = None, ip_address: str = None):
-        """Record an audit event."""
+        """Record an audit event: an ``audit_log`` row (the audit API reads it) and a record in
+        the tamper-evident hash chain, which the SIEM sinks also receive (sajha/audit;
+        docs/architecture/Policy and Audit.md)."""
+        try:
+            from sajha import audit as _chain
+            _chain.record(action, actor={'user': user_id or 'system', 'ip': ip_address},
+                          resource={'type': resource_type, 'id': resource_id}, details=details)
+        except Exception as e:
+            logger.error(f"Audit chain record failed: {e}")
         try:
             from sajha.db.engine import get_db_session
             from sajha.db.models import AuditLog

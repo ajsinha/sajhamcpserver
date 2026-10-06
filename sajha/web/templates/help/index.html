@@ -26,6 +26,22 @@
         <a class="chip" href="/about"><i class="bi bi-info-circle" aria-hidden="true"></i> About</a>
     </div>
 
+    {# Ask the docs: passages from the guides that answer a question (POST /api/ai/docs/search,
+       the index behind the sajha_search_docs tool; docs/architecture/Intelligence Layer.md). #}
+    <section class="mb-4" id="askDocs" aria-labelledby="askDocsH">
+        <h2 id="askDocsH" class="h6 mb-2"><i class="bi bi-chat-square-quote" aria-hidden="true"></i> Ask the docs</h2>
+        {% if user.user_id and user.user_id != 'guest' %}
+        <form id="askDocsForm" class="d-flex gap-2" role="search">
+            <input id="askDocsQ" class="form-control form-control-sm" type="search" maxlength="500" autocomplete="off"
+                   placeholder="A question, e.g. how do I run SAJHA on several workers?" aria-label="Ask the docs">
+            <button class="btn btn-sm btn-primary" type="submit">Ask</button>
+        </form>
+        <div id="askDocsOut" class="mt-2" aria-live="polite"></div>
+        {% else %}
+        <p class="text-muted small mb-0"><a href="/login">Sign in</a> to ask the docs a question in your own words.</p>
+        {% endif %}
+    </section>
+
     {# Search results: every topic of every section, hidden until there is a query. #}
     <div id="helpResults" class="list-group">
         {% for c in catalog %}{% for t in c.topics %}
@@ -55,6 +71,37 @@
 
 {% block extra_js %}
 <script>
+(function () {
+    var form = document.getElementById('askDocsForm');
+    if (!form) return;
+    var q = document.getElementById('askDocsQ'), out = document.getElementById('askDocsOut');
+    function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var query = q.value.trim();
+        if (!query) return;
+        out.textContent = 'Searching the docs…';
+        fetch('/api/ai/docs/search', {method: 'POST', credentials: 'same-origin',
+              headers: {'Content-Type': 'application/json'}, body: JSON.stringify({query: query, top_k: 4})})
+            .then(function (r) { return r.json().then(function (j) { return [r.ok, j]; }); })
+            .then(function (x) {
+                out.textContent = '';
+                if (!x[0]) { out.appendChild(el('div', 'text-danger small', (x[1] && x[1].error) || 'The search failed.')); return; }
+                var res = x[1].results || [];
+                if (!res.length) { out.appendChild(el('div', 'text-muted small', 'Nothing in the docs matches that.')); return; }
+                var list = el('div', 'list-group');
+                res.forEach(function (h) {
+                    var a = el(h.url ? 'a' : 'div', 'list-group-item' + (h.url ? ' list-group-item-action' : ''));
+                    if (h.url) a.href = h.url;
+                    var head = el('div', 'small fw-semibold', '[' + h.citation + '] ' + h.title + (h.section ? ' — ' + h.section : ''));
+                    var body = el('div', 'small text-muted', h.text.length > 320 ? h.text.slice(0, 319) + '…' : h.text);
+                    a.appendChild(head); a.appendChild(body); list.appendChild(a);
+                });
+                out.appendChild(list);
+            })
+            .catch(function () { out.textContent = 'Could not reach the server.'; });
+    });
+})();
 (function () {
     var box = document.getElementById('helpSearch');
     var hits = Array.prototype.slice.call(document.querySelectorAll('.help-hit'));

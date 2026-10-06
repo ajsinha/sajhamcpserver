@@ -7,7 +7,7 @@
 #          sudo systemctl start sajha
 #
 [Unit]
-Description=SAJHA MCP Server v4.0.0
+Description=SAJHA MCP Server
 Documentation=https://github.com/ajsinha/sajhamcpserver
 After=network.target postgresql.service
 Wants=postgresql.service
@@ -36,7 +36,11 @@ EnvironmentFile=-/opt/sajha/.env
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/sajha/data /opt/sajha/config /tmp
+# Everything the server writes: the database and DuckDB files (data/), tool configs and
+# scripts written by MCP Studio (config/), the Python modules Studio generates
+# (sajha/tools/impl/), log files (logs/) and scratch files (temp/).
+# ("-": a path that does not exist yet is skipped instead of failing the unit)
+ReadWritePaths=/opt/sajha/data /opt/sajha/config /opt/sajha/sajha/tools/impl -/opt/sajha/logs -/opt/sajha/temp /tmp
 PrivateTmp=true
 
 # Logging

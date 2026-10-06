@@ -80,7 +80,7 @@ Shipped datasets and the relation each reads:
 | `customer_analytics` | `customer_data` view | customer and order (customers without orders appear once) |
 | `inventory_analysis` | `inventory_data` table | product and warehouse (stock snapshot) |
 
-A join's `on` clause must use the join's `alias` when one is set (the generated SQL is `<type> JOIN <table> AS <alias> ON <on>`), and the joined relations must not share column names that dimensions or measures reference, because dimension and measure columns are unqualified. A dataset with joins looks like this (`customer_olap` in `datasets.json` is the shipped example):
+A join's `on` clause must use the join's `alias` when one is set (the generated SQL is `<type> JOIN <table> AS <alias> ON <on>`); to name the source table in an `on` clause, give it an alias in `source_table` itself (`customer_olap` uses `read_csv_auto('${data.duckdb.dir}/customers.csv') AS customers`). The engines read the joined row as a subquery, and filters are applied over that same row, so dimension and measure expressions are unqualified column names (`region`, not `customers.region`). When joined relations share a column name, DuckDB keeps the first occurrence under the plain name and renames the later ones `<name>_1`, `<name>_2`, ...: in `customer_olap`, `region` and `customer_id` are the customer's, `product_name`, `product_category` and `unit_price` the order's, and `unit_price_1` the product list price. A dimension or measure written inline in a dataset (`{"name": ..., "column": ...}` / `{"name": ..., "expression": ...}`) wins over the `dimensions.json` / `measures.json` entry of the same name for that dataset (a shared hierarchy level is still used when one is asked for). A dataset with joins looks like this (`customer_olap` in `datasets.json` is the shipped example):
 
 ```json
 {
@@ -119,6 +119,16 @@ Typical expressions: `SUM(amount)`, `COUNT(DISTINCT customer_id)`, `ROUND(100.0 
 | `column` | Source column |
 | `hierarchies` | Optional drill-down levels (e.g. Year → Quarter → Month) |
 
+### What callers can and cannot put into SQL
+
+The `olap_*` tools and `customer_olap_pivot` build SQL from the semantic layer, never from caller text (`sajha/olap/sql_safety.py`):
+
+- **Names must be declared.** A dimension (in `rows`, `columns`, `dimensions`, `group_by`, a filter's `dimension`, a cohort's `cohort_dimension` / `time_dimension` / `entity_dimension` / `activity_dimension`) must be listed in the dataset's `dimensions`; a measure must be listed in its `measures`. Anything else is refused with `Unknown dimension ...` / `Unknown measure ...` and the declared names. The SQL used is the configured expression (`dimensions.json` `column`, `measures.json` `expression`, or the inline `column` / `expression` of a dataset entry, which takes precedence); a declared name with no definition is a column of that name. To query a new column, declare it on the dataset first.
+- **Values are bound.** Filter values and `date_range` dates are DuckDB parameters (`$olap_f0`, `$olap_f1_0`, `$olap_start_date` in the returned `sql`), so a value containing quotes, `;`, `--` or `UNION` is compared as a string and matches nothing.
+- **Keywords are allowlisted.** Filter `operator`: `=`, `!=`, `<>`, `>`, `<`, `>=`, `<=`, `IN`, `NOT IN`, `BETWEEN` (value `[low, high]`), `LIKE`, `NOT LIKE`, `ILIKE`, `CONTAINS`, `IS NULL`, `IS NOT NULL`. `aggregation`: `SUM`, `AVG`, `MIN`, `MAX`, `COUNT`, `COUNT_DISTINCT`, `MEDIAN`. Sort directions are `ASC` / `DESC`; time grains, comparison types and window calculation types come from fixed lists; `n`, `bins`, `periods`, `limit`, `window_size`, `offset` and `buckets` must be integers in range.
+
+The expressions in `config/olap/*.json` are SQL and are trusted as configuration: only administrators should be able to edit them.
+
 ---
 
 ## Tools
@@ -132,8 +142,8 @@ Pivot table over the joined customers/orders/products CSVs, with a fixed set of 
 | `rows` | array of string | Yes | | Row dimensions: `customer_segment`, `customer_tier`, `region`, `country`, `acquisition_channel`, `age_group`, `product_category`, `product_name`, `payment_method`, `sales_rep` |
 | `columns` | array of string | No | | Column (pivot) dimensions, typically `order_date` |
 | `measures` | array of string | Yes | | `order_count`, `customer_count`, `total_revenue`, `total_quantity`, `avg_order_value`, `total_discount`, `total_shipping`, `avg_discount_pct`, `gross_profit`, `profit_margin` |
-| `filters` | object | No | | Key/value filters; a list value means IN, e.g. `{"customer_tier": ["Gold", "Platinum"]}` |
-| `order_by` | string | No | | Sort column; prefix with `-` for descending |
+| `filters` | object | No | | Key/value filters on the row dimensions above; a list value means IN, e.g. `{"customer_tier": ["Gold", "Platinum"]}`. An unknown key is an error; values are bound parameters |
+| `order_by` | string | No | | A selected dimension or measure; prefix with `-` for descending |
 | `limit` | integer | No | 100 | 1–1000 |
 
 Response fields: `success`, `columns`, `data`, `row_count`, `query`, `execution_time_ms`.
@@ -158,7 +168,7 @@ Pivot table over a semantic-layer dataset.
 | `rows` | array of string | Yes | | Row dimensions |
 | `columns` | array of string | No | | Dimensions to pivot into columns |
 | `values` | array of object | Yes | | `{"measure": "...", "aggregation": "SUM"}` items |
-| `filters` | array of object | No | | `{"dimension": "...", "operator": ">=", "value": ...}` items |
+| `filters` | array of object | No | | `{"dimension": "...", "operator": ">=", "value": ...}` items; operators and rules in [What callers can and cannot put into SQL](#what-callers-can-and-cannot-put-into-sql) |
 | `include_totals` | boolean | No | true | Grand totals row |
 | `include_subtotals` | boolean | No | false | Subtotals per dimension level |
 
@@ -218,7 +228,7 @@ Output includes current and previous period values, absolute change and percenta
 | `customer_data` | view | customer columns (`customer_id`, `id`, `customer_name`, `segment`, `tier`, `region`, `state`, `city`, `signup_date`, `signup_month`, `lifetime_value`, `is_active`) and order columns (`order_id`, `order_date`, `product_id`, `product_name`, `category`, `quantity`, `amount`, `discount`, `net_amount`, `profit`; NULL for customers without orders) | `customer_analytics` |
 | `inventory_data` | table | `product_id`, `product_name`, `category`, `warehouse` (Northeast, Southeast, Central and West DC), `warehouse_location`, `supplier` (two per category), `unit_cost`, `unit_price`, `avg_daily_demand`, `lead_time_days`, `reorder_point`, `stock_qty`, `snapshot_date` (2024-12-31), `inventory_value`, `days_of_supply`, `stock_status` (Healthy, Reorder, Overstock, Out of Stock) | `inventory_analysis` |
 
-`olap_generate_sample_data` (an operation of `DuckDBOLAPAdvancedTool`) regenerates all of these with other sizes and dates.
+`DuckDBOLAPAdvancedTool` also has an `olap_generate_sample_data` operation that regenerates all of these with other sizes and dates. No shipped config registers it, so it is not in the catalog; to expose it, add a tool config named `olap_generate_sample_data` with the same `implementation` as `olap_pivot_table`. The same applies to the class's other operations (`olap_list_datasets`, `olap_top_n`, `olap_cohort_analysis` and the rest).
 
 ```json
 {"dataset": "customer_analytics", "rows": ["customer_segment"], "columns": ["customer_tier"],
@@ -266,7 +276,8 @@ Over REST, `POST /api/tools/execute` with `{"tool": "customer_olap_pivot", "argu
 | Symptom | Check |
 |---------|-------|
 | Dataset not found | Name in `config/olap/datasets.json`; file is valid JSON |
-| Measure/dimension not defined | Entry in `measures.json` / `dimensions.json` and listed on the dataset |
+| Measure/dimension not defined, `Unknown dimension` / `Unknown measure` | The name is listed in the dataset's `dimensions` / `measures` in `datasets.json` (and, for a computed one, defined in `dimensions.json` / `measures.json`) |
+| `Unsupported filter operator` / `aggregation` / `time_grain` | Use a value from the lists in [What callers can and cannot put into SQL](#what-callers-can-and-cannot-put-into-sql) |
 | File or column not found | `customer_olap`: CSVs exist in `data.duckdb.dir`. Other datasets: the relation in [Sample data](#sample-data) exists (a configured `olap.duckdb` must provide it); dimension `column` mapping matches the column name |
 | Empty results | Filters or `date_range` too restrictive |
 | Unexpected SQL | `customer_olap_pivot` returns the generated SQL in `query` |

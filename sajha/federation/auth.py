@@ -11,6 +11,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 * ``oauth_client_credentials``  a token from an OAuth 2.0 client-credentials grant at
                                 ``token_url``, cached until shortly before expiry and
                                 fetched again when the upstream answers 401.
+* ``connected_account``         per-user token passthrough: every tool call carries the
+                                *calling user's* token for ``provider`` (sajha/accounts),
+                                on a connection opened for that call; the shared connection
+                                discovers tools with ``discovery`` (one of the above) or nothing.
 
 Secrets are references (``env:``, ``file:``, ``db:``) resolved when the connection is
 built; resolved values are held only by the Auth object and never logged.
@@ -129,6 +133,11 @@ class ClientCredentialsAuth(httpx2.Auth):
 def build_auth(config, settings) -> Optional[httpx2.Auth]:
     a = dict(config.auth or {})
     kind = a.get('type') or 'none'
+    if kind == 'connected_account':
+        # the shared connection only discovers (tools/list): it uses auth.discovery, if any.
+        # Tool calls carry the caller's own token on a connection of their own (call_tool_as).
+        a = dict(a.get('discovery') or {})
+        kind = a.get('type') or 'none'
     if kind == 'none':
         return None
     if kind == 'bearer':

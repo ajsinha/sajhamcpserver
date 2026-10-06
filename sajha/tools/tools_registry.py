@@ -9,6 +9,7 @@ import importlib
 import os
 import re
 import threading
+from contextlib import contextmanager
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 from datetime import datetime
@@ -173,16 +174,87 @@ class ToolsRegistry:
             name = f'{name}.json'
         return f"{self._config_prefix}/{name}"
 
+    # ── change notification ──────────────────────────────────────────
+    # One registration used to publish one change (three bus events, each also written to the
+    # state store's 'changes' channel), so loading 500 tools wrote ~1,500 events.  Bulk work
+    # runs inside bulk(): it publishes once at the end, and only if the catalog changed.
+
+    @contextmanager
+    def bulk(self):
+        """Coalesce the change notifications of everything done inside into at most one."""
+        with self._tools_lock:
+            depth = getattr(self, '_bulk_depth', 0)
+            self._bulk_depth = depth + 1
+            if depth == 0:
+                self._bulk_dirty = False
+        if depth == 0:
+            self._bulk_before = self._catalog_fingerprint()
+        try:
+            yield
+        finally:
+            with self._tools_lock:
+                self._bulk_depth -= 1
+                outermost = self._bulk_depth == 0
+                dirty = outermost and self._bulk_dirty
+            if dirty and self._catalog_fingerprint() != getattr(self, '_bulk_before', None):
+                _publish_tools_changed()
+                self._notify_change()
+
+    def _catalog_fingerprint(self):
+        """What tools/list would show: names, enabled flags and advertised definitions."""
+        with self._tools_lock:
+            tools = dict(getattr(self, 'tools', {}) or {})
+        return tuple((name, _tool_fingerprint(tool)) for name, tool in sorted(tools.items()))
+
+    def _changed(self):
+        """The catalog changed: publish now, or once at the end of the enclosing bulk()."""
+        if getattr(self, '_bulk_depth', 0) > 0:
+            self._bulk_dirty = True
+            return
+        _publish_tools_changed()
+        self._notify_change()
+
+    def add_change_listener(self, callback):
+        """Call ``callback()`` after every change to the catalog: each register, unregister,
+        enable and disable, or once at the end of a bulk() that changed something. This covers
+        every path that adds tools (Studio creators, composites, federation, API import, the
+        file watcher, plug-ins); the Ask SAJHA tool-search index listens here. A bound method is
+        held weakly, so a discarded listener's owner is not kept alive."""
+        import weakref
+        ref = weakref.WeakMethod(callback) if hasattr(callback, '__self__') else (lambda cb=callback: cb)
+        with self._tools_lock:
+            if not hasattr(self, '_change_listeners'):
+                self._change_listeners = []
+            self._change_listeners.append(ref)
+
+    def _notify_change(self):
+        with self._tools_lock:
+            refs = list(getattr(self, '_change_listeners', []))
+        dead = []
+        for ref in refs:
+            cb = ref()
+            if cb is None:
+                dead.append(ref)
+                continue
+            try:
+                cb()
+            except Exception as e:
+                self.logger.error(f"Change listener error: {e}", exc_info=True)
+        if dead:
+            with self._tools_lock:
+                self._change_listeners = [r for r in self._change_listeners if r not in dead]
+
     def load_all_tools(self):
         """Load all tools from the configured store (local | s3 | azure | gcs)."""
         storage = get_storage()
         self.logger.info(f"Loading tools from '{self._config_prefix}' via {type(storage).__name__}")
-        for rel in storage.list_files(self._config_prefix, '*.json'):
-            try:
-                self.load_tool_from_config(rel)
-            except Exception as e:
-                self.logger.error(f"Error loading tool from {rel}: {e}", exc_info=True)
-                self.tool_errors[Path(rel).stem] = str(e)
+        with self.bulk():
+            for rel in storage.list_files(self._config_prefix, '*.json'):
+                try:
+                    self.load_tool_from_config(rel)
+                except Exception as e:
+                    self.logger.error(f"Error loading tool from {rel}: {e}", exc_info=True)
+                    self.tool_errors[Path(rel).stem] = str(e)
 
     def load_tool_from_config(self, config_ref):
         """
@@ -291,9 +363,12 @@ class ToolsRegistry:
             tool: Tool instance to register
         """
         with self._tools_lock:
+            previous = self.tools.get(tool.name)
             self.tools[tool.name] = tool
             self.logger.info(f"Tool registered: {tool.name}")
-        _publish_tools_changed()
+        if previous is not None and _tool_fingerprint(previous) == _tool_fingerprint(tool):
+            return                          # same definition re-registered: nothing to announce
+        self._changed()
     
     def unregister_tool(self, tool_name: str):
         """
@@ -303,10 +378,11 @@ class ToolsRegistry:
             tool_name: Name of the tool to unregister
         """
         with self._tools_lock:
-            if tool_name in self.tools:
-                del self.tools[tool_name]
-                self.logger.info(f"Tool unregistered: {tool_name}")
-        _publish_tools_changed()
+            if tool_name not in self.tools:
+                return                      # nothing changed: nothing to announce
+            del self.tools[tool_name]
+            self.logger.info(f"Tool unregistered: {tool_name}")
+        self._changed()
     
     def get_tool(self, tool_name: str) -> Optional[BaseMCPTool]:
         """
@@ -345,12 +421,14 @@ class ToolsRegistry:
             tool = self.tools.get(tool_name)
             if not tool:
                 return False
+            was = bool(tool.enabled)
             tool.enable()
             # Update config file if exists
             if tool_name in self.tool_configs:
                 self.tool_configs[tool_name]['enabled'] = True
-                self._save_tool_config(tool_name)
-        _publish_tools_changed()
+                self._save_enabled_flag(tool_name, True)
+        if was != True:
+            self._changed()
         return True
     
     def disable_tool(self, tool_name: str) -> bool:
@@ -367,14 +445,34 @@ class ToolsRegistry:
             tool = self.tools.get(tool_name)
             if not tool:
                 return False
+            was = bool(tool.enabled)
             tool.disable()
             # Update config file if exists
             if tool_name in self.tool_configs:
                 self.tool_configs[tool_name]['enabled'] = False
-                self._save_tool_config(tool_name)
-        _publish_tools_changed()
+                self._save_enabled_flag(tool_name, False)
+        if was != False:
+            self._changed()
         return True
     
+    def _save_enabled_flag(self, tool_name: str, enabled: bool):
+        """Persist only ``enabled`` in the tool's config file. The in-memory config has its
+        ${...} references substituted (API keys included), so writing it back would put
+        resolved secrets into the file; the stored (unsubstituted) JSON is edited instead."""
+        rel = self._config_rel(tool_name)
+        try:
+            storage = get_storage()
+            raw = storage.read_json(rel)
+            if not isinstance(raw, dict):
+                return
+            raw['enabled'] = enabled
+            storage.write_json(rel, raw)
+            self._file_timestamps[rel] = storage.get_modified_time(rel)
+        except FileNotFoundError:
+            pass                        # a tool with no config file (plugin, federated, ...)
+        except Exception as e:
+            self.logger.error(f"Error saving enabled flag for {tool_name}: {e}", exc_info=True)
+
     def _save_tool_config(self, tool_name: str):
         """Save tool configuration through the storage backend (local | s3 | azure | gcs)."""
         if tool_name not in self.tool_configs:
@@ -441,60 +539,65 @@ class ToolsRegistry:
             self._module_timestamps = {}
         
         while not self._stop_monitor.wait(5):  # Check every 5 seconds
-            try:
-                config_path = Path(self.tools_config_dir)
+            with self.bulk():          # one notification per scan, whatever it found
+                self._scan_once()
+
+    def _scan_once(self):
+        """One pass of the file monitor (see _monitor_files)."""
+        try:
+            config_path = Path(self.tools_config_dir)
+            
+            # Check for new or modified JSON config files
+            for config_file in config_path.glob('*.json'):
+                # Key by the storage-relative path so it matches the timestamps
+                # recorded by load_tool_from_config (which is storage-backed).
+                file_path = self._config_rel(config_file)
+                current_mtime = config_file.stat().st_mtime
                 
-                # Check for new or modified JSON config files
-                for config_file in config_path.glob('*.json'):
-                    # Key by the storage-relative path so it matches the timestamps
-                    # recorded by load_tool_from_config (which is storage-backed).
-                    file_path = self._config_rel(config_file)
-                    current_mtime = config_file.stat().st_mtime
+                if file_path not in self._file_timestamps:
+                    # New file
+                    self.logger.info(f"New tool configuration detected: {config_file.name}")
+                    self.load_tool_from_config(config_file)
+                elif self._file_timestamps[file_path] < current_mtime:
+                    # Modified file
+                    self.logger.info(f"Tool configuration changed: {config_file.name}")
+                    tool_name = config_file.stem
                     
-                    if file_path not in self._file_timestamps:
-                        # New file
-                        self.logger.info(f"New tool configuration detected: {config_file.name}")
-                        self.load_tool_from_config(config_file)
-                    elif self._file_timestamps[file_path] < current_mtime:
-                        # Modified file
-                        self.logger.info(f"Tool configuration changed: {config_file.name}")
-                        tool_name = config_file.stem
-                        
-                        # Unload existing tool
-                        if tool_name in self.tools:
-                            self.unregister_tool(tool_name)
-                        
-                        # Reload tool
-                        self.load_tool_from_config(config_file)
-                
-                # Check for deleted JSON files (compare on the same relative keys)
-                tracked_files = set(self._file_timestamps.keys())
-                existing_files = {self._config_rel(f) for f in config_path.glob('*.json')}
-                
-                for deleted_file in tracked_files - existing_files:
-                    self.logger.info(f"Tool configuration deleted: {Path(deleted_file).name}")
-                    tool_name = Path(deleted_file).stem
-                    
-                    # Unregister tool
+                    # Unload existing tool
                     if tool_name in self.tools:
                         self.unregister_tool(tool_name)
                     
-                    # Remove from tracking
-                    del self._file_timestamps[deleted_file]
-                    
-                    # Remove from configs
-                    if tool_name in self.tool_configs:
-                        del self.tool_configs[tool_name]
-                    
-                    # Mark as error
-                    self.tool_errors[tool_name] = "Configuration file deleted"
+                    # Reload tool
+                    self.load_tool_from_config(config_file)
+            
+            # Check for deleted JSON files (compare on the same relative keys)
+            tracked_files = set(self._file_timestamps.keys())
+            existing_files = {self._config_rel(f) for f in config_path.glob('*.json')}
+            
+            for deleted_file in tracked_files - existing_files:
+                self.logger.info(f"Tool configuration deleted: {Path(deleted_file).name}")
+                tool_name = Path(deleted_file).stem
                 
-                # Check for Python module changes (every iteration)
-                self._check_python_modules()
-                    
-            except Exception as e:
-                self.logger.error(f"Error in file monitoring: {e}", exc_info=True)
-    
+                # Unregister tool
+                if tool_name in self.tools:
+                    self.unregister_tool(tool_name)
+                
+                # Remove from tracking
+                del self._file_timestamps[deleted_file]
+                
+                # Remove from configs
+                if tool_name in self.tool_configs:
+                    del self.tool_configs[tool_name]
+                
+                # Mark as error
+                self.tool_errors[tool_name] = "Configuration file deleted"
+            
+            # Check for Python module changes (every iteration)
+            self._check_python_modules()
+                
+        except Exception as e:
+            self.logger.error(f"Error in file monitoring: {e}", exc_info=True)
+
     def _check_python_modules(self):
         """Check for changes in tool Python modules and reload if needed"""
         try:
@@ -561,19 +664,21 @@ class ToolsRegistry:
     
     def reload_all_tools(self):
         """Reload all tools from configuration"""
-        with self._tools_lock:
-            # Clear existing tools
-            self.tools.clear()
-            self.tool_configs.clear()
-            self.tool_errors.clear()
-            self._file_timestamps.clear()
-            
-            # Reload all
-            self.load_all_tools()
+        with self.bulk():           # one notification, and none if nothing changed
+            with self._tools_lock:
+                # Clear existing tools
+                self.tools.clear()
+                self.tool_configs.clear()
+                self.tool_errors.clear()
+                self._file_timestamps.clear()
+                self._bulk_dirty = True
 
-        # Notify listeners (e.g. the semantic search index) outside the lock
-        self._notify_reload()
-        _publish_tools_changed()
+                # Reload all
+                self.load_all_tools()
+
+            # Listeners run outside the lock but inside bulk(): composites re-register here,
+            # so a reload that ends where it started announces nothing
+            self._notify_reload()
 
     def add_reload_listener(self, callback):
         """Register a no-arg callback fired after tools are reloaded (add/remove/modify).
@@ -638,6 +743,22 @@ def _script_tool_compat(tool_class):
 
     _Compat.__name__ = tool_class.__name__
     return _Compat
+
+
+def _tool_fingerprint(tool) -> tuple:
+    """What tools/list shows of one tool: its enabled flag and advertised definition."""
+    try:
+        definition = json.dumps(tool.to_mcp_format(), sort_keys=True, default=str)
+    except Exception:
+        definition = repr(tool)
+    return bool(getattr(tool, 'enabled', True)), definition
+
+
+def registry_bulk(registry):
+    """``registry.bulk()`` when the registry has it (test doubles may not), else a no-op."""
+    from contextlib import nullcontext
+    bulk = getattr(registry, 'bulk', None)
+    return bulk() if callable(bulk) else nullcontext()
 
 
 def _publish_tools_changed():

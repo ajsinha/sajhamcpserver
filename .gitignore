@@ -6,6 +6,7 @@
 data/*.db
 data/*.db-journal
 data/*.db-wal
+data/rag/
 *.sqlite
 *.sqlite3
 

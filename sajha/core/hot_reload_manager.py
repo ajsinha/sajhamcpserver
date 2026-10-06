@@ -464,6 +464,11 @@ class ConfigReloader:
         if not self.tools_registry:
             return
         
+        from sajha.tools.tools_registry import registry_bulk
+        with registry_bulk(self.tools_registry):        # one change notification for the lot
+            self._reload_tools_using_module_now(module_name)
+
+    def _reload_tools_using_module_now(self, module_name: str):
         # Find tools using this module
         for tool_name, config in list(self.tools_registry.tool_configs.items()):
             impl = config.get('implementation', '')

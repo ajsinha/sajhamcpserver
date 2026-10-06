@@ -634,6 +634,69 @@ def cmd_studio_delete(ctx: Context) -> int:
     return EXIT_OK if data.get("success", True) else EXIT_FAIL
 
 
+def cmd_studio_import_openapi(ctx: Context) -> int:
+    """Import an OpenAPI 3.x / Swagger 2.0 spec (URL or file) as tools (design: docs/architecture/API Import.md)."""
+    a = ctx.args
+    source = a.source
+    body: Dict[str, Any] = {"kind": "graphql" if a.graphql else "openapi"}
+    path = Path(source).expanduser()
+    if "://" not in source and path.exists():
+        try:
+            body["text"] = path.read_text(encoding="utf-8")
+        except OSError as e:
+            raise CLIError(f"cannot read {path}: {e}", EXIT_USAGE)
+    else:
+        body["url"] = source
+    for key, value in (("prefix", a.prefix), ("base_url", a.base_url)):
+        if value:
+            body[key] = value
+    if a.server_index is not None:
+        body["server_index"] = a.server_index
+    if a.auth:
+        body["auth"] = load_json_arg(a.auth, "--auth")
+    body["filters"] = {"tags": a.tag or [], "methods": a.method or [], "path": a.path or ""}
+
+    def _post(endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            return ctx.request("POST", f"/admin/studio/api-import/{endpoint}", body=data)
+        except SajhaValidationError as e:
+            raise CLIError(_error_text(str(e).split(":", 1)[-1]), EXIT_FAIL)
+        except Exception as e:
+            raise translate(e, ctx.settings.url)
+
+    plan = _post("parse", body)
+    ops = plan.get("operations") or []
+    selected = list(a.select or []) or [o["key"] for o in ops if o.get("selected")]
+    unknown = [k for k in selected if k not in {o["key"] for o in ops}]
+    if unknown:
+        raise CLIError(f"no such operation: {', '.join(unknown)} (keys look like 'GET /pets/{{petId}}')", EXIT_USAGE)
+    if a.dry_run:
+        if ctx.json_output:
+            ctx.out.json(plan)
+            return EXIT_OK
+        api = plan.get("api") or {}
+        ctx.out.print(f"{api.get('title')} {api.get('version') or ''} -> {api.get('base_url') or '(no base URL)'}".strip())
+        rows = []
+        for o in ops:
+            mark = "*" if o["key"] in selected else " "
+            flag = o.get("unsupported") or (f"name used by {o['conflict']}" if o.get("conflict") else "")
+            rows.append((mark, o.get("status", ""), o["name"], o["key"] if not flag else f"{o['key']}  [{flag}]"))
+        table(ctx.out, rows, ("", "STATUS", "TOOL", "OPERATION"))
+        for w in plan.get("warnings") or []:
+            ctx.out.note(f"warning: {w}")
+        return EXIT_OK
+    if not selected:
+        raise CLIError("nothing to deploy (no selectable operation; see --dry-run)", EXIT_FAIL)
+    result = _post("deploy", {**body, "prefix": (plan.get("api") or {}).get("prefix"), "selected": selected})
+    if ctx.json_output:
+        ctx.out.json(result)
+    else:
+        ctx.out.print(result.get("message") or "Imported")
+        for f in result.get("failed") or []:
+            ctx.out.note(f"failed: {f.get('name')}: {f.get('error')}")
+    return EXIT_OK if result.get("success", True) else EXIT_FAIL
+
+
 # ── commands: federation ─────────────────────────────────────────
 
 def _federation(ctx: Context, method: str, path: str, body: Optional[Dict] = None):
@@ -764,6 +827,18 @@ def cmd_serve(ctx: Context) -> int:
     return EXIT_OK  # pragma: no cover
 
 
+def cmd_db(ctx: Context) -> int:
+    """``sajha db ...``: the server's schema helper (``python -m sajha.db``) in a checkout."""
+    a = ctx.args
+    root = find_server_root(a.root)
+    rest = list(a.rest or [])
+    if rest and rest[0] == "--":
+        rest = rest[1:]
+    os.chdir(root)
+    os.execv(sys.executable, [sys.executable, "-m", "sajha.db", *rest])
+    return EXIT_OK  # pragma: no cover
+
+
 # ── commands: completion, version ────────────────────────────────
 
 def cmd_completion(ctx: Context) -> int:
@@ -879,7 +954,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--events", action="store_true", help="with --json: every step event as NDJSON")
     p.add_argument("--verbose", "-v", action="store_true", help="full arguments and summaries")
 
-    p = add(sub, "studio", None, "deploy or delete MCP Studio tools (admin)")
+    p = add(sub, "studio", None, "deploy, import or delete MCP Studio tools (admin)")
     ss = p.add_subparsers(dest="studio_cmd", metavar="ACTION")
     sd = add(ss, "deploy", cmd_studio_deploy, "deploy a Python file with a @sajhamcptool function")
     json_flag(sd)
@@ -889,6 +964,23 @@ def build_parser() -> argparse.ArgumentParser:
     sx = add(ss, "delete", cmd_studio_delete, "delete a Studio-generated tool")
     json_flag(sx)
     sx.add_argument("name")
+    si = add(ss, "import-openapi", cmd_studio_import_openapi,
+             "import an OpenAPI 3.x / Swagger 2.0 spec (URL or file) as tools; --graphql for a GraphQL endpoint")
+    json_flag(si)
+    si.add_argument("source", help="spec URL, spec file, or (with --graphql) the endpoint URL")
+    si.add_argument("--prefix", help="tool-name prefix and API id (default: from the title)")
+    si.add_argument("--base-url", help="the API's base URL (default: the spec's first server)")
+    si.add_argument("--server-index", type=int, dest="server_index", help="index of the spec server to use")
+    si.add_argument("--tag", action="append", help="only operations with this tag (repeatable)")
+    si.add_argument("--method", action="append", help="only this HTTP method (repeatable)")
+    si.add_argument("--path", help="only paths containing this text, or matching this glob")
+    si.add_argument("--select", action="append", metavar="'METHOD /path'",
+                    help="deploy this operation (repeatable; default: every selectable one)")
+    si.add_argument("--auth", metavar="JSON", help="credentials by scheme as JSON (@file, '-'); secrets as "
+                                                   "references, e.g. {\"api_key\": {\"type\": \"apiKey\", "
+                                                   "\"value_ref\": \"env:KEY\"}}")
+    si.add_argument("--graphql", action="store_true", help="the source is a GraphQL endpoint or introspection file")
+    si.add_argument("--dry-run", action="store_true", help="preview only (POST /admin/studio/api-import/parse)")
     p.set_defaults(func=lambda ctx, _p=p: _usage(_p))
 
     p = add(sub, "federation", None, "upstream MCP servers SAJHA fronts (admin)")
@@ -922,6 +1014,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--host")
     p.add_argument("--port", type=int)
     p.add_argument("rest", nargs=argparse.REMAINDER, help="passed to the server (e.g. --log-level INFO, --with-ai)")
+
+    p = add(sub, "db", cmd_db, "database schema helper in a SAJHA checkout (runs python -m sajha.db there): "
+                               "check | sql [--dialect D] [--seed]")
+    p.add_argument("--root", help="the SAJHA checkout (env SAJHA_HOME)")
+    p.add_argument("rest", nargs=argparse.REMAINDER, help="check | sql ... (see python -m sajha.db -h)")
 
     p = add(sub, "completion", cmd_completion, "print a shell completion script")
     p.add_argument("shell", choices=("bash", "zsh", "fish"))

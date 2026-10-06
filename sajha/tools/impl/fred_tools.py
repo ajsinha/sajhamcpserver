@@ -29,7 +29,12 @@ class FREDBaseTool(BaseMCPTool):
         except Exception as e:
             return {"error": str(e)}
     def _series(self, series_id, **extra):
-        params = {'series_id': series_id}
+        """The most recent observations of a series, newest first.
+
+        Every FRED tool here means "the latest N observations": FRED's own default is
+        ascending order, where ``limit`` would return the *oldest* N (GDP from 1947).
+        """
+        params = {'series_id': series_id, 'sort_order': 'desc'}
         params.update(extra)
         return self._fred_get('series/observations', **params)
     def get_input_schema(self): return self._input_schema

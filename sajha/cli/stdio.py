@@ -384,6 +384,8 @@ class StdioServer:
 
     async def handle_modern(self, body: Dict[str, Any]):
         from sajha.core.mcp_modern import ModernStream
+        from sajha.policy.context import set_source
+        set_source('stdio')          # this request's task context only (policy sources: [stdio])
         rid = body.get('id')
         pairs = synthesize_headers(body, self.modern._tool_input_schema)
         headers = _HeaderView(pairs)
@@ -425,6 +427,8 @@ class StdioServer:
 
     async def handle_legacy(self, body: Dict[str, Any]):
         from sajha.core.mcp_modern import _run_in_thread
+        from sajha.policy.context import set_source
+        set_source('stdio')
         from sajha.routes.mcp_routes import with_push_capabilities
         method = body.get('method')
         params = body.get('params') if isinstance(body.get('params'), dict) else {}

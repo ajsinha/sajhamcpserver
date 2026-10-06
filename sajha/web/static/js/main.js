@@ -389,3 +389,84 @@ window.SajhaChartTheme = (function () {
     new MutationObserver(restyleAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     return { token: token, color: color, palette: palette, applyDefaults: applyDefaults, restyleAll: restyleAll };
 })();
+
+/*
+ * Small screens (see "Mobile" at the end of style.css):
+ *  - every data table sits in a horizontal-scroll box, so a wide table scrolls on its own
+ *    instead of widening the page (tables already in a scrolling/clipping box are left alone);
+ *  - a table marked class="sajha-stack" turns into one card per row on phones: each cell is
+ *    labelled from its column heading (data-label), which this fills in;
+ *  - on touch screens a tap on an element that only explains itself through title="" shows
+ *    that text, since there is no hover to reveal it.
+ * Runs after table-enhance.js and sajha-table.js have placed their controls, and again for
+ * tables that pages render later.
+ */
+(function () {
+    'use strict';
+    var SKIP = '.jsoneditor, .CodeMirror, .cm-editor, .pg-html, pre, .table-responsive, .sajha-xscroll, [data-no-xscroll]';
+
+    function scrollsX(el) {
+        for (var p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+            var o = getComputedStyle(p).overflowX;
+            if (o === 'auto' || o === 'scroll') return true;  // a clipping box would hide the overflow
+        }
+        return false;
+    }
+    function label(table) {
+        if (!table.classList.contains('sajha-stack')) return;
+        var heads = Array.prototype.map.call(table.querySelectorAll('thead th'), function (th) {
+            return th.textContent.replace(/\s+/g, ' ').trim();
+        });
+        table.querySelectorAll('tbody tr').forEach(function (tr) {
+            Array.prototype.forEach.call(tr.children, function (td, i) {
+                if (!td.hasAttribute('data-label') && heads[i]) td.setAttribute('data-label', heads[i]);
+            });
+        });
+    }
+    function wrap(root) {
+        (root || document).querySelectorAll('main table, .sajha-content table').forEach(function (t) {
+            label(t);
+            if (t.dataset.xscroll === 'done' || t.closest(SKIP) || t.parentElement.closest('table')) return;
+            t.dataset.xscroll = 'done';
+            if (scrollsX(t)) return;
+            var box = document.createElement('div');
+            box.className = 'sajha-xscroll';
+            t.parentNode.insertBefore(box, t);
+            box.appendChild(t);
+        });
+    }
+    function start() {
+        wrap(document);
+        var main = document.getElementById('main-content');
+        if (!main || !window.MutationObserver) return;
+        var pending = null;
+        new MutationObserver(function () {
+            if (pending) return;
+            pending = setTimeout(function () { pending = null; wrap(main); }, 120);
+        }).observe(main, { childList: true, subtree: true });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+    else start();
+
+    // Tap to read a title="" on touch screens (controls keep their normal tap behaviour).
+    if (window.matchMedia && window.matchMedia('(hover: none)').matches) {
+        var tip = null, hideTimer = null;
+        document.addEventListener('click', function (e) {
+            var el = e.target.closest('[title]');
+            if (tip) { tip.remove(); tip = null; clearTimeout(hideTimer); }
+            if (!el || el.closest('a, button, input, select, textarea, label, summary, [role=button]')) return;
+            var text = el.getAttribute('title');
+            if (!text) return;
+            tip = document.createElement('div');
+            tip.className = 'sajha-tap-tip';
+            tip.setAttribute('role', 'status');
+            tip.textContent = text;
+            document.body.appendChild(tip);
+            var r = el.getBoundingClientRect(), w = tip.offsetWidth;
+            var left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+            tip.style.left = left + 'px';
+            tip.style.top = (window.scrollY + r.bottom + 6) + 'px';
+            hideTimer = setTimeout(function () { if (tip) { tip.remove(); tip = null; } }, 4000);
+        });
+    }
+})();

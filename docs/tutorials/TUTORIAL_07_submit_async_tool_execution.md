@@ -10,7 +10,7 @@ Run a tool in the background and have SAJHA deliver the result to a webhook or a
 
 ## Prerequisites
 
-- A running server and a JWT as `$TOKEN` ([Tutorial 1](TUTORIAL_01_getting_started.md), step 8). The async endpoints need an authenticated caller; the admin page needs the admin role.
+- A running server and a JWT as `$TOKEN` ([Tutorial 1](TUTORIAL_01_getting_started.md), step 8). Submitting needs the admin role or a role permission with resource type `async` and action `execute`, plus execute access to the tool itself; the admin page needs the admin role.
 
 ## How it works
 
@@ -42,7 +42,7 @@ curl -s -X POST http://localhost:3002/api/tools/calc_percentage_change/execute-a
 #     "poll_url": "/api/async/tasks/t-4e5b18c8db5b"}
 ```
 
-Webhook delivery is the same request with `"async": {"delivery": "webhook", "destination": "https://example.com/hooks/sajha"}`. SAJHA POSTs the payload with an `X-Sajha-Task-Id` header. If the endpoint doesn't return a 2xx status, SAJHA retries up to 3 times with backoff.
+Webhook delivery is the same request with `"async": {"delivery": "webhook", "destination": "https://example.com/hooks/sajha"}`. The destination must start with one of the URL prefixes in `async.delivery.webhook.allowed_urls` (empty by default, which refuses every webhook) and resolve to a public address unless `allow_private_networks` is true. SAJHA POSTs the payload with an `X-Sajha-Task-Id` header. If the endpoint doesn't return a 2xx status, SAJHA retries up to 3 times with backoff.
 
 ### 3. Poll the task
 
@@ -67,7 +67,7 @@ Other endpoints:
 
 **Admin → Async tasks** (`/admin/async-tasks`) lists tasks with counters and a status filter. Queued tasks have a cancel button; failed and cancelled tasks have a retry button.
 
-> **Kafka:** The executor also has a `kafka` delivery type, which needs `confluent-kafka`. In the current build, the `async:` section of `application.yml` is not passed to the executor. Kafka delivery therefore always targets `localhost:9092`, and the file and webhook settings, `async.workers`, `async.queue_size` and `async.task_ttl_hours` stay at their built-in defaults: `data/async_results`, a 10 s timeout with 3 retries, 8, 1000 and 24 h. Use Kafka only if a broker runs on `localhost:9092`.
+> **Kafka:** A third delivery type, `kafka`, publishes to the topic named in `destination` on `async.delivery.kafka.bootstrap_servers`; it needs the `confluent-kafka` package. Worker count, queue size, retention and the delivery settings are under `async:` in the [Configuration Reference](../getting-started/Configuration%20Reference.md#async-and-shell).
 
 > A task is delivered even when the tool fails. A successful delivery sets its status to `delivered`, so check the `error` field as well as `status`.
 

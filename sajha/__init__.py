@@ -17,8 +17,8 @@ __version__ = '2.9.8'
 __author__ = 'Ashutosh Sinha'
 __email__ = 'ajsinha@gmail.com'
 
+from sajha.auth import AuthManager   # sign-in, JWTs and API keys (sajha/auth/__init__.py)
 from sajha.core import (
-    AuthManager,
     MCPHandler,
     PromptsRegistry,
     PropertiesConfigurator,

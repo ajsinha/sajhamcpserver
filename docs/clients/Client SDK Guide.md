@@ -50,6 +50,7 @@ Extras declared in `clientsdk/setup.py`:
 | Extra | Installs | Needed for |
 |-------|----------|------------|
 | `mcp` | `mcp>=2.3,<3` | `SajhaMCPClient`, `SajhaMCPSyncClient` |
+| `cli` | `mcp>=2.3,<3` | the `sajha` command line ([Command Line](Command%20Line.md)) |
 | `dev` | `pytest`, `pytest-asyncio` | running `clientsdk/tests` |
 
 `MCPWebSocketClient` also needs the `websockets` package, which is not part of any extra. Install it with `pip install websockets`.
@@ -337,7 +338,7 @@ Tool arguments are passed as keyword arguments to `execute_tool(tool_name, **arg
 | `list_tools()` | `GET /api/tools/list` | Returns the `tools` list |
 | `get_tool_schema(tool_name)` | `GET /api/tools/{name}/schema` | |
 | `execute_tool(tool_name, **arguments)` | `POST /api/tools/execute` | Body: `{"tool": ..., "arguments": {...}}` |
-| `list_prompts()` | `GET /api/prompts/list` | Returns the `prompts` list |
+| `list_prompts()` | `GET /api/prompts/list` | Returns the `prompts` list (anonymous callers: only `mcp.anonymous.prompts`) |
 | `get_prompt(prompt_name)` | `GET /api/prompts/{name}` | |
 | `report_overview(period="24h")` | `GET /api/reports/overview` | |
 | `report_tools_usage(period="7d")` | `GET /api/reports/tools/usage` | |
@@ -477,7 +478,7 @@ a2a.send_task("Compare TSLA and RIVN", session_id=session)
 | Method | Request | Notes |
 |--------|---------|-------|
 | `get_agent_card()` | `GET /.well-known/agent.json` | Cached for `list_skills()` |
-| `list_skills()` | | Returns the `skills` from the agent card, fetching it if needed |
+| `list_skills()` | | Returns the `skills` from the agent card, fetching it if needed: the tools the caller may see (none for an anonymous caller by default) |
 | `send_task(text, session_id=None, metadata=None)` | `tasks/send` | Sends a single text part |
 | `get_task(task_id)` | `tasks/get` | |
 | `cancel_task(task_id)` | `tasks/cancel` | |
@@ -651,7 +652,7 @@ For raw MCP JSON-RPC on `/mcp`, including the headers each protocol era requires
 | `financial_analysis.py` | Chaining several tools over REST |
 | `curl_examples.sh`, `wget_examples.sh` | The same calls without Python |
 
-`clientsdk/tests/test_standard_client.py` covers the standard client. The offline tests check the lazy import, the install hint, URL and auth resolution, header stamping, and connection-error mapping. The live tests check `auto` mode negotiating 2026-07-28, `legacy` mode using `initialize`, tool calls, prompts, resources, the SAJHA extras and the sync facade. Run them with:
+`clientsdk/tests/test_legacy_transports.py` covers the zero-dependency MCP clients and the transport coalgebra, offline. `clientsdk/tests/test_standard_client.py` covers the standard client. The offline tests check the lazy import, the install hint, URL and auth resolution, header stamping, and connection-error mapping. The live tests check `auto` mode negotiating 2026-07-28, `legacy` mode using `initialize`, tool calls, prompts, resources, the SAJHA extras and the sync facade. Run them with:
 
 ```bash
 pip install -e './clientsdk[dev,mcp]'

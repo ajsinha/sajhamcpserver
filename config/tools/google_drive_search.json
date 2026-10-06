@@ -1,0 +1,93 @@
+{
+  "name": "google_drive_search",
+  "implementation": "sajha.accounts.tools.google.GoogleDriveSearchTool",
+  "title": "Search my Google Drive",
+  "description": "Full-text search of the signed-in user's Google Drive (including shared drives they can see), through their connected Google account. Returns file names, types, owners, last-modified times and links.",
+  "version": "1.0.0",
+  "enabled": true,
+  "auth": {
+    "connected_account": "google",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.readonly"
+    ]
+  },
+  "annotations": {
+    "title": "Search my Google Drive",
+    "readOnlyHint": true,
+    "openWorldHint": true
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300,
+        "description": "Words to find in file names and contents"
+      },
+      "mime_type": {
+        "type": "string",
+        "maxLength": 120,
+        "description": "Only this MIME type, e.g. application/vnd.google-apps.document"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10,
+        "description": "How many files"
+      }
+    },
+    "required": [
+      "query"
+    ],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "files": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "next_page_token": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "required": [
+      "count",
+      "files"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Connected Accounts",
+    "tags": [
+      "connected-account",
+      "google",
+      "drive",
+      "search"
+    ],
+    "note": "Acts as the caller: needs a linked Google account with Drive read access.",
+    "examples": [
+      {
+        "description": "Find the budget sheet",
+        "input": {
+          "query": "budget 2026",
+          "mime_type": "application/vnd.google-apps.spreadsheet"
+        }
+      }
+    ]
+  }
+}

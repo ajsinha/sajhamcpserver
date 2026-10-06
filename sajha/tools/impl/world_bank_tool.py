@@ -367,7 +367,7 @@ class WBGetCountryDataTool(WorldBankBaseTool):
             "properties": {
                 "country_code": {
                     "type": "string",
-                    "pattern": "^[A-Z]{2,3}$"
+                    "pattern": "^[A-Za-z]{2,3}$"
                 },
                 "indicator": {
                     "type": "string",
@@ -791,7 +791,7 @@ class WBCompareCountriesTool(WorldBankBaseTool):
             "properties": {
                 "country_codes": {
                     "type": "array",
-                    "items": {"type": "string", "pattern": "^[A-Z]{2,3}$"},
+                    "items": {"type": "string", "pattern": "^[A-Za-z]{2,3}$"},
                     "minItems": 2,
                     "maxItems": 10
                 },

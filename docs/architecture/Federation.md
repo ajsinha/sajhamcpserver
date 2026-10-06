@@ -114,11 +114,14 @@ or the store: every secret is a **reference** resolved by the intelligence layer
 | `bearer` | `token_ref` | `Authorization: Bearer <token>` |
 | `header` | `header`, `value_ref` | `<header>: <value>` (an API-key header such as `X-API-Key`) |
 | `oauth_client_credentials` | `token_url`, `client_id`, `client_secret_ref`, `scope`, `audience`, `resource` | a bearer token from an OAuth 2.0 client-credentials grant, cached until shortly before it expires and fetched again on a 401 |
+| `connected_account` | `provider`, `scopes`, `discovery` (one of the types above, for `tools/list`) | per-user token passthrough: each tool call carries the **calling user's** token for `provider` on a connection opened for that call; a caller without a link is asked to connect |
 
-The token URL passes the same URL guard as the upstream URL (section 9). Per-user token
-passthrough (calling an upstream as the SAJHA user who made the call) needs connected
-accounts and is deferred to that work; today every call to an upstream uses the
-upstream's own credentials, and SAJHA's access policy decides who may make it.
+The token URL passes the same URL guard as the upstream URL (section 9). With
+`connected_account` the upstream acts as the SAJHA user who made the call; `cache_ttl` and
+`stdio` are refused for it. How links, refresh and "connect your account" work:
+[Connected Accounts §7](Connected%20Accounts.md#7-federation-token-passthrough). Every other
+type uses the upstream's own credentials for every caller, and SAJHA's access policy decides
+who may make the call.
 
 ## 4. Namespacing
 
@@ -190,7 +193,7 @@ method every SAJHA tool runs, so before anything leaves SAJHA:
 
 1. the caller's tool access was checked by the surface that received the call (MCP on
    both eras, REST, A2A, Ask SAJHA), by name, through `sajha/auth/access.py`;
-2. the tool is enabled and the required arguments are present;
+2. the tool is enabled and the arguments satisfy its `inputSchema` (JSON Schema, checked locally before the upstream sees them);
 3. the tool cache answers if `cache_ttl` is set and a fresh result exists;
 4. the upstream's circuit breaker is consulted (open: fail fast);
 5. the upstream's rate limit is consulted.
@@ -321,7 +324,8 @@ is in the [API Reference](../protocol/API%20Reference.md#416-federation-federati
 
 ## 12. Limits
 
-* Per-user credentials to upstreams are not supported yet (section 3).
+* Per-user credentials (`auth.type: connected_account`) cost one MCP handshake per call: a
+  user's token is never put on the shared connection (section 3).
 * Server-to-client requests from a 2025-11-25 upstream (elicitation, sampling, roots) are
   declined; client input reaches upstreams only through 2026-07-28 MRTR (section 7).
 * Resource templates, completions, `resources/subscribe` and upstream tasks are not
@@ -329,7 +333,9 @@ is in the [API Reference](../protocol/API%20Reference.md#416-federation-federati
 * Federated prompts and resources have no per-caller policy, like SAJHA's own: every
   caller who can list prompts sees the approved ones.
 * Connection state, the event loop and the circuit breaker are per process; the store
-  (upstreams and approvals) is shared by every process that shares the storage backend.
+  (upstreams and approvals) is shared by every process that shares the storage backend,
+  and `max_calls_per_minute` counts in the state store
+  ([Scaling and State](Scaling%20and%20State.md)).
 * The SSRF guard checks addresses before each connection; a DNS answer that changes
   between that check and the connection itself is not caught. Pin hosts with
   `federation.allowed_hosts` for upstreams outside your control.

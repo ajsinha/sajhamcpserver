@@ -80,6 +80,9 @@ Every piece of per-process state found in the code, with its classification:
 - **Durable**: the state now lives in the database.
 - **Already shared**: the state was in the database or in files before this change.
 - **Local**: the state stays per process on purpose. The reason is in the last column.
+- **Local, relayed** or **Local, published**: the state stays per process, and the messages
+  (relayed) or snapshots (published) other workers need go through the store.
+- **Stateless**: nothing is kept; the client carries it, signed.
 
 | State | Code | Class | Where it lives now / why it stays local |
 |---|---|---|---|
@@ -98,18 +101,21 @@ Every piece of per-process state found in the code, with its classification:
 | `subscriptions/listen` streams and change-bus subscriptions | `sajha/core/change_bus.py`, `sajha/core/mcp_modern.py` | Local, relayed | A stream belongs to one connection. Events are relayed on the `changes` channel (§4.5). |
 | Rate limits (`auth`, `api`, `user`, `key`) | `sajha/security.py` (`RateLimiter`) | Shared | Sliding windows `ratelimit:<name>:<key>`. |
 | Sign-in IP throttle | `sajha/security.py` (`FailureThrottle`) | Shared | Window `loginfail:<key>`. |
-| Account lockout | `sajha/core/auth_manager.py` | Already shared (database) | The `failed_attempts` and `locked_until` columns on the user row. |
-| Web sign-in sessions | `sajha/core/auth_manager.py`, `user_sessions` table | Already shared (database + JWT) | Every worker needs the same JWT secret (§5). |
+| Account lockout | `sajha/auth/__init__.py` (`AuthManager.sign_in`) | Already shared (database) | The `failed_attempts` and `locked_until` columns on the user row. |
+| Web sign-in sessions | `sajha/auth/__init__.py`, `sajha/auth/jwt_handler.py` | Stateless (JWT) | The `sajha_token` cookie holds a signed JWT and the user is reloaded from the database on each request. Every worker needs the same JWT secret (§5). |
 | LLM token usage and daily budgets | `sajha/ai/gateway.py` (`TokenTracker`) | Shared | `llm:usage:<user>` and the daily counters `llm:daily:user:*` and `llm:daily:role:*`, which expire after 2 days. With the memory backend each gateway keeps private counters, as before. |
 | LLM response cache, provider health, provider circuit breakers | `sajha/ai/gateway.py` | Local | Caches and health probes. Each worker learning them on its own costs some duplicate calls, not correctness. |
 | Async executor queue | `sajha/core/async_executor.py` | Local | The work runs where it was submitted. |
 | Async executor task records | same | Shared | Written through to `async:task:<id>` with a shared backend, so any worker can read, list, cancel (while queued) and retry a job. Delivery headers stay in the submitting process, so a retry on another worker sends no custom headers. A queued or running job of a dead worker is reported failed. |
 | Tool output cache | `sajha/core/cache.py` | Already shared (files) | Files under `data/cache/`, shared by the workers of one host. Each host keeps its own. A miss only costs a call. |
 | Tool circuit breakers | `sajha/core/circuit_breaker.py` | Local | Each worker opens its breaker after its own failures. A shared breaker would let one worker's network fault block every worker. |
-| Metrics and execution replay | `sajha/observability/__init__.py`, `sajha/core/tool_health.py` | Local | Per-worker telemetry. `/metrics` and the replay views show the worker that answered. |
+| Metrics | `sajha/observability/metrics.py` | Local, published | Each worker keeps its own families. With a shared backend each worker also publishes a snapshot (`obs:metrics:<worker id>`), and `/metrics` merges every live worker's snapshot with a `worker` label ([Observability](Observability.md#24-several-workers)). The JSON `/api/metrics*` views show the worker that answered. |
+| Usage ledger | `sajha/observability/usage.py` | Already shared (database) | One table in SAJHA's database, so the Usage & cost page sees every worker. |
+| Alert-rule windows | `sajha/observability/alerts.py` | Local | Each worker evaluates its own traffic; with several workers, alert in Prometheus instead. |
+| Execution replay | `sajha/core/tool_health.py` | Local | Per-worker history. The replay views show the worker that answered. |
 | WebSocket sessions | `sajha/routes/ws_routes.py` | Local | A WebSocket is one connection to one worker. The admin listing shows that worker's connections only. |
-| Tool, prompt, user and API-key configuration | `sajha/tools/tools_registry.py`, `sajha/core/prompts_registry.py`, `sajha/core/apikey_manager.py` | Already shared (files and database) | Each worker loads and hot-reloads the files. The local tool-config poller runs every 5 s, so a tool enabled on one worker reaches the others' registries within about that time. |
-| Federation upstream connections | `sajha/federation/` | Local | Each worker opens its own connections to upstreams. |
+| Tool, prompt, user and API-key configuration | `sajha/tools/tools_registry.py`, `sajha/core/prompts_registry.py`, the `users` / `api_keys` tables | Already shared (files and database) | Each worker loads and hot-reloads the files. The local tool-config poller runs every 5 s, so a tool enabled on one worker reaches the others' registries within about that time. |
+| Federation upstream connections and breakers | `sajha/federation/` | Local | Each worker opens its own connections to upstreams. The upstream list and approvals are in the federation store (storage backend), and an upstream's `max_calls_per_minute` window is in the state store. |
 | Log de-duplication sets, provider instances, glossary cache | `sajha/core/mcp_modern.py`, `sajha/core/mcp_apps.py`, `sajha/ai/providers/__init__.py`, `sajha/web/glossary.py` | Local | Process-local helpers that hold no client-visible state. |
 
 ## 4. Component designs
@@ -161,6 +167,13 @@ go to this worker's `Subscription`s only: listen streams, legacy SSE and WebSock
 They do not go to synchronous listeners, which stay local. Coalescing still applies per
 subscriber.
 
+Bursts are kept off the store. The tools registry announces bulk work (start-up loading,
+reloads, the config poller's scan, composite and federation sync) once at the end, and not
+at all when the catalog it would list is unchanged; re-registering an identical tool or
+unregistering an unknown one announces nothing. On the relay itself, the first of a run of
+identical events goes out at once and any repeats within `ChangeBus.RELAY_WINDOW_SECONDS`
+(0.5 s) become one trailing event.
+
 ### 4.6 Counters
 
 Rate limits, the sign-in throttle and LLM budgets are sliding windows or counters in the
@@ -199,7 +212,9 @@ set them through the environment.
   `redis`, or `durable (database)`), `worker_id` and `workers_hint`. A load balancer can
   check `state.reachable`.
 
-Deployment recipes: [deployment/README.md](../../deployment/README.md#several-workers-or-hosts).
+Deployment recipes: [deployment/README.md](../../deployment/README.md#several-workers-or-hosts);
+on Kubernetes, several replicas with a shared backend are covered by
+[Kubernetes Deployment](../getting-started/Kubernetes%20Deployment.md#4-several-replicas).
 The Hetzner and local AWS compose files have an optional `scale` profile that starts Redis.
 The AWS CDK stack runs several Fargate tasks with `SAJHA_STATE_BACKEND=database` on RDS.
 

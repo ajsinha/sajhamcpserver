@@ -238,6 +238,23 @@ async def logout(request: Request):
 
 # ── Landing page or dashboard ────────────────────────────────────
 
+def _llm_provider_count() -> int:
+    """Registered LLM provider types (sajha/ai/llm/registry.py), not counting the offline mock."""
+    try:
+        from sajha.ai.llm.registry import registered_providers
+        return len([n for n in registered_providers() if n != 'mock'])
+    except Exception:
+        return 0
+
+
+def _db_table_count() -> int:
+    try:
+        from sajha.db.models import Base
+        return len(Base.metadata.tables)
+    except Exception:
+        return 0
+
+
 @router.get('/')
 async def root(request: Request, auth: AuthContext = Depends(get_current_user)):
     if auth.authenticated:
@@ -245,9 +262,16 @@ async def root(request: Request, auth: AuthContext = Depends(get_current_user)):
     # Show landing page for unauthenticated visitors. The counts and the hero's constellation
     # come from the live registry, grouped by name prefix exactly as the help pages group them.
     from sajha.app import render_standalone
+    from sajha.auth.access import anonymous_policy
     from sajha.web.help_catalog import live_tool_groups
-    live = live_tool_groups(with_names=True)      # names: a hover on a star names its tool
+    # names (a hover on a star names its tool) only for tools an anonymous MCP caller may
+    # see; every other star is drawn from the counts alone
+    live = live_tool_groups(with_names=True, visible=anonymous_policy().can_see)
     return render_standalone(request, 'landing.html', {
+        'llm_provider_count': _llm_provider_count(),
+        'db_table_count': _db_table_count(),
+        'endpoint_count': len({(getattr(r, 'path', ''), m) for r in request.app.routes
+                               for m in (getattr(r, 'methods', None) or ())}),
         'tool_count': live['total_tools'],
         'group_count': live['total_groups'],
         'tool_groups': [[g['name'], g['tool_count'], g['tools']] for g in live['groups']],

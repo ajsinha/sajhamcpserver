@@ -113,10 +113,27 @@ async def prompts_by_tag(tag: str, request: Request, auth: AuthContext = Depends
 
 # ── Prompts API ──────────────────────────────────────────────────
 
+async def _prompt_caller(request: Request, db: Session):
+    """(session, error response) for the REST prompt catalog: the same gate as MCP
+    ``prompts/list`` (401 where ``/mcp`` would answer one) and the same visibility
+    (sajha/auth/access.py ``can_see_prompt``): every prompt for a signed-in caller,
+    ``mcp.anonymous.prompts`` for an anonymous one."""
+    from sajha.auth.oauth.resource_server import authorize_mcp
+    auth, err = await authorize_mcp(request, db, 'prompts/list')
+    if err is not None:
+        return None, err
+    return {'authenticated': bool(auth is not None and auth.authenticated)}, None
+
+
 @router.get('/api/prompts/list')
-async def api_prompts_list():
+async def api_prompts_list(request: Request, db: Session = Depends(get_db)):
     from sajha.app import prompts_registry
+    from sajha.auth.access import can_see_prompt
+    session, err = await _prompt_caller(request, db)
+    if err is not None:
+        return err
     prompts = prompts_registry.get_all_prompts() if prompts_registry else []
+    prompts = [p for p in prompts if can_see_prompt(session, p.get('name'))]
     return JSONResponse({'prompts': prompts})
 
 
@@ -148,10 +165,14 @@ def _registry_result(result, status_code: int = 400) -> JSONResponse:
 
 
 @router.get('/api/prompts/{prompt_name}')
-async def api_prompt_get(prompt_name: str):
+async def api_prompt_get(prompt_name: str, request: Request, db: Session = Depends(get_db)):
     from sajha.app import prompts_registry
+    from sajha.auth.access import can_see_prompt
+    session, err = await _prompt_caller(request, db)
+    if err is not None:
+        return err
     prompt = prompts_registry.get_prompt(prompt_name) if prompts_registry else None
-    if not prompt:
+    if not prompt or not can_see_prompt(session, prompt_name):   # hidden == missing
         return JSONResponse({'error': 'Prompt not found'}, status_code=404)
     return JSONResponse(prompt.to_dict())
 

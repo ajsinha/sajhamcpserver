@@ -91,8 +91,8 @@ SAJHA = {
     'licence': 'All rights reserved',
     'best_for': 'One self-hosted server that brings its own data tools, a browser tool builder and an LLM '
                 'layer that uses them, speaking both MCP eras, and can put a few other MCP servers behind its '
-                'own governance, when you do not need to isolate servers in containers or reach SaaS apps '
-                'per user.',
+                'own governance, when you do not need to isolate servers in containers or a catalog of '
+                'thousands of SaaS actions (it acts as each user in a few services it links).',
     'cells': {
         'spec_2026': _s('Yes', 'Stateless era: {modern}, on the same /mcp endpoint.',
                         ['sajha/core/mcp_modern.py'], 'MCP Protocol Guide.md'),
@@ -113,30 +113,46 @@ SAJHA = {
                        ['sajha/auth/oauth/resource_server.py'], 'OAuth Guide.md'),
         'oauth_as': _s('Yes', 'Built in (PKCE S256, client ID metadata documents, rotating refresh tokens) or external.',
                        ['sajha/auth/oauth/authorization_server.py'], 'OAuth Guide.md'),
-        'rbac': _s('Yes', 'One policy for REST, MCP and A2A: role permissions, API-key allow/deny/regex lists.',
-                   ['sajha/auth/access.py'], 'Security Model.md'),
+        'rbac': _s('Yes', 'One policy for REST, MCP and A2A: role permissions, API-key allow/deny/regex lists; '
+                          'plus declarative rules on every call (deny, human approval, argument constraints, '
+                          'rate limits and quotas, PII redaction, injection screening) with a test bench.',
+                   ['sajha/auth/access.py', 'sajha/policy', 'config/policies'], 'Policy and Audit.md',
+                   page='admin_policies_page'),
         'builtin_tools': _s('Yes', '{tools} tools in {groups} groups loaded now: market data, central banks, '
                                    'filings, search, analytics.',
                             ['config/tools'], page='help_tools_page'),
-        'integrations': _s('Partial', 'Data APIs, plus SharePoint, LiveLink and Power BI through Studio; '
-                                      'server-wide keys, no per-user SaaS OAuth.',
-                           ['sajha/studio/sharepoint_tool_generator.py'], 'MCP Studio User Guide.md'),
-        'nocode': _s('Yes', 'MCP Studio: REST, SQL, script, Power BI, LiveLink, SharePoint and OLAP creators (admins).',
-                     ['sajha/studio'], 'MCP Studio User Guide.md'),
+        'integrations': _s('Partial', 'Connected accounts: users link GitHub, Slack, Google Workspace, '
+                                      'Microsoft (Outlook, Graph), Atlassian or Notion (or any OAuth 2.0 service) once, with '
+                                      'PKCE and an encrypted, refreshed token vault; a handful of tools act as '
+                                      'them, plus admin-bound endpoints and per-user token passthrough to '
+                                      'federated servers. No catalog of thousands of app actions.',
+                           ['sajha/accounts', 'sajha/routes/accounts_routes.py'], 'Connected Accounts.md'),
+        'nocode': _s('Yes', 'MCP Studio (admins): import an OpenAPI 3 or Swagger 2 spec, or a GraphQL schema, as '
+                            'reviewed tools on one generic executor (no code generated; re-import shows a diff; '
+                            'multipart bodies not supported); plus REST, SQL, script, Power BI, LiveLink, '
+                            'SharePoint and OLAP creators.',
+                     ['sajha/studio', 'sajha/api_import'], 'API Import.md'),
         'composition': _s('Yes', 'Composite tools with confidence tracking, registered as MCP tools.',
                           ['sajha/core/composition.py'], 'Composition Framework.md'),
         'federation': _s('Yes', 'Fronts upstream MCP servers (both eras, SSE, opt-in stdio) as namespaced '
                                 '<prefix>__<tool> registry tools under its own access policy, approval, circuit '
                                 'breakers and audit; off by default (federation.enabled).',
                          ['sajha/federation', 'sajha/routes/federation_routes.py'], 'Federation.md'),
-        'llm': _s('Yes', 'LLM providers incl. Ollama and a mock; POST /api/ai/ask and the Ask SAJHA page.',
-                  ['sajha/ai/llm', 'sajha/routes/ai_routes.py'], 'Intelligence Layer.md'),
+        'llm': _s('Yes', 'LLM providers incl. Ollama and a mock; POST /api/ai/ask and the Ask SAJHA page, with '
+                         'pluggable planners (ReAct by default; plan-and-execute, recipes, a router), per-user '
+                         'conversation memory, and search over its own and admin-supplied documents with '
+                         'citations (text formats only; no document connectors yet). Out of the box the mock '
+                         'model plans: real reasoning needs a provider and its key.',
+                  ['sajha/ai/llm', 'sajha/ai/planners.py', 'sajha/ai/memory.py', 'sajha/ai/rag',
+                   'sajha/routes/ai_routes.py'], 'Intelligence Layer.md'),
         'observability': _s('Yes', 'Prometheus /metrics (protected; HTTP, MCP, tools, LLM tokens and cost), '
                             'OpenTelemetry traces and metrics over OTLP (opt-in), a usage and cost dashboard, '
-                            'alert rules, health probes and an audit log.',
+                            'alert rules, health probes, and a hash-chained audit log with signed anchors, a '
+                            'verify command and SIEM export (syslog, Splunk HEC, Datadog, file; JSON, CEF, OCSF).',
                             ['sajha/observability/metrics.py', 'sajha/observability/tracing.py',
                              'sajha/observability/usage.py', 'sajha/observability/alerts.py',
-                             'sajha/routes/observability_routes.py'], 'Observability.md', page='monitoring_usage'),
+                             'sajha/routes/observability_routes.py', 'sajha/audit'], 'Observability.md',
+                            page='monitoring_usage'),
         'admin_ui': _s('Yes', 'Web console: tools, users, roles, API keys, prompts, monitoring.',
                        ['sajha/web/templates/admin'], 'How SAJHA Fits Together.md'),
         'isolation': _s('Partial', 'Code users add in Studio (Python and script tools) and the shell run in a '

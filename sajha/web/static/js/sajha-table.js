@@ -22,6 +22,7 @@
             // Skip if explicitly disabled or already enhanced
             if (table.dataset.sajhaTable === 'false') return;
             if (table.dataset.sajhaEnhanced === 'true') return;
+            if (table.dataset.enhanced === 'true') return;  // table-enhance.js already gave it controls
             if (table.closest('[data-sajha-table="false"]')) return;
 
             const tbody = table.querySelector('tbody');

@@ -4,6 +4,20 @@ SAJHA MCP Server {{ .Chart.AppVersion }} is installed as "{{ include "sajha.full
   database:      {{ .Values.database.type }}
   state.backend: {{ include "sajha.stateBackend" . }}
   storage:       {{ .Values.storage.backend }}
+{{- if eq .Values.database.type "postgresql" }}
+
+PostgreSQL schema: SAJHA does not create tables. Before the pods can start, run the
+schema file once against the database (then seed.sql, for the default roles and admin):
+  kubectl -n {{ .Release.Namespace }} run sajha-sql --rm -i --restart=Never --image={{ include "sajha.image" . }} \
+    --command -- python -m sajha.db sql --dialect postgresql > schema.sql
+  kubectl -n {{ .Release.Namespace }} run sajha-sql --rm -i --restart=Never --image={{ include "sajha.image" . }} \
+    --command -- python -m sajha.db sql --dialect postgresql --seed > seed.sql
+  psql -v ON_ERROR_STOP=1 "<database URL>" -f schema.sql
+  psql -v ON_ERROR_STOP=1 "<database URL>" -f seed.sql
+Until then the pods log "Refusing to start: database schema is not ready" with the missing
+tables (database.postgresql.schemaCheck: {{ .Values.database.postgresql.schemaCheck | default "strict" }}).
+Guide: docs/getting-started/Database Setup.md
+{{- end }}
 {{- with include "sajha.publicUrl" . }}
   public URL:    {{ . }}  (MCP endpoint {{ . }}/mcp)
 {{- end }}

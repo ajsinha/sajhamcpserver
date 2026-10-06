@@ -67,7 +67,7 @@ def main():
     print("\n[3] Checking core module...")
     all_ok &= check_file("core/__init__.py", "Core init")
     all_ok &= check_file("core/properties_configurator.py", "Properties configurator")
-    all_ok &= check_file("core/auth_manager.py", "Auth manager")
+    all_ok &= check_file("sajha/auth/__init__.py", "Auth manager")
     all_ok &= check_file("core/mcp_handler.py", "MCP handler")
     
     # Check tools module files
@@ -130,7 +130,7 @@ def main():
         all_ok = False
     
     try:
-        from core.auth_manager import AuthManager
+        from sajha.auth import AuthManager
         print("✓ AuthManager import successful")
     except Exception as e:
         print(f"✗ AuthManager import failed: {e}")

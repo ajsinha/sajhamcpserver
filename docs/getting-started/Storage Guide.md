@@ -44,7 +44,8 @@ selected store.
 | Prompts registry | `config/prompts/*.json` | list and read at load; create and update use `write_json`; delete uses `delete` |
 | MCP Studio generators | `config/tools/<name>.json` | the generated tool **JSON** is written through `write_tool_config()` |
 | Guide pages (`/help/guides`, `/help/guides/{name}`) | `docs/**/*.md` except `docs/archive/` and `README.md` files | recursive listing (reused for 30 s) and a read per page; a guide is found by its file name |
-| Semantic tool search vector index | `data/tool_search_index.json` | loaded at start and rewritten after re-embedding; only when `ai.tool_search.embedder` is `gateway` (the default `bm25` builds nothing to persist) |
+| Semantic tool search vector index | `data/tool_search_index.json` | loaded at start and rewritten after re-embedding; only when `ai.tool_search.embedder` is `gateway` (the default `bm25` builds nothing to persist) and `ai.tool_search.persist` is true |
+| Federation store | `federation.state_path` (default `config/federation/federation.json`) | upstreams added on `/admin/federation` and every item's approval; read at start, rewritten on change ([Federation](../architecture/Federation.md)) |
 
 The tools and prompts paths come from `config.tools.dir` / `config.prompts.dir` (defaults
 `config/tools`, `config/prompts`), taken relative to the working directory.
@@ -311,14 +312,13 @@ Behaviour you should expect on a cloud backend:
 
 | Symptom | Cause and fix |
 |---------|---------------|
-| `SAJHA_STORAGE_BACKEND=s3` set, but the log says `LocalStorageBackend` | The shipped YAML defines `storage.backend`, so the env fallback never applies. Use `${SAJHA_STORAGE_BACKEND:local}` in the YAML (see [Environment variables](#environment-variables-how-overrides-actually-work)). |
+| `SAJHA_STORAGE_BACKEND=s3` set, but the log says `LocalStorageBackend` | Backend construction failed and the server fell back to local; the line before it says why (next row). The environment does win over the YAML (see [Environment variables](#environment-variables)). |
 | `Storage backend init failed, falling back to local filesystem` | The constructor raised an error, such as a missing SDK (`ImportError` names the package) or Azure with neither `connection_string` nor `account_url`. The server keeps running on the local backend. |
 | No tools load on a cloud backend | The bucket is empty, the prefix is wrong, or the credentials lack `List`. The objects must be at `<prefix>/config/tools/*.json`. Check the startup line `Loading tools from 'config/tools' via ...`. |
 | Bucket edits take a while to appear | Polling cadence is `storage.s3.sync_interval` (there are no push notifications). Lower it, or call `POST /api/admin/tools/reload`. |
 | A tool deleted from the bucket is still listed | Deletions alone do not trigger a reload (see [Hot reload](#hot-reload-per-backend)). Call `POST /api/admin/tools/reload`. |
 | Tool JSON loads but the class fails to import on another instance | The Studio `.py` exists only on the instance that generated it. Share `sajha/tools/impl/` via EFS. |
 | `database is locked` or a corrupt SQLite file on a shared mount | Never put SQLite on an object store. On EFS, prefer a single writer, or switch `db.type` to `postgresql`. |
-| Setting `ai.tool_search.persist: false` still writes `data/tool_search_index.json` | The flag is read as a string and passed through `bool()`, so any non-empty value counts as true. Use the `bm25` embedder (nothing is persisted) if you need no index file. |
 | A guide is missing from `/help/guides` | Only `*.md` under `docs/` (recursive, excluding `docs/archive/` and `README.md` files) are listed, and on a cloud backend they must be in the bucket under `<prefix>/docs/`. |
 
 ---

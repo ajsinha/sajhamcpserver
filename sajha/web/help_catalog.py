@@ -35,7 +35,7 @@ REDIRECTS: Dict[str, tuple] = {
     'help_tutorials_page': ('/help/tutorials', '/help/c/tutorials'),
     'help_storage_page': ('/help/storage', '/help/guides/Storage%20Guide.md'),
     'help_glossary_page': ('/help/glossary', '/glossary'),
-    'help_ai_page': ('/help/ai', '/help/guides/Architecture.md'),
+    'help_ai_page': ('/help/ai', '/help/guides/Intelligence%20Layer.md'),
     'help_enterprise_page': ('/help/enterprise', '/help/guides/Security%20Model.md'),
 }
 
@@ -92,6 +92,9 @@ CATALOG: List[dict] = [
                'Install, sign in, and make your first MCP call.'),
             _g('Configuration Reference', 'Configuration Reference.md', 'bi-sliders',
                'config/application.yml, ${ENV:default}, SAJHA_* overrides, and every key.'),
+            _g('Database Setup', 'Database Setup.md', 'bi-database',
+               'SQLite for development, PostgreSQL for production: one schema file per database, '
+               'run once by the operator; the start-up schema check, upgrades, python -m sajha.db.'),
             _g('Storage Guide', 'Storage Guide.md', 'bi-hdd-stack',
                'Where configs, prompts, Studio output and docs live: local disk, S3, Azure '
                'Blob or GCS, and hot reload on each.'),
@@ -137,18 +140,22 @@ CATALOG: List[dict] = [
         'blurb': 'How the server is built inside, and the theory behind composite tools.',
         'topics': [
             _g('Architecture', 'Architecture.md', 'bi-boxes',
-               'The process, the registries, the request path, observability and the LLM gateway.'),
+               'The process, the registries, the request path, and how each subsystem fits in, '
+               'with a link to the guide that owns it.'),
             _g('Composition Framework', 'Composition Framework.md', 'bi-bezier2',
                'Composite tools: StepResult, ParamLens, EntropyGuard and confidence.'),
             _g('Intelligence Layer', 'Intelligence Layer.md', 'bi-stars',
-               'LLM providers and models, the gateway, the mock provider, /api/ai/ask and the '
-               'Ask SAJHA chat page.'),
+               'LLM providers and models, the gateway, the mock provider, /api/ai/ask, planners, '
+               'conversation memory, document search (RAG) and the Ask SAJHA chat page.'),
             _g('Extending the Intelligence Layer', 'Extending the Intelligence Layer.md', 'bi-plug',
                'Write a provider, a model or a planner: settings, error mapping, registration, '
                'testing, with runnable examples.', badge='Developers'),
             _g('Federation', 'Federation.md', 'bi-diagram-2',
                'Front other MCP servers: their tools under SAJHA\'s access control, audit, cache, '
                'circuit breakers and approval; the Federation admin page.'),
+            _g('Connected Accounts', 'Connected Accounts.md', 'bi-link-45deg',
+               'Users link GitHub, Slack, Google, Microsoft 365 and other accounts once; tools and '
+               'federated servers act as them. Providers, PKCE flow, token vault, refresh, security.'),
             _g('Sandbox', 'Sandbox.md', 'bi-shield-lock',
                'Where Studio code and script tools and the shell run: threat model, backends '
                '(subprocess, bwrap, nsjail, docker), what each guarantees, tool policy.'),
@@ -158,6 +165,9 @@ CATALOG: List[dict] = [
             _g('Observability', 'Observability.md', 'bi-activity',
                'Prometheus /metrics, OpenTelemetry traces over OTLP, the usage ledger behind the '
                'Usage & cost page, and alert rules.'),
+            _g('Policy and Audit', 'Policy and Audit.md', 'bi-shield-check',
+               'Declarative rules on every tool call (deny, approval, argument constraints, rate limits, '
+               'quotas, PII redaction, injection screening); hash-chained, signed audit; SIEM export.'),
         ],
     },
     {
@@ -165,8 +175,8 @@ CATALOG: List[dict] = [
         'blurb': 'Build tools in the browser, from code, services and enterprise sources.',
         'groups': [
             ('Start here', ['MCP Studio User Guide']),
-            ('Code and services', ['Python code tools', 'REST service tools', 'DB query tools',
-                                   'Script tools']),
+            ('Code and services', ['Python code tools', 'REST service tools', 'Import an API',
+                                   'DB query tools', 'Script tools']),
             ('Enterprise sources', ['Power BI reports', 'Power BI DAX queries', 'IBM LiveLink',
                                     'SharePoint', 'OLAP datasets']),
         ],
@@ -177,6 +187,9 @@ CATALOG: List[dict] = [
                'Turn a Python function with the @sajhamcptool decorator into a tool.'),
             _g('REST service tools', 'MCP Studio REST Tool Creator Guide.md', 'bi-cloud-arrow-up',
                'Wrap an HTTP endpoint as a tool.'),
+            _g('Import an API', 'API Import.md', 'bi-filetype-json',
+               'OpenAPI 3.x, Swagger 2.0 or GraphQL to a reviewed set of tools: mapping, auth, SSRF '
+               'guard, re-import diff.'),
             _g('DB query tools', 'MCP Studio DBQuery Tool Creator Guide.md', 'bi-database',
                'A parameterised SQL query as a tool.'),
             _g('Script tools', 'MCP Studio Script Tool Creator Guide.md', 'bi-terminal',
@@ -207,6 +220,7 @@ CATALOG: List[dict] = [
             ('Search', ['Google Search', 'MSDOC Search', 'Tavily Search', 'Web Crawler',
                         'Wikipedia Search']),
             ('Analytics', ['DuckDB', 'Financial Calculators', 'OLAP Analytics', 'SQL Select']),
+            ('Enterprise', ['SharePoint (tools)', 'Connected accounts (tools)']),
             ('Prompts', ['Prompts Management Guide']),
         ],
         'topics': [
@@ -241,6 +255,11 @@ CATALOG: List[dict] = [
             _tool('Financial Calculators', 'bi-calculator', 'Pure-math financial calculators that need no API key.'),
             _tool('OLAP Analytics', 'bi-graph-up-arrow', 'Slice and aggregate OLAP datasets.'),
             _tool('SQL Select', 'bi-table', 'Read-only SQL queries against configured databases.'),
+            _g('SharePoint (tools)', 'SharePoint Tool Reference Guide.md', 'bi-microsoft',
+               'Documents, lists and search on a SharePoint Online site, and their known issues.'),
+            _g('Connected accounts (tools)', 'Connected Account Tools Reference Guide.md', 'bi-link-45deg',
+               'GitHub, Slack, Google Drive and Outlook tools that act as the signed-in user, and '
+               'connected_http_request.'),
             _g('Prompts Management Guide', 'Prompts Management Guide.md', 'bi-chat-square-text',
                'Prompt configs, arguments, and the prompt pages.'),
         ],
@@ -285,6 +304,18 @@ CATALOG: List[dict] = [
             _g('17. Deploy SAJHA on Kubernetes', 'TUTORIAL_17_deploy_sajha_on_kubernetes.md', 'bi-boxes',
                'Build the image, install the Helm chart on kind behind ingress-nginx, scale to three '
                'pods on Redis and PostgreSQL.'),
+            _g('18. Connect your accounts', 'TUTORIAL_18_connect_your_accounts.md', 'bi-link-45deg',
+               'Register a GitHub OAuth app, link your account, call a tool as you from the console, '
+               'REST, MCP and Ask SAJHA, then disconnect.'),
+            _g('19. Import an OpenAPI spec', 'TUTORIAL_19_import_an_openapi_spec.md', 'bi-filetype-json',
+               'Import the petstore spec, deploy three operations, call one over MCP and from Ask SAJHA, '
+               're-import a changed spec.'),
+            _g('20. Policies, approvals and audit', 'TUTORIAL_20_policies_approvals_and_audit.md', 'bi-shield-check',
+               'Write a policy, try it on the test bench, approve a held call, redact a result, verify the '
+               'audit chain and catch a tampered record, stream to a SIEM.'),
+            _g('21. Planners, memory and document search', 'TUTORIAL_21_planners_memory_and_rag.md', 'bi-diagram-3',
+               'Run a plan with parallel steps, add a recipe and a router, ask a follow-up, delete your history, '
+               'ask the docs and index your own documents.'),
         ],
     },
     {
@@ -417,8 +448,13 @@ _GROUP_ICONS = ['bi-tools', 'bi-graph-up', 'bi-database', 'bi-globe', 'bi-bank',
 _GROUP_TONES = ['crimson', 'ok', 'indigo', 'warn', 'bad', 'slate']
 
 
-def live_tool_groups(registry=None, with_names: bool = False) -> dict:
+def live_tool_groups(registry=None, with_names: bool = False, visible=None) -> dict:
     """{'total_tools', 'total_groups', 'groups': [...]} from the tools registry.
+
+    Counts cover the whole catalog; tool *names* and descriptions (``examples``, ``tools``)
+    are limited to those ``visible(name)`` allows, so a page can pass the viewer's
+    ``ToolPolicy.can_see`` (sajha/auth/access.py) and show nobody a tool that ``tools/list``
+    would hide from them. ``visible=None`` shows every name (callers that print counts only).
 
     A tool's group is the text before the first '_' in its name (GLOSSARY: Tool group).
     This is the one implementation; the landing page, /help/tools and Ask SAJHA use it.
@@ -432,10 +468,12 @@ def live_tool_groups(registry=None, with_names: bool = False) -> dict:
         prefix = name.split('_')[0] if '_' in name else name
         g = group_map.setdefault(prefix, {'count': 0, 'enabled': 0, 'examples': [], 'names': []})
         g['count'] += 1
-        g['names'].append(name)
         cfg = getattr(tool, 'config', {}) or {}
         if cfg.get('enabled', True):
             g['enabled'] += 1
+        if visible is not None and not visible(name):
+            continue
+        g['names'].append(name)
         if len(g['examples']) < 3:
             g['examples'].append({'name': name, 'description': (cfg.get('description') or '')[:90]})
     groups = []

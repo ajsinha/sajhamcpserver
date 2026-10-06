@@ -155,17 +155,21 @@ class SharePointToolGenerator:
         tool_type_info = self.TOOL_TYPES.get(config.tool_type, {})
         operations = config.allowed_operations or tool_type_info.get('operations', [])
         
-        base_schema = {
-            "type": "object",
-            "properties": {
-                "operation": {
-                    "type": "string",
-                    "required": True,
-                    "enum": operations,
-                    "description": "Operation to perform"
-                }
+        if config.tool_type == 'search':
+            # The search tool selects with 'search_type'; 'query' is the one required argument
+            base_schema = {"type": "object", "properties": {}, "required": ["query"]}
+        else:
+            base_schema = {
+                "type": "object",
+                "properties": {
+                    "operation": {
+                        "type": "string",
+                        "enum": operations,
+                        "description": "Operation to perform"
+                    }
+                },
+                "required": ["operation"]
             }
-        }
         
         # Add type-specific properties
         if config.tool_type == 'documents':
@@ -191,8 +195,8 @@ class SharePointToolGenerator:
             })
         elif config.tool_type == 'search':
             base_schema["properties"].update({
-                "query": {"type": "string", "required": True, "description": "Search query"},
-                "search_type": {"type": "string", "enum": ["all", "documents", "people", "sites"]},
+                "query": {"type": "string", "description": "Search query"},
+                "search_type": {"type": "string", "enum": operations, "default": "all"},
                 "file_types": {"type": "array", "items": {"type": "string"}},
                 "max_results": {"type": "integer", "default": 50}
             })

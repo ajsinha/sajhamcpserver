@@ -23,10 +23,20 @@
 
     <div class="guide-layout">
         {% if toc %}
-        <nav class="guide-toc" aria-label="Contents">
-            <div class="head">Contents</div>
-            {{ toc_list(toc) }}
-        </nav>
+        {# Open on wide screens; on phones a closed "Contents" disclosure above the guide. #}
+        <details class="guide-toc" id="guide-toc" open>
+            <summary class="head">Contents</summary>
+            <nav aria-label="Contents">{{ toc_list(toc) }}</nav>
+        </details>
+        <script>
+            (function () {
+                var toc = document.getElementById('guide-toc');
+                if (window.matchMedia && window.matchMedia('(max-width: 991.98px)').matches) toc.open = false;
+                toc.addEventListener('click', function (e) {
+                    if (e.target.closest('a') && window.matchMedia('(max-width: 991.98px)').matches) toc.open = false;
+                });
+            })();
+        </script>
         {% else %}<div></div>{% endif %}
         <article class="guide-body" data-sajha-table="false">
             {{ body|safe }}

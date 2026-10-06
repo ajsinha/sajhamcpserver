@@ -92,8 +92,8 @@ malformed base64, is rejected with `-32020` (HTTP 400). For example, calling
 is missing but the body's 'symbol' argument is present"*. Legacy clients are not
 affected.
 
-Tools annotated today: `yahoo_get_quote`, `av_stock_quote`, `fmp_stock_quote`
-(`symbol` → `Mcp-Param-Symbol`). To find others: `grep -l x-mcp-header config/tools/*.json`.
+The stock-quote tools annotate `symbol` this way (`symbol` → `Mcp-Param-Symbol`). The
+current list is whatever the configs say: `grep -l x-mcp-header config/tools/*.json`.
 
 ### Rules, and what happens when they are broken
 

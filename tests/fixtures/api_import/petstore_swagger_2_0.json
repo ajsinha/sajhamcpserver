@@ -1,0 +1,107 @@
+{
+  "swagger": "2.0",
+  "info": {"description": "A subset of the Swagger 2.0 petstore sample (petstore.swagger.io/v2).", "version": "1.0.6", "title": "Swagger Petstore v2"},
+  "host": "petstore.swagger.io",
+  "basePath": "/v2",
+  "tags": [{"name": "pet"}, {"name": "store"}, {"name": "user"}],
+  "schemes": ["https", "http"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "paths": {
+    "/pet": {
+      "post": {
+        "tags": ["pet"], "summary": "Add a new pet to the store", "operationId": "addPet",
+        "consumes": ["application/json", "application/xml"], "produces": ["application/json", "application/xml"],
+        "parameters": [{"in": "body", "name": "body", "description": "Pet object that needs to be added to the store", "required": true, "schema": {"$ref": "#/definitions/Pet"}}],
+        "responses": {"200": {"description": "OK", "schema": {"$ref": "#/definitions/Pet"}}, "405": {"description": "Invalid input"}},
+        "security": [{"petstore_auth": ["write:pets", "read:pets"]}]
+      }
+    },
+    "/pet/findByStatus": {
+      "get": {
+        "tags": ["pet"], "summary": "Finds Pets by status", "description": "Multiple status values can be provided", "operationId": "findPetsByStatus",
+        "parameters": [{"name": "status", "in": "query", "description": "Status values that need to be considered for filter", "required": true, "type": "array", "items": {"type": "string", "enum": ["available", "pending", "sold"], "default": "available"}, "collectionFormat": "multi"}],
+        "responses": {"200": {"description": "successful operation", "schema": {"type": "array", "items": {"$ref": "#/definitions/Pet"}}}, "400": {"description": "Invalid status value"}},
+        "security": [{"petstore_auth": ["read:pets"]}]
+      }
+    },
+    "/pet/{petId}": {
+      "parameters": [{"$ref": "#/parameters/petId"}],
+      "get": {
+        "tags": ["pet"], "summary": "Find pet by ID", "operationId": "getPetById",
+        "responses": {"200": {"description": "successful operation", "schema": {"$ref": "#/definitions/Pet"}}, "404": {"$ref": "#/responses/NotFound"}},
+        "security": [{"api_key": []}]
+      },
+      "post": {
+        "tags": ["pet"], "summary": "Updates a pet in the store with form data", "operationId": "updatePetWithForm",
+        "consumes": ["application/x-www-form-urlencoded"],
+        "parameters": [
+          {"name": "name", "in": "formData", "description": "Updated name of the pet", "required": false, "type": "string"},
+          {"name": "status", "in": "formData", "description": "Updated status of the pet", "required": false, "type": "string"}
+        ],
+        "responses": {"405": {"description": "Invalid input"}}
+      },
+      "delete": {
+        "tags": ["pet"], "summary": "Deletes a pet", "operationId": "deletePet",
+        "parameters": [{"name": "api_key", "in": "header", "required": false, "type": "string"}],
+        "responses": {"400": {"description": "Invalid ID supplied"}, "404": {"$ref": "#/responses/NotFound"}}
+      }
+    },
+    "/pet/{petId}/uploadImage": {
+      "post": {
+        "tags": ["pet"], "summary": "uploads an image", "operationId": "uploadFile", "consumes": ["multipart/form-data"],
+        "parameters": [
+          {"$ref": "#/parameters/petId"},
+          {"name": "additionalMetadata", "in": "formData", "required": false, "type": "string"},
+          {"name": "file", "in": "formData", "required": false, "type": "file"}
+        ],
+        "responses": {"200": {"description": "successful operation", "schema": {"$ref": "#/definitions/ApiResponse"}}}
+      }
+    },
+    "/store/inventory": {
+      "get": {
+        "tags": ["store"], "summary": "Returns pet inventories by status", "operationId": "getInventory",
+        "responses": {"200": {"description": "successful operation", "schema": {"type": "object", "additionalProperties": {"type": "integer", "format": "int32"}}}},
+        "security": [{"api_key": []}]
+      }
+    },
+    "/user/login": {
+      "get": {
+        "tags": ["user"], "summary": "Logs user into the system", "operationId": "loginUser",
+        "parameters": [
+          {"name": "username", "in": "query", "required": true, "type": "string"},
+          {"name": "password", "in": "query", "required": true, "type": "string", "format": "password"}
+        ],
+        "responses": {"200": {"description": "successful operation", "schema": {"type": "string"}}}
+      }
+    }
+  },
+  "parameters": {
+    "petId": {"name": "petId", "in": "path", "description": "ID of pet", "required": true, "type": "integer", "format": "int64", "minimum": 1}
+  },
+  "responses": {
+    "NotFound": {"description": "Pet not found", "schema": {"$ref": "#/definitions/ApiResponse"}}
+  },
+  "securityDefinitions": {
+    "api_key": {"type": "apiKey", "name": "api_key", "in": "header"},
+    "petstore_auth": {"type": "oauth2", "authorizationUrl": "https://petstore.swagger.io/oauth/authorize", "flow": "implicit", "scopes": {"read:pets": "read your pets", "write:pets": "modify pets in your account"}},
+    "service_auth": {"type": "oauth2", "tokenUrl": "https://petstore.swagger.io/oauth/token", "flow": "application", "scopes": {"pets": "all pets"}},
+    "basic": {"type": "basic"}
+  },
+  "definitions": {
+    "ApiResponse": {"type": "object", "properties": {"code": {"type": "integer", "format": "int32"}, "type": {"type": "string"}, "message": {"type": "string"}}},
+    "Category": {"type": "object", "properties": {"id": {"type": "integer", "format": "int64"}, "name": {"type": "string"}, "parent": {"$ref": "#/definitions/Category"}}},
+    "Tag": {"type": "object", "properties": {"id": {"type": "integer", "format": "int64"}, "name": {"type": "string"}}},
+    "Pet": {
+      "type": "object", "required": ["name", "photoUrls"],
+      "properties": {
+        "id": {"type": "integer", "format": "int64"},
+        "category": {"$ref": "#/definitions/Category"},
+        "name": {"type": "string", "example": "doggie"},
+        "photoUrls": {"type": "array", "items": {"type": "string"}},
+        "tags": {"type": "array", "items": {"$ref": "#/definitions/Tag"}},
+        "status": {"type": "string", "description": "pet status in the store", "enum": ["available", "pending", "sold"], "x-nullable": true}
+      }
+    }
+  }
+}

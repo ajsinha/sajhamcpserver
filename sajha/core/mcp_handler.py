@@ -10,6 +10,9 @@ from datetime import datetime
 
 from sajha.core.mcp_2025_11_25 import MCPError, negotiate_protocol_version
 from sajha.core.mcp_mrtr import InputRequired
+from sajha.accounts.errors import ConnectedAccountRequired
+from sajha.tools.base_mcp_tool import ToolArgumentError
+from sajha.policy.errors import PolicyError
 
 # Content block types a tool may return directly as a list
 _CONTENT_TYPES = {"text", "image", "audio", "resource", "resource_link"}
@@ -117,6 +120,8 @@ class MCPHandler:
         meta = meta if isinstance(meta, dict) else {}
         name = method if isinstance(method, str) and len(method) <= 64 else 'invalid'
         token = _caller.set_caller(_caller.from_session(session))
+        from sajha.policy import context as _pctx
+        src_token = _pctx.ensure_source('mcp')      # stdio and WebSocket set theirs first
         t0 = _time.perf_counter()
         outcome = 'error'
         try:
@@ -144,6 +149,7 @@ class MCPHandler:
                 name = 'notifications/other'
             _metrics.record_mcp('legacy', name, outcome, _time.perf_counter() - t0)
             _caller.reset(token)
+            _pctx.reset_source(src_token)
 
     def _handle_request(self, request_data: Dict, session: Optional[Dict] = None) -> Dict:
         """
@@ -196,15 +202,15 @@ class MCPHandler:
             elif method in ['ping', 'api/ping', '/ping', '/api/ping']:
                 result = self._handle_ping(params, session)
             elif method in ['prompts/list', 'api/prompts/list','/prompts/list', '/api/prompts/list']:
-                result = self.handle_prompts_list(params)
+                result = self.handle_prompts_list(params, 'legacy', session)
             elif method in ['prompts/get', 'api/prompts/get', '/prompts/get', '/api/prompts/get']:
-                result = self.handle_prompts_get(params)
+                result = self.handle_prompts_get(params, session)
 
             # ── MCP v3 additions: Resources ──────────────────────
             elif method == 'resources/list':
-                result = self._handle_resources_list(params)
+                result = self._handle_resources_list(params, session)
             elif method == 'resources/read':
-                result = self._handle_resources_read(params)
+                result = self._handle_resources_read(params, session)
             elif method == 'resources/templates/list':
                 result = self._handle_resources_templates_list(params)
             elif method == 'resources/subscribe':
@@ -214,7 +220,7 @@ class MCPHandler:
 
             # ── MCP v3 additions: Completion ─────────────────────
             elif method == 'completion/complete':
-                result = self._handle_completion_complete(params)
+                result = self._handle_completion_complete(params, session)
 
             # ── MCP v3 additions: Logging ────────────────────────
             elif method == 'logging/setLevel':
@@ -280,23 +286,50 @@ class MCPHandler:
         from sajha.federation.manager import get_federation
         return get_federation()
 
-    def handle_prompts_list(self, params: Optional[Dict] = None, era: str = 'legacy') -> Dict:
-        """Handle prompts/list — returns the result object."""
+    # ── catalog visibility (sajha/auth/access.py) ──────────────────
+
+    def can_see_prompt(self, session: Optional[Dict], name: str) -> bool:
+        """Prompts follow the anonymous policy like tools: every prompt for a signed-in
+        caller, ``mcp.anonymous.prompts`` for an anonymous one (no auth_manager: all)."""
+        if not self.auth_manager:
+            return True
+        check = getattr(self.auth_manager, 'can_see_prompt', None)
+        if check is None:
+            from sajha.auth.access import can_see_prompt
+            return can_see_prompt(session, name)
+        return check(session, name)
+
+    def can_see_tool(self, session: Optional[Dict], name: str) -> bool:
+        if not self.auth_manager or self.auth_manager.is_unrestricted(session):
+            return True
+        return self.auth_manager.can_see(session, name)
+
+    def catalog_is_caller_scoped(self, session: Optional[Dict]) -> bool:
+        """True when a catalog (prompts/list, resources/list, the catalog resources)
+        depends on who is asking; anonymous callers all get the same answer."""
+        return self.tools_list_is_caller_scoped(session)
+
+    def handle_prompts_list(self, params: Optional[Dict] = None, era: str = 'legacy',
+                            session: Optional[Dict] = None) -> Dict:
+        """Handle prompts/list — returns the result object (only prompts the caller may see)."""
         prompts = []
         if self.prompts_registry:
             for p in list(self.prompts_registry.prompts.values()):
                 entry = p.to_mcp_format()
+                if not self.can_see_prompt(session, entry.get('name')):
+                    continue
                 entry['description'] = entry.get('description') or ''
                 prompts.append(entry)
         federation = self._federation()
         if federation is not None:
-            prompts.extend(federation.prompt_definitions())
+            prompts.extend(p for p in federation.prompt_definitions()
+                           if self.can_see_prompt(session, p.get('name')))
         fixtures = self._fixtures()
         if fixtures:
             prompts.extend(fixtures.prompt_definitions(era))
         return {"prompts": prompts}
 
-    def handle_prompts_get(self, params: Dict) -> Dict:
+    def handle_prompts_get(self, params: Dict, session: Optional[Dict] = None) -> Dict:
         """Handle prompts/get — returns the result object or raises MCPError."""
         name = params.get('name')
         arguments = params.get('arguments') or {}
@@ -308,6 +341,9 @@ class MCPHandler:
                 return fixtures.get_prompt(name, arguments)
             except ValueError as e:
                 raise MCPError(self.INVALID_PARAMS, str(e))
+        if not self.can_see_prompt(session, name):
+            # a hidden prompt is indistinguishable from a missing one
+            raise MCPError(self.INVALID_PARAMS, f"Unknown prompt: {name}")
         federation = self._federation()
         if federation is not None and federation.has_prompt(name):
             try:
@@ -504,7 +540,7 @@ class MCPHandler:
             raise ValueError("Tool name is required")
 
         tool = self.tools_registry.get_tool(tool_name)
-        if not tool:
+        if not tool or not self.can_see_tool(session, tool_name):    # hidden == missing
             raise ValueError(f"Tool not found: {tool_name}")
         input_schema = tool.get_input_schema()
         return {"content": input_schema}
@@ -518,7 +554,7 @@ class MCPHandler:
             raise ValueError("Tool name is required")
 
         tool = self.tools_registry.get_tool(tool_name)
-        if not tool:
+        if not tool or not self.can_see_tool(session, tool_name):    # hidden == missing
             raise ValueError(f"Tool not found: {tool_name}")
         output_schema = tool.get_output_schema()
         return {"content": output_schema}
@@ -532,10 +568,10 @@ class MCPHandler:
             raise ValueError("Tool name is required")
 
         tool = self.tools_registry.get_tool(tool_name)
-        if not tool:
+        if not tool or not self.can_see_tool(session, tool_name):    # hidden == missing
             raise ValueError(f"Tool not found: {tool_name}")
 
-        description = tool.get_description()
+        description = getattr(tool, "description", "") or ""
         return {
             "name": tool_name,
             "description": description,
@@ -550,7 +586,7 @@ class MCPHandler:
             raise ValueError("Tool name is required")
 
         tool = self.tools_registry.get_tool(tool_name)
-        if not tool:
+        if not tool or not self.can_see_tool(session, tool_name):    # hidden == missing
             raise ValueError(f"Tool not found: {tool_name}")
 
 
@@ -614,8 +650,25 @@ class MCPHandler:
             # the same path as the REST API: enabled check, argument validation, cache,
             # circuit breaker and metrics all live in execute_with_tracking
             result = tool.execute_with_tracking(arguments)
+        except ConnectedAccountRequired as e:
+            # the caller must link an account first: a URL elicitation (either era) or a tool
+            # error naming the connect page (sajha/accounts/respond.py)
+            from sajha.accounts.respond import mcp_response
+            return mcp_response(e, era, session)
         except InputRequired:
             raise       # MRTR (2026-07-28): surfaced as an InputRequiredResult by mcp_modern
+        except PolicyError as e:
+            # a policy rule stopped the call (docs/architecture/Policy and Audit.md): a tool
+            # execution error in both eras, so the model reads the reason (and approval id)
+            return {"content": [{"type": "text", "text": str(e)}], "isError": True,
+                    "_meta": {"io.sajha/policy": e.to_dict()}}
+        except ToolArgumentError as e:
+            # Arguments that fail the tool's inputSchema. 2026-07-28: -32602 (InvalidParamsError
+            # covers "invalid tool arguments"); 2025-11-25: a tool execution error (isError),
+            # which that revision prescribes for input validation so the model can correct it.
+            if era == 'modern':
+                raise MCPError(self.INVALID_PARAMS, str(e))
+            return {"content": [{"type": "text", "text": str(e)}], "isError": True}
         except Exception as e:
             # MCP 2025-11-25 Minor 5: Return as Tool Execution Error (isError: true)
             # instead of Protocol Error — enables model self-correction
@@ -693,13 +746,21 @@ class MCPHandler:
     # MCP v3: Resources
     # ═════════════════════════════════════════════════════════════
 
-    def _handle_resources_list(self, params: Dict) -> Dict:
-        """Handle resources/list — expose datasets, tool catalog, data files."""
-        import os
+    def _visible_tools(self, session: Optional[Dict]) -> List[Dict]:
+        tools = self.tools_registry.get_all_tools() if self.tools_registry else []
+        return [t for t in tools if self.can_see_tool(session, t.get('name'))]
+
+    def _visible_prompts(self, session: Optional[Dict]) -> List[Dict]:
+        prompts = self.prompts_registry.get_all_prompts() if self.prompts_registry else []
+        return [p for p in prompts if self.can_see_prompt(session, p.get('name'))]
+
+    def _handle_resources_list(self, params: Dict, session: Optional[Dict] = None) -> Dict:
+        """Handle resources/list — expose datasets, tool catalog, data files.
+        The catalogs list (and count) only what the caller may see."""
         resources = []
 
         # Tool catalog as a resource
-        tool_count = len(self.tools_registry.tools) if self.tools_registry else 0
+        tool_count = len(self._visible_tools(session))
         resources.append({
             'uri': 'sajha://tools/catalog',
             'name': 'Tool Catalog',
@@ -708,7 +769,7 @@ class MCPHandler:
         })
 
         # Prompt catalog
-        prompt_count = len(self.prompts_registry.prompts) if self.prompts_registry else 0
+        prompt_count = len(self._visible_prompts(session))
         if prompt_count > 0:
             resources.append({
                 'uri': 'sajha://prompts/catalog',
@@ -717,17 +778,9 @@ class MCPHandler:
                 'description': f'Catalog of {prompt_count} available prompts',
             })
 
-        # Data directory files
-        for data_dir in ['data/duckdb', 'data/sqlselect']:
-            if os.path.isdir(data_dir):
-                for fname in os.listdir(data_dir):
-                    if fname.endswith(('.csv', '.parquet', '.json', '.xlsx')):
-                        resources.append({
-                            'uri': f'sajha://data/{fname}',
-                            'name': fname,
-                            'mimeType': 'application/octet-stream',
-                            'description': f'Data file: {fname}',
-                        })
+        # Data directory files the caller may read (anonymous: mcp.anonymous.resources)
+        from sajha.core import data_resources
+        resources.extend(data_resources.list_resources(session))
 
         # Pagination support
         cursor = params.get('cursor')
@@ -755,7 +808,7 @@ class MCPHandler:
 
         return result
 
-    def _handle_resources_read(self, params: Dict) -> Dict:
+    def _handle_resources_read(self, params: Dict, session: Optional[Dict] = None) -> Dict:
         """Handle resources/read — read a resource by URI."""
         import json as _json
         uri = params.get('uri', '')
@@ -778,7 +831,7 @@ class MCPHandler:
                 raise MCPError(self.INTERNAL_ERROR, f'Federated resource read failed: {e}')
 
         if uri == 'sajha://tools/catalog':
-            tools = self.tools_registry.get_all_tools() if self.tools_registry else []
+            tools = self._visible_tools(session)        # the tools/list policy
             return {
                 'contents': [{
                     'uri': uri,
@@ -788,7 +841,7 @@ class MCPHandler:
             }
 
         if uri == 'sajha://prompts/catalog':
-            prompts = self.prompts_registry.get_all_prompts() if self.prompts_registry else []
+            prompts = self._visible_prompts(session)    # the prompts/list policy
             return {
                 'contents': [{
                     'uri': uri,
@@ -798,26 +851,15 @@ class MCPHandler:
             }
 
         if uri.startswith('sajha://data/'):
-            import os
-            fname = uri.replace('sajha://data/', '')
-            if not fname or fname != os.path.basename(fname) or fname in ('.', '..') or '\\' in fname:
-                raise MCPError(-32002, 'Resource not found', {'uri': uri})     # no path traversal
-            for data_dir in ['data/duckdb', 'data/sqlselect']:
-                import os
-                fpath = os.path.join(data_dir, fname)
-                if os.path.isfile(fpath):
-                    try:
-                        with open(fpath, 'r', encoding='utf-8') as f:
-                            content = f.read()
-                        return {
-                            'contents': [{
-                                'uri': uri,
-                                'mimeType': 'text/csv' if fname.endswith('.csv') else 'application/json',
-                                'text': content,
-                            }]
-                        }
-                    except Exception as e:
-                        raise MCPError(self.INTERNAL_ERROR, f'Error reading resource: {e}')
+            # path-traversal guard and the anonymous allowlist live in data_resources;
+            # a file this caller may not read is "not found", like a missing one
+            from sajha.core import data_resources
+            try:
+                result = data_resources.read_resource(uri, session)
+            except Exception as e:
+                raise MCPError(self.INTERNAL_ERROR, f'Error reading resource: {e}')
+            if result is not None:
+                return result
 
         # MCP spec: unknown resource -> -32002 Resource not found
         raise MCPError(-32002, 'Resource not found', {'uri': uri})
@@ -865,8 +907,9 @@ class MCPHandler:
     # MCP v3: Completion
     # ═════════════════════════════════════════════════════════════
 
-    def _handle_completion_complete(self, params: Dict) -> Dict:
-        """Handle completion/complete — auto-complete for tool/prompt arguments."""
+    def _handle_completion_complete(self, params: Dict, session: Optional[Dict] = None) -> Dict:
+        """Handle completion/complete — auto-complete for tool/prompt arguments.
+        Only for a tool or prompt the caller may see; otherwise no values."""
         ref = params.get('ref') or {}
         argument = params.get('argument') or {}
         arg_name = argument.get('name', '')
@@ -877,7 +920,7 @@ class MCPHandler:
         if ref.get('type') == 'ref/tool':
             tool_name = ref.get('name', '')
             tool = self.tools_registry.get_tool(tool_name) if self.tools_registry else None
-            if tool:
+            if tool and self.can_see_tool(session, tool_name):
                 schema = tool.input_schema
                 prop = schema.get('properties', {}).get(arg_name, {})
                 # Suggest from enum values
@@ -889,7 +932,7 @@ class MCPHandler:
 
         elif ref.get('type') == 'ref/prompt':
             prompt_name = ref.get('name', '')
-            if self.prompts_registry:
+            if self.prompts_registry and self.can_see_prompt(session, prompt_name):
                 prompt = self.prompts_registry.get_prompt(prompt_name)
                 for arg in (getattr(prompt, 'arguments', None) or []):
                     if isinstance(arg, dict) and arg.get('name') == arg_name and 'enum' in arg:

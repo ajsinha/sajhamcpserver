@@ -28,7 +28,9 @@ _TOOL_NAME_BAD = re.compile(r'[^A-Za-z0-9_.-]')
 
 TRANSPORTS = ('streamable_http', 'sse', 'stdio')
 PROTOCOLS = ('auto', 'legacy', '2026-07-28')
-AUTH_TYPES = ('none', 'bearer', 'header', 'oauth_client_credentials')
+AUTH_TYPES = ('none', 'bearer', 'header', 'oauth_client_credentials', 'connected_account')
+#: what a connected_account upstream may use for discovery (tools/list) when no user is calling
+DISCOVERY_AUTH_TYPES = ('none', 'bearer', 'header', 'oauth_client_credentials')
 
 
 class ConfigError(ValueError):
@@ -258,11 +260,43 @@ class UpstreamConfig:
         if atype == 'oauth_client_credentials' and not (self.auth.get('token_url') and self.auth.get('client_id')
                                                          and self.auth.get('client_secret_ref')):
             raise ConfigError('auth.type oauth_client_credentials needs token_url, client_id and client_secret_ref')
+        if atype == 'connected_account':
+            self._validate_connected_account()
         for name, ref in self.env_refs.items():
             if not _is_ref(ref):
                 raise ConfigError(f'env_refs.{name} must be a secret reference')
         if self.timeout_seconds is not None and not (0 < self.timeout_seconds <= 3600):
             raise ConfigError('timeout_seconds must be between 0 and 3600')
+
+    def _validate_connected_account(self) -> None:
+        """auth.type connected_account: each call carries the caller's own token for ``provider``
+        (sajha/accounts); ``discovery`` is the credential for tools/list, if the upstream needs one."""
+        a = self.auth
+        if not isinstance(a.get('provider'), str) or not a.get('provider'):
+            raise ConfigError('auth.type connected_account needs provider (a connected-accounts provider id)')
+        scopes = a.get('scopes', [])
+        if isinstance(scopes, str):
+            a['scopes'] = scopes.replace(',', ' ').split()
+        elif not isinstance(scopes, list):
+            raise ConfigError('auth.scopes must be a list')
+        if self.transport == 'stdio':
+            raise ConfigError('auth.type connected_account needs an HTTP transport (a token per call)')
+        if self.cache_ttl:
+            raise ConfigError('cache_ttl cannot be used with auth.type connected_account: results are per user')
+        disc = a.get('discovery') or {}
+        if not isinstance(disc, dict):
+            raise ConfigError('auth.discovery must be an object (the credential used for tools/list)')
+        dtype = disc.get('type', 'none') or 'none'
+        if dtype not in DISCOVERY_AUTH_TYPES:
+            raise ConfigError(f'auth.discovery.type must be one of {", ".join(DISCOVERY_AUTH_TYPES)}')
+        for key, value in disc.items():
+            if key.endswith('_ref') and value and not _is_ref(value):
+                raise ConfigError(f'auth.discovery.{key} must be a secret reference (env:NAME, file:/path or db:table/key)')
+            if key in ('token', 'value', 'client_secret', 'password', 'api_key'):
+                raise ConfigError(f'auth.discovery.{key}: put secrets in a reference ({key}_ref: env:NAME)')
+        unknown = set(a) - {'type', 'provider', 'scopes', 'discovery'}
+        if unknown:
+            raise ConfigError(f'auth: unknown field(s) for connected_account: {", ".join(sorted(unknown))}')
 
     @property
     def effective_prefix(self) -> str:

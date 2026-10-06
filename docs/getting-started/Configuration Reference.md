@@ -22,14 +22,15 @@ key; a key marked **not used** is loaded but has no effect in this release.
 
 ### Three readers
 
-The code reads configuration in three ways, and each one resolves overrides differently.
+The code reads configuration in the ways below, and each one resolves overrides differently.
 The **Reader** column in the tables below says which one applies to each key.
 
 | Reader | Used for | Resolution (highest wins) |
 |--------|----------|---------------------------|
 | **Settings**: `get_settings()` in `sajha/core/config.py` | app, server, db, auth (secrets, JWT), config, hot_reload, logging, data, cache, async, shell | 1. env var named after the Settings field, `SAJHA_<FIELD_NAME>` (pydantic-settings, `env_prefix='SAJHA_'`) → 2. `SAJHA_` + the dotted key in upper case with dots changed to underscores → 3. YAML (after `${VAR}` substitution) → 4. built-in default. It is evaluated once per process (`lru_cache`). |
 | **Live `_get`**: `_get` / `_bool` / `_int` / `_list` in `sajha/core/config.py`, called on each use | all `mcp.*` keys, `state.*`, `auth.login.*`, `auth.password.min_length`, `auth.secrets_file`, `async.delivery.webhook.allowed_urls`, `playground.*`, `sandbox.*` | 1. `SAJHA_<DOTTED_KEY>` (for example `SAJHA_MCP_AUTH_MODE`) → 2. YAML → 3. code default. Env vars are read on every call, but the YAML is a snapshot taken at import, so a YAML edit needs a restart. |
-| **Raw YAML / PropertiesConfigurator**: `sajha.core.config._CFG` and `sajha/core/properties_configurator.py` | `ai.*`, `${key}` references inside tool JSON configs (`storage.*` is read this way too, but with env overrides first: see [storage](#storage)) | YAML only (after `${VAR}` substitution); `SAJHA_` env overrides **do not apply**. The fallback env vars that `storage.py` and `gateway.py` pass as defaults are used only when the key is **missing** from the YAML. To override one of these keys, edit the YAML, or put a `${VAR:default}` placeholder in the value and set `VAR`. |
+| **Raw YAML / PropertiesConfigurator**: `sajha.core.config._CFG` and `sajha/core/properties_configurator.py` | `ai.tool_search.*`, `ai.embedding_model`, `${key}` references inside tool JSON configs (`storage.*` is read this way too, but with env overrides first: see [storage](#storage)) | YAML only (after `${VAR}` substitution); `SAJHA_` env overrides **do not apply**. To override one of these keys, edit the YAML, or put a `${VAR:default}` placeholder in the value and set `VAR`. |
+| **AI settings**: `sajha/ai/llm/settings.py` | the rest of `ai.*` (providers, aliases, policy, budgets, cache, retry, breaker, gateway, ask) | 1. `SAJHA_AI_<SECTION>_<FIELD>` → 2. the vendor's own variable (providers only) → 3. YAML → 4. the `llm_providers` / `llm_models` tables (providers only) → 5. default. See [ai](#ai). |
 
 For Settings keys, the field name and the dotted key often give the same env var name
 (`server.port` → `SAJHA_SERVER_PORT`). Where they differ, both names work, and the field
@@ -58,7 +59,7 @@ and the MCP `implementation` (`websiteUrl` = `app.github.repo`). Readers are
 | Key | Default (YAML / code) | Env | Purpose |
 |-----|-----------------------|-----|---------|
 | `app.name` | `SAJHA MCP Server` | `SAJHA_APP_NAME` | Display name. |
-| `app.version` | `6.0.0` / code `5.3.0` | `SAJHA_APP_VERSION` | **The version authority.** It is shown in the UI and API metadata. The code default is stale; keep the key in YAML. |
+| `app.version` | the YAML value / a code fallback in `sajha/core/config.py` | `SAJHA_APP_VERSION` | **The version authority.** It is shown in the UI and API metadata. The code fallback is a copy that can rot; keep the key in YAML. |
 | `app.description` | `Model Context Protocol Server` | `SAJHA_APP_DESCRIPTION` | FastAPI description and A2A card. |
 | `app.author` | `Ashutosh Sinha` | `SAJHA_APP_AUTHOR` | Template context. |
 | `app.email` | `ajsinha@gmail.com` | `SAJHA_APP_EMAIL` | Template context. |
@@ -91,7 +92,7 @@ them.
 
 | Key | Default (YAML / code) | Env | Purpose |
 |-----|-----------------------|-----|---------|
-| `db.type` | `sqlite` | `SAJHA_DB_TYPE` | `sqlite` or `postgresql`. It also selects the `db/scripts/<type>/` folder. |
+| `db.type` | `sqlite` | `SAJHA_DB_TYPE` | `sqlite` or `postgresql`. It also selects the schema file `db/scripts/<type>/schema.sql`. SQLite runs it at start-up; on PostgreSQL SAJHA never runs DDL and an operator runs it (see [Database Setup](Database%20Setup.md)). |
 | `db.path` | `data/sajha.db` | `SAJHA_DB_PATH` | SQLite file. The parent directory is created if missing. |
 | `db.url` | not in YAML / empty | `SAJHA_DB_URL` | A full SQLAlchemy URL. When set, it replaces every other connection key. |
 | `db.host` | commented / `localhost` | `SAJHA_DB_HOST` | PostgreSQL host. |
@@ -103,7 +104,8 @@ them.
 | `db.ssl` | commented only | — | **Not read.** Nothing reads this key. To configure SSL, put `sslmode` in `db.url`. |
 | `db.pool.size` | `10` (YAML `${DB_POOL_SIZE:10}`) | `DB_POOL_SIZE`, `SAJHA_DB_POOL_SIZE` | PostgreSQL `pool_size` and `max_overflow`. |
 | `db.echo` | `false` | `SAJHA_DB_ECHO` | Logs every SQL statement. |
-| `db.scripts_dir` | `db/scripts` | `SAJHA_DB_SCRIPTS_DIR` | Root of the SQL scripts that run at start-up. |
+| `db.scripts_dir` | `db/scripts` | `SAJHA_DB_SCRIPTS_DIR` | Root of the schema files (`<scripts_dir>/<dialect>/schema.sql` and `seed.sql`, dialect `sqlite` or `postgresql`). A relative path is tried from the working directory, then from the checkout. |
+| `db.schema_check` | `strict` | `SAJHA_DB_SCHEMA_CHECK` | `strict`: refuse to start while a table or column the code uses is missing, naming them and the `psql` command. `warn`: log that and start. Any other value stops start-up. Checked on PostgreSQL, and on SQLite after its schema file has run. [Database Setup](Database%20Setup.md) |
 
 ## state
 
@@ -117,7 +119,7 @@ per process, is in [Scaling and State](../architecture/Scaling%20and%20State.md)
 | `state.backend` | `memory` | `SAJHA_STATE_BACKEND` | `memory` (this process only), `redis` or `database`. Any other value stops start-up. With more than one worker, use `redis` or `database`; start-up logs a warning when it detects several workers (`WEB_CONCURRENCY`, `UVICORN_WORKERS`, `SAJHA_WORKERS` or `--workers`) on `memory`. A shared backend that does not answer at start-up stops start-up. |
 | `state.key_prefix` | `sajha:` | `SAJHA_STATE_KEY_PREFIX` | Prefix of every key and pub/sub channel, so several deployments can share one Redis or database. |
 | `state.redis.url` | `redis://localhost:6379/0` | `SAJHA_STATE_REDIS_URL` | Redis URL (`redis://`, `rediss://` for TLS, with `user:password@` when needed). Put a password in the env var, not in the YAML. Needs the optional `redis` package (`pip install "redis>=5"`). |
-| `state.database.url` | `""` | `SAJHA_STATE_DATABASE_URL` | SQLAlchemy URL for the `database` backend and the durable task store. Empty uses SAJHA's own database (`db.*`). The tables `sajha_state` and `sajha_state_events` are created on first use. |
+| `state.database.url` | `""` | `SAJHA_STATE_DATABASE_URL` | SQLAlchemy URL for the `database` backend and the durable task store. Empty uses SAJHA's own database (`db.*`). The tables `sajha_state` and `sajha_state_events` are in the schema file; SAJHA creates them on first use on SQLite only, and on PostgreSQL a missing table stops start-up ([Database Setup](Database%20Setup.md)). |
 | `state.database.poll_interval_ms` | `500` (min 50) | `SAJHA_STATE_DATABASE_POLL_INTERVAL_MS` | How often the `database` backend polls for pub/sub events, which bounds how late a change notification reaches another worker. |
 | `state.tasks.durable` | `auto` | `SAJHA_STATE_TASKS_DURABLE` | `auto`, `true` or `false`. Durable MCP task records are kept in the database (`state.database.url`, or SAJHA's own), so they survive a restart and every worker sees them. `auto` turns it on for the `redis` and `database` backends. |
 
@@ -138,16 +140,6 @@ Reader: Settings.
 | `auth.login.ip_max_failures` | `20` (min 1) | `SAJHA_AUTH_LOGIN_IP_MAX_FAILURES` | Failed sign-ins per client IP within the window before 429 (`sajha/security.py`). |
 | `auth.login.ip_window_seconds` | `300` (min 1) | `SAJHA_AUTH_LOGIN_IP_WINDOW_SECONDS` | The window for `ip_max_failures`. |
 | `auth.password.min_length` | not in YAML / `8` (never below 8) | `SAJHA_AUTH_PASSWORD_MIN_LENGTH` | Minimum length of a new password (`sajha/auth/password.py`). |
-
-## oauth (legacy)
-
-| Key | Default | Env | Status |
-|-----|---------|-----|--------|
-| `oauth.mode` | `none` | `SAJHA_OAUTH_MODE` | **Not used by 6.0.0.** MCP authorization is configured under `mcp.auth`; see the [OAuth Guide](../protocol/OAuth%20Guide.md). |
-| `oauth.provider` | `""` | `SAJHA_OAUTH_PROVIDER` | **Not used by 6.0.0.** Loaded into Settings (`oauth_provider`), but no code reads it. The `oauth_provider` matches elsewhere are a database column of the same name. |
-| `oauth.azure.tenant_id` | `${AZURE_TENANT_ID:}` | `AZURE_TENANT_ID` | **Not used by 6.0.0.** |
-| `oauth.azure.client_id` | `${AZURE_CLIENT_ID:}` | `AZURE_CLIENT_ID` | **Not used by 6.0.0.** |
-| `oauth.azure.client_secret` | `${AZURE_CLIENT_SECRET:}` | `AZURE_CLIENT_SECRET` | **Not used by 6.0.0.** |
 
 ## mcp
 
@@ -179,6 +171,8 @@ and `/a2a`, possible while `mcp.auth.mode` is `off` or `optional`. Reader:
 | `mcp.anonymous.enabled` | `true` | `false`: every MCP transport and `/a2a` need credentials (401, or WebSocket close 1008). |
 | `mcp.anonymous.tools` | `[]` | Tools anonymous callers may see and run: fnmatch patterns (`["calc_*", "wikipedia_search"]`); `["*"]` means every tool. The env form is comma-separated (`SAJHA_MCP_ANONYMOUS_TOOLS="calc_*,wiki_*"`). The conformance fixtures are callable regardless. |
 | `mcp.anonymous.role` | `""` | Also grant anonymous callers the tool permissions of this SAJHA role. |
+| `mcp.anonymous.prompts` | `[]` | Prompts anonymous callers may see and get (fnmatch patterns, comma-separated in `SAJHA_MCP_ANONYMOUS_PROMPTS`): `prompts/list`, `prompts/get`, prompt completion, the prompt catalog resource and `GET /api/prompts/*`. Signed-in callers see every prompt. The conformance fixture prompts are visible regardless. |
+| `mcp.anonymous.resources` | `[]` | Data-file resources (`sajha://data/<file>`) anonymous callers may list and read: fnmatch patterns over the URI (`["sajha://data/products.csv"]`, `["sajha://data/*"]`), comma-separated in `SAJHA_MCP_ANONYMOUS_RESOURCES`. Applies to `resources/list` and `resources/read` on both eras; a hidden file is "Resource not found". Signed-in callers read every data file. The tool and prompt catalog resources follow `tools` / `prompts`; the conformance fixture resources are visible regardless. |
 
 ### Caching hints (2026-07-28)
 
@@ -323,11 +317,16 @@ YAML placeholder.
 | Key | YAML value | Env | Used by |
 |-----|-----------|-----|---------|
 | `fmp.api.key` | `${FMP_API_KEY:}` | `FMP_API_KEY` | `config/tools/fmp_*.json` |
-| `fred.api.key` | `${FRED_API_KEY:}` | `FRED_API_KEY` | `config/tools/fred_*.json` |
+| `fred.api.key` | `${FRED_API_KEY:}` | `FRED_API_KEY` | `config/tools/fred_*.json`, and the Bank of Japan (`boj_*`) and People's Bank of China (`pboc_*`) configs |
+| `fbi.api.key` | `${FBI_API_KEY:}` | `FBI_API_KEY` (the tool also falls back to `DATA_GOV_API_KEY`, then `DEMO_KEY`) | `config/tools/fbi_*.json` |
 | `google.api.key` | `${GOOGLE_API_KEY:}` | `GOOGLE_API_KEY` | `config/tools/google_search.json` |
 | `google.search.engine.id` | `${GOOGLE_SEARCH_ENGINE_ID:}` | `GOOGLE_SEARCH_ENGINE_ID` | `config/tools/google_search.json` |
 | `tavily.api.key` | `${TAVILY_API_KEY:}` | `TAVILY_API_KEY` | `config/tools/tavily_*.json` |
 | `alpha_vantage.api.key` | `${ALPHA_VANTAGE_API_KEY:}` | `ALPHA_VANTAGE_API_KEY` | `config/tools/av_*.json` |
+| `sharepoint.site.url` | `${SHAREPOINT_SITE_URL:}` | `SHAREPOINT_SITE_URL` | `config/tools/sharepoint_*.json` (the site, e.g. `https://contoso.sharepoint.com/sites/team`) |
+| `sharepoint.client.id` | `${SHAREPOINT_CLIENT_ID:}` | `SHAREPOINT_CLIENT_ID` | `config/tools/sharepoint_*.json` (the Entra ID app registration) |
+| `sharepoint.client.secret` | `${SHAREPOINT_CLIENT_SECRET:}` | `SHAREPOINT_CLIENT_SECRET` | `config/tools/sharepoint_*.json` |
+| `azure.tenant.id` | `${AZURE_TENANT_ID:}` | `AZURE_TENANT_ID` | `config/tools/sharepoint_*.json` (the app's tenant) |
 
 `Settings` also defines `google_api_key`, `google_search_engine_id`, `fred_api_key` and
 `tavily_api_key` fields, but no code reads those fields.
@@ -418,6 +417,28 @@ fields below. Built-in providers not listed still exist, disabled.
 | `ai.ask.audit` | `true` | Write an `ai_ask` audit entry per ask. |
 | `ai.ask.mcp_tool_enabled` | `false` | Register the `sajha_ask` MCP tool. |
 | `ai.ask.mcp_allowed_tools` | `[]` | Extra fnmatch patterns `sajha_ask` may run beyond the anonymous MCP policy. |
+| `ai.ask.planner` | `react` | The planning strategy (`sajha/ai/planners.py`): `react`, `plan_execute`, `recipes`, `router` (`model` is an alias of `react`), another registered name, or `package.module:Class`. Unknown names fail at startup. |
+| `ai.ask.planner_config.<planner>` | `{}` | Each planner's settings, validated by its own model. `react`: none. `plan_execute`: `max_replans` (`1`), `max_parallel` (`4`), `max_plan_steps` (`8`), `fallback` (`react`), `model` (alias of the planning call; default the ask's). `recipes`: `recipes: [{name, tool, match (regex, named groups), keywords, arguments, answer}]`, `fallback` (`react`). `router`: `rules: [{match, planner}]`, `use_recipes` (`true`), `multi_step` (`plan_execute`), `default` (`react`), `multi_step_pattern`. Env: `SAJHA_AI_ASK_PLANNER_CONFIG` as JSON. |
+| `ai.memory.enabled` | `true` | Conversation memory for asks that send a `conversation_id` (`sajha/ai/memory.py`). |
+| `ai.memory.history_turns` | `6` | Most recent turns sent to the planner verbatim. |
+| `ai.memory.max_turn_chars` | `2000` | Each stored answer is clipped to this. |
+| `ai.memory.summarize` / `summary_max_chars` | `true` / `2000` | Summarise turns older than the verbatim window through the gateway, and the summary's length cap. |
+| `ai.memory.condense` | `true` | Rewrite a follow-up into a standalone question before the shortlist. |
+| `ai.memory.model` | `fast` | Alias of the summary and rewrite calls. |
+| `ai.memory.retention_days` | `30` | Conversations idle longer are deleted (checked at most hourly, on a new turn). `0` keeps them. |
+| `ai.memory.max_conversations_per_user` | `200` | A user's oldest conversations beyond this are deleted. `0` = no cap. |
+| `ai.rag.enabled` | `true` | Build the document index behind `sajha_search_docs` and *Ask the docs* (`sajha/ai/rag/`). |
+| `ai.rag.index_sajha_docs` | `true` | Index SAJHA's own guides (`docs/`, archive and READMEs excluded). |
+| `ai.rag.sources` | `[]` | Admin document sources: `[{name, path, pattern, title}]`; `path` is a folder in the storage backend, `pattern` a glob (default `*.md`). Files: `.md`, `.markdown`, `.txt`, `.rst`, `.html`, `.htm`. Env: JSON. |
+| `ai.rag.uploads_dir` | `data/rag/uploads` | Where uploaded documents are kept (storage backend). |
+| `ai.rag.embedding_model` | `embedding` | Gateway alias for passage embeddings; `none` = BM25 only. |
+| `ai.rag.store` | `auto` | `auto` (pgvector when PostgreSQL has the `vector` extension and the `rag_chunks` table, else in process), `memory`, or `pgvector`. |
+| `ai.rag.persist` / `index_path` | `true` / `data/rag/index.json` | Persist the in-process index through the storage backend, so a restart re-embeds only changed documents. |
+| `ai.rag.chunk_chars` / `chunk_overlap` | `1200` / `150` | Passage size and overlap, in characters. |
+| `ai.rag.top_k` | `5` | Passages returned when a search gives no `top_k`. |
+| `ai.rag.vector_weight` | `0.5` | Weight of the vector ranking in the fusion with BM25 (whose weight is 1). |
+| `ai.rag.max_upload_bytes` | `2000000` | Largest upload accepted. |
+| `ai.rag.build_on_start` | `true` | Build the index in a background thread at startup; otherwise on the first search. |
 
 ### Tool search
 
@@ -429,6 +450,7 @@ Reader: the flattened config (`_CFG`), in `sajha/app.py` and `sajha/ai/embedders
 | `ai.tool_search.embedder` | `bm25` | `AI_TOOL_SEARCH_EMBEDDER` | `bm25` (lexical) or `gateway` (embeddings through the `embedding` alias) (`embedders.py`). |
 | `ai.tool_search.persist` | `true` | — | Persists the vector index (`sajha/app.py`). |
 | `ai.tool_search.top_k` | `5` | — | **Not used.** `top_k` is a parameter of each call. |
+| `ai.embedding_model` | not in YAML / `""` | — | A label recorded in the `gateway` embedder's name (which keys the persisted index); the vectors always come from the gateway's `embedding` alias (`embedders.py`). |
 
 ## cache (tool output cache)
 
@@ -548,6 +570,49 @@ not in this file. Design, the upstream fields and operation:
 | `federation.state_path` | `config/federation/federation.json` | Storage-backend path of the store: upstreams added on the admin page, and every item's approval. |
 | `federation.upstreams` | `[]` | The upstreams defined in configuration; each entry's fields are in [Federation](../architecture/Federation.md#2-the-upstream-model). |
 
+## api_import
+
+Reader: live `_get` (`sajha/api_import/settings.py`), read on every use, so
+`SAJHA_API_IMPORT_*` environment variables override the YAML without a restart. Credentials
+are not configured here: each import stores secret references (`env:NAME`, `file:/path`,
+`db:llm_providers/<type>`) in its tool configs. Design: [API Import](../architecture/API%20Import.md).
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `api_import.allow_localhost` | `false` | SSRF guard: allow loopback spec, `$ref`, GraphQL, token and API URLs (for a localhost host name). |
+| `api_import.allow_private_networks` | `false` | SSRF guard: allow RFC 1918 and unique-local addresses (never link-local, so never cloud metadata). |
+| `api_import.allowed_hosts` | `[]` | fnmatch host patterns every URL must match; empty allows any host the guard allows. |
+| `api_import.max_tools` | `200` | The most tools one imported API may have; the preview marks the excess and a deploy beyond it is refused. |
+| `api_import.max_spec_bytes` | `10485760` | Largest spec or introspection result read (also the cap on each remote `$ref` document). |
+| `api_import.max_ref_documents` | `20` | Remote documents one spec's `$ref`s may pull in. |
+| `api_import.timeout_seconds` | `30` | One call's deadline (spec fetch, introspection, tool call); an import can set its own. |
+| `api_import.max_response_bytes` | `5242880` | Largest API answer an imported tool reads. |
+| `api_import.graphql_depth` | `2` | Depth of the selection sets generated for GraphQL tools (1 to 5); an import can set its own. |
+| `api_import.records_dir` | `config/api_imports` | Storage-backend folder of the import records (one JSON document per imported API). |
+
+## accounts
+
+Connected accounts: users link third-party services; tools act as them. Reader: live
+`_get` (`sajha/accounts/settings.py`, `AccountsSettings.load()`), read once on first use,
+so `SAJHA_ACCOUNTS_*` environment variables override the YAML; restart to apply a change.
+The provider block is read from the YAML as nested data, or from `SAJHA_ACCOUNTS_PROVIDERS`
+(a JSON object), which replaces it; each provider field can also be set with
+`SAJHA_ACCOUNTS_PROVIDERS_<ID>_<FIELD>`. Design and the provider fields:
+[Connected Accounts](../architecture/Connected%20Accounts.md).
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `accounts.enabled` | `true` | Master switch. Off: no linking, and tools that need a connected account fail. |
+| `accounts.public_url` | `""` | Origin used in redirect URIs and connect URLs. Empty: `mcp.auth.public_url`, else the request's host (development only). |
+| `accounts.flow_ttl_seconds` | `600` | How long a started Connect may take before its state expires. |
+| `accounts.refresh_skew_seconds` | `120` | Refresh an access token this long before it expires. |
+| `accounts.http_timeout_seconds` | `20` | Token endpoint, revocation, user-info and provider API calls. |
+| `accounts.max_response_bytes` | `2000000` | Largest provider API answer a tool reads. |
+| `accounts.vault.key` | `""` | The vault key (env `SAJHA_ACCOUNTS_VAULT_KEY`): 32 bytes base64url or a passphrase. Empty: generated once into the server secrets file. Several hosts must share it. |
+| `accounts.vault.previous_keys` | `[]` | Old vault keys, still used to decrypt during a rotation. |
+| `accounts.vault.key_provider` | `""` | `package.module:factory` returning a key provider (a KMS hook); replaces `key`. |
+| `accounts.providers` | `{}` | Providers by id: a built-in template (`github`, `slack`, `google`, `microsoft`, `atlassian`, `notion`) is enabled by `client_id` and `client_secret_ref`; any other id is a custom provider. |
+
 ## observability
 
 Reader: live `_get` for the scalar keys (`sajha/observability/settings.py`), so
@@ -563,7 +628,7 @@ rule fields: [Observability](../architecture/Observability.md).
 | `observability.metrics.enabled` | `true` | Serve `/metrics` and record the metric families; `false` answers 404 (the usage ledger is separate). |
 | `observability.metrics.auth` | `admin` | Who may read `/metrics`: `admin` (a signed-in administrator), `token` (`Authorization: Bearer` equal to `SAJHA_OBSERVABILITY_METRICS_TOKEN`, or an administrator) or `none`. |
 | `observability.metrics.port` | `0` | Above 0, also serve `/metrics` on a separate listener (same `auth` rule). |
-| `observability.metrics.host` | `127.0.0.1` | That listener's bind address. |
+| `observability.metrics.host` | `0.0.0.0` | That listener's bind address (all interfaces, like `server.host`). |
 | `observability.metrics.tool_label` | `name` | The `tool` label: `name` (one series per tool), `group` (per tool group) or `none`. |
 | `observability.metrics.max_series` | `2000` | Label sets per family; a new one beyond the cap is recorded with every label `_other`. |
 | `observability.metrics.multiworker` | `auto` | With a shared `state.backend`, merge every worker's snapshot into each scrape under a `worker` label; `off` serves this worker only. |
@@ -591,6 +656,37 @@ rule fields: [Observability](../architecture/Observability.md).
 | `observability.alerts_email.starttls` | `true` | Use STARTTLS. |
 | `observability.alerts_email.username` | `''` | SMTP user; the password is `SAJHA_OBSERVABILITY_ALERTS_EMAIL_PASSWORD`. |
 
+## Policy and audit
+
+Reader: live `_get` for every scalar key (`sajha/policy/`, `sajha/audit/`), so
+`SAJHA_POLICY_*` and `SAJHA_AUDIT_*` environment variables override the YAML and a change
+applies on the next call (the chain's anchor cadence is read when the process's chain
+opens). The sink list `audit.export.sinks` is read from the YAML as nested data, or from
+`SAJHA_AUDIT_EXPORT_SINKS` (a JSON list), which replaces it, when the process starts.
+The rule language, the sink fields and the design:
+[Policy and Audit](../architecture/Policy%20and%20Audit.md).
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `policy.enabled` | `true` | Evaluate policy rules before every tool call; `false` turns the engine off. |
+| `policy.dir` | `config/policies` | Where policy files (`*.yaml`, `*.yml`, `*.json`) are read through the storage backend; an absolute path is read from local disk. |
+| `policy.reload_seconds` | `5` | Recheck the directory at most this often (on the next call) and reload changed files. |
+| `policy.default_effect` | `allow` | `deny`: a call that no rule explicitly allows is denied (allowlist mode). |
+| `policy.on_error` | `ignore` | A policy file that does not parse: `ignore` (that file is not enforced) or `deny` (every call is denied until it is fixed). |
+| `policy.fail_closed` | `true` | An error inside evaluation denies the call; `false` lets it run. |
+| `policy.audit_allow` | `false` | Also write an audit record for each plain allow (decisions are always counted). |
+| `policy.audit_arguments` | `false` | Put argument values, not only their names, in policy audit records. |
+| `policy.approvals.ttl_seconds` | `86400` | How long a pending approval waits before it expires. |
+| `policy.approvals.grant_ttl_seconds` | `3600` | How long an approved call may be made (once) after approval. |
+| `policy.approvals.allow_self_approval` | `false` | Whether an administrator may approve a call they made. |
+| `policy.approvals.notify_url` | `''` | Post each new approval here (must be in `observability.alerts_webhook.allowed_urls`; same SSRF guard). |
+| `policy.approvals.notify_format` | `generic` | `generic` (JSON event) or `slack` (`{"text": ...}` for an incoming webhook). |
+| `audit.chain.enabled` | `true` | Store the hash chain in `audit_chain` and `audit_anchors` (records are hashed and exported either way). |
+| `audit.chain.anchor_every` | `100` | Sign the chain head after this many records. |
+| `audit.chain.anchor_interval_seconds` | `300` | Also sign it at least this often while records arrive; `0` turns the timer off. |
+| `audit.export.allowed_urls` | `[]` | URL prefixes HTTP sinks may post to; empty allows any public host. |
+| `audit.export.sinks` | `[]` | The SIEM sinks: `type` `syslog`, `http` or `file`, `format` `json`, `cef` or `ocsf` (fields in [Policy and Audit](../architecture/Policy%20and%20Audit.md#8-siem-export)). Tokens are secret references (`env:NAME`, `file:/path`). |
+
 ## Secrets
 
 Supply secrets through the environment, and never commit them to `application.yml`.
@@ -605,6 +701,7 @@ Supply secrets through the environment, and never commit them to `application.ym
 | Pre-registered client secrets | `mcp.auth.builtin.clients[].client_secret` | Use `${ENV_VAR}` placeholders, or set `SAJHA_MCP_AUTH_BUILTIN_CLIENTS`. |
 | Database password | `db.password` / `db.url` | Set `SAJHA_DB_PASSWORD` or `SAJHA_DB_URL`. |
 | Provider and data-API keys | `ai.*.api_key`, `fmp`, `fred`, `google`, `tavily` | Set the env var named in the YAML placeholder. |
+| SIEM sink tokens | `audit.export.sinks[].token` as a secret reference (`env:SPLUNK_HEC_TOKEN`, `file:/run/secrets/hec`) | Never a literal token in the YAML. |
 | Metrics scrape token, OTLP headers, alert SMTP password | `SAJHA_OBSERVABILITY_METRICS_TOKEN`, `OTEL_EXPORTER_OTLP_HEADERS`, `SAJHA_OBSERVABILITY_ALERTS_EMAIL_PASSWORD` | Environment only; there is no YAML key for them. |
 
 On Kubernetes the Helm chart passes the JWT secret, session secret, OAuth signing key and

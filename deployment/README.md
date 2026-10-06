@@ -1,6 +1,6 @@
 # SAJHA MCP Server — Deployment Guide
 
-Four deployment targets, same application, identical behavior.
+Four deployment targets, one application.
 
 ## Choose Your Deployment
 
@@ -23,6 +23,11 @@ Four deployment targets, same application, identical behavior.
 | Scaling | Auto (2–6 tasks) | Manual (upgrade VPS) | Manual |
 | IAC | CDK (Python) | docker-compose + cloud-init | install.sh + systemd |
 
+Every PostgreSQL target has one manual step: SAJHA does not create tables on PostgreSQL, so
+an operator runs `db/scripts/postgresql/schema.sql` (then `seed.sql`) with `psql` once,
+before the first start. There are no migrations. Each recipe's README shows the commands;
+[Database Setup](../docs/getting-started/Database%20Setup.md) is the procedure.
+
 ## Monitoring
 
 Prometheus scrape job, alerting rules and a Grafana dashboard for any of the targets:
@@ -41,7 +46,10 @@ SAJHA_STORAGE_BACKEND=s3
 SAJHA_S3_BUCKET=sajha-prod-123456
 ```
 
-The Storage + Reload abstractions ensure identical behavior: hot-reload, tool discovery, prompt management, and plugin loading work the same way regardless of where files live.
+Tool and prompt configs, the federation store and the guides go through the storage backend,
+and hot reload follows them; plugins, Studio-generated `.py` files, the database and the cache
+stay on a real filesystem whatever the backend. What goes where is in the
+[Storage Guide](../docs/getting-started/Storage%20Guide.md).
 
 ## Quick Start
 

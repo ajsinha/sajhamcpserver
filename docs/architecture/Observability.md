@@ -11,15 +11,11 @@ The code is `sajha/observability/` and `sajha/routes/observability_routes.py`.
 
 ---
 
-## 1. What was there, and what this adds
+## 1. Shape
 
-Before this layer, `sajha/observability/__init__.py` had a `MetricsCollector` (per-tool
-calls and latency percentiles, served as JSON on `/api/metrics`), an `OTELIntegration`
-that created an OpenTelemetry SDK tracer **with no exporter**, and Kubernetes-style
-`/health` and `/ready` probes. The collector was never fed (nothing called
-`record_execution`), so `/api/metrics` stayed empty, and no span left the process.
-
-This layer keeps those names and endpoints and adds:
+`sajha/observability/__init__.py` holds the `MetricsCollector` (per-tool calls and
+latency percentiles, served as JSON on `/api/metrics`), the OpenTelemetry integration and
+the `/health` and `/ready` probes. Around them:
 
 | Piece | Module | What it does |
 |---|---|---|
@@ -32,9 +28,8 @@ This layer keeps those names and endpoints and adds:
 | Alerts | `alerts.py` | `observability.alerts[]` rules evaluated in the process every `observability.alerts_interval_seconds`, sent to a log, an allow-listed webhook (SSRF-guarded) or email. |
 | Routes and page | `sajha/routes/observability_routes.py`, `templates/monitoring/usage.html` | `/metrics`, `/monitoring/usage`, `/api/observability/*`. |
 
-The JSON endpoints `/api/metrics`, `/api/metrics/tools`, `/health` and `/ready` are
-unchanged; `/api/metrics*` now has data because `execute_with_tracking` feeds the
-collector.
+`execute_with_tracking` feeds the collector behind the JSON endpoints `/api/metrics` and
+`/api/metrics/tools`, as well as the Prometheus families below.
 
 ---
 
@@ -52,7 +47,7 @@ collector.
 | `none` | Anyone who can reach the port. Use only on a private network or with `observability.metrics.port`. |
 
 `observability.metrics.port` (default `0`, off) also serves `/metrics` on a separate
-listener bound to `observability.metrics.host` (default `127.0.0.1`), with the same
+listener bound to `observability.metrics.host` (default `0.0.0.0`, like the main server), with the same
 `auth` rule, so the scrape port can be kept off the public interface.
 `observability.metrics.enabled: false` removes the endpoint (404) and stops recording.
 
@@ -67,7 +62,7 @@ units). The live list is the endpoint itself; each family carries `# HELP` and `
 | `sajha_http_request_duration_seconds` | histogram | `method`, `route` |
 | `sajha_mcp_requests_total` | counter | `era` (`modern` 2026-07-28, `legacy` 2025-11-25 and earlier), `method`, `outcome` (`ok`, `error`, `stream`, `notification`) |
 | `sajha_mcp_request_duration_seconds` | histogram | `era`, `method` |
-| `sajha_tool_calls_total` | counter | `tool`, `group`, `outcome` (`ok`, `error`, `cache_hit`, `circuit_open`, `input_required`) |
+| `sajha_tool_calls_total` | counter | `tool`, `group`, `outcome` (`ok`, `error`, `cache_hit`, `circuit_open`, `input_required`, `policy_denied`, `approval_required`, `rate_limited`) |
 | `sajha_tool_call_duration_seconds` | histogram | `tool`, `group` |
 | `sajha_tool_cache_hits_total` | counter | `tool`, `group` |
 | `sajha_tool_cache_entries`, `sajha_tool_cache_requests_total` | gauge / counter (collected) | `result` (`hit`, `miss`) |
@@ -84,6 +79,7 @@ units). The live list is the endpoint itself; each family carries `# HELP` and `
 | `sajha_federation_upstream_up` | gauge (collected) | `upstream`, `state`; 1 when connected. Present only when `sajha/federation` is importable and a manager is running. |
 | `sajha_federation_upstream_calls_total`, `sajha_federation_upstream_failures_total` | counter (collected) | `upstream` |
 | `sajha_alerts_fired_total` | counter | `rule` |
+| `sajha_policy_decisions_total`, `sajha_policy_redactions_total`, `sajha_policy_output_flags_total`, `sajha_audit_records_total`, `sajha_audit_export_total` | counter | policy and audit; labels in [Policy and Audit §6](Policy%20and%20Audit.md#6-decisions-are-logged-and-counted) |
 | `sajha_info` | gauge | `version` |
 | `process_*`, `python_*` | gauge / counter (collected) | resident memory, CPU seconds, open file descriptors, start time, threads, GC collections, Python version |
 
@@ -149,8 +145,7 @@ pip install opentelemetry-sdk opentelemetry-exporter-otlp-proto-http   # or -grp
 | Signals | `observability.otel.traces`, `observability.otel.metrics` | `OTEL_TRACES_EXPORTER=none`, `OTEL_METRICS_EXPORTER=none` |
 
 When the SDK is missing, SAJHA logs once and runs without tracing; nothing else changes.
-When the SDK is present but OTel is off, SAJHA does not install a global tracer provider
-(the old behaviour created one with no exporter).
+When the SDK is present but OTel is off, SAJHA does not install a global tracer provider.
 
 ### 3.2 Spans
 
@@ -171,9 +166,9 @@ HTTP POST /mcp                     (server span; parent: the traceparent header,
   present the MCP span continues the client's trace (the HTTP span remains the transport
   record of the same request, linked).
 * **Tool**: `sajha.tool.name`, `sajha.tool.group`, `sajha.tool.outcome`, `enduser.id`.
-* **LLM**: the gateway's existing `llm.chat` span (`llm.provider`, `llm.model`,
-  `llm.input_tokens`, `llm.output_tokens`, `llm.latency_ms`, `llm.outcome`), now nested
-  and exported.
+* **LLM**: the gateway's `llm.chat` span (`llm.provider`, `llm.model`,
+  `llm.input_tokens`, `llm.output_tokens`, `llm.latency_ms`, `llm.outcome`), nested under
+  the tool or ask that made the call.
 
 Spans cross into worker threads because both Starlette's thread pool and anyio copy
 context variables. OTel metrics, when `observability.otel.metrics` is on, export the
@@ -185,9 +180,10 @@ same instruments as section 2 through a periodic reader (`OTEL_METRIC_EXPORT_INT
 
 ### 4.1 The ledger
 
-`usage.py` owns one table, `obs_usage_events`, created by SQLAlchemy on first use in
-SAJHA's database (`CREATE TABLE IF NOT EXISTS`; no migration script is needed). One row
-per tool call and per LLM call:
+`usage.py` owns one table, `obs_usage_events`, in SAJHA's database. It is in the schema
+file ([Database Setup](../getting-started/Database%20Setup.md)); on SQLite
+`usage.py` also creates it on first use, on PostgreSQL it only checks that it exists and
+logs once that the ledger is off when it does not. One row per tool call and per LLM call:
 
 | Column | Meaning |
 |---|---|
@@ -207,8 +203,8 @@ a slow database never slows a call; the queue is bounded
 false` stops recording. Several workers share the database, so the dashboard already sees
 every worker.
 
-The pre-existing `tool_usage_events` table (the **Reports** page) is written only by the
-REST execute endpoint and is left as it was.
+The separate `tool_usage_events` table (the **Reports** page) is written only by the
+REST execute endpoint.
 
 ### 4.2 The dashboard
 

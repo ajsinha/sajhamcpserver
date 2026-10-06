@@ -10,7 +10,7 @@ same page in all four themes. The animations live in static/js/landing.js (the s
 <html lang="en" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>SAJHA — The Intelligence Layer for AI Agents</title>
     <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
     {% include "common/_theme_init.html" %}
@@ -66,7 +66,7 @@ same page in all four themes. The animations live in static/js/landing.js (the s
     <div class="lp2-hero-inner">
         <div class="lp2-badge"><i class="bi bi-circle-fill" aria-hidden="true"></i> MCP 2026-07-28 + 2025-11-25 · Conformance Verified · Production Ready</div>
         <h1 class="lp2-title">The <span class="lp2-gradient">Intelligence Layer</span><br>for AI Agents</h1>
-        <p class="lp2-sub">{{ tool_count }} tools in {{ group_count }} provider groups. 6 LLM providers. Both MCP eras on one endpoint.<br>
+        <p class="lp2-sub">{{ tool_count }} tools in {{ group_count }} provider groups.{% if llm_provider_count %} {{ llm_provider_count }} LLM provider types.{% endif %} Both MCP eras on one endpoint.<br>
         SAJHA connects every AI agent to financial markets, government data, analytics, and enterprise systems through a single MCP endpoint.</p>
         <div class="lp2-actions">
             <a href="/login" class="lp2-btn lp2-btn-primary"><i class="bi bi-rocket-takeoff" aria-hidden="true"></i> Get Started</a>
@@ -99,10 +99,10 @@ same page in all four themes. The animations live in static/js/landing.js (the s
 <section class="lp2-stats" aria-label="SAJHA in numbers">
     <div><span class="lp2-num">{{ tool_count }}</span><span class="lp2-label">Built-in Tools</span></div>
     <div><span class="lp2-num">{{ group_count }}</span><span class="lp2-label">Provider Groups</span></div>
-    <div><span class="lp2-num">6</span><span class="lp2-label">LLM Providers</span></div>
+    {% if llm_provider_count %}<div><span class="lp2-num">{{ llm_provider_count }}</span><span class="lp2-label">LLM Provider Types</span></div>{% endif %}
     <div><span class="lp2-num">2</span><span class="lp2-label">MCP Eras</span></div>
-    <div><span class="lp2-num">19</span><span class="lp2-label">Database Tables</span></div>
-    <div><span class="lp2-num">79+</span><span class="lp2-label">API Endpoints</span></div>
+    {% if db_table_count %}<div><span class="lp2-num">{{ db_table_count }}</span><span class="lp2-label">Database Tables</span></div>{% endif %}
+    {% if endpoint_count %}<div><span class="lp2-num">{{ endpoint_count }}</span><span class="lp2-label">HTTP Endpoints</span></div>{% endif %}
 </section>
 
 <!-- Features -->
@@ -113,7 +113,7 @@ same page in all four themes. The animations live in static/js/landing.js (the s
     <div class="lp2-grid">
         <article class="lp2-card"><i class="bi bi-cpu" aria-hidden="true"></i>
             <h3>Embedded LLM Gateway</h3>
-            <p>Anthropic, OpenAI, Bedrock, Together, Ollama, Azure — all via official SDKs. Registry factory for custom providers. DB-managed models with user-level overrides.</p></article>
+            <p>Anthropic, OpenAI, Gemini, Bedrock, Azure OpenAI, Ollama, OpenAI-compatible endpoints and more, from one provider registry that custom providers join. DB-managed models with user-level overrides.</p></article>
         <article class="lp2-card"><i class="bi bi-search" aria-hidden="true"></i>
             <h3>Semantic Tool Discovery</h3>
             <p>Describe what you need in English. Vector embeddings of {{ tool_count }} tool descriptions resolve intent to the right tool with confidence scores and auto-extracted parameters.</p></article>

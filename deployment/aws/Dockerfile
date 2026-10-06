@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════
-# SAJHA MCP Server v3.1.0 — Production Docker Image
+# SAJHA MCP Server — Production Docker Image (version: app.version in config/application.yml)
 # Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 #
 # Multi-stage build: build deps → production image
@@ -18,7 +18,6 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt \
 FROM python:3.11-slim AS production
 
 LABEL maintainer="Ashutosh Sinha <ajsinha@gmail.com>"
-LABEL version="3.1.0"
 LABEL description="SAJHA MCP Server — Production Container"
 
 # System deps

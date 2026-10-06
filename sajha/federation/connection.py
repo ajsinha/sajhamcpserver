@@ -39,6 +39,21 @@ class UpstreamTimeout(TimeoutError):
     """The upstream did not answer within the timeout."""
 
 
+class UpstreamUnauthorized(RuntimeError):
+    """The upstream answered HTTP 401 to a per-user (connected-account) call."""
+
+
+def is_unauthorized(exc: BaseException) -> bool:
+    """An HTTP 401 from the upstream anywhere in the exception (group)."""
+    for e in _leaves(exc):
+        resp = getattr(e, 'response', None)
+        if getattr(resp, 'status_code', None) == 401:
+            return True
+        if '401' in str(e) and 'nauthorized' in str(e):
+            return True
+    return False
+
+
 def is_transport_error(exc: BaseException) -> bool:
     """A failure of the connection rather than an answer from the upstream."""
     import anyio
@@ -231,7 +246,8 @@ class UpstreamConnection:
         from sajha.core.config import get_settings
         from sajha.federation.auth import build_auth
         cfg = self.config
-        auth = build_auth(cfg, self.settings)
+        override = getattr(self, '_auth_override', None)     # call_tool_as: the caller's own token
+        auth = override if override is not None else build_auth(cfg, self.settings)
         self._secret_values = list(getattr(auth, 'secret_values', lambda: [])())
         headers = {'User-Agent': f'sajha-federation/{get_settings().app_version}', **(cfg.headers or {})}
         if cfg.transport == 'sse':
@@ -392,6 +408,34 @@ class UpstreamConnection:
                 name, arguments, read_timeout_seconds=timeout, progress_callback=progress,
                 input_responses=responses, request_state=request_state, allow_input_required=True)
         return await self._guarded(call, timeout, f'tools/call {name}')
+
+    async def call_tool_as(self, bearer: str, name: str, arguments: Dict[str, Any], timeout: float,
+                           progress: Optional[Callable] = None, input_responses: Optional[Dict] = None,
+                           request_state: Optional[str] = None):
+        """One tools/call presenting ``bearer`` (the calling user's connected-account token) on a
+        connection opened for this call and closed after it, so no user's token is ever on the
+        shared connection or reused for another user. Raises UpstreamUnauthorized on HTTP 401."""
+        from sajha.federation.auth import StaticHeaderAuth
+
+        async def _no_discovery(_conn):
+            return None
+        eph = UpstreamConnection(self.config, self.settings, _no_discovery, refresh_seconds=0)
+        eph._auth_override = StaticHeaderAuth('Authorization', f'Bearer {bearer}')
+        responses = _input_responses(input_responses) if input_responses else None
+
+        async def call():
+            try:
+                async with AsyncExitStack() as stack:
+                    client = await eph._open(stack)
+                    return await client.session.call_tool(
+                        name, arguments, read_timeout_seconds=timeout, progress_callback=progress,
+                        input_responses=responses, request_state=request_state, allow_input_required=True)
+            except Exception as e:
+                if is_unauthorized(e):
+                    raise UpstreamUnauthorized(f'upstream {self.config.id} refused the user token (HTTP 401)') \
+                        from None
+                raise
+        return await eph._guarded(call, timeout, f'tools/call {name}')
 
     async def get_prompt(self, name: str, arguments: Dict[str, str], timeout: float):
         client = await self.ready_client(min(timeout, 5.0))

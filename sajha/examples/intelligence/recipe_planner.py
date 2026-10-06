@@ -3,9 +3,10 @@ Example planning strategy, written as a model: fixed recipes for known questions
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 The worked example of docs/architecture/Extending the Intelligence Layer.md (section 4.4).
-IntelligenceService has no planner plug-in point today: the "planner" is whichever ChatModel
-the ``ai.ask.model`` alias resolves to, called once per step of the tool loop. So a custom
-strategy can be written as a ChatModel and put first in the alias:
+With the default ``react`` planner, the "planner" is whichever ChatModel the ``ai.ask.model``
+alias resolves to, called once per step of the tool loop. So a custom strategy can be written
+as a ChatModel and put first in the alias (section 4.5 shows the same idea as a Planner, and
+the built-in ``recipes`` planner needs no alias trick):
 
     ai.aliases.default: [recipes, anthropic, mock/mock-planner]
 

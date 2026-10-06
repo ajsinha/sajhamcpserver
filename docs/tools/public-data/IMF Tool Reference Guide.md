@@ -76,7 +76,7 @@ The IMF tools (prefix `imf_`, implementation `sajha/tools/impl/imf_tool_refactor
 ├──────────────────────────────────────────────────────────┤
 │  • API URL: dataservices.imf.org/REST/SDMX_JSON.svc     │
 │  • Database Definitions (10 major databases)             │
-│  • Common Indicator Mappings (33+ indicators)            │
+│  • Common Indicator Mappings                             │
 │  • HTTP Client (urllib)                                  │
 │  • JSON Parser                                           │
 │  • Data Retrieval Methods                                │

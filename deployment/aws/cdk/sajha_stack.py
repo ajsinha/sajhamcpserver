@@ -22,6 +22,11 @@ Usage:
     cdk deploy -c environment=prod                # production sizing
     cdk deploy -c cpu=2048 -c memory=4096         # custom resources
     cdk deploy -c db_instance=r6g.large           # larger RDS
+
+Database schema: SAJHA does not create tables on RDS. Its tasks refuse to start (and the
+service never turns healthy) until an operator has run db/scripts/postgresql/schema.sql and
+seed.sql with psql, once, from a host that reaches RDS. There are no migrations.
+See deployment/aws/README.md and docs/getting-started/Database Setup.md.
 """
 
 from constructs import Construct
@@ -92,7 +97,7 @@ class SajhaStack(Stack):
 
         app_secret = secretsmanager.Secret(self, "AppSecret",
             secret_name=f"sajha/{env_name}/app",
-            description="SAJHA application secrets (API keys)",
+            description="SAJHA application secrets (API keys as JSON; exported by bootstrap.sh)",
         )
 
         # Secrets every task must share (docs/architecture/Scaling and State.md §5).
@@ -180,6 +185,7 @@ class SajhaStack(Stack):
                     "SAJHA_S3_PREFIX": "config/",
                     "SAJHA_DB_TYPE": "postgresql",
                     "SAJHA_DB_NAME": "sajha",
+                    "SAJHA_DB_SCHEMA_CHECK": "strict",   # no DDL; refuse to start while tables are missing
                     "SAJHA_SERVER_HOST": "0.0.0.0",
                     "SAJHA_SERVER_PORT": "3002",
                     # several tasks behind the ALB: OAuth codes, MCP sessions/tasks, rate limits and
@@ -187,6 +193,9 @@ class SajhaStack(Stack):
                     # for an ElastiCache endpoint).  docs/architecture/Scaling and State.md
                     "SAJHA_STATE_BACKEND": "database",
                     "AWS_DEFAULT_REGION": self.region,
+                    # sajha/<env>/app (API keys as JSON, e.g. {"FRED_API_KEY": "..."}): read by
+                    # scripts/bootstrap.sh at container start and exported to the server
+                    "SAJHA_SECRETS_ARN": app_secret.secret_arn,
                 },
                 secrets={
                     "SAJHA_DB_HOST": ecs.Secret.from_secrets_manager(db_secret, "host"),

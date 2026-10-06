@@ -1,6 +1,6 @@
 # SAJHA MCP Server: API Reference
 
-This page lists every HTTP and WebSocket route the server registers, grouped by the module in `sajha/routes/` that defines it. All modules are included in `sajha/app.py` without an extra prefix, so the paths below are the full paths. Three modules set a router prefix: `admin_routes.py` (`/admin`), `apikeys_routes.py` (`/admin/apikeys`) and `studio_routes.py` (`/studio`); their paths are shown with the prefix applied.
+This page lists every HTTP and WebSocket route the server registers, grouped by the module in `sajha/routes/` that defines it. All modules are included in `sajha/app.py` without an extra prefix, so the paths below are the full paths. Four modules set a router prefix: `admin_routes.py` (`/admin`), `apikeys_routes.py` (`/admin/apikeys`), `studio_routes.py` (`/studio` for pages, `/admin/studio` for actions) and `api_import_routes.py` (`/studio`, `/admin/studio/api-import`, `/api/studio/api-import`); their paths are shown with the prefix applied.
 
 The examples assume the default address `http://localhost:3002` (`server.port`, env `SERVER_PORT`).
 
@@ -29,7 +29,7 @@ FastAPI also serves its generated docs: `GET /api/docs` (Swagger UI), `GET /api/
 3. `Authorization: sja_...`: the same API key sent bare in the `Authorization` header.
 4. Cookie `sajha_token`: the JWT the web UI stores at login (`POST /login`).
 
-API keys authenticate as `apikey:<key name>` with the single role `api_consumer`; the key's `tool_access_mode`/tool list is stored but not enforced in this release (see the [Security Model](../security/Security%20Model.md)). SAJHA JWTs carry the user's roles. JWT lifetime is `auth.jwt.expiry_minutes` (env `JWT_EXPIRY`, default 60); the web cookie has a one-hour `max_age`.
+API keys authenticate as `apikey:<key name>` with the single role `api_consumer`; the key's `tool_access_mode` and tool list decide which tools it may see and run, on REST, MCP and A2A alike ([Tool access](../security/Security%20Model.md#tool-access)). SAJHA JWTs carry the user's roles. JWT lifetime is `auth.jwt.expiry_minutes` (env `JWT_EXPIRY`, default 60); the web cookie has a one-hour `max_age`.
 
 **OAuth access tokens are not accepted on the REST API.** They are minted for the MCP resource and are validated only on the MCP endpoints (`sajha/auth/oauth/resource_server.py`); see [OAuth Guide](OAuth%20Guide.md).
 
@@ -72,7 +72,7 @@ curl -X POST http://localhost:3002/api/auth/login \
 {"token": "eyJhbGciOiJIUzI1NiIs...", "user": {"user_id": "admin", "user_name": "Administrator", "roles": ["admin"]}}
 ```
 
-Errors: 400 `{"error": "Missing credentials"}`, 401 `{"error": "Invalid credentials"}`, 429 on rate limit.
+Errors: 400 `{"error": "Missing credentials"}` (or a missing/non-object JSON body), 401 `{"error": "Invalid credentials"}`, 423 for a locked account, 429 when the caller's address is throttled.
 
 ---
 
@@ -140,7 +140,7 @@ curl -N -H "X-API-Key: sja_key" http://localhost:3002/mcp/sse
 # data: /mcp?session=<id>
 ```
 
-The client POSTs JSON-RPC to the announced `/mcp?session=<id>`; the server answers 202 and delivers the response as an `event: message` on the stream. The stream also carries `notifications/*/list_changed` and supports `Last-Event-ID` replay.
+The client POSTs JSON-RPC to the announced `/mcp?session=<id>`; the server answers 202 and delivers the response as an `event: message` on the stream. The stream also carries `notifications/*/list_changed`. Events have IDs, but a reconnect with `Last-Event-ID` does not replay missed events (the tracker is per connection).
 
 ### 2.4 WebSocket `/mcp/ws`
 
@@ -159,13 +159,13 @@ asyncio.run(main())
 
 ### 2.5 MCP-shaped REST helpers
 
-These take a JSON-RPC-like body (`{"params": {...}}`) and return a JSON-RPC-shaped result. They are separate from the MCP transports above and **check no credentials**.
+These take a JSON-RPC-like body (`{"params": {...}}`) and return a JSON-RPC-shaped result. They are separate from the MCP transports above, need a signed-in caller (401 otherwise), and show only the tools that caller may see (the `tools/list` policy).
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/api/resources/list` | none | Tool catalog resource plus files in `data/duckdb`. |
-| POST | `/api/resources/read` | none | Reads `sajha://tools/catalog` (`params.uri`). |
-| POST | `/api/completion/complete` | none | Enum completion for a tool argument (`params.ref`, `params.argument`). |
+| POST | `/api/resources/list` | user | Tool catalog resource (counting the caller's visible tools) plus files in `data/duckdb`. |
+| POST | `/api/resources/read` | user | Reads `sajha://tools/catalog` (`params.uri`): the caller's visible tools. |
+| POST | `/api/completion/complete` | user | Enum completion for an argument of a tool the caller may see (`params.ref`, `params.argument`). |
 | POST | `/api/logging/setLevel` | admin | Sets the server's root log level (`params.level`). |
 
 ---
@@ -197,7 +197,7 @@ curl http://localhost:3002/.well-known/oauth-authorization-server
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | `/.well-known/agent.json` | none | A2A agent card (skills from the first 50 registered tools). |
+| GET | `/.well-known/agent.json` | optional | A2A agent card. Skills are the first 50 tools the caller may see; an anonymous caller gets the anonymous policy (`mcp.anonymous.*`), so by default a generic card with no skills. |
 | POST | `/a2a` | optional | A2A JSON-RPC: `tasks/send`, `tasks/get`, `tasks/cancel`. Without credentials the anonymous policy applies (`mcp.anonymous.*`, 401 when disabled); a tool runs only with execute access; tasks are visible to their creator (and admins). |
 
 ---
@@ -213,7 +213,7 @@ JSON API routes first; HTML pages are collected in [section 4.14](#414-html-page
 | GET | `/health` | none | Status, version, tool and prompt counts, DB type, hot-reload status, state store, sandbox backend. |
 | GET | `/ready` | none | Readiness: `{"status": "ok" \| "degraded", "checks": {...}, "timestamp": ...}`. |
 
-Both `health_routes.py` and `ops_routes.py` declare `GET /health`; `health_routes.py` is registered first, so its handler is the one that answers.
+`GET /health` is served by `sajha/routes/health_routes.py`.
 
 ```bash
 curl http://localhost:3002/health
@@ -224,11 +224,17 @@ curl http://localhost:3002/ready
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/api/tools/execute` | user | Run a tool: body `{"tool": "...", "arguments": {...}}`. 403 if the caller lacks access to the tool. Logged to tool usage. |
-| GET | `/api/tools/list` | none | All registered tools. |
-| GET | `/api/tools/{tool_name}/schema` | none | One tool in MCP format (name, description, input schema). |
-| GET | `/api/tool-groups/search?q=` | none | Search tools by name/description (at least 2 characters; first 50 results). |
-| GET | `/api/tool-groups/{group_name}` | none | Tools whose name prefix (before the first `_`) is `group_name`. |
+| POST | `/api/tools/execute` | user | Run a tool: body `{"tool": "...", "arguments": {...}}`. 403 if the caller lacks access to the tool; 400 if the arguments do not satisfy its input schema; 428 with `error_code: connected_account_required` and `connect_url` when the tool acts through a connected account the caller has not linked ([Connected Accounts](../architecture/Connected%20Accounts.md)). Logged to tool usage. |
+| GET | `/api/tools/list` | as MCP | The tools the caller may see. |
+| GET | `/api/tools/{tool_name}/schema` | as MCP | One tool in MCP format (name, description, input schema); 404 for a tool the caller may not see. |
+| GET | `/api/tool-groups/search?q=` | as MCP | Search the caller's visible tools by name/description (at least 2 characters; first 50 results). |
+| GET | `/api/tool-groups/{group_name}` | as MCP | The caller's visible tools whose name prefix (before the first `_`) is `group_name`. |
+
+"As MCP": the catalog follows the MCP `tools/list` rules ([Security Model, Tool access](../security/Security%20Model.md#tool-access)).
+A signed-in user sees their roles' tools, an API key its allowlist, a caller without
+credentials the `mcp.anonymous` policy (no tools by default). The endpoints answer 401 where
+`/mcp` would: credentials that do not authenticate, `mcp.auth.mode: required`, or
+`mcp.anonymous.enabled: false`.
 | POST | `/api/admin/tools/{tool_name}/enable` | admin | Enable a tool. |
 | POST | `/api/admin/tools/{tool_name}/disable` | admin | Disable a tool. |
 | GET | `/api/admin/tools/{tool_name}/config` | admin | The tool's JSON config. |
@@ -263,7 +269,7 @@ curl -X POST http://localhost:3002/api/admin/users/create \
 
 ### 4.4 API keys (`apikeys_routes.py`, prefix `/admin/apikeys`)
 
-Keys are managed under `/admin/apikeys`, not `/api/...`. Because these paths do not start with `/api/`, an unauthenticated call gets a 302 redirect to `/` rather than a JSON 401.
+Keys are managed under `/admin/apikeys`, not `/api/...`. An unauthenticated POST or DELETE here gets a JSON 401; an unauthenticated GET from a browser is redirected to `/` (see [section 5](#5-error-format)).
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
@@ -284,8 +290,8 @@ curl -X POST http://localhost:3002/admin/apikeys/create \
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | `/api/prompts/list` | none | All prompts. |
-| GET | `/api/prompts/{prompt_name}` | none | One prompt. |
+| GET | `/api/prompts/list` | optional | The prompts the caller may see: all for a signed-in caller, `mcp.anonymous.prompts` for an anonymous one; 401 where `/mcp` would answer one. |
+| GET | `/api/prompts/{prompt_name}` | optional | One prompt, under the same rule (404 when hidden or unknown). |
 | POST | `/api/prompts/create` | admin | Create: `name` (letters, digits, `_`, `-`; max 100), `prompt_template` (or `template`), `description`, `arguments`, `metadata`. |
 | POST | `/api/prompts/{prompt_name}/update` | admin | Update the same fields. |
 | POST | `/api/prompts/{prompt_name}/delete` | admin | Delete. |
@@ -331,8 +337,18 @@ curl -X POST http://localhost:3002/api/composite-tools \
 | POST | `/api/ai/complete` | user | LLM completion: `prompt` (required), `provider`, `model`, `system`, `temperature`, `max_tokens`. |
 | GET | `/api/ai/stats` | admin | Gateway and resolver statistics. |
 | GET | `/api/ai/registry` | admin | Registered provider classes. |
-| POST | `/api/ai/ask` | user | Answer a question with SAJHA's tools: `question` (required), `model`, `confirm`. JSON `AskResult`, or an SSE step stream with `Accept: text/event-stream` or `?stream=1`. Event schema: [Intelligence Layer](../architecture/Intelligence%20Layer.md#post-apiaiask). |
+| POST | `/api/ai/ask` | user | Answer a question with SAJHA's tools: `question` (required), `model`, `confirm`, `conversation_id` (`"new"` or an id of the caller's; another user's or an expired id is 404), `planner` (admins; 403 otherwise). JSON `AskResult`, or an SSE step stream with `Accept: text/event-stream` or `?stream=1`. Event schema: [Intelligence Layer](../architecture/Intelligence%20Layer.md#post-apiaiask). |
 | GET | `/api/ai/config` | admin | Effective `ai.*` configuration, each value with its source; secrets redacted. |
+| GET | `/api/ai/planners` | user | Registered planners and the configured default (`ai.ask.planner`). |
+| GET | `/api/ai/conversations` | user | The caller's conversations, most recent first. |
+| GET | `/api/ai/conversations/{conversation_id}` | user | One of the caller's conversations with its turns and summary; 404 for anyone else's. |
+| DELETE | `/api/ai/conversations/{conversation_id}` | user | Delete one of the caller's conversations. |
+| DELETE | `/api/ai/conversations` | user | Delete all of the caller's conversations (`{"deleted": n}`). |
+| POST | `/api/ai/docs/search` | user | Search the document index: `query` (required), `top_k`, `source`. Passages with citations. Callers who may not run `sajha_search_docs` search SAJHA's guides only. |
+| GET | `/api/ai/docs/status` | admin | The document index: store, embedder, documents, sources, uploads, last build. |
+| POST | `/api/ai/docs/reindex` | admin | Re-sync the index now; `{"force": true}` re-embeds everything. |
+| POST | `/api/ai/docs/uploads` | admin | Add a document: `{"filename", "content"}` (UTF-8 `.md`, `.markdown`, `.txt`, `.rst`, `.html`, `.htm`); 201. |
+| DELETE | `/api/ai/docs/uploads/{filename}` | admin | Remove an uploaded document from storage and the index. |
 
 ```bash
 curl -X POST http://localhost:3002/api/ai/resolve-tool \
@@ -357,7 +373,7 @@ curl -X POST http://localhost:3002/api/ai/complete \
 | GET | `/api/reports/heatmap?days=30&tool=` | user | Hour-of-day usage heatmap. |
 | GET | `/api/reports/audit?limit=100&action=` | admin | Recent audit entries. |
 
-### 4.9 Operations (`ops_routes.py`)
+### 4.9 Operations (`ops_routes.py`, `observability_routes.py`, `sandbox_routes.py`)
 
 **Metrics, versions, contract tests**
 
@@ -366,7 +382,7 @@ curl -X POST http://localhost:3002/api/ai/complete \
 | GET | `/api/metrics` | user | Metrics summary. |
 | GET | `/api/metrics/tools` | user | Metrics for all tools. |
 | GET | `/api/metrics/tools/{tool_name}` | user | Metrics for one tool. |
-| GET | `/metrics` | `observability.metrics.auth` (default admin) | Prometheus text format ([Observability](../architecture/Observability.md)). |
+| GET | `/metrics` | `observability.metrics.auth` (default admin) | Prometheus text format ([Observability](../architecture/Observability.md)); 404 when `observability.metrics.enabled` is false. |
 | GET | `/monitoring/usage` | user | The Usage & cost page (administrators see everyone, others their own calls). |
 | GET | `/api/observability/usage?since=&until=&user=&api_key=&role=&provider=&model=&tool=` | user | Every figure the Usage & cost page shows (non-administrators: own calls only). |
 | GET | `/api/observability/usage.csv?dimension=user\|api_key\|role\|model\|tool\|day` | user | One usage table as CSV. |
@@ -475,13 +491,42 @@ curl -X POST http://localhost:3002/api/tools/calc_loan_amortization/execute-asyn
 |---|---|---|---|
 | GET | `/api/ws/sessions` | admin | Active `/mcp/ws` sessions and count. |
 
-### 4.11 Studio (`studio_routes.py`, prefix `/studio`)
+### 4.11 Studio (`studio_routes.py`, prefixes `/studio` and `/admin/studio`)
 
-Only HTML pages are registered (section 4.14). There are no Studio JSON API routes.
+The pages under `/studio` are in section 4.14. The creators post to these JSON actions;
+every one is admin only and answers JSON (a 401 or 403 too). Errors are
+`{"success": false, "error": "..."}`.
+What each creator's fields mean is in the [MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md).
 
-### 4.12 Misc and docs (`misc_routes.py`)
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| POST | `/admin/studio/analyze` | admin | Python code creator: parse `{"code", "tool_name"}` and return the generated JSON config and Python module without writing anything. |
+| POST | `/admin/studio/deploy` | admin | Python code creator: write the files and load the tool into the running server; if it fails to load, the files are removed (500). |
+| POST | `/admin/studio/validate-name` | admin | `{"tool_name"}` → `{"valid", "error"}`. |
+| POST | `/admin/studio/delete` | admin | `{"tool_name"}`: unload a Studio-generated tool and remove its files. |
+| POST | `/admin/studio/rest/preview`, `/admin/studio/dbquery/preview`, `/admin/studio/script/preview`, `/admin/studio/powerbi/preview`, `/admin/studio/powerbidax/preview`, `/admin/studio/livelink/preview`, `/admin/studio/sharepoint/preview` | admin | One per creator: the generated config and code, without writing anything. |
+| POST | `/admin/studio/rest/deploy`, `/admin/studio/dbquery/deploy`, `/admin/studio/script/deploy`, `/admin/studio/powerbi/deploy`, `/admin/studio/powerbidax/deploy`, `/admin/studio/livelink/deploy`, `/admin/studio/sharepoint/deploy` | admin | One per creator: write the files and load the tool, as above. |
+| POST | `/admin/studio/olap/deploy` | admin | Add an OLAP dataset (`name`, `dimensions`, `measures`, ...) and reload the OLAP tools. |
+| POST | `/admin/studio/olap/delete` | admin | `{"name"}`: remove a dataset that Studio created (403 for any other). |
 
-Only HTML pages (section 4.14).
+API Import (`api_import_routes.py`, prefixes `/studio`, `/admin/studio/api-import` and `/api/studio/api-import`; design
+in [API Import](../architecture/API%20Import.md)). Every body is the import request
+(`kind`, `url` or `text`, `prefix`, `server_index`, `server_variables`, `base_url`, `auth`,
+`filters`, `timeout_seconds`, `rate_limit_per_minute`, `graphql_depth`, `names`); errors are
+400 with `{"success": false, "error"}`.
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| POST | `/admin/studio/api-import/parse` | admin | The preview: API facts, one entry per operation (proposed name, schemas, annotations, flags, `new`/`changed`/`unchanged`), operations gone from the spec. Writes nothing. |
+| POST | `/admin/studio/api-import/test` | admin | Plus `operation` and `arguments`: call one operation once without deploying it. |
+| POST | `/admin/studio/api-import/deploy` | admin | Plus `selected` (operation keys) and `remove`: write and hot-load the tools, delete the removed ones, save the import record. |
+| GET | `/api/studio/api-import/apis` | admin | Every import: id, kind, title, server, tools, how many are loaded. |
+| GET | `/api/studio/api-import/apis/{api_id}` | admin | An import's saved request, to re-import it. |
+| POST | `/admin/studio/api-import/delete` | admin | `{"api_id"}`: remove the import's tools and its record. |
+
+### 4.12 Misc, help and docs (`misc_routes.py`, `help_routes.py`)
+
+Only HTML pages and redirects (section 4.14). The help pages are rendered from `sajha/web/help_catalog.py`; the superseded help URLs in its `REDIRECTS` answer 301.
 
 ### 4.13 Dashboard (`dashboard_routes.py`)
 
@@ -493,9 +538,9 @@ These render templates; they are not JSON APIs. Unauthenticated requests to `use
 
 | Auth | Paths |
 |---|---|
-| none / optional | `/`, `/login`, `/help`, `/help/c/{cid}`, `/help/guides`, `/help/guides/{name}`, `/glossary`, `/help/tools`, `/about`, `/oauth/authorize`; and the 301 redirects `/help/ai`, `/help/enterprise`, `/help/tutorials`, `/help/glossary`, `/help/storage`, `/docs`, `/docs/view/{doc_path}` |
-| user | `/dashboard`, `/tools`, `/tools/{tool_name}/execute`, `/tools/{tool_name}/schema`, `/tools/{tool_name}/config`, `/prompts`, `/prompts/{prompt_name}`, `/prompts/{prompt_name}/test`, `/prompts/category/{category}`, `/prompts/tag/{tag}`, `/reports`, `/composite/builder`, `/ai/settings`, `/ask`, `/playground`, `/studio`, `/studio/rest`, `/studio/dbquery`, `/studio/script`, `/studio/livelink`, `/studio/olap`, `/studio/powerbi`, `/studio/powerbidax`, `/studio/sharepoint`, `/studio/examples` |
-| admin | `/admin/users`, `/admin/users/create`, `/admin/tools`, `/admin/system-monitor`, `/admin/prompts`, `/admin/async-tasks`, `/admin/apikeys`, `/admin/apikeys/create`, `/admin/apikeys/{key_id}/view`, `/prompts/create`, `/monitoring/tools`, `/monitoring/users` |
+| none / optional | `/`, `/login`, `/help`, `/help/c/{cid}`, `/help/guides`, `/help/guides/{name}`, `/glossary`, `/help/tools`, `/about`, `/comparison`, `/oauth/authorize`; and the 301 redirects `/help/ai`, `/help/enterprise`, `/help/tutorials`, `/help/glossary`, `/help/storage`, `/docs`, `/docs/view/{doc_path}` |
+| user | `/dashboard`, `/account/password`, `/tools`, `/tools/{tool_name}/execute`, `/tools/{tool_name}/schema`, `/prompts`, `/prompts/{prompt_name}`, `/prompts/{prompt_name}/test`, `/prompts/category/{category}`, `/prompts/tag/{tag}`, `/reports`, `/composite/builder`, `/ai/settings`, `/ask`, `/playground`, `/monitoring/usage` |
+| admin | `/admin/users`, `/admin/users/create`, `/admin/tools`, `/admin/system-monitor`, `/admin/prompts`, `/admin/async-tasks`, `/admin/apikeys`, `/admin/apikeys/create`, `/admin/apikeys/{key_id}/view`, `/admin/federation`, `/prompts/create`, `/tools/{tool_name}/config`, `/monitoring/tools`, `/monitoring/users`, `/studio`, `/studio/rest`, `/studio/dbquery`, `/studio/script`, `/studio/livelink`, `/studio/olap`, `/studio/powerbi`, `/studio/powerbidax`, `/studio/sharepoint`, `/studio/examples`, `/studio/api-import` |
 
 ### 4.15 Python Playground (`playground_routes.py`)
 
@@ -529,6 +574,50 @@ such upstream or item, 502 the upstream failed). Behaviour: [Federation](../arch
 | POST | `/api/federation/upstreams/{upstream_id}/items` | admin | `{"kind": "tool" \| "prompt" \| "resource", "name", "action"}`; actions `approve`, `reject`, `disable`, `enable`, `reset`, `approve_all`. Returns `{ok, changed}`. |
 | POST | `/api/federation/test` | admin | Connect to an unsaved upstream definition: `{ok, protocol_version, server_info, tools, prompts, resources}` or `{ok: false, error}`. |
 
+### 4.17 Connected accounts (`accounts_routes.py`)
+
+Users' links to third-party services. Pages and forms use the session cookie; every form
+that changes state carries the page's CSRF token. No route ever returns a token.
+Behaviour: [Connected Accounts](../architecture/Connected%20Accounts.md).
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/account/connections` | user | The Connected accounts page (`?connect=<id>&scope=...` highlights one service). |
+| POST | `/account/connections/{provider}/connect` | user (form, CSRF) | Start linking: 303 to the provider's authorize URL; sets the `sajha_acct_flow` cookie. |
+| GET | `/account/connections/{provider}/callback` | user | The provider's redirect back: 303 to the page on success, 400 with the reason otherwise. |
+| POST | `/account/connections/{provider}/disconnect` | user (form, CSRF) | Revoke at the provider where possible and delete the link. |
+| GET | `/api/accounts/connections` | user | `{providers, connections, connect_url}`: configured providers and the caller's links (metadata). |
+| DELETE | `/api/accounts/connections/{provider}` | user | Disconnect; a cookie session needs `X-CSRF-Token`. 404 when there was no link. |
+| GET | `/admin/connections` | admin | Every user's links, providers, vault keys; unlink and re-encrypt. |
+| POST | `/admin/connections/revoke` | admin (form, CSRF) | Unlink `provider` for `user_id`. |
+| POST | `/admin/connections/rotate` | admin (form, CSRF) | Re-encrypt every link with the current vault key. |
+| GET | `/api/admin/accounts/connections` | admin | Every link's metadata (`?user=`, `?provider=`). |
+
+### 4.18 Policies, approvals and audit (`policy_routes.py`)
+
+The policy engine and the tamper-evident audit. Every route is admin only; a cookie session
+sends the page's CSRF token (form field `csrf`, or header `X-CSRF-Token`) on state changes.
+Behaviour: [Policy and Audit](../architecture/Policy%20and%20Audit.md). How a tool call
+answers a policy outcome (403, 202 with `approval_id`, 429 with `Retry-After` on
+`POST /api/tools/execute`) is in its section 5.
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/admin/policies` | admin | The Policies page: files, rules, parse errors, test bench. |
+| GET | `/api/policy/policies` | admin | Every policy file with its rules, errors and the engine's settings. |
+| POST | `/api/policy/reload` | admin (CSRF) | Reload the policy directory now. |
+| POST | `/api/policy/test` | admin | The test bench: `{tool, arguments, user, roles, api_key, anonymous, auth_type, source, time, include_disabled, output}` → `{decision, would_run, output?}`. Nothing runs. |
+| GET | `/admin/approvals` | admin | The Approvals page. |
+| POST | `/admin/approvals/{aid}/decide` | admin (form, CSRF) | `decision=approve` or `deny`, optional `note`. |
+| GET | `/api/policy/approvals` | admin | `{approvals: [...]}` (`?status=pending` and so on). |
+| POST | `/api/policy/approvals/{aid}/approve` | admin (CSRF) | Approve (`{"note"}` optional); 409 when already decided, expired or your own call. |
+| POST | `/api/policy/approvals/{aid}/deny` | admin (CSRF) | Deny. |
+| GET | `/admin/audit` | admin | The Audit page (`?event=policy.*`, `?actor=`). |
+| GET | `/api/audit/records` | admin | Recent hash-chained records, merged across chains (`?limit`, `?event`, `?actor`, `?chain`). |
+| GET | `/api/audit/verify` | admin | Verify every chain (`?chain=` one): `{ok, chains: [{chain_id, ok, problems, warnings, ...}]}`. |
+| POST | `/api/audit/anchor` | admin (CSRF) | Sign this worker's chain head now. |
+| GET | `/api/audit/sinks` | admin | This worker's chain writer and SIEM sink status. |
+
 ---
 
 ## 5. Error format
@@ -539,13 +628,13 @@ Framework-level responses (`sajha/app.py`, `sajha/security.py`):
 
 | Status | When | Body |
 |---|---|---|
-| 401 | `user`/`admin` route without a valid credential, path starting with `/api/` or `/mcp` | `{"error": "Authentication required"}` |
-| 302 | Same, any other path (pages, `/admin/apikeys/*`) | Redirect to `/` |
-| 403 | `admin` route called by a non-admin | HTML error page (also for `/api/...` paths) |
+| 401 | `user`/`admin` route without a valid credential, from an API caller: a path starting with `/api/`, `/mcp`, `/a2a`, `/admin/studio/` or `/oauth/`, any method other than GET/HEAD, or an `Accept` that asks for JSON and not HTML (`_wants_json` in `sajha/app.py`) | `{"error": "Authentication required"}` with `WWW-Authenticate` |
+| 302 | Same, from a browser page navigation (any other GET) | Redirect to `/` |
+| 403 | `admin` route called by a non-admin | `{"error": "..."}` for an API caller (as above); otherwise an HTML error page |
 | 404 | No such route | HTML error page. Route handlers' own 404s (unknown tool, user, prompt...) are JSON. |
 | 413 | `Content-Length` over 10 MB | `{"error": "Request body too large. Maximum: 10485760 bytes"}` |
 | 422 | Query/path parameter of the wrong type (e.g. `days=abc`) | FastAPI's `{"detail": [...]}` |
-| 429 | Login rate limit | `{"error": "Too many login attempts. Try again in 60 seconds."}` |
+| 429 | Sign-in throttle (per address) on `POST /api/auth/login`; other rate limits ([Security Model](../security/Security%20Model.md#rate-limiting-and-lockout)) | `{"error": "..."}` |
 | 500 | Unhandled exception | HTML error page |
 
 **MCP endpoints.** JSON-RPC 2.0 error objects: `{"jsonrpc": "2.0", "id": ..., "error": {"code": ..., "message": ...}}`. HTTP statuses used by the transport: 400 (parse error `-32700`, invalid request or batch `-32600`, missing `Mcp-Session-Id` on DELETE, unsupported `MCP-Protocol-Version`), 403 (disallowed `Origin`, `-32000`), 404 (unknown session, `-32001`), 405 (GET/DELETE where no stream or session exists). The 2026-07-28 path adds `-32020` (header/body mismatch) and `-32022` (unsupported protocol version). Authorization failures are OAuth challenges, not JSON-RPC errors: `{"error": "invalid_token" | "insufficient_scope" | "unauthorized", "error_description": "..."}` with a `WWW-Authenticate: Bearer resource_metadata="...", scope="..."` header.

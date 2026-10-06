@@ -4,7 +4,7 @@ This page describes how SAJHA MCP Server authenticates callers, authorizes them,
 
 For the OAuth 2.1 details of the MCP endpoint, see the [OAuth Guide](../protocol/OAuth%20Guide.md) and the [MCP 2026-07-28 Compliance](../protocol/MCP%202026-07-28%20Compliance.md) page. This page only summarizes them.
 
-The older point-in-time assessment is kept in `docs/archive/Cybersecurity_Assessment.md`, but it is no longer maintained. Several of its claims no longer match the code (see [What changed from the archived assessment](#what-changed-from-the-archived-assessment)).
+This page supersedes the older point-in-time assessment in `docs/archive/` (not maintained; see the [archive index](../archive/README.md)).
 
 ---
 
@@ -12,9 +12,9 @@ The older point-in-time assessment is kept in `docs/archive/Cybersecurity_Assess
 
 ### Where identities live
 
-Users, roles, permissions, API keys and the audit log are stored in the SAJHA database. The schema is in `db/scripts/sqlite/001_schema.sql` (and the PostgreSQL equivalent), and the models are in `sajha/db/models/__init__.py`. The live authentication code is `sajha/auth/__init__.py` (`AuthManager`, `AuthContext`, `get_current_user`, `require_auth`, `require_admin`).
+Users, roles, permissions, API keys and the audit log are stored in the SAJHA database. The schema is `db/scripts/<sqlite|postgresql>/schema.sql` ([Database Setup](../getting-started/Database%20Setup.md)), and the models are in `sajha/db/models/__init__.py`. The live authentication code is `sajha/auth/__init__.py` (`AuthManager`, `AuthContext`, `get_current_user`, `require_auth`, `require_admin`).
 
-> `sajha/core/auth_manager.py` and `sajha/core/apikey_manager.py` are older managers. They are not wired into the running application (`sajha/app.py` passes `auth_manager=None` and `apikey_manager=None` to the config reloader), so their DB-persisted sessions and JSON key store are **not** in effect. Account lockout lives in `AuthManager.sign_in` (`sajha/auth/__init__.py`) and per-tool access in `sajha/auth/access.py`.
+> Authentication is `AuthManager` in `sajha/auth/__init__.py` (sign-in, account lockout, JWTs, API keys); per-tool access is `sajha/auth/access.py`.
 
 ### Web login and passwords
 
@@ -24,7 +24,7 @@ Users, roles, permissions, API keys and the audit log are stored in the SAJHA da
 - **Failed sign-ins per IP.** A client IP with `auth.login.ip_max_failures` (default 20) failed sign-ins within `auth.login.ip_window_seconds` (default 300) gets 429 on both login endpoints and the OAuth consent sign-in (`login_blocked` / `record_login_failure` in `sajha/security.py`). Successful sign-ins are not counted, so many users behind one NAT are not throttled by each other.
 - **Password policy.** New passwords (`password_problem` in `sajha/auth/password.py`) need at least 8 characters (`auth.password.min_length`, never below 8), at most 72 bytes (the bcrypt limit), must not be a well-known default (`admin123`, `changeme`, ...) and must not equal the user ID.
 - **Changing a password.** A signed-in user changes their own password at `/account/password` (page, also in the user menu) or `POST /api/auth/change-password` (`{"current_password", "new_password"}`, returns a fresh JWT). Both need the current password; API keys have no password to change. An admin resets anyone's password with `POST /api/admin/users/{uid}/password` (`{"password", "must_change_password": true}`), which also unlocks the account. Changes are audited as `user.password_change` and `user.password_reset`.
-- **Must change password.** `users.must_change_password` (added by `db/scripts/<type>/003_password_policy.sql`) is set for the seed admin while its seed hash is unchanged, for passwords an admin sets (create or reset), and whenever someone signs in with a well-known default password. While it is set, the session JWT carries `pwc: true`, `POST /api/auth/login` returns `"password_change_required": true`, and every console page shows a banner linking to `/account/password`.
+- **Must change password.** `users.must_change_password` (in `db/scripts/<type>/schema.sql`) is set for the seed admin while its seed hash is unchanged, for passwords an admin sets (create or reset), and whenever someone signs in with a well-known default password. While it is set, the session JWT carries `pwc: true`, `POST /api/auth/login` returns `"password_change_required": true`, and every console page shows a banner linking to `/account/password`.
 - **No server-side sessions.** A successful login returns a SAJHA JWT (see below). The web form puts it in a cookie. Logging out (`GET /logout`) only deletes the cookie, so the token stays valid until it expires.
 
 ### Session cookie `sajha_token`
@@ -75,7 +75,7 @@ OAuth access tokens are not tried here. They only count on the MCP endpoints (se
 
 ### Roles and permissions
 
-The seed data in `db/scripts/sqlite/002_seed.sql` creates these roles and permission rows:
+The seed data in `db/scripts/<type>/seed.sql` creates these roles and permission rows:
 
 | Role | Permission rows (`resource_type`, `resource_name`, `actions`) |
 |---|---|
@@ -92,7 +92,7 @@ How these rows are used:
 
 ### Tool access
 
-`sajha/auth/access.py` gives one answer to "may this caller see / run this tool?" for `POST /api/tools/execute`, `POST /api/tools/{tool}/execute-async`, every MCP transport (both protocol eras on `/mcp` and `/api/mcp`, the legacy SSE transport and `/mcp/ws`) and `POST /a2a`:
+`sajha/auth/access.py` gives one answer to "may this caller see / run this tool?" for `POST /api/tools/execute`, `POST /api/tools/{tool}/execute-async`, every MCP transport (both protocol eras on `/mcp` and `/api/mcp`, the legacy SSE transport and `/mcp/ws`), `POST /a2a`, the REST catalog (`GET /api/tools/list`, `/api/tools/{tool}/schema`, `/api/tool-groups/*`, which also answer 401 where `/mcp` would), the console's tool pages (`/tools`, `/tools/{tool}/schema`, `/tools/{tool}/execute`) and the tool names the landing page, `/help/tools`, `/about` and Ask SAJHA show (counts stay whole-catalog):
 
 | Caller | Tools it may run | Tools it sees in `tools/list` |
 |---|---|---|
@@ -105,6 +105,9 @@ How these rows are used:
 - A refused call gets 403 on REST, `-32002` on 2025-11-25 MCP and `-32010` on 2026-07-28 MCP. An unknown tool is still reported as unknown (`-32602`).
 - The policy travels inside the MCP session dict (`AuthContext.to_legacy_session`), and `MCPHandler` is constructed with `SessionToolAccess` (`sajha/app.py`), so `tools/list` is filtered and `tools/call` checked on every transport. With `mcp.cache.scope: auto`, an authenticated caller's `tools/list` is marked `cacheScope: private`; the anonymous list is `public`.
 - The conformance fixtures (`test_*`, present only when `mcp.conformance_fixtures` is on) are not registry tools and stay callable by anyone.
+- **The rest of the catalog follows the same policy.** The `sajha://tools/catalog` resource (MCP `resources/read` and `POST /api/resources/read`), its count in `resources/list`, `completion/complete` for a `ref/tool`, the MCP `tool/schema`, `tool/description`, `tool/input_schema` and `tool/output_schema` extension methods, and the skills in `GET /.well-known/agent.json` show only the tools the caller may see. An anonymous caller with the default empty `mcp.anonymous.tools` gets a generic agent card with no skills.
+- **Data resources.** `sajha://data/<file>` (the data files in `data/duckdb` and `data/sqlselect`) is listed and readable by every signed-in caller; anonymous callers see only URIs matching `mcp.anonymous.resources` (fnmatch over the URI, default empty), in `resources/list` and `resources/read` on both eras. A file the caller may not read is reported as not found. `/api/resources/list` and `/api/resources/read` require credentials and use the same reader. `sajha/auth/access.py` (`can_read_resource`), `sajha/core/data_resources.py`.
+- **Prompts.** There are no per-prompt permissions for signed-in callers: they see every prompt. Anonymous callers see only prompts matching `mcp.anonymous.prompts` (fnmatch allowlist, default empty) in `prompts/list`, `prompts/get`, `completion/complete` for a `ref/prompt`, the `sajha://prompts/catalog` resource and `GET /api/prompts/list` / `GET /api/prompts/{name}` (which also answer 401 where `/mcp` would). A hidden prompt is reported as unknown (`-32602`, or 404 on REST). `sajha/auth/access.py` (`can_see_prompt`). With `mcp.cache.scope: auto`, `prompts/list`, `resources/list` and `resources/read` are `private` for an authenticated caller and `public` for anonymous ones, as for `tools/list`.
 - MCP `logging/setLevel` is accepted from anyone but changes the server's root log level only for an admin.
 
 ### Default admin account
@@ -128,6 +131,14 @@ The MCP endpoints (`POST/GET/DELETE /mcp`, `POST/DELETE /api/mcp`, `GET /mcp/sse
 | `required` | A credential is mandatory. Without one, the response is 401 with `WWW-Authenticate: Bearer resource_metadata="...", scope="..."`. |
 
 In every mode, API keys, SAJHA JWTs and the session cookie keep working on `/mcp`.
+
+**stdio.** `python run_server.py --stdio` (`sajha/cli/stdio.py`) has no HTTP layer, so no
+`authorize_mcp`, Origin check or OAuth: its one caller is fixed at start-up. `--api-key`
+(or `SAJHA_API_KEY`) uses that key's tool access; `--user` (or `SAJHA_STDIO_USER`) takes
+that SAJHA user's roles **without a password**, on the grounds that whoever can start the
+process can already read the database it opens; with neither, the anonymous policy applies.
+Treat the right to launch it as the right to act as any user. See
+[Command Line](../clients/Command%20Line.md).
 
 OAuth access tokens are accepted **only** on the MCP endpoints. They are RS256 (or another asymmetric algorithm) and audience-bound to the MCP resource, so the REST API's HS256 check rejects them.
 
@@ -249,7 +260,7 @@ Each fix below is present in the code:
 | Issue | Fix | Where |
 |---|---|---|
 | Open redirect via `/login?next=` | `next` must be a local path. Values that don't start with `/`, start with `//` or `/\`, or contain a backslash fall back to `/dashboard`. | `sajha/routes/auth_routes.py` |
-| Path traversal in `sajha://data/...` resources | The file name must equal its own basename and must not be `.`, `..` or contain `\`. Otherwise the result is "Resource not found". Reads are limited to `data/duckdb` and `data/sqlselect`. | `sajha/core/mcp_handler.py` (`_handle_resources_read`) |
+| Path traversal in `sajha://data/...` resources | The file name must equal its own basename and must not be `.`, `..` or contain `\`. Otherwise the result is "Resource not found". Reads are limited to `.csv`, `.parquet`, `.json` and `.xlsx` files in `data/duckdb` and `data/sqlselect`. | `sajha/core/data_resources.py` |
 | WebSocket authentication called a method that did not exist | Now calls `AuthManager.authenticate_jwt` / `authenticate_apikey` and honours `mcp.auth.mode: required`. | `sajha/routes/ws_routes.py` |
 | Security headers overwrote stricter per-route values | `X-Frame-Options`, `Referrer-Policy` and `Content-Security-Policy` use `setdefault`. | `sajha/security.py` |
 | Public JWT and session secrets in `config/application.yml` | The YAML ships no secret. Empty secrets are generated once and persisted (mode 0600); known placeholder values stop start-up. | `sajha/core/server_secrets.py`, `sajha/core/config.py` |
@@ -259,6 +270,16 @@ Each fix below is present in the code:
 | Async execution wrote to any path and posted to any URL | Files only inside `async.delivery.file.base_dir`; webhooks only to `async.delivery.webhook.allowed_urls`, with the CIMD SSRF guard; admin or `async:execute` permission and tool access required; tasks scoped to their owner. | `sajha/core/async_executor.py`, `sajha/routes/ops_routes.py` |
 | Open admin endpoints | `POST /api/logging/setLevel`, `GET /api/ws/sessions`, `GET /api/replay/recent`, `GET /api/replay/tool/{tool}`, `GET /api/reports/users/activity` and the tool configuration page need an admin; the shell endpoints need admin or `shell:execute`. | `sajha/routes/` |
 | No lockout or rate limit on the HTML login; no password change | Account lockout, failed-sign-in throttle, password policy, change-password page and API, admin reset, forced change for default passwords. | `sajha/auth/__init__.py`, `sajha/routes/auth_routes.py`, `sajha/security.py` |
+| Any OLAP tool ran any OLAP operation (a caller-supplied `_tool_name`), including the unadvertised `olap_generate_sample_data`, which writes files | An OLAP tool runs only the operation it is registered as; `_tool_name` is refused. | `sajha/tools/impl/duckdb_olap_advanced.py` |
+| The REST tool catalog listed every tool to anyone | `/api/tools/list`, `/api/tools/{tool}/schema` and `/api/tool-groups/*` apply the `tools/list` policy and answer 401 where `/mcp` would; the console tool pages and the tool names on public pages follow the same policy. | `sajha/routes/api_routes.py`, `sajha/routes/tools_routes.py`, `sajha/web/help_catalog.py` |
+| A tool's schema page showed its resolved configuration (API keys included) to every signed-in user | Shown to administrators only, as on the configuration page. | `sajha/routes/tools_routes.py` |
+| Enabling or disabling a tool wrote its resolved configuration, secrets included, back to the config file | Only `enabled` is changed in the stored file; `${...}` references stay. | `sajha/tools/tools_registry.py` |
+| Tool arguments were checked only for presence | Validated against the tool's JSON Schema before it runs (`pattern`, `enum`, bounds, types, `additionalProperties`). | `sajha/tools/base_mcp_tool.py` |
+| Prompts, the tool and prompt catalog resources, `completion/complete`, the `tool/schema`-style MCP methods and the A2A agent card described every tool and prompt to anonymous callers | All follow the tool-access policy; anonymous callers see only `mcp.anonymous.tools` / `mcp.anonymous.prompts` (nothing by default). See [Tool access](#tool-access). | `sajha/auth/access.py`, `sajha/core/mcp_handler.py`, `sajha/routes/prompts_routes.py`, `sajha/routes/mcp_routes.py`, `sajha/routes/a2a_routes.py` |
+| SQL injection in the OLAP tools: filter values, dimension and measure names, operators, aggregations, sort directions and limits were pasted into SQL | Filter values (and date ranges) are DuckDB named parameters; dimension and measure names must be declared by the dataset in `config/olap/datasets.json` and resolve to their configured expressions; operators, aggregations, directions, time grains and numbers are allowlisted or coerced. | `sajha/olap/sql_safety.py`, `sajha/olap/*_engine.py`, `sajha/tools/impl/duckdb_olap_advanced.py` |
+| `duckdb_sql` accepted any statement after a `SELECT` (`SELECT 1; DROP TABLE orders`) and could read any local file or URL (`read_text('/etc/passwd')`) | Exactly one statement of type `SELECT` or `EXPLAIN`, checked by DuckDB's parser on the exact text that runs; the CSV files are loaded into tables at start-up, then `enable_external_access` is switched off and the configuration locked. | `sajha/tools/impl/duckdb_olap_advanced.py` (`DuckDBSQLTool`) |
+| The other `duckdb_*` tools put caller table and column names (and `duckdb_aggregate`'s `having`) straight into SQL (`DESCRIBE {table_name}`), `duckdb_query` blocked writes only by keyword substring, and every one could read any file or URL through DuckDB's table functions | Table and column names are looked up in the catalog (`information_schema`) and double-quoted; `having` is parsed into `<name> <op> <value>` conditions with bound values; `order_by` and directions are allowlisted; `duckdb_query` runs one parser-checked `SELECT`/`EXPLAIN` statement; the data files are copied into an in-memory sandbox whose external access is disabled and configuration locked. | `sajha/tools/impl/duckdb_olap_tools_refactored.py`, `sajha/olap/sql_safety.py` |
+| `sajha://data/*` resources (the server's data files) were listed and readable by anonymous callers | Anonymous callers see and read only URIs matching `mcp.anonymous.resources` (default none) in `resources/list` and `resources/read` (both eras); a hidden file is "Resource not found". `/api/resources/*` use the same reader and policy. | `sajha/auth/access.py` (`can_read_resource`), `sajha/core/data_resources.py` |
 
 ---
 
@@ -304,6 +325,16 @@ The official conformance-suite test tools, prompts and resources are exposed onl
 
 For MCP 2026-07-28 multi-round-trip requests, the opaque `requestState` is `base64url(payload).base64url(HMAC-SHA256)` (`sajha/core/mcp_mrtr.py`). It is bound to the method, the target, a digest of the arguments and the caller. It expires after `mcp.mrtr.state_ttl_seconds` (default 900) and is verified in constant time. It is signed, not encrypted, and only carries what the client itself sent.
 
+### Connected accounts
+
+Users' tokens for third-party services (GitHub, Slack, Google, Microsoft 365, ...) are
+AES-256-GCM ciphertext in `connected_accounts`, keyed outside the database
+(`SAJHA_ACCOUNTS_VAULT_KEY` or the secrets file), bound to their user and provider, sent
+only to the provider's `api_hosts`, never logged or shown, not even to administrators. The
+flow uses a single-use `state` bound to the user and the browser, PKCE where the service
+supports it and an exact redirect URI; Connect and Disconnect are CSRF-protected POSTs.
+Threat table and audit events: [Connected Accounts §10](../architecture/Connected%20Accounts.md#10-security).
+
 ### Other features that need care
 
 - **Async execution.** `POST /api/tools/{tool}/execute-async` (`sajha/routes/ops_routes.py`, `sajha/core/async_executor.py`) needs the admin role or a permission row (`async`, `*`, `execute`), plus execute access to the tool. Destinations are checked when the task is submitted (400 when refused) and again at delivery:
@@ -312,7 +343,11 @@ For MCP 2026-07-28 multi-round-trip requests, the opaque `requestState` is `base
   - **kafka**: a topic name (`[A-Za-z0-9._-]`, at most 249 characters).
   - Non-admins list, read, cancel and retry only their own tasks.
 - **A2A.** `POST /a2a` (`sajha/routes/a2a_routes.py`) authenticates like the REST API; without credentials it applies the anonymous policy, or answers 401 when `mcp.anonymous.enabled` is false. It runs the first tool whose name appears in the message text, with empty arguments, only if the caller may execute it; otherwise the task fails with "Access denied". `tasks/get` and `tasks/cancel` see only the caller's own tasks (admins see all).
-- **DuckDB SQL.** The DuckDB OLAP tool (`sajha/tools/impl/duckdb_olap_advanced.py`) allows statements starting with `SELECT`, `WITH`, `EXPLAIN`, `DESCRIBE`, `SHOW` or `PRAGMA` after stripping comments. DuckDB's external access (file and URL table functions) is not disabled.
+- **Federation.** Upstream MCP servers' tools are registry tools under the same tool access. Upstream URLs pass an SSRF guard, upstream descriptions are screened for prompt injection, new and changed tools wait for an admin's approval by default, stdio upstreams are off unless `federation.allow_stdio` is on, and every federation route is admin-only and audited. Details: [Federation](../architecture/Federation.md#9-security).
+- **Intelligence layer.** Ask SAJHA (`POST /api/ai/ask`) runs tools only from a shortlist the caller may run, through the same tool-access check as `POST /api/tools/execute`; destructive tools need confirmation; tool output is passed to the model as data. Role policy and daily token budgets limit model use (`ai.policy.*`, `ai.budgets.*`). Provider keys are referenced (`env:`, `file:`, `db:`), never stored in `config/application.yml`, and redacted from the effective configuration. The `sajha_ask` MCP tool (off by default) runs inner calls with the anonymous policy plus `ai.ask.mcp_allowed_tools`. Details: [Intelligence Layer](../architecture/Intelligence%20Layer.md).
+- **Metrics.** `GET /metrics` is admin-only by default (`observability.metrics.auth`: `admin`, `token` or `none`), and user IDs and key names are never metric labels. Alert webhooks pass the same SSRF guard as async webhooks. Details: [Observability](../architecture/Observability.md).
+- **DuckDB SQL.** `duckdb_sql` (`DuckDBSQLTool` in `sajha/tools/impl/duckdb_olap_advanced.py`) runs exactly one statement, which DuckDB's parser must classify as `SELECT` (including `WITH`, `FROM`-first, `DESCRIBE`, `SHOW`, `SUMMARIZE` and `PRAGMA` queries) or `EXPLAIN`. Its connection is in-memory, holds copies of the three CSV files, and has external access disabled and its configuration locked, so a query cannot read or write files or URLs, `ATTACH`, `COPY` or `INSTALL`. The other `duckdb_*` tools (`duckdb_olap_tools_refactored.py`) share one sandbox of the same kind per data directory (`DuckDbSandbox`: every data file copied in, then external access disabled and locked; a reload builds a new one). `duckdb_query` applies the same one-statement check (`read_only_sql` in `sajha/olap/sql_safety.py`); `duckdb_describe_table`, `duckdb_get_stats`, `duckdb_aggregate` and `duckdb_refresh_views` accept only table and column names found in the catalog, which they quote, and bind values.
+- **OLAP tools.** The semantic-layer tools (`olap_*`, `customer_olap_pivot`) never put caller text into SQL: values are bound parameters and names must be declared in `config/olap/` (`sajha/olap/sql_safety.py`). The dataset, dimension and measure expressions in `config/olap/*.json` are SQL and are trusted as configuration.
 
 ---
 
@@ -334,7 +369,9 @@ Configuration is resolved from a `SAJHA_<KEY>` environment variable first, then 
 | **HTTPS** | Terminate TLS at a reverse proxy. The cookie `Secure` flag and HSTS depend on the request scheme. Uvicorn trusts `X-Forwarded-Proto` only from `FORWARDED_ALLOW_IPS` (default `127.0.0.1`), so set that if the proxy is on another host. |
 | **Origins** | Set `SAJHA_CORS_ORIGINS` and `mcp.allowed_origins` to the real browser origins. |
 | **Bind address** | `server.host` defaults to `0.0.0.0`. Bind to loopback behind a proxy. |
-| **Risky features** | Keep `shell.enabled`, `mcp.conformance_fixtures` and `mcp.auth.builtin.dynamic_client_registration` off unless needed. Review `config/plugins`. |
+| **Risky features** | Keep `shell.enabled`, `mcp.conformance_fixtures`, `mcp.auth.builtin.dynamic_client_registration` and `federation.allow_stdio` off unless needed. Review `config/plugins`. |
+| **Metrics** | Keep `observability.metrics.auth` at `admin` or `token` (token in `SAJHA_OBSERVABILITY_METRICS_TOKEN`), or serve `/metrics` on a private `observability.metrics.port`. |
+| **User code** | Run on Linux (or in a container) where Studio code and script tools matter, and check `GET /api/sandbox/status` for what the host enforces; set `sandbox.strict` to refuse to run without full confinement. |
 | **More than one process** | Set `state.backend` to `redis` or `database`. With the default `memory`, OAuth pending requests, codes, refresh tokens and DCR registrations, MCP sessions, tasks and rate-limit counters are per process: rate limits multiply by the number of processes, and a restart signs out every OAuth client. Every process must share the JWT secret, the session secret and the OAuth signing key ([Scaling and State](../architecture/Scaling%20and%20State.md)). WebSocket sessions are always per connection. |
 | **Logs** | WebSocket credentials travel in the query string. Make sure proxy access logs do not keep them. |
 
@@ -343,6 +380,8 @@ Configuration is resolved from a `SAJHA_<KEY>` environment variable first, then 
 ## 7. Audit logging
 
 Audit entries go to the `audit_log` table, through `AuditDAO.log` (`sajha/db/dao/__init__.py`) and `AuditLogger.log` (`sajha/core/audit.py`). Admins can read them with `GET /api/audit` (`sajha/routes/ops_routes.py`) and `GET /api/reports/audit` (`sajha/routes/reporting_routes.py`).
+
+Every `AuditLogger.log` event, and every policy decision other than a plain allow, is also a record in the tamper-evident hash chain (`audit_chain`, with RS256-signed anchors in `audit_anchors`), which `python -m sajha.audit verify` and the Audit page (`/admin/audit`) check, and which can be streamed to a SIEM. Declarative policy rules on tool calls (deny, approval, argument constraints, rate limits, quotas, redaction, injection screening) sit on top of the tool access rules above. Both: [Policy and Audit](../architecture/Policy%20and%20Audit.md).
 
 These events are written today:
 
@@ -354,13 +393,15 @@ These events are written today:
 | `tool.enable`, `tool.disable`, `tool.config_update` | `sajha/routes/api_routes.py` |
 | `apikey.create`, `apikey.toggle`, `apikey.delete` | `sajha/routes/apikeys_routes.py` |
 | `shell_execute_python`, `shell_execute_bash` (with outcome and a code preview) | `sajha/core/shell_executor.py` |
+| `config_change` with resource `federation.<change>` (add, edit, remove, approve, ...) | `sajha/routes/federation_routes.py` |
+| `ai_ask` (question, tools, models, tokens, outcome, confidence; off with `ai.ask.audit: false`) | `sajha/ai/intelligence.py` |
 
 These go elsewhere:
 
 - **Tool runs** through `POST /api/tools/execute` go to the tool-usage table (`ToolUsageDAO.log_execution`), with the user, auth type, duration, client IP and an argument hash.
 - **Account locks and OAuth code issuance** go only to the application log.
 
-The convenience methods in `sajha/core/audit.py` for `login_failed`, `logout`, `account_locked`, `permission_change` and `config_change` exist but are not called. The table records the IP address only when a caller supplies it, and the current callers don't.
+The convenience methods in `sajha/core/audit.py` for `login_failed`, `logout`, `account_locked` and `permission_change` exist but are not called; `config_change` is used only by federation. The table records the IP address only when a caller supplies it, and the current callers don't.
 
 ---
 
@@ -370,8 +411,8 @@ These describe the code as it stands. They are listed so you can compensate for 
 
 **Authorization gaps**
 
-- **The catalog is public.** These need no authentication and describe every tool, whatever the caller may run: `GET /api/tools/list`, `GET /api/tools/{tool}/schema`, the tool-group endpoints, `GET /api/prompts/list`, `GET /api/prompts/{name}`, `POST /api/resources/list`, `POST /api/resources/read` (tool catalog), `POST /api/completion/complete`, `GET /.well-known/agent.json` and the MCP `tool/schema`-style extension methods.
-- **Only tools are permission-checked on MCP.** Prompts and resources are not filtered per caller.
+- **Prompts have no per-user permissions.** Every signed-in caller sees every prompt; only anonymous callers are filtered (`mcp.anonymous.prompts`).
+- **Data file resources have no per-user permissions.** `sajha://data/{file}` is readable by every signed-in caller, whatever their tool access (an API key limited to `calc_*` can still read the CSVs); only anonymous callers are filtered (`mcp.anonymous.resources`). Resources of federated upstream servers are not filtered by this policy.
 - **OAuth scopes** (`mcp:read` / `mcp:tools`) gate methods, not individual tools; tool access then applies on top.
 
 **Brute force and sessions**
@@ -381,7 +422,7 @@ These describe the code as it stands. They are listed so you can compensate for 
 
 **Missing account features**
 
-- **No SSO for the web UI.** The `oauth.*` block in `config/application.yml` (Azure, Okta, ...) and the `oauth_provider` / `oauth_subject` columns are not used by any login path. OAuth 2.1 applies only to the MCP endpoints.
+- **No SSO for the web UI.** No login path uses an external identity provider; the `oauth_provider` / `oauth_subject` user columns are unused. OAuth 2.1 applies only to the MCP endpoints.
 
 **Process-local state**
 
@@ -401,28 +442,6 @@ These describe the code as it stands. They are listed so you can compensate for 
 **Hygiene**
 
 - **Demo credentials are tracked in git.** `config/users.json` (plaintext `admin123`) and `config/apikeys.json` (demo `sja_` keys) are not imported, but should not be reused anywhere.
-
----
-
-## What changed from the archived assessment
-
-These statements in `docs/archive/Cybersecurity_Assessment.md` do not match the current code:
-
-| Archived claim | Current code |
-|---|---|
-| DB-persisted, hashed session tokens with expiry | The cookie holds a stateless JWT. `UserSession` handling lives in the unused `sajha/core/auth_manager.py`. |
-| Account lockout after 5 failures | Now true again, on the live path (`AuthManager.sign_in`, `auth.login.*`). |
-| Web login is rate-limited | Failed sign-ins are throttled per IP on the HTML form, `POST /api/auth/login` and the OAuth sign-in; successes are not counted. |
-| `?api_key=` works on HTTP | It works on the WebSocket only. |
-| OAuth SSO for Azure, Okta, Auth0 and Keycloak | Not implemented for web login. OAuth 2.1 is implemented for `/mcp`. |
-| Per-user and per-key API rate limits | The functions exist but are never called. |
-| Audit events such as `login_failed` and `account_locked` | `user.login_failed` is emitted; account locks go to the application log only (see section 7). |
-| Python import allowlist and 256 MB memory limit enforced | Neither is enforced. |
-| `admin123` appears nowhere in Python source | It appears in `sajha/apiclient/demo.py`. |
-| CORS default is `http://localhost:3002` | Now three loopback forms on port 3002. |
-| API key display prefix is 12 characters | It is 8. |
-
-These still hold, as described above: bcrypt password hashing, SHA-256 API key hashing, cookie attributes, the security headers, the 10 MB body limit, the DuckDB statement allowlist and shell execution being off by default.
 
 ---
 

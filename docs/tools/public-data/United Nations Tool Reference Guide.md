@@ -96,7 +96,7 @@ The tool operates through **external API calls to UN data services**:
 │       │                             │                    │
 │  ┌────▼────────┐             ┌─────▼──────┐             │
 │  │  SDG Tools  │             │Trade Tools │             │
-│  │  (6 tools)  │             │  (3 tools) │             │
+│  │             │             │            │             │
 │  └─────────────┘             └────────────┘             │
 │                                                           │
 │  SDG Tools:                  Trade Tools:                │

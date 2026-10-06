@@ -154,6 +154,8 @@ def _studio_files(tool_name: str, config: Dict[str, Any]) -> Optional[List[Path]
         if impl.startswith('sajha.tools.impl.sharepoint_tool.') and \
                 (config.get('metadata') or {}).get('generator_version'):
             return files  # SharePoint creator: config only, shared implementation
+        if impl == 'sajha.api_import.executor.ImportedAPITool':
+            return files  # API Import: config only, shared executor
     return None
 
 

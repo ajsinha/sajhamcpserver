@@ -197,6 +197,9 @@ class SajhaMCPServerWebApp:
         from sajha.routes.federation_routes import router as federation_router
         from sajha.routes.playground_routes import router as playground_router
         from sajha.routes.observability_routes import router as observability_router
+        from sajha.routes.api_import_routes import router as api_import_router
+        from sajha.routes.accounts_routes import router as accounts_router
+        from sajha.routes.policy_routes import router as policy_router
 
         routers = [
             auth_router, dashboard_router, api_router, tools_router,
@@ -213,6 +216,9 @@ class SajhaMCPServerWebApp:
             federation_router,
             playground_router,
             observability_router,
+            api_import_router,
+            accounts_router,
+            policy_router,
         ]
 
         for router in routers:
@@ -467,9 +473,15 @@ class SajhaMCPServerWebApp:
         logger.info(f'       SAJHA MCP Server {s.app_version} — Starting')
         logger.info('=' * 70)
 
-        # 1. Database (SQL scripts: schema + seed)
+        # 1. Database: SQLite runs db/scripts/sqlite/schema.sql; PostgreSQL is only checked
+        #    (db.schema_check), never changed. docs/getting-started/Database Setup.md
         from sajha.db.engine import init_db, get_db_session
-        init_db(s)
+        from sajha.db.schema import SchemaNotReady
+        try:
+            init_db(s)
+        except SchemaNotReady as e:
+            logger.critical('Refusing to start: ' + str(e))
+            raise
 
         # 1b. Process-shared state (state.backend: memory | redis | database); see
         #     docs/architecture/Scaling and State.md.  A shared store that does not answer stops start-up.
@@ -487,6 +499,16 @@ class SajhaMCPServerWebApp:
             'storage.s3.cache_dir': getattr(s, 'storage_s3_cache_dir', '/tmp/sajha-cache'),
         }
         init_storage(storage_config)
+
+        # 2a. Policy and audit (docs/architecture/Policy and Audit.md): load config/policies
+        #     through the storage backend; open this process's audit hash chain and SIEM sinks.
+        try:
+            from sajha.policy.engine import get_engine as _policy_engine
+            _policy_engine().policy_set.refresh(force=True)
+            from sajha.audit import init_audit
+            init_audit()
+        except Exception as e:
+            logger.warning(f'  Policy/audit: {e}', exc_info=True)
 
         # 3. Core managers (tools, prompts, MCP, hot-reload)
         self._init_managers()
@@ -584,12 +606,10 @@ class SajhaMCPServerWebApp:
                 embedder = get_embedder(_CFG, gateway=gw_for_extract)
                 persist = cfg_bool(_CFG, 'ai.tool_search.persist', True)
                 resolver = init_resolver(embedder, tools_registry, gateway=gw_for_extract, persist=persist)
-                # Keep the index accurate as tools change — NEVER block the reload path:
-                # run the re-sync off a background thread. Tool loading is already complete.
+                # The resolver keeps itself accurate as tools change: it listens to every
+                # register/unregister (ToolsRegistry.add_change_listener), re-syncing vectors
+                # off a background thread so the reload path never blocks.
                 import threading as _t
-                def _bg_resync():
-                    _t.Thread(target=resolver.sync, name='tool-index-resync', daemon=True).start()
-                tools_registry.add_reload_listener(_bg_resync)
                 # BM25 lexical tier (default) — build now, instant and dependency-free.
                 lex = resolver.refresh_lexical()
                 if embedder is not None:
@@ -617,6 +637,16 @@ class SajhaMCPServerWebApp:
         except Exception as e:
             logger.warning(f'  Intelligence: unavailable ({e})', exc_info=True)
 
+        # 4d. Document index behind sajha_search_docs and "Ask the docs" (ai.rag)
+        try:
+            from sajha.ai.gateway import get_gateway as _get_gw2
+            from sajha.ai.rag.index import init_doc_index
+            _gw2 = _get_gw2()
+            _rag = init_doc_index(getattr(getattr(_gw2, 'settings', None), 'rag', None), _gw2)
+            logger.info(f'  RAG: {"document index " + ("building in background" if _rag.settings.build_on_start else "builds on first search") + ", store=" + _rag.store.name if _rag else "off (ai.rag.enabled: false)"}')
+        except Exception as e:
+            logger.warning(f'  RAG: unavailable ({e})', exc_info=True)
+
         # 5. Template globals
         self._register_template_globals()
 
@@ -643,6 +673,11 @@ class SajhaMCPServerWebApp:
 
         # Shutdown
         logger.info('Shutting down SAJHA MCP Server...')
+        try:   # close this process's audit chain (chain.close + a signed anchor) and drain SIEM sinks
+            from sajha.audit import shutdown_audit
+            shutdown_audit()
+        except Exception as e:
+            logger.debug(f'audit shutdown: {e}')
         try:   # flush the usage ledger, stop alerts, the metrics publisher/listener and OTel
             from sajha.observability import shutdown_observability
             shutdown_observability()

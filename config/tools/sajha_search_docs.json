@@ -1,0 +1,32 @@
+{
+  "name": "sajha_search_docs",
+  "implementation": "sajha.ai.rag.tool.SajhaSearchDocsTool",
+  "description": "Search SAJHA's documentation (guides, configuration reference, tutorials, tool reference guides) and the document sources an administrator configured. Returns the best-matching passages, each with its citation: document, section and link. Use it for questions about how SAJHA works and how to configure, run or use it.",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string", "description": "What to look for, in plain words (a question works)."},
+      "top_k": {"type": "integer", "minimum": 1, "maximum": 20, "default": 3, "description": "How many passages to return."},
+      "source": {"type": "string", "description": "Only this source: sajha_docs, uploads, or a configured source's name."}
+    },
+    "required": ["query"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "results": {"type": "array", "items": {"type": "object"}},
+      "count": {"type": "integer"}
+    }
+  },
+  "annotations": {"readOnlyHint": true, "openWorldHint": false},
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Intelligence",
+    "tags": ["documentation", "search", "rag", "help", "docs"]
+  }
+}

@@ -1,0 +1,477 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Studio "Import an API": OpenAPI 3.x / Swagger 2.0 / GraphQL → a reviewed set of tools.
+Design: docs/architecture/API Import.md
+-->
+{% block title %}Import an API - MCP Studio - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section { margin-bottom: 18px; overflow: hidden; }
+    .section-header { padding: 12px 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+    .section-body { padding: 16px 18px; }
+    .creator-header { padding: 22px; margin-bottom: 18px; }
+    .ai-ops { font-size: .86rem; }
+    .ai-ops td, .ai-ops th { vertical-align: middle; }
+    .ai-ops input.ai-name { min-width: 220px; font-family: var(--font-mono, monospace); font-size: .82rem; }
+    .ai-method { font-family: var(--font-mono, monospace); font-weight: 700; font-size: .78rem; }
+    .ai-path { font-family: var(--font-mono, monospace); font-size: .8rem; word-break: break-all; }
+    .ai-flag { font-size: .75rem; color: var(--sajha-danger, #b02a37); }
+    .ai-hint { font-size: .7rem; margin-right: 3px; }
+    .ai-pre { background: var(--sajha-nav-to); color: var(--sajha-on-nav); border-radius: 10px; padding: 12px;
+              font-size: .8rem; max-height: 360px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+    .ai-auth-row { border: 1px solid var(--sajha-border); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+    .ai-status-new { background: var(--sajha-ok, #198754) !important; color: #fff !important; }
+    .ai-status-changed { background: var(--sajha-warn, #b8860b) !important; color: #fff !important; }
+    .ai-status-unchanged { background: var(--sajha-border) !important; color: var(--sajha-ink) !important; }
+    .ai-status-removed { background: var(--sajha-danger, #b02a37) !important; color: #fff !important; }
+    #aiMessage:empty { display: none; }
+</style>
+{% include 'admin/studio/_studio_theme.html' %}
+{% endblock %}
+
+{% block content %}
+{% include "admin/studio/_studio_nav.html" %}
+<div class="container-fluid py-3">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('studio_home') }}">MCP Studio</a></li>
+            <li class="breadcrumb-item active">Import an API</li>
+        </ol>
+    </nav>
+
+    <div class="creator-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h3><i class="bi bi-filetype-json me-2"></i>Import an API</h3>
+                <p class="subtitle mb-0">Point SAJHA at an OpenAPI 3.x or Swagger 2.0 description, or a GraphQL
+                    endpoint, review the operations it describes, and deploy the ones you choose as tools.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ guide_url('API Import.md') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-question-circle me-1"></i>Design</a>
+                <a href="{{ guide_url('TUTORIAL_19_import_an_openapi_spec.md') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-mortarboard me-1"></i>Tutorial</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="aiMessage" class="alert" role="status"></div>
+
+    <div class="row">
+        <div class="col-xl-8">
+            <!-- 1. Source -->
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-box-arrow-in-down"></i>1. Source</div>
+                <div class="section-body">
+                    <div class="d-flex gap-3 mb-3">
+                        <label class="form-check"><input class="form-check-input" type="radio" name="aiKind" value="openapi" checked> OpenAPI 3.x / Swagger 2.0</label>
+                        <label class="form-check"><input class="form-check-input" type="radio" name="aiKind" value="graphql"> GraphQL</label>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold" for="aiUrl" id="aiUrlLabel">Spec URL</label>
+                            <input type="url" id="aiUrl" class="form-control" placeholder="https://example.com/openapi.json">
+                            <div class="form-text">Fetched by the server through the SSRF guard{% if allow_localhost %} (localhost allowed){% endif %}{% if allow_private %} (private networks allowed){% endif %}.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold" for="aiPrefix">Prefix (API id)</label>
+                            <input type="text" id="aiPrefix" class="form-control" placeholder="from the title" pattern="[a-z][a-z0-9_]{1,30}">
+                            <div class="form-text">Tool names start with it.</div>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <label class="form-label fw-bold" for="aiFile">…or upload / paste</label>
+                        <input type="file" id="aiFile" class="form-control form-control-sm mb-2" accept=".json,.yaml,.yml">
+                        <textarea id="aiText" class="form-control font-monospace" rows="4" placeholder="Paste a JSON or YAML spec, or a GraphQL introspection result (JSON)"></textarea>
+                    </div>
+                    <div class="mt-3 d-flex gap-2">
+                        <button class="btn btn-primary" id="aiParse"><i class="bi bi-search me-1"></i>Read the API</button>
+                        <button class="btn btn-outline-secondary" id="aiClear">Clear</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="aiPlan" class="d-none">
+                <!-- 2. API, server -->
+                <div class="form-section">
+                    <div class="section-header"><i class="bi bi-hdd-network"></i>2. API and base URL</div>
+                    <div class="section-body">
+                        <div id="aiApiInfo" class="mb-2"></div>
+                        <div id="aiWarnings"></div>
+                        <div class="row g-2">
+                            <div class="col-md-6" id="aiServerWrap">
+                                <label class="form-label fw-bold" for="aiServer">Server</label>
+                                <select id="aiServer" class="form-select form-select-sm"></select>
+                                <div id="aiServerVars" class="mt-2"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold" for="aiBaseUrl">Base URL override</label>
+                                <input type="url" id="aiBaseUrl" class="form-control form-control-sm" placeholder="https://api.example.com/v1">
+                                <div class="form-text">Effective: <code id="aiEffective"></code></div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold" for="aiTimeout">Timeout (s)</label>
+                                <input type="number" min="1" id="aiTimeout" class="form-control form-control-sm" placeholder="default">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold" for="aiRate">Calls / minute</label>
+                                <input type="number" min="0" id="aiRate" class="form-control form-control-sm" placeholder="no limit">
+                            </div>
+                            <div class="col-md-3 ai-gql-only d-none">
+                                <label class="form-label fw-bold" for="aiDepth">Selection depth</label>
+                                <input type="number" min="1" max="5" id="aiDepth" class="form-control form-control-sm" placeholder="2">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Authentication -->
+                <div class="form-section">
+                    <div class="section-header"><i class="bi bi-key"></i>3. Authentication</div>
+                    <div class="section-body">
+                        <p class="small text-muted mb-2">Secrets are <strong>references</strong>, never values:
+                            <code>env:NAME</code>, <code>file:/path</code> or <code>db:llm_providers/&lt;type&gt;</code>.
+                            {% if connected_accounts %}Per-user OAuth can use the caller's connected account.{% else %}Per-user OAuth needs the connected-accounts feature, which is not installed; use a static credential.{% endif %}</p>
+                        <div id="aiAuth"></div>
+                        <button class="btn btn-sm btn-outline-secondary" id="aiAddAuth"><i class="bi bi-plus"></i> Add a credential applied to every operation</button>
+                    </div>
+                </div>
+
+                <!-- 4. Operations -->
+                <div class="form-section">
+                    <div class="section-header"><i class="bi bi-list-check"></i>4. Operations</div>
+                    <div class="section-body">
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-4"><input id="aiFilterPath" class="form-control form-control-sm" placeholder="path contains, or glob /pets/*"></div>
+                            <div class="col-md-4"><select id="aiFilterTags" class="form-select form-select-sm" multiple size="2" aria-label="Tags"></select></div>
+                            <div class="col-md-4 small" id="aiFilterMethods"></div>
+                            <div class="col-12 d-flex gap-2 align-items-center">
+                                <label class="form-check small mb-0"><input type="checkbox" class="form-check-input" id="aiHideDeprecated"> hide deprecated</label>
+                                <button class="btn btn-sm btn-outline-primary" id="aiApplyFilter">Apply filter</button>
+                                <button class="btn btn-sm btn-outline-secondary" id="aiAll">Select all</button>
+                                <button class="btn btn-sm btn-outline-secondary" id="aiNone">Select none</button>
+                                <span class="small text-muted ms-auto" id="aiCounts"></span>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm ai-ops">
+                                <thead><tr><th></th><th>Status</th><th>Operation</th><th>Tool name</th><th>Hints</th></tr></thead>
+                                <tbody id="aiOps"></tbody>
+                            </table>
+                        </div>
+                        <div id="aiRemovedWrap" class="d-none">
+                            <h6 class="mt-2">Gone from the spec</h6>
+                            <div id="aiRemoved"></div>
+                        </div>
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-success" id="aiDeploy"><i class="bi bi-rocket-takeoff me-1"></i>Deploy selected</button>
+                        </div>
+                        <div id="aiDeployResult" class="mt-2"></div>
+                    </div>
+                </div>
+
+                <!-- 5. Test -->
+                <div class="form-section">
+                    <div class="section-header"><i class="bi bi-play-circle"></i>5. Test-call an operation</div>
+                    <div class="section-body">
+                        <select id="aiTestOp" class="form-select form-select-sm mb-2" aria-label="Operation to test"></select>
+                        <textarea id="aiTestArgs" class="form-control font-monospace mb-2" rows="4" aria-label="Arguments (JSON)">{}</textarea>
+                        <button class="btn btn-outline-primary btn-sm" id="aiTest"><i class="bi bi-play me-1"></i>Call once (not deployed)</button>
+                        <pre id="aiTestResult" class="ai-pre mt-2 d-none"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-collection"></i>Imported APIs</div>
+                <div class="section-body" id="aiApis"><span class="text-muted small">Loading…</span></div>
+            </div>
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-info-circle"></i>How it works</div>
+                <div class="section-body small">
+                    <p>Each selected operation becomes one tool with a JSON config and the shared executor; no code is
+                        generated. Arguments are validated against the generated input schema; GET is marked read-only,
+                        DELETE/PUT/PATCH destructive.</p>
+                    <p class="mb-0">At most <strong>{{ max_tools }}</strong> tools per API (<code>api_import.max_tools</code>).
+                        Importing again under the same prefix shows what changed.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const BASE = '/admin/studio/api-import', READ = '/api/studio/api-import';
+    const CONNECTED = {{ 'true' if connected_accounts else 'false' }};
+    const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
+    let plan = null, uploadedOrigin = false;
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+    const kind = () => document.querySelector('input[name=aiKind]:checked').value;
+
+    function message(text, level) {
+        const m = $('aiMessage');
+        m.className = 'alert alert-' + (level || 'info');
+        m.textContent = text || '';
+    }
+
+    async function post(path, body) {
+        const r = await fetch(BASE + path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+        let data = {};
+        try { data = await r.json(); } catch (e) { data = {success: false, error: 'HTTP ' + r.status}; }
+        return data;
+    }
+
+    // ── request ─────────────────────────────────────────────────
+    function authRows() {
+        const out = {};
+        document.querySelectorAll('.ai-auth-row').forEach(row => {
+            const name = row.querySelector('[data-f=scheme]').value.trim();
+            const type = row.querySelector('[data-f=type]').value;
+            if (!name || !type || type === 'none') return;
+            const cfg = {type};
+            row.querySelectorAll('[data-k]').forEach(i => { if (i.closest('.ai-fields-' + type) && i.value.trim()) cfg[i.dataset.k] = i.value.trim(); });
+            out[name] = cfg;
+        });
+        return out;
+    }
+
+    function request(extra) {
+        const vars = {};
+        document.querySelectorAll('[data-var]').forEach(i => vars[i.dataset.var] = i.value);
+        const methods = [...document.querySelectorAll('.ai-method-filter:checked')].map(i => i.value);
+        const tags = [...$('aiFilterTags').selectedOptions].map(o => o.value);
+        const names = {};
+        document.querySelectorAll('input.ai-name').forEach(i => { if (i.value.trim() && i.value.trim() !== i.dataset.orig) names[i.dataset.key] = i.value.trim(); });
+        return Object.assign({
+            kind: kind(), url: $('aiUrl').value.trim(), text: $('aiText').value, prefix: $('aiPrefix').value.trim(),
+            server_index: parseInt($('aiServer').value || '0', 10) || 0, server_variables: vars,
+            base_url: $('aiBaseUrl').value.trim(), auth: authRows(),
+            filters: {path: $('aiFilterPath').value.trim(), tags, methods, hide_deprecated: $('aiHideDeprecated').checked},
+            timeout_seconds: parseInt($('aiTimeout').value || '0', 10) || 0,
+            rate_limit_per_minute: parseInt($('aiRate').value || '0', 10) || 0,
+            graphql_depth: parseInt($('aiDepth').value || '0', 10) || 0, names
+        }, extra || {});
+    }
+
+    // ── auth rows ───────────────────────────────────────────────
+    const FIELDS = {
+        apiKey: [['in', 'header | query | cookie'], ['name', 'header / parameter name'], ['value_ref', 'env:API_KEY']],
+        bearer: [['token_ref', 'env:API_TOKEN']],
+        basic: [['username', 'user name'], ['password_ref', 'env:API_PASSWORD']],
+        oauth2_client_credentials: [['token_url', 'https://…/oauth/token'], ['client_id', 'client id'], ['client_secret_ref', 'env:CLIENT_SECRET'], ['scopes', 'space separated']],
+        connected_account: [['provider', 'provider id'], ['scopes', 'space separated']],
+    };
+    function addAuthRow(name, scheme, preset, custom) {
+        const row = document.createElement('div');
+        row.className = 'ai-auth-row';
+        const types = ['none', 'apiKey', 'bearer', 'basic', 'oauth2_client_credentials'].concat(CONNECTED ? ['connected_account'] : []);
+        let html = '<div class="row g-2 align-items-end"><div class="col-md-4"><label class="form-label small mb-0">Scheme</label>' +
+            '<input class="form-control form-control-sm" data-f="scheme" value="' + esc(name) + '"' + (custom ? '' : ' readonly') + '></div>' +
+            '<div class="col-md-4"><label class="form-label small mb-0">Credential type</label><select class="form-select form-select-sm" data-f="type">' +
+            types.map(t => '<option value="' + t + '"' + (t === preset.type ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></div>' +
+            '<div class="col-md-4 small text-muted">' + esc(scheme ? describeScheme(scheme) : 'applied to every operation') + '</div></div>';
+        Object.keys(FIELDS).forEach(t => {
+            html += '<div class="row g-2 mt-1 ai-fields-' + t + (t === preset.type ? '' : ' d-none') + '">';
+            FIELDS[t].forEach(([k, ph]) => {
+                html += '<div class="col-md-3"><input class="form-control form-control-sm" data-k="' + k + '" placeholder="' + esc(ph) + '" value="' + esc(preset[k] || '') + '" aria-label="' + k + '"></div>';
+            });
+            html += '</div>';
+        });
+        row.innerHTML = html;
+        row.querySelector('[data-f=type]').addEventListener('change', e => {
+            Object.keys(FIELDS).forEach(t => row.querySelector('.ai-fields-' + t).classList.toggle('d-none', t !== e.target.value));
+        });
+        $('aiAuth').appendChild(row);
+    }
+    function describeScheme(s) {
+        if (s.type === 'apiKey') return 'API key in ' + s.in + ' "' + s.name + '"';
+        if (s.type === 'http') return 'HTTP ' + s.scheme;
+        if (s.type === 'oauth2') return 'OAuth 2.0 (' + (s.flows || []).join(', ') + ')';
+        return s.type || '';
+    }
+    function presetFor(s, saved) {
+        if (saved) return Object.assign({}, saved, {scopes: Array.isArray(saved.scopes) ? saved.scopes.join(' ') : (saved.scopes || '')});
+        if (s.type === 'apiKey') return {type: 'apiKey', in: s.in, name: s.name};
+        if (s.type === 'http' && s.scheme === 'basic') return {type: 'basic'};
+        if (s.type === 'http') return {type: 'bearer'};
+        if (s.type === 'oauth2' && s.token_url) return {type: 'oauth2_client_credentials', token_url: s.token_url, scopes: (s.scopes || []).join(' ')};
+        if (s.type === 'oauth2' && CONNECTED) return {type: 'connected_account', scopes: (s.scopes || []).join(' ')};
+        return {type: 'none'};
+    }
+
+    // ── render the plan ─────────────────────────────────────────
+    function render(data, savedAuth) {
+        plan = data;
+        $('aiPlan').classList.remove('d-none');
+        const api = data.api;
+        $('aiPrefix').value = api.prefix;
+        $('aiApiInfo').innerHTML = '<strong>' + esc(api.title) + '</strong> ' + esc(api.version) +
+            ' <span class="badge bg-secondary">' + esc(api.spec_version) + '</span>' +
+            (data.reimport ? ' <span class="badge ai-status-changed">re-import of ' + esc(api.prefix) + '</span>' : '') +
+            (api.description ? '<div class="small text-muted mt-1">' + esc(api.description.slice(0, 400)) + '</div>' : '');
+        $('aiWarnings').innerHTML = (data.warnings || []).map(w => '<div class="alert alert-warning py-1 small mb-2">' + esc(w) + '</div>').join('');
+        $('aiEffective').textContent = api.base_url || '(none)';
+        document.querySelectorAll('.ai-gql-only').forEach(e => e.classList.toggle('d-none', api.kind !== 'graphql'));
+        $('aiServerWrap').classList.toggle('d-none', !(api.servers || []).length);
+        const prevServer = $('aiServer').value;
+        $('aiServer').innerHTML = (api.servers || []).map((s, i) => '<option value="' + i + '">' + esc(s.url) + (s.description ? ' — ' + esc(s.description) : '') + '</option>').join('');
+        if (prevServer && prevServer < (api.servers || []).length) $('aiServer').value = prevServer;
+        renderVars();
+        if (savedAuth !== undefined || !$('aiAuth').children.length || $('aiAuth').dataset.prefix !== api.prefix) {
+            const keep = savedAuth !== undefined ? savedAuth : authRows();
+            $('aiAuth').innerHTML = '';
+            $('aiAuth').dataset.prefix = api.prefix;
+            Object.entries(api.security_schemes || {}).forEach(([n, s]) => addAuthRow(n, s, presetFor(s, keep[n]), false));
+            Object.entries(keep).forEach(([n, cfg]) => { if (!(api.security_schemes || {})[n]) addAuthRow(n, null, presetFor({}, cfg), true); });
+        }
+        // filters
+        const selectedTags = new Set([...$('aiFilterTags').selectedOptions].map(o => o.value));
+        $('aiFilterTags').innerHTML = (api.tags || []).map(t => '<option' + (selectedTags.has(t) ? ' selected' : '') + '>' + esc(t) + '</option>').join('');
+        if (!$('aiFilterMethods').children.length) {
+            $('aiFilterMethods').innerHTML = METHODS.map(m => '<label class="me-2"><input type="checkbox" class="form-check-input ai-method-filter" value="' + m + '"> ' + m + '</label>').join('');
+        }
+        // operations
+        $('aiOps').innerHTML = data.operations.map((o, i) => {
+            const a = o.annotations || {};
+            const hints = (a.readOnlyHint ? '<span class="badge bg-info ai-hint">read-only</span>' : '') +
+                (a.destructiveHint ? '<span class="badge bg-danger ai-hint">destructive</span>' : '') +
+                (a.idempotentHint ? '<span class="badge bg-secondary ai-hint">idempotent</span>' : '') +
+                (o.deprecated ? '<span class="badge bg-warning text-dark ai-hint">deprecated</span>' : '') +
+                (o.pagination.length ? '<span class="badge bg-light text-dark ai-hint">paged</span>' : '');
+            const flags = (o.unsupported ? '<div class="ai-flag">' + esc(o.unsupported) + '</div>' : '') +
+                (o.conflict ? '<div class="ai-flag">name used by ' + esc(o.conflict) + '; rename it</div>' : '') +
+                (o.flagged ? '<div class="ai-flag">description screened</div>' : '');
+            return '<tr><td><input type="checkbox" class="form-check-input ai-sel" data-key="' + esc(o.key) + '"' +
+                (o.selected ? ' checked' : '') + (o.unsupported ? ' disabled' : '') + ' aria-label="select ' + esc(o.key) + '"></td>' +
+                '<td><span class="badge ai-status-' + o.status + '">' + o.status + '</span></td>' +
+                '<td><span class="ai-method">' + esc(o.method) + '</span> <span class="ai-path">' + esc(o.path || o.operation_id) + '</span>' +
+                '<div class="small text-muted">' + esc(o.summary) + '</div>' + flags + '</td>' +
+                '<td><input class="form-control form-control-sm ai-name" data-key="' + esc(o.key) + '" data-orig="' + esc(o.name) + '" value="' + esc(o.name) + '" aria-label="tool name"></td>' +
+                '<td>' + hints + '</td></tr>';
+        }).join('');
+        $('aiCounts').textContent = data.counts.shown + ' of ' + data.counts.total + ' operations shown; at most ' + data.max_tools + ' tools';
+        $('aiRemovedWrap').classList.toggle('d-none', !(data.removed || []).length);
+        $('aiRemoved').innerHTML = (data.removed || []).map(r => '<label class="d-block small"><input type="checkbox" class="form-check-input ai-rm" data-key="' + esc(r.key) + '"> remove <code>' + esc(r.name) + '</code> (' + esc(r.key) + ')</label>').join('');
+        $('aiTestOp').innerHTML = data.operations.filter(o => !o.unsupported).map(o => '<option value="' + esc(o.key) + '">' + esc(o.key) + '</option>').join('');
+        skeleton();
+    }
+
+    function renderVars() {
+        const api = plan && plan.api;
+        const s = api && (api.servers || [])[parseInt($('aiServer').value || '0', 10)];
+        const current = {};
+        document.querySelectorAll('[data-var]').forEach(i => current[i.dataset.var] = i.value);
+        $('aiServerVars').innerHTML = s ? Object.entries(s.variables || {}).map(([k, v]) => {
+            const val = current[k] !== undefined ? current[k] : v.default;
+            const input = v.enum && v.enum.length
+                ? '<select class="form-select form-select-sm" data-var="' + esc(k) + '">' + v.enum.map(e => '<option' + (e === val ? ' selected' : '') + '>' + esc(e) + '</option>').join('') + '</select>'
+                : '<input class="form-control form-control-sm" data-var="' + esc(k) + '" value="' + esc(val) + '">';
+            return '<label class="form-label small mb-0">{' + esc(k) + '}</label>' + input;
+        }).join('') : '';
+    }
+
+    function skeleton() {
+        const key = $('aiTestOp').value;
+        const op = plan && plan.operations.find(o => o.key === key);
+        if (!op) return;
+        const schema = op.input_schema || {};
+        const args = {};
+        (schema.required || []).forEach(k => {
+            const p = (schema.properties || {})[k] || {};
+            args[k] = p.type === 'integer' || p.type === 'number' ? 1 : p.type === 'object' ? {} : p.type === 'array' ? [] : p.type === 'boolean' ? false : '';
+        });
+        $('aiTestArgs').value = JSON.stringify(args, null, 2);
+    }
+
+    // ── actions ─────────────────────────────────────────────────
+    async function parse(savedAuth) {
+        message('Reading the API…', 'info');
+        const data = await post('/parse', request());
+        if (!data.success) { message(data.error || 'Could not read the API', 'danger'); return; }
+        message('');
+        render(data, savedAuth);
+    }
+
+    async function loadApis() {
+        const r = await fetch(READ + '/apis');
+        const data = await r.json().catch(() => ({}));
+        const apis = data.apis || [];
+        $('aiApis').innerHTML = apis.length ? apis.map(a => '<div class="mb-2 pb-2 border-bottom"><strong>' + esc(a.api_id) + '</strong> ' +
+            '<span class="badge bg-secondary">' + esc(a.kind) + '</span> <span class="small text-muted">' + esc(a.title) + ' ' + esc(a.version) + '</span>' +
+            '<div class="small">' + a.tools.length + ' tool(s), ' + a.loaded + ' loaded · <code>' + esc(a.server_url) + '</code></div>' +
+            '<div class="mt-1 d-flex gap-1"><button class="btn btn-sm btn-outline-primary" data-reimport="' + esc(a.api_id) + '">Re-import</button>' +
+            '<button class="btn btn-sm btn-outline-danger" data-delete="' + esc(a.api_id) + '">Delete</button></div></div>').join('')
+            : '<span class="text-muted small">Nothing imported yet.</span>';
+    }
+
+    $('aiApis').addEventListener('click', async (e) => {
+        const re = e.target.closest('[data-reimport]'), del = e.target.closest('[data-delete]');
+        if (re) {
+            const data = await (await fetch(READ + '/apis/' + encodeURIComponent(re.dataset.reimport))).json();
+            if (!data.success) { message(data.error, 'danger'); return; }
+            const q = data.request;
+            document.querySelector('input[name=aiKind][value=' + q.kind + ']').checked = true;
+            $('aiUrl').value = q.url || ''; $('aiPrefix').value = q.prefix; $('aiBaseUrl').value = q.base_url || '';
+            $('aiTimeout').value = q.timeout_seconds || ''; $('aiRate').value = q.rate_limit_per_minute || '';
+            $('aiDepth').value = q.graphql_depth || ''; $('aiFilterPath').value = (q.filters || {}).path || '';
+            if (q.uploaded) { $('aiText').value = ''; message('This API was uploaded: upload or paste the new version, then press Read the API.', 'warning'); $('aiAuth').innerHTML = ''; return; }
+            $('aiText').value = '';
+            await parse(q.auth || {});
+        }
+        if (del && confirm('Delete ' + del.dataset.delete + ' and all its tools?')) {
+            const data = await post('/delete', {api_id: del.dataset.delete});
+            message(data.success ? data.message : data.error, data.success ? 'success' : 'danger');
+            loadApis();
+        }
+    });
+
+    $('aiParse').addEventListener('click', () => parse());
+    $('aiApplyFilter').addEventListener('click', () => parse());
+    $('aiServer').addEventListener('change', () => { renderVars(); parse(); });
+    $('aiAddAuth').addEventListener('click', () => addAuthRow('custom' + ($('aiAuth').children.length + 1), null, {type: 'apiKey', in: 'header', name: 'X-API-Key'}, true));
+    $('aiAll').addEventListener('click', () => document.querySelectorAll('.ai-sel:not(:disabled)').forEach(c => c.checked = true));
+    $('aiNone').addEventListener('click', () => document.querySelectorAll('.ai-sel').forEach(c => c.checked = false));
+    $('aiTestOp').addEventListener('change', skeleton);
+    $('aiClear').addEventListener('click', () => { $('aiText').value = ''; $('aiFile').value = ''; $('aiUrl').value = ''; $('aiPrefix').value = ''; $('aiPlan').classList.add('d-none'); $('aiAuth').innerHTML = ''; message(''); });
+    document.querySelectorAll('input[name=aiKind]').forEach(r => r.addEventListener('change', () => {
+        $('aiUrlLabel').textContent = kind() === 'graphql' ? 'GraphQL endpoint' : 'Spec URL';
+    }));
+    $('aiFile').addEventListener('change', async (e) => {
+        const f = e.target.files[0];
+        if (f) { $('aiText').value = await f.text(); uploadedOrigin = true; }
+    });
+
+    $('aiTest').addEventListener('click', async () => {
+        let args;
+        try { args = JSON.parse($('aiTestArgs').value || '{}'); } catch (e) { message('Arguments must be JSON', 'danger'); return; }
+        const data = await post('/test', request({operation: $('aiTestOp').value, arguments: args}));
+        const out = $('aiTestResult');
+        out.classList.remove('d-none');
+        out.textContent = data.success ? JSON.stringify(data.result, null, 2) : ('Error: ' + (data.error || 'failed'));
+    });
+
+    $('aiDeploy').addEventListener('click', async () => {
+        const selected = [...document.querySelectorAll('.ai-sel:checked')].map(c => c.dataset.key);
+        const remove = [...document.querySelectorAll('.ai-rm:checked')].map(c => c.dataset.key);
+        if (!selected.length && !remove.length) { message('Select at least one operation', 'warning'); return; }
+        const data = await post('/deploy', request({selected, remove}));
+        const box = $('aiDeployResult');
+        if (data.error) { box.innerHTML = '<div class="alert alert-danger py-2">' + esc(data.error) + '</div>'; return; }
+        box.innerHTML = '<div class="alert alert-' + (data.success ? 'success' : 'warning') + ' py-2">' + esc(data.message) +
+            ((data.failed || []).length ? '<ul class="mb-0">' + data.failed.map(f => '<li>' + esc(f.name) + ': ' + esc(f.error) + '</li>').join('') + '</ul>' : '') +
+            ([].concat(data.deployed || [], data.updated || []).length ? '<div class="small mt-1">Tools: ' + [].concat(data.deployed || [], data.updated || []).map(n => '<a href="/tools/' + encodeURIComponent(n) + '/execute">' + esc(n) + '</a>').join(', ') + '</div>' : '') + '</div>';
+        loadApis();
+        parse();
+    });
+
+    loadApis();
+})();
+</script>
+{% endblock %}

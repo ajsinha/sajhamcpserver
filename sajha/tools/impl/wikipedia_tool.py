@@ -94,7 +94,7 @@ class WikiSearchTool(WikipediaBaseTool):
                 "language": {
                     "type": "string",
                     "description": "Wikipedia language edition (e.g., 'en', 'es', 'fr')",
-                    "pattern": "^[a-z]{2,3}$",
+                    "pattern": "^[a-z][a-z-]{1,15}$",
                     "default": "en"
                 }
             },
@@ -215,7 +215,7 @@ class WikiGetPageTool(WikipediaBaseTool):
                 "language": {
                     "type": "string",
                     "description": "Wikipedia language edition",
-                    "pattern": "^[a-z]{2,3}$",
+                    "pattern": "^[a-z][a-z-]{1,15}$",
                     "default": "en"
                 },
                 "redirect": {
@@ -417,7 +417,7 @@ class WikiGetSummaryTool(WikipediaBaseTool):
                 "language": {
                     "type": "string",
                     "description": "Wikipedia language edition",
-                    "pattern": "^[a-z]{2,3}$",
+                    "pattern": "^[a-z][a-z-]{1,15}$",
                     "default": "en"
                 },
                 "sentences": {

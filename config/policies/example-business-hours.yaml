@@ -1,0 +1,28 @@
+# Example policy (disabled): API keys may run write tools only on weekdays in office hours,
+# and large payments need an administrator's approval. Rule language:
+# docs/architecture/Policy and Audit.md, section 3.
+name: example-business-hours
+description: Office-hours window for API keys; admin approval for large payments.
+enabled: false
+rules:
+  - id: keys-office-hours-only
+    match:
+      callers: {auth_types: [apikey]}
+      annotations: {readOnlyHint: false}
+      time: {days: [sat, sun]}
+    effect: deny
+    reason: API keys may run write tools on weekdays only.
+
+  - id: approve-large-payments
+    match:
+      tools: ["payments_*"]
+      arguments: {amount: {gt: 10000}}
+    effect: require_approval
+    reason: Payments over 10,000 need an administrator's approval
+    approval: {approver: admin, ttl: 8h}
+
+  - id: payment-shape
+    match: {tools: ["payments_*"]}
+    constraints:
+      currency: {enum: [USD, EUR, GBP]}
+      amount: {type: number, min: 0, max: 50000}

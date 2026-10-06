@@ -330,6 +330,13 @@ class PlannerModel(_MockChat):
     """Keyword planner. Plans only from the user's question, never from tool output."""
 
     def _reply(self, request: ChatRequest):
+        props = ((request.response_schema or {}).get("properties") or {})
+        if "steps" in props:                       # a plan_execute planning call (sajha/ai/planners.py)
+            return self._plan_steps(request), [], "stop"
+        if "standalone_question" in props:         # conversation memory: rewrite a follow-up
+            return json.dumps({"standalone_question": self._standalone(request)}), [], "stop"
+        if "summary" in props and "answer" not in props:   # conversation memory: summarise older turns
+            return json.dumps({"summary": self._summary(request)}), [], "stop"
         question = _last_user_text(request)
         made_calls, results = self._conversation_state(request)
         if made_calls:
@@ -339,6 +346,61 @@ class PlannerModel(_MockChat):
             if calls:
                 return "", calls, "tool_calls"
         return self._answer(request, question, [], {})
+
+    def _plan_steps(self, request: ChatRequest) -> str:
+        """A plan from the question's keywords: the tools ``_plan`` would call, as independent steps.
+        A re-plan (tool results after the question) plans nothing more."""
+        if not request.tools or any(m.tool_results for m in request.messages):
+            return json.dumps({"steps": []})       # a re-plan: results are in; plan nothing more
+        question = _last_user_text(request)
+        steps = [{"id": f"s{i + 1}", "tool": c.name, "arguments": json.dumps(c.arguments), "depends_on": [],
+                  "why": f"{c.name.replace('_', ' ')} for the question"}
+                 for i, c in enumerate(self._plan(question, request.tools, "auto"))]
+        return json.dumps({"steps": steps})
+
+    @staticmethod
+    def _standalone(request: ChatRequest) -> str:
+        """Deterministic follow-up rewrite: a message with no topic of its own ("and from 100 to 150?")
+        takes the previous question's wording with the new numbers and symbols put in."""
+        users = [m.text for m in request.messages if m.role == "user" and m.text]
+        if not users:
+            return ""
+        current = users[-1]
+        previous = users[-2] if len(users) > 1 else ""
+        own = [w for w in keywords(current) if w not in {"and", "now", "then", "also", "what", "about", "again"}]
+        if not previous or len(own) >= 2:
+            return current
+        new_nums = [m.group(0) for m in _NUMBER.finditer(current)]
+        new_syms = extract_symbols(current)
+        out = previous
+        if new_nums:
+            olds = list(_NUMBER.finditer(previous))
+            pieces, last = [], 0
+            for i, m in enumerate(olds):
+                pieces.append(previous[last:m.start()])
+                pieces.append(new_nums[i] if i < len(new_nums) else m.group(0))
+                last = m.end()
+            pieces.append(previous[last:])
+            out = "".join(pieces)
+        if new_syms:
+            for old_sym, new_sym in zip(extract_symbols(previous), new_syms):
+                out = re.sub(r"\b" + re.escape(old_sym) + r"\b", new_sym, out)
+        return out if (new_nums or new_syms) else current
+
+    @staticmethod
+    def _summary(request: ChatRequest) -> str:
+        """An extractive summary: each 'User:' line, and the first sentence of each answer."""
+        text = _last_user_text(request)
+        out = []
+        for line in text.splitlines():
+            if line.startswith("Summary so far:"):
+                out.append(line[len("Summary so far:"):].strip())
+            elif line.startswith("User:"):
+                out.append("Asked: " + line[5:].strip())
+            elif line.startswith("SAJHA:"):
+                first = re.split(r"(?<=[.!?])\s", line[6:].strip(), maxsplit=1)[0]
+                out.append("Answered: " + _short(first, 200))
+        return " ".join(out)
 
     @staticmethod
     def _conversation_state(request):
@@ -424,6 +486,13 @@ def summarize_result(call: ToolCallPart, content: Any) -> str:
             return f"{call.name} returned: {_short(content, 300)}."
     if isinstance(data, dict) and isinstance(data.get("result"), dict) and len(data) <= 2:
         data = data["result"]
+    if isinstance(data, dict) and isinstance(data.get("results"), list):     # a search: quote the best passage
+        hits = [r for r in data["results"] if isinstance(r, dict) and r.get("text")]
+        if hits:
+            top = hits[0]
+            where = " — ".join(x for x in (str(top.get("title") or ""), str(top.get("section") or "")) if x)
+            body = re.sub(r"\s+", " ", str(top["text"])).strip()
+            return f"{where + ': ' if where else ''}{_short(body, 400)} (from {call.name}, {len(hits)} passage(s))."
     if isinstance(data, dict):
         outputs = []
         for k, v in data.items():

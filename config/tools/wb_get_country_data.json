@@ -10,7 +10,7 @@
       "country_code": {
         "type": "string",
         "description": "ISO2 or ISO3 country code (e.g., 'US', 'USA', 'CN', 'CHN', 'IN', 'IND')",
-        "pattern": "^[A-Z]{2,3}$"
+        "pattern": "^[A-Za-z]{2,3}$"
       },
       "indicator": {
         "type": "string",
