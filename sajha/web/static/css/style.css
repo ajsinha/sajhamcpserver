@@ -1022,3 +1022,113 @@ div.jsoneditor-treepath, div.jsoneditor-treepath * { color: var(--t-muted) !impo
 /* grey outline buttons read in ink, as MAYA's do; the slate border carries the 'secondary' */
 .btn-outline-secondary { color: var(--sajha-ink) !important; border-color: var(--sajha-border) !important; }
 .lp2-sub { color: var(--t-text2) !important; }
+
+/* ==== Landing page: the constellation (hero) and the wire (how it works) ====================
+   Drawn by static/js/landing.js. The canvas reads its colours from the --sajha-* tokens with
+   getComputedStyle and reads them again on a theme change; everything here is tokens too.
+   The wire's code window is the .lp2-code window above, so it stays dark in all four themes. */
+.lp2-hero.lp2-hero-sky { display: block; min-height: 0; padding: 3.2rem 1.8rem 2.6rem; }
+.lp2-hero-sky .lp2-hero-inner { margin: 0 auto; }
+.lp2-hero-sky .lp2-title { margin-left: auto; margin-right: auto; }
+.lp2-sky-wrap { max-width: 1180px; margin: 2.2rem auto 0; text-align: left; }
+.lp2-sky { position: relative; border-radius: 20px; overflow: hidden; border: 1px solid var(--sajha-border);
+  background: radial-gradient(1000px 420px at 50% 40%, var(--sajha-surface), var(--sajha-canvas));
+  box-shadow: 0 24px 50px -30px color-mix(in srgb, var(--sajha-nav-to) 55%, transparent); }
+.lp2-sky canvas { display: block; width: 100%; height: clamp(440px, 44vw, 580px); }
+.lp2-sky-prompt { position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+  width: min(640px, calc(100% - 32px)); display: flex; align-items: center; gap: 10px; padding: 11px 16px;
+  border-radius: 14px; border: 1px solid var(--sajha-border);
+  background: color-mix(in srgb, var(--sajha-surface) 92%, transparent);
+  box-shadow: 0 10px 30px -18px color-mix(in srgb, var(--sajha-ink) 45%, transparent); }
+.lp2-sky-who { flex: none; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--sajha-on-nav); background: linear-gradient(135deg, var(--sajha-nav-via), var(--sajha-nav-to));
+  padding: 3px 8px; border-radius: 6px; }
+.lp2-sky-q { font-size: 15.5px; min-height: 1.4em; color: var(--sajha-ink); overflow-wrap: anywhere; }
+.lp2-caret { display: inline-block; width: 2px; height: 1.05em; margin-left: 1px; vertical-align: -2px;
+  background: var(--sajha-crimson); animation: lp2-blink 1s steps(1) infinite; }
+@keyframes lp2-blink { 50% { opacity: 0; } }
+.lp2-sky-ans { position: absolute; right: 18px; bottom: 18px; width: min(380px, calc(100% - 36px));
+  padding: 14px 16px 15px; border-radius: 14px; background: var(--sajha-surface); border: 1px solid var(--sajha-border);
+  box-shadow: 0 18px 40px -20px color-mix(in srgb, var(--sajha-ink) 50%, transparent);
+  transition: opacity .5s, transform .5s; }
+.lp2-sky-ans.is-off { opacity: 0; transform: translateY(10px); }
+.lp2-sky.is-ans-left .lp2-sky-ans { right: auto; left: 18px; }
+.lp2-sky.is-ans-left .lp2-sky-stats { left: auto; right: 18px; }
+.lp2-sky-ans-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;
+  font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--t-muted); }
+.lp2-sky-conf { font: 700 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0;
+  text-transform: none; color: var(--sajha-ok); background: color-mix(in srgb, var(--sajha-ok) 12%, transparent);
+  border-radius: 999px; padding: 2px 9px; font-variant-numeric: tabular-nums; }
+.lp2-sky-ans p { margin: 0; font-size: 14px; color: var(--sajha-ink); }
+.lp2-sky-chain { margin-top: 8px; font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--t-muted); overflow-wrap: anywhere; }
+.lp2-sky-stats { position: absolute; left: 18px; bottom: 18px; padding: 4px 9px; border-radius: 8px;
+  font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--t-muted);
+  background: color-mix(in srgb, var(--sajha-surface) 85%, transparent); }
+.lp2-sky-cap { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: .8rem;
+  font-size: 13px; color: var(--t-muted); }
+.lp2-sky-btn { font-size: 13px; font-weight: 600; color: var(--sajha-ink); background: var(--sajha-surface);
+  border: 1px solid var(--sajha-border); border-radius: 9px; padding: 5px 11px; }
+.lp2-sky-btn:hover { border-color: var(--sajha-crimson); }
+.lp2-sky-btn:focus-visible { outline: 2px solid var(--sajha-crimson); outline-offset: 2px; }
+.lp2-sky-note { flex-basis: 100%; }
+@media (min-width: 992px) { .lp2-sky-note { flex-basis: auto; margin-left: auto; max-width: 56ch; text-align: right; } }
+@media (max-width: 640px) {
+  .lp2-hero.lp2-hero-sky { padding: 2.6rem 1rem 2rem; }
+  .lp2-sky canvas { height: 400px; }
+  .lp2-sky-q { font-size: 14px; }
+  .lp2-sky-ans { position: static; width: auto; margin: 0 12px 12px; }
+  .lp2-sky-stats { display: none; }
+}
+
+.lp2-wire { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 1.4rem;
+  max-width: 1180px; margin: 0 auto; align-items: stretch; }
+@media (max-width: 991.98px) { .lp2-wire { grid-template-columns: minmax(0, 1fr); } .lp2-wire-side { order: -1; } }
+.lp2-wire-code { display: flex; flex-direction: column; }
+.lp2-wire-code .lp2-code-bar em { opacity: 1; color: color-mix(in srgb, var(--sajha-on-nav) 78%, var(--sajha-nav-to)); }
+.lp2-wire-state { margin-left: auto; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--sajha-on-nav); }
+.lp2-code pre.lp2-wire-log { height: 30rem; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere;
+  font-size: 12.5px; line-height: 1.6; flex: none; }
+.lp2-wire-log:focus-visible { outline: 2px solid var(--sajha-on-nav); outline-offset: -4px; }
+.lp2-wire-msg + .lp2-wire-msg { margin-top: .7rem; }
+.lp2-code .n { color: color-mix(in srgb, var(--sajha-on-nav) 82%, var(--sajha-glow)); }
+.lp2-wire-log .c { opacity: 1; color: color-mix(in srgb, var(--sajha-on-nav) 68%, var(--sajha-nav-to)); }
+.lp2-wire-caret { display: inline-block; width: .55em; height: 1.1em; vertical-align: -2px;
+  background: var(--sajha-on-nav); opacity: .7; }
+.lp2-wire-side { display: flex; flex-direction: column; gap: .8rem; padding: 1.2rem 1.2rem 1rem; border-radius: 14px;
+  background: var(--sajha-surface); border: 1px solid var(--sajha-border); }
+.lp2-wire-svg { display: block; width: 100%; max-width: 260px; max-height: 300px; margin: 0 auto; }
+.lp2-wire-node rect { fill: var(--sajha-canvas); stroke: var(--sajha-border); stroke-width: 1.5; transition: stroke .3s, fill .3s; }
+.lp2-wire-node text { fill: var(--sajha-ink); font: 700 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-anchor: middle; }
+.lp2-wire-node[data-node="tool"] text { font-size: 12.5px; font-weight: 600; }
+.lp2-wire-hub rect { fill: var(--sajha-crimson-tint); }
+.lp2-wire-node.is-on rect { stroke: var(--sajha-crimson); stroke-width: 2.5; }
+.lp2-wire-lane { fill: none; stroke: var(--sajha-border); stroke-width: 2.5; stroke-linecap: round; transition: stroke .3s; }
+.lp2-wire-lane.is-done { stroke: color-mix(in srgb, var(--sajha-crimson) 45%, var(--sajha-border)); }
+.lp2-wire-lane.is-on { stroke: var(--sajha-crimson); stroke-width: 3.5; }
+.lp2-wire-lbl { fill: var(--t-muted); font-size: 11.5px; }
+.lp2-wire-dot { fill: var(--sajha-crimson); stroke: var(--sajha-surface); stroke-width: 2; opacity: 0; }
+.lp2-wire-note { margin: 0; min-height: 2.8em; text-align: center; font-size: 13px; color: var(--sajha-ink); }
+.lp2-wire-acts { margin: 0; padding: 0; list-style: none; display: grid; gap: .45rem; counter-reset: lp2act; }
+.lp2-wire-acts li { position: relative; padding: .5rem .7rem .5rem 2.3rem; border-radius: 10px; font-size: 13px;
+  color: var(--sajha-ink); border: 1px solid transparent; counter-increment: lp2act; }
+.lp2-wire-acts li::before { content: counter(lp2act); position: absolute; left: .7rem; top: .5rem; width: 1.2rem; height: 1.2rem;
+  border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700;
+  color: var(--t-accent-text); background: var(--sajha-crimson-tint); }
+.lp2-wire-acts li.is-on { border-color: var(--sajha-crimson); background: color-mix(in srgb, var(--sajha-crimson-tint) 60%, transparent); }
+.lp2-wire-acts strong { color: var(--sajha-heading); margin-right: .2rem; }
+.lp2-wire-acts code { font-size: 12px; color: var(--t-accent-text); background: none; padding: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .lp2-caret { animation: none; }
+  .lp2-sky-ans, .lp2-wire-node rect, .lp2-wire-lane { transition: none; }
+  .lp2-code pre.lp2-wire-log { height: 34rem; }
+}
+/* The accent and indigo tokens are the nav gradient's middle and end in the three light
+   themes, and stay readable on the dark theme's canvas, where nav-via/nav-to are near black. */
+.lp2-hero-sky .lp2-gradient, .lp2-stats .lp2-num {
+  background-image: linear-gradient(135deg, var(--sajha-crimson), var(--sajha-indigo)); }
+@media (max-width: 991.98px) { .lp2-wire-svg { max-height: 230px; } }
+@media (max-width: 640px) { .lp2-code pre.lp2-wire-log { font-size: 11.5px; height: 26rem; padding: .9rem .8rem !important; } }
+/* ==== end of the landing constellation and wire ========================================= */

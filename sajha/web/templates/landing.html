@@ -2,9 +2,10 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 SAJHA MCP Server — Landing Page
-The front door, in MAYA's landing language (lp2-*): a centred hero over the living mesh, a strip
-of numbers, capability cards, the three transports, a closing call. Colour comes only from the
-tokens, so it is the same page in all four themes.
+The front door, in MAYA's landing language (lp2-*): a centred hero over the constellation (a star
+for every tool in the live registry), a strip of numbers, capability cards, the three transports,
+the 2026-07-28 wire typed live, a closing call. Colour comes only from the tokens, so it is the
+same page in all four themes. The animations live in static/js/landing.js.
 -->
 <html lang="en" data-bs-theme="light">
 <head>
@@ -20,12 +21,6 @@ tokens, so it is the same page in all four themes.
     <style>
         /* Only layout here; every colour is a token from tokens.css. */
         html { scroll-padding-top: 76px; }
-        .lp2-hero { flex-direction: column; min-height: calc(100vh - 64px); }
-        .lp2-title { margin-left: auto; margin-right: auto; }
-        /* the living mesh sits behind the hero copy */
-        #heroNet { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-        @media (prefers-reduced-motion: reduce) { #heroNet { opacity: .55; } }
-        .lp2-hero .lp2-code { position: relative; z-index: 1; margin: 3rem auto 0; max-width: 680px; width: 100%; text-align: left; }
         .lp2-proto { display: inline-block; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px;
             font-weight: 600; color: var(--t-accent-text); background: var(--sajha-crimson-tint);
             padding: .25rem .7rem; border-radius: 6px; margin-bottom: .9rem; }
@@ -51,6 +46,7 @@ tokens, so it is the same page in all four themes.
             <ul class="navbar-nav me-auto nav-public">
                 <li class="nav-item"><a class="nav-link" href="#features"><i class="bi bi-grid" aria-hidden="true"></i> Features</a></li>
                 <li class="nav-item"><a class="nav-link" href="#transports"><i class="bi bi-hdd-network" aria-hidden="true"></i> Transports</a></li>
+                <li class="nav-item"><a class="nav-link" href="#wire"><i class="bi bi-braces" aria-hidden="true"></i> How it works</a></li>
                 <li class="nav-item"><a class="nav-link" href="/help"><i class="bi bi-question-circle" aria-hidden="true"></i> Help</a></li>
                 <li class="nav-item"><a class="nav-link" href="/about"><i class="bi bi-info-circle" aria-hidden="true"></i> About</a></li>
                 <li class="nav-item"><a class="nav-link" href="/docs"><i class="bi bi-book" aria-hidden="true"></i> Docs</a></li>
@@ -65,39 +61,48 @@ tokens, so it is the same page in all four themes.
 
 <main class="container-fluid sajha-content" id="main-content">
 
-<!-- Hero -->
-<section class="lp2-hero">
-    <canvas id="heroNet" aria-hidden="true"></canvas>
+<!-- Hero: the headline over the constellation, a star for every tool the registry serves -->
+<section class="lp2-hero lp2-hero-sky">
     <div class="lp2-hero-inner">
         <div class="lp2-badge"><i class="bi bi-circle-fill" aria-hidden="true"></i> MCP 2026-07-28 + 2025-11-25 · Conformance Verified · Production Ready</div>
         <h1 class="lp2-title">The <span class="lp2-gradient">Intelligence Layer</span><br>for AI Agents</h1>
-        <p class="lp2-sub">497 tools. 6 LLM providers. 3 transports. One protocol.<br>
+        <p class="lp2-sub">{{ tool_count }} tools in {{ group_count }} provider groups. 6 LLM providers. 3 transports. One protocol.<br>
         SAJHA connects every AI agent to financial markets, government data, analytics, and enterprise systems through a single MCP endpoint.</p>
         <div class="lp2-actions">
             <a href="/login" class="lp2-btn lp2-btn-primary"><i class="bi bi-rocket-takeoff" aria-hidden="true"></i> Get Started</a>
             <a href="/docs" class="lp2-btn lp2-btn-outline"><i class="bi bi-book" aria-hidden="true"></i> Documentation</a>
         </div>
     </div>
-    <div class="lp2-code" aria-label="An example of the SAJHA client">
-        <div class="lp2-code-bar"><span></span><span></span><span></span><em>connect.py</em></div>
-<pre><span class="k">from</span> sajhaclient <span class="k">import</span> <span class="f">MCPWebSocketClient</span>, <span class="f">ApiKeyAuth</span>
-
-<span class="k">with</span> <span class="f">MCPWebSocketClient</span>(auth=<span class="f">ApiKeyAuth</span>(<span class="s">"sja_key"</span>)) <span class="k">as</span> ws:
-    ws.<span class="f">initialize</span>()
-    tools = ws.<span class="f">list_tools</span>()  <span class="c"># 497 tools available</span>
-    quote = ws.<span class="f">call_tool</span>(<span class="s">"yahoo_quote"</span>, symbol=<span class="s">"AAPL"</span>)
-    risk  = ws.<span class="f">call_tool</span>(<span class="s">"calc_var"</span>, returns=quote[<span class="s">"history"</span>])</pre>
-    </div>
+    <figure class="lp2-sky-wrap">
+        <div class="lp2-sky" id="lpSky">
+            <canvas id="lpSkyCanvas" aria-hidden="true"></canvas>
+            <div class="lp2-sky-prompt" aria-hidden="true"><span class="lp2-sky-who">Agent</span><span class="lp2-sky-q" id="lpSkyQ"></span></div>
+            <div class="lp2-sky-ans is-off" id="lpSkyAns" aria-hidden="true">
+                <div class="lp2-sky-ans-head"><span>Answer</span><span class="lp2-sky-conf" id="lpSkyConf">confidence 0.00</span></div>
+                <p id="lpSkyAnsText"></p>
+                <div class="lp2-sky-chain" id="lpSkyChain"></div>
+            </div>
+            <div class="lp2-sky-stats" id="lpSkyStats" aria-hidden="true"></div>
+        </div>
+        <figcaption class="lp2-sky-cap">
+            <span class="visually-hidden">Every star is one of SAJHA's tools, clustered by provider group. </span>
+            <span class="visually-hidden" id="lpSkyDesc"></span>
+            <button type="button" class="lp2-sky-btn" id="lpSkyPause" aria-pressed="false"><i class="bi bi-pause-fill" aria-hidden="true"></i> Pause</button>
+            <button type="button" class="lp2-sky-btn" id="lpSkyNext"><i class="bi bi-skip-forward-fill" aria-hidden="true"></i> Next question</button>
+            <span id="lpSkyScene"></span>
+            <span class="lp2-sky-note">Every star is a live tool, grouped by provider. The questions, step results and confidence are illustrative; the tool names are real.</span>
+        </figcaption>
+    </figure>
 </section>
 
 <!-- Stats -->
 <section class="lp2-stats" aria-label="SAJHA in numbers">
-    <div><span class="lp2-num">497</span><span class="lp2-label">Built-in Tools</span></div>
+    <div><span class="lp2-num">{{ tool_count }}</span><span class="lp2-label">Built-in Tools</span></div>
+    <div><span class="lp2-num">{{ group_count }}</span><span class="lp2-label">Provider Groups</span></div>
     <div><span class="lp2-num">6</span><span class="lp2-label">LLM Providers</span></div>
     <div><span class="lp2-num">3</span><span class="lp2-label">Transports</span></div>
     <div><span class="lp2-num">19</span><span class="lp2-label">Database Tables</span></div>
     <div><span class="lp2-num">79+</span><span class="lp2-label">API Endpoints</span></div>
-    <div><span class="lp2-num">12</span><span class="lp2-label">MCP Methods</span></div>
 </section>
 
 <!-- Features -->
@@ -111,7 +116,7 @@ tokens, so it is the same page in all four themes.
             <p>Anthropic, OpenAI, Bedrock, Together, Ollama, Azure — all via official SDKs. Registry factory for custom providers. DB-managed models with user-level overrides.</p></article>
         <article class="lp2-card"><i class="bi bi-search" aria-hidden="true"></i>
             <h3>Semantic Tool Discovery</h3>
-            <p>Describe what you need in English. Vector embeddings of 497 tool descriptions resolve intent to the right tool with confidence scores and auto-extracted parameters.</p></article>
+            <p>Describe what you need in English. Vector embeddings of {{ tool_count }} tool descriptions resolve intent to the right tool with confidence scores and auto-extracted parameters.</p></article>
         <article class="lp2-card"><i class="bi bi-boxes" aria-hidden="true"></i>
             <h3>Composite Tools</h3>
             <p>Chain multiple tools into one call. Sibling pattern runs tools in parallel. Parent-Child fans out per record. Dynamic schemas built at boot from DB definitions.</p></article>
@@ -132,7 +137,7 @@ tokens, so it is the same page in all four themes.
             <p>7 visual tool creators: Python, REST, DB Query, Script, PowerBI Report, PowerBI DAX, LiveLink. Analysts create tools without writing code. Hot-reload deploys in seconds.</p></article>
         <article class="lp2-card"><i class="bi bi-clock-history" aria-hidden="true"></i>
             <h3>Tool Versioning</h3>
-            <p>Run v1 and v2 side-by-side. Deprecation lifecycle with sunset dates. Contract testing validates all 497 tools against live APIs. Zero surprises in production.</p></article>
+            <p>Run v1 and v2 side-by-side. Deprecation lifecycle with sunset dates. Contract testing validates all {{ tool_count }} tools against live APIs. Zero surprises in production.</p></article>
     </div>
 </section>
 
@@ -140,7 +145,7 @@ tokens, so it is the same page in all four themes.
 <section class="lp2-section" id="transports">
     <p class="lp2-eyebrow lp2-centre">Connectivity</p>
     <h2 class="lp2-h2 lp2-centre">Three ways to connect. One protocol.</h2>
-    <p class="lp2-desc lp2-centre">Every transport uses the same MCPHandler — identical JSON-RPC 2.0, same 12 methods, same auth, same audit logging.</p>
+    <p class="lp2-desc lp2-centre">Every transport uses the same MCPHandler — identical JSON-RPC 2.0, same auth, same audit logging.</p>
     <div class="lp2-grid">
         <article class="lp2-card lp2-transport">
             <div class="lp2-proto">POST /mcp</div>
@@ -157,10 +162,43 @@ tokens, so it is the same page in all four themes.
     </div>
 </section>
 
+<!-- How it works: the 2026-07-28 wire, typed as it happens (landing.js) -->
+<section class="lp2-section" id="wire">
+    <p class="lp2-eyebrow lp2-centre">How it works</p>
+    <h2 class="lp2-h2 lp2-centre">The wire, live</h2>
+    <p class="lp2-desc lp2-centre">What a 2026-07-28 client and SAJHA actually say to each other: no handshake, no session, every request complete in itself.</p>
+    <div class="lp2-wire" id="lpWire">
+        <div class="lp2-code lp2-wire-code">
+            <div class="lp2-code-bar"><span></span><span></span><span></span><em>POST /mcp · MCP 2026-07-28</em><b class="lp2-wire-state" id="lpWireState" aria-hidden="true"></b></div>
+            <pre class="lp2-wire-log" id="lpWireLog" tabindex="0" aria-label="A JSON-RPC exchange between an agent and SAJHA over MCP 2026-07-28: server/discover, a tools/call that streams progress, and a call that asks for confirmation before it runs"></pre>
+        </div>
+        <div class="lp2-wire-side">
+            <svg class="lp2-wire-svg" viewBox="0 0 240 320" role="img" aria-label="Agent to SAJHA to tool; each hop lights as its message is sent">
+                <g class="lp2-wire-node" data-node="agent"><rect x="40" y="18" width="160" height="44" rx="10"/><text x="120" y="45">Agent</text></g>
+                <g class="lp2-wire-node lp2-wire-hub" data-node="sajha"><rect x="40" y="138" width="160" height="44" rx="10"/><text x="120" y="165">SAJHA</text></g>
+                <g class="lp2-wire-node" data-node="tool"><rect x="20" y="258" width="200" height="44" rx="10"/><text x="120" y="285" id="lpWireTool">tool registry</text></g>
+                <path class="lp2-wire-lane" data-lane="as" d="M92 64V136"/><path class="lp2-wire-lane" data-lane="sa" d="M148 136V64"/>
+                <path class="lp2-wire-lane" data-lane="st" d="M92 184V256"/><path class="lp2-wire-lane" data-lane="ts" d="M148 256V184"/>
+                <text class="lp2-wire-lbl" x="84" y="104" text-anchor="end">request</text>
+                <text class="lp2-wire-lbl" x="156" y="104">result</text>
+                <text class="lp2-wire-lbl" x="84" y="224" text-anchor="end">call</text>
+                <text class="lp2-wire-lbl" x="156" y="224">return</text>
+                <circle class="lp2-wire-dot" id="lpWireDot" r="5" cx="92" cy="64"/>
+            </svg>
+            <p class="lp2-wire-note" id="lpWireNote" aria-hidden="true">&nbsp;</p>
+            <ol class="lp2-wire-acts">
+                <li data-act="0"><strong>Discover</strong> <code>server/discover</code> names every version SAJHA speaks.</li>
+                <li data-act="1"><strong>Stream</strong> <code>tools/call</code> with a <code>progressToken</code>: progress, then the result, over SSE.</li>
+                <li data-act="2"><strong>Ask first</strong> <code>input_required</code> carries an elicitation; the retry brings the answer.</li>
+            </ol>
+        </div>
+    </div>
+</section>
+
 <!-- CTA -->
 <section class="lp2-cta">
     <h2>Ready to connect your agents?</h2>
-    <p>497 tools waiting. Zero setup required. Start in 30 seconds.</p>
+    <p>{{ tool_count }} tools waiting. Zero setup required. Start in 30 seconds.</p>
     <div class="lp2-actions">
         <a href="/login" class="lp2-btn lp2-btn-light"><i class="bi bi-rocket-takeoff" aria-hidden="true"></i> Sign In to SAJHA</a>
         <a href="/docs" class="lp2-btn lp2-btn-ghost">Documentation</a>
@@ -197,238 +235,7 @@ document.querySelectorAll('a[href^="#"]').forEach(function (a) {
 });
 </script>
 
-<!-- ═══ Living Intelligence Mesh — conveys SAJHA routing every agent to 497 tools ═══ -->
-<script>
-(function () {
-    var canvas = document.getElementById('heroNet');
-    if (!canvas) return;
-    var ctx = canvas.getContext('2d');
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    // Palette read from the theme tokens, and read again whenever the theme changes.
-    // Each colour is resolved to [r, g, b] so alpha can be applied on the canvas.
-    var probe = document.createElement('span');
-    probe.style.display = 'none';
-    document.body.appendChild(probe);
-    function rgbOf(token) {
-        probe.style.color = '';
-        probe.style.color = 'var(' + token + ')';
-        var m = getComputedStyle(probe).color.match(/[\d.]+/g) || [0, 0, 0];
-        return [+m[0], +m[1], +m[2]];
-    }
-    function rgba(c, a) { return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; }
-    var C = {};
-    function readPalette() {
-        C.accent  = rgbOf('--sajha-crimson');   // the theme's accent (was blue)
-        C.second  = rgbOf('--sajha-indigo');    // the second hue of the gradient (was cyan)
-        C.ink     = rgbOf('--sajha-ink');
-        C.slate   = rgbOf('--sajha-slate');
-        C.surface = rgbOf('--sajha-surface');
-    }
-    readPalette();
-    var FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
-    var MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
-
-    // AI agents (left) and data providers (right). These labels ARE the message:
-    // a heterogeneous fleet of agents and data sources unified by one hub.
-    var AGENTS  = ['Claude', 'GPT-4o', 'Bedrock', 'Together', 'Ollama', 'Azure'];
-    var SOURCES = ['FMP', 'OpenBB', 'FRED', 'Yahoo', 'SEC EDGAR', 'CoinGecko'];
-
-    var DPR = Math.min(window.devicePixelRatio || 1, 2);
-    var W = 0, H = 0, hub = { x: 0, y: 0 }, left = [], right = [], packets = [];
-    var mouse = { x: -1e4, y: -1e4 };
-
-    function node(x, y, label, side) { return { x: x, y: y, label: label, side: side, glow: 0 }; }
-
-    function layout() {
-        var r = canvas.getBoundingClientRect();
-        W = r.width; H = r.height;
-        canvas.width = Math.round(W * DPR);
-        canvas.height = Math.round(H * DPR);
-        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-
-        hub.x = W * 0.5;
-        hub.y = H * 0.46;
-
-        // Two vertical arcs that frame the centred hero copy.
-        var lx = W * (W < 760 ? 0.10 : 0.17);
-        var rx = W * (W < 760 ? 0.90 : 0.83);
-        var top = H * 0.20, bot = H * 0.78;
-        left = []; right = [];
-        for (var i = 0; i < AGENTS.length; i++) {
-            var f = AGENTS.length === 1 ? 0.5 : i / (AGENTS.length - 1);
-            var y = top + (bot - top) * f;
-            // gentle arc: nodes bow slightly outward from the hub
-            var bow = Math.sin(f * Math.PI) * W * 0.03;
-            left.push(node(lx - bow, y, AGENTS[i], -1));
-            right.push(node(rx + bow, y, SOURCES[i], 1));
-        }
-    }
-
-    function spawn() {
-        var a = left[(Math.random() * left.length) | 0];
-        var b = right[(Math.random() * right.length) | 0];
-        // direction: agent->hub->source (a request) or the reverse (a response)
-        var fwd = Math.random() > 0.35;
-        packets.push({
-            from: fwd ? a : b, to: fwd ? b : a,
-            t: 0, speed: 0.006 + Math.random() * 0.006,
-            hue: Math.random() > 0.5 ? 'accent' : 'second'
-        });
-    }
-
-    // Quadratic point from p0 -> p1 with control c
-    function q(p0, c, p1, t) {
-        var u = 1 - t;
-        return {
-            x: u * u * p0.x + 2 * u * t * c.x + t * t * p1.x,
-            y: u * u * p0.y + 2 * u * t * c.y + t * t * p1.y
-        };
-    }
-
-    function edge(n) {
-        // faint connection node->hub, brightened by nearby packets / mouse
-        var c = { x: (n.x + hub.x) / 2, y: (n.y + hub.y) / 2 - 26 * n.side * -1 };
-        ctx.beginPath();
-        ctx.moveTo(n.x, n.y);
-        ctx.quadraticCurveTo(c.x, c.y, hub.x, hub.y);
-        ctx.strokeStyle = rgba(C.slate, 0.10 + n.glow * 0.30);
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        return c;
-    }
-
-    function dot(n) {
-        var dm = Math.hypot(n.x - mouse.x, n.y - mouse.y);
-        if (dm < 120) n.glow = Math.max(n.glow, 1 - dm / 120);
-        var rad = 3 + n.glow * 2.5;
-        // halo
-        var g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, 22);
-        g.addColorStop(0, rgba(C.accent, 0.14 + n.glow * 0.4));
-        g.addColorStop(1, rgba(C.accent, 0));
-        ctx.fillStyle = g;
-        ctx.beginPath(); ctx.arc(n.x, n.y, 22, 0, 7); ctx.fill();
-        // core
-        ctx.fillStyle = rgba(n.glow > 0.4 ? C.second : C.accent, 1);
-        ctx.beginPath(); ctx.arc(n.x, n.y, rad, 0, 7); ctx.fill();
-        // label
-        ctx.font = '600 11px ' + MONO;
-        ctx.textBaseline = 'middle';
-        ctx.textAlign = n.side < 0 ? 'right' : 'left';
-        ctx.fillStyle = rgba(C.ink, 0.40 + n.glow * 0.5);
-        ctx.fillText(n.label, n.x + (n.side < 0 ? -12 : 12), n.y);
-        n.glow *= 0.92;
-    }
-
-    function drawHub(pulse) {
-        var R = 16 + pulse * 6;
-        var g = ctx.createRadialGradient(hub.x, hub.y, 0, hub.x, hub.y, 64 + pulse * 18);
-        g.addColorStop(0, rgba(C.second, 0.14 + pulse * 0.10));
-        g.addColorStop(0.5, rgba(C.accent, 0.06));
-        g.addColorStop(1, rgba(C.accent, 0));
-        ctx.fillStyle = g;
-        ctx.beginPath(); ctx.arc(hub.x, hub.y, 64 + pulse * 18, 0, 7); ctx.fill();
-        // pulsing ring
-        ctx.strokeStyle = rgba(C.accent, 0.5 - pulse * 0.4);
-        ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(hub.x, hub.y, 26 + pulse * 26, 0, 7); ctx.stroke();
-        // core
-        ctx.fillStyle = rgba(C.surface, 1);
-        ctx.beginPath(); ctx.arc(hub.x, hub.y, 6, 0, 7); ctx.fill();
-        ctx.fillStyle = rgba(C.accent, 1);
-        ctx.beginPath(); ctx.arc(hub.x, hub.y, R * 0.32, 0, 7); ctx.fill();
-        // wordmark
-        ctx.font = '800 12px ' + FONT;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-        ctx.fillStyle = rgba(C.ink, 0.8);
-        ctx.fillText('SAJHA', hub.x, hub.y + R + 8);
-        ctx.font = '600 9px ' + MONO;
-        ctx.fillStyle = rgba(C.accent, 0.75);
-        ctx.fillText('497 TOOLS · 1 PROTOCOL', hub.x, hub.y + R + 24);
-    }
-
-    var tprev = 0, acc = 0, frame;
-    function render(ts) {
-        var dt = Math.min(40, ts - tprev); tprev = ts;
-        ctx.clearRect(0, 0, W, H);
-
-        var ctrlsL = left.map(edge);
-        var ctrlsR = right.map(edge);
-
-        var pulse = (Math.sin(ts / 900) + 1) / 2;
-
-        // packets
-        for (var i = packets.length - 1; i >= 0; i--) {
-            var p = packets[i];
-            p.t += p.speed * (dt / 16.6);
-            if (p.t >= 1) { packets.splice(i, 1); continue; }
-            var pos;
-            if (p.t < 0.5) {                 // node -> hub
-                var n = p.from, ci = (n.side < 0 ? ctrlsL[left.indexOf(n)] : ctrlsR[right.indexOf(n)]);
-                pos = q(n, ci, hub, p.t * 2); n.glow = 1;
-            } else {                          // hub -> node
-                var n2 = p.to, cj = (n2.side < 0 ? ctrlsL[left.indexOf(n2)] : ctrlsR[right.indexOf(n2)]);
-                pos = q(hub, cj, n2, (p.t - 0.5) * 2); n2.glow = 1;
-            }
-            var col = C[p.hue];
-            var tr = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, 9);
-            tr.addColorStop(0, rgba(col, 1)); tr.addColorStop(1, rgba(col, 0));
-            ctx.fillStyle = tr;
-            ctx.beginPath(); ctx.arc(pos.x, pos.y, 9, 0, 7); ctx.fill();
-            ctx.fillStyle = rgba(C.surface, 1);
-            ctx.beginPath(); ctx.arc(pos.x, pos.y, 1.8, 0, 7); ctx.fill();
-        }
-
-        drawHub(pulse);
-        left.forEach(function (n) { dot(n); });
-        right.forEach(function (n) { dot(n); });
-
-        acc += dt;
-        if (acc > 520 && packets.length < 9) { acc = 0; spawn(); }
-        frame = requestAnimationFrame(render);
-    }
-
-    function staticFrame() {
-        ctx.clearRect(0, 0, W, H);
-        left.map(edge); right.map(edge);
-        drawHub(0.4);
-        left.forEach(function (n) { dot(n); });
-        right.forEach(function (n) { dot(n); });
-    }
-
-    function init() {
-        layout();
-        if (reduce) { staticFrame(); return; }
-        for (var i = 0; i < 4; i++) spawn();
-        tprev = performance.now();
-        cancelAnimationFrame(frame);
-        frame = requestAnimationFrame(render);
-    }
-
-    var rt;
-    window.addEventListener('resize', function () {
-        clearTimeout(rt); rt = setTimeout(init, 150);
-    });
-    window.addEventListener('pointermove', function (e) {
-        var r = canvas.getBoundingClientRect();
-        mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top;
-    }, { passive: true });
-    // pause when the tab is hidden (saves battery)
-    document.addEventListener('visibilitychange', function () {
-        if (document.hidden) { cancelAnimationFrame(frame); }
-        else if (!reduce) { tprev = performance.now(); frame = requestAnimationFrame(render); }
-    });
-    // a theme change (the palette menu, or the system's light/dark) recolours the mesh
-    new MutationObserver(function () { readPalette(); if (reduce) staticFrame(); })
-        .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-bs-theme'] });
-    if (window.matchMedia) {
-        var mq = window.matchMedia('(prefers-color-scheme: dark)');
-        var onScheme = function () { readPalette(); if (reduce) staticFrame(); };
-        if (mq.addEventListener) mq.addEventListener('change', onScheme); else if (mq.addListener) mq.addListener(onScheme);
-    }
-
-    init();
-})();
-</script>
+<script type="application/json" id="lpData">{{ {'groups': tool_groups, 'total': tool_count, 'server': {'name': app_name, 'version': app_version}}|tojson }}</script>
+<script src="{{ url_for('static', filename='js/landing.js') }}?v={{ app_version }}"></script>
 </body>
 </html>
