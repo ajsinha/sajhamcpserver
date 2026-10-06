@@ -9,7 +9,8 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+        "description": "Stock ticker symbol (e.g., AAPL, MSFT)",
+        "x-mcp-header": "Symbol"
       }
     },
     "required": [

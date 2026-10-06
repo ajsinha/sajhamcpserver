@@ -61,7 +61,26 @@ class CalcLoanAmortizationTool(CalcBaseTool):
         pmt = P * r * (1+r)**n / ((1+r)**n - 1) if r > 0 else P/n
         total = pmt * n
         return {"principal": P, "monthly_payment": round(pmt,2), "total_paid": round(total,2),
-                "total_interest": round(total-P,2), "months": n}
+                "total_interest": round(total-P,2), "months": n,
+                "yearly_schedule": self._yearly_schedule(P, r, n, pmt)}
+
+    @staticmethod
+    def _yearly_schedule(P, r, n, pmt, max_months=1200):
+        """Principal/interest paid and closing balance per loan year (rendered by the MCP App view)."""
+        if not isinstance(n, int) or n <= 0 or n > max_months:
+            return []
+        rows, balance = [], float(P)
+        for start in range(0, n, 12):
+            principal = interest = 0.0
+            for _ in range(start, min(start + 12, n)):
+                i = balance * r
+                p = min(pmt - i, balance)
+                balance -= p
+                principal += p
+                interest += i
+            rows.append({"year": start // 12 + 1, "principal": round(principal, 2),
+                         "interest": round(interest, 2), "balance": round(max(balance, 0.0), 2)})
+        return rows
 
 class CalcBondPriceTool(CalcBaseTool):
     def execute(self, a):

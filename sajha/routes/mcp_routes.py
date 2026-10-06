@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from sajha.db.engine import get_db
 from sajha.auth import AuthManager, AuthContext
+from sajha.auth.oauth.resource_server import authorize_mcp
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=['mcp'])
@@ -138,13 +139,19 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
     except (ValueError, RecursionError):
         body, parsed = None, False
 
+    # Authorization (mcp.auth.mode): API keys / SAJHA JWTs / OAuth bearer tokens;
+    # 401/403 with a WWW-Authenticate challenge when OAuth is enforced.
+    method = body.get('method') if isinstance(body, dict) and isinstance(body.get('method'), str) else None
+    auth, err = await authorize_mcp(request, db, method)
+    if err is not None:
+        return err
+
     # ── MCP 2026-07-28: stateless, per-request _meta envelope ──
     # Mcp-Session-Id / Last-Event-ID are ignored on this path and no session is minted.
     if mcp_modern.is_modern_request(body, request.headers):
         if not parsed:
             status, payload = mcp_modern.parse_error_response()
         else:
-            auth = AuthManager.authenticate_request(request, db)
             session_data = auth.to_legacy_session() if auth.authenticated else None
             outcome = await _modern_server(mcp_handler).handle(
                 body, request.headers, list(request.headers.items()), session_data,
@@ -182,7 +189,6 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
             logger.debug(f"Unmatched client response id={body.get('id')!r}")
         return Response(status_code=202)
 
-    auth = AuthManager.authenticate_request(request, db)
     session_data = auth.to_legacy_session() if auth.authenticated else None
 
     # Notification: no id -> 202, no body
@@ -299,7 +305,7 @@ async def _stream_tool_call(request: Request, body: dict, params: dict, fixtures
 
 @router.delete('/mcp')
 @router.delete('/api/mcp')
-async def mcp_delete(request: Request):
+async def mcp_delete(request: Request, db: Session = Depends(get_db)):
     """Terminate an MCP session: 204 on success, 404 if unknown, 400 if no header."""
     from sajha.core.mcp_sessions import get_session_store
     from sajha.core.mcp_modern import is_modern_header
@@ -308,6 +314,9 @@ async def mcp_delete(request: Request):
         return err
     if is_modern_header(request.headers):
         return _modern_405()
+    _, err = await authorize_mcp(request, db, None)
+    if err is not None:
+        return err
     sid = request.headers.get(_SESSION_HEADER)
     if not sid:
         return _rpc_error(-32600, 'Mcp-Session-Id header required', 400)
@@ -353,7 +362,9 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
                                       'standalone server-to-client SSE stream'},
                             status_code=405, headers={'Allow': 'POST, DELETE'})
 
-    auth = AuthManager.authenticate_request(request, db)
+    _, err = await authorize_mcp(request, db, None)
+    if err is not None:
+        return err
     session_id = str(uuid.uuid4())
     _sse_sessions[session_id] = asyncio.Queue()
 
@@ -412,12 +423,17 @@ async def mcp_message(request: Request, db: Session = Depends(get_db)):
     if err is not None:
         return err
     session_id = request.query_params.get('session')
-    auth = AuthManager.authenticate_request(request, db)
-    session_data = auth.to_legacy_session() if auth.authenticated else None
 
     try:
         body = await request.json()
     except Exception as e:
+        body = e
+    method = body.get('method') if isinstance(body, dict) and isinstance(body.get('method'), str) else None
+    auth, err = await authorize_mcp(request, db, method)
+    if err is not None:
+        return err
+    session_data = auth.to_legacy_session() if auth.authenticated else None
+    if isinstance(body, Exception):
         return JSONResponse({
             'jsonrpc': '2.0',
             'error': {'code': -32700, 'message': 'Parse error'},

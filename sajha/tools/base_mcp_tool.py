@@ -56,10 +56,15 @@ class BaseMCPTool(ABC):
     
     @property
     def input_schema(self) -> Dict:
-        """Get input schema for the tool"""
-        if not self._input_schema:
-            return self.get_input_schema()
-        return self._input_schema
+        """Get input schema for the tool (invalid x-mcp-header annotations removed, with a warning)"""
+        raw = self._input_schema or self.get_input_schema()
+        cached = getattr(self, '_sanitized_input_schema', None)
+        if cached is not None and cached[0] is raw:
+            return cached[1]
+        from sajha.core.mcp_modern import sanitize_x_mcp_headers
+        clean = sanitize_x_mcp_headers(raw, self._name)
+        self._sanitized_input_schema = (raw, clean)
+        return clean
 
     @property
     def output_schema(self) -> Dict:

@@ -134,7 +134,7 @@ class TestDiscover:
         assert '2025-11-25' in res['supportedVersions']
         caps = res['capabilities']
         assert {'tools', 'prompts', 'resources', 'completions'} <= set(caps)
-        assert caps['extensions'] == {'io.modelcontextprotocol/tasks': {}}
+        assert caps['extensions'] == {'io.modelcontextprotocol/tasks': {}, 'io.modelcontextprotocol/ui': {}}
         assert 'tasks' not in caps                        # tasks live under extensions only
         assert caps['logging'] == {}                      # notifications/message on streamed calls
         assert caps['tools']['listChanged'] is True       # delivered on subscriptions/listen

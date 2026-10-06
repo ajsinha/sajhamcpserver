@@ -204,8 +204,8 @@ is filtered by role.
 | `elicitation/respond` method | This is not an MCP method. In MCP the client answers `elicitation/create` with a JSON-RPC response. It is kept as a SAJHA extension and now returns proper JSON-RPC errors. |
 | Icons as `icon: {type, url/emoji}` | Non-spec shape. **Replaced** by the `icons` array. |
 | Origin validation (HTTP 403) | It used to be a no-op (no allow-list, and it was never called on POST). **Now enforced** on POST, GET and DELETE `/mcp`. |
-| Incremental scope consent (`WWW-Authenticate … scope=`) | The header is sent by SAJHA's `/api/*` auth dependency, but there is no OAuth, so the scopes are informational only. **Not applicable** to `/mcp`. |
-| "Security best practices: PKCE, OAuth SSO (Azure/Okta/…)" | There is no OAuth flow in the server. Password hashing (bcrypt), API-key hashing (SHA-256), JWT and RBAC are real. |
+| Incremental scope consent (`WWW-Authenticate … scope=`) | Was informational only in 5.4.0. **Now real** on `/mcp` when `mcp.auth.mode` is `optional`/`required` (§8): 401 challenges carry `resource_metadata` and `scope`, and a token lacking a scope gets 403 `insufficient_scope`. |
+| "Security best practices: PKCE, OAuth SSO (Azure/Okta/…)" | **Now real** (§8): a built-in OAuth 2.1 authorization server with mandatory PKCE S256, or validation of tokens from an external IdP. Password hashing (bcrypt), API-key hashing (SHA-256), JWT and RBAC are unchanged. |
 | SSE event IDs and resumption (`Last-Event-ID`) | Event IDs exist on the legacy stream and on SSE tool-call streams. Replay on reconnect is **not** implemented: the tracker is per-connection. |
 | `ping` returned `{status, timestamp}`; prompts responses had no `id`; JSON array bodies returned 500; `notifications/initialized` returned `-32601` | **Fixed** (§2, §3). |
 
@@ -214,9 +214,17 @@ is filtered by role.
 - A task-augmented `tools/call` and the 2025-11-25 `tasks/*` shapes, including `tasks/result`.
 - `notifications/*/list_changed` and `resources/updated` delivery. A GET stream would be needed.
 - SSE stream resumption (`Last-Event-ID` replay) and the `test_reconnection` behaviour (SEP-1699 polling).
-- An OAuth 2.1 authorization server or resource-server integration.
 - Progress and logging notifications from regular SAJHA tools. Today only the
   conformance fixtures stream them.
+
+## 8. Authorization (added after 6.0.0)
+
+The 2025-11-25 authorization spec is implemented on the legacy path exactly as on the 2026-07-28 path; the full description (modes, token validation, built-in authorization server, CIMD/DCR, security decisions) is in [MCP_2026_07_28_Compliance.md §4.1](MCP_2026_07_28_Compliance.md). In short:
+
+- `mcp.auth.mode`: `off` (default, behaviour of 5.4.0/6.0.0: the `/.well-known/oauth-*` documents stay 404), `optional`, `required`.
+- With OAuth on, the PRM document (RFC 9728) is served again — now pointing at an authorization server that exists: SAJHA's built-in one (`/.well-known/oauth-authorization-server`, `/oauth/authorize`, `/oauth/token`, `/oauth/jwks`, `/oauth/register` only with DCR enabled) or the external issuer in `mcp.auth.authorization_server`. OIDC discovery stays 404 (no ID tokens), and CIMD documents are still client-hosted: SAJHA *fetches* them (`client_id_metadata_document_supported: true`).
+- Bearer tokens on `POST /mcp` (including `initialize`), `GET /mcp/sse`, `POST /mcp/message` and `DELETE /mcp` are validated for signature, issuer, audience (RFC 8707: this server's `/mcp` resource URI), expiry and scope. API keys and SAJHA JWTs keep working in every mode.
+- Verified with the conformance `authorization` scenarios (3/3 checks, `--spec-version 2025-11-25`) and the official SDK's `OAuthClientProvider` in `mode="legacy"`. `tests/test_mcp_auth.py` covers it.
 
 ---
 

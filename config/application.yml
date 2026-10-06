@@ -147,6 +147,66 @@ mcp:
   # subscriptions/listen (2026-07-28): max concurrent listen streams
   subscriptions:
     max_streams: 1000
+  # OAuth 2.1 authorization for /mcp (MCP authorization spec, 2025-11-25 and
+  # 2026-07-28).  Existing credentials (X-API-Key / sja_ keys, SAJHA login JWTs,
+  # the session cookie) keep working in every mode.
+  #   off       no OAuth: anonymous calls allowed, no discovery documents (404)
+  #   optional  OAuth bearer tokens accepted and validated; anonymous still allowed
+  #   required  401 + WWW-Authenticate (resource_metadata, scope) without credentials
+  # Env override: SAJHA_MCP_AUTH_MODE=required
+  auth:
+    mode: "off"                 # quoted: bare off is a YAML boolean
+    # "builtin" (SAJHA's own authorization server, backed by SAJHA users) or an
+    # external issuer URL, e.g. https://login.example.com/realms/mcp (Keycloak),
+    # https://dev-123.okta.com/oauth2/default, https://login.microsoftonline.com/<tenant>/v2.0
+    # With an external issuer SAJHA only validates its JWT access tokens
+    # (discovery + JWKS); opaque tokens / introspection are not supported.
+    authorization_server: builtin
+    # Externally visible origin, e.g. https://mcp.example.com.  Token audience
+    # (resource = <public_url>/mcp) and the built-in issuer derive from it.
+    # Empty: taken from each request's Host (local development only).
+    public_url: ""
+    # Scopes in Protected Resource Metadata and 401 challenges.  tools/call
+    # needs mcp:tools, every other method mcp:read; "mcp" implies both.
+    scopes: "mcp:read mcp:tools"
+    # Extra token "aud" values to accept (comma-separated), e.g. an Entra
+    # application ID URI.  The resource URIs of /mcp and /api/mcp always are.
+    accepted_audiences: ""
+    clock_skew_seconds: 60
+    jwks_cache_seconds: 3600
+    external:
+      # Token claim matched against SAJHA user IDs (unmatched -> least-privilege
+      # api_consumer identity).  Use only a claim the IdP controls.
+      user_claim: sub
+    builtin:
+      access_token_ttl_seconds: 900
+      refresh_token_ttl_seconds: 2592000
+      code_ttl_seconds: 60
+      # offline_access (refresh token only when that scope is granted) | always | never
+      refresh_tokens: offline_access
+      # Generated on first use (RSA-2048, mode 0600).  Never commit it.
+      signing_key_path: ""          # default: <data.dir>/oauth/signing_key.pem
+      cimd:                         # Client ID Metadata Documents (https URL client_ids)
+        enabled: true
+        allow_localhost: false      # dev only: accept http://localhost client_id URLs
+        allow_private_networks: false
+        timeout_seconds: 5
+        max_bytes: 16384
+      # RFC 7591 Dynamic Client Registration (deprecated in MCP 2026-07-28;
+      # registrations are kept in memory).
+      dynamic_client_registration: false
+      # Pre-registered clients (env override: SAJHA_MCP_AUTH_BUILTIN_CLIENTS as JSON).
+      # client_secret may use ${ENV_VAR}; omit it for public (PKCE-only) clients.
+      clients: []
+      #  - client_id: my-agent
+      #    client_name: My Agent
+      #    redirect_uris: ["http://127.0.0.1:8765/callback"]
+      #    client_secret: ${MY_AGENT_SECRET:}
+  # MCP Apps extension io.modelcontextprotocol/ui (2026-07-28 requests only):
+  # tools whose config has "_meta": {"ui": {"resourceUri": "ui://..."}} get an
+  # interactive HTML view served by resources/read as text/html;profile=mcp-app.
+  apps:
+    enabled: true
 
 # ── Config Paths ─────────────────────────────────────────────────────────────
 

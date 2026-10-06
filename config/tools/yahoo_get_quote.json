@@ -10,7 +10,8 @@
       "symbol": {
         "type": "string",
         "description": "Stock ticker symbol (e.g., AAPL, GOOGL, MSFT, TSLA, ^GSPC for S&P 500)",
-        "pattern": "^[A-Z^.]{1,10}$"
+        "pattern": "^[A-Z^.]{1,10}$",
+        "x-mcp-header": "Symbol"
       }
     },
     "required": ["symbol"]

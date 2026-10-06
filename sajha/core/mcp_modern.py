@@ -53,6 +53,7 @@ from sajha.core.mcp_mrtr import (MRTR_METHODS, InputRequired, RequestStateError,
 from sajha.core.mcp_tasks import (TASKS_EXTENSION, TaskNotFound, client_declares_tasks, get_task_store,
                                   required_capability)
 from sajha.core.mcp_tool_context import ModernToolContext
+from sajha.core import mcp_apps
 
 logger = logging.getLogger(__name__)
 
@@ -352,6 +353,67 @@ def validate_param_headers(input_schema: Any, arguments: Mapping[str, Any],
     return None
 
 
+_SUBSCHEMA_SINGLE = frozenset({"items", "contains", "unevaluatedItems", "additionalProperties", "propertyNames",
+                               "unevaluatedProperties", "not", "if", "then", "else", "contentSchema"})
+_SUBSCHEMA_LIST = frozenset({"allOf", "anyOf", "oneOf", "prefixItems"})
+_SUBSCHEMA_MAP = frozenset({"patternProperties", "dependentSchemas", "$defs", "definitions"})
+_X_MCP_HEADER_TYPES = ("string", "integer", "boolean")
+_warned_x_mcp_header: set = set()
+
+
+def sanitize_x_mcp_headers(schema: Any, tool_name: str = "?") -> Any:
+    """
+    Return ``schema`` with every invalid ``x-mcp-header`` annotation removed
+    (a warning is logged once per tool and problem).  2026-07-28 clients MUST
+    drop a whole tool whose annotations are invalid, so a bad annotation in a
+    tool config would otherwise hide the tool; removing just the annotation
+    keeps it usable (the argument is then simply not mirrored into a header).
+
+    Valid = on a property reached from the root through ``properties`` only,
+    an RFC 9110 token, on a string/integer/boolean property, and unique
+    (case-insensitively) across the schema — the same rules as the SDKs.
+    """
+    if not isinstance(schema, dict) or X_MCP_HEADER_KEY not in json.dumps(schema, default=str):
+        return schema
+    schema = copy.deepcopy(schema)
+    seen: Dict[str, str] = {}
+    queue: List[Tuple[Optional[Tuple[str, ...]], Any]] = [((), schema)]
+    while queue:
+        path, node = queue.pop(0)
+        if not isinstance(node, dict):
+            continue
+        if X_MCP_HEADER_KEY in node:
+            token = node[X_MCP_HEADER_KEY]
+            where = ".".join(path) if path else "<root>"
+            problem = None
+            if not path:
+                problem = "not on a property reachable through `properties` only"
+            elif not isinstance(token, str) or not _RFC9110_TOKEN.fullmatch(token):
+                problem = f"{token!r} is not an RFC 9110 token"
+            elif node.get("type") not in _X_MCP_HEADER_TYPES:
+                problem = f"property type {node.get('type')!r} is not string/integer/boolean"
+            elif token.lower() in seen:
+                problem = f"{token!r} duplicates the annotation on {seen[token.lower()]!r}"
+            if problem:
+                del node[X_MCP_HEADER_KEY]
+                key = (tool_name, where, problem)
+                if key not in _warned_x_mcp_header:
+                    _warned_x_mcp_header.add(key)
+                    logger.warning(f"Tool {tool_name!r}: dropped invalid x-mcp-header on {where}: {problem}")
+            else:
+                seen[token.lower()] = where
+        for kw, val in node.items():
+            if kw == "properties" and isinstance(val, dict):
+                queue.extend(((path + (name,)) if path is not None else None, sub) for name, sub in val.items())
+            elif kw in _SUBSCHEMA_SINGLE:
+                queue.append((None, val))
+            elif kw in _SUBSCHEMA_LIST and isinstance(val, list):
+                queue.extend((None, sub) for sub in val)
+            elif kw in _SUBSCHEMA_MAP and isinstance(val, dict):
+                queue.extend((None, sub) for sub in val.values())
+    return schema
+
+
 def classify(body: Dict[str, Any], headers: Mapping[str, str]) -> ModernRequestContext:
     """
     The 2026-07-28 validation ladder; first failure wins.
@@ -536,6 +598,8 @@ class ModernMCPServer:
         }
         if self.tasks_enabled():
             caps["extensions"][TASKS_EXTENSION] = {}
+        if mcp_apps.apps_enabled():
+            caps["extensions"][mcp_apps.EXTENSION_ID] = {}
         sajha = copy.deepcopy((legacy.get("experimental") or {}).get("sajha") or {})
         sajha.pop("websocket", None)   # the WebSocket transport is legacy-era only
         if sajha:
@@ -701,6 +765,9 @@ class ModernMCPServer:
             result = await run_in_threadpool(h.handle_prompts_list, params, "modern")
         elif method == "resources/list":
             result = await run_in_threadpool(h._handle_resources_list, params)
+            if mcp_apps.apps_enabled() and not result.get("nextCursor"):
+                # MCP Apps ui:// views ride on the last page
+                result = dict(result, resources=list(result.get("resources") or []) + mcp_apps.resources())
         elif method == "resources/templates/list":
             result = await run_in_threadpool(h._handle_resources_templates_list, params)
         elif method in self.TASK_METHODS:
@@ -761,6 +828,11 @@ class ModernMCPServer:
                 return await self._tools_call(params, ctx, raw_headers, session, tool_ctx)
             if method == "prompts/get":
                 return await self._prompts_get(params, tool_ctx)
+            uri = params.get("uri")
+            if isinstance(uri, str) and uri.startswith("ui://") and mcp_apps.apps_enabled():
+                view = await run_in_threadpool(mcp_apps.read, uri)
+                if view is not None:
+                    return view
             return await run_in_threadpool(self.handler._handle_resources_read, params)
         except InputRequired as ir:
             missing = missing_capabilities_for(ir.requests, ctx.client_capabilities)

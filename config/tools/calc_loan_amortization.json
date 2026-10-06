@@ -1,7 +1,7 @@
 {
   "name": "calc_loan_amortization",
   "implementation": "sajha.tools.impl.calc_tools.CalcLoanAmortizationTool",
-  "description": "Calculate loan amortization \u2014 monthly payment, total interest, total paid",
+  "description": "Calculate loan amortization \u2014 monthly payment, total interest, total paid and a yearly principal/interest schedule (with an MCP Apps chart view)",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -30,6 +30,11 @@
       "result": {
         "type": "object"
       }
+    }
+  },
+  "_meta": {
+    "ui": {
+      "resourceUri": "ui://sajha/loan-amortization.html"
     }
   },
   "metadata": {

@@ -385,6 +385,9 @@ class MCPHandler:
         all_tools = sorted(all_tools, key=lambda t: str(t.get('name', '')))
         if era == 'modern':
             all_tools = [self._with_task_support(t) for t in all_tools]
+            from sajha.core import mcp_apps
+            if mcp_apps.apps_enabled():
+                all_tools = [self._with_ui_meta(t) for t in all_tools]
         if fixtures:
             # Fixtures first so clients that read only page 1 see them
             all_tools = fixture_tools + list(all_tools)
@@ -416,6 +419,17 @@ class MCPHandler:
         execution = ((getattr(tool, 'config', None) or {}).get('execution') or {}) if tool else {}
         value = execution.get('taskSupport') if isinstance(execution, dict) else None
         return value if value in ('optional', 'required') else None
+
+    def _with_ui_meta(self, tool_entry: Dict) -> Dict:
+        """MCP Apps: copy a tool config's validated _meta.ui onto its tools/list entry."""
+        from sajha.core import mcp_apps
+        tool = self.tools_registry.get_tool(tool_entry.get('name')) if self.tools_registry else None
+        ui = mcp_apps.tool_ui_meta(getattr(tool, 'config', None), tool_entry.get('name', '?')) if tool else None
+        if not ui:
+            return tool_entry
+        meta = dict(tool_entry.get('_meta') or {})
+        meta['ui'] = ui
+        return dict(tool_entry, _meta=meta)
 
     def _with_task_support(self, tool_entry: Dict) -> Dict:
         support = self.tool_task_support(tool_entry.get('name'))
@@ -710,7 +724,10 @@ class MCPHandler:
             }
 
         if uri.startswith('sajha://data/'):
+            import os
             fname = uri.replace('sajha://data/', '')
+            if not fname or fname != os.path.basename(fname) or fname in ('.', '..') or '\\' in fname:
+                raise MCPError(-32002, 'Resource not found', {'uri': uri})     # no path traversal
             for data_dir in ['data/duckdb', 'data/sqlselect']:
                 import os
                 fpath = os.path.join(data_dir, fname)

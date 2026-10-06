@@ -56,3 +56,6 @@ alembic/versions/*.pyc
 .pytest_cache/
 .coverage
 htmlcov/
+
+# ── OAuth signing keys (generated on first run) ─────────────────────────
+data/oauth/

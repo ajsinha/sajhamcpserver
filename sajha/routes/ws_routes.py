@@ -127,9 +127,9 @@ async def mcp_websocket(ws: WebSocket):
     db = get_db_session()
     try:
         if token:
-            auth = AuthManager.authenticate_token(token, db)
+            auth = AuthManager.authenticate_jwt(db, token)
         elif api_key:
-            auth = AuthManager.authenticate_api_key(api_key, db)
+            auth = AuthManager.authenticate_apikey(db, api_key)
         else:
             auth = None
 
@@ -144,6 +144,12 @@ async def mcp_websocket(ws: WebSocket):
         session.session_data = None
     finally:
         db.close()
+
+    from sajha.auth.oauth.settings import auth_mode
+    if auth_mode() == 'required' and session.session_data is None:
+        # mcp.auth.mode=required: this transport takes SAJHA JWTs / API keys only (no OAuth flow)
+        await ws.close(code=1008, reason='Authentication required')
+        return
 
     _ws_sessions[session_id] = session
     logger.info(f"WebSocket connected: {session_id} (user={session.user_id})")

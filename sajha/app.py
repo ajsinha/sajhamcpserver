@@ -157,6 +157,7 @@ class SajhaMCPServerWebApp:
         from sajha.routes.composite_routes import router as composite_router
         from sajha.routes.ws_routes import router as ws_router
         from sajha.routes.ops_routes import router as ops_router
+        from sajha.routes.oauth_routes import router as oauth_router
 
         routers = [
             auth_router, dashboard_router, api_router, tools_router,
@@ -167,6 +168,7 @@ class SajhaMCPServerWebApp:
             composite_router,
             ws_router,
             ops_router,
+            oauth_router,
         ]
 
         for router in routers:

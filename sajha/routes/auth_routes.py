@@ -44,6 +44,9 @@ async def login_form(
 
     # Set JWT in cookie and redirect to dashboard
     next_url = request.query_params.get('next', '/dashboard')
+    # Local paths only: no open redirect via ?next=https://evil or //evil
+    if not next_url.startswith('/') or next_url.startswith(('//', '/\\')) or '\\' in next_url:
+        next_url = '/dashboard'
     response = RedirectResponse(url=next_url, status_code=302)
     response.set_cookie(
         key='sajha_token',
@@ -99,6 +102,13 @@ async def logout(request: Request):
 async def root(request: Request, auth: AuthContext = Depends(get_current_user)):
     if auth.authenticated:
         return RedirectResponse(url='/dashboard', status_code=302)
-    # Show landing page for unauthenticated visitors
+    # Show landing page for unauthenticated visitors. The counts and the hero's constellation
+    # come from the live registry, grouped by name prefix exactly as the help pages group them.
     from sajha.app import render_standalone
-    return render_standalone(request, 'landing.html', {})
+    from sajha.routes.misc_routes import _build_tool_context
+    tool_ctx = _build_tool_context(auth)
+    return render_standalone(request, 'landing.html', {
+        'tool_count': tool_ctx['tool_stats']['total_tools'],
+        'group_count': tool_ctx['tool_stats']['total_groups'],
+        'tool_groups': [[g['name'], g['tool_count']] for g in tool_ctx['tool_groups']],
+    })

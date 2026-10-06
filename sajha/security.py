@@ -138,22 +138,24 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
         response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        # Routes may set a stricter policy (e.g. the OAuth consent page: DENY,
+        # frame-ancestors 'none'); keep theirs.
+        response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
         response.headers['X-XSS-Protection'] = '1; mode=block'
-        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
         response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
         # CSP: all JS/CSS/fonts are vendored under /static/vendor, so the policy
         # stays self-only — no third-party origins to drift out of sync with.
         # 'unsafe-inline' remains for inline <script>/<style> in templates; the
         # upgrade path is per-request nonces. ws:/wss: is for the Socket.IO transport.
-        response.headers['Content-Security-Policy'] = (
+        response.headers.setdefault('Content-Security-Policy', (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline'; "
             "style-src 'self' 'unsafe-inline'; "
             "font-src 'self'; "
             "img-src 'self' data:; "
             "connect-src 'self' ws: wss:"
-        )
+        ))
         # HSTS only if request came over HTTPS
         if request.url.scheme == 'https':
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'

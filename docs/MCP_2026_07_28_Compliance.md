@@ -1,4 +1,4 @@
-# SAJHA MCP Server — MCP 2026-07-28 Compliance Report (Waves 1–3)
+# SAJHA MCP Server — MCP 2026-07-28 Compliance Report (Waves 1–4)
 
 **Protocol versions supported:** 2026-07-28 (stateless, "modern") **plus** 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05 (handshake-era, "legacy"). SAJHA is a *dual-era* server.
 **Transport:** Streamable HTTP on `/mcp`. Legacy HTTP+SSE (`GET /mcp/sse`) and the WebSocket extension (`/mcp/ws`) are legacy-era only.
@@ -168,6 +168,7 @@ Consumers: `subscriptions/listen` streams; the legacy 2024-11-05 HTTP+SSE stream
 | `resources.subscribe` | `true` (catalog URIs are really updated) | `false` | `false` |
 | `logging` | `{}` | `{}` | `{}` |
 | `extensions["io.modelcontextprotocol/tasks"]` | `{}` (when `mcp.tasks.enabled`) | — | — |
+| `extensions["io.modelcontextprotocol/ui"]` | `{}` (when `mcp.apps.enabled`, default true) | — | — |
 
 `resources.listChanged` fires on tool/prompt changes (the catalog entries change); new files dropped into `data/duckdb` or `data/sqlselect` are not watched.
 
@@ -224,7 +225,48 @@ Advertised under `capabilities.extensions` (never a v1 `capabilities.tasks`). A 
 
 ---
 
-## 4. Conformance results
+## 4. Wave 4: authorization, MCP Apps, `x-mcp-header`
+
+### 4.1 OAuth 2.1 authorization (basic/authorization, both eras)
+
+The same rules apply to the 2026-07-28 and 2025-11-25 paths of `POST /mcp` (and `/api/mcp`, `GET /mcp/sse`, `POST /mcp/message`, `DELETE /mcp`). Keys live under `mcp.auth` in `config/application.yml`; every key has a `SAJHA_` env override (`SAJHA_MCP_AUTH_MODE=required`).
+
+| `mcp.auth.mode` | Behaviour |
+|---|---|
+| `off` (default) | Unchanged from 6.0.0: anonymous calls allowed; no discovery documents (`/.well-known/oauth-*` are 404, so clients see "no OAuth"). |
+| `optional` | OAuth bearer tokens are validated and accepted; anonymous calls still allowed; an *invalid* bearer gets 401 `error="invalid_token"`. |
+| `required` | No valid credential → **401** with `WWW-Authenticate: Bearer resource_metadata="<base>/.well-known/oauth-protected-resource/mcp", scope="mcp:read mcp:tools"`. |
+
+Existing SAJHA credentials (`X-API-Key` / `sja_` keys, SAJHA login JWTs, the `sajha_token` cookie) keep working in every mode and are not scope-checked (their roles govern tool access as before). OAuth access tokens are accepted **only** on the MCP endpoints, never on the REST API.
+
+**Resource server (RFC 9728, RFC 8707, RFC 6750).**
+- Protected Resource Metadata at `/.well-known/oauth-protected-resource`, `/.well-known/oauth-protected-resource/mcp` and `.../api/mcp`: `resource` (= `<public_url>/mcp`), `authorization_servers`, `scopes_supported` (`mcp:read mcp:tools`, never `offline_access`), `bearer_methods_supported: ["header"]`.
+- Token validation: asymmetric signature only (RS/PS/ES; `none` and `HS*` refused), `iss` = the configured authorization server, `aud` contains this server's resource URI (or a value in `mcp.auth.accepted_audiences`), `exp`/`nbf` with `clock_skew_seconds` leeway; built-in tokens must also carry `typ: at+jwt` and the current `kid`.
+- Scopes: `tools/call` needs `mcp:tools`, every other method `mcp:read`; `mcp` implies both. A token lacking the scope gets **403** `error="insufficient_scope", scope="mcp:tools", resource_metadata=...` (one challenge with all needed scopes).
+- `mcp.auth.authorization_server`: `builtin` or an external issuer URL (Keycloak, Okta, Entra ID, ...). External: SAJHA only validates, discovering `jwks_uri` via RFC 8414 then OIDC discovery (metadata `issuer` must equal the configured string), caching the JWKS (`jwks_cache_seconds`, forced refetch on unknown `kid` at most every 30 s). The `sub` (or `mcp.auth.external.user_claim`) is matched to a SAJHA user ID; unmatched identities get the least-privilege `api_consumer` role. JWT access tokens only (no introspection).
+
+**Built-in authorization server** (`authorization_server: builtin`, active while mode ≠ off), backed by SAJHA users:
+- RFC 8414 metadata at `/.well-known/oauth-authorization-server`: `code` + `S256` only, `authorization_code` and `refresh_token` grants, `token_endpoint_auth_methods_supported: none, client_secret_basic, client_secret_post`, `client_id_metadata_document_supported: true`, `authorization_response_iss_parameter_supported: true`, `registration_endpoint` only when DCR is on. No OpenID Connect discovery (no ID tokens are issued).
+- `/oauth/authorize`: consent page (`auth/oauth_consent.html`); the user is taken from the SAJHA session cookie or signs in on the page. PKCE `S256` mandatory, `resource` must name this server (else `invalid_target`), unknown scopes dropped. Responses carry `code`, `state` and `iss` (RFC 9207), errors too.
+- `/oauth/token`: RS256 JWT access tokens (`aud` = MCP resource URI, `scope`, `client_id`, 15 min default), refresh tokens only when `offline_access` is granted (`refresh_tokens` policy), rotated on every use with reuse detection. `Cache-Control: no-store`.
+- `/oauth/jwks`: the public key; the private key is generated on first use at `data/oauth/signing_key.pem` (0600, git-ignored).
+- Clients: Client ID Metadata Documents (https URL `client_id`, fetched and validated, public clients only), pre-registered `mcp.auth.builtin.clients`, and RFC 7591 DCR behind `dynamic_client_registration: true` (deprecated in 2026-07-28; in-memory).
+
+**Security decisions.** Unknown client / redirect-URI mismatch render an error page and never redirect (no open redirect; redirect URIs match exactly, https or loopback http or a reverse-domain native scheme). PKCE cannot be downgraded (`plain` and missing challenges rejected). Codes are single-use, 60 s, hashed at rest; replaying one revokes the refresh tokens it minted. Tokens are audience-bound and SAJHA's own HS256 JWTs and OAuth tokens can never be confused (different algorithms, `typ`, `aud`). Consent is CSRF-proof: an HMAC form token bound to a `SameSite=Strict` per-browser transaction cookie, single-use pending requests, and `X-Frame-Options: DENY` / `frame-ancestors 'none'`. CIMD fetches are SSRF-guarded: https only (http://localhost only with `cimd.allow_localhost`), no credentials/fragments/dot-segments, DNS resolved once and every address vetted (loopback, private, link-local, reserved and IPv4-embedded IPv6 refused unless `allow_private_networks`), connection pinned to the vetted IP with SNI, no redirects, no proxies, 5 s timeouts and a 16 KiB cap; `client_id` in the document must equal the URL and shared secrets are refused. Consent sign-in is rate limited (5/min/IP).
+
+### 4.2 MCP Apps `io.modelcontextprotocol/ui` (2026-07-28 path)
+
+With `mcp.apps.enabled` (default `true`) `server/discover` advertises the extension; a tool config with `"_meta": {"ui": {"resourceUri": "ui://sajha/<view>.html"}}` (optional `visibility: ["model","app"]`) carries that `_meta.ui` in modern `tools/list`; `resources/list` lists the views and `resources/read` returns them as `text/html;profile=mcp-app`. Views: bundled `sajha/core/mcp_app_views/*.html` plus `*.html` in `mcp.apps.dir` (default `config/apps`), each published as `ui://sajha/<file-name-with-dashes>`. Invalid `_meta.ui` (non-`ui://`, unknown view, bad visibility) is ignored with a warning. Legacy-era responses are unchanged.
+
+Example: `calc_loan_amortization` now also returns `yearly_schedule` (principal, interest, closing balance per year) and binds `ui://sajha/loan-amortization.html` — a self-contained view (no external scripts or network) that speaks the MCP Apps postMessage protocol (`ui/initialize`, `ui/notifications/tool-result`, `host-context-changed`, `size-changed`) and draws a stacked principal/interest bar chart with tooltips and a schedule table. Clients without Apps still get the normal text + `structuredContent` result.
+
+### 4.3 `x-mcp-header` annotations on tool configs
+
+Tool configs may annotate a top-level (or nested, through `properties` only) `string`/`integer`/`boolean` input property with `"x-mcp-header": "<Token>"`; 2026-07-28 clients then mirror the argument as `Mcp-Param-<Token>`, and SAJHA rejects a missing, extra or different header with `-32020` (§1.3). Because clients must drop a whole tool whose annotations are invalid, SAJHA removes invalid annotations when the schema is loaded (not reachable via `properties`, not an RFC 9110 token, on a `number`/object/array property, or a case-insensitive duplicate) and logs one warning per tool. Annotated: `symbol` → `Mcp-Param-Symbol` on `yahoo_get_quote`, `av_stock_quote` and `fmp_stock_quote`.
+
+---
+
+## 5. Conformance results
 
 ```bash
 SAJHA_MCP_CONFORMANCE_FIXTURES=true python run_server.py --host 127.0.0.1 --port 3092
@@ -244,10 +286,22 @@ done
 | 2025-11-25 (legacy path, 0.1.16) | 32/32 | **43 passed, 0 failed** (unchanged) |
 | 2026-07-28 `--suite all` (0.2.0-alpha.12) | 40/40 | **152 passed, 0 failed** (Wave 1: 125/137; before Wave 1: 11/119) |
 | tasks extension scenarios (`--force`) | 10/10 | **44 passed, 0 failed** |
+| `authorization` (built-in AS, `--spec-version 2026-07-28` and `2025-11-25`) | 2/2 | **3 passed, 0 failed** |
+
+Both server suites were also run with `mcp.auth.mode=optional` (same results). The authorization suite runs against the built-in AS with a pre-registered public client; the browser step of `authorization-code-grant` (sign in, approve) was driven by a script:
+
+```bash
+SAJHA_MCP_AUTH_MODE=required SAJHA_MCP_AUTH_BUILTIN_CLIENTS='[{"client_id":"conformance","redirect_uris":["http://127.0.0.1:3000/callback"]}]' \
+  python run_server.py --host 127.0.0.1 --port 3092
+npx -y @modelcontextprotocol/conformance@0.2.0-alpha.12 authorization --url http://127.0.0.1:3092 \
+    --client-id conformance --resource http://127.0.0.1:3092/mcp --spec-version 2026-07-28
+```
+
+The `auth/*` scenarios in the suite test *clients*, not servers.
 
 `server-stateless` now runs all 30 checks, including the five `subscriptions/listen` checks (ack first, `subscriptionId` tagging, filter honored, tools and prompts list_changed) that were skipped while nothing advertised `listChanged`. `tasks-status-notifications` is a placeholder in this harness release (0 checks: "pending subscriptions/listen rewrite").
 
-## 5. Official SDK client (`mcp` 2.3.0)
+## 6. Official SDK client (`mcp` 2.3.0)
 
 `mcp.Client("http://127.0.0.1:3092/mcp", mode=...)` was run in three modes:
 
@@ -257,6 +311,8 @@ done
 
 Each mode lists tools (`ttl_ms=60000`, `cache_scope="public"` on modern), calls `calc_percentage_change` (80 → 100 gives 25.0), lists 10 prompts, gets `bug_diagnosis` with its required arguments, lists resources and reads `sajha://tools/catalog`. `SajhaMCPClient` (default `mode="auto"`) negotiates `2026-07-28`, and `clientsdk/tests` covers this.
 
+OAuth (Wave 4), `mcp.auth.mode=required`, built-in AS: `OAuthClientProvider` over `httpx2` with a pre-registered public client and, separately, with DCR enabled. Anonymous POST → 401 with `resource_metadata` + `scope`; the SDK discovered PRM and AS metadata, ran code + PKCE with `resource`, validated `iss`, received access + refresh tokens (`mcp:read mcp:tools offline_access`) and then listed tools and called `calc_loan_amortization` in both `mode="auto"` (2026-07-28) and `mode="legacy"`.
+
 Waves 2–3 with the same SDK (auto mode, elicitation / sampling / roots callbacks):
 
 - `call_tool(..., progress_callback=...)` receives progress 0 → 50 → 100 over the streamed response;
@@ -264,7 +320,10 @@ Waves 2–3 with the same SDK (auto mode, elicitation / sampling / roots callbac
 - `call_tool` drives MRTR automatically through the callbacks (single, multi-round, elicitation + sampling + roots at once, requestState round trip), as does `get_prompt` for the MRTR prompt;
 - driving it by hand (`session.call_tool(..., allow_input_required=True)`, then `call_tool(..., input_responses=..., request_state=...)`) works, and a tampered `request_state` is rejected with `MCPError("requestState failed integrity verification")`.
 
-## 6. Tests
+## 7. Tests
+
+`tests/test_mcp_auth.py` (OAuth: modes, PRM, challenges, API keys and SAJHA JWTs in `required` mode, wrong audience / issuer / key / expiry / HS256, insufficient scope, AS metadata, code flow with `iss`, consent sign-in, single-use codes, PKCE, no open redirect, `invalid_target`, deny, consent CSRF, refresh rotation and reuse detection, confidential clients, DCR, CIMD validation and SSRF guards) and `tests/test_mcp_apps.py` (Apps capability, `_meta.ui`, `ui://` list/read, disabled flag, `x-mcp-header` sanitising and enforcement on a real tool) were added.
+
 
 `tests/test_mcp_2026_07_28.py` covers, besides the Wave 1 items (era routing, `server/discover`, `_meta` validation, every `-32020` header rule, `-32022`, `resultType`/`serverInfo`, caching fields, resource-not-found `-32602`, `-32021`, removed/unknown methods, GET/DELETE 405, error-code mapping):
 
@@ -278,10 +337,13 @@ Waves 2–3 with the same SDK (auto mode, elicitation / sampling / roots callbac
 
 `tests/test_mcp_2025_11_25.py` still passes unchanged.
 
-## 7. Known limits
+## 8. Known limits
 
 - **No resumability** on the modern path (by design of 2026-07-28); legacy streams keep SEP-1699 resumption.
 - **Thread-pool tools are abandoned, not killed** on cancel; they stop early only if they poll `is_cancelled()`.
 - **Tasks and listen streams are per process**: run one worker or sticky routing (the HMAC `requestState` is process-independent once `mcp.mrtr.state_secret` is set).
 - **Legacy streamable-HTTP sessions get no `list_changed`** (SAJHA has no GET stream; capability says `false`); 2024-11-05 SSE and WebSocket sessions do.
 - **`notifications/tasks`** (optional) is not emitted.
+- **OAuth state is per process**: pending consents, codes, refresh tokens and DCR registrations live in memory (a restart signs OAuth clients out; access tokens stay valid until expiry since the key is persisted). Access tokens are not revocable before `exp` (15 min default).
+- **External authorization servers**: JWT access tokens only (no RFC 7662 introspection); no CORS on `/oauth/*` for browser-based clients; set `mcp.auth.public_url` in production (without it, issuer and audience follow the request `Host`).
+- **The WebSocket transport** accepts SAJHA JWTs / API keys only (`?token=` / `?api_key=`); in `required` mode an unauthenticated socket is closed (1008).
