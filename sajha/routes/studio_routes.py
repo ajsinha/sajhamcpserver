@@ -304,7 +304,18 @@ def _studio_ctx(auth: AuthContext) -> dict:
         'sample_code': SAMPLE_CODE,
         'existing_tools': _existing_tools(),
         'examples': CODE_EXAMPLES,
+        'sandbox': _sandbox_policy(),
     }
+
+
+def _sandbox_policy() -> Optional[Dict[str, Any]]:
+    """The sandbox policy a new Python code or script tool gets (shown on the creator pages)."""
+    try:
+        from sajha.sandbox import studio_policy
+        return studio_policy()
+    except Exception as e:
+        logger.warning(f'Sandbox status unavailable: {e}')
+        return None
 
 
 @pages.get('')

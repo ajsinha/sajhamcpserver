@@ -10,6 +10,7 @@ cohort analysis, and sample data generation.
 import json
 import logging
 import os
+import threading
 import duckdb
 from typing import Dict, Any, List, Optional
 from pathlib import Path
@@ -89,7 +90,19 @@ class DuckDBOLAPAdvancedTool(BaseMCPTool):
         self.stats_engine = StatsEngine(self.semantic, self.conn)
         self.cohort_engine = CohortEngine(self.semantic, self.conn)
         self.sample_generator = SampleDataGenerator(self.conn)
-        self._ensure_demo_data()
+        # Demo data is built on first use, not here: generating it costs seconds and
+        # every OLAP config constructs this class at server/stdio start.
+        self._demo_lock = threading.Lock()
+        self._demo_ready = False
+
+    def _ensure_demo_data_once(self):
+        """Run _ensure_demo_data at most once per instance (thread-safe)."""
+        if self._demo_ready:
+            return
+        with self._demo_lock:
+            if not self._demo_ready:
+                self._ensure_demo_data()
+                self._demo_ready = True
 
     @staticmethod
     def _project_root() -> Path:
@@ -117,11 +130,18 @@ class DuckDBOLAPAdvancedTool(BaseMCPTool):
 
     def _ensure_demo_data(self):
         """When no OLAP database is configured (in-memory connection), load the
-        sample star schema so the shipped datasets (sales_analysis, ...) can be
-        queried out of the box. Skipped when the source tables already exist."""
+        sample star schema so every shipped dataset (sales_analysis,
+        financial_metrics, customer_analytics, inventory_analysis) can be queried
+        out of the box. Existing tables are never replaced."""
         if self.config.get('generate_sample_data', True) is False:
             return
         if self._table_exists('sales_data'):
+            # Star schema already present (e.g. an olap.duckdb file): add only the
+            # customer_data / inventory_data relations if they are missing.
+            try:
+                self.sample_generator.ensure_dataset_tables()
+            except Exception as e:
+                logger.warning(f"OLAP dataset table creation failed: {e}")
             return
         try:
             import random
@@ -685,6 +705,8 @@ class DuckDBOLAPAdvancedTool(BaseMCPTool):
         handler = handlers.get(name)
         if not handler:
             return {"error": f"Unknown tool: {name}"}
+        if name != "olap_generate_sample_data":
+            self._ensure_demo_data_once()
         
         try:
             return await handler(arguments)

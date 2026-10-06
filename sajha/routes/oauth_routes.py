@@ -393,7 +393,7 @@ def _grant_code(request: Request, form, client: OAuthClient, db: Session) -> Dic
     _enabled_user(db, rec.user_id)
     body = asrv.mint_access_token(rec.issuer, rec.user_id, client.client_id, rec.scopes, rec.resource)
     if asrv.wants_refresh(rec.scopes):
-        rec.family = uuid.uuid4().hex
+        rec.family = rec.family or uuid.uuid4().hex   # fixed atomically by redeem_code
         body['refresh_token'] = store.issue_refresh(rec.family, client.client_id, rec.user_id, rec.scopes,
                                                     rec.resource, rec.issuer)
     return body

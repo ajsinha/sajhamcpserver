@@ -755,6 +755,7 @@
             Your function's type hints define the input/output schemas. Required parameters have no default values.
         </small>
     </div>
+    {% include "admin/studio/_sandbox_policy.html" %}
     
     <!-- Tool Name Input -->
     <div class="row mb-3">
@@ -780,6 +781,12 @@
             <button class="btn btn-studio btn-clear" onclick="clearAll()">
                 <i class="bi bi-x-circle me-1"></i>Clear
             </button>
+            {% if playground_enabled is defined and playground_enabled() %}
+            <button class="btn btn-studio btn-outline-secondary" onclick="openInPlayground()"
+                    title="Try this function in the Python Playground (runs in your browser)">
+                <i class="bi bi-filetype-py me-1"></i>Open in playground
+            </button>
+            {% endif %}
         </div>
     </div>
     
@@ -1142,6 +1149,20 @@ async function deleteIfExists() {
         deleteBtn.disabled = false;
         deleteBtn.innerHTML = '<i class="bi bi-trash delete-warning-icon"></i>Delete if Exists';
     }
+}
+
+// Python Playground hand-off: the code goes through this browser's storage, and the
+// playground (static/js/playground.js) adds a test call below it.
+function openInPlayground() {
+    const code = document.getElementById('codeEditor').value;
+    if (!code.trim()) { alert('Write or paste a function first.'); return; }
+    try {
+        localStorage.setItem('sajha.playground.import', JSON.stringify({code: code, from: 'studio', at: Date.now()}));
+    } catch (e) {
+        alert('This browser does not allow storage, so the code cannot be handed to the playground.');
+        return;
+    }
+    window.open('/playground', '_blank', 'noopener');
 }
 
 function clearAll() {

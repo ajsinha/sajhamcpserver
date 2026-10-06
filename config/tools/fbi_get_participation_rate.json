@@ -1,87 +1,112 @@
 {
   "name": "fbi_get_participation_rate",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetParticipationRateTool",
-  "description": "Retrieve participation rates showing percentage of agencies reporting crime data",
-  "version": "2.9.8",
+  "description": "Share of the population covered by agencies reporting crime data to the FBI, nationally or for a state, by month",
+  "version": "3.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "state": {
         "type": "string",
-        "description": "Optional: Filter by US State abbreviation (e.g., CA, NY, TX). If not provided, returns national data.",
-        "pattern": "^[A-Z]{2}$"
+        "description": "Optional two-letter state code; omit for national",
+        "pattern": "^[A-Za-z]{2}$"
       },
       "year": {
         "type": "integer",
-        "description": "Year for participation statistics (e.g., 2022)",
-        "minimum": 1960,
-        "maximum": 2024
+        "description": "Data year (defaults to last calendar year)",
+        "minimum": 1985,
+        "maximum": 2100
       }
-    }
+    },
+    "required": []
   },
   "outputSchema": {
     "type": "object",
     "properties": {
       "scope": {
         "type": "string",
-        "description": "Geographic scope of data",
         "enum": [
           "national",
           "state"
         ]
       },
       "state": {
-        "type": "string",
-        "description": "State abbreviation if state-level data"
+        "type": "string"
       },
       "year": {
-        "type": "integer",
-        "description": "Year of participation statistics"
+        "type": "integer"
       },
       "participation_data": {
         "type": "object",
         "properties": {
-          "total_agencies": {
-            "type": "integer",
-            "description": "Total number of law enforcement agencies"
-          },
-          "reporting_agencies": {
-            "type": "integer",
-            "description": "Number of agencies that reported data"
-          },
-          "participation_rate": {
-            "type": "number",
-            "description": "Percentage of agencies reporting (0-100)"
-          },
-          "population_covered": {
-            "type": "integer",
-            "description": "Total population covered by reporting agencies"
-          },
           "total_population": {
-            "type": "integer",
-            "description": "Total population in scope"
+            "type": [
+              "integer",
+              "null"
+            ]
           },
-          "population_coverage_rate": {
-            "type": "number",
-            "description": "Percentage of population covered (0-100)"
+          "average_participated_population": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "average_population_coverage_pct": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "months_reported": {
+            "type": "integer"
           }
         }
       },
-      "reporting_quality": {
+      "monthly": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "month": {
+              "type": "string"
+            },
+            "population_coverage_pct": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "participated_population": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "metadata": {
         "type": "object",
         "properties": {
-          "full_year_reporters": {
-            "type": "integer",
-            "description": "Agencies reporting all 12 months"
+          "data_source": {
+            "type": "string"
           },
-          "partial_year_reporters": {
-            "type": "integer",
-            "description": "Agencies reporting less than 12 months"
+          "endpoint": {
+            "type": "string",
+            "description": "CDE API path called"
           },
-          "zero_reporters": {
-            "type": "integer",
-            "description": "Agencies reporting zero crimes"
+          "data_last_refreshed": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "data_available_through": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       }
@@ -104,19 +129,19 @@
     ],
     "rateLimit": 120,
     "cacheTTL": 3600,
-    "note": "Assess data quality and coverage by examining agency participation rates",
+    "note": "The CDE API no longer publishes agency counts by participation; coverage comes from the population fields of /summarized/{national | state/{state}}/V.",
     "examples": [
       {
-        "description": "Get 2022 national participation rate",
+        "description": "National coverage, 2024",
         "input": {
-          "year": 2022
+          "year": 2024
         }
       },
       {
-        "description": "Check California agencies' reporting participation",
+        "description": "Florida coverage, 2021",
         "input": {
-          "state": "CA",
-          "year": 2022
+          "state": "FL",
+          "year": 2021
         }
       }
     ]

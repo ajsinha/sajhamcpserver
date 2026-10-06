@@ -5,7 +5,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 An RSA-2048 key (RS256) generated on first use into
 ``mcp.auth.builtin.signing_key_path`` (default data/oauth/signing_key.pem,
 file mode 0600, git-ignored).  The public half is served at /oauth/jwks with a
-RFC 7638 thumbprint as ``kid``.  Rotate by deleting the file and restarting:
+RFC 7638 thumbprint as ``kid``.  Several hosts must share the key: a shared data
+directory, or the PEM in ``mcp.auth.builtin.signing_key_pem`` (env).  Rotate by
+deleting the file and restarting:
 outstanding access tokens then fail validation (clients refresh/re-authorize).
 """
 
@@ -56,8 +58,20 @@ _cached_path: Optional[str] = None
 
 
 def get_signing_key() -> SigningKey:
-    """Load (or create once) the persisted signing key."""
+    """
+    The signing key: ``mcp.auth.builtin.signing_key_pem`` (env
+    SAJHA_MCP_AUTH_BUILTIN_SIGNING_KEY_PEM, PEM text: the way to give every host of a
+    multi-host deployment the same key), else the file, created once.
+    """
     global _cached, _cached_path
+    from sajha.core.config import _get
+    pem_text = (_get('mcp.auth.builtin.signing_key_pem', '') or '').strip()
+    if pem_text:
+        with _lock:
+            marker = 'pem:' + hashlib.sha256(pem_text.encode()).hexdigest()
+            if _cached is None or _cached_path != marker:
+                _cached, _cached_path = SigningKey(pem_text.replace('\\n', '\n').encode()), marker
+            return _cached
     path = settings.signing_key_path()
     with _lock:
         if _cached is not None and _cached_path == str(path):

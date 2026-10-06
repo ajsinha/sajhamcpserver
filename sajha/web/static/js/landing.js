@@ -56,8 +56,20 @@
       var r = el.getBoundingClientRect();
       return { l: r.left - base.left - 12, t: r.top - base.top - 12, r: r.right - base.left + 12, b: r.bottom - base.top + 12 };
     }
+    // hover / tap tooltips: the tool and its group (no descriptions here, to keep the page light).
+    // A star the current scene's chain runs through answers with the chain's tool name, so the
+    // tooltip always agrees with the chip drawn above it.
+    var tip = C.tips(S, sky, {
+      info: function (st) {
+        var ch = chains[scene] || [];
+        for (var i = 0; i < ch.length; i++) if (ch[i].s === st) return { name: ch[i].n, group: st.g };
+        return st.n ? { name: st.n, group: st.g } : { name: st.g + '_*', group: st.g };
+      },
+      redraw: function () { kick(); }
+    });
     function layout() {
       if (!S.resize()) return;
+      tip.forget();
       W = S.W; H = S.H;
       var stars = S.place();
       // the star a named tool stands for: a fixed member of its group, kept clear of the
@@ -90,7 +102,7 @@
             return picked.every(function (p) { return a.r < p.b.l || a.l > p.b.r || a.b < p.b.t || a.t > p.b.b; });
           };
           var gap = function (s) { return picked.reduce(function (m, p) { return Math.min(m, Math.hypot(p.s.x - s.x, p.s.y - s.y)); }, 1e9); };
-          var best = null;
+          var own = S.starOf(name), best = own && own.n === name && free(own) && clear(own) ? own : null;
           for (var j = 0; j < members.length && !best; j++) {
             var c = members[(h + j) % members.length];
             if (clear(c)) best = c;
@@ -145,6 +157,7 @@
       chain.forEach(function (c) { used[c.s.g] = 1; });
       var lit = t > TYPE ? ease((t - TYPE) / DISCOVER) * fade : 0;
       S.drawStars(now, function (st) { return used[st.g] ? lit : 0; }, reduce);
+      S.ring(tip.star, tip.pinned);
 
       if (!reduce && t > TYPE && t < TYPE + DISCOVER) S.sweep(W / 2, 40, ease((t - TYPE) / DISCOVER));   // the discovery sweep
 
@@ -172,7 +185,7 @@
       raf = 0;
       var dt = Math.min(0.05, (now - last) / 1000); last = now;
       clock += dt;
-      if (clock > dur(SCENES[scene])) { scene = (scene + 1) % SCENES.length; clock = 0; }
+      if (clock > dur(SCENES[scene])) { scene = (scene + 1) % SCENES.length; clock = 0; if (tip.star) tip.refresh(); }
       draw(now);
       if (running()) raf = requestAnimationFrame(loop);
     }
@@ -191,7 +204,7 @@
       kick();
     });
     nextBtn.addEventListener('click', function () {
-      scene = (scene + 1) % SCENES.length; clock = 0; kick();
+      scene = (scene + 1) % SCENES.length; clock = 0; tip.hide(); kick();
     });
     C.onTheme(function () { S.readTokens(); kick(); });
     document.addEventListener('visibilitychange', kick);

@@ -1,0 +1,137 @@
+{% extends "common/base.html" %}
+{# How SAJHA compares. Every verdict, note, source and date comes from
+   sajha/web/competitive.py; SAJHA's numbers come from the running registries. Change the
+   data there, never here. #}
+{% block title %}How SAJHA compares - {{ app_name }}{% endblock %}
+
+{% macro pill(v) -%}<span class="cmp {{ verdicts[v][0] }}">{{ v }}</span>{%- endmacro %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav class="help-crumbs" aria-label="Breadcrumb"><a href="/help"><i class="bi bi-life-preserver me-1" aria-hidden="true"></i>Help</a><i class="bi bi-chevron-right" aria-hidden="true"></i><span>How SAJHA compares</span></nav>
+    <div class="help-topic-hero">
+        <div class="ico"><i class="bi bi-bar-chart-steps" aria-hidden="true"></i></div>
+        <div>
+            <h1>How SAJHA compares</h1>
+            <p>SAJHA next to the MCP frameworks, gateways and hosted platforms a buyer would weigh it against:
+               {{ dimension_count }} capabilities, each verdict sourced, including where the others are stronger.</p>
+            <span class="cmp-asof"><i class="bi bi-calendar-check me-1" aria-hidden="true"></i>Competitors checked {{ as_of }}</span>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="h5 mb-2"><i class="bi bi-compass me-2" aria-hidden="true"></i>The short version</h2>
+            {% for para in short_version %}<p class="{{ 'mb-2' if not loop.last else 'mb-0 cmp-muted' }}">{{ para }}</p>{% endfor %}
+        </div>
+    </div>
+
+    <section class="cmp-board mb-4" aria-labelledby="cmp-h">
+        <div class="cmp-head">
+            <h2 class="h5 mb-0" id="cmp-h"><i class="bi bi-table me-2" aria-hidden="true"></i>Head to head</h2>
+            <div class="cmp-tools">
+                <div class="cmp-legend" aria-label="Legend">
+                    {% for v, (cls, meaning) in verdicts.items() %}<span title="{{ meaning }}">{{ pill(v) }} <small>{{ meaning }}</small></span>{% endfor %}
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="cmpNotes" aria-pressed="true">
+                    <i class="bi bi-card-text me-1" aria-hidden="true"></i><span>Hide notes</span></button>
+            </div>
+        </div>
+        <div class="cmp-scroll" tabindex="0" role="region" aria-label="Comparison table, scrolls sideways">
+            <table class="cmp-table" id="cmpTable">
+                <thead>
+                    <tr>
+                        <th scope="col" class="cmp-cap">Capability</th>
+                        <th scope="col" class="cmp-us">SAJHA<small>Server</small></th>
+                        {% for comp in competitors %}
+                        <th scope="col"><a href="{{ comp.homepage }}" target="_blank" rel="noopener">{{ comp.name }}</a><small>{{ comp.kind }}</small></th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                {% for g in groups %}
+                    <tr class="cmp-group"><th scope="rowgroup" colspan="{{ competitors|length + 2 }}"><span>{{ g.title }}</span></th></tr>
+                    {% for row in g.rows %}
+                    <tr id="dim-{{ row.id }}">
+                        <th scope="row" class="cmp-cap">{{ row.label }}<small>{{ row.question }}</small></th>
+                        <td class="cmp-us"><div class="cmp-v">{{ pill(row.sajha.verdict) }}</div>
+                            <span class="cmp-note">{{ row.sajha.note }}{% if row.sajha.guide %} <a href="{{ guide_url(row.sajha.guide) }}">{{ row.sajha.guide[:-3] }}</a>{% elif row.sajha.page %} <a href="{{ url_for(row.sajha.page) }}">Live list</a>{% endif %}</span></td>
+                        {% for cell in row.cells %}
+                        <td><div class="cmp-v">{{ pill(cell.verdict) }}{% if cell.n %}<a class="cmp-src" href="#src-{{ cell.n }}" title="Source {{ cell.n }}, checked {{ cell.as_of }}" aria-label="Source {{ cell.n }}">[{{ cell.n }}]</a>{% endif %}</div>
+                            {% if cell.note %}<span class="cmp-note">{{ cell.note }}</span>{% endif %}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="cmp-muted small mt-2 mb-0"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>A competitor's verdict
+            is what its vendor's own public pages said on {{ as_of }}; follow the numbered source. "Unknown" means it could not be
+            verified, never "probably not". SAJHA's column follows its code; each note links the guide that owns the topic.</p>
+    </section>
+
+    <h2 class="h5 mb-3"><i class="bi bi-hand-thumbs-up me-2" aria-hidden="true"></i>Where each is the right choice</h2>
+    <div class="row g-3 mb-4">
+        {% for comp in competitors %}
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 cmp-who">
+                <div class="card-body">
+                    <h3 class="h6 mb-1"><a href="{{ comp.homepage }}" target="_blank" rel="noopener">{{ comp.name }}</a>
+                        <span class="cmp-kind">{{ comp.kind }}</span></h3>
+                    <p class="small cmp-muted mb-2">{{ comp.vendor }} · {{ comp.licence }}</p>
+                    <p class="small mb-2">{{ comp.summary }}</p>
+                    <p class="small mb-0"><strong>Choose it for:</strong> {{ comp.best_for }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 cmp-who cmp-who-us">
+                <div class="card-body">
+                    <h3 class="h6 mb-1">SAJHA <span class="cmp-kind">Server</span></h3>
+                    <p class="small cmp-muted mb-2">{{ sajha.vendor }} · {{ sajha.licence }}</p>
+                    <p class="small mb-0"><strong>Choose it for:</strong> {{ sajha.best_for }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="card mb-4" aria-labelledby="src-h">
+        <div class="card-body">
+            <h2 class="h5 mb-2" id="src-h"><i class="bi bi-link-45deg me-2" aria-hidden="true"></i>Sources</h2>
+            <p class="small cmp-muted">{{ sources|length }} pages, each opened on the date shown.</p>
+            <ol class="cmp-sources small mb-0">
+                {% for s in sources %}
+                <li id="src-{{ s.n }}"><a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.url }}</a>
+                    <span class="cmp-muted">· checked {{ s.as_of }} · {% for name, label in s.cites %}{{ name }}: {{ label }}{{ '; ' if not loop.last }}{% endfor %}</span></li>
+                {% endfor %}
+            </ol>
+        </div>
+    </section>
+
+    {% include "help/_help_footer.html" %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var btn = document.getElementById('cmpNotes'), table = document.getElementById('cmpTable');
+    if (!btn || !table) return;
+    function set(show) {
+        table.classList.toggle('cmp-compact', !show);
+        btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+        btn.querySelector('span').textContent = show ? 'Hide notes' : 'Show notes';
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('sajha.cmp.notes'); } catch (e) {}
+    set(saved !== 'off');
+    btn.addEventListener('click', function () {
+        var show = table.classList.contains('cmp-compact');
+        set(show);
+        try { localStorage.setItem('sajha.cmp.notes', show ? 'on' : 'off'); } catch (e) {}
+    });
+})();
+</script>
+{% endblock %}

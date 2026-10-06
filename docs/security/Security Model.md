@@ -196,6 +196,14 @@ The WebSocket endpoint `/mcp/ws` does **not** check `Origin`.
 
 The overridable headers are applied with `setdefault`, so a stricter value set by a route (for example the OAuth consent page) is no longer overwritten. All JS, CSS and fonts are vendored under `/static/vendor`. The CSP still allows `'unsafe-inline'` for inline template scripts and styles.
 
+One route family sets its own policy: the Python Playground. `/playground` adds `worker-src 'self'`
+and sends `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`
+(cross-origin isolation, for the Stop button's `SharedArrayBuffer`); its worker script,
+`/api/playground/worker.js`, is the only response whose CSP allows `'wasm-unsafe-eval'`, plus the
+Pyodide CDN when `playground.assets` is `cdn` and PyPI when `playground.allow_pypi` is true.
+User code runs only in the browser; its tool calls are ordinary API requests under the user's
+session. Details: [Python Playground](../getting-started/Python%20Playground.md#security).
+
 ### CORS
 
 `CORSMiddleware` (`sajha/app.py`) allows the origins in `SAJHA_CORS_ORIGINS` (comma-separated). The default is `http://localhost:3002`, `http://127.0.0.1:3002` and `http://0.0.0.0:3002`. It sets `allow_credentials=True` with all methods and headers allowed, and exposes `Mcp-Session-Id`. Set `SAJHA_CORS_ORIGINS` to your real UI origins in production.
@@ -206,7 +214,7 @@ The overridable headers are applied with `setdefault`, so a stricter value set b
 
 ### Rate limiting and lockout
 
-All limiters are in-memory sliding windows in `sajha/security.py`, keyed by client IP and kept per process. Account lockout is stored in the database, so it holds across processes:
+All limiters are sliding windows in `sajha/security.py`, keyed by client IP and kept in the state store: per process with the default `state.backend: memory`, shared by every worker with `redis` or `database` ([Scaling and State](../architecture/Scaling%20and%20State.md)). Account lockout is stored in the database, so it holds across processes:
 
 | Where | Limit |
 |---|---|
@@ -262,24 +270,25 @@ Shell execution is off by default: `shell.enabled: ${SHELL_ENABLED:false}` in `c
 
 The controls are:
 
-- **Python.** A regex rejects a blocklist of imports (such as `os`, `sys`, `subprocess`, `socket`, `urllib`, `ctypes`, `pickle`, `importlib`, `pathlib`) and a list of builtin call strings (`exec(`, `eval(`, `open(`, `getattr(` ...). The code runs in `python3` as a subprocess with a minimal environment (`PATH=/usr/bin:/bin`, empty `PYTHONPATH`, `HOME` set to the scratch directory), a working directory of `shell.scratch_dir`, and a timeout (default 30 s). The "allowed imports" set is only reported by `/api/shell/capabilities` and is **not enforced**. `shell.python.memory_limit_mb` is **not applied**.
-- **Bash.** The first command and every pipe target must be in an allowlist (for example `cat`, `grep`, `awk`, `sed`, `find`, `jq`, `ls`). Regex patterns block `rm`, `mv`, `cp`, `sudo`, network tools, interpreters, command substitution, `;`, `&&`, `||` and pipe-to-shell. Commands run through `bash -c` with a minimal environment, a timeout (default 15 s) and an output cap.
+- **Python.** A regex rejects a blocklist of imports (such as `os`, `sys`, `subprocess`, `socket`, `urllib`, `ctypes`, `pickle`, `importlib`, `pathlib`) and a list of builtin call strings (`exec(`, `eval(`, `open(`, `getattr(` ...). The "allowed imports" set is only reported by `/api/shell/capabilities` and is not enforced.
+- **Bash.** The first command and every pipe target must be in an allowlist (for example `cat`, `grep`, `awk`, `sed`, `find`, `jq`, `ls`). Regex patterns block `rm`, `mv`, `cp`, `sudo`, network tools, interpreters, command substitution, `;`, `&&`, `||` and pipe-to-shell.
+- **The sandbox.** Code that passes the filters runs in the [sandbox](../architecture/Sandbox.md) backend (`sandbox.default_backend`), with the shell's timeout, `shell.python.memory_limit_mb` and `shell.bash.max_output_bytes`. The filters are string checks and can be bypassed (`find -exec`, `awk system()`, pandas file readers); the sandbox is the boundary.
 - **Audit.** Every execution, including blocked ones, is written to the audit log as `shell_execute_python` / `shell_execute_bash`.
 
-These are string filters on a process that runs as the server user. They are **not a security boundary**: allowlisted tools such as `find -exec`, `awk system()` and `sed`, or pandas/numpy file readers in Python, can reach the filesystem. Enable the shell only for fully trusted users, preferably inside a container with no secrets mounted.
+How strong the boundary is depends on the backend and the host: on Linux the default `subprocess` backend confines the code with Landlock, seccomp, user/PID/network namespaces and rlimits; on macOS and Windows it gives process separation, a clean environment and the limits only. `GET /api/sandbox/status` reports what is enforced on the running host.
 
 ### MCP Studio
 
-The Studio pages under `/studio/*` (`sajha/routes/studio_routes.py`) need any authenticated user. The `developer` role's `studio` permission is not checked.
+The Studio pages (`/studio/*`) and the actions they post to (`/admin/studio/*`: analyze, preview, deploy, delete) are admin-only (`sajha/routes/studio_routes.py`). A deploy writes the generated files and loads the tool into the live registry.
 
-The deploy and preview calls the Studio templates make (`/admin/studio/...`, under `sajha/web/templates/admin/studio/`) have no route in the current application. Studio cannot deploy tools over HTTP in this build.
+Code a user supplies runs in the [sandbox](../architecture/Sandbox.md), not in the server: a Python code tool's module is never imported into the server, and a script tool's script runs in a fresh sandbox per call, with no server environment, no view of the server's files, and no network unless its `sandbox` policy allowlists hosts (`sandbox.enforce_for_generated_tools`, default `true`). Secrets reach a sandbox only by name through `sandbox.secrets_allowlist`, never a `SAJHA_*` variable. Studio's template creators (REST, DB query, Power BI, LiveLink, SharePoint, OLAP) take configuration, not code, and run in-process.
 
-Tools are installed by admins instead:
+Tools are also installed by admins directly:
 
 - `POST /api/admin/tools/{name}/config` and `POST /api/composite-tools` require an admin.
-- A tool config's `implementation` is any importable dotted class path (`sajha/tools/tools_registry.py`).
+- A tool config's `implementation` is any importable dotted class path (`sajha/tools/tools_registry.py`); such a module is imported into the server unless the config sets `"sandbox": {"enabled": true}`.
 
-Treat admin rights and write access to `config/tools` as equivalent to code execution.
+Treat admin rights and write access to `config/tools` or `sajha/tools/impl` as equivalent to code execution in the server.
 
 ### Plugins
 
@@ -326,7 +335,7 @@ Configuration is resolved from a `SAJHA_<KEY>` environment variable first, then 
 | **Origins** | Set `SAJHA_CORS_ORIGINS` and `mcp.allowed_origins` to the real browser origins. |
 | **Bind address** | `server.host` defaults to `0.0.0.0`. Bind to loopback behind a proxy. |
 | **Risky features** | Keep `shell.enabled`, `mcp.conformance_fixtures` and `mcp.auth.builtin.dynamic_client_registration` off unless needed. Review `config/plugins`. |
-| **More than one process** | All of these are per-process memory: OAuth pending requests, codes, refresh tokens and DCR registrations; MCP sessions; tasks; WebSocket sessions; rate-limit counters. Run one process, or use sticky routing per client. Rate limits multiply by the number of processes, and a restart signs out every OAuth client (access tokens stay valid until expiry because the key is persisted). |
+| **More than one process** | Set `state.backend` to `redis` or `database`. With the default `memory`, OAuth pending requests, codes, refresh tokens and DCR registrations, MCP sessions, tasks and rate-limit counters are per process: rate limits multiply by the number of processes, and a restart signs out every OAuth client. Every process must share the JWT secret, the session secret and the OAuth signing key ([Scaling and State](../architecture/Scaling%20and%20State.md)). WebSocket sessions are always per connection. |
 | **Logs** | WebSocket credentials travel in the query string. Make sure proxy access logs do not keep them. |
 
 ---
@@ -376,12 +385,12 @@ These describe the code as it stands. They are listed so you can compensate for 
 
 **Process-local state**
 
-- **Rate limits and OAuth state are in memory and per process.**
+- **Rate limits and OAuth state are per process with `state.backend: memory`** (the default); use `redis` or `database` to share them.
 - **MCP sessions** record the user but are not re-checked against the caller on later requests. The session ID (a random UUID) acts as a bearer capability.
 
 **Sandboxing**
 
-- **Shell sandboxing is a string filter, not isolation.** The Python memory limit and import allowlist are not enforced (see section 5).
+- **Sandbox strength depends on the host.** Studio code and script tools and the shell run in the sandbox; on Linux it confines files, network and processes, on macOS and Windows it does not (only a clean environment and limits). The `subprocess` and namespace backends share the host kernel; use the `docker` backend with gVisor where kernel exploits are in scope. Host-name allowlisting is library-level (see [Sandbox](../architecture/Sandbox.md)).
 
 **Headers and transport**
 

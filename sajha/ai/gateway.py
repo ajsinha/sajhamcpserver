@@ -104,26 +104,42 @@ def _today() -> str:
 
 
 class TokenTracker:
-    """Usage per user/provider/model (all time) and per user / per role per UTC day."""
+    """
+    Usage per user/provider/model (all time) and per user / per role per UTC day.
 
-    def __init__(self):
-        self._usage: Dict[str, Dict] = {}
-        self._daily_user: Dict[Tuple[str, str], int] = {}
-        self._daily_role: Dict[Tuple[str, str], int] = {}
-        self._lock = threading.Lock()
+    With a shared state store (``state.backend`` redis or database) the counters
+    live there, so daily budgets hold across every worker instead of each
+    worker granting the full budget.  With the memory backend each tracker keeps
+    its own private counters, as before.
+    """
+
+    _DAY_TTL = 2 * 86400
+
+    def __init__(self, store=None):
+        if store is None:
+            from sajha.core.state import get_state_store
+            from sajha.core.state.memory import MemoryStateStore
+            shared = get_state_store()
+            store = shared if shared.shared else MemoryStateStore("")
+        self._store = store
 
     def record_usage(self, user_id: str, roles: List[str], provider: str, model: str, usage: Usage) -> None:
         day = _today()
-        with self._lock:
-            m = self._usage.setdefault(user_id, {}).setdefault(provider, {}).setdefault(
+
+        def add(cur):
+            cur = cur or {}
+            m = cur.setdefault(provider, {}).setdefault(
                 model, {"input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0, "count": 0})
             m["input_tokens"] += usage.input_tokens
             m["output_tokens"] += usage.output_tokens
             m["cost_usd"] += usage.cost_usd
             m["count"] += 1
-            self._daily_user[(user_id, day)] = self._daily_user.get((user_id, day), 0) + usage.total_tokens
-            for r in roles or []:
-                self._daily_role[(r, day)] = self._daily_role.get((r, day), 0) + usage.total_tokens
+            return cur
+
+        self._store.update(f"llm:usage:{user_id}", add)
+        self._store.incr(f"llm:daily:user:{user_id}:{day}", usage.total_tokens, ttl=self._DAY_TTL)
+        for r in roles or []:
+            self._store.incr(f"llm:daily:role:{r}:{day}", usage.total_tokens, ttl=self._DAY_TTL)
 
     def record(self, user_id: str, response) -> None:
         """Legacy: record an LLMResponse-like object."""
@@ -131,16 +147,15 @@ class TokenTracker:
                           Usage(response.input_tokens, response.output_tokens, 0, response.cost_usd))
 
     def daily_user_tokens(self, user_id: str, day: str = "") -> int:
-        return self._daily_user.get((user_id, day or _today()), 0)
+        return int(self._store.get(f"llm:daily:user:{user_id}:{day or _today()}") or 0)
 
     def daily_role_tokens(self, role: str, day: str = "") -> int:
-        return self._daily_role.get((role, day or _today()), 0)
+        return int(self._store.get(f"llm:daily:role:{role}:{day or _today()}") or 0)
 
     def get_usage(self, user_id: str = "") -> Dict:
-        with self._lock:
-            if user_id:
-                return json.loads(json.dumps(self._usage.get(user_id, {})))
-            return json.loads(json.dumps(self._usage))
+        if user_id:
+            return self._store.get(f"llm:usage:{user_id}") or {}
+        return {k[len("llm:usage:"):]: v for k, v in self._store.scan("llm:usage:")}
 
     def get_total_cost(self, user_id: str = "") -> float:
         usage = self.get_usage(user_id)
@@ -437,6 +452,17 @@ class LLMGateway:
         owner = ctx.budget_owner if ctx else "anonymous"
         self._tracker.record_usage(owner, list(ctx.roles) if ctx else [], resp.provider, resp.model, resp.usage)
 
+    @staticmethod
+    def _observe(ctx: Optional[RequestContext], provider: str, model: str, outcome: str, seconds: float,
+                 usage: Optional[Usage] = None) -> None:
+        """Metrics and the usage ledger (sajha/observability); never raises."""
+        try:
+            from sajha.observability.metrics import record_llm
+            u = usage or Usage()
+            record_llm(provider, model, outcome, seconds, u.input_tokens, u.output_tokens, u.cost_usd, ctx=ctx)
+        except Exception:
+            pass
+
     def _call_with_retries(self, cm: ChatModel, request: ChatRequest) -> ChatResponse:
         cfg = cm.provider.config
         rs = self.settings.retry
@@ -474,12 +500,14 @@ class LLMGateway:
                 if hit is not None:
                     resp = replace(hit, cached=True, usage=Usage())
                     self._audit(ctx, cm, "cache_hit", resp)
+                    self._observe(ctx, pname, cm.id, "cache_hit", 0.0)
                     return resp
             attrs = {"llm.provider": pname, "llm.model": cm.id, "llm.alias": model,
                      "user.id": ctx.user_id if ctx else None}
             if self.settings.gateway.trace_prompts:
                 attrs["llm.prompt"] = json.dumps(request.canonical(), default=str)[:4000]
             with self._span("llm.chat", attrs) as span:
+                t0 = time.perf_counter()
                 try:
                     resp = self._call_with_retries(cm, request)
                 except (RateLimited, ProviderUnavailable) as e:
@@ -487,23 +515,29 @@ class LLMGateway:
                     attempts.append(Attempt(cm.qualified_id, "failed", str(e)))
                     last_err = e
                     self._span_outcome(span, "error", e)
+                    self._observe(ctx, pname, cm.id, "error", time.perf_counter() - t0)
                     continue
                 except AuthenticationFailed as e:
                     self._mark_down(pname, "authentication failed")
                     attempts.append(Attempt(cm.qualified_id, "failed", str(e)))
                     last_err = e
                     self._span_outcome(span, "auth_failed", e)
+                    self._observe(ctx, pname, cm.id, "auth_failed", time.perf_counter() - t0)
                     continue
                 except (UnsupportedFeature, ContextTooLong, ConfigurationError) as e:
                     attempts.append(Attempt(cm.qualified_id, "failed", str(e)))
                     last_err = e
                     self._span_outcome(span, e.code, e)
+                    self._observe(ctx, pname, cm.id, e.code, time.perf_counter() - t0)
                     continue
                 except (ContentFiltered, InvalidRequest) as e:
                     self._span_outcome(span, e.code, e)
+                    self._observe(ctx, pname, cm.id, e.code, time.perf_counter() - t0)
                     raise
                 self.breaker(pname).record_success()
                 self._record(ctx, resp)
+                self._observe(ctx, resp.provider or pname, resp.model or cm.id, "ok",
+                              time.perf_counter() - t0, resp.usage)
                 if span is not None:
                     try:
                         span.set_attribute("llm.input_tokens", resp.usage.input_tokens)
@@ -560,14 +594,18 @@ class LLMGateway:
                         yield ToolCallDelta(c.id, c.name, json.dumps(c.arguments), i)
                     yield UsageEvent(resp.usage)
                     yield Done(resp)
+                    self._observe(ctx, pname, cm.id, "cache_hit", 0.0)
                     return
             started = False
+            t0 = time.perf_counter()
             try:
                 for ev in cm.stream(request):
                     started = True
                     if isinstance(ev, Done):
                         self.breaker(pname).record_success()
                         self._record(ctx, ev.response)
+                        self._observe(ctx, ev.response.provider or pname, ev.response.model or cm.id, "ok",
+                                      time.perf_counter() - t0, ev.response.usage)
                         if key and ev.response.finish_reason in ("stop", "tool_calls"):
                             self._cache.put(key, ev.response)
                     yield ev
@@ -580,6 +618,9 @@ class LLMGateway:
                     self._mark_down(pname, "authentication failed")
                 elif isinstance(e, (RateLimited, ProviderUnavailable)):
                     self.breaker(pname).record_failure()
+                self._observe(ctx, pname, cm.id, "auth_failed" if isinstance(e, AuthenticationFailed) else
+                              ("error" if isinstance(e, (RateLimited, ProviderUnavailable)) else e.code),
+                              time.perf_counter() - t0)
                 attempts.append(Attempt(cm.qualified_id, "failed", str(e)))
                 last_err = e
         raise NoModelAvailable(self._no_model_msg(model, attempts)) from last_err

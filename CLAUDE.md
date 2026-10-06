@@ -134,8 +134,12 @@ the disagreement.
   reads the raw YAML). The Configuration Reference records which keys behave how.
 - Secrets never go in `config/application.yml`; it is tracked. Use environment
   variables. The OAuth signing key lives in `data/oauth/` (git-ignored).
-- Protocol state (MCP sessions, MCP tasks, listen streams, OAuth codes and refresh
-  tokens) is per process.
+- Shared protocol state (MCP sessions, tasks, listen events, OAuth codes and refresh
+  tokens, rate-limit and budget counters) goes through the state store
+  (`sajha/core/state/`, `state.backend: memory|redis|database`). `memory` is per
+  process and fine for one worker; several workers need `redis` or `database`. Caches,
+  circuit breakers and metrics stay per process on purpose (see
+  `docs/architecture/Scaling and State.md`).
 
 ## Git
 

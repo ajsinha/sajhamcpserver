@@ -136,14 +136,44 @@ class BaseMCPTool(ABC):
     
     def execute_with_tracking(self, arguments: Dict[str, Any]) -> Any:
         """
-        Execute tool with performance tracking
-        
+        Execute tool with performance tracking: the enabled check, argument validation,
+        the tool cache, the circuit breaker, and observability (a ``tool`` span, the
+        ``sajha_tool_*`` metrics and a usage-ledger row; sajha/observability/).
+
         Args:
             arguments: Tool arguments
-            
+
         Returns:
             Tool execution result
         """
+        import time as _time
+        from sajha.core.mcp_mrtr import InputRequired
+        from sajha.observability import metrics as _metrics, tracing as _tracing
+        from sajha.observability.caller import current as _caller
+        outcome = {'v': 'ok'}
+        error = ''
+        t0 = _time.perf_counter()
+        with _tracing.span(f'tool {self.name}', {'sajha.tool.name': self.name,
+                                                 'sajha.tool.group': _metrics.tool_group(self.name),
+                                                 'enduser.id': _caller().user_id}) as span:
+            try:
+                return self._execute_tracked(arguments, outcome)
+            except InputRequired:
+                outcome['v'] = 'input_required'
+                raise
+            except Exception as e:
+                if outcome['v'] == 'ok':
+                    outcome['v'] = 'error'
+                error = str(e)
+                _tracing.set_error(span, error)
+                raise
+            finally:
+                _tracing.set_attrs(span, **{'sajha.tool.outcome': outcome['v']})
+                _metrics.record_tool(self.name, outcome['v'], _time.perf_counter() - t0, error)
+
+    def _execute_tracked(self, arguments: Dict[str, Any], outcome: Dict[str, str]) -> Any:
+        """The body of :meth:`execute_with_tracking`; sets ``outcome['v']`` for a cache hit
+        or an open circuit."""
         if not self.enabled:
             raise RuntimeError(f"Tool is disabled: {self.name}")
         
@@ -158,6 +188,7 @@ class BaseMCPTool(ABC):
             cached = cache.get(self.name, arguments)
             if cached is not None:
                 self.logger.debug(f"Cache hit: {self.name}")
+                outcome['v'] = 'cache_hit'
                 return cached
 
         # ── Circuit breaker check ────────────────────────────
@@ -165,9 +196,11 @@ class BaseMCPTool(ABC):
         breaker = get_circuit_registry().get_breaker(self.name)
         if breaker and not breaker.can_execute():
             self.logger.warning(f"Circuit open: {self.name} — returning degraded error")
+            outcome['v'] = 'circuit_open'
             raise RuntimeError(f"Service temporarily unavailable for {self.name} (circuit breaker open)")
 
         # ── Execute ──────────────────────────────────────────
+        from sajha.core.mcp_mrtr import InputRequired
         start_time = datetime.now()
         try:
             result = self.execute(arguments)
@@ -196,7 +229,10 @@ class BaseMCPTool(ABC):
 
             self.logger.info(f"Tool executed successfully: {self.name} ({execution_time:.2f}s)")
             return result
-            
+
+        except InputRequired:
+            # MRTR: the tool needs client input first; not a failure (no breaker, no replay)
+            raise
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds()
 

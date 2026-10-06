@@ -1,0 +1,280 @@
+{% extends "common/base.html" %}
+{% block title %}Federation - Admin - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.fed-stat{text-align:center;padding:.9rem;border-radius:var(--radius-lg);background:var(--t-card);border:1px solid var(--t-card-b)}
+.fed-stat .h3{margin:0;font-weight:700}
+.fed-stat small{color:var(--t-muted)}
+.fed-up{border:1px solid var(--t-card-b);border-radius:var(--radius-lg);background:var(--t-card);margin-bottom:1rem}
+.fed-up-head{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-bottom:1px solid var(--t-card-b);background:var(--t-card-hdr)}
+.fed-up-head h2{font-size:1.05rem;margin:0;font-weight:700;color:var(--t-heading)}
+.fed-meta{font-size:.8rem;color:var(--t-muted)}
+.fed-meta code{font-size:.78rem}
+.fed-table{font-size:.84rem;width:100%}
+.fed-table th{background:var(--t-card-hdr);color:var(--t-text2);font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;padding:.45rem .75rem}
+.fed-table td{padding:.4rem .75rem;border-bottom:1px solid var(--t-card-b);color:var(--t-text);vertical-align:top}
+.fed-table tr:hover td{background:var(--t-dd-hb)}
+.fed-desc{max-width:44rem;color:var(--t-muted);font-size:.8rem;white-space:pre-wrap;word-break:break-word}
+.st{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:.72rem;font-weight:600;color:var(--sajha-on-crimson)}
+.st-connected,.st-approved{background:var(--sajha-ok)}
+.st-connecting,.st-pending{background:var(--sajha-indigo)}
+.st-changed{background:var(--sajha-warn)}
+.st-error,.st-rejected{background:var(--sajha-bad)}
+.st-disabled{background:var(--sajha-slate)}
+.flag{color:var(--sajha-bad);font-weight:600;font-size:.75rem}
+.fed-err{color:var(--sajha-bad);font-size:.8rem;word-break:break-word}
+.fed-form .form-label{font-size:.8rem;font-weight:600;margin-bottom:.15rem}
+.fed-actions .btn{padding:.1rem .45rem;font-size:.75rem}
+details.schema summary{cursor:pointer;font-size:.75rem;color:var(--t-link)}
+details.schema pre{background:var(--t-inp);color:var(--t-text);padding:.5rem;border-radius:6px;font-size:.72rem;max-height:220px;overflow:auto}
+@media (max-width:576px){.fed-table th:nth-child(3),.fed-table td:nth-child(3){display:none}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-diagram-2 me-2" aria-hidden="true"></i>Federation</h1>
+      <small class="text-muted">Other MCP servers whose tools SAJHA re-exposes, under SAJHA's access control, audit, cache, circuit breakers and rate limits</small>
+    </div>
+    <div class="d-flex gap-1">
+      <button class="btn btn-sm btn-success" type="button" onclick="showForm()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add upstream</button>
+      <button class="btn btn-sm btn-outline-primary" type="button" onclick="load()" aria-label="Reload"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
+    </div>
+  </div>
+
+  {% if not summary.enabled %}
+  <div class="alert alert-warning small" role="status">
+    <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>
+    Federation is off: set <code>federation.enabled: true</code> in <code>config/application.yml</code>
+    (or <code>SAJHA_FEDERATION_ENABLED=true</code>) and restart. Upstreams you add here are saved, but SAJHA does not connect to them until it is on.
+  </div>
+  {% endif %}
+  {% for uid, err in (summary.config_errors or {}).items() %}
+  <div class="alert alert-danger small" role="alert">Upstream <strong>{{ uid }}</strong> is not loaded: {{ err }}</div>
+  {% endfor %}
+
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3"><div class="fed-stat"><div class="h3" id="stUp">—</div><small>Upstreams</small></div></div>
+    <div class="col-6 col-md-3"><div class="fed-stat"><div class="h3" id="stConn">—</div><small>Connected</small></div></div>
+    <div class="col-6 col-md-3"><div class="fed-stat"><div class="h3" id="stExposed">—</div><small>Tools exposed</small></div></div>
+    <div class="col-6 col-md-3"><div class="fed-stat"><div class="h3" id="stPending">—</div><small>Awaiting approval</small></div></div>
+  </div>
+
+  <!-- Add / edit form -->
+  <div class="card mb-3 fed-form" id="upForm" style="display:none">
+    <div class="card-header"><i class="bi bi-hdd-network me-2" aria-hidden="true"></i><span id="formTitle">Add upstream</span></div>
+    <div class="card-body">
+      <div class="row g-2">
+        <div class="col-md-3"><label class="form-label" for="fId">Id</label>
+          <input class="form-control form-control-sm" id="fId" placeholder="weather" autocomplete="off"></div>
+        <div class="col-md-3"><label class="form-label" for="fTitle">Title</label>
+          <input class="form-control form-control-sm" id="fTitle" placeholder="Weather service"></div>
+        <div class="col-md-3"><label class="form-label" for="fPrefix">Prefix (default: the id)</label>
+          <input class="form-control form-control-sm" id="fPrefix" placeholder="weather"></div>
+        <div class="col-md-3"><label class="form-label" for="fTransport">Transport</label>
+          <select class="form-select form-select-sm" id="fTransport" onchange="transportChanged()">
+            <option value="streamable_http">Streamable HTTP</option>
+            <option value="sse">Legacy SSE (2024-11-05)</option>
+            {% if summary.allow_stdio %}<option value="stdio">stdio (subprocess)</option>{% endif %}
+          </select></div>
+        <div class="col-md-6 http-only"><label class="form-label" for="fUrl">URL</label>
+          <input class="form-control form-control-sm" id="fUrl" placeholder="https://mcp.example.com/mcp"></div>
+        <div class="col-md-3 http-only"><label class="form-label" for="fProtocol">Protocol</label>
+          <select class="form-select form-select-sm" id="fProtocol">
+            <option value="auto">auto (discover, else initialize)</option>
+            <option value="2026-07-28">2026-07-28</option>
+            <option value="legacy">2025-11-25 (initialize)</option>
+          </select></div>
+        <div class="col-md-6 stdio-only" style="display:none"><label class="form-label" for="fCommand">Command (absolute path)</label>
+          <input class="form-control form-control-sm" id="fCommand" placeholder="/usr/bin/python3"></div>
+        <div class="col-md-3 stdio-only" style="display:none"><label class="form-label" for="fArgs">Arguments (comma separated)</label>
+          <input class="form-control form-control-sm" id="fArgs"></div>
+        <div class="col-md-3"><label class="form-label" for="fAuth">Credentials</label>
+          <select class="form-select form-select-sm" id="fAuth" onchange="authChanged()">
+            <option value="none">None</option>
+            <option value="bearer">Bearer token</option>
+            <option value="header">API-key header</option>
+            <option value="oauth_client_credentials">OAuth client credentials</option>
+          </select></div>
+        <div class="col-md-3 a-bearer" style="display:none"><label class="form-label" for="fTokenRef">Token reference</label>
+          <input class="form-control form-control-sm" id="fTokenRef" placeholder="env:WEATHER_TOKEN"></div>
+        <div class="col-md-3 a-header" style="display:none"><label class="form-label" for="fHeader">Header</label>
+          <input class="form-control form-control-sm" id="fHeader" placeholder="X-API-Key"></div>
+        <div class="col-md-3 a-header" style="display:none"><label class="form-label" for="fValueRef">Value reference</label>
+          <input class="form-control form-control-sm" id="fValueRef" placeholder="env:WEATHER_KEY"></div>
+        <div class="col-md-4 a-oauth" style="display:none"><label class="form-label" for="fTokenUrl">Token URL</label>
+          <input class="form-control form-control-sm" id="fTokenUrl" placeholder="https://auth.example.com/token"></div>
+        <div class="col-md-2 a-oauth" style="display:none"><label class="form-label" for="fClientId">Client id</label>
+          <input class="form-control form-control-sm" id="fClientId"></div>
+        <div class="col-md-3 a-oauth" style="display:none"><label class="form-label" for="fSecretRef">Client secret reference</label>
+          <input class="form-control form-control-sm" id="fSecretRef" placeholder="env:WEATHER_CLIENT_SECRET"></div>
+        <div class="col-md-3 a-oauth" style="display:none"><label class="form-label" for="fScope">Scope</label>
+          <input class="form-control form-control-sm" id="fScope"></div>
+        <div class="col-md-2"><label class="form-label" for="fTimeout">Timeout (s)</label>
+          <input class="form-control form-control-sm" id="fTimeout" type="number" min="1" placeholder="30"></div>
+        <div class="col-md-2"><label class="form-label" for="fRate">Calls per minute</label>
+          <input class="form-control form-control-sm" id="fRate" type="number" min="0" placeholder="0 = no limit"></div>
+        <div class="col-md-2"><label class="form-label" for="fCache">Cache TTL (s)</label>
+          <input class="form-control form-control-sm" id="fCache" type="number" min="0" placeholder="0"></div>
+        <div class="col-md-3"><label class="form-label" for="fInclude">Include tools (patterns)</label>
+          <input class="form-control form-control-sm" id="fInclude" placeholder="get_*, search"></div>
+        <div class="col-md-3"><label class="form-label" for="fExclude">Exclude tools (patterns)</label>
+          <input class="form-control form-control-sm" id="fExclude" placeholder="delete_*"></div>
+        <div class="col-12 d-flex flex-wrap gap-3 small">
+          <label><input type="checkbox" id="fEnabled" checked> Enabled</label>
+          <label><input type="checkbox" id="fPrompts"> Expose prompts</label>
+          <label><input type="checkbox" id="fResources"> Expose resources</label>
+          <label><input type="checkbox" id="fAuto"> Trust: approve new tools automatically</label>
+        </div>
+      </div>
+      <p class="small text-muted mt-2 mb-2">Secrets are references (<code>env:NAME</code>, <code>file:/path</code>, <code>db:llm_providers/&lt;type&gt;</code>), never values.</p>
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-sm btn-outline-primary" type="button" onclick="testUp()"><i class="bi bi-plug me-1" aria-hidden="true"></i>Test connection</button>
+        <button class="btn btn-sm btn-success" type="button" onclick="saveUp()"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>Save</button>
+        <button class="btn btn-sm btn-outline-secondary" type="button" onclick="hideForm()">Cancel</button>
+      </div>
+      <div id="formMsg" class="small mt-2" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div id="upstreams"><div class="text-muted small">Loading…</div></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+var editing = null, cache = {};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function api(method, url, body){
+  return fetch(url,{method:method,credentials:'same-origin',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined})
+    .then(function(r){return r.json().catch(function(){return {}}).then(function(d){if(!r.ok){throw new Error(d.error||('HTTP '+r.status))}return d})});
+}
+function btn(act,uid,kind,name,label,cls){
+  return '<button type="button" class="btn btn-sm '+cls+'" data-act="'+esc(act)+'" data-uid="'+esc(uid)+'" data-kind="'+esc(kind)+'" data-name="'+esc(name)+'">'+label+'</button>';
+}
+document.addEventListener('click',function(ev){
+  var b=ev.target.closest('button[data-act]'); if(!b)return;
+  var act=b.dataset.act, uid=b.dataset.uid;
+  if(act==='refresh')refreshUp(uid); else if(act==='edit')editUp(uid); else if(act==='remove')removeUp(uid);
+  else item(uid,b.dataset.kind,b.dataset.name,act);
+});
+function when(ts){return ts?new Date(ts*1000).toLocaleString():'never'}
+function load(){
+  api('GET','/api/federation/upstreams').then(function(d){
+    var ups=d.upstreams||[], conn=0, pend=0;
+    cache={};
+    ups.forEach(function(u){cache[u.id]=u; if(u.state==='connected')conn++; pend+=(u.counts.pending||0)+(u.counts.changed||0)});
+    document.getElementById('stUp').textContent=ups.length;
+    document.getElementById('stConn').textContent=conn;
+    document.getElementById('stExposed').textContent=(d.summary||{}).exposed_tools||0;
+    document.getElementById('stPending').textContent=pend;
+    document.getElementById('upstreams').innerHTML = ups.length ? ups.map(render).join('') :
+      '<div class="text-muted small">No upstreams yet. Add one, or list them under <code>federation.upstreams</code> in config/application.yml.</div>';
+  }).catch(function(e){document.getElementById('upstreams').innerHTML='<div class="fed-err">'+esc(e.message)+'</div>'});
+}
+function render(u){
+  var si=u.server_info||{}, h='';
+  h+='<section class="fed-up" aria-label="Upstream '+esc(u.id)+'"><div class="fed-up-head"><div>';
+  h+='<h2>'+esc(u.title)+' <span class="st st-'+esc(u.state)+'">'+esc(u.state)+'</span></h2>';
+  h+='<div class="fed-meta"><code>'+esc(u.id)+'</code> · prefix <code>'+esc(u.prefix)+'__</code> · '+esc(u.transport)+' '+(u.url?'<code>'+esc(u.url)+'</code>':'<code>'+esc(u.command)+'</code>');
+  if(u.protocol_version)h+=' · MCP '+esc(u.protocol_version);
+  if(si.name)h+=' · '+esc(si.name)+(si.version?' '+esc(si.version):'');
+  h+=' · '+(u.source==='config'?'from configuration':'added here')+(u.listening?' · listening for changes':'')+'</div>';
+  h+='<div class="fed-meta">Refreshed '+esc(when(u.last_refresh))+' · '+u.calls+' calls, '+u.failures+' failed'+(u.avg_ms!=null?' · avg '+u.avg_ms+' ms':'');
+  if(u.breaker)h+=' · breaker '+esc(u.breaker.state);
+  h+='</div>';
+  if(u.last_error)h+='<div class="fed-err">'+esc(u.last_error)+'</div>';
+  h+='</div><div class="fed-actions d-flex gap-1">';
+  h+=btn('refresh',u.id,'','','<i class="bi bi-arrow-repeat"></i> Refresh','btn-outline-primary');
+  h+=btn('approve_all',u.id,'tool','','Approve all','btn-outline-success');
+  if(u.source!=='config'){
+    h+=btn('edit',u.id,'','','<i class="bi bi-pencil"></i> Edit','btn-outline-secondary');
+    h+=btn('remove',u.id,'','','<i class="bi bi-trash"></i> Remove','btn-outline-danger');
+  }
+  h+='</div></div>';
+  var items=u.items||[];
+  if(!items.length){h+='<div class="p-3 small text-muted">Nothing discovered yet.</div></section>';return h}
+  h+='<div class="table-responsive"><table class="fed-table"><thead><tr><th scope="col">Exposed as</th><th scope="col">Status</th><th scope="col">Description</th><th scope="col">Actions</th></tr></thead><tbody>';
+  items.forEach(function(it){
+    var a='', k=esc(it.kind);
+    var call=function(act,label,cls){return btn(act,u.id,it.kind,it.name,label,cls)+' '};
+    if(it.status!=='approved')a+=call('approve','Approve','btn-outline-success');
+    if(it.status==='approved')a+=call('disable','Disable','btn-outline-secondary');
+    if(it.status==='pending'||it.status==='changed')a+=call('reject','Reject','btn-outline-danger');
+    if(it.status==='rejected'||it.status==='disabled')a+=call('reset','Reset','btn-outline-secondary');
+    h+='<tr><td><code>'+esc(it.exposed)+'</code><div class="fed-meta">'+k+' <code>'+esc(it.name)+'</code></div>'+(it.flagged?'<div class="flag"><i class="bi bi-exclamation-octagon"></i> suspicious text removed</div>':'')+(it.conflict?'<div class="fed-err">'+esc(it.conflict)+'</div>':'')+'</td>';
+    h+='<td><span class="st st-'+esc(it.status)+'">'+esc(it.status)+'</span></td>';
+    h+='<td><div class="fed-desc">'+esc(it.description)+'</div>'+(it.inputSchema?'<details class="schema"><summary>Input schema</summary><pre>'+esc(JSON.stringify(it.inputSchema,null,2))+'</pre></details>':'')+'</td>';
+    h+='<td class="fed-actions">'+a+'</td></tr>';
+  });
+  return h+'</tbody></table></div></section>';
+}
+function item(uid,kind,name,action){
+  api('POST','/api/federation/upstreams/'+encodeURIComponent(uid)+'/items',{kind:kind,name:name,action:action}).then(load).catch(function(e){alert(e.message)});
+}
+function refreshUp(uid){
+  api('POST','/api/federation/upstreams/'+encodeURIComponent(uid)+'/refresh').then(load).catch(function(e){alert(e.message);load()});
+}
+function removeUp(uid){
+  if(!confirm('Remove upstream '+uid+'? Its tools leave SAJHA now.'))return;
+  api('DELETE','/api/federation/upstreams/'+encodeURIComponent(uid)).then(load).catch(function(e){alert(e.message)});
+}
+function v(id){return document.getElementById(id).value.trim()}
+function list(s){return s?s.split(',').map(function(x){return x.trim()}).filter(Boolean):[]}
+function formData(){
+  var d={id:v('fId'),title:v('fTitle'),prefix:v('fPrefix'),transport:v('fTransport'),enabled:document.getElementById('fEnabled').checked,
+    expose_prompts:document.getElementById('fPrompts').checked,expose_resources:document.getElementById('fResources').checked,
+    auto_approve:document.getElementById('fAuto').checked,include_tools:list(v('fInclude')),exclude_tools:list(v('fExclude'))};
+  if(d.transport==='stdio'){d.command=v('fCommand');d.args=list(v('fArgs'))}else{d.url=v('fUrl');d.protocol=v('fProtocol')}
+  var at=v('fAuth');
+  if(at==='bearer')d.auth={type:at,token_ref:v('fTokenRef')};
+  else if(at==='header')d.auth={type:at,header:v('fHeader'),value_ref:v('fValueRef')};
+  else if(at==='oauth_client_credentials')d.auth={type:at,token_url:v('fTokenUrl'),client_id:v('fClientId'),client_secret_ref:v('fSecretRef'),scope:v('fScope')};
+  if(v('fTimeout'))d.timeout_seconds=Number(v('fTimeout'));
+  if(v('fRate'))d.max_calls_per_minute=Number(v('fRate'));
+  if(v('fCache'))d.cache_ttl=Number(v('fCache'));
+  Object.keys(d).forEach(function(k){if(d[k]===''||(Array.isArray(d[k])&&!d[k].length))delete d[k]});
+  return d;
+}
+function msg(t,ok){var m=document.getElementById('formMsg');m.className='small mt-2 '+(ok?'text-success':'fed-err');m.textContent=t}
+function testUp(){
+  msg('Connecting…',true);
+  api('POST','/api/federation/test',formData()).then(function(r){
+    if(r.ok)msg('Connected: MCP '+r.protocol_version+((r.server_info||{}).name?' · '+r.server_info.name:'')+' · '+(r.tools||[]).length+' tools: '+(r.tools||[]).slice(0,12).join(', '),true);
+    else msg('Failed: '+r.error,false);
+  }).catch(function(e){msg(e.message,false)});
+}
+function saveUp(){
+  var d=formData(), req=editing?api('PUT','/api/federation/upstreams/'+encodeURIComponent(editing),d):api('POST','/api/federation/upstreams',d);
+  req.then(function(){hideForm();setTimeout(load,800)}).catch(function(e){msg(e.message,false)});
+}
+function showForm(){editing=null;document.getElementById('formTitle').textContent='Add upstream';document.getElementById('fId').disabled=false;
+  ['fId','fTitle','fPrefix','fUrl','fCommand','fArgs','fTokenRef','fHeader','fValueRef','fTokenUrl','fClientId','fSecretRef','fScope','fTimeout','fRate','fCache','fInclude','fExclude'].forEach(function(i){document.getElementById(i).value=''});
+  document.getElementById('fTransport').value='streamable_http';document.getElementById('fProtocol').value='auto';document.getElementById('fAuth').value='none';
+  document.getElementById('fEnabled').checked=true;['fPrompts','fResources','fAuto'].forEach(function(i){document.getElementById(i).checked=false});
+  transportChanged();authChanged();msg('',true);document.getElementById('upForm').style.display='block';document.getElementById('fId').focus()}
+function hideForm(){document.getElementById('upForm').style.display='none';editing=null}
+function editUp(uid){
+  showForm();editing=uid;var d=(cache[uid]||{}).definition||{};document.getElementById('formTitle').textContent='Edit upstream '+uid;
+  var set=function(i,x){document.getElementById(i).value=(x==null?'':x)};
+  set('fId',d.id);document.getElementById('fId').disabled=true;set('fTitle',d.title);set('fPrefix',d.prefix);set('fTransport',d.transport||'streamable_http');
+  set('fUrl',d.url);set('fProtocol',d.protocol||'auto');set('fCommand',d.command);set('fArgs',(d.args||[]).join(', '));
+  var a=d.auth||{};set('fAuth',a.type||'none');set('fTokenRef',a.token_ref);set('fHeader',a.header);set('fValueRef',a.value_ref);
+  set('fTokenUrl',a.token_url);set('fClientId',a.client_id);set('fSecretRef',a.client_secret_ref);set('fScope',a.scope);
+  set('fTimeout',d.timeout_seconds);set('fRate',d.max_calls_per_minute);set('fCache',d.cache_ttl);
+  set('fInclude',(d.include_tools||[]).join(', '));set('fExclude',(d.exclude_tools||[]).join(', '));
+  document.getElementById('fEnabled').checked=d.enabled!==false;document.getElementById('fPrompts').checked=!!d.expose_prompts;
+  document.getElementById('fResources').checked=!!d.expose_resources;document.getElementById('fAuto').checked=!!d.auto_approve;
+  transportChanged();authChanged();
+}
+function transportChanged(){var s=v('fTransport')==='stdio';
+  document.querySelectorAll('.http-only').forEach(function(e){e.style.display=s?'none':''});
+  document.querySelectorAll('.stdio-only').forEach(function(e){e.style.display=s?'':'none'})}
+function authChanged(){var t=v('fAuth');
+  document.querySelectorAll('.a-bearer').forEach(function(e){e.style.display=t==='bearer'?'':'none'});
+  document.querySelectorAll('.a-header').forEach(function(e){e.style.display=t==='header'?'':'none'});
+  document.querySelectorAll('.a-oauth').forEach(function(e){e.style.display=t==='oauth_client_credentials'?'':'none'})}
+load();
+setInterval(load, 15000);
+</script>
+{% endblock %}

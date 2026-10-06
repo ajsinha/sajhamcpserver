@@ -246,9 +246,9 @@ async def root(request: Request, auth: AuthContext = Depends(get_current_user)):
     # come from the live registry, grouped by name prefix exactly as the help pages group them.
     from sajha.app import render_standalone
     from sajha.web.help_catalog import live_tool_groups
-    live = live_tool_groups()
+    live = live_tool_groups(with_names=True)      # names: a hover on a star names its tool
     return render_standalone(request, 'landing.html', {
         'tool_count': live['total_tools'],
         'group_count': live['total_groups'],
-        'tool_groups': [[g['name'], g['tool_count']] for g in live['groups']],
+        'tool_groups': [[g['name'], g['tool_count'], g['tools']] for g in live['groups']],
     })

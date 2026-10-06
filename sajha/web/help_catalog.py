@@ -13,7 +13,7 @@ What the catalog covers, and the tests that hold it to that (tests/test_help_cat
     its unique file name (sajha/web/guides.py);
   * the live pages: the tool catalog (/help/tools, derived from the registry), the
     glossary (/glossary, rendered from GLOSSARY.md), the guide library, the interactive
-    API docs and About.
+    API docs, About and the comparison (/comparison, from sajha/web/competitive.py).
 
 Each topic is a dict:
   * title, summary, icon      what the card shows
@@ -95,6 +95,12 @@ CATALOG: List[dict] = [
             _g('Storage Guide', 'Storage Guide.md', 'bi-hdd-stack',
                'Where configs, prompts, Studio output and docs live: local disk, S3, Azure '
                'Blob or GCS, and hot reload on each.'),
+            _g('Python Playground', 'Python Playground.md', 'bi-filetype-py',
+               'Python in the browser (Pyodide): the notebook, the sajha module for calling tools, '
+               'vendored or CDN assets, and the headers that make Stop work.'),
+            _g('Kubernetes Deployment', 'Kubernetes Deployment.md', 'bi-boxes',
+               'The container image, the Helm chart and Kustomize manifests: secrets every pod '
+               'shares, several replicas, streaming-friendly ingress, metrics, NetworkPolicy.'),
         ],
     },
     {
@@ -137,6 +143,21 @@ CATALOG: List[dict] = [
             _g('Intelligence Layer', 'Intelligence Layer.md', 'bi-stars',
                'LLM providers and models, the gateway, the mock provider, /api/ai/ask and the '
                'Ask SAJHA chat page.'),
+            _g('Extending the Intelligence Layer', 'Extending the Intelligence Layer.md', 'bi-plug',
+               'Write a provider, a model or a planner: settings, error mapping, registration, '
+               'testing, with runnable examples.', badge='Developers'),
+            _g('Federation', 'Federation.md', 'bi-diagram-2',
+               'Front other MCP servers: their tools under SAJHA\'s access control, audit, cache, '
+               'circuit breakers and approval; the Federation admin page.'),
+            _g('Sandbox', 'Sandbox.md', 'bi-shield-lock',
+               'Where Studio code and script tools and the shell run: threat model, backends '
+               '(subprocess, bwrap, nsjail, docker), what each guarantees, tool policy.'),
+            _g('Scaling and State', 'Scaling and State.md', 'bi-hdd-network',
+               'Run several workers or hosts: the state store (memory, Redis, database), what is '
+               'shared and what stays per worker, durable tasks, secrets to share.'),
+            _g('Observability', 'Observability.md', 'bi-activity',
+               'Prometheus /metrics, OpenTelemetry traces over OTLP, the usage ledger behind the '
+               'Usage & cost page, and alert rules.'),
         ],
     },
     {
@@ -248,6 +269,22 @@ CATALOG: List[dict] = [
                'bi-9-circle', 'The official MCP Python SDK against SAJHA.'),
             _g('10. Ask SAJHA', 'TUTORIAL_10_ask_sajha.md', 'bi-stars',
                'Ask a question in the console and read the tool chain behind the answer.'),
+            _g('11. Federate an MCP server', 'TUTORIAL_11_federate_an_mcp_server.md', 'bi-diagram-2',
+               'Run a small MCP server, put it behind SAJHA, approve its tools and call them.'),
+            _g('12. Python Playground', 'TUTORIAL_12_python_playground.md', 'bi-filetype-py',
+               'Call a SAJHA tool from Python in the browser, analyse the result with pandas and chart it.'),
+            _g('13. Run SAJHA on several workers', 'TUTORIAL_13_run_sajha_on_several_workers.md', 'bi-hdd-stack',
+               'Share state through Redis, check /health, watch a change reach another worker.'),
+            _g('14. Sandboxed Studio tools', 'TUTORIAL_14_sandboxed_studio_tools.md', 'bi-shield-check',
+               'Deploy a Python and a script tool, watch the sandbox block them, grant network access.'),
+            _g('15. The sajha CLI and Claude Desktop', 'TUTORIAL_15_sajha_cli_and_claude_desktop.md', 'bi-terminal',
+               'Sign in, call tools and ask from a terminal; add SAJHA to Claude Code and Claude Desktop over stdio.'),
+            _g('16. Metrics, costs and alerts', 'TUTORIAL_16_metrics_costs_and_alerts.md', 'bi-cash-coin',
+               'Scrape /metrics with Prometheus, import the Grafana dashboard, read the Usage & cost page, '
+               'fire an alert.'),
+            _g('17. Deploy SAJHA on Kubernetes', 'TUTORIAL_17_deploy_sajha_on_kubernetes.md', 'bi-boxes',
+               'Build the image, install the Helm chart on kind behind ingress-nginx, scale to three '
+               'pods on Redis and PostgreSQL.'),
         ],
     },
     {
@@ -256,6 +293,9 @@ CATALOG: List[dict] = [
         'topics': [
             _g('Client SDK Guide', 'Client SDK Guide.md', 'bi-plug',
                'SajhaMCPClient on the official SDK; the REST and A2A clients.'),
+            _g('Command Line', 'Command Line.md', 'bi-terminal',
+               'The sajha CLI (tools, prompts, ask, Studio, federation) and MCP over stdio for '
+               'Claude Desktop, Claude Code and IDEs.'),
             _g('Security Model', 'Security Model.md', 'bi-shield-check',
                'Credentials, roles, OAuth, Origin checks, headers, rate limits and the '
                'deployment checklist.'),
@@ -263,7 +303,7 @@ CATALOG: List[dict] = [
     },
     {
         'id': 'reference', 'name': 'Reference', 'icon': 'bi-journal-bookmark',
-        'blurb': 'Every guide in one list, every term defined, and what this server is.',
+        'blurb': 'Every guide in one list, every term defined, what this server is, and how it compares.',
         'topics': [
             _b('Guide library', 'help_guides', 'bi-collection',
                'Every guide, grouped by folder.'),
@@ -271,6 +311,9 @@ CATALOG: List[dict] = [
                'Every term, acronym and SAJHA-specific word, defined once.'),
             _p('About SAJHA', 'about_page', 'bi-info-circle',
                'What this server is, and what it is running now.'),
+            _p('How SAJHA compares', 'comparison_page', 'bi-bar-chart-steps',
+               'Next to MCP frameworks, gateways and hosted platforms: sourced verdicts, dated, '
+               'including where the others are stronger.'),
         ],
     },
 ]

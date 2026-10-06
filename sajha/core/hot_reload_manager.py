@@ -237,6 +237,10 @@ class HotReloadManager:
                 logger.info(f"Successfully reloaded module: {module_name}")
                 return True
             else:
+                leaf = module_name.rsplit('.', 1)[-1]
+                if leaf.startswith('studio_') or leaf.endswith('_script_tool'):
+                    # Studio user code runs only in the sandbox; never import it here
+                    return False
                 # Module not loaded yet, just import it fresh
                 importlib.import_module(module_name)
                 logger.info(f"Successfully loaded module: {module_name}")

@@ -90,6 +90,13 @@ async def a2a_endpoint(
     (sajha/auth/access.py), and tasks are visible only to the caller that created them.
     """
     from sajha.auth.access import anonymous_enabled
+    from sajha.auth.oauth.resource_server import presented_credentials
+    if not auth.authenticated and presented_credentials(request):
+        # credentials were sent but did not authenticate: refuse, never run as anonymous
+        return JSONResponse({
+            'jsonrpc': '2.0', 'id': None,
+            'error': {'code': -32001, 'message': 'Invalid or expired credentials'},
+        }, status_code=401, headers={'WWW-Authenticate': 'Bearer realm="sajha", error="invalid_token"'})
     if not auth.authenticated and not anonymous_enabled():
         return JSONResponse({
             'jsonrpc': '2.0', 'id': None,

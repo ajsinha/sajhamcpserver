@@ -106,11 +106,14 @@
     if (!S.W) return;
     S.clear();
     var litP = sk.litT ? (reduce ? 1 : ease((now - sk.litT) / 700)) : 0;
+    // the regex filter: a match is lifted, a miss dimmed hard; a shortlisted or chained star
+    // keeps full strength whatever the filter says (the ask's own steps are never hidden)
+    var fon = flt.re !== null;
     S.drawStars(now, function (st) {
-      if (!litP) return 0;
-      if (st.n && sk.short[st.n]) return litP;
-      return sk.shortG[st.g] ? 0.32 * litP : 0;
-    }, reduce);
+      var on = 0;
+      if (litP) on = st.n && sk.short[st.n] ? litP : sk.shortG[st.g] ? 0.32 * litP : 0;
+      return fon && st.m ? Math.max(on, 0.6) : on;
+    }, reduce, fon ? function (st) { return st.m || inAsk(st) ? 1 : 0.16; } : null);
     var cx = S.ctx, T = S.T;
     if (litP) {                                                   // a ring on every shortlisted star
       cx.strokeStyle = T.accent; cx.lineWidth = 1.2;
@@ -120,6 +123,7 @@
       });
       cx.globalAlpha = 1;
     }
+    S.ring(tip.star, tip.pinned);
     var o = origin();
     if (!reduce && sk.litT && now - sk.litT < 900) S.sweep(o.x, o.y, ease((now - sk.litT) / 900));
     var px = o.x, py = o.y;
@@ -157,9 +161,65 @@
   }
   function layout() {
     if (!S.resize()) return;
+    tip.forget();
     S.place({ cy: 0.57, ry: 0.35, rx: 0.43, scale: Math.max(0.5, Math.min(1.25, S.H / 520)) });
-    placeChain(); kick();
+    markMatches(); placeChain(); kick();
   }
+  function inAsk(st) {
+    if (!st.n) return false;
+    if (sk.short[st.n]) return true;
+    for (var i = 0; i < sk.chain.length; i++) if (sk.chain[i].star === st) return true;
+    return false;
+  }
+
+  /* ── hover tooltips: a star's tool, its group and its one-line description ────────────── */
+  var DESC = D.descriptions || {};
+  var tip = C.tips(S, skyEl, {
+    info: function (st) { return st.n ? { name: st.n, group: st.g, desc: DESC[st.n] || '' } : null; },
+    redraw: function () { kick(); }
+  });
+
+  /* ── the regex filter (cosmetic: it changes what the sky shows, never which tools an ask uses) */
+  var FKEY = 'sajha.ask.filter', fIn = $('askFilter'), fMsg = $('askFilterMsg'), fClear = $('askFilterClear'), fErr = $('askFilterErr'),
+      flt = { re: null }, fTimer = 0;
+  function parseFilter(v) {          // '' -> null; /pattern/flags as written; else case-insensitive
+    if (!v) return null;
+    var m = /^\/(.+)\/([a-z]*)$/.exec(v);
+    return m ? new RegExp(m[1], m[2].replace(/[gy]/g, '')) : new RegExp(v, 'i');
+  }
+  function markMatches() {
+    var n = 0;
+    S.stars.forEach(function (st) {
+      var re = flt.re, hay = st.n ? st.n + ' ' + st.g + ' ' + (DESC[st.n] || '') : st.g;
+      st.m = !!(re && re.test(hay));
+      if (st.m) n++;
+    });
+    return n;
+  }
+  function applyFilter(store) {
+    var v = fIn.value.trim(), err = null;
+    try { flt.re = parseFilter(v); } catch (e) { flt.re = null; err = e; }
+    if (store) sset(FKEY, fIn.value);
+    fClear.hidden = !fIn.value;
+    fIn.closest('.ask-filter').classList.toggle('is-bad', !!err);
+    var n = markMatches();
+    if (err) {
+      fIn.setAttribute('aria-invalid', 'true');
+      fMsg.textContent = 'no filter';
+      fErr.textContent = 'Not a valid regular expression: ' + String(err.message || err).replace(/^Invalid regular expression: /, '');
+    } else {
+      fIn.removeAttribute('aria-invalid');
+      fErr.textContent = '';
+      fMsg.textContent = flt.re ? n + ' of ' + S.stars.length + ' match' : '';
+    }
+    kick();
+  }
+  fIn.value = sget(FKEY) || '';
+  fIn.addEventListener('input', function () { clearTimeout(fTimer); fTimer = setTimeout(function () { applyFilter(true); }, 120); });
+  fIn.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && fIn.value) { e.stopPropagation(); fIn.value = ''; applyFilter(true); }
+  });
+  fClear.addEventListener('click', function () { fIn.value = ''; applyFilter(true); fIn.focus(); });
   function setStatus(text, state) {
     statusText.textContent = text;
     statusBox.setAttribute('data-state', state || 'idle');
@@ -173,7 +233,9 @@
     var top = gridEl.getBoundingClientRect().top + window.scrollY;
     var h = Math.max(480, window.innerHeight - top - 16);
     pageEl.style.setProperty('--ask-h', h + 'px');
-    pageEl.style.setProperty('--ask-sky-h', Math.max(320, h - (capEl ? capEl.offsetHeight + 12 : 0)) + 'px');
+    var fEl = document.querySelector('.ask-filter');
+    pageEl.style.setProperty('--ask-sky-h', Math.max(320, h - (capEl ? capEl.offsetHeight + 12 : 0) -
+                                                        (fEl ? fEl.offsetHeight + 8 : 0)) + 'px');
   }
   fit();
   window.addEventListener('resize', fit);
@@ -182,7 +244,7 @@
   C.whenVisible(skyEl, function (v) { onScreen = v; kick(); });
   if ('ResizeObserver' in window) new ResizeObserver(layout).observe(skyEl);
   else window.addEventListener('resize', layout);
-  S.readTokens(); layout();
+  S.readTokens(); layout(); applyFilter(false);
 
   /* ── rendering a turn ─────────────────────────────────────────────────────────────────── */
   function newTurn(q, extra) {

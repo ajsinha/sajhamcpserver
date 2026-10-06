@@ -210,7 +210,7 @@ JSON API routes first; HTML pages are collected in [section 4.14](#414-html-page
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | `/health` | none | Status, version, tool and prompt counts, DB type, hot-reload status. |
+| GET | `/health` | none | Status, version, tool and prompt counts, DB type, hot-reload status, state store, sandbox backend. |
 | GET | `/ready` | none | Readiness: `{"status": "ok" \| "degraded", "checks": {...}, "timestamp": ...}`. |
 
 Both `health_routes.py` and `ops_routes.py` declare `GET /health`; `health_routes.py` is registered first, so its handler is the one that answers.
@@ -366,6 +366,12 @@ curl -X POST http://localhost:3002/api/ai/complete \
 | GET | `/api/metrics` | user | Metrics summary. |
 | GET | `/api/metrics/tools` | user | Metrics for all tools. |
 | GET | `/api/metrics/tools/{tool_name}` | user | Metrics for one tool. |
+| GET | `/metrics` | `observability.metrics.auth` (default admin) | Prometheus text format ([Observability](../architecture/Observability.md)). |
+| GET | `/monitoring/usage` | user | The Usage & cost page (administrators see everyone, others their own calls). |
+| GET | `/api/observability/usage?since=&until=&user=&api_key=&role=&provider=&model=&tool=` | user | Every figure the Usage & cost page shows (non-administrators: own calls only). |
+| GET | `/api/observability/usage.csv?dimension=user\|api_key\|role\|model\|tool\|day` | user | One usage table as CSV. |
+| GET | `/api/observability/alerts` | admin | Alert rules and their state. |
+| GET | `/api/observability/status` | admin | Effective observability settings and the OpenTelemetry state. |
 | GET | `/api/tool-versions` | user | Placeholder: always returns `{"versions": []}`. |
 | POST | `/api/tool-versions/{tool_name}/deprecate` | admin | Placeholder: returns success without changing anything. |
 | POST | `/api/contract-test/{tool_name}` | admin | Contract-test one tool (optional body `{"arguments": {...}}`). |
@@ -455,6 +461,7 @@ curl -X POST http://localhost:3002/api/tools/calc_loan_amortization/execute-asyn
 | POST | `/api/shell/bash` | admin or `shell:execute` | Run `{"command": "..."}` in the sandbox. |
 | GET | `/api/shell/capabilities` | user | What is enabled and the security policy. |
 | GET | `/api/shell/history` | admin | Last 50 executions. |
+| GET | `/api/sandbox/status` | admin | Active [sandbox](../architecture/Sandbox.md) backend, every backend's availability on this host, and the active one's guarantees from a live probe. |
 
 **System monitor**
 
@@ -487,8 +494,40 @@ These render templates; they are not JSON APIs. Unauthenticated requests to `use
 | Auth | Paths |
 |---|---|
 | none / optional | `/`, `/login`, `/help`, `/help/c/{cid}`, `/help/guides`, `/help/guides/{name}`, `/glossary`, `/help/tools`, `/about`, `/oauth/authorize`; and the 301 redirects `/help/ai`, `/help/enterprise`, `/help/tutorials`, `/help/glossary`, `/help/storage`, `/docs`, `/docs/view/{doc_path}` |
-| user | `/dashboard`, `/tools`, `/tools/{tool_name}/execute`, `/tools/{tool_name}/schema`, `/tools/{tool_name}/config`, `/prompts`, `/prompts/{prompt_name}`, `/prompts/{prompt_name}/test`, `/prompts/category/{category}`, `/prompts/tag/{tag}`, `/reports`, `/composite/builder`, `/ai/settings`, `/ask`, `/studio`, `/studio/rest`, `/studio/dbquery`, `/studio/script`, `/studio/livelink`, `/studio/olap`, `/studio/powerbi`, `/studio/powerbidax`, `/studio/sharepoint`, `/studio/examples` |
+| user | `/dashboard`, `/tools`, `/tools/{tool_name}/execute`, `/tools/{tool_name}/schema`, `/tools/{tool_name}/config`, `/prompts`, `/prompts/{prompt_name}`, `/prompts/{prompt_name}/test`, `/prompts/category/{category}`, `/prompts/tag/{tag}`, `/reports`, `/composite/builder`, `/ai/settings`, `/ask`, `/playground`, `/studio`, `/studio/rest`, `/studio/dbquery`, `/studio/script`, `/studio/livelink`, `/studio/olap`, `/studio/powerbi`, `/studio/powerbidax`, `/studio/sharepoint`, `/studio/examples` |
 | admin | `/admin/users`, `/admin/users/create`, `/admin/tools`, `/admin/system-monitor`, `/admin/prompts`, `/admin/async-tasks`, `/admin/apikeys`, `/admin/apikeys/create`, `/admin/apikeys/{key_id}/view`, `/prompts/create`, `/monitoring/tools`, `/monitoring/users` |
+
+### 4.15 Python Playground (`playground_routes.py`)
+
+The playground runs Python in the browser; none of these routes executes code. Its tool
+calls use `POST /api/tools/execute` and `POST /api/ai/ask` above, with the user's session.
+Headers and settings: [Python Playground](../getting-started/Python%20Playground.md).
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/playground` | user | The page. Sends COOP `same-origin`, COEP `require-corp` and its own CSP; 404 when `playground.enabled` is false. |
+| GET | `/api/playground/worker.js` | user | The Web Worker script (an ES module); the only response whose CSP allows `'wasm-unsafe-eval'`. |
+| GET | `/api/playground/sajha.py` | user | Source of the `sajha` module installed into Pyodide (`text/x-python`). |
+| GET | `/api/playground/runtime.py` | user | Source of the cell runner installed into Pyodide. |
+| GET | `/api/playground/tools` | user | `{tools: [{name, description, category}], count}`: the enabled tools this caller may execute (what `sajha.tools()` returns). |
+
+### 4.16 Federation (`federation_routes.py`)
+
+Upstream MCP servers behind SAJHA. Every route is admin only and every change is written to
+the audit log. Errors are `{"error": "message"}` (400 invalid or unsafe definition, 404 no
+such upstream or item, 502 the upstream failed). Behaviour: [Federation](../architecture/Federation.md).
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/admin/federation` | admin | The Federation page. |
+| GET | `/api/federation/upstreams` | admin | `{summary, upstreams: [...]}`: every upstream with its state, protocol version, server info, last error, counts, breaker and discovered items. |
+| GET | `/api/federation/upstreams/{upstream_id}` | admin | One upstream's status. |
+| POST | `/api/federation/upstreams` | admin | Add an upstream (body: the upstream fields; secrets as references). 201. |
+| PUT | `/api/federation/upstreams/{upstream_id}` | admin | Replace an upstream added on the page (not one from configuration). |
+| DELETE | `/api/federation/upstreams/{upstream_id}` | admin | Remove an upstream added on the page; its tools leave the registry. |
+| POST | `/api/federation/upstreams/{upstream_id}/refresh` | admin | Reconnect if needed and re-discover now. |
+| POST | `/api/federation/upstreams/{upstream_id}/items` | admin | `{"kind": "tool" \| "prompt" \| "resource", "name", "action"}`; actions `approve`, `reject`, `disable`, `enable`, `reset`, `approve_all`. Returns `{ok, changed}`. |
+| POST | `/api/federation/test` | admin | Connect to an unsaved upstream definition: `{ok, protocol_version, server_info, tools, prompts, resources}` or `{ok: false, error}`. |
 
 ---
 

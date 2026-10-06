@@ -7,7 +7,9 @@ the abstractions, the providers, the gateway, the ask loop and its event stream.
 configuration key and its default is in the
 [Configuration Reference](../getting-started/Configuration%20Reference.md#ai); endpoint
 summaries are in the [API Reference](../protocol/API%20Reference.md); the confidence
-mathematics is the [Composition Framework](Composition%20Framework.md).
+mathematics is the [Composition Framework](Composition%20Framework.md). How to extend the
+layer (a new provider, model or planner, step by step, with tested examples) is
+[Extending the Intelligence Layer](Extending%20the%20Intelligence%20Layer.md).
 
 ---
 
@@ -144,7 +146,9 @@ A provider is a subclass of `LLMProvider` with `name` and `config_model` (a subc
 `@register_model(provider=..., model_id=...)` injects one model class into an existing
 provider (a fine-tune or a custom route), inheriting the vendor's wire code. Every field of
 the new `config_model` is configurable in YAML and overridable from the environment with no
-further code (section 4).
+further code (section 4). The step-by-step guide, with a worked provider, model and
+planning strategy and the tests they pass, is
+[Extending the Intelligence Layer](Extending%20the%20Intelligence%20Layer.md).
 
 ## 4. Configuration
 
@@ -358,3 +362,6 @@ the HTTP route in JSON and SSE.
 - Over MCP 2026-07-28, destructive-tool confirmation inside `sajha_ask` as a Multi
   Round-Trip Request (it is returned as `needs_confirmation` today).
 - Freshness and agreement in the confidence score; trimming history on `ContextTooLong`.
+- A pluggable planner: the planner is the model `ai.ask.model` resolves to, inside a fixed
+  loop. A `Planner` extension point (`ai.ask.planner`) is designed in
+  [Extending the Intelligence Layer §4.5](Extending%20the%20Intelligence%20Layer.md#45-proposed-a-planner-extension-point-not-built-yet).

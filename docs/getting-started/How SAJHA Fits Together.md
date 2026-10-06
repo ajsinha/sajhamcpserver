@@ -42,8 +42,9 @@ circuit breakers, observability, and pluggable storage.
    storage backend (local | S3 | Azure | GCS)      database (SQLite | PostgreSQL)
 ```
 
-One process by default. Several pieces of protocol state live in memory, which is why
-scaling out needs sticky routing.
+One process by default. Cross-request state (sessions, tasks, OAuth codes, rate limits)
+lives in the state store: process memory by default, Redis or the database for several
+workers ([Scaling and State](../architecture/Scaling%20and%20State.md)).
 
 **Authority:** [Architecture](../architecture/Architecture.md).
 
@@ -71,7 +72,10 @@ scaling out needs sticky routing.
 | Prompts | Prompt configs, arguments, the prompt pages | [Prompts Management Guide](../tools/prompts/Prompts%20Management%20Guide.md) |
 | Building tools in the browser | MCP Studio and its nine creators | [MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md) |
 | Chaining tools | Composite tools, `StepResult`, `ParamLens`, `EntropyGuard` | [Composition Framework](../architecture/Composition%20Framework.md) |
+| Python in the browser | The Python Playground: a Pyodide notebook; `import sajha` calls tools with the user's session; vendored or CDN assets; its own CSP and COOP/COEP | [Python Playground](Python%20Playground.md) |
 | Asking SAJHA questions with an LLM | LLM providers and models, gateway aliases, the mock provider, `/api/ai/ask` | [Intelligence Layer](../architecture/Intelligence%20Layer.md) |
+| Extending the intelligence layer | Writing a provider, a model or a planner; the provider contract suite | [Extending the Intelligence Layer](../architecture/Extending%20the%20Intelligence%20Layer.md) |
+| Fronting other MCP servers | Federation: upstreams, namespaced tools, approval, the Federation admin page, `federation.*` | [Federation](../architecture/Federation.md) |
 
 ---
 
@@ -83,8 +87,13 @@ scaling out needs sticky routing.
 | Configuration | `config/application.yml`, `${ENV:default}`, `SAJHA_*` overrides, every key | [Configuration Reference](Configuration%20Reference.md) |
 | Storage | Where configs, prompts, Studio output and docs live; local, S3, Azure, GCS; hot reload | [Storage Guide](Storage%20Guide.md) |
 | Security | Credentials, roles, OAuth, Origin checks, headers, rate limits, deployment checklist | [Security Model](../security/Security%20Model.md) |
+| Running user code | The sandbox for Studio Python and script tools and the shell: threat model, backends, guarantees, tool `sandbox` policy | [Sandbox](../architecture/Sandbox.md) |
 | Deployment | AWS CDK, Hetzner, bare metal | [`deployment/README.md`](../../deployment/README.md) |
+| Kubernetes | The container image, the Helm chart (`charts/sajha`), Kustomize manifests, secrets every pod shares, several replicas, streaming ingress | [Kubernetes Deployment](Kubernetes%20Deployment.md) |
+| Several workers and hosts | The state store (`state.backend`: memory, Redis, database), what is shared between workers and what stays per process, durable tasks, secrets every host must share | [Scaling and State](../architecture/Scaling%20and%20State.md) |
+| Watching it run | Prometheus `/metrics`, OpenTelemetry traces and metrics, the usage ledger and the Usage & cost page, alert rules, `observability.*` | [Observability](../architecture/Observability.md) |
 | Calling SAJHA from Python | `SajhaMCPClient` on the official SDK; REST and A2A clients | [Client SDK Guide](../clients/Client%20SDK%20Guide.md) |
+| Command line and desktop clients | The `sajha` CLI; MCP over stdio for Claude Desktop, Claude Code, IDEs | [Command Line](../clients/Command%20Line.md) |
 
 ---
 
@@ -100,6 +109,7 @@ whose job it is holds the content, and the other links to it.
 | **Architecture** | How the server is built inside | `docs/architecture/` |
 | **Tutorials** | Learning by doing, in order | `docs/tutorials/TUTORIAL_*.md` |
 | **In-app help** | The help catalog, these guides rendered at `/help/guides/<name>`, the glossary at `/glossary`, and an "About this page" panel on every console page, each linking to the owning guide | `sajha/web/help_catalog.py`, `sajha/web/guides.py`, `sajha/web/page_help.py` |
+| **Comparison** | How SAJHA compares with other MCP products: one verdict, note, source and date per cell | `/comparison`, rendered from `sajha/web/competitive.py` (the only copy) |
 | **Glossary** | One definition per term | [`GLOSSARY.md`](../../GLOSSARY.md) |
 | **Release log** | What changed, version by version | [`CHANGELOG.md`](../../CHANGELOG.md) |
 | **Version** | The one version number | `app.version` in `config/application.yml` |

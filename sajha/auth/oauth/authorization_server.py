@@ -6,10 +6,14 @@ Backed by SAJHA's own users.  Authorization code + PKCE (S256 only), refresh
 tokens with rotation and reuse detection, short-lived RS256 JWT access tokens
 (RFC 9068 ``typ: at+jwt``) whose ``aud`` is the MCP resource URI (RFC 8707).
 
-Pending authorization requests, codes and refresh tokens are kept in process
-memory (hashed): a restart signs every OAuth client out (access tokens stay
-valid until they expire because the signing key is persisted).  Run one worker
-or sticky sessions, as for the tasks extension.
+Pending authorization requests, codes and refresh tokens (hashed) are kept in
+the state store (sajha.core.state, ``state.backend``).  With the default
+memory backend they live in this process: a restart signs every OAuth client
+out (access tokens stay valid until they expire because the signing key is
+persisted).  With redis or database they are shared by every worker, so a code
+issued on one worker redeems on another, and they survive a restart.  Every
+worker must also read the same signing key (shared data directory, or the same
+``mcp.auth.builtin.signing_key_path`` file on every host).
 """
 
 import base64
@@ -20,8 +24,8 @@ import secrets
 import threading
 import time
 import uuid
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set
+from dataclasses import asdict, dataclass, field
+from typing import Any, Dict, List, Optional
 
 from sajha.auth.oauth import settings
 
@@ -118,66 +122,94 @@ class RefreshRecord:
     used: bool = False
 
 
-class AuthorizationStore:
-    def __init__(self):
-        self._lock = threading.Lock()
-        self._pending: Dict[str, PendingAuthorization] = {}
-        self._codes: Dict[str, CodeRecord] = {}
-        self._refresh: Dict[str, RefreshRecord] = {}
-        self._revoked_families: Set[str] = set()
+_PENDING = 'oauth:pending:'
+_CODE = 'oauth:code:'
+_REFRESH = 'oauth:refresh:'
+_REVOKED = 'oauth:revoked:'
+# a used code is remembered this long past its expiry, so a replay still revokes its grant
+_CODE_GRACE = 600
 
-    def _sweep(self, now: float) -> None:
-        self._pending = {k: v for k, v in self._pending.items() if now - v.created < _PENDING_TTL}
-        self._codes = {k: v for k, v in self._codes.items() if v.expires > now - 600}
-        self._refresh = {k: v for k, v in self._refresh.items() if v.expires > now}
+
+class AuthorizationStore:
+    """Consent requests, codes and refresh tokens in a :class:`~sajha.core.state.base.StateStore`."""
+
+    def __init__(self, store=None):
+        self._store = store
+
+    @property
+    def store(self):
+        if self._store is None:
+            from sajha.core.state import get_state_store
+            return get_state_store()
+        return self._store
 
     # ── pending authorization requests (consent screen) ──
     def add_pending(self, pending: PendingAuthorization) -> str:
         req_id = secrets.token_urlsafe(24)
-        with self._lock:
-            self._sweep(time.time())
-            if len(self._pending) >= _MAX_PENDING:
-                raise OAuthError('temporarily_unavailable', 'too many pending authorization requests', 503)
-            self._pending[req_id] = pending
+        st = self.store
+        count = st.count(_PENDING)          # cheap only in memory; shared stores rely on the TTL
+        if count is not None and count >= _MAX_PENDING:
+            raise OAuthError('temporarily_unavailable', 'too many pending authorization requests', 503)
+        st.set(_PENDING + req_id, asdict(pending), ttl=max(1.0, _PENDING_TTL - (time.time() - pending.created)))
         return req_id
 
     def get_pending(self, req_id: str) -> Optional[PendingAuthorization]:
-        with self._lock:
-            p = self._pending.get(req_id or '')
-            if p and time.time() - p.created >= _PENDING_TTL:
-                self._pending.pop(req_id, None)
-                return None
-            return p
+        rec = self.store.get(_PENDING + (req_id or ''))
+        if rec is None:
+            return None
+        p = PendingAuthorization(**rec)
+        if time.time() - p.created >= _PENDING_TTL:
+            self.store.delete(_PENDING + req_id)
+            return None
+        return p
 
     def pop_pending(self, req_id: str) -> Optional[PendingAuthorization]:
-        with self._lock:
-            return self._pending.pop(req_id or '', None)
+        rec = self.store.pop(_PENDING + (req_id or ''))
+        return PendingAuthorization(**rec) if rec else None
 
     # ── authorization codes (single use) ──
     def issue_code(self, pending: PendingAuthorization, user_id: str) -> str:
         code = secrets.token_urlsafe(32)
+        ttl = settings.code_ttl()
         rec = CodeRecord(client_id=pending.client_id, redirect_uri=pending.redirect_uri,
                          code_challenge=pending.code_challenge, scopes=list(pending.scopes),
                          resource=pending.resource, issuer=pending.issuer, user_id=user_id,
-                         expires=time.time() + settings.code_ttl())
-        with self._lock:
-            self._codes[_h(code)] = rec
+                         expires=time.time() + ttl)
+        self.store.set(_CODE + _h(code), asdict(rec), ttl=ttl + _CODE_GRACE)
         return code
 
     def redeem_code(self, code: str) -> CodeRecord:
-        """Mark a code used and return it.  A second redemption revokes what the first one minted."""
-        with self._lock:
-            rec = self._codes.get(_h(code or ''))
-            if rec is None:
-                raise OAuthError('invalid_grant', 'invalid authorization code')
-            if rec.used:
-                if rec.family:
-                    self._revoke_family_locked(rec.family)
-                raise OAuthError('invalid_grant', 'authorization code already used')
-            rec.used = True
-            if rec.expires < time.time():
-                raise OAuthError('invalid_grant', 'authorization code expired')
-            return rec
+        """
+        Mark a code used and return it.  A second redemption revokes what the first one minted.
+        The refresh-token family the code may mint is fixed here (``rec.family``), atomically,
+        so a replay on any worker revokes exactly that family.
+        """
+        outcome: Dict[str, Any] = {}
+
+        def mark_used(cur):
+            outcome.clear()
+            if cur is None:
+                outcome['error'] = 'missing'
+                return None
+            if cur.get('used'):
+                outcome['error'] = 'reused'
+                outcome['family'] = cur.get('family')
+                return cur
+            cur = dict(cur, used=True, family=cur.get('family') or uuid.uuid4().hex)
+            outcome['record'] = cur
+            return cur
+
+        self.store.update(_CODE + _h(code or ''), mark_used)
+        if outcome.get('error') == 'missing':
+            raise OAuthError('invalid_grant', 'invalid authorization code')
+        if outcome.get('error') == 'reused':
+            if outcome.get('family'):
+                self._revoke_family(outcome['family'])
+            raise OAuthError('invalid_grant', 'authorization code already used')
+        rec = CodeRecord(**outcome['record'])
+        if rec.expires < time.time():
+            raise OAuthError('invalid_grant', 'authorization code expired')
+        return rec
 
     # ── refresh tokens (rotation + reuse detection) ──
     def issue_refresh(self, family: str, client_id: str, user_id: str, scopes: List[str], resource: str,
@@ -186,36 +218,57 @@ class AuthorizationStore:
         rec = RefreshRecord(family=family, client_id=client_id, user_id=user_id, scopes=list(scopes),
                             resource=resource, issuer=issuer,
                             expires=expires or time.time() + settings.refresh_token_ttl())
-        with self._lock:
-            if family in self._revoked_families:
-                raise OAuthError('invalid_grant', 'grant revoked')
-            self._refresh[_h(token)] = rec
+        if self._revoked(family):
+            raise OAuthError('invalid_grant', 'grant revoked')
+        self.store.set(_REFRESH + _h(token), asdict(rec), ttl=max(1.0, rec.expires - time.time()))
         return token
 
     def use_refresh(self, token: str, client_id: str) -> RefreshRecord:
-        with self._lock:
-            rec = self._refresh.get(_h(token or ''))
-            if rec is None or rec.expires < time.time() or rec.family in self._revoked_families:
-                raise OAuthError('invalid_grant', 'invalid refresh token')
-            if rec.client_id != client_id:
-                raise OAuthError('invalid_grant', 'refresh token was issued to another client')
-            if rec.used:
-                # A rotated-out token came back: assume theft, revoke the whole family.
-                self._revoke_family_locked(rec.family)
-                raise OAuthError('invalid_grant', 'refresh token reuse detected; grant revoked')
-            rec.used = True
-            return rec
+        outcome: Dict[str, Any] = {}
 
-    def _revoke_family_locked(self, family: str) -> None:
-        self._revoked_families.add(family)
-        for k in [k for k, v in self._refresh.items() if v.family == family]:
-            self._refresh.pop(k, None)
+        def rotate(cur):
+            outcome.clear()
+            if cur is None:
+                outcome['error'] = 'missing'
+                return None
+            if cur.get('client_id') != client_id:
+                outcome['error'] = 'client'
+                return cur
+            if cur.get('used'):
+                outcome['error'] = 'reused'
+                outcome['family'] = cur.get('family')
+                return cur
+            cur = dict(cur, used=True)
+            outcome['record'] = cur
+            return cur
+
+        key = _REFRESH + _h(token or '')
+        current = self.store.get(key)
+        if current is None or current.get('expires', 0) < time.time() or self._revoked(current.get('family')):
+            raise OAuthError('invalid_grant', 'invalid refresh token')
+        self.store.update(key, rotate)
+        err = outcome.get('error')
+        if err == 'missing':
+            raise OAuthError('invalid_grant', 'invalid refresh token')
+        if err == 'client':
+            raise OAuthError('invalid_grant', 'refresh token was issued to another client')
+        if err == 'reused':
+            # A rotated-out token came back: assume theft, revoke the whole family.
+            self._revoke_family(outcome['family'])
+            raise OAuthError('invalid_grant', 'refresh token reuse detected; grant revoked')
+        return RefreshRecord(**outcome['record'])
+
+    def _revoked(self, family: Optional[str]) -> bool:
+        return bool(family) and self.store.get(_REVOKED + family) is not None
+
+    def _revoke_family(self, family: str) -> None:
+        """Every refresh token of ``family`` stops working (checked on use; they expire on their own)."""
+        self.store.set(_REVOKED + family, True, ttl=max(settings.refresh_token_ttl(), 3600))
 
     def revoke_refresh(self, token: str, client_id: str) -> None:
-        with self._lock:
-            rec = self._refresh.get(_h(token or ''))
-            if rec and rec.client_id == client_id:
-                self._revoke_family_locked(rec.family)
+        rec = self.store.get(_REFRESH + _h(token or ''))
+        if rec and rec.get('client_id') == client_id:
+            self._revoke_family(rec['family'])
 
 
 _store: Optional[AuthorizationStore] = None

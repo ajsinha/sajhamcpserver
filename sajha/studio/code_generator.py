@@ -85,7 +85,10 @@ class ToolCodeGenerator:
                 "cacheTTL": tool_def.cache_ttl,
                 "createdAt": datetime.now().isoformat(),
                 "source": "MCP Studio"
-            }
+            },
+            # User code: runs in the sandbox (docs/architecture/Sandbox.md). Unset
+            # keys take the administrator's sandbox.defaults.
+            "sandbox": {"network": "none"}
         }
         
         return json.dumps(config, indent=2)

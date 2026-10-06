@@ -6,6 +6,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 os.chdir(str(Path(__file__).parent.parent))
 
+# Tests never write tracked repository files. The duckdb tools open
+# <data.duckdb.dir>/duckdb_analytics.db (DuckDB rewrites it and drops its .wal on
+# checkpoint), so point them at a per-session temp copy of data/duckdb.
+import atexit, shutil, tempfile
+_DUCKDB_TMP = Path(tempfile.mkdtemp(prefix='sajha-test-duckdb-'))
+shutil.copytree(Path('data/duckdb'), _DUCKDB_TMP / 'duckdb', dirs_exist_ok=True)
+os.environ['data.duckdb.dir'] = str(_DUCKDB_TMP / 'duckdb')       # tool-config ${data.duckdb.dir}
+os.environ['SAJHA_DATA_DUCKDB_DIR'] = str(_DUCKDB_TMP / 'duckdb')  # sajha.core.config
+atexit.register(shutil.rmtree, _DUCKDB_TMP, True)
+
 
 import pytest
 

@@ -44,6 +44,22 @@ def test_other_calculators_are_chosen(toolbox, question, tool):
     assert r.steps and r.steps[0].name == tool and r.steps[0].ok, r.to_dict()
 
 
+def test_a_global_resolver_for_another_registry_is_not_adopted(toolbox, monkeypatch):
+    """Building the app sets a process-wide resolver; a service over a different registry must
+    not pick it up (it would shortlist tools this service cannot see)."""
+    from sajha.ai import tool_resolver
+    from tests.ai.conftest import ToolBox
+    other = tool_resolver.ToolResolver(None, ToolBox(with_calc=False), persist=False)
+    monkeypatch.setattr(tool_resolver, "_resolver", other)
+    svc = service(toolbox)
+    assert svc.resolver is not other and svc.resolver.tools_registry is toolbox
+    r = svc.ask("What is the percentage change from 80 to 100?", RequestContext(user_id="u"))
+    assert [s.name for s in r.steps] == ["calc_percentage_change"]
+    same = tool_resolver.ToolResolver(None, toolbox, persist=False)
+    monkeypatch.setattr(tool_resolver, "_resolver", same)
+    assert service(toolbox).resolver is same                # same registry: shared resolver is reused
+
+
 def test_confidence_drops_for_less_reliable_tools(toolbox):
     toolbox.add(FakeTool("web_fetch_quote", "Fetch the stock quote price for a ticker symbol",
                          {"type": "object", "properties": {"symbol": {"type": "string"}}},

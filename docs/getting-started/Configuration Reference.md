@@ -28,7 +28,7 @@ The **Reader** column in the tables below says which one applies to each key.
 | Reader | Used for | Resolution (highest wins) |
 |--------|----------|---------------------------|
 | **Settings**: `get_settings()` in `sajha/core/config.py` | app, server, db, auth (secrets, JWT), config, hot_reload, logging, data, cache, async, shell | 1. env var named after the Settings field, `SAJHA_<FIELD_NAME>` (pydantic-settings, `env_prefix='SAJHA_'`) → 2. `SAJHA_` + the dotted key in upper case with dots changed to underscores → 3. YAML (after `${VAR}` substitution) → 4. built-in default. It is evaluated once per process (`lru_cache`). |
-| **Live `_get`**: `_get` / `_bool` / `_int` / `_list` in `sajha/core/config.py`, called on each use | all `mcp.*` keys, `auth.login.*`, `auth.password.min_length`, `auth.secrets_file`, `async.delivery.webhook.allowed_urls` | 1. `SAJHA_<DOTTED_KEY>` (for example `SAJHA_MCP_AUTH_MODE`) → 2. YAML → 3. code default. Env vars are read on every call, but the YAML is a snapshot taken at import, so a YAML edit needs a restart. |
+| **Live `_get`**: `_get` / `_bool` / `_int` / `_list` in `sajha/core/config.py`, called on each use | all `mcp.*` keys, `state.*`, `auth.login.*`, `auth.password.min_length`, `auth.secrets_file`, `async.delivery.webhook.allowed_urls`, `playground.*`, `sandbox.*` | 1. `SAJHA_<DOTTED_KEY>` (for example `SAJHA_MCP_AUTH_MODE`) → 2. YAML → 3. code default. Env vars are read on every call, but the YAML is a snapshot taken at import, so a YAML edit needs a restart. |
 | **Raw YAML / PropertiesConfigurator**: `sajha.core.config._CFG` and `sajha/core/properties_configurator.py` | `ai.*`, `${key}` references inside tool JSON configs (`storage.*` is read this way too, but with env overrides first: see [storage](#storage)) | YAML only (after `${VAR}` substitution); `SAJHA_` env overrides **do not apply**. The fallback env vars that `storage.py` and `gateway.py` pass as defaults are used only when the key is **missing** from the YAML. To override one of these keys, edit the YAML, or put a `${VAR:default}` placeholder in the value and set `VAR`. |
 
 For Settings keys, the field name and the dotted key often give the same env var name
@@ -104,6 +104,22 @@ them.
 | `db.pool.size` | `10` (YAML `${DB_POOL_SIZE:10}`) | `DB_POOL_SIZE`, `SAJHA_DB_POOL_SIZE` | PostgreSQL `pool_size` and `max_overflow`. |
 | `db.echo` | `false` | `SAJHA_DB_ECHO` | Logs every SQL statement. |
 | `db.scripts_dir` | `db/scripts` | `SAJHA_DB_SCRIPTS_DIR` | Root of the SQL scripts that run at start-up. |
+
+## state
+
+Reader: live `_get`, in `sajha/core/state/__init__.py`, read once when the process builds its
+state store. Where OAuth codes, MCP sessions and tasks, rate-limit windows, LLM budgets and
+change notifications live. The design, and the inventory of what is shared and what stays
+per process, is in [Scaling and State](../architecture/Scaling%20and%20State.md).
+
+| Key | Default | Env | Purpose |
+|-----|---------|-----|---------|
+| `state.backend` | `memory` | `SAJHA_STATE_BACKEND` | `memory` (this process only), `redis` or `database`. Any other value stops start-up. With more than one worker, use `redis` or `database`; start-up logs a warning when it detects several workers (`WEB_CONCURRENCY`, `UVICORN_WORKERS`, `SAJHA_WORKERS` or `--workers`) on `memory`. A shared backend that does not answer at start-up stops start-up. |
+| `state.key_prefix` | `sajha:` | `SAJHA_STATE_KEY_PREFIX` | Prefix of every key and pub/sub channel, so several deployments can share one Redis or database. |
+| `state.redis.url` | `redis://localhost:6379/0` | `SAJHA_STATE_REDIS_URL` | Redis URL (`redis://`, `rediss://` for TLS, with `user:password@` when needed). Put a password in the env var, not in the YAML. Needs the optional `redis` package (`pip install "redis>=5"`). |
+| `state.database.url` | `""` | `SAJHA_STATE_DATABASE_URL` | SQLAlchemy URL for the `database` backend and the durable task store. Empty uses SAJHA's own database (`db.*`). The tables `sajha_state` and `sajha_state_events` are created on first use. |
+| `state.database.poll_interval_ms` | `500` (min 50) | `SAJHA_STATE_DATABASE_POLL_INTERVAL_MS` | How often the `database` backend polls for pub/sub events, which bounds how late a change notification reaches another worker. |
+| `state.tasks.durable` | `auto` | `SAJHA_STATE_TASKS_DURABLE` | `auto`, `true` or `false`. Durable MCP task records are kept in the database (`state.database.url`, or SAJHA's own), so they survive a restart and every worker sees them. `auto` turns it on for the `redis` and `database` backends. |
 
 ## auth
 
@@ -182,7 +198,7 @@ and `/a2a`, possible while `mcp.auth.mode` is `off` or `optional`. Reader:
 | `mcp.tasks.enabled` | `true` | Advertises and serves the `io.modelcontextprotocol/tasks` extension. | `sajha/core/mcp_modern.py` |
 | `mcp.tasks.ttl_ms` | `3600000` (min 1000) | How long a task stays readable. | `sajha/core/mcp_tasks.py` |
 | `mcp.tasks.poll_interval_ms` | `500` (min 1) | The `pollIntervalMs` hint sent to clients. | `sajha/core/mcp_tasks.py` |
-| `mcp.tasks.max_tasks` | `1000` (min 1) | Maximum number of tasks held in memory. | `sajha/core/mcp_tasks.py` |
+| `mcp.tasks.max_tasks` | `1000` (min 1) | Maximum number of task records held. When the limit is reached, the oldest finished ones are dropped first. With `state.backend: redis` and non-durable tasks it is a per-worker limit on the tasks that worker runs. | `sajha/core/mcp_tasks.py` |
 | `mcp.subscriptions.max_streams` | `1000` (min 1) | Maximum number of concurrent `subscriptions/listen` streams. | `sajha/core/mcp_modern.py` |
 
 ### Authorization (`mcp.auth`)
@@ -206,12 +222,13 @@ The reader is `sajha/auth/oauth/settings.py` unless the table says otherwise. Se
 | `mcp.auth.builtin.code_ttl_seconds` | `60` (30–600) | Authorization-code lifetime. |
 | `mcp.auth.builtin.refresh_tokens` | `offline_access` | `offline_access`, `always` or `never`. |
 | `mcp.auth.builtin.signing_key_path` | `""` → `<data.dir>/oauth/signing_key.pem` | Where the RSA-2048 signing key is stored. It is created on first use with mode 0600 (`sajha/auth/oauth/keys.py`). |
+| `mcp.auth.builtin.signing_key_pem` | not in YAML / `""` | The signing key as PEM text, usually from env `SAJHA_MCP_AUTH_BUILTIN_SIGNING_KEY_PEM`. A literal `\n` is read as a newline. When set, it replaces the file. This is how hosts that do not share a data directory sign with the same key (`sajha/auth/oauth/keys.py`). |
 | `mcp.auth.builtin.cimd.enabled` | `true` | Accepts Client ID Metadata Document client IDs (https URLs). |
 | `mcp.auth.builtin.cimd.allow_localhost` | `false` | Development only: accepts `http://localhost` client IDs. |
 | `mcp.auth.builtin.cimd.allow_private_networks` | `false` | Allows fetching metadata documents from private addresses. |
 | `mcp.auth.builtin.cimd.timeout_seconds` | `5` (1–30) | Timeout for fetching a metadata document. |
 | `mcp.auth.builtin.cimd.max_bytes` | `16384` (1024–1048576) | Size limit for a metadata document. |
-| `mcp.auth.builtin.dynamic_client_registration` | `false` | RFC 7591 registration. Registrations are kept in memory. |
+| `mcp.auth.builtin.dynamic_client_registration` | `false` | RFC 7591 registration. Registrations are kept in the state store (`state.backend`), so they are in memory with the default backend. |
 | `mcp.auth.builtin.clients` | `[]` | Pre-registered clients. This key is read straight from the YAML file named by `SAJHA_CONFIG_FILE`, not from the flattened config. Its env override is `SAJHA_MCP_AUTH_BUILTIN_CLIENTS`, holding the list as JSON. `${VAR}` placeholders are substituted only in `client_secret`. |
 
 ### MCP Apps
@@ -451,13 +468,128 @@ admin or `shell:execute`).
 | `async.delivery.file.max_size_mb` | `50` | Results larger than this are not written. |
 | `shell.enabled` | `false` (YAML `${SHELL_ENABLED:false}`) | Master switch for `/api/shell/*`. |
 | `shell.mode` | `sandbox` | Passed to the executor. |
-| `shell.scratch_dir` | `data/shell_scratch` | Working directory for scripts. |
+| `shell.scratch_dir` | `data/shell_scratch` | Created at start-up; executions now run in a per-call sandbox work dir (see [sandbox](#sandbox)). |
 | `shell.python.enabled` | `true` | Python, once the shell is enabled. |
 | `shell.python.timeout_seconds` | `30` | Python timeout. |
-| `shell.python.memory_limit_mb` | `256` | Passed to the executor but **not applied** (see the Security Model). |
+| `shell.python.memory_limit_mb` | `256` | Memory limit of the sandbox Python runs in (`RLIMIT_AS`, or the container limit). |
 | `shell.bash.enabled` | `false` | Bash needs this as well as `shell.enabled`. |
 | `shell.bash.timeout_seconds` | `15` | Bash timeout. |
 | `shell.bash.max_output_bytes` | `1048576` | Bash output cap. |
+
+Both run through the [sandbox](#sandbox) backend after their filters.
+
+## sandbox
+
+Reader: live `_get` (`sajha/sandbox/settings.py::load_settings`), on every call, so
+`SAJHA_SANDBOX_*` environment variables override the YAML (for example
+`SAJHA_SANDBOX_DEFAULT_BACKEND=bwrap`, `SAJHA_SANDBOX_DEFAULTS_MEMORY_MB=256`). Lists
+are YAML lists, or comma-separated in an environment variable. The design, the threat
+model and what each backend guarantees are in [Sandbox](../architecture/Sandbox.md); a
+tool's own `sandbox` block is described there too.
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `sandbox.default_backend` | `subprocess` | `subprocess`, `bwrap`, `nsjail`, `docker`, or `auto` (the first available of bwrap, nsjail, subprocess). An unavailable backend falls back to `subprocess` with a warning. |
+| `sandbox.enforce_for_generated_tools` | `true` | Studio Python code and script tools always run in the sandbox. `false`: they load in-process unless their config says `"sandbox": {"enabled": true}`. |
+| `sandbox.strict` | `false` | `true`: refuse to run when the chosen backend, or a confinement step the runner tries (namespaces, Landlock, seccomp), is unavailable, instead of falling back. |
+| `sandbox.work_dir` | `''` | Parent of the per-call temp directories (`''` = the system temp directory). |
+| `sandbox.python` | `''` | Interpreter for the subprocess, bwrap and nsjail backends (`''` = the server's own). |
+| `sandbox.extra_read_paths` | `[]` | Extra read-only paths a sandbox may read (for example a shared data directory). |
+| `sandbox.secrets_allowlist` | `[]` | Environment variable names a tool may request with `sandbox.secrets`. `SAJHA_*` names are always refused. |
+| `sandbox.defaults.timeout_seconds` | `30` | Wall-clock limit per call. |
+| `sandbox.defaults.cpu_seconds` | `30` | CPU time (`RLIMIT_CPU`); a tool that sets only `timeout_seconds` gets the same value. |
+| `sandbox.defaults.memory_mb` | `512` | Address-space limit, or the container memory limit. |
+| `sandbox.defaults.max_output_bytes` | `1048576` | Per stream; the run is killed when it is exceeded. |
+| `sandbox.defaults.max_processes` | `64` | Processes in the sandbox (`RLIMIT_NPROC` in its user namespace, `--pids-limit` for docker). |
+| `sandbox.defaults.max_file_mb` | `64` | Largest file the code may write (`RLIMIT_FSIZE`). |
+| `sandbox.defaults.network` | `none` | `none` or `allowlist` (a tool must then list `allow_hosts`). |
+| `sandbox.max.*` | `timeout_seconds` 300, `cpu_seconds` 300, `memory_mb` 4096, `max_output_bytes` 16777216, `max_processes` 512, `max_file_mb` 1024 | Caps on what a tool's `sandbox` block may ask for. |
+| `sandbox.docker.binary` | `docker` | `podman` works too. |
+| `sandbox.docker.image` | `python:3.13-slim` | Image each call runs in; it must be pulled already (the backend reports unavailable otherwise). |
+| `sandbox.docker.runtime` | `''` | Container runtime, for example `runsc` for gVisor. |
+| `sandbox.docker.cpus` | `1` | `--cpus` per container. |
+
+## playground
+
+Reader: live `_get` (`sajha/web/playground.py`, `load_settings()`), on every request to the
+playground's routes, so `SAJHA_PLAYGROUND_*` environment variables override the YAML. A
+value that does not validate falls back to its default; the error is logged and shown to
+administrators on `/playground`. The guide is [Python Playground](Python%20Playground.md).
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `playground.enabled` | `true` | `false`: `/playground` and its worker answer 404 (a friendly page), and the menu entry, dashboard action and Studio's "Open in playground" button disappear. |
+| `playground.assets` | `vendored` | Where the browser loads Pyodide from. `vendored`: `/static/vendor/pyodide/<version>/`, filled by `python scripts/fetch_pyodide.py`; without those files the page shows an administrator hint. `cdn`: `https://cdn.jsdelivr.net/pyodide/v<version>/full/`, and that origin is added to the playground worker's CSP only. |
+| `playground.pyodide_version` | `314.0.7` | The Pyodide release (`N.N.N`; a leading `v` is accepted). With `vendored`, the folder `scripts/fetch_pyodide.py` fills; with `cdn`, the CDN path. |
+| `playground.allow_pypi` | `true` | Let `micropip` fetch pure-Python wheels from PyPI: adds `https://pypi.org` and `https://files.pythonhosted.org` to the playground worker's `connect-src`. `false` keeps the worker to this origin (and the CDN in `cdn` mode). |
+
+## federation
+
+Reader: live `_get` for the scalar keys (`sajha/federation/config.py`,
+`FederationSettings.load()`), read once when the manager starts, so `SAJHA_FEDERATION_*`
+environment variables override the YAML; restart to apply a change. The upstream list is
+read from the YAML as nested data, or from `SAJHA_FEDERATION_UPSTREAMS` (a JSON list), which
+replaces it. Upstreams added on `/admin/federation` are stored at `federation.state_path`,
+not in this file. Design, the upstream fields and operation:
+[Federation](../architecture/Federation.md).
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `federation.enabled` | `false` | Master switch. Off: no upstream is contacted and no federated item is exposed. |
+| `federation.require_approval` | `true` | A newly discovered (or changed) upstream tool, prompt or resource waits for an administrator before it is exposed. An upstream's own `auto_approve: true` overrides it; text that trips the injection screen always waits. |
+| `federation.allow_stdio` | `false` | Allow `transport: stdio` upstreams, which run as subprocesses of SAJHA with its privileges. |
+| `federation.allow_localhost` | `false` | SSRF guard: allow loopback upstream URLs (for a localhost host name). |
+| `federation.allow_private_networks` | `false` | SSRF guard: allow RFC 1918 and unique-local addresses (never link-local). |
+| `federation.allowed_hosts` | `[]` | fnmatch host patterns an upstream URL must match; empty allows any host the guard allows. |
+| `federation.refresh_interval_seconds` | `300` | Periodic re-discovery and health check; `0` refreshes only on list changes and on demand. Per upstream: `refresh_interval_seconds`. |
+| `federation.startup_wait_seconds` | `5` | How long start-up waits for the first discovery of every enabled upstream. Start-up never fails because an upstream is down. |
+| `federation.default_timeout_seconds` | `30` | One upstream call's deadline. Per upstream: `timeout_seconds`. |
+| `federation.max_description_chars` | `1024` | Cap on an upstream tool's, prompt's or resource's description. |
+| `federation.state_path` | `config/federation/federation.json` | Storage-backend path of the store: upstreams added on the admin page, and every item's approval. |
+| `federation.upstreams` | `[]` | The upstreams defined in configuration; each entry's fields are in [Federation](../architecture/Federation.md#2-the-upstream-model). |
+
+## observability
+
+Reader: live `_get` for the scalar keys (`sajha/observability/settings.py`), so
+`SAJHA_OBSERVABILITY_*` environment variables override the YAML; the metric, usage and
+alert keys are read when used, the OpenTelemetry keys once at start-up. The rule list
+`observability.alerts` is read from the YAML as nested data, or from
+`SAJHA_OBSERVABILITY_ALERTS` (a JSON list), which replaces it. For OpenTelemetry the
+standard `OTEL_*` variables win over these keys. Design, the metric families and the
+rule fields: [Observability](../architecture/Observability.md).
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `observability.metrics.enabled` | `true` | Serve `/metrics` and record the metric families; `false` answers 404 (the usage ledger is separate). |
+| `observability.metrics.auth` | `admin` | Who may read `/metrics`: `admin` (a signed-in administrator), `token` (`Authorization: Bearer` equal to `SAJHA_OBSERVABILITY_METRICS_TOKEN`, or an administrator) or `none`. |
+| `observability.metrics.port` | `0` | Above 0, also serve `/metrics` on a separate listener (same `auth` rule). |
+| `observability.metrics.host` | `127.0.0.1` | That listener's bind address. |
+| `observability.metrics.tool_label` | `name` | The `tool` label: `name` (one series per tool), `group` (per tool group) or `none`. |
+| `observability.metrics.max_series` | `2000` | Label sets per family; a new one beyond the cap is recorded with every label `_other`. |
+| `observability.metrics.multiworker` | `auto` | With a shared `state.backend`, merge every worker's snapshot into each scrape under a `worker` label; `off` serves this worker only. |
+| `observability.metrics.publish_interval_seconds` | `15` | How often each worker publishes its snapshot (TTL three intervals). |
+| `observability.otel.enabled` | `false` | Export traces and metrics over OTLP (needs `opentelemetry-sdk` and an OTLP exporter package). |
+| `observability.otel.endpoint` | `''` | Collector URL, e.g. `http://otel-collector:4318`; `OTEL_EXPORTER_OTLP_ENDPOINT` wins. |
+| `observability.otel.protocol` | `http/protobuf` | `http/protobuf` or `grpc`; `OTEL_EXPORTER_OTLP_PROTOCOL` wins. |
+| `observability.otel.headers` | (none) | `k=v,k2=v2` exporter headers; prefer `OTEL_EXPORTER_OTLP_HEADERS` for credentials. |
+| `observability.otel.service_name` | `sajha-mcp-server` | `service.name`; `OTEL_SERVICE_NAME` wins. |
+| `observability.otel.sample_ratio` | `1.0` | Parent-based trace sampling ratio; `OTEL_TRACES_SAMPLER_ARG` wins. |
+| `observability.otel.traces` | `true` | Export traces (`OTEL_TRACES_EXPORTER=none` also turns them off). |
+| `observability.otel.metrics` | `true` | Export metrics (`OTEL_METRICS_EXPORTER=none` also turns them off). |
+| `observability.usage.enabled` | `true` | Record the usage ledger behind `/monitoring/usage`. |
+| `observability.usage.retention_days` | `90` | Ledger rows older than this are deleted once a day; `0` keeps them. |
+| `observability.usage.queue_size` | `10000` | Rows waiting to be written; beyond it rows are dropped and counted. |
+| `observability.usage.max_rows_for_percentiles` | `200000` | Most rows one dashboard query reads; beyond it the figures are from the most recent rows. |
+| `observability.alerts_interval_seconds` | `30` | How often the in-process alert rules are evaluated. |
+| `observability.alerts_max_events` | `200000` | Size of the in-memory event window the rules read. |
+| `observability.alerts_webhook.allowed_urls` | `[]` | URL prefixes an alert webhook may post to; any other URL makes its rule invalid. |
+| `observability.alerts_webhook.allow_private_networks` | `false` | SSRF guard: allow loopback and RFC 1918 webhook hosts (never link-local). |
+| `observability.alerts` | `[]` | The alert rules (fields in [Observability](../architecture/Observability.md#5-alerts)). |
+| `observability.alerts_email.smtp_host` | `''` | SMTP server for `channel: {type: email}`. |
+| `observability.alerts_email.smtp_port` | `587` | SMTP port. |
+| `observability.alerts_email.from` | `sajha@localhost` | Sender address. |
+| `observability.alerts_email.starttls` | `true` | Use STARTTLS. |
+| `observability.alerts_email.username` | `''` | SMTP user; the password is `SAJHA_OBSERVABILITY_ALERTS_EMAIL_PASSWORD`. |
 
 ## Secrets
 
@@ -473,6 +605,11 @@ Supply secrets through the environment, and never commit them to `application.ym
 | Pre-registered client secrets | `mcp.auth.builtin.clients[].client_secret` | Use `${ENV_VAR}` placeholders, or set `SAJHA_MCP_AUTH_BUILTIN_CLIENTS`. |
 | Database password | `db.password` / `db.url` | Set `SAJHA_DB_PASSWORD` or `SAJHA_DB_URL`. |
 | Provider and data-API keys | `ai.*.api_key`, `fmp`, `fred`, `google`, `tavily` | Set the env var named in the YAML placeholder. |
+| Metrics scrape token, OTLP headers, alert SMTP password | `SAJHA_OBSERVABILITY_METRICS_TOKEN`, `OTEL_EXPORTER_OTLP_HEADERS`, `SAJHA_OBSERVABILITY_ALERTS_EMAIL_PASSWORD` | Environment only; there is no YAML key for them. |
+
+On Kubernetes the Helm chart passes the JWT secret, session secret, OAuth signing key and
+metrics token to every pod from one Secret, and sets the database, state and storage
+variables from chart values; see [Kubernetes Deployment](Kubernetes%20Deployment.md#3-secrets).
 
 See also the [Security Model](../security/Security%20Model.md) and the
 [Architecture](../architecture/Architecture.md) overview.

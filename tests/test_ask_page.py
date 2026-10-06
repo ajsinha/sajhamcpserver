@@ -77,3 +77,31 @@ def test_every_example_is_answered_by_the_default_model(web, question):
     assert res['steps'] and all(s['ok'] for s in res['steps']), res['steps']
     assert all(s['name'].startswith('calc_') for s in res['steps'])
     assert res['citations'] and res['confidence'] > 0.9
+
+
+def test_ask_sky_has_tooltips_and_a_labelled_cosmetic_filter(web):
+    c, admin = web
+    t = _get(c, '/ask', cookies=admin).text
+    data = _ask_data(t)
+    # the hover tooltip's one-liners: a name -> description map for named stars, clipped short
+    desc = data['descriptions']
+    names = {n for g in data['groups'] for n in g[2]}
+    assert desc and set(desc) <= names
+    assert desc.get('calc_percentage_change')
+    assert all(len(d) <= 120 and '\n' not in d for d in desc.values())
+    # the filter: labelled, described, and says it does not change the ask
+    assert '<label class="ask-filter-label" for="askFilter">' in t
+    assert 'id="askFilterMsg"' in t and 'aria-describedby="askFilterMsg askFilterErr askFilterHelp"' in t
+    assert 'does not change which tools SAJHA uses' in t
+    js = _get(c, '/static/js/constellation.js').text
+    assert 'function tips(' in js and 'aria-live' in js and 'S.nearest' in js
+
+
+def test_landing_sky_names_every_star(web):
+    c, _ = web
+    t = _get(c, '/').text
+    m = re.search(r'<script type="application/json" id="lpData">(.*?)</script>', t, re.S)
+    assert m
+    groups = json.loads(m.group(1))['groups']
+    assert groups and all(len(g) == 3 and len(g[2]) == g[1] for g in groups)
+    assert 'calc_percentage_change' in {n for g in groups for n in g[2]}

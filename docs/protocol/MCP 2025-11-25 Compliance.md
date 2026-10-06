@@ -148,8 +148,9 @@ and every `GET /mcp/sse`, still opens the legacy 2024-11-05 HTTP+SSE stream (an
 `endpoint` event, then messages). Legacy clients POSTing to `/mcp?session=<id>` get 202,
 and their response is delivered on that SSE stream.
 
-**Sessions** are kept in process memory (`sajha/core/mcp_sessions.py`), so a restart
-invalidates them and clients get 404 and re-initialize. Requests without a session
+**Sessions** are kept in the state store (`sajha/core/mcp_sessions.py`): process memory by
+default, so a restart invalidates them and clients get 404 and re-initialize. With a shared
+backend every worker knows them ([Scaling and State](../architecture/Scaling%20and%20State.md)). Requests without a session
 header are still accepted, which keeps simple `curl` clients working. Authentication
 on `/mcp` stays optional. Credentials (JWT or `X-API-Key`) are accepted, but per-role tool
 filtering is not active: `MCPHandler` is created without an auth manager.

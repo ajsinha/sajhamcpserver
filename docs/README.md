@@ -22,13 +22,13 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 
 | Folder | What is in it |
 |---|---|
-| `getting-started/` | The map, quick start, configuration reference, storage |
+| `getting-started/` | The map, quick start, configuration reference, storage, Kubernetes |
 | `protocol/` | MCP protocol guide, the two compliance reports, API reference, OAuth, MCP Apps and headers |
-| `architecture/` | How the server is built; the composition framework |
+| `architecture/` | How the server is built; the composition framework; the intelligence layer and how to extend it |
 | `studio/` | MCP Studio and its creators |
 | `tools/` | One reference guide per tool provider, by category; prompts |
 | `tutorials/` | Step-by-step walkthroughs, numbered |
-| `clients/` | The Python client SDK |
+| `clients/` | The Python client SDK; the `sajha` command line and desktop (stdio) clients |
 | `security/` | The security model |
 | `archive/` | Point-in-time reports, not maintained |
 | `requirements/` | The original requirements document |
@@ -39,6 +39,8 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Quick Start](getting-started/Quick%20Start.md)
 - [Configuration Reference](getting-started/Configuration%20Reference.md)
 - [Storage Guide](getting-started/Storage%20Guide.md)
+- [Python Playground](getting-started/Python%20Playground.md)
+- [Kubernetes Deployment](getting-started/Kubernetes%20Deployment.md): the image, the Helm chart, Kustomize manifests, several replicas
 
 ## Protocol
 
@@ -54,6 +56,11 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Architecture](architecture/Architecture.md)
 - [Composition Framework](architecture/Composition%20Framework.md)
 - [Intelligence Layer](architecture/Intelligence%20Layer.md)
+- [Extending the Intelligence Layer](architecture/Extending%20the%20Intelligence%20Layer.md): writing a provider, a model and a planner
+- [Federation](architecture/Federation.md): other MCP servers' tools behind SAJHA's governance
+- [Sandbox](architecture/Sandbox.md): where user code (Studio Python and script tools, the shell) runs, and what each backend guarantees
+- [Scaling and State](architecture/Scaling%20and%20State.md): several workers or hosts; the state store (memory, Redis, database), durable tasks, and what stays per process
+- [Observability](architecture/Observability.md): Prometheus `/metrics`, OpenTelemetry traces over OTLP, the usage and cost dashboard, alert rules
 
 ## MCP Studio
 
@@ -106,13 +113,21 @@ These guides document each provider's tools, parameters and API keys.
 8. [Tutorial 8: Custom Configuration](tutorials/TUTORIAL_08_custom_configuration.md)
 9. [Tutorial 9: Call SAJHA from the Standard MCP Client](tutorials/TUTORIAL_09_call_sajha_from_the_standard_mcp_client.md)
 10. [Tutorial 10: Ask SAJHA](tutorials/TUTORIAL_10_ask_sajha.md)
+11. [Tutorial 11: Federate an MCP Server](tutorials/TUTORIAL_11_federate_an_mcp_server.md)
+12. [Tutorial 12: Analyse a Tool's Result in the Python Playground](tutorials/TUTORIAL_12_python_playground.md)
+13. [Tutorial 13: Run SAJHA on Several Workers](tutorials/TUTORIAL_13_run_sajha_on_several_workers.md)
+14. [Tutorial 14: Sandboxed Studio Tools](tutorials/TUTORIAL_14_sandboxed_studio_tools.md)
+15. [Tutorial 15: The sajha CLI and Claude Desktop](tutorials/TUTORIAL_15_sajha_cli_and_claude_desktop.md)
+16. [Tutorial 16: Metrics, Costs and Alerts](tutorials/TUTORIAL_16_metrics_costs_and_alerts.md)
+17. [Tutorial 17: Deploy SAJHA on Kubernetes](tutorials/TUTORIAL_17_deploy_sajha_on_kubernetes.md)
 
 ## Clients and security
 
 - [Client SDK Guide](clients/Client%20SDK%20Guide.md)
+- [Command Line](clients/Command%20Line.md): the `sajha` CLI, and SAJHA over stdio for desktop clients
 - [Security Model](security/Security%20Model.md)
 
 ## Elsewhere in the repository
 
-- [Deployment recipes](../deployment/README.md): AWS CDK, Hetzner, bare metal
+- [Deployment recipes](../deployment/README.md): AWS CDK, Hetzner, bare metal, Kubernetes
 - [Archive](archive/README.md): old audits and notes, not maintained

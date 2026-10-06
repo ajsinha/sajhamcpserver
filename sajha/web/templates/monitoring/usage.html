@@ -1,0 +1,256 @@
+{% extends "common/base.html" %}
+{# Usage & cost: tokens and cost, tool calls, latency, budgets and alerts.
+   Data: /api/observability/usage (sajha/routes/observability_routes.py, sajha/observability/usage.py).
+   Design: docs/architecture/Observability.md, section 4. #}
+{% block title %}Usage &amp; Cost - Monitoring - SAJHA MCP Server{% endblock %}
+{% block content %}
+<div class="container-fluid obs-page">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-cash-coin me-2" aria-hidden="true"></i>Usage &amp; cost</h1>
+      <small class="text-muted">
+        {% if is_admin %}Tokens, spend, tool calls and latency for every caller, from the usage ledger.
+        {% else %}Your own tokens, spend and tool calls, from the usage ledger.{% endif %}
+      </small>
+    </div>
+    <div class="d-flex flex-wrap gap-1 align-items-center">
+      <div class="btn-group btn-group-sm" role="group" aria-label="Quick range">
+        <button type="button" class="btn btn-outline-secondary" data-days="1">Today</button>
+        <button type="button" class="btn btn-outline-secondary active" data-days="7">7 days</button>
+        <button type="button" class="btn btn-outline-secondary" data-days="30">30 days</button>
+        <button type="button" class="btn btn-outline-secondary" data-days="90">90 days</button>
+      </div>
+      <button class="btn btn-sm btn-outline-primary" type="button" id="obsReload" aria-label="Reload"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
+    </div>
+  </div>
+
+  {% if not usage_enabled %}
+  <div class="alert alert-warning small" role="status">
+    The usage ledger is off (<code>observability.usage.enabled: false</code>); nothing new is recorded.
+  </div>
+  {% endif %}
+
+  <form class="obs-filters card mb-3" id="obsFilters" onsubmit="return false">
+    <div class="card-body py-2">
+      <div class="row g-2 align-items-end">
+        <div class="col-6 col-md-2"><label class="form-label" for="fSince">From (UTC)</label>
+          <input type="date" class="form-control form-control-sm" id="fSince"></div>
+        <div class="col-6 col-md-2"><label class="form-label" for="fUntil">To (UTC)</label>
+          <input type="date" class="form-control form-control-sm" id="fUntil"></div>
+        {% if is_admin %}
+        <div class="col-6 col-md-1"><label class="form-label" for="fUser">User</label>
+          <input class="form-control form-control-sm" id="fUser" placeholder="any" autocomplete="off"></div>
+        <div class="col-6 col-md-1"><label class="form-label" for="fKey">API key</label>
+          <input class="form-control form-control-sm" id="fKey" placeholder="any" autocomplete="off"></div>
+        <div class="col-6 col-md-1"><label class="form-label" for="fRole">Role</label>
+          <input class="form-control form-control-sm" id="fRole" placeholder="any" autocomplete="off"></div>
+        {% endif %}
+        <div class="col-6 col-md-1"><label class="form-label" for="fProvider">Provider</label>
+          <input class="form-control form-control-sm" id="fProvider" placeholder="any" autocomplete="off"></div>
+        <div class="col-6 col-md-2"><label class="form-label" for="fModel">Model</label>
+          <input class="form-control form-control-sm" id="fModel" placeholder="any" autocomplete="off"></div>
+        <div class="col-6 col-md-1"><label class="form-label" for="fTool">Tool</label>
+          <input class="form-control form-control-sm" id="fTool" placeholder="any" autocomplete="off"></div>
+        <div class="col-12 col-md-1 d-grid"><button class="btn btn-sm btn-primary" type="submit" id="obsApply">Apply</button></div>
+      </div>
+    </div>
+  </form>
+
+  <div class="obs-tiles mb-3" id="obsTiles" aria-live="polite">
+    <div class="obs-tile"><div class="obs-label">Tool calls</div><div class="obs-value" id="tTool">—</div><div class="obs-sub" id="tToolErr">&nbsp;</div></div>
+    <div class="obs-tile"><div class="obs-label">Tool latency p50 / p95 / p99</div><div class="obs-value" id="tLat">—</div><div class="obs-sub">milliseconds</div></div>
+    <div class="obs-tile"><div class="obs-label">LLM calls</div><div class="obs-value" id="tLlm">—</div><div class="obs-sub" id="tLlmErr">&nbsp;</div></div>
+    <div class="obs-tile"><div class="obs-label">Tokens in / out</div><div class="obs-value" id="tTok">—</div><div class="obs-sub" id="tTokSub">&nbsp;</div></div>
+    <div class="obs-tile obs-tile-accent"><div class="obs-label">Cost (USD)</div><div class="obs-value" id="tCost">—</div><div class="obs-sub" id="tRange">&nbsp;</div></div>
+  </div>
+  <div class="alert alert-info small d-none" id="obsSampled" role="status">
+    More rows than <code>observability.usage.max_rows_for_percentiles</code> in this range: the figures use the most recent rows.
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-lg-6"><div class="card h-100">
+      <div class="card-header"><i class="bi bi-currency-dollar me-2" aria-hidden="true"></i>Cost by day, by provider</div>
+      <div class="card-body"><div class="obs-chart"><canvas id="cCost" aria-label="Cost by day, stacked by provider" role="img"></canvas></div></div>
+    </div></div>
+    <div class="col-lg-6"><div class="card h-100">
+      <div class="card-header"><i class="bi bi-graph-up me-2" aria-hidden="true"></i>Tokens and tool calls by day</div>
+      <div class="card-body"><div class="obs-chart"><canvas id="cDaily" aria-label="Tokens and tool calls by day" role="img"></canvas></div></div>
+    </div></div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    {% if is_admin %}
+    <div class="col-xl-6">{% set tid = 'user' %}{% set ttitle = 'By user' %}{% set ticon = 'people' %}{% include "monitoring/_usage_table.html" %}</div>
+    <div class="col-xl-6">{% set tid = 'api_key' %}{% set ttitle = 'By API key' %}{% set ticon = 'key' %}{% include "monitoring/_usage_table.html" %}</div>
+    {% endif %}
+    <div class="col-xl-6">{% set tid = 'role' %}{% set ttitle = 'By role' %}{% set ticon = 'person-badge' %}{% include "monitoring/_usage_table.html" %}</div>
+    <div class="col-xl-6">{% set tid = 'model' %}{% set ttitle = 'By provider / model' %}{% set ticon = 'cpu' %}{% include "monitoring/_usage_table.html" %}</div>
+    <div class="col-12">{% set tid = 'tool' %}{% set ttitle = 'Top tools' %}{% set ticon = 'tools' %}{% include "monitoring/_usage_table.html" %}</div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-lg-6"><div class="card h-100">
+      <div class="card-header"><i class="bi bi-speedometer me-2" aria-hidden="true"></i>Budgets today (UTC)</div>
+      <div class="card-body" id="obsBudgets"><span class="text-muted small">Loading…</span></div>
+    </div></div>
+    {% if is_admin %}
+    <div class="col-lg-6"><div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-bell me-2" aria-hidden="true"></i>Alert rules</span>
+        <a class="small" href="/metrics" target="_blank" rel="noopener">Prometheus /metrics</a>
+      </div>
+      <div class="card-body" id="obsAlerts"><span class="text-muted small">Loading…</span></div>
+    </div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.js') }}"></script>
+<script>
+(function () {
+  'use strict';
+  var IS_ADMIN = {{ 'true' if is_admin else 'false' }};
+  var T = window.SajhaChartTheme;
+  var charts = {};
+  var last = null;
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function n(v) { return (v || 0).toLocaleString(); }
+  function usd(v) { v = v || 0; return '$' + (v >= 100 ? v.toFixed(2) : v >= 1 ? v.toFixed(3) : v.toFixed(4)); }
+  function pct(v) { return ((v || 0) * 100).toFixed(1) + '%'; }
+  function iso(d) { return d.toISOString().slice(0, 10); }
+  function setRange(days) {
+    var u = new Date(); var s = new Date(u.getTime() - (days - 1) * 86400000);
+    $('fUntil').value = iso(u); $('fSince').value = iso(s);
+  }
+  function params() {
+    var p = new URLSearchParams();
+    p.set('since', $('fSince').value); p.set('until', $('fUntil').value);
+    [['fUser', 'user'], ['fKey', 'api_key'], ['fRole', 'role'], ['fProvider', 'provider'],
+     ['fModel', 'model'], ['fTool', 'tool']].forEach(function (f) {
+      var el = $(f[0]); if (el && el.value.trim()) { p.set(f[1], el.value.trim()); }
+    });
+    return p;
+  }
+  function tiles(t, rep) {
+    $('tTool').textContent = n(t.tool_calls);
+    $('tToolErr').textContent = n(t.tool_errors) + ' errors (' + pct(t.error_rate) + ')';
+    $('tLat').textContent = t.p50_ms + ' / ' + t.p95_ms + ' / ' + t.p99_ms;
+    $('tLlm').textContent = n(t.llm_calls);
+    $('tLlmErr').textContent = n(t.llm_errors) + ' failed';
+    $('tTok').textContent = n(t.input_tokens) + ' / ' + n(t.output_tokens);
+    $('tTokSub').textContent = n(t.tokens) + ' in all';
+    $('tCost').textContent = usd(t.cost_usd);
+    $('tRange').textContent = rep.since + ' to ' + rep.until;
+    $('obsSampled').classList.toggle('d-none', !rep.sampled);
+  }
+  function table(dim, rows) {
+    var body = $('tb-' + dim); if (!body) { return; }
+    var link = $('csv-' + dim); if (link) { var p = params(); p.set('dimension', dim); link.href = '/api/observability/usage.csv?' + p.toString(); }
+    if (!rows.length) { body.innerHTML = '<tr><td colspan="9" class="text-muted small">No calls in this range.</td></tr>'; return; }
+    body.innerHTML = rows.slice(0, 50).map(function (r) {
+      return '<tr><td class="obs-key">' + esc(r.key) + '</td><td>' + n(r.tool_calls) + '</td><td>' + pct(r.error_rate) +
+        '</td><td>' + r.p50_ms + '</td><td>' + r.p95_ms + '</td><td>' + r.p99_ms + '</td><td>' + n(r.llm_calls) +
+        '</td><td>' + n(r.tokens) + '</td><td>' + usd(r.cost_usd) + '</td></tr>';
+    }).join('');
+  }
+  function draw(rep) {
+    var labels = rep.days.map(function (d) { return d.day.slice(5); });
+    var pal = T.palette();
+    var cp = rep.cost_by_provider;
+    var costSets = cp.providers.map(function (p, i) {
+      return { label: p, data: cp.series[p], backgroundColor: T.color(pal[i % pal.length], 0.75), borderWidth: 0, stack: 'c' };
+    });
+    if (!costSets.length) { costSets = [{ label: 'cost', data: labels.map(function () { return 0; }), backgroundColor: T.color('crimson', 0.6) }]; }
+    if (charts.cost) { charts.cost.destroy(); }
+    charts.cost = new Chart($('cCost'), {
+      type: 'bar', data: { labels: labels, datasets: costSets },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: T.color('ink') } },
+        tooltip: { callbacks: { label: function (c) { return c.dataset.label + ': ' + usd(c.parsed.y); } } } },
+        scales: { x: { stacked: true, grid: { color: T.color('border') } },
+                  y: { stacked: true, beginAtZero: true, grid: { color: T.color('border') },
+                       ticks: { callback: function (v) { return '$' + v; } } } } }
+    });
+    if (charts.daily) { charts.daily.destroy(); }
+    charts.daily = new Chart($('cDaily'), {
+      type: 'line',
+      data: { labels: labels, datasets: [
+        { label: 'Tokens', data: rep.days.map(function (d) { return d.tokens; }), yAxisID: 'y',
+          borderColor: T.color('indigo'), backgroundColor: T.color('indigo', 0.15), fill: true, tension: 0.3 },
+        { label: 'Tool calls', data: rep.days.map(function (d) { return d.tool_calls; }), yAxisID: 'y1',
+          borderColor: T.color('crimson'), backgroundColor: T.color('crimson', 0.1), tension: 0.3 },
+        { label: 'Tool errors', data: rep.days.map(function (d) { return d.tool_errors; }), yAxisID: 'y1',
+          borderColor: T.color('warn'), borderDash: [4, 3], tension: 0.3 }] },
+      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { labels: { color: T.color('ink') } } },
+        scales: { x: { grid: { color: T.color('border') } },
+                  y: { beginAtZero: true, position: 'left', title: { display: true, text: 'tokens' }, grid: { color: T.color('border') } },
+                  y1: { beginAtZero: true, position: 'right', title: { display: true, text: 'calls' }, grid: { drawOnChartArea: false } } } }
+    });
+  }
+  function bar(used, limit) {
+    if (!limit) { return '<span class="text-muted small">no limit</span>'; }
+    var share = Math.min(1, used / limit); var cls = share >= 0.9 ? 'obs-bad' : share >= 0.7 ? 'obs-warn' : 'obs-ok';
+    return '<div class="obs-meter" role="meter" aria-valuemin="0" aria-valuemax="' + limit + '" aria-valuenow="' + used +
+      '"><div class="obs-meter-fill ' + cls + '" style="width:' + (share * 100).toFixed(1) + '%"></div></div>';
+  }
+  function budgets(b) {
+    var el = $('obsBudgets');
+    if (!b.available) { el.innerHTML = '<span class="text-muted small">The LLM gateway is not running, so there are no budgets to show.</span>'; return; }
+    if (!b.enabled) { el.innerHTML = '<span class="text-muted small">Budgets are off (<code>ai.budgets.enabled: false</code>).</span>'; return; }
+    var rows = [];
+    b.users.forEach(function (u) { rows.push(['user', u]); });
+    b.roles.forEach(function (r) { rows.push(['role', r]); });
+    if (!rows.length) { el.innerHTML = '<span class="text-muted small">No caller in this range, and no per-role budget set.</span>'; return; }
+    el.innerHTML = '<table class="table table-sm obs-table mb-0"><thead><tr><th>Owner</th><th>Used today</th><th>Limit</th><th class="w-50">Share</th></tr></thead><tbody>' +
+      rows.map(function (r) { var x = r[1]; return '<tr><td><span class="obs-kind">' + r[0] + '</span> ' + esc(x.key) + '</td><td>' + n(x.used) +
+        '</td><td>' + (x.limit ? n(x.limit) : '—') + '</td><td>' + bar(x.used, x.limit) + '</td></tr>'; }).join('') + '</tbody></table>';
+  }
+  function alerts() {
+    var el = $('obsAlerts'); if (!el) { return; }
+    fetch('/api/observability/alerts', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.rules || !d.rules.length) {
+        el.innerHTML = '<span class="text-muted small">No rules. Add <code>observability.alerts</code> to application.yml, or use the Prometheus rules in <code>deployment/observability/</code>.</span>';
+        return;
+      }
+      el.innerHTML = '<table class="table table-sm obs-table mb-0"><thead><tr><th>Rule</th><th>Condition</th><th>Now</th><th>State</th></tr></thead><tbody>' +
+        d.rules.map(function (r) {
+          var state = r.error ? '<span class="obs-pill obs-bad" title="' + esc(r.error) + '">invalid</span>' :
+            r.firing ? '<span class="obs-pill obs-bad">firing</span>' : '<span class="obs-pill obs-ok">ok</span>';
+          return '<tr><td>' + esc(r.name) + '</td><td><code>' + esc(r.metric) + ' ' + esc(r.op) + ' ' + esc(r.threshold) +
+            '</code> over ' + Math.round(r.window_seconds) + 's → ' + esc(r.channel.type || 'log') + '</td><td>' +
+            (r.value == null ? '—' : esc(Math.round(r.value * 10000) / 10000)) + '</td><td>' + state + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    }).catch(function () { el.innerHTML = '<span class="text-muted small">Could not load the rules.</span>'; });
+  }
+  function load() {
+    $('obsApply').disabled = true;
+    fetch('/api/observability/usage?' + params().toString(), { credentials: 'same-origin' })
+      .then(function (r) { if (!r.ok) { throw new Error('HTTP ' + r.status); } return r.json(); })
+      .then(function (rep) {
+        last = rep;
+        tiles(rep.totals, rep);
+        ['user', 'api_key', 'role', 'model', 'tool'].forEach(function (d) { table(d, rep['by_' + d] || []); });
+        draw(rep); budgets(rep.budgets);
+      })
+      .catch(function (e) { $('tRange').textContent = 'Could not load: ' + e.message; })
+      .finally(function () { $('obsApply').disabled = false; });
+    alerts();
+  }
+  document.querySelectorAll('[data-days]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('[data-days]').forEach(function (x) { x.classList.remove('active'); });
+      b.classList.add('active'); setRange(+b.getAttribute('data-days')); load();
+    });
+  });
+  $('obsApply').addEventListener('click', load);
+  $('obsReload').addEventListener('click', load);
+  setRange(7);
+  if (T) { T.applyDefaults(); }
+  load();
+})();
+</script>
+{% endblock %}

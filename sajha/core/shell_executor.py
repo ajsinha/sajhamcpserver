@@ -1,11 +1,12 @@
 """
-SAJHA MCP Server v5.3.0 — Sandboxed Shell & Python Executor
+SAJHA MCP Server — Sandboxed Shell & Python Executor
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
-Three-tier execution model:
-  Tier 1 — Python Sandbox: restricted imports, memory/time limits
-  Tier 2 — Shell Sandbox: allowlisted commands, no network/write
-  Tier 3 — Unrestricted Shell: admin-only, full audit logging
+Two checks on every execution:
+  1. Validation: restricted imports (Python) and allowlisted commands (Bash).
+  2. The sandbox (sajha/sandbox, docs/architecture/Sandbox.md): a separate process
+     with no server environment, a temp work dir, CPU/memory/output/time limits,
+     and, per backend, no view of the server's files, processes or network.
 
 DISABLED BY DEFAULT. Requires explicit config opt-in.
 Every execution is audit-logged regardless of tier.
@@ -215,43 +216,9 @@ class PythonSandbox:
                 execution_id=exec_id, executor_type='python', tier='sandbox',
                 code=code, success=False, blocked_reason=error, user_id=user_id)
 
-        # Write to temp file
-        script_path = self.scratch_dir / f"{exec_id}.py"
-        script_path.write_text(code)
-
-        start = time.time()
-        try:
-            result = subprocess.run(
-                ['python3', '-u', str(script_path)],
-                capture_output=True, text=True, timeout=self.timeout,
-                cwd=str(self.scratch_dir),
-                env={
-                    'PATH': '/usr/bin:/bin',
-                    'HOME': str(self.scratch_dir),
-                    'PYTHONDONTWRITEBYTECODE': '1',
-                    'PYTHONPATH': '',
-                },
-            )
-            duration = (time.time() - start) * 1000
-            return ShellResult(
-                execution_id=exec_id, executor_type='python', tier='sandbox',
-                code=code, stdout=result.stdout, stderr=result.stderr,
-                exit_code=result.returncode, success=result.returncode == 0,
-                duration_ms=duration, user_id=user_id,
-                error=result.stderr[:500] if result.returncode != 0 else None)
-
-        except subprocess.TimeoutExpired:
-            return ShellResult(
-                execution_id=exec_id, executor_type='python', tier='sandbox',
-                code=code, success=False, error=f"Timeout ({self.timeout}s)",
-                duration_ms=(time.time()-start)*1000, user_id=user_id)
-        except Exception as e:
-            return ShellResult(
-                execution_id=exec_id, executor_type='python', tier='sandbox',
-                code=code, success=False, error=str(e),
-                duration_ms=(time.time()-start)*1000, user_id=user_id)
-        finally:
-            script_path.unlink(missing_ok=True)
+        return _run_in_sandbox(exec_id, 'python', code, user_id,
+                               {'main.py': code}, ['{python}', '-I', '-B', '-u', 'main.py'],
+                               timeout=self.timeout, memory_mb=self.memory_mb)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -281,38 +248,41 @@ class BashSandbox:
                 execution_id=exec_id, executor_type='bash', tier='sandbox',
                 code=command, success=False, blocked_reason=error, user_id=user_id)
 
-        start = time.time()
-        try:
-            result = subprocess.run(
-                ['bash', '-c', command],
-                capture_output=True, text=True, timeout=self.timeout,
-                cwd=str(self.scratch_dir),
-                env={
-                    'PATH': '/usr/bin:/bin',
-                    'HOME': str(self.scratch_dir),
-                    'LANG': 'C.UTF-8',
-                },
-            )
-            duration = (time.time() - start) * 1000
-            stdout = result.stdout[:self.max_output]
-            stderr = result.stderr[:self.max_output]
-            return ShellResult(
-                execution_id=exec_id, executor_type='bash', tier='sandbox',
-                code=command, stdout=stdout, stderr=stderr,
-                exit_code=result.returncode, success=result.returncode == 0,
-                duration_ms=duration, user_id=user_id,
-                error=stderr[:500] if result.returncode != 0 else None)
+        return _run_in_sandbox(exec_id, 'bash', command, user_id,
+                               {}, ['/bin/bash', '-c', command],
+                               timeout=self.timeout, max_output=self.max_output)
 
-        except subprocess.TimeoutExpired:
-            return ShellResult(
-                execution_id=exec_id, executor_type='bash', tier='sandbox',
-                code=command, success=False, error=f"Timeout ({self.timeout}s)",
-                duration_ms=(time.time()-start)*1000, user_id=user_id)
-        except Exception as e:
-            return ShellResult(
-                execution_id=exec_id, executor_type='bash', tier='sandbox',
-                code=command, success=False, error=str(e),
-                duration_ms=(time.time()-start)*1000, user_id=user_id)
+
+def _run_in_sandbox(exec_id: str, kind: str, code: str, user_id: Optional[str],
+                    files: Dict[str, str], argv: List[str], timeout: int,
+                    memory_mb: Optional[int] = None, max_output: Optional[int] = None) -> ShellResult:
+    """Run validated code through the sandbox backend (docs/architecture/Sandbox.md).
+
+    The validators above are a first filter; the sandbox is the boundary: a separate
+    process with no server environment, a temp work dir, rlimits, and (per backend)
+    no view of the server's files, processes or network."""
+    from sajha.sandbox import SandboxError, get_backend, policy_from_config
+    start = time.time()
+    try:
+        policy = policy_from_config({}, timeout_seconds=timeout, cpu_seconds=timeout,
+                                    memory_mb=memory_mb, max_output_bytes=max_output)
+        res = get_backend(policy.backend).run({'op': 'exec', 'files': files, 'argv': argv}, policy)
+    except SandboxError as e:
+        return ShellResult(execution_id=exec_id, executor_type=kind, tier='sandbox', code=code,
+                           success=False, error=str(e), duration_ms=(time.time() - start) * 1000,
+                           user_id=user_id)
+    error = None
+    if res.timed_out:
+        error = f"Timeout ({timeout}s)"
+    elif res.output_truncated:
+        error = f"Output limit exceeded ({policy.max_output_bytes} bytes)"
+    elif res.runner_error:
+        error = f"Sandbox error: {res.runner_error}"
+    elif res.exit_code != 0:
+        error = res.stderr[:500] or f'exit code {res.exit_code}'
+    return ShellResult(execution_id=exec_id, executor_type=kind, tier=f'sandbox:{res.backend}', code=code,
+                       stdout=res.stdout, stderr=res.stderr, exit_code=res.exit_code,
+                       success=error is None, error=error, duration_ms=res.duration_ms, user_id=user_id)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -403,6 +373,7 @@ class ShellExecutor:
                 'timeout_seconds': self._bash.timeout if self._bash else 0,
                 'allowed_commands': sorted(DEFAULT_BASH_ALLOWED_COMMANDS),
             },
+            'sandbox': _sandbox_backend_name(),
         }
 
     def _record(self, result: ShellResult):
@@ -426,6 +397,14 @@ class ShellExecutor:
             )
         except Exception as e:
             logger.debug(f"Shell audit log error: {e}", exc_info=True)
+
+
+def _sandbox_backend_name() -> Optional[str]:
+    try:
+        from sajha.sandbox import get_backend
+        return get_backend().name
+    except Exception as e:
+        return f'unavailable: {e}'
 
 
 # ═══════════════════════════════════════════════════════════════════

@@ -79,6 +79,11 @@ ollama>=0.4.0,<1.0.0              # Ollama local models
 # azure-identity>=1.15.0,<2.0.0              #   (managed identity when using account_url)
 # google-cloud-storage>=2.14.0,<3.0.0        # storage.backend: gcs
 
+# ── Shared state for several workers / hosts (optional — only for state.backend: redis) ─
+# Lazy-imported in sajha/core/state/redis_store.py; memory and database need nothing extra.
+# redis>=5.0.0,<9.0.0                        # state.backend: redis
+# (tests: fakeredis[lua] runs the redis backend tests without a server)
+
 # ── v4.5.0: Observability (optional — falls back to built-in metrics) ─
 # opentelemetry-api>=1.20.0,<2.0.0
 # opentelemetry-sdk>=1.20.0,<2.0.0

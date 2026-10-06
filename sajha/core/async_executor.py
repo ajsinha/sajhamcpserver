@@ -60,6 +60,25 @@ class AsyncTask:
     delivered_at: Optional[float] = None
     duration_ms: Optional[float] = None
     delivery_status: Optional[str] = None  # success | failed | pending
+    worker: Optional[str] = None           # the process whose queue holds / ran it
+
+    def to_record(self) -> Dict:
+        """What other workers see (shared state store).  Delivery headers stay in this process."""
+        return {
+            'task_id': self.task_id, 'tool_name': self.tool_name, 'arguments': self.arguments,
+            'delivery_type': self.delivery_type, 'delivery_destination': self.delivery_destination,
+            'delivery_config': {k: v for k, v in (self.delivery_config or {}).items() if k != 'headers'},
+            'status': self.status.value, 'result': self.result, 'error': self.error, 'user_id': self.user_id,
+            'created_at': self.created_at, 'started_at': self.started_at, 'completed_at': self.completed_at,
+            'delivered_at': self.delivered_at, 'duration_ms': self.duration_ms,
+            'delivery_status': self.delivery_status, 'worker': self.worker,
+        }
+
+    @classmethod
+    def from_record(cls, rec: Dict) -> 'AsyncTask':
+        rec = dict(rec)
+        rec['status'] = AsyncTaskStatus(rec.get('status', 'queued'))
+        return cls(**{k: v for k, v in rec.items() if k in cls.__dataclass_fields__})
 
     def to_dict(self) -> Dict:
         d = {
@@ -397,6 +416,47 @@ class AsyncExecutor:
             except queue.Full:
                 pass
 
+    # ── shared records (state.backend redis / database) ──────────────
+
+    _KEY = 'async:task:'
+
+    @staticmethod
+    def _shared_store():
+        """The state store when it is shared between workers, else None (memory: nothing to do)."""
+        try:
+            from sajha.core.state import get_state_store
+            store = get_state_store()
+        except Exception:
+            return None
+        return store if store.shared else None
+
+    def _persist(self, task: 'AsyncTask') -> None:
+        store = self._shared_store()
+        if store is None:
+            return
+        try:
+            store.set(self._KEY + task.task_id, task.to_record(), ttl=self._task_ttl_hours * 3600)
+        except Exception as e:
+            logger.warning(f"Async task {task.task_id}: shared record not written: {e}")
+
+    def _remote(self, task_id: str) -> Optional['AsyncTask']:
+        """A task another worker queued, from the shared store (orphans failed on read)."""
+        store = self._shared_store()
+        rec = store.get(self._KEY + task_id) if store is not None else None
+        if rec is None:
+            return None
+        task = AsyncTask.from_record(rec)
+        return self._reap(store, task)
+
+    def _reap(self, store, task: 'AsyncTask') -> 'AsyncTask':
+        from sajha.core.state import worker_alive
+        if task.status in (AsyncTaskStatus.QUEUED, AsyncTaskStatus.RUNNING) and not worker_alive(task.worker, store):
+            task.status = AsyncTaskStatus.FAILED
+            task.error = 'The worker holding this task stopped before it finished'
+            task.completed_at = time.time()
+            self._persist(task)
+        return task
+
     def submit(self, tool_name: str, arguments: Dict, delivery_type: str,
                delivery_destination: str, delivery_config: Dict = None,
                user_id: str = None) -> AsyncTask:
@@ -416,10 +476,13 @@ class AsyncExecutor:
             delivery_config=delivery_config or {},
             user_id=user_id,
         )
+        from sajha.core.state import WORKER_ID
+        task.worker = WORKER_ID
 
         with self._lock:
             self._tasks[task.task_id] = task
             self._stats['submitted'] += 1
+        self._persist(task)
 
         # Submit to bounded queue (raises queue.Full on backpressure)
         self._queue.put_nowait(task)
@@ -428,13 +491,19 @@ class AsyncExecutor:
 
     def get_task(self, task_id: str) -> Optional[AsyncTask]:
         with self._lock:
-            return self._tasks.get(task_id)
+            task = self._tasks.get(task_id)
+        return task if task is not None else self._remote(task_id)
 
     def list_tasks(self, status: str = None, limit: int = 100, user_id: Optional[str] = None) -> List[Dict]:
         """Tasks newest first; only ``user_id``'s tasks when given (None = all, for admins)."""
         with self._lock:
             self._cleanup_old_tasks()
             tasks = list(self._tasks.values())
+        store = self._shared_store()
+        if store is not None:
+            local = {t.task_id for t in tasks}
+            tasks += [self._reap(store, AsyncTask.from_record(rec)) for _, rec in store.scan(self._KEY)
+                      if rec.get('task_id') not in local]
         if user_id is not None:
             tasks = [t for t in tasks if t.user_id == user_id]
         if status:
@@ -448,15 +517,34 @@ class AsyncExecutor:
             if task and task.status == AsyncTaskStatus.QUEUED:
                 task.status = AsyncTaskStatus.CANCELLED
                 self._stats['cancelled'] += 1
-                return True
+                cancelled = True
+            else:
+                cancelled = False
+        if cancelled:
+            self._persist(task)
+            return True
+        store = self._shared_store()
+        if task is None and store is not None:
+            # queued on another worker: mark the shared record; that worker checks it before running
+            done = []
+
+            def fn(rec):
+                if rec is None or rec.get('status') != AsyncTaskStatus.QUEUED.value:
+                    return rec
+                done.append(True)
+                return dict(rec, status=AsyncTaskStatus.CANCELLED.value)
+            store.update(self._KEY + task_id, fn)
+            return bool(done)
         return False
 
     def retry_task(self, task_id: str) -> Optional[AsyncTask]:
         """Re-submit a failed task."""
         with self._lock:
             old = self._tasks.get(task_id)
-            if not old or old.status not in (AsyncTaskStatus.FAILED, AsyncTaskStatus.CANCELLED):
-                return None
+        if old is None:
+            old = self._remote(task_id)
+        if not old or old.status not in (AsyncTaskStatus.FAILED, AsyncTaskStatus.CANCELLED):
+            return None
         return self.submit(old.tool_name, old.arguments, old.delivery_type,
                           old.delivery_destination, old.delivery_config, old.user_id)
 
@@ -485,12 +573,19 @@ class AsyncExecutor:
 
     def _execute_task(self, task: AsyncTask):
         """Execute a single task: run tool + deliver result."""
-        # Check if cancelled while queued
+        # Check if cancelled while queued (here, or on another worker via the shared record)
         if task.status == AsyncTaskStatus.CANCELLED:
             return
+        store = self._shared_store()
+        if store is not None:
+            rec = store.get(self._KEY + task.task_id)
+            if rec and rec.get('status') == AsyncTaskStatus.CANCELLED.value:
+                task.status = AsyncTaskStatus.CANCELLED
+                return
 
         task.status = AsyncTaskStatus.RUNNING
         task.started_at = time.time()
+        self._persist(task)
 
         try:
             # Get tool from registry
@@ -534,6 +629,7 @@ class AsyncExecutor:
         except Exception as e:
             task.delivery_status = 'failed'
             logger.error(f"Delivery failed for {task.task_id}: {e}", exc_info=True)
+        self._persist(task)
 
     def _cleanup_old_tasks(self):
         """Remove tasks older than TTL."""

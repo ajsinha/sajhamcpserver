@@ -14,7 +14,7 @@ Run a tool in the background and have SAJHA deliver the result to a webhook or a
 
 ## How it works
 
-`POST /api/tools/<name>/execute-async` queues the call and returns a `task_id` right away. A pool of background workers runs the tool through the same path as a normal call, so caching, the circuit breaker and metrics all apply. The worker then delivers a JSON payload with `task_id`, `tool_name`, `status`, `result`, `error`, `arguments`, `duration_ms` and `timestamp`. If the queue is full, the endpoint answers `503`. Tasks are held in memory and are lost when the server restarts.
+`POST /api/tools/<name>/execute-async` queues the call and returns a `task_id` right away. A pool of background workers runs the tool through the same path as a normal call, so caching, the circuit breaker and metrics all apply. The worker then delivers a JSON payload with `task_id`, `tool_name`, `status`, `result`, `error`, `arguments`, `duration_ms` and `timestamp`. If the queue is full, the endpoint answers `503`. Tasks are held in the memory of the worker that queued them, and are lost when the server restarts. With a shared `state.backend`, every worker can read, list and cancel them ([Scaling and State](../architecture/Scaling%20and%20State.md)).
 
 ## Steps
 

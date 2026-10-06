@@ -30,6 +30,13 @@ services:
       # empty: generated once and kept in the sajha-data volume (data/secrets/)
       - SAJHA_JWT_SECRET=${JWT_SECRET:-}
       - SAJHA_STORAGE_BACKEND=local
+      # Several workers (UVICORN_WORKERS > 1) or several hosts need shared state:
+      #   SAJHA_STATE_BACKEND=redis  and  docker compose --profile scale up -d  (starts the redis service)
+      #   or SAJHA_STATE_BACKEND=database (uses the postgres service; no extra container)
+      # docs/architecture/Scaling and State.md
+      - UVICORN_WORKERS=${UVICORN_WORKERS:-1}
+      - SAJHA_STATE_BACKEND=${SAJHA_STATE_BACKEND:-memory}
+      - SAJHA_STATE_REDIS_URL=${SAJHA_STATE_REDIS_URL:-redis://redis:6379/0}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - TOGETHER_API_KEY=${TOGETHER_API_KEY:-}
@@ -65,6 +72,24 @@ services:
     networks:
       - sajha-net
 
+  # Optional shared state store: docker compose --profile scale up -d
+  redis:
+    image: redis:7-alpine
+    container_name: sajha-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sajha-net
+    profiles:
+      - scale
+
   caddy:
     image: caddy:2-alpine
     container_name: sajha-caddy
@@ -83,6 +108,7 @@ services:
 
 volumes:
   pgdata:
+  redisdata:
   sajha-data:
   sajha-config:
   caddy-data:

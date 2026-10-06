@@ -1,0 +1,113 @@
+{% extends "common/base.html" %}
+{# Python Playground: a small notebook running Python in the browser with Pyodide (WebAssembly)
+   in a Web Worker. Server side: sajha/routes/playground_routes.py, sajha/web/playground.py;
+   the worker and the Python it installs: sajha/web/playground_assets/; behaviour:
+   static/js/playground.js; editor: static/vendor/codemirror/; styles: the "Python Playground"
+   block at the end of static/css/style.css. #}
+{% block title %}Python Playground - SAJHA MCP Server{% endblock %}
+{% block content %}
+<div class="pg-page">
+    <header class="pg-top">
+        <div>
+            <h1 class="mb-1"><i class="bi bi-filetype-py" aria-hidden="true"></i> Python Playground</h1>
+            <p class="pg-sub">Python, numpy, pandas and matplotlib running in your browser. <code>import sajha</code>
+                to call this server's tools with your own permissions.</p>
+        </div>
+        <div class="pg-status" role="status" aria-live="polite">
+            <span class="pg-dot" id="pgDot" aria-hidden="true"></span>
+            <span id="pgStatus">Not started</span>
+        </div>
+    </header>
+
+    {% if not pg_assets.ok %}
+    <div class="alert alert-warning pg-hint" role="alert" id="pgAssetsHint">
+        <i class="bi bi-box-seam" aria-hidden="true"></i>
+        <div><strong>The Python runtime is not installed on this server.</strong>
+            {% if is_admin %}
+            {{ pg_assets.hint }}
+            See <a href="{{ guide_url('Python Playground.md') }}">the Python Playground guide</a>.
+            {% else %}
+            Ask an administrator to run <code>python scripts/fetch_pyodide.py</code> or to switch
+            <code>playground.assets</code> to <code>cdn</code>.
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% if is_admin and pg_settings.errors %}
+    <div class="alert alert-danger" role="alert">
+        <i class="bi bi-gear" aria-hidden="true"></i> Configuration:
+        {% for e in pg_settings.errors %}<div>{{ e }}</div>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="pg-bar" role="toolbar" aria-label="Notebook">
+        <div class="pg-bar-group">
+            <button type="button" class="btn btn-sm btn-primary" id="pgRunAll" disabled>
+                <i class="bi bi-play-fill" aria-hidden="true"></i> Run all</button>
+            <button type="button" class="btn btn-sm btn-outline-danger" id="pgStop" disabled
+                    title="Interrupt the running cell (KeyboardInterrupt)">
+                <i class="bi bi-stop-fill" aria-hidden="true"></i> Stop</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="pgReset" disabled
+                    title="Restart Python: forget every variable and clear the outputs">
+                <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Reset</button>
+        </div>
+        <div class="pg-bar-group">
+            <label class="visually-hidden" for="pgExamples">Examples</label>
+            <select id="pgExamples" class="form-select form-select-sm">
+                <option value="">Examples…</option>
+                {% for ex in pg_data.examples %}<option value="{{ ex.id }}">{{ ex.title }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="pg-bar-group">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="pgSave" title="Save the notebook in this browser">
+                <i class="bi bi-save" aria-hidden="true"></i> Save</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="pgLoad" title="Load the notebook saved in this browser">
+                <i class="bi bi-folder2-open" aria-hidden="true"></i> Load</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="pgDownload" title="Download every cell as one .py file">
+                <i class="bi bi-download" aria-hidden="true"></i> .py</button>
+            <label class="btn btn-sm btn-outline-secondary mb-0" for="pgUpload" title="Open a .py file or a Jupyter .ipynb (code cells)">
+                <i class="bi bi-upload" aria-hidden="true"></i> Open</label>
+            <input type="file" id="pgUpload" accept=".py,.ipynb,text/x-python,application/json" class="visually-hidden">
+        </div>
+    </div>
+    <div class="pg-packages" id="pgPackages" aria-live="polite">
+        <span class="pg-packages-label">Packages:</span> <span id="pgPackageList" class="text-muted">none loaded yet — imports load on first run</span>
+    </div>
+
+    <div class="pg-cells" id="pgCells"></div>
+    <div class="pg-add">
+        <button type="button" class="btn btn-sm btn-outline-primary" id="pgAddCell">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i> Add cell</button>
+        <span class="pg-keys">Ctrl/Cmd+Enter runs a cell · Shift+Enter runs it and moves to the next</span>
+    </div>
+
+    <p class="pg-note"><i class="bi bi-shield-check" aria-hidden="true"></i>
+        Your code runs only in this browser tab (Pyodide, WebAssembly, in a Web Worker): nothing executes on the
+        server. <code>sajha.call()</code> and <code>sajha.ask()</code> send ordinary API requests with your session,
+        so the server applies your permissions and its usual limits.</p>
+
+    <template id="pgCellTpl">
+        <section class="pg-cell" aria-label="Cell">
+            <div class="pg-cell-gutter">
+                <button type="button" class="pg-cell-run" title="Run this cell (Ctrl/Cmd+Enter)" aria-label="Run cell">
+                    <i class="bi bi-play-fill" aria-hidden="true"></i></button>
+                <span class="pg-cell-count" aria-hidden="true">[ ]</span>
+            </div>
+            <div class="pg-cell-main">
+                <div class="pg-editor"></div>
+                <div class="pg-output" aria-live="polite"></div>
+            </div>
+            <div class="pg-cell-tools">
+                <button type="button" class="pg-cell-up" title="Move up" aria-label="Move cell up"><i class="bi bi-arrow-up" aria-hidden="true"></i></button>
+                <button type="button" class="pg-cell-down" title="Move down" aria-label="Move cell down"><i class="bi bi-arrow-down" aria-hidden="true"></i></button>
+                <button type="button" class="pg-cell-del" title="Delete cell" aria-label="Delete cell"><i class="bi bi-trash" aria-hidden="true"></i></button>
+            </div>
+        </section>
+    </template>
+</div>
+<script type="application/json" id="pgData">{{ pg_data|tojson }}</script>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='vendor/codemirror/codemirror-python.min.js') }}?v={{ app_version }}"></script>
+<script src="{{ url_for('static', filename='js/playground.js') }}?v={{ app_version }}"></script>
+{% endblock %}

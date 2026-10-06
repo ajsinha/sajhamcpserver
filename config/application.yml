@@ -75,6 +75,22 @@ db:
   echo: false                             # Log all SQL statements (debug only)
   scripts_dir: db/scripts                 # Location of 001_schema.sql + 002_seed.sql
 
+# ── Process-shared state (several workers / hosts) ───────────────────────────
+# OAuth codes, MCP sessions and tasks, rate limits, LLM budgets and change
+# notifications.  memory = this process only (one worker).  Run more than one
+# worker or host?  Use redis (or database).  docs/architecture/Scaling and State.md
+
+state:
+  backend: memory                         # memory | redis | database  (env SAJHA_STATE_BACKEND)
+  key_prefix: "sajha:"                    # namespace for every key and channel
+  redis:
+    url: redis://localhost:6379/0         # env SAJHA_STATE_REDIS_URL (put a password there, not here)
+  database:
+    url: ""                               # empty = SAJHA's own database (db.*)
+    poll_interval_ms: 500                 # pub/sub latency of the database backend
+  tasks:
+    durable: auto                         # auto = on for redis/database: MCP task records in the database
+
 # ── Authentication ───────────────────────────────────────────────────────────
 
 auth:
@@ -476,3 +492,102 @@ shell:
     # Allowed commands: cat, grep, awk, sed, sort, uniq, wc, jq, head, tail,
     #   ls, find, echo, date, base64, md5sum
     # Blocked: rm, chmod, sudo, ssh, wget, python, docker, pipe-to-shell
+
+# ── Sandbox for user code ────────────────────────────────────────────────────
+# Studio Python code tools, Studio script tools and the shell above run in a
+# sandbox, never in the server process. Built-in tools stay in-process.
+# Design and per-backend guarantees: docs/architecture/Sandbox.md
+sandbox:
+  default_backend: subprocess        # subprocess | bwrap | nsjail | docker | auto (bwrap > nsjail > subprocess)
+  enforce_for_generated_tools: true  # false: Studio tools load in-process unless their config says sandbox.enabled: true
+  strict: false                      # true: refuse to run if the backend or a confinement step is unavailable
+  work_dir: ''                       # parent of the per-call temp dirs ('' = system temp)
+  python: ''                         # interpreter for subprocess/bwrap/nsjail ('' = the server's own)
+  extra_read_paths: []               # more read-only paths for the sandbox (e.g. a shared data dir)
+  secrets_allowlist: []              # env var names a tool may request with sandbox.secrets (never SAJHA_*)
+  defaults:                          # what a tool gets when its "sandbox" block leaves a key out
+    timeout_seconds: 30
+    cpu_seconds: 30
+    memory_mb: 512
+    max_output_bytes: 1048576
+    max_processes: 64
+    max_file_mb: 64
+    network: none                    # none | allowlist
+  max:                               # caps on what a tool's "sandbox" block may ask for
+    timeout_seconds: 300
+    cpu_seconds: 300
+    memory_mb: 4096
+    max_output_bytes: 16777216
+    max_processes: 512
+    max_file_mb: 1024
+  docker:
+    binary: docker                   # or podman
+    image: python:3.13-slim          # must already be pulled
+    runtime: ''                      # e.g. runsc (gVisor)
+    cpus: 1
+
+# ── Python Playground (/playground) ──────────────────────────────────────────
+# Python runs in the visitor's browser (Pyodide, WebAssembly, in a Web Worker); nothing
+# executes on the server. Guide: docs/getting-started/Python Playground.md
+playground:
+  enabled: true                    # false: /playground answers 404 and leaves the menus
+  assets: vendored                 # vendored: /static/vendor/pyodide/<version>/ (run scripts/fetch_pyodide.py)
+                                   # cdn: https://cdn.jsdelivr.net/pyodide/v<version>/full/ (CSP allows it on /playground only)
+  pyodide_version: 314.0.7         # the release scripts/fetch_pyodide.py vendors
+  allow_pypi: true                 # micropip may fetch pure-Python wheels from PyPI (playground worker only)
+
+# ── Federation: other MCP servers' tools behind SAJHA's governance ───────────
+# Off by default. Every key: docs/getting-started/Configuration Reference.md#federation;
+# design and operation: docs/architecture/Federation.md
+federation:
+  enabled: false                   # master switch (SAJHA_FEDERATION_ENABLED)
+  require_approval: true           # newly discovered upstream tools wait for an administrator
+  allow_stdio: false               # stdio upstreams run as subprocesses of SAJHA: admin-only risk
+  allow_localhost: false           # SSRF guard: allow loopback upstream URLs
+  allow_private_networks: false    # SSRF guard: allow RFC 1918 / ULA upstream URLs
+  allowed_hosts: []                # fnmatch host patterns; empty = any host the guard allows
+  refresh_interval_seconds: 300    # periodic re-discovery and health check
+  startup_wait_seconds: 5          # start-up waits at most this long for first discovery
+  default_timeout_seconds: 30      # one upstream call's deadline (per-upstream timeout_seconds)
+  max_description_chars: 1024      # cap on upstream descriptions (untrusted text)
+  state_path: config/federation/federation.json   # upstreams added on /admin/federation + approvals
+  upstreams: []                    # e.g. - {id: units, url: "http://127.0.0.1:8765/mcp"}
+
+# ── Observability: Prometheus /metrics, OpenTelemetry, usage ledger, alerts ──
+# Every key: docs/getting-started/Configuration Reference.md#observability;
+# design: docs/architecture/Observability.md. Secrets (the metrics token, OTLP headers,
+# the SMTP password) come from the environment, never this file.
+observability:
+  metrics:
+    enabled: true                  # /metrics and the in-process metric families
+    auth: admin                    # none | token (SAJHA_OBSERVABILITY_METRICS_TOKEN) | admin
+    port: 0                        # > 0: also serve /metrics on a separate listener
+    host: 127.0.0.1                # that listener's bind address
+    tool_label: name               # name | group | none: the tool label's cardinality
+    max_series: 2000               # label sets per family; beyond it values fold into _other
+    multiworker: auto              # auto: merge workers' snapshots via a shared state store | off
+    publish_interval_seconds: 15   # snapshot interval with several workers
+  otel:
+    enabled: false                 # OTLP export (needs opentelemetry-sdk + an OTLP exporter)
+    endpoint: ''                   # e.g. http://otel-collector:4318 (OTEL_EXPORTER_OTLP_ENDPOINT wins)
+    protocol: http/protobuf        # http/protobuf | grpc
+    service_name: sajha-mcp-server # OTEL_SERVICE_NAME wins
+    sample_ratio: 1.0              # parent-based ratio sampler
+    traces: true
+    metrics: true
+  usage:
+    enabled: true                  # the usage ledger behind /monitoring/usage
+    retention_days: 90             # rows older than this are deleted daily (0 = keep)
+    queue_size: 10000              # rows waiting to be written; beyond it rows are dropped
+    max_rows_for_percentiles: 200000
+  alerts_interval_seconds: 30      # how often in-process alert rules are evaluated
+  alerts_webhook:
+    allowed_urls: []               # URL prefixes alert webhooks may post to
+    allow_private_networks: false  # SSRF guard: allow loopback / RFC 1918 webhook hosts
+  alerts: []                       # rules: see docs/architecture/Observability.md#5-alerts
+  alerts_email:                    # the email channel (password: SAJHA_OBSERVABILITY_ALERTS_EMAIL_PASSWORD)
+    smtp_host: ''
+    smtp_port: 587
+    from: sajha@localhost
+    starttls: true
+    username: ''

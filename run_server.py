@@ -9,6 +9,7 @@ or from the command line:
     python run_server.py
     python run_server.py --host 0.0.0.0 --port 3002
     python run_server.py --reload
+    python run_server.py --stdio [--user admin | --api-key sja_...]   # MCP over stdin/stdout
 """
 
 import os
@@ -60,6 +61,12 @@ def signal_handler(signum, frame):
 
 
 def main():
+    # MCP over stdin/stdout for desktop clients: nothing may reach stdout but protocol
+    # messages, so this path skips the banner, uvicorn and stdout logging entirely.
+    if '--stdio' in sys.argv[1:]:
+        from sajha.cli.stdio import main as stdio_main
+        sys.exit(stdio_main([a for a in sys.argv[1:] if a != '--stdio']))
+
     parser = argparse.ArgumentParser(description='SAJHA MCP Server v6.0.0')
     parser.add_argument('--config', default=None, help='Path to YAML config file (default: config/application.yml)')
     parser.add_argument('--host', default=None, help='Host to bind to')
@@ -67,6 +74,8 @@ def main():
     parser.add_argument('--reload', action='store_true', help='Enable auto-reload (dev mode)')
     parser.add_argument('--workers', type=int, default=1, help='Number of workers')
     parser.add_argument('--log-level', default=None, help='Log level')
+    parser.add_argument('--stdio', action='store_true',
+                        help='Serve MCP over stdin/stdout instead of HTTP (see sajha/cli/stdio.py)')
     args = parser.parse_args()
 
     # Set config file path BEFORE importing settings
@@ -105,7 +114,18 @@ def main():
 
     import uvicorn
 
-    if args.reload:
+    if args.workers and args.workers > 1:
+        # Each worker is its own process: uvicorn needs an import string, and the
+        # workers learn the count (state store check: memory backend + N workers warns).
+        os.environ['WEB_CONCURRENCY'] = str(args.workers)
+        uvicorn.run(
+            'sajha.app:create_app',
+            host=host, port=port,
+            workers=args.workers,
+            log_level=log_level.lower(),
+            factory=True,
+        )
+    elif args.reload:
         # Factory mode: uvicorn imports and calls create_app()
         uvicorn.run(
             'sajha.app:create_app',

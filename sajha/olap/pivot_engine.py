@@ -315,41 +315,81 @@ GROUP BY {', '.join(row_cols)}
                 "sql": sql
             }
     
+    def _measure_expressions(self, spec: PivotSpec) -> List[Dict[str, str]]:
+        """The aggregate SQL for each requested measure, as the row queries use it."""
+        out = []
+        for val in spec.values:
+            measure_name = val.get("measure")
+            agg = val.get("aggregation", "SUM")
+            measure = self.semantic.get_measure(measure_name)
+            expr = measure.expression if measure else f"{agg}({measure_name})"
+            out.append({"alias": self._safe_alias(measure_name), "expression": expr,
+                        "aggregation": str(agg).upper()})
+        return out
+
+    def build_totals_query(self, spec: PivotSpec) -> str:
+        """SQL for the grand-total row: every measure re-aggregated over the underlying rows.
+
+        Computing the total from the base rows (not from the already-grouped rows) makes it
+        correct for every aggregation: SUM and COUNT add up, AVG is the weighted average over
+        all rows, MIN/MAX are the extremes, and non-additive measures (COUNT(DISTINCT ...),
+        ratios) are evaluated once over the whole filtered set.
+        """
+        dataset = self.semantic.get_dataset(spec.dataset)
+        if not dataset:
+            raise ValueError(f"Dataset '{spec.dataset}' not found")
+        base_sql = self._build_base_query(dataset, spec.filters)
+        exprs = ", ".join(f"{m['expression']} AS {m['alias']}" for m in self._measure_expressions(spec))
+        return f"SELECT {exprs}\nFROM ({base_sql}) AS base"
+
     def _calculate_totals(self, data: List[Dict], spec: PivotSpec) -> Dict[str, Any]:
-        """Calculate grand totals for the pivot table."""
+        """Calculate the grand-total row for the pivot table.
+
+        Prefers re-aggregating over the underlying rows in SQL (exact for every aggregation).
+        Falls back to combining the grouped rows in Python, which is exact for SUM, COUNT,
+        MIN and MAX; AVG is then weighted by each group's row count when it is available.
+        """
         if not data or not spec.values:
             return None
-        
+
         totals = {}
-        
-        # Set row dimension values to "Total"
         for row in spec.rows:
             totals[self._safe_alias(row)] = "TOTAL"
-        
-        # Calculate totals for measures
-        for val in spec.values:
-            measure_name = self._safe_alias(val.get("measure"))
-            agg = val.get("aggregation", "SUM").upper()
-            
-            values = [row.get(measure_name) for row in data 
-                     if row.get(measure_name) is not None]
-            
-            if values:
-                if agg == "SUM":
-                    totals[measure_name] = sum(values)
-                elif agg == "AVG":
-                    totals[measure_name] = sum(values) / len(values)
-                elif agg == "COUNT":
-                    totals[measure_name] = sum(values)
-                elif agg == "MIN":
-                    totals[measure_name] = min(values)
-                elif agg == "MAX":
-                    totals[measure_name] = max(values)
+        for col in spec.columns:
+            totals[self._safe_alias(col)] = "TOTAL"
+
+        if self.conn is not None:
+            try:
+                row = self.conn.execute(self.build_totals_query(spec)).fetchone()
+                names = [d[0] for d in self.conn.description]
+                if row is not None:
+                    totals.update(dict(zip(names, row)))
+                    return totals
+            except Exception as e:
+                logger.warning(f"Pivot totals query failed ({e}); combining grouped rows instead")
+
+        for m in self._measure_expressions(spec):
+            name, agg = m["alias"], m["aggregation"]
+            pairs = [(row.get(name), row.get("_row_count")) for row in data
+                     if row.get(name) is not None]
+            values = [v for v, _ in pairs]
+            if not values:
+                continue
+            if agg == "AVG":
+                weights = [w for _, w in pairs]
+                if all(isinstance(w, (int, float)) and w > 0 for w in weights):
+                    totals[name] = sum(v * w for v, w in pairs) / sum(weights)
                 else:
-                    totals[measure_name] = sum(values)
-        
+                    totals[name] = sum(values) / len(values)
+            elif agg == "MIN":
+                totals[name] = min(values)
+            elif agg == "MAX":
+                totals[name] = max(values)
+            else:  # SUM, COUNT and anything additive
+                totals[name] = sum(values)
+
         return totals
-    
+
     def get_pivot_column_values(self, spec: PivotSpec) -> List[Any]:
         """
         Get distinct values for the pivot column.

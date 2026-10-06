@@ -11,8 +11,6 @@ import logging
 import os
 import secrets
 import time
-from collections import defaultdict
-from threading import Lock
 from typing import Optional
 
 import bcrypt
@@ -75,45 +73,49 @@ def hash_token(token: str) -> str:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# RATE LIMITING (in-memory, per-IP)
+# RATE LIMITING (per IP / user / key, in the state store)
 # ═══════════════════════════════════════════════════════════════════
+
+def _state():
+    from sajha.core.state import get_state_store
+    return get_state_store()
+
 
 class RateLimiter:
     """
-    Simple in-memory rate limiter.
-    Tracks requests per key (IP + endpoint) with sliding window.
+    Sliding-window rate limiter.  The windows live in the state store
+    (``state.backend``): per process with the memory backend, shared by every
+    worker with redis or database, so N workers do not allow N times the limit.
     """
 
-    def __init__(self, max_requests: int = 10, window_seconds: int = 60):
+    def __init__(self, max_requests: int = 10, window_seconds: int = 60, name: str = 'rl'):
         self.max_requests = max_requests
         self.window_seconds = window_seconds
-        self._hits = defaultdict(list)
-        self._lock = Lock()
+        self.name = name
+
+    def _key(self, key: str) -> str:
+        return f'ratelimit:{self.name}:{key}'
 
     def is_allowed(self, key: str) -> bool:
-        """Check if a request is allowed under the rate limit."""
-        now = time.time()
-        cutoff = now - self.window_seconds
-        with self._lock:
-            # Prune old entries
-            self._hits[key] = [t for t in self._hits[key] if t > cutoff]
-            if len(self._hits[key]) >= self.max_requests:
-                return False
-            self._hits[key].append(now)
-            return True
+        """Check if a request is allowed under the rate limit (and count it if so)."""
+        allowed, _ = _state().window_add(self._key(key), self.window_seconds, self.max_requests)
+        return allowed
 
     def remaining(self, key: str) -> int:
         """Get remaining requests in the current window."""
-        now = time.time()
-        cutoff = now - self.window_seconds
-        with self._lock:
-            self._hits[key] = [t for t in self._hits[key] if t > cutoff]
-            return max(0, self.max_requests - len(self._hits[key]))
+        return max(0, self.max_requests - _state().window_count(self._key(key), self.window_seconds))
+
+    def reset(self, key: Optional[str] = None) -> None:
+        st = _state()
+        if key is None:
+            st.delete_prefix(f'ratelimit:{self.name}:')
+        else:
+            st.delete(self._key(key))
 
 
 # Global rate limiters
-_auth_limiter = RateLimiter(max_requests=5, window_seconds=60)  # 5 login attempts per minute
-_api_limiter = RateLimiter(max_requests=100, window_seconds=60)  # 100 API calls per minute
+_auth_limiter = RateLimiter(max_requests=5, window_seconds=60, name='auth')  # 5 login attempts per minute
+_api_limiter = RateLimiter(max_requests=100, window_seconds=60, name='api')  # 100 API calls per minute
 
 
 def check_auth_rate_limit(request: Request) -> bool:
@@ -127,12 +129,11 @@ class FailureThrottle:
     Counts *failed* sign-ins per key (client IP) in a sliding window; successful
     sign-ins cost nothing, so a busy office behind one NAT is not locked out by its own
     users.  Limits are read live from ``auth.login.ip_max_failures`` /
-    ``auth.login.ip_window_seconds``.
+    ``auth.login.ip_window_seconds``.  Counts live in the state store (shared
+    between workers with the redis or database backend).
     """
 
-    def __init__(self):
-        self._fails = defaultdict(list)
-        self._lock = Lock()
+    _PREFIX = 'loginfail:'
 
     @staticmethod
     def _limits() -> tuple:
@@ -141,25 +142,18 @@ class FailureThrottle:
 
     def blocked(self, key: str) -> bool:
         limit, window = self._limits()
-        cutoff = time.time() - window
-        with self._lock:
-            hits = [t for t in self._fails.get(key, ()) if t > cutoff]
-            if hits:
-                self._fails[key] = hits
-            else:
-                self._fails.pop(key, None)
-            return len(hits) >= limit
+        return _state().window_count(self._PREFIX + key, window) >= limit
 
     def record_failure(self, key: str) -> None:
-        with self._lock:
-            self._fails[key].append(time.time())
+        _, window = self._limits()
+        _state().window_add(self._PREFIX + key, window)
 
     def reset(self, key: Optional[str] = None) -> None:
-        with self._lock:
-            if key is None:
-                self._fails.clear()
-            else:
-                self._fails.pop(key, None)
+        st = _state()
+        if key is None:
+            st.delete_prefix(self._PREFIX)
+        else:
+            st.delete(self._PREFIX + key)
 
 
 _login_throttle = FailureThrottle()
@@ -264,8 +258,8 @@ def get_lockout_time() -> float:
 # PER-USER / PER-KEY API RATE LIMITING
 # ═══════════════════════════════════════════════════════════════════
 
-_user_limiter = RateLimiter(max_requests=100, window_seconds=60)  # 100 API calls/min per user
-_key_limiter = RateLimiter(max_requests=200, window_seconds=60)   # 200 API calls/min per key
+_user_limiter = RateLimiter(max_requests=100, window_seconds=60, name='user')  # 100 API calls/min per user
+_key_limiter = RateLimiter(max_requests=200, window_seconds=60, name='key')    # 200 API calls/min per key
 
 
 def check_user_rate_limit(user_id: str) -> bool:

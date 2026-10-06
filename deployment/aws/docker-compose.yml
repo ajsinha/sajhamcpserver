@@ -1,14 +1,14 @@
 # ═══════════════════════════════════════════════════════════════
 # SAJHA MCP Server — Local Development with Docker Compose
-# Usage: cd aws && docker compose up --build
+# Usage: cd deployment/aws && docker compose up --build
 # ═══════════════════════════════════════════════════════════════
 version: '3.9'
 
 services:
   sajha:
     build:
-      context: ..
-      dockerfile: aws/Dockerfile
+      context: ../..
+      dockerfile: deployment/aws/Dockerfile
     container_name: sajha-mcp-server
     ports:
       - "3002:3002"
@@ -27,7 +27,11 @@ services:
       # Server
       SERVER_PORT: 3002
       LOG_LEVEL: INFO
-      UVICORN_WORKERS: 1
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-1}
+      # More than one worker: share state (docs/architecture/Scaling and State.md)
+      #   UVICORN_WORKERS=4 SAJHA_STATE_BACKEND=redis docker compose --profile scale up --build
+      SAJHA_STATE_BACKEND: ${SAJHA_STATE_BACKEND:-memory}
+      SAJHA_STATE_REDIS_URL: ${SAJHA_STATE_REDIS_URL:-redis://redis:6379/0}
     volumes:
       # Mount config for live editing during development
       - ../config:/app/config
@@ -54,6 +58,15 @@ services:
       - pg-data:/var/lib/postgresql/data
     profiles:
       - postgres
+
+  # Optional: Redis as the shared state store (state.backend: redis)
+  redis:
+    image: redis:7-alpine
+    container_name: sajha-redis
+    ports:
+      - "6379:6379"
+    profiles:
+      - scale
 
 volumes:
   sajha-data:

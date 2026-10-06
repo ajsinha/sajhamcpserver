@@ -68,6 +68,21 @@
 
         <aside class="ask-sky-col" aria-labelledby="askSkyTitle">
             <h2 class="visually-hidden" id="askSkyTitle">Tool sky</h2>
+            <div class="ask-filter" role="search" aria-label="Filter the tool sky">
+                <label class="ask-filter-label" for="askFilter"><i class="bi bi-funnel" aria-hidden="true"></i> Filter tools (regex)</label>
+                <div class="ask-filter-box">
+                    <input type="search" id="askFilter" class="form-control form-control-sm" spellcheck="false" autocomplete="off"
+                           placeholder="e.g. ^calc or bond|yield" aria-describedby="askFilterMsg askFilterErr askFilterHelp">
+                    <button type="button" class="ask-filter-clear" id="askFilterClear" hidden aria-label="Clear the filter">
+                        <i class="bi bi-x-lg" aria-hidden="true"></i></button>
+                </div>
+                <span class="ask-filter-msg" id="askFilterMsg" aria-live="polite"></span>
+                <div class="ask-filter-note">
+                    <span class="ask-filter-help" id="askFilterHelp">Matches tool names, groups and descriptions, ignoring case (or write <code>/pattern/flags</code>).
+                        Only the sky changes: the filter does not change which tools SAJHA uses to answer.</span>
+                    <span class="ask-filter-err" id="askFilterErr" aria-live="polite"></span>
+                </div>
+            </div>
             <div class="ask-sky" id="askSky">
                 <canvas id="askSkyCanvas" aria-hidden="true"></canvas>
                 <div class="ask-sky-status" id="askSkyStatus" aria-hidden="true">
@@ -76,6 +91,7 @@
             </div>
             <p class="ask-sky-cap">Every star is a tool this server has loaded, grouped by provider. When you ask, the
                 tools SAJHA considers light up and a line runs to each tool it calls, with that call's result.
+                Point at a star (or tap it) to see its tool; click to pin, Escape to close.
                 The conversation holds the same steps in text.</p>
         </aside>
     </div>

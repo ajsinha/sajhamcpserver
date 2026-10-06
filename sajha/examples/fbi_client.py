@@ -28,7 +28,7 @@ from base_client import SajhaClient, SajhaAPIError, pretty_print, run_example
 class FBIClient(SajhaClient):
     """Client for FBI Crime Data tools."""
     
-    def get_national_statistics(self, year: int = None, offense: str = None) -> dict:
+    def get_national_statistics(self, year: int = None, offense: str = 'violent_crime') -> dict:
         """
         Get national crime statistics.
         
@@ -40,13 +40,13 @@ class FBIClient(SajhaClient):
         if year:
             args['year'] = year
         if offense:
-            args['offense'] = offense
+            args['offense_type'] = offense
         return self.execute_tool('fbi_get_national_statistics', args)
     
     def get_state_statistics(self, 
                              state: str,
                              year: int = None,
-                             offense: str = None) -> dict:
+                             offense: str = 'violent_crime') -> dict:
         """
         Get state-level crime statistics.
         
@@ -59,12 +59,13 @@ class FBIClient(SajhaClient):
         if year:
             args['year'] = year
         if offense:
-            args['offense'] = offense
+            args['offense_type'] = offense
         return self.execute_tool('fbi_get_state_statistics', args)
     
     def get_agency_statistics(self,
                               ori: str,
-                              year: int = None) -> dict:
+                              year: int = None,
+                              offense: str = 'violent_crime') -> dict:
         """
         Get agency-level crime statistics.
         
@@ -72,7 +73,7 @@ class FBIClient(SajhaClient):
             ori: Agency ORI code
             year: Specific year
         """
-        args = {'ori': ori}
+        args = {'ori': ori, 'offense_type': offense}
         if year:
             args['year'] = year
         return self.execute_tool('fbi_get_agency_statistics', args)
@@ -91,7 +92,7 @@ class FBIClient(SajhaClient):
             end_year: End year
             state: State filter
         """
-        args = {'offense': offense}
+        args = {'offense_type': offense, 'start_year': start_year or 2015, 'end_year': end_year or 2024}
         if start_year:
             args['start_year'] = start_year
         if end_year:
@@ -112,7 +113,7 @@ class FBIClient(SajhaClient):
             year: Specific year
             state: State filter
         """
-        args = {'offense': offense}
+        args = {'offense_type': offense}
         if year:
             args['year'] = year
         if state:
@@ -135,7 +136,7 @@ class FBIClient(SajhaClient):
         """
         args = {'limit': limit}
         if query:
-            args['query'] = query
+            args['agency_name'] = query
         if state:
             args['state'] = state
         if agency_type:
@@ -153,7 +154,7 @@ class FBIClient(SajhaClient):
     
     def compare_states(self,
                        states: list,
-                       offense: str = None,
+                       offense: str = 'violent_crime',
                        year: int = None) -> dict:
         """
         Compare crime statistics across states.
@@ -165,7 +166,7 @@ class FBIClient(SajhaClient):
         """
         args = {'states': states}
         if offense:
-            args['offense'] = offense
+            args['offense_type'] = offense
         if year:
             args['year'] = year
         return self.execute_tool('fbi_compare_states', args)
@@ -214,7 +215,7 @@ def example_crime_trend():
     
     print("\n📈 Getting violent crime trend...")
     trend = client.get_crime_trend(
-        offense='violent-crime',
+        offense='violent_crime',
         start_year=2015,
         end_year=2022
     )

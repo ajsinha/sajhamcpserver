@@ -38,6 +38,13 @@ setup(
         "dev": ["pytest", "pytest-asyncio"],
         # Standard MCP client (SajhaMCPClient) — official MCP Python SDK v2
         "mcp": ["mcp>=2.3,<3"],
+        # The `sajha` command line (tools/prompts go over MCP, so it needs the SDK)
+        "cli": ["mcp>=2.3,<3"],
+    },
+    entry_points={
+        "console_scripts": [
+            "sajha=sajhaclient.cli:main",
+        ],
     },
     classifiers=[
         "Development Status :: 4 - Beta",

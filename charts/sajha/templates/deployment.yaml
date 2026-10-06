@@ -1,0 +1,210 @@
+{{- include "sajha.validate" . -}}
+{{- $multi := include "sajha.multiPod" . -}}
+{{- $fullname := include "sajha.fullname" . -}}
+{{- $rwoData := and .Values.persistence.data.enabled (not (include "sajha.hasRWX" .Values.persistence.data)) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "sajha.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "sajha.selectorLabels" . | nindent 6 }}
+  strategy:
+    {{- if and (not $multi) $rwoData }}
+    # one pod on a ReadWriteOnce volume: the old pod must let go before the new one starts
+    type: Recreate
+    {{- else }}
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "sajha.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "sajha.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      # A Service named "sajha" would otherwise inject SAJHA_PORT=tcp://..., which the
+      # configuration reads as a SAJHA_* override.
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: seed
+          image: {{ include "sajha.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-I", "/etc/sajha/seed.py"]
+          env:
+            - name: SEED_MODE
+              value: {{ .Values.persistence.config.seedMode | quote }}
+            {{- with include "sajha.waitFor" . }}
+            - name: WAIT_FOR
+              value: {{ . | quote }}
+            {{- end }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 256Mi}
+          volumeMounts:
+            - name: etc-sajha
+              mountPath: /etc/sajha
+              readOnly: true
+            - name: config
+              mountPath: /seed/config
+              {{- if .Values.persistence.config.enabled }}
+              subPath: config
+              {{- end }}
+            - name: {{ ternary "config" "impl" .Values.persistence.config.enabled }}
+              mountPath: /seed/impl
+              {{- if .Values.persistence.config.enabled }}
+              subPath: impl
+              {{- end }}
+      containers:
+        - name: sajha
+          image: {{ include "sajha.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["--host", "0.0.0.0", "--port", "3002", "--workers", {{ .Values.workers | quote }}]
+          ports:
+            - name: http
+              containerPort: 3002
+              protocol: TCP
+          env:
+            {{- include "sajha.env" . | nindent 12 }}
+          {{- if or .Values.config.envFrom .Values.providerKeys.existingSecrets .Values.storage.credentialsSecret }}
+          envFrom:
+            {{- range .Values.providerKeys.existingSecrets }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
+            {{- with .Values.storage.credentialsSecret }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
+            {{- with .Values.config.envFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          startupProbe:
+            httpGet: {path: {{ .Values.probes.startup.path }}, port: http}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
+          livenessProbe:
+            httpGet: {path: {{ .Values.probes.liveness.path }}, port: http}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet: {path: {{ .Values.probes.readiness.path }}, port: http}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          lifecycle:
+            # let the ingress controller drop this endpoint before uvicorn stops accepting
+            preStop:
+              exec:
+                command: ["python", "-c", "import time; time.sleep(5)"]
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: config
+              mountPath: /app/config
+              {{- if .Values.persistence.config.enabled }}
+              subPath: config
+              {{- end }}
+            - name: {{ ternary "config" "impl" .Values.persistence.config.enabled }}
+              mountPath: /app/sajha/tools/impl
+              {{- if .Values.persistence.config.enabled }}
+              subPath: impl
+              {{- end }}
+            - name: logs
+              mountPath: /app/logs
+            - name: temp
+              mountPath: /app/temp
+            - name: tmp
+              mountPath: /tmp
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: etc-sajha
+          configMap:
+            name: {{ $fullname }}
+        - name: data
+          {{- if .Values.persistence.data.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ default (printf "%s-data" $fullname) .Values.persistence.data.existingClaim }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: config
+          {{- if .Values.persistence.config.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ default (printf "%s-config" $fullname) .Values.persistence.config.existingClaim }}
+          {{- else }}
+          emptyDir: {}
+        - name: impl
+          emptyDir: {}
+          {{- end }}
+        - name: logs
+          emptyDir:
+            sizeLimit: 512Mi
+        - name: temp
+          emptyDir:
+            sizeLimit: {{ .Values.persistence.tmpSizeLimit }}
+        - name: tmp
+          emptyDir:
+            sizeLimit: {{ .Values.persistence.tmpSizeLimit }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- if and $multi .Values.topologySpread.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.topologySpread.maxSkew }}
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: {{ .Values.topologySpread.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              {{- include "sajha.selectorLabels" . | nindent 14 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

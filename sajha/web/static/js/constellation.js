@@ -23,6 +23,8 @@
  *     sky.sweep(x, y, p); sky.link(x0, y0, x1, y1, p, dashed, alpha); sky.node(x, y, alpha)
  *     sky.lane(name, x, y, alpha) the name chip above a point; sky.result(text, x, y, alpha, tone)
  *     sky.labelBox(name, x, y)    the box lane() + result() cover, for collision checks
+ *     sky.nearest(x, y, r); sky.ring(star, pinned)   hit-testing and the hover highlight
+ *   var tip = C.tips(sky, host, {info, redraw})   hover / tap tooltips (see tips() below)
  */
 (function () {
   'use strict';
@@ -102,10 +104,11 @@
 
     S.clear = function () { cx.clearRect(0, 0, S.W, S.H); };
 
-    S.drawStars = function (now, lit, still) {
+    // dim(star) -> 0..1 alpha multiplier (Ask SAJHA's regex filter); omitted: 1
+    S.drawStars = function (now, lit, still, dim) {
       for (var i = 0; i < S.stars.length; i++) {
         var st = S.stars[i], tw = still ? 0.8 : 0.55 + 0.45 * Math.sin(now / 900 + st.tw), on = lit ? lit(st) : 0;
-        cx.globalAlpha = (0.30 + 0.25 * tw) * (1 - on) + (0.55 + 0.45 * tw) * on;
+        cx.globalAlpha = ((0.30 + 0.25 * tw) * (1 - on) + (0.55 + 0.45 * tw) * on) * (dim ? dim(st) : 1);
         cx.fillStyle = S.colors[st.g];
         cx.beginPath(); cx.arc(st.x, st.y, st.r + on * 0.6, 0, 6.283); cx.fill();
       }
@@ -159,6 +162,24 @@
       var w = name.length * 7.4 + 22, l = Math.min(Math.max(x - w / 2, 6), S.W - w - 6);
       return { l: l, r: l + w, t: y - 34, b: y + 32 };
     };
+    // the star nearest (x, y) in CSS px within r px, or null; ~500 stars, a plain loop is enough
+    S.nearest = function (x, y, r) {
+      var best = null, bd = r * r;
+      for (var i = 0; i < S.stars.length; i++) {
+        var st = S.stars[i], dx = st.x - x, dy = st.y - y, d = dx * dx + dy * dy;
+        if (d <= bd) { bd = d; best = st; }
+      }
+      return best;
+    };
+    // the hover highlight: a soft halo and a ring in the ink colour (pinned: solid, else lighter)
+    S.ring = function (st, pinned) {
+      if (!st) return;
+      cx.fillStyle = S.colors[st.g] || S.T.accent; cx.globalAlpha = 0.22;
+      cx.beginPath(); cx.arc(st.x, st.y, 9, 0, 6.283); cx.fill();
+      cx.globalAlpha = 1; cx.beginPath(); cx.arc(st.x, st.y, st.r + 0.8, 0, 6.283); cx.fill();
+      cx.strokeStyle = S.T.ink; cx.lineWidth = pinned ? 1.6 : 1.2; cx.globalAlpha = pinned ? 0.95 : 0.7;
+      cx.beginPath(); cx.arc(st.x, st.y, 7, 0, 6.283); cx.stroke(); cx.globalAlpha = 1;
+    };
     S.measure = function (text, mono) {
       cx.font = mono ? '600 12px ' + S.T.mono : '12px ' + S.T.font;
       return cx.measureText(text).width;
@@ -166,9 +187,92 @@
     return S;
   }
 
+  /* ── star tooltips ──────────────────────────────────────────────────────────────────────
+   * var tip = C.tips(S, host, { info: fn(star) -> {name, group, desc?} | null, redraw: fn() })
+   *   host: the positioned box around the canvas (the tooltip and a polite live region go in it)
+   *   tip.star / tip.pinned        what is highlighted now (the caller's draw calls S.ring(tip.star, tip.pinned))
+   *   tip.hide()                   drop the hover and the pin
+   * A mouse hover shows the tooltip of the nearest star within 8px (12px for a pen, 18px for a
+   * touch); a click or a tap pins it, a click on empty sky, Escape or a click outside unpins.
+   * The live region speaks a pinned star at once and a hovered one after a short dwell. */
+  function tips(S, host, opts) {
+    var cv = S.canvas, info = opts.info, redraw = opts.redraw || function () {};
+    var box = document.createElement('div');
+    box.className = 'sky-tip'; box.setAttribute('role', 'tooltip'); box.hidden = true;
+    box.id = (cv.id || 'sky') + 'Tip';
+    var nm = document.createElement('div'); nm.className = 'sky-tip-name';
+    var gp = document.createElement('div'); gp.className = 'sky-tip-group';
+    var dot = document.createElement('span'); dot.className = 'sky-tip-dot'; dot.setAttribute('aria-hidden', 'true');
+    var gt = document.createElement('span'); gp.appendChild(dot); gp.appendChild(gt);
+    var ds = document.createElement('div'); ds.className = 'sky-tip-desc';
+    box.appendChild(nm); box.appendChild(gp); box.appendChild(ds);
+    var live = document.createElement('div');
+    live.className = 'visually-hidden'; live.setAttribute('aria-live', 'polite'); live.setAttribute('aria-atomic', 'true');
+    host.appendChild(box); host.appendChild(live);
+
+    var T = { star: null, pinned: false }, raf = 0, pending = null, dwell = 0, spoken = '';
+    function speak(text, wait) {
+      clearTimeout(dwell);
+      if (!text || text === spoken) return;
+      dwell = setTimeout(function () { spoken = text; live.textContent = text; }, wait);
+    }
+    function sentence(i) { return i.name + ', ' + i.group + ' provider group' + (i.desc ? '. ' + i.desc : ''); }
+    function place(st) {
+      var i = st && info(st);
+      if (!i) { box.hidden = true; return null; }
+      nm.textContent = i.name;
+      gt.textContent = i.group + ' provider group';
+      dot.style.background = S.colors[st.g] || '';
+      ds.textContent = i.desc || ''; ds.hidden = !i.desc;
+      box.hidden = false;
+      // the canvas's box inside the host, then the star in host coordinates
+      var ox = cv.offsetLeft, oy = cv.offsetTop, hw = host.clientWidth, hh = host.clientHeight;
+      var w = box.offsetWidth, h = box.offsetHeight, x = ox + st.x, y = oy + st.y, gap = 12;
+      var left = x + gap + w <= hw - 6 ? x + gap : x - gap - w;          // right of the star, else left
+      var top = y - gap - h >= 6 ? y - gap - h : y + gap;                // above, else below
+      box.style.left = Math.max(6, Math.min(left, hw - w - 6)) + 'px';
+      box.style.top = Math.max(6, Math.min(top, hh - h - 6)) + 'px';
+      return i;
+    }
+    function set(st, pinned) {
+      var changed = st !== T.star || pinned !== T.pinned;
+      T.star = st; T.pinned = !!(st && pinned);
+      var i = place(st);
+      cv.style.cursor = st ? 'pointer' : '';
+      if (i) speak(sentence(i) + (T.pinned ? ' (pinned; Escape to close)' : ''), T.pinned ? 30 : 900);
+      else clearTimeout(dwell);
+      if (changed) redraw();
+    }
+    function at(e, slop) {
+      var r = cv.getBoundingClientRect();
+      if (!r.width || !S.W) return null;
+      var k = S.W / r.width;                       // CSS box vs the layout's own width (zoom, transforms)
+      return S.nearest((e.clientX - r.left) * k, (e.clientY - r.top) * k, slop * k);
+    }
+    function slopOf(e) { return e.pointerType === 'touch' ? 18 : e.pointerType === 'pen' ? 12 : 8; }
+    cv.addEventListener('pointermove', function (e) {
+      if (T.pinned || e.pointerType === 'touch') return;
+      pending = e;
+      if (!raf) raf = requestAnimationFrame(function () { raf = 0; if (pending && !T.pinned) set(at(pending, slopOf(pending)), false); });
+    });
+    cv.addEventListener('pointerleave', function () { if (!T.pinned) { pending = null; set(null, false); } });
+    cv.addEventListener('click', function (e) {
+      var st = at(e, slopOf(e.pointerType ? e : { pointerType: lastType }));
+      if (st && !(T.pinned && st === T.star)) set(st, true); else set(null, false);
+    });
+    var lastType = 'mouse';
+    cv.addEventListener('pointerdown', function (e) { lastType = e.pointerType || 'mouse'; });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && T.star) set(null, false); });
+    document.addEventListener('pointerdown', function (e) { if (T.pinned && e.target !== cv && !box.contains(e.target)) set(null, false); });
+    T.hide = function () { set(null, false); };
+    T.refresh = function () { if (T.star) place(T.star); };     // after a re-layout (the star may have moved)
+    T.forget = function () { T.star = null; T.pinned = false; box.hidden = true; };
+    return T;
+  }
+
   window.SajhaConstellation = {
     reduce: mm('(prefers-reduced-motion: reduce)').matches,
     tok: tok, onTheme: function (fn) { themeFns.push(fn); }, whenVisible: whenVisible,
-    groupOf: groupOf, sky: sky, MONO: MONO
+    groupOf: groupOf, sky: sky, tips: tips, MONO: MONO
   };
 })();

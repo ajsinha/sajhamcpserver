@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 from sajha.core.mcp_2025_11_25 import MCPError, negotiate_protocol_version
+from sajha.core.mcp_mrtr import InputRequired
 
 # Content block types a tool may return directly as a list
 _CONTENT_TYPES = {"text", "image", "audio", "resource", "resource_link"}
@@ -103,6 +104,48 @@ class MCPHandler:
         }
 
     def handle_request(self, request_data: Dict, session: Optional[Dict] = None) -> Dict:
+        """
+        Handle a JSON-RPC 2.0 request (the 2025-11-25 era and earlier), with observability:
+        the caller context for the usage ledger, an ``mcp`` span continuing
+        ``params._meta.traceparent`` when present, and ``sajha_mcp_requests_total``.
+        """
+        import time as _time
+        from sajha.observability import caller as _caller, metrics as _metrics, tracing as _tracing
+        method = request_data.get('method') if isinstance(request_data, dict) else None
+        params = request_data.get('params') if isinstance(request_data, dict) else None
+        meta = params.get('_meta') if isinstance(params, dict) else None
+        meta = meta if isinstance(meta, dict) else {}
+        name = method if isinstance(method, str) and len(method) <= 64 else 'invalid'
+        token = _caller.set_caller(_caller.from_session(session))
+        t0 = _time.perf_counter()
+        outcome = 'error'
+        try:
+            with _tracing.span(f'mcp {name}', {'mcp.method': name, 'mcp.era': 'legacy',
+                                               'rpc.jsonrpc.request_id': str(request_data.get('id'))
+                                               if isinstance(request_data, dict) else None},
+                               traceparent=meta.get('traceparent') if isinstance(meta.get('traceparent'), str) else None,
+                               tracestate=meta.get('tracestate') if isinstance(meta.get('tracestate'), str) else None
+                               ) as span:
+                response = self._handle_request(request_data, session)
+                if isinstance(request_data, dict) and 'id' not in request_data:
+                    outcome = 'notification'
+                elif isinstance(response, dict) and 'error' in response:
+                    outcome = 'error'
+                    if (response.get('error') or {}).get('code') == self.METHOD_NOT_FOUND:
+                        name = 'unknown'        # client-chosen strings are not label values
+                    _tracing.set_error(span, str((response.get('error') or {}).get('message', '')))
+                else:
+                    outcome = 'ok'
+                _tracing.set_attrs(span, **{'mcp.outcome': outcome})
+                return response
+        finally:
+            if name.startswith('notifications/') and name not in ('notifications/initialized',
+                                                                   'notifications/cancelled'):
+                name = 'notifications/other'
+            _metrics.record_mcp('legacy', name, outcome, _time.perf_counter() - t0)
+            _caller.reset(token)
+
+    def _handle_request(self, request_data: Dict, session: Optional[Dict] = None) -> Dict:
         """
         Handle a JSON-RPC 2.0 request
         
@@ -231,6 +274,12 @@ class MCPHandler:
         from sajha.core.mcp_conformance_fixtures import get_conformance_fixtures
         return get_conformance_fixtures()
 
+    @staticmethod
+    def _federation():
+        """The federation manager (sajha/federation), or None when there is none."""
+        from sajha.federation.manager import get_federation
+        return get_federation()
+
     def handle_prompts_list(self, params: Optional[Dict] = None, era: str = 'legacy') -> Dict:
         """Handle prompts/list — returns the result object."""
         prompts = []
@@ -239,6 +288,9 @@ class MCPHandler:
                 entry = p.to_mcp_format()
                 entry['description'] = entry.get('description') or ''
                 prompts.append(entry)
+        federation = self._federation()
+        if federation is not None:
+            prompts.extend(federation.prompt_definitions())
         fixtures = self._fixtures()
         if fixtures:
             prompts.extend(fixtures.prompt_definitions(era))
@@ -256,6 +308,14 @@ class MCPHandler:
                 return fixtures.get_prompt(name, arguments)
             except ValueError as e:
                 raise MCPError(self.INVALID_PARAMS, str(e))
+        federation = self._federation()
+        if federation is not None and federation.has_prompt(name):
+            try:
+                return federation.get_prompt(name, arguments)
+            except MCPError:
+                raise
+            except Exception as e:
+                raise MCPError(self.INTERNAL_ERROR, f"Federated prompt {name} failed: {e}")
         prompt = self.prompts_registry.get_prompt(name) if self.prompts_registry else None
         if not prompt:
             raise MCPError(self.INVALID_PARAMS, f"Unknown prompt: {name}")
@@ -554,6 +614,8 @@ class MCPHandler:
             # the same path as the REST API: enabled check, argument validation, cache,
             # circuit breaker and metrics all live in execute_with_tracking
             result = tool.execute_with_tracking(arguments)
+        except InputRequired:
+            raise       # MRTR (2026-07-28): surfaced as an InputRequiredResult by mcp_modern
         except Exception as e:
             # MCP 2025-11-25 Minor 5: Return as Tool Execution Error (isError: true)
             # instead of Protocol Error — enables model self-correction
@@ -570,6 +632,8 @@ class MCPHandler:
 
     def _format_tool_result(self, tool, result: Any) -> Dict:
         """Turn a tool's return value into a CallToolResult."""
+        if getattr(tool, 'passthrough_result', False):     # a federated tool: the upstream's own result
+            return tool.format_mcp_result(result, self._advertise_output_schema())
         # Already a list of MCP content blocks
         if isinstance(result, list) and result and all(
                 isinstance(b, dict) and b.get('type') in _CONTENT_TYPES for b in result):
@@ -676,6 +740,10 @@ class MCPHandler:
         else:
             start = 0
 
+        federation = self._federation()
+        if federation is not None:
+            resources.extend(federation.resource_definitions())
+
         fixtures = self._fixtures()
         if fixtures:
             resources.extend(fixtures.resources())
@@ -699,6 +767,15 @@ class MCPHandler:
             fixture_result = fixtures.read_resource(uri)
             if fixture_result is not None:
                 return fixture_result
+
+        federation = self._federation()
+        if federation is not None and federation.owns_resource(uri):
+            try:
+                return federation.read_resource(uri)
+            except MCPError:
+                raise
+            except Exception as e:
+                raise MCPError(self.INTERNAL_ERROR, f'Federated resource read failed: {e}')
 
         if uri == 'sajha://tools/catalog':
             tools = self.tools_registry.get_all_tools() if self.tools_registry else []

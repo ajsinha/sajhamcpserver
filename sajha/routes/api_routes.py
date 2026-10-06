@@ -61,6 +61,8 @@ async def api_tool_execute(
     # Execute with timing
     usage_dao = ToolUsageDAO(db)
     start = time.time()
+    from sajha.observability.caller import from_auth, set_caller
+    set_caller(from_auth(auth))      # the usage ledger's caller (this request's context only)
     try:
         result = tool.execute_with_tracking(arguments)
         duration_ms = int((time.time() - start) * 1000)

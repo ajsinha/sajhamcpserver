@@ -1,0 +1,4 @@
+# Pyodide releases are downloaded by scripts/fetch_pyodide.py (tens of MB); never commit them.
+*
+!.gitignore
+!README.md

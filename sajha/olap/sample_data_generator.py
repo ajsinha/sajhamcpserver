@@ -29,6 +29,39 @@ class SampleDataGenerator:
     PRODUCT_CATEGORIES = ["Electronics", "Furniture", "Clothing", "Food", "Office Supplies"]
     CUSTOMER_SEGMENTS = ["Enterprise", "Small Business", "Consumer", "Government"]
     PAYMENT_METHODS = ["Credit Card", "Bank Transfer", "PayPal", "Cash"]
+
+    # Cities per region (city, state). A customer's city is picked from its region's
+    # list by customer number, so adding it does not consume random numbers and the
+    # generated orders stay the same.
+    REGION_CITIES = {
+        "North": [("Minneapolis", "MN"), ("Detroit", "MI"), ("Milwaukee", "WI"), ("Fargo", "ND")],
+        "South": [("Atlanta", "GA"), ("Houston", "TX"), ("Miami", "FL"), ("Nashville", "TN")],
+        "East": [("New York", "NY"), ("Boston", "MA"), ("Philadelphia", "PA"), ("Baltimore", "MD")],
+        "West": [("Los Angeles", "CA"), ("Seattle", "WA"), ("Denver", "CO"), ("Phoenix", "AZ")],
+        "Central": [("Chicago", "IL"), ("St. Louis", "MO"), ("Kansas City", "MO"), ("Omaha", "NE")],
+    }
+
+    # Customer tier from lifetime value: (minimum value, tier), highest first
+    TIERS = [(7500, "Platinum"), (5000, "Gold"), (2500, "Silver"), (0, "Bronze")]
+
+    # Inventory: distribution centres with their share of network demand, two
+    # suppliers per category, and network-wide daily demand (units) per category.
+    WAREHOUSES = [
+        ("Northeast DC", "Newark, NJ", 0.30),
+        ("Southeast DC", "Atlanta, GA", 0.25),
+        ("Central DC", "Chicago, IL", 0.25),
+        ("West DC", "Reno, NV", 0.20),
+    ]
+    SUPPLIERS = {
+        "Electronics": ["TechSource Inc.", "Pacific Components"],
+        "Furniture": ["OakLine Furnishings", "Midwest Office Works"],
+        "Clothing": ["Threadworks Apparel", "Metro Garment Co."],
+        "Food": ["FreshPantry Foods", "Summit Beverage Group"],
+        "Office Supplies": ["PaperTrail Supply", "DeskMate Distributors"],
+    }
+    CATEGORY_DAILY_DEMAND = {
+        "Electronics": 12, "Furniture": 4, "Clothing": 10, "Food": 30, "Office Supplies": 40,
+    }
     
     PRODUCTS = {
         "Electronics": [
@@ -110,6 +143,7 @@ class SampleDataGenerator:
             
             # Create tables
             self._create_tables(customers, products, orders)
+            self.ensure_dataset_tables(replace=True)
             
             return {
                 "success": True,
@@ -118,7 +152,8 @@ class SampleDataGenerator:
                     "products_created": len(products),
                     "orders_created": len(orders),
                     "date_range": f"{start_date} to {end_date}",
-                    "tables_created": ["customers", "products", "orders", "sales_data"]
+                    "tables_created": ["customers", "products", "orders", "sales_data",
+                                       "customer_data", "inventory_data"]
                 }
             }
             
@@ -148,6 +183,9 @@ class SampleDataGenerator:
                 "lifetime_value": round(random.uniform(100, 10000), 2),
                 "is_active": random.random() > 0.1  # 90% active
             }
+            cities = self.REGION_CITIES[customer["region"]]
+            customer["city"], customer["state"] = cities[i % len(cities)]
+            customer["tier"] = next(t for floor, t in self.TIERS if customer["lifetime_value"] >= floor)
             customers.append(customer)
         
         return customers
@@ -257,18 +295,21 @@ class SampleDataGenerator:
                 region VARCHAR,
                 signup_date DATE,
                 lifetime_value DECIMAL(12, 2),
-                is_active BOOLEAN
+                is_active BOOLEAN,
+                city VARCHAR,
+                state VARCHAR,
+                tier VARCHAR
             )
         """)
         
         # Insert customers
         for c in customers:
             self.conn.execute("""
-                INSERT INTO customers VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO customers VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, [
                 c["customer_id"], c["customer_name"], c["segment"],
                 c["region"], c["signup_date"], c["lifetime_value"],
-                c["is_active"]
+                c["is_active"], c["city"], c["state"], c["tier"]
             ])
         
         # Create products table
@@ -369,12 +410,136 @@ class SampleDataGenerator:
         """)
         
         logger.info("Sample data tables created successfully")
+
+    # -- tables behind the customer_analytics and inventory_analysis datasets --
+
+    def _relation_exists(self, name: str) -> bool:
+        try:
+            self.conn.execute(f"SELECT 1 FROM {name} LIMIT 0")
+            return True
+        except Exception:
+            return False
+
+    def _columns(self, name: str) -> set:
+        try:
+            return {row[0] for row in self.conn.execute(f"DESCRIBE {name}").fetchall()}
+        except Exception:
+            return set()
+
+    def ensure_dataset_tables(self, replace: bool = False) -> List[str]:
+        """Create ``customer_data`` (customer_analytics) and ``inventory_data``
+        (inventory_analysis) from the sample star schema.
+
+        Idempotent: without ``replace`` an existing relation is left alone, and a
+        relation is skipped when the tables it is built from are absent (e.g. a
+        user-supplied OLAP database with a different schema). Returns the names created.
+        """
+        created = []
+        if (replace or not self._relation_exists("customer_data")) and \
+                {"customer_id", "segment", "region", "city", "state", "tier"} <= self._columns("customers") and \
+                self._relation_exists("orders") and self._relation_exists("products"):
+            self._create_customer_data_view()
+            created.append("customer_data")
+        if (replace or not self._relation_exists("inventory_data")) and \
+                {"product_id", "product_name", "category", "unit_cost", "unit_price"} <= self._columns("products"):
+            self._create_inventory_table()
+            created.append("inventory_data")
+        if created:
+            logger.info(f"OLAP dataset tables created: {', '.join(created)}")
+        return created
+
+    def _create_customer_data_view(self):
+        """One row per customer and order (customers without orders appear once with
+        NULL order columns), so customer counts and revenue come from one relation."""
+        self.conn.execute("""
+            CREATE OR REPLACE VIEW customer_data AS
+            SELECT
+                c.customer_id,
+                c.customer_id AS id,
+                c.customer_name,
+                c.segment,
+                c.tier,
+                c.region,
+                c.state,
+                c.city,
+                c.signup_date,
+                DATE_TRUNC('month', c.signup_date) AS signup_month,
+                c.lifetime_value,
+                c.is_active,
+                o.order_id,
+                o.order_date,
+                o.product_id,
+                p.product_name,
+                p.category,
+                o.quantity,
+                o.amount,
+                o.discount,
+                o.net_amount,
+                o.profit
+            FROM customers c
+            LEFT JOIN orders o ON o.customer_id = c.customer_id
+            LEFT JOIN products p ON p.product_id = o.product_id
+        """)
+
+    def _create_inventory_table(self):
+        """One row per product and distribution centre: a stock snapshot at the end
+        of the sample period. Quantities are deterministic (derived from hashes of the
+        ids), so every run produces the same table."""
+        warehouses = ", ".join(
+            f"('{name}', '{location}', {share})" for name, location, share in self.WAREHOUSES)
+        suppliers = ", ".join(
+            f"('{cat}', {i}, '{sup}')" for cat, sups in self.SUPPLIERS.items() for i, sup in enumerate(sups))
+        demand = ", ".join(f"('{cat}', {units})" for cat, units in self.CATEGORY_DAILY_DEMAND.items())
+        self.conn.execute(f"""
+            CREATE OR REPLACE TABLE inventory_data AS
+            WITH wh(warehouse, warehouse_location, share) AS (VALUES {warehouses}),
+                 sup(category, slot, supplier) AS (VALUES {suppliers}),
+                 dem(category, units) AS (VALUES {demand}),
+                 base AS (
+                    SELECT p.product_id, p.product_name, p.category, p.unit_cost, p.unit_price,
+                           w.warehouse, w.warehouse_location,
+                           s.supplier,
+                           -- network demand for the category, split across its products and
+                           -- warehouses, varied +/-50% per product and warehouse
+                           ROUND(d.units / COUNT(*) OVER (PARTITION BY w.warehouse, p.category) * w.share
+                                 * (0.5 + (hash(p.product_id || w.warehouse) % 100) / 100.0), 2)
+                               AS avg_daily_demand,
+                           CAST(7 + hash(p.product_id || 'lead') % 22 AS INTEGER) AS lead_time_days,
+                           (hash(w.warehouse || p.product_id || 'stock') % 1000) / 1000.0 AS stock_draw
+                    FROM products p
+                    CROSS JOIN wh w
+                    LEFT JOIN dem d ON d.category = p.category
+                    LEFT JOIN sup s ON s.category = p.category
+                                   AND s.slot = CAST(hash(p.product_id) % 2 AS INTEGER)
+                 )
+            SELECT
+                product_id, product_name, category, warehouse, warehouse_location, supplier,
+                unit_cost, unit_price, avg_daily_demand, lead_time_days,
+                CAST(CEIL(avg_daily_demand * lead_time_days * 1.25) AS INTEGER) AS reorder_point,
+                -- stock between 0 and ~3.5x the reorder point; about 4% of rows are out of stock
+                CASE WHEN stock_draw < 0.04 THEN 0
+                     ELSE CAST(CEIL(avg_daily_demand * lead_time_days * 1.25 * (0.2 + 3.3 * stock_draw)) AS INTEGER)
+                END AS stock_qty,
+                DATE '2024-12-31' AS snapshot_date
+            FROM base
+        """)
+        self.conn.execute("""
+            CREATE OR REPLACE TABLE inventory_data AS
+            SELECT *,
+                   ROUND(stock_qty * unit_cost, 2) AS inventory_value,
+                   ROUND(stock_qty / NULLIF(avg_daily_demand, 0), 1) AS days_of_supply,
+                   CASE WHEN stock_qty = 0 THEN 'Out of Stock'
+                        WHEN stock_qty <= reorder_point THEN 'Reorder'
+                        WHEN stock_qty / NULLIF(avg_daily_demand, 0) > 90 THEN 'Overstock'
+                        ELSE 'Healthy' END AS stock_status
+            FROM inventory_data
+        """)
     
     def get_table_statistics(self) -> Dict[str, Any]:
         """Get statistics about the generated tables."""
         stats = {}
         
-        tables = ["customers", "products", "orders"]
+        tables = ["customers", "products", "orders", "customer_data", "inventory_data"]
         for table in tables:
             try:
                 result = self.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()

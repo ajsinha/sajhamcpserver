@@ -18,7 +18,7 @@
         {% for t in help_related.siblings %}
         <a class="chip" href="{{ topic_href(t) }}"><i class="bi {{ t.icon }}" aria-hidden="true"></i> {{ t.title }}</a>
         {% endfor %}
-        <a class="chip" href="/glossary"><i class="bi bi-journal-text" aria-hidden="true"></i> Glossary</a>
+        {% if not (help_related.siblings|selectattr('endpoint', 'equalto', 'glossary')|list) %}<a class="chip" href="/glossary"><i class="bi bi-journal-text" aria-hidden="true"></i> Glossary</a>{% endif %}
         <a class="chip all" href="/help"><i class="bi bi-grid" aria-hidden="true"></i> All help</a>
     </div>
 </div>

@@ -114,7 +114,8 @@ order of preference:
    and must be https, loopback http, or a reverse-domain native scheme
    (`com.example.app:/cb`); an entry with an invalid one is ignored with a warning.
 3. **Dynamic Client Registration** (RFC 7591): `mcp.auth.builtin.dynamic_client_registration: true`.
-   Deprecated in MCP 2026-07-28, and registrations live in memory only.
+   Deprecated in MCP 2026-07-28. Registrations are kept in the state store (`state.backend`),
+   which is process memory by default.
 
 ### Scopes and refresh tokens
 
@@ -130,14 +131,18 @@ order of preference:
 
 Generated on first use (RSA-2048, mode 0600) at `<data.dir>/oauth/signing_key.pem`, or
 `mcp.auth.builtin.signing_key_path`. It is git-ignored; never commit it. Every
-instance that issues or validates tokens must use the same key.
+instance that issues or validates tokens must use the same key: share the data directory,
+or give every host the PEM in `mcp.auth.builtin.signing_key_pem` (env
+`SAJHA_MCP_AUTH_BUILTIN_SIGNING_KEY_PEM`).
 
 ### Operational limits
 
 Pending consents, authorization codes, refresh tokens and DCR registrations are held
-in memory, per process. A restart signs OAuth clients out (access tokens stay valid
-until they expire, because the key persists), and several workers need sticky routing
-or a single worker. Access tokens cannot be revoked before they expire.
+in the state store. With the default `state.backend: memory` they are per process: a
+restart signs OAuth clients out (access tokens stay valid until they expire, because the
+key persists). With `redis` or `database`, every worker shares them, so a code issued by one
+worker is redeemed at another, and they survive a restart. See
+[Scaling and State](../architecture/Scaling%20and%20State.md). Access tokens cannot be revoked before they expire.
 
 ---
 

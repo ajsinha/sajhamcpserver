@@ -1,0 +1,13 @@
+# Values for deployment/k8s/overlays/dev (also usable with helm install -f).
+# One pod, SQLite on a ReadWriteOnce volume, in-process state.
+fullnameOverride: sajha
+secrets:
+  existingSecret: sajha-secrets       # create it first: see deployment/k8s/README.md
+replicaCount: 1
+playground:
+  assets: cdn
+config:
+  logLevel: DEBUG
+resources:
+  requests: {cpu: 100m, memory: 384Mi}
+  limits: {memory: 1Gi}

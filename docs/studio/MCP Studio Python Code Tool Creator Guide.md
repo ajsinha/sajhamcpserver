@@ -122,7 +122,8 @@ The class name is the tool name in PascalCase plus `Tool`. The JSON config looks
     "cacheTTL": 300,
     "createdAt": "<ISO timestamp>",
     "source": "MCP Studio"
-  }
+  },
+  "sandbox": {"network": "none"}
 }
 ```
 
@@ -132,6 +133,24 @@ The generated `execute(arguments)` method:
 - runs **your function body** (the docstring is dropped). If the body has no `return`, `return {"status": "success"}` is appended.
 
 The generated Python is checked for syntax errors before it is saved.
+
+### Where your code runs
+
+Your function runs in the [sandbox](../architecture/Sandbox.md), never in the server: the
+generated module is not imported by the server, and each call starts a fresh sandbox with
+no server environment, no access to the server's files, a temp work directory, CPU,
+memory, process and output limits, and **no network** unless the tool's `sandbox` block
+allowlists hosts:
+
+```json
+"sandbox": {"network": "allowlist", "allow_hosts": ["api.example.com:443"], "timeout_seconds": 20}
+```
+
+The page shows the policy a new tool gets and what the active backend enforces on this
+host. Inside the sandbox only the standard library and the packages installed for the
+sandbox's interpreter can be imported; `sajha` itself is not available (apart from the
+`BaseMCPTool` base class the generated code needs). Secrets come only through
+`sandbox.secrets` (names the administrator allowlisted).
 
 **Only the function body is copied.** Module-level imports, helper functions and constants outside the decorated function are not carried into the generated file. Put imports inside the function, as in the examples below.
 
@@ -217,7 +236,7 @@ def fetch_api(url: str, method: str = "GET", timeout: int = 30) -> dict:
         return {"success": False, "error": str(e)}
 ```
 
-For wrapping an HTTP endpoint without code, see the [REST Tool Creator Guide](MCP%20Studio%20REST%20Tool%20Creator%20Guide.md).
+This tool needs network access: give it `"sandbox": {"network": "allowlist", "allow_hosts": [...]}` with the hosts it may call. For wrapping an HTTP endpoint without code, see the [REST Tool Creator Guide](MCP%20Studio%20REST%20Tool%20Creator%20Guide.md).
 
 ---
 
@@ -231,6 +250,8 @@ For wrapping an HTTP endpoint without code, see the [REST Tool Creator Guide](MC
 | Syntax error in code: … | The analyzer could not parse the code. Check indentation, colons and brackets. |
 | Generated Python has syntax error on line N | The function body did not survive re-indentation. Check the Python preview pane at that line. |
 | `NameError` when the tool runs | The body uses an import or helper defined outside the function. Move it inside. |
+| `PermissionError` / `OSError` reading a file or opening a connection | The sandbox blocks it. Files: use the work directory (the current directory). Network: allowlist the host in the tool's `sandbox` block. |
+| `SandboxTimeout` / `SandboxOutputLimit` | The call hit the sandbox's `timeout_seconds` or `max_output_bytes`. |
 
 ---
 

@@ -24,7 +24,7 @@ import secrets
 import socket
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Dict, List, Optional
 from urllib.parse import urlsplit, urlunsplit
 
@@ -292,13 +292,26 @@ class ClientRegistry:
         self._dcr: Dict[str, OAuthClient] = {}
         self._cimd: Dict[str, tuple] = {}     # url -> (client, expires_at)
 
+    @staticmethod
+    def _state():
+        from sajha.core.state import get_state_store
+        return get_state_store()
+
     def local_client(self, client_id: str) -> Optional[OAuthClient]:
         """A pre-registered or dynamically registered client (no network)."""
         static = _static_clients().get(client_id)
         if static:
             return static
         with self._lock:
-            return self._dcr.get(client_id)
+            client = self._dcr.get(client_id)
+        if client is None and isinstance(client_id, str) and client_id.startswith('dcr_'):
+            # registered on another worker (shared state store), or before a restart (durable store)
+            rec = self._state().get(_DCR_KEY + client_id)
+            if rec:
+                client = OAuthClient(**rec)
+                with self._lock:
+                    self._dcr[client_id] = client
+        return client
 
     async def resolve(self, client_id: str) -> OAuthClient:
         if not isinstance(client_id, str) or not client_id or len(client_id) > 2000:
@@ -353,9 +366,12 @@ class ClientRegistry:
         client = OAuthClient(client_id=client_id, redirect_uris=list(redirect_uris), auth_method=method,
                              source='dcr', name=(name or '')[:100] or None,
                              secret_sha256=hashlib.sha256(secret.encode()).hexdigest() if secret else None)
+        state = self._state()
+        if state.incr(_DCR_KEY + '#count') > _MAX_DCR_CLIENTS:
+            state.incr(_DCR_KEY + '#count', -1)
+            raise ClientError('too many registered clients')
+        state.set(_DCR_KEY + client_id, asdict(client))
         with self._lock:
-            if len(self._dcr) >= _MAX_DCR_CLIENTS:
-                raise ClientError('too many registered clients')
             self._dcr[client_id] = client
         info = {
             'client_id': client_id,
@@ -374,6 +390,8 @@ class ClientRegistry:
             info['client_secret_expires_at'] = 0
         return info
 
+
+_DCR_KEY = 'oauth:dcr:'
 
 _registry: Optional[ClientRegistry] = None
 _registry_lock = threading.Lock()

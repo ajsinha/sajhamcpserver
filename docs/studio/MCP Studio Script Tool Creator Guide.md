@@ -44,10 +44,10 @@ Arguments reach the script as ordinary command-line arguments: `$1`, `$2`, … i
 
 | Field | Default | Allowed range | Notes |
 |-------|---------|---------------|-------|
-| Timeout (seconds) | 30 | 1–300 (checked by the generator) | Passed to `subprocess.run(timeout=...)`. |
+| Timeout (seconds) | 30 | 1–300 (checked by the generator) | The sandbox's wall-clock limit (also written to the config's `sandbox.timeout_seconds`, capped by `sandbox.max.timeout_seconds`). |
 | Max Arguments | 10 | 0–100 | Becomes `maxItems` on the `args` array. |
-| Working Directory | empty | – | Used as `cwd` for the process. If you leave it empty, the script runs in the server process's current directory. |
-| Environment Variables | none | – | Key/value rows. They are merged over the server's environment. |
+| Working Directory | empty | – | Ignored while the script is sandboxed (the default): it always runs in a fresh, empty temp directory. Used as `cwd` only when the sandbox is off. |
+| Environment Variables | none | – | Key/value rows: the script's only environment besides `PATH`, `HOME`, `LANG` and the like. The server's environment is not passed. Not for secrets (see below). |
 | Capture STDERR | on | – | When off, `stderr` is returned as an empty string. |
 
 ### Tool literature (AI context)
@@ -114,7 +114,8 @@ Every argument is converted to a string before the script runs. If the generator
 |-------------|---------|
 | `-1` | The script timed out. |
 | `-2` | The script file or the interpreter was not found. |
-| `-3` | Any other execution error. The message is in `stderr`. |
+| `-3` | Any other execution error, including a sandbox error. The message is in `stderr`. |
+| `-4` | The output exceeded the sandbox's `max_output_bytes`; the script was stopped. |
 
 If you want structured data, print JSON to STDOUT and let the caller parse it.
 
@@ -126,9 +127,11 @@ The generated config sets `implementation` to the wrapper's dotted class path, `
 
 ## Security notes
 
-- The generator does **not** scan script content for dangerous commands. It runs whatever you deploy, with the server process's user and permissions.
+- Scripts run in the [sandbox](../architecture/Sandbox.md), one fresh sandbox per call, not with the server's privileges: no server environment, no access to the server's files (`config/`, `data/`, the source), a temp work directory, CPU, memory, process and output limits, and no network unless the tool's `sandbox` block allowlists hosts. The creator page shows the policy and what the active backend enforces on this host. On macOS and Windows the sandbox gives only the clean environment and limits.
+- The generated config carries `"sandbox": {"network": "none", "timeout_seconds": N}`. Edit that block to grant more (`network: allowlist` with `allow_hosts`, `memory_mb`, `secrets`, ...); the administrator's `sandbox.max` caps it.
+- The generator does **not** scan script content for dangerous commands; the sandbox is what contains them.
 - Arguments are passed as an argument list (`subprocess.run([...])`, no shell), so they cannot inject shell syntax into the command line. Your script must still treat `$1` and the other arguments as untrusted.
-- Environment variable values are written in plain text into the generated wrapper file. Do not put secrets there unless the file is protected.
+- Environment variable values are written in plain text into the config and the wrapper file. For a secret, have the administrator add its name to `sandbox.secrets_allowlist` and list it in the tool's `sandbox.secrets`; the value is then read from the server environment at call time.
 - Limit who can reach Studio. See the permissions section of the [MCP Studio User Guide](MCP%20Studio%20User%20Guide.md).
 
 ---

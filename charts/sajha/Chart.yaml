@@ -1,0 +1,15 @@
+apiVersion: v2
+name: sajha
+description: SAJHA MCP Server, a dual-era Model Context Protocol server, on Kubernetes
+type: application
+# Chart version: bump on any change to this chart.
+version: 0.1.0
+# The application version is app.version in config/application.yml (the only authority);
+# tests/test_k8s_deployment.py fails when this copy drifts from it.
+appVersion: "6.0.0"
+keywords: [mcp, model-context-protocol, fastapi, llm]
+home: https://github.com/ajsinha/sajhamcpserver
+sources: [https://github.com/ajsinha/sajhamcpserver]
+maintainers:
+  - name: Ashutosh Sinha
+    email: ajsinha@gmail.com

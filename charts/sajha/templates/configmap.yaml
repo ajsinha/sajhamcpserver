@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sajha.fullname" . }}
+  labels:
+    {{- include "sajha.labels" . | nindent 4 }}
+data:
+  overrides.yaml: |
+    {{- if .Values.config.overrides }}
+    {{- toYaml .Values.config.overrides | nindent 4 }}
+    {{- else }}
+    {}
+    {{- end }}
+  seed.py: |
+    {{- .Files.Get "files/seed.py" | nindent 4 }}

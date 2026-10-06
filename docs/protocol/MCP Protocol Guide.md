@@ -147,8 +147,9 @@ Built on MRTR: optional confirmation before running a tool annotated
 (`resultType: "task"`) that the client polls with `tasks/get`, answers with
 `tasks/update` and stops with `tasks/cancel`. A tool opts in with
 `"execution": {"taskSupport": "optional" | "required"}` in its JSON config; the
-client opts in per request. Tasks live in memory per process, scoped to the calling
-user (`mcp.tasks.*`).
+client opts in per request. Task records are scoped to the calling user (`mcp.tasks.*`)
+and kept in the state store: per process by default, shared and durable with a shared
+backend ([Scaling and State](../architecture/Scaling%20and%20State.md)).
 
 MCP tasks are not the same thing as SAJHA's **async execution** (`/admin/async-tasks`,
 `async.*` config), a fire-and-forget worker pool that delivers results to a webhook,
@@ -182,8 +183,8 @@ curl -s http://localhost:3002/mcp -H 'Content-Type: application/json' \
 
 - `initialize` negotiates the version: the client's if supported, else the newest
   handshake version.
-- Sessions are in process memory (`sajha/core/mcp_sessions.py`). After a restart a
-  client gets 404 and re-initializes. `DELETE /mcp` ends a session.
+- Sessions are in the state store (`sajha/core/mcp_sessions.py`), process memory by
+  default. After a restart a client then gets 404 and re-initializes. `DELETE /mcp` ends a session.
 - Requests without a session header are still accepted, which keeps simple scripts
   working.
 - Tools that talk to the client while running (sampling, elicitation) answer with an
@@ -199,10 +200,41 @@ curl -s http://localhost:3002/mcp -H 'Content-Type: application/json' \
 | Streamable HTTP | `POST /mcp` (`/api/mcp`), `DELETE /mcp` | both | Every current MCP client. The default. |
 | HTTP+SSE (2024-11-05) | `GET /mcp/sse` + `POST /mcp/message` | legacy | Older clients that predate Streamable HTTP. |
 | WebSocket (SAJHA extension) | `/mcp/ws` | legacy | Full-duplex clients; accepts JSON-RPC batches; authenticates with `?token=` or `?api_key=`. |
+| stdio | the server's stdin/stdout (`sajha serve --stdio`, `python run_server.py --stdio`) | both | Desktop clients (Claude Desktop, Claude Code, IDEs) that launch the server as a subprocess. |
 
 The legacy SSE and WebSocket streams receive the same change-bus notifications as
 `subscriptions/listen`, and therefore advertise `listChanged: true`. Streamable HTTP
 sessions have no push channel (`GET /mcp` is 405), so they advertise `false`.
+
+### stdio
+
+`sajha/cli/stdio.py` serves MCP over a subprocess's stdin/stdout, following the spec's
+stdio rules: newline-delimited JSON-RPC (one object per line, UTF-8), nothing but
+protocol messages on stdout (file descriptor 1 is pointed at stderr at start-up, so a
+stray `print` cannot corrupt the stream), logs on stderr only, and exit when stdin
+closes. Both eras are served by the same handlers as `POST /mcp`:
+
+- A request carrying the 2026-07-28 `_meta` envelope goes to the modern path. A client
+  in `auto` mode probes with `server/discover` and stays modern; one that gets an error
+  falls back to `initialize`. stdio has no headers, so the routing headers the HTTP
+  ladder cross-checks (`MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name`, `Mcp-Param-*`)
+  are derived from the body; every body-level check still applies. Streamed responses
+  (`subscriptions/listen`, a `tools/call` with a `progressToken` or `logLevel`) arrive as
+  notification lines followed by the response line.
+- `initialize` selects the legacy path; the connection is the session. stdio is a push
+  channel, so the initialize result advertises `listChanged: true` and list changes
+  arrive as notifications. Server-to-client requests (sampling, elicitation) work as on
+  a streamed HTTP call.
+- `notifications/cancelled` cancels the named in-flight request on either path, and no
+  response is sent for it.
+
+There is one caller per process, fixed at start-up and mapped through the same access
+control as every other transport: `--api-key` (or `SAJHA_API_KEY`) uses that key's tool
+access list, `--user` (or `SAJHA_STDIO_USER`) a SAJHA user's roles, and with neither the
+caller is anonymous (`mcp.anonymous.*`, no registry tools by default). The process opens
+the server's database and configuration directly, so whoever can launch it can already
+read them; no password is asked for. Client configuration snippets are in
+[Command Line](../clients/Command%20Line.md#desktop-clients-stdio).
 
 ---
 
@@ -252,6 +284,8 @@ built-in authorization server and external identity providers are in the
 - **SAJHA's client SDK** wraps the official SDK as `SajhaMCPClient` /
   `SajhaMCPSyncClient` (`pip install sajhaclient[mcp]`), plus SAJHA's REST and A2A
   extras. See the [Client SDK Guide](../clients/Client%20SDK%20Guide.md).
+- **The `sajha` command line** lists, shows and calls tools over MCP, streams `ask`,
+  and launches the stdio server. See [Command Line](../clients/Command%20Line.md).
 
 ---
 

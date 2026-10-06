@@ -378,6 +378,20 @@ ASK_EXAMPLES = [
 ]
 
 
+def _tool_blurbs(limit: int = 120) -> dict:
+    """{tool name: its description's first line, clipped}: the sky's hover tooltips."""
+    from sajha.app import tools_registry
+    out = {}
+    for name, tool in (getattr(tools_registry, 'tools', None) or {}).items():
+        try:
+            d = str(getattr(tool, 'description', '') or '').strip().split('\n')[0]
+        except Exception:
+            d = ''
+        if d:
+            out[name] = d if len(d) <= limit else d[:limit - 1].rstrip() + '…'
+    return out
+
+
 @router.get('/ask')
 async def ask_page(request: Request, auth: AuthContext = Depends(require_auth)):
     """Ask SAJHA: a chat over POST /api/ai/ask, with the tool chain drawn live on the catalog's sky."""
@@ -391,6 +405,7 @@ async def ask_page(request: Request, auth: AuthContext = Depends(require_auth)):
         'ask_data': {
             'groups': [[g['name'], g['tool_count'], g['tools']] for g in live['groups']],
             'total': live['total_tools'],
+            'descriptions': _tool_blurbs(),
             'examples': ASK_EXAMPLES,
             'is_admin': bool(auth.is_admin),
             'enabled': bool(svc is not None and svc.settings.enabled),

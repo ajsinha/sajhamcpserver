@@ -1,0 +1,49 @@
+# Build context for the root Dockerfile (and deployment/aws/Dockerfile).
+# Allow-list style would hide new top-level folders silently, so this denies instead.
+
+.git
+.github
+.idea
+.vscode
+.claude
+.venv
+venv
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.mypy_cache
+.coverage
+htmlcov
+
+# Secrets and local state never go into an image
+.env
+.env.*
+data/
+logs/
+temp/
+tmp/
+config/**/*.pem
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.sqlite
+**/*.sqlite3
+
+# Tests and the client SDK are not part of the server image
+tests/
+test/
+clientsdk/
+
+# Pyodide downloads: vendored at build time with --build-arg PLAYGROUND_ASSETS=true
+sajha/web/static/vendor/pyodide/*/
+
+# Deployment recipes (only deployment/README.md and the AWS scripts are copied)
+deployment/
+!deployment/README.md
+!deployment/aws/scripts/
+charts/
+
+docs/archive/
+docs/requirements/
+*.zip
+*.tar.gz

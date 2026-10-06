@@ -92,8 +92,36 @@ class SajhaStack(Stack):
 
         app_secret = secretsmanager.Secret(self, "AppSecret",
             secret_name=f"sajha/{env_name}/app",
-            description="SAJHA application secrets (JWT, API keys)",
+            description="SAJHA application secrets (API keys)",
         )
+
+        # Secrets every task must share (docs/architecture/Scaling and State.md §5).
+        # Generated once by Secrets Manager; without them each task would generate its
+        # own into its private data directory and reject the others' JWTs and CSRF tokens.
+        def _generated(construct_id: str, name: str, key: str) -> secretsmanager.Secret:
+            return secretsmanager.Secret(self, construct_id,
+                secret_name=f"sajha/{env_name}/{name}",
+                description=f"SAJHA {key} shared by every task",
+                generate_secret_string=secretsmanager.SecretStringGenerator(
+                    secret_string_template="{}",
+                    generate_string_key=key,
+                    exclude_punctuation=True,
+                    password_length=64,
+                ),
+            )
+
+        jwt_secret = _generated("JwtSecret", "jwt", "jwt_secret")
+        session_secret = _generated("SessionSecret", "session", "session_secret")
+
+        # OAuth signing key (only used when mcp.auth.mode uses the built-in authorization
+        # server).  Secrets Manager cannot generate an RSA key, so pass the name of a
+        # plaintext secret holding the PEM:
+        #   openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out key.pem
+        #   aws secretsmanager create-secret --name sajha/prod/oauth-signing-key --secret-string file://key.pem
+        #   cdk deploy -c oauth_signing_key_secret=sajha/prod/oauth-signing-key
+        signing_key_name = self.node.try_get_context("oauth_signing_key_secret")
+        signing_key_secret = (secretsmanager.Secret.from_secret_name_v2(
+            self, "OAuthSigningKey", signing_key_name) if signing_key_name else None)
 
         # ── RDS PostgreSQL ───────────────────────────────────
         db_instance_type = self.node.try_get_context("db_instance") or (
@@ -154,6 +182,10 @@ class SajhaStack(Stack):
                     "SAJHA_DB_NAME": "sajha",
                     "SAJHA_SERVER_HOST": "0.0.0.0",
                     "SAJHA_SERVER_PORT": "3002",
+                    # several tasks behind the ALB: OAuth codes, MCP sessions/tasks, rate limits and
+                    # change notifications shared through RDS (or set "redis" + SAJHA_STATE_REDIS_URL
+                    # for an ElastiCache endpoint).  docs/architecture/Scaling and State.md
+                    "SAJHA_STATE_BACKEND": "database",
                     "AWS_DEFAULT_REGION": self.region,
                 },
                 secrets={
@@ -161,7 +193,11 @@ class SajhaStack(Stack):
                     "SAJHA_DB_PORT": ecs.Secret.from_secrets_manager(db_secret, "port"),
                     "SAJHA_DB_USER": ecs.Secret.from_secrets_manager(db_secret, "username"),
                     "SAJHA_DB_PASSWORD": ecs.Secret.from_secrets_manager(db_secret, "password"),
-                    "SAJHA_JWT_SECRET": ecs.Secret.from_secrets_manager(app_secret, "jwt_secret"),
+                    "SAJHA_JWT_SECRET": ecs.Secret.from_secrets_manager(jwt_secret, "jwt_secret"),
+                    "SAJHA_SECRET_KEY": ecs.Secret.from_secrets_manager(session_secret, "session_secret"),
+                    **({"SAJHA_MCP_AUTH_BUILTIN_SIGNING_KEY_PEM":
+                        ecs.Secret.from_secrets_manager(signing_key_secret)}
+                       if signing_key_secret else {}),
                 },
                 log_driver=ecs.LogDriver.aws_logs(
                     log_group=log_group, stream_prefix="sajha"),
@@ -192,6 +228,10 @@ class SajhaStack(Stack):
         bucket.grant_read_write(fargate.task_definition.task_role)
         db_secret.grant_read(fargate.task_definition.task_role)
         app_secret.grant_read(fargate.task_definition.task_role)
+        jwt_secret.grant_read(fargate.task_definition.task_role)
+        session_secret.grant_read(fargate.task_definition.task_role)
+        if signing_key_secret:
+            signing_key_secret.grant_read(fargate.task_definition.task_role)
         database.connections.allow_from(
             fargate.service, ec2.Port.tcp(5432), "ECS → RDS")
 
@@ -233,6 +273,6 @@ class SajhaStack(Stack):
         CfnOutput(self, "WebSocketUrl",
             value=f"ws://{fargate.load_balancer.load_balancer_dns_name}/mcp/ws",
             description="WebSocket MCP endpoint")
-        CfnOutput(self, "LogGroup",
+        CfnOutput(self, "LogGroupName",  # id differs from the LogGroup construct
             value=log_group.log_group_name,
             description="CloudWatch log group")

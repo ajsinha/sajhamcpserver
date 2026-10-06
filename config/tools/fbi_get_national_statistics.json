@@ -1,15 +1,15 @@
 {
   "name": "fbi_get_national_statistics",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetNationalStatisticsTool",
-  "description": "Retrieve nationwide US crime statistics for specified offense types and years",
-  "version": "2.9.8",
+  "description": "Nationwide US offense counts, rate per 100,000, clearances and reporting coverage for one year (FBI Crime Data Explorer)",
+  "version": "3.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "offense_type": {
         "type": "string",
-        "description": "Type of crime offense to retrieve",
+        "description": "Offense (UCR summarized offense category)",
         "enum": [
           "violent_crime",
           "homicide",
@@ -25,13 +25,13 @@
       },
       "year": {
         "type": "integer",
-        "description": "Year for crime statistics (e.g., 2022)",
-        "minimum": 1960,
-        "maximum": 2024
+        "description": "Data year (defaults to last calendar year)",
+        "minimum": 1985,
+        "maximum": 2100
       },
-      "per_capita": {
+      "include_monthly": {
         "type": "boolean",
-        "description": "Return statistics per capita (per 100,000 population)",
+        "description": "Also return the month-by-month series",
         "default": false
       }
     },
@@ -43,35 +43,90 @@
     "type": "object",
     "properties": {
       "offense_type": {
-        "type": "string",
-        "description": "Type of crime offense"
+        "type": "string"
       },
       "year": {
-        "type": "integer",
-        "description": "Year of statistics"
+        "type": "integer"
       },
       "national_data": {
         "type": "object",
         "properties": {
           "total_incidents": {
-            "type": "integer",
-            "description": "Total number of incidents nationwide"
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Offenses reported in the year (sum of monthly counts)"
+          },
+          "total_cleared": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Offenses cleared in the year"
+          },
+          "clearance_rate_pct": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "total_cleared / total_incidents x 100"
           },
           "rate_per_100k": {
-            "type": "number",
-            "description": "Crime rate per 100,000 population"
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Offenses per 100,000 covered population (sum of the monthly rates)"
           },
           "population": {
-            "type": "integer",
-            "description": "Total US population for the year"
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Total population of the jurisdiction"
           },
-          "reporting_agencies": {
-            "type": "integer",
-            "description": "Number of agencies reporting data"
+          "participated_population": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Average monthly population covered by reporting agencies"
           },
-          "population_covered": {
+          "population_coverage_pct": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Average monthly percent of population covered"
+          },
+          "months_reported": {
             "type": "integer",
-            "description": "Population covered by reporting agencies"
+            "description": "Months with data in the year"
+          }
+        }
+      },
+      "monthly": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "month": {
+              "type": "string",
+              "description": "YYYY-MM"
+            },
+            "incidents": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "rate_per_100k": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
           }
         }
       },
@@ -79,12 +134,23 @@
         "type": "object",
         "properties": {
           "data_source": {
-            "type": "string",
-            "description": "FBI data source identifier"
+            "type": "string"
           },
-          "last_updated": {
+          "endpoint": {
             "type": "string",
-            "description": "When the data was last updated (ISO format)"
+            "description": "CDE API path called"
+          },
+          "data_last_refreshed": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "data_available_through": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       }
@@ -92,7 +158,8 @@
     "required": [
       "offense_type",
       "year",
-      "national_data"
+      "national_data",
+      "metadata"
     ]
   },
   "metadata": {
@@ -107,21 +174,21 @@
     ],
     "rateLimit": 120,
     "cacheTTL": 3600,
-    "note": "Retrieves nationwide crime statistics from FBI UCR data",
+    "note": "Calls /summarized/national/{offense}. Rates are per 100,000 people covered by reporting agencies.",
     "examples": [
       {
-        "description": "Get 2022 national violent crime statistics",
+        "description": "National violent crime, 2024",
         "input": {
           "offense_type": "violent_crime",
-          "year": 2022
+          "year": 2024
         }
       },
       {
-        "description": "Get per capita homicide rates",
+        "description": "Monthly homicides, 2023",
         "input": {
           "offense_type": "homicide",
-          "year": 2022,
-          "per_capita": true
+          "year": 2023,
+          "include_monthly": true
         }
       }
     ]

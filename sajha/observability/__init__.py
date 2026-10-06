@@ -1,9 +1,11 @@
 """
-SAJHA MCP Server v4.5.0 — Observability & OpenTelemetry
+SAJHA MCP Server — Observability
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
-Production-grade observability: OTEL traces, structured metrics,
-health probes, error spike alerting.
+The JSON tool-metrics collector (/api/metrics), health probes (/health, /ready) and the
+start-up of the observability layer: Prometheus metrics (metrics.py, /metrics),
+OpenTelemetry (tracing.py), the usage ledger (usage.py) and alert rules (alerts.py).
+Design: docs/architecture/Observability.md.
 """
 
 import time
@@ -242,30 +244,11 @@ class OTELIntegration:
         self._try_init()
 
     def _try_init(self):
-        try:
-            from opentelemetry import trace, metrics
-            from opentelemetry.sdk.trace import TracerProvider
-            from opentelemetry.sdk.metrics import MeterProvider
-            from opentelemetry.sdk.resources import Resource
-
-            resource = Resource.create({'service.name': self.service_name})
-
-            trace.set_tracer_provider(TracerProvider(resource=resource))
-            self._tracer = trace.get_tracer(self.service_name)
-
-            metrics.set_meter_provider(MeterProvider(resource=resource))
-            self._meter = metrics.get_meter(self.service_name)
-
-            self._tool_duration_histogram = self._meter.create_histogram(
-                'sajha.tool.duration', unit='ms',
-                description='Tool execution duration in milliseconds')
-            self._tool_call_counter = self._meter.create_counter(
-                'sajha.tool.calls', description='Total tool call count')
-
-            self._enabled = True
-            logger.info("OpenTelemetry initialized with SDK")
-        except ImportError:
-            logger.info("OpenTelemetry SDK not installed — using built-in metrics only")
+        """OpenTelemetry is configured by tracing.py (observability.otel.*, OTEL_* env); off by default."""
+        from sajha.observability import tracing
+        tracing.init_tracing()
+        self._tracer = tracing.tracer()
+        self._enabled = self._tracer is not None
 
     def start_span(self, tool_name: str, user_id: str = '') -> Optional[object]:
         if not self._enabled or not self._tracer:
@@ -295,18 +278,9 @@ class OTELIntegration:
             pass
 
     def record_metric(self, tool_name: str, duration_ms: float, success: bool):
-        if not self._enabled:
-            return
-        try:
-            if self._tool_duration_histogram:
-                self._tool_duration_histogram.record(
-                    duration_ms, {'tool.name': tool_name, 'success': str(success)})
-            if self._tool_call_counter:
-                self._tool_call_counter.add(
-                    1, {'tool.name': tool_name, 'success': str(success)})
-        except Exception as e:
-            logger.warning(f"Error handled: {e}", exc_info=True)
-            pass
+        from sajha.observability import tracing
+        tracing.record_metric('sajha.tool.duration', 'histogram', duration_ms / 1000.0,
+                              {'sajha.tool.name': tool_name, 'success': str(success)})
 
 
 # ── Health Probes ────────────────────────────────────────────
@@ -357,24 +331,40 @@ _health: Optional[HealthProbe] = None
 
 
 def init_observability(service_name: str = 'sajha-mcp-server') -> tuple:
+    """Start the layer: collector, OpenTelemetry, health probes, alert rules, the metrics
+    snapshot publisher (several workers) and the optional separate metrics port."""
     global _collector, _otel, _health
     _collector = MetricsCollector()
     _otel = OTELIntegration(service_name)
     _health = HealthProbe()
-
-    # Default alert: error spike (>10 errors in 5 min window)
-    _collector.add_alert_rule(AlertRule(
-        name='error_spike', metric='error_count', operator='gt',
-        threshold=10, window_minutes=5, cooldown_minutes=15))
-    # Default alert: high latency
-    _collector.add_alert_rule(AlertRule(
-        name='high_latency_p95', metric='latency_p95', operator='gt',
-        threshold=5000, cooldown_minutes=30))
-
-    _collector.on_alert(lambda rule, tool, val, thresh:
-        logger.warning(f"ALERT [{rule}] tool={tool} value={val:.1f} threshold={thresh}"))
-
+    try:
+        from sajha.observability import alerts, metrics, usage
+        alerts.init_alerts()
+        if not metrics.start_publisher():
+            from sajha.core.state import worker_count_hint
+            if worker_count_hint() > 1 and metrics._shared_store() is None:
+                logger.warning("  Metrics: several workers but no shared state store (state.backend); "
+                               "each /metrics scrape shows one worker only")
+        if usage.enabled():
+            usage.ensure_table()
+        from sajha.observability.server import start_metrics_server
+        start_metrics_server()
+    except Exception as e:
+        logger.warning(f"Observability: partial start ({e})", exc_info=True)
     return _collector, _otel, _health
+
+
+def shutdown_observability() -> None:
+    try:
+        from sajha.observability import alerts, metrics, tracing, usage
+        from sajha.observability.server import stop_metrics_server
+        alerts.shutdown()
+        metrics.stop_publisher()
+        stop_metrics_server()
+        usage.shutdown()
+        tracing.shutdown()
+    except Exception as e:
+        logger.debug(f"observability shutdown: {e}")
 
 
 def get_collector() -> Optional[MetricsCollector]:

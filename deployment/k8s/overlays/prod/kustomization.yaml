@@ -1,0 +1,32 @@
+# Three to ten pods, PostgreSQL, bundled Redis state store, ingress-nginx with streaming
+# settings, NetworkPolicy (values-prod.yaml). Secrets sajha-secrets, sajha-postgres and
+# sajha-redis must exist first (see ../../README.md). Patch the host names below.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: sajha
+resources:
+  - ../../base
+  - sajha-prod.yaml
+patches:
+  # Your host name (both Ingress objects and the public URL)
+  - target: {kind: Ingress}
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: sajha.example.com
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: sajha.example.com
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: sajha
+      spec:
+        template:
+          spec:
+            containers:
+              - name: sajha
+                env:
+                  - name: SAJHA_MCP_AUTH_PUBLIC_URL
+                    value: https://sajha.example.com

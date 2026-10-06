@@ -108,6 +108,7 @@ WRITTEN_BY_READER = {
 RUNTIME_DIRS = {
     'config/apps',          # mcp.apps.dir (sajha/core/mcp_apps.py)
     'config/scripts',       # the Script creator's scripts (sajha/studio/script_tool_generator.py)
+    'config/federation',    # federation.state_path, written by the Federation admin page (sajha/federation/store.py)
 }
 
 

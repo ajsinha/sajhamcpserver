@@ -166,16 +166,9 @@
         "customer_analytics": {
             "name": "customer_analytics",
             "display_name": "Customer Analytics",
-            "description": "Customer behavior and segmentation analysis with purchase history and lifetime value metrics",
+            "description": "Customer behavior and segmentation analysis with purchase history and lifetime value metrics. Source: the customer_data view, one row per customer and order (customers without orders appear once), generated with the sample data when no OLAP database is configured",
             "source_table": "customer_data",
-            "joins": [
-                {
-                    "table": "sales_data",
-                    "type": "LEFT",
-                    "on": "customer_data.id = sales_data.customer_id",
-                    "alias": "sales"
-                }
-            ],
+            "joins": [],
             "dimensions": [
                 "customer_segment",
                 "region",
@@ -195,7 +188,7 @@
         "inventory_analysis": {
             "name": "inventory_analysis",
             "display_name": "Inventory Analysis",
-            "description": "Product inventory levels, turnover rates, and stock analysis",
+            "description": "Product inventory levels, reorder points and days of supply by warehouse and supplier. Source: the inventory_data table, a stock snapshot per product and distribution centre, generated with the sample data when no OLAP database is configured",
             "source_table": "inventory_data",
             "joins": [],
             "dimensions": [

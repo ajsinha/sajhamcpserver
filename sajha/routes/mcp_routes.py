@@ -19,14 +19,16 @@ from sse_starlette.sse import EventSourceResponse
 from sqlalchemy.orm import Session
 
 from sajha.db.engine import get_db
-from sajha.auth import AuthManager, AuthContext, require_admin
+from sajha.auth import AuthManager, AuthContext, require_admin, require_auth
 from sajha.auth.oauth.resource_server import authorize_mcp
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=['mcp'])
 
 # ── Legacy (2024-11-05) SSE sessions ─────────────────────────────
-_sse_sessions: dict[str, asyncio.Queue] = {}
+# Queues live in sajha.core.mcp_sse_relay, which relays responses between workers
+# when a shared state store is configured (docs/architecture/Scaling and State.md).
+from sajha.core import mcp_sse_relay as _sse_relay
 
 _SESSION_HEADER = 'mcp-session-id'
 _VERSION_HEADER = 'mcp-protocol-version'
@@ -212,10 +214,10 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
 
     # Legacy 2024-11-05 HTTP+SSE client: the response travels over its SSE stream
     legacy_sid = request.query_params.get('session')
-    if legacy_sid and legacy_sid in _sse_sessions:
+    if legacy_sid and _sse_relay.exists(legacy_sid):
         if method == 'initialize':
             response = with_push_capabilities(response)
-        await _sse_sessions[legacy_sid].put(response)
+        await _sse_relay.deliver(legacy_sid, response)
         return Response(status_code=202)
 
     headers = {}
@@ -366,14 +368,14 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
     if err is not None:
         return err
     session_id = str(uuid.uuid4())
-    _sse_sessions[session_id] = asyncio.Queue()
+    sse_queue = _sse_relay.register(session_id)
 
     from sajha.core.mcp_2025_11_25 import SSEEventTracker
     tracker = SSEEventTracker()
     last_event_id = request.headers.get('Last-Event-ID')
 
     async def event_generator():
-        forwarder = asyncio.create_task(forward_changes(_sse_sessions[session_id]))
+        forwarder = asyncio.create_task(forward_changes(sse_queue))
         try:
             if last_event_id:
                 for missed in tracker.get_events_after(last_event_id):
@@ -393,7 +395,7 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
                 if await request.is_disconnected():
                     break
                 try:
-                    notification = await asyncio.wait_for(_sse_sessions[session_id].get(), timeout=5)
+                    notification = await asyncio.wait_for(sse_queue.get(), timeout=5)
                     eid = tracker.next_id(session_id)
                     data = json.dumps(notification)
                     tracker.record_event(eid, 'message', data)
@@ -403,10 +405,11 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
                         'data': data,
                     }
                 except asyncio.TimeoutError:
+                    _sse_relay.keepalive(session_id)
                     yield {'event': 'ping', 'data': ''}
         finally:
             forwarder.cancel()
-            _sse_sessions.pop(session_id, None)
+            _sse_relay.unregister(session_id)
 
     return EventSourceResponse(event_generator())
 
@@ -444,7 +447,7 @@ async def mcp_message(request: Request, db: Session = Depends(get_db)):
     response = await run_in_threadpool(mcp_handler.handle_request, body, session_data)
     # Tool enable/disable/reload reach the SSE stream as notifications/tools/list_changed
     # through the change bus (registry -> forward_changes), not from here.
-    if body.get('method') == 'initialize' and session_id and session_id in _sse_sessions:
+    if body.get('method') == 'initialize' and session_id and _sse_relay.exists(session_id):
         response = with_push_capabilities(response)
     return JSONResponse(response)
 
@@ -452,7 +455,7 @@ async def mcp_message(request: Request, db: Session = Depends(get_db)):
 # ── Resources (new in v3) ────────────────────────────────────────
 
 @router.post('/api/resources/list')
-async def resources_list(request: Request):
+async def resources_list(request: Request, auth: AuthContext = Depends(require_auth)):
     """MCP resources/list — expose datasets, docs, tool catalog."""
     from sajha.app import tools_registry
 
@@ -486,7 +489,7 @@ async def resources_list(request: Request):
 
 
 @router.post('/api/resources/read')
-async def resources_read(request: Request):
+async def resources_read(request: Request, auth: AuthContext = Depends(require_auth)):
     """MCP resources/read — read a resource by URI."""
     from sajha.app import tools_registry
 
@@ -515,7 +518,7 @@ async def resources_read(request: Request):
 # ── Completion (new in v3) ───────────────────────────────────────
 
 @router.post('/api/completion/complete')
-async def completion_complete(request: Request):
+async def completion_complete(request: Request, auth: AuthContext = Depends(require_auth)):
     """MCP completion/complete — argument auto-complete for tools."""
     from sajha.app import tools_registry
 

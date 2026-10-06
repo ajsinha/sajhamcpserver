@@ -93,6 +93,7 @@ Tool configs are written through the storage layer (`write_tool_config` in `sajh
 - The separate hot-reload manager (`hot_reload` in `config/application.yml`) also watches tool configs and implementation modules.
 - OLAP dataset definitions in `config/olap/` are not watched. A Studio OLAP deploy or delete re-creates the OLAP tools itself; after editing the files by hand, use **Reload All** on the Tools admin page, or restart the server.
 - When the registry changes, connected MCP clients that support it get a `tools/list_changed` notification.
+- Python code tools and script tools are loaded as sandboxed stand-ins: their code runs in the [sandbox](../architecture/Sandbox.md) at call time and is never imported into the server, so an edit to the generated module or script takes effect on the next call. The other creators generate in-process tools from SAJHA's own templates.
 
 ---
 

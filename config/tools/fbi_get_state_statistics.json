@@ -1,20 +1,20 @@
 {
   "name": "fbi_get_state_statistics",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetStateStatisticsTool",
-  "description": "Retrieve crime statistics for a specific US state by offense type and year",
-  "version": "2.9.8",
+  "description": "Offense counts, rate per 100,000 and clearances for one US state and year, compared with the national rate",
+  "version": "3.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "state": {
         "type": "string",
-        "description": "US State abbreviation (e.g., CA, NY, TX)",
-        "pattern": "^[A-Z]{2}$"
+        "description": "Two-letter USPS state code (e.g. CA, NY, TX, DC)",
+        "pattern": "^[A-Za-z]{2}$"
       },
       "offense_type": {
         "type": "string",
-        "description": "Type of crime offense to retrieve",
+        "description": "Offense (UCR summarized offense category)",
         "enum": [
           "violent_crime",
           "homicide",
@@ -30,13 +30,13 @@
       },
       "year": {
         "type": "integer",
-        "description": "Year for crime statistics (e.g., 2022)",
-        "minimum": 1960,
-        "maximum": 2024
+        "description": "Data year (defaults to last calendar year)",
+        "minimum": 1985,
+        "maximum": 2100
       },
-      "per_capita": {
+      "include_monthly": {
         "type": "boolean",
-        "description": "Return statistics per capita (per 100,000 population)",
+        "description": "Also return the month-by-month series",
         "default": false
       }
     },
@@ -49,56 +49,138 @@
     "type": "object",
     "properties": {
       "state": {
-        "type": "string",
-        "description": "State abbreviation"
+        "type": "string"
       },
       "state_name": {
-        "type": "string",
-        "description": "Full state name"
+        "type": "string"
       },
       "offense_type": {
-        "type": "string",
-        "description": "Type of crime offense"
+        "type": "string"
       },
       "year": {
-        "type": "integer",
-        "description": "Year of statistics"
+        "type": "integer"
       },
       "state_data": {
         "type": "object",
         "properties": {
           "total_incidents": {
-            "type": "integer",
-            "description": "Total incidents in the state"
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Offenses reported in the year (sum of monthly counts)"
+          },
+          "total_cleared": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Offenses cleared in the year"
+          },
+          "clearance_rate_pct": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "total_cleared / total_incidents x 100"
           },
           "rate_per_100k": {
-            "type": "number",
-            "description": "Crime rate per 100,000 population"
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Offenses per 100,000 covered population (sum of the monthly rates)"
           },
-          "state_population": {
-            "type": "integer",
-            "description": "State population for the year"
+          "population": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Total population of the jurisdiction"
           },
-          "reporting_agencies": {
-            "type": "integer",
-            "description": "Number of agencies reporting in state"
+          "participated_population": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Average monthly population covered by reporting agencies"
           },
-          "national_rank": {
+          "population_coverage_pct": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Average monthly percent of population covered"
+          },
+          "months_reported": {
             "type": "integer",
-            "description": "State's rank compared to other states (1=highest)"
+            "description": "Months with data in the year"
           }
         }
       },
       "comparison": {
         "type": "object",
         "properties": {
-          "national_rate": {
-            "type": "number",
-            "description": "National average rate per 100,000"
+          "national_rate_per_100k": {
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "percent_of_national": {
-            "type": "number",
-            "description": "State rate as percentage of national rate"
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "State rate as a percent of the national rate"
+          }
+        }
+      },
+      "monthly": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "month": {
+              "type": "string",
+              "description": "YYYY-MM"
+            },
+            "incidents": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "rate_per_100k": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "data_source": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string",
+            "description": "CDE API path called"
+          },
+          "data_last_refreshed": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "data_available_through": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       }
@@ -107,7 +189,8 @@
       "state",
       "offense_type",
       "year",
-      "state_data"
+      "state_data",
+      "comparison"
     ]
   },
   "metadata": {
@@ -122,23 +205,14 @@
     ],
     "rateLimit": 120,
     "cacheTTL": 3600,
-    "note": "Retrieves state-level crime statistics with national comparison",
+    "note": "Calls /summarized/state/{state}/{offense}.",
     "examples": [
       {
-        "description": "Get California violent crime stats for 2022",
+        "description": "California property crime, 2024",
         "input": {
           "state": "CA",
-          "offense_type": "violent_crime",
-          "year": 2022
-        }
-      },
-      {
-        "description": "Compare Texas property crime to national average",
-        "input": {
-          "state": "TX",
           "offense_type": "property_crime",
-          "year": 2022,
-          "per_capita": true
+          "year": 2024
         }
       }
     ]

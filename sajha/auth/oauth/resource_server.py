@@ -287,7 +287,11 @@ async def authorize_mcp(request: Request, db, method: Optional[str] = None):
     if ctx.authenticated:
         return ctx, None
     if mode == 'off':
-        # No OAuth: anonymous callers get the anonymous tool policy, or 401 (mcp.anonymous.enabled)
+        # No OAuth: credentials that were sent but did not authenticate are refused (never
+        # downgraded to anonymous); credential-less callers get the anonymous tool policy,
+        # or 401 when mcp.anonymous.enabled is false.
+        if presented_credentials(request):
+            return ctx, invalid_credentials()
         return ctx, (None if anonymous_enabled() else anonymous_refused())
 
     token = _bearer(request)
@@ -307,9 +311,26 @@ async def authorize_mcp(request: Request, db, method: Optional[str] = None):
                                         f'this operation requires the {needed} scope', scope=needed)
         return oauth_ctx, None
 
+    if presented_credentials(request):     # e.g. an X-API-Key that is not valid
+        return ctx, challenge(request, 401, 'invalid_token', 'invalid or expired credentials')
     if mode == 'required' or not anonymous_enabled():
         return ctx, challenge(request, 401)
     return ctx, None
+
+
+def presented_credentials(request: Request) -> bool:
+    """True when the caller sent an API key or an Authorization header. The web UI's session
+    cookie does not count: browsers send it unasked, so a stale one stays anonymous."""
+    return bool(request.headers.get('authorization', '').strip()
+                or request.headers.get('x-api-key', '').strip())
+
+
+def invalid_credentials() -> JSONResponse:
+    """401 for credentials that were sent but did not authenticate (OAuth off)."""
+    return JSONResponse({'error': 'invalid_token',
+                         'error_description': 'Invalid or expired credentials (X-API-Key or Bearer token)'},
+                        status_code=401,
+                        headers={'WWW-Authenticate': 'Bearer realm="sajha", error="invalid_token"'})
 
 
 def anonymous_refused() -> JSONResponse:

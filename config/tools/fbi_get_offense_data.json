@@ -1,43 +1,50 @@
 {
   "name": "fbi_get_offense_data",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetOffenseDataTool",
-  "description": "Retrieve detailed offense breakdown and subcategories for major crime types",
-  "version": "2.9.8",
+  "description": "NIBRS incident breakdowns for an offense (victim and offender age/sex/race, weapons, locations, relationships), nationally or for a state",
+  "version": "3.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "offense_type": {
         "type": "string",
-        "description": "Type of crime offense to retrieve detailed data for",
+        "description": "NIBRS offense (the violent/property aggregates and larceny as a whole have no single NIBRS code)",
         "enum": [
-          "violent_crime",
           "homicide",
           "rape",
           "robbery",
           "aggravated_assault",
-          "property_crime",
+          "simple_assault",
           "burglary",
-          "larceny",
           "motor_vehicle_theft",
-          "arson"
+          "arson",
+          "kidnapping",
+          "identity_theft"
         ]
       },
       "state": {
         "type": "string",
-        "description": "Optional: Filter by US State abbreviation (e.g., CA, NY, TX)",
-        "pattern": "^[A-Z]{2}$"
+        "description": "Optional two-letter state code; omit for national",
+        "pattern": "^[A-Za-z]{2}$"
       },
       "year": {
         "type": "integer",
-        "description": "Year for crime statistics (e.g., 2022)",
-        "minimum": 1960,
-        "maximum": 2024
+        "description": "Data year (defaults to last calendar year)",
+        "minimum": 1985,
+        "maximum": 2100
       },
       "include_subcategories": {
         "type": "boolean",
-        "description": "Include detailed subcategory breakdown",
+        "description": "Include the victim/offender/offense breakdowns",
         "default": true
+      },
+      "top_n": {
+        "type": "integer",
+        "description": "Largest buckets kept per breakdown",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10
       }
     },
     "required": [
@@ -48,71 +55,75 @@
     "type": "object",
     "properties": {
       "offense_type": {
-        "type": "string",
-        "description": "Type of crime offense"
+        "type": "string"
+      },
+      "nibrs_offense_code": {
+        "type": "string"
       },
       "year": {
-        "type": "integer",
-        "description": "Year of statistics"
+        "type": "integer"
       },
       "scope": {
         "type": "string",
-        "description": "Geographic scope (national or state)",
         "enum": [
           "national",
           "state"
         ]
       },
       "state": {
-        "type": "string",
-        "description": "State abbreviation if state-level data"
+        "type": "string"
       },
       "total_offenses": {
-        "type": "integer",
-        "description": "Total offenses for this category"
+        "type": [
+          "integer",
+          "null"
+        ],
+        "description": "NIBRS offenses reported in the year"
       },
-      "subcategories": {
-        "type": "array",
-        "description": "Detailed breakdown by subcategory",
-        "items": {
-          "type": "object",
-          "properties": {
-            "subcategory": {
-              "type": "string",
-              "description": "Offense subcategory name"
-            },
-            "total_incidents": {
-              "type": "integer",
-              "description": "Number of incidents"
-            },
-            "percentage_of_total": {
-              "type": "number",
-              "description": "Percentage of parent category"
-            }
-          }
-        }
+      "rate_per_100k": {
+        "type": [
+          "number",
+          "null"
+        ]
       },
-      "demographics": {
+      "nibrs_population_coverage_pct": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "breakdown": {
         "type": "object",
-        "description": "Demographic breakdown if available",
+        "description": "victim, offender and offense breakdowns; each maps a dimension to {bucket: count}"
+      },
+      "metadata": {
+        "type": "object",
         "properties": {
-          "by_location_type": {
-            "type": "object",
-            "description": "Distribution by location (residential, commercial, etc.)"
+          "data_source": {
+            "type": "string"
           },
-          "by_weapon": {
-            "type": "object",
-            "description": "Distribution by weapon type (for violent crimes)"
+          "endpoint": {
+            "type": "string",
+            "description": "CDE API path called"
           },
-          "clearance_rate": {
-            "type": "number",
-            "description": "Percentage of cases cleared by arrest"
+          "data_last_refreshed": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "data_available_through": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       }
     },
     "required": [
       "offense_type",
+      "nibrs_offense_code",
       "year",
       "scope",
       "total_offenses"
@@ -130,22 +141,22 @@
     ],
     "rateLimit": 120,
     "cacheTTL": 3600,
-    "note": "Provides detailed offense breakdowns with subcategories and demographics",
+    "note": "Calls /nibrs/{national | state/{state}}/{code} with type=counts and type=totals. NIBRS covers only agencies that report incident-level data.",
     "examples": [
       {
-        "description": "Get detailed violent crime breakdown nationally",
+        "description": "Who are aggravated-assault victims nationally, 2024",
         "input": {
-          "offense_type": "violent_crime",
-          "year": 2022,
-          "include_subcategories": true
+          "offense_type": "aggravated_assault",
+          "year": 2024
         }
       },
       {
-        "description": "Get California property crime details",
+        "description": "Robbery in Vermont",
         "input": {
-          "offense_type": "property_crime",
-          "state": "CA",
-          "year": 2022
+          "offense_type": "robbery",
+          "state": "VT",
+          "year": 2024,
+          "top_n": 5
         }
       }
     ]

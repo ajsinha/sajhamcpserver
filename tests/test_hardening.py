@@ -637,3 +637,12 @@ class TestAuthErrorsAndSchema:
     def test_schema_scripts_declare_the_column(self):
         for d in ('sqlite', 'postgresql'):
             assert 'must_change_password' in Path(f'db/scripts/{d}/001_schema.sql').read_text()
+
+
+# The REST mirrors of three MCP methods had no auth check at all.
+@pytest.mark.parametrize('path', ['/api/resources/list', '/api/resources/read',
+                                  '/api/completion/complete'])
+def test_rest_mirrors_of_mcp_methods_require_sign_in(web, path):
+    c, admin = web
+    assert c.post(path, json={'params': {}}).status_code == 401
+    assert c.post(path, json={'params': {}}, cookies=admin).status_code != 401

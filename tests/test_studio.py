@@ -174,7 +174,10 @@ def test_dax_parameter_substitution_escapes_quotes(gen_dirs):
 
 
 def test_registry_loads_legacy_object_implementation(tmp_path, monkeypatch):
-    """Script tools written before the fix have "implementation": {...}; they must still load."""
+    """Script tools written before the fix have "implementation": {...}; they must still load.
+    This checks the in-process compatibility shim, so the sandbox (which would run the
+    script itself, tests/test_sandbox.py) is switched off for it."""
+    monkeypatch.setenv('SAJHA_SANDBOX_ENFORCE_FOR_GENERATED_TOOLS', 'false')
     from sajha.tools.tools_registry import ToolsRegistry
     legacy = tmp_path / 'zz_legacy_script_tool.py'
     legacy.write_text('''
@@ -358,19 +361,25 @@ def test_sharepoint_creator_end_to_end(studio):
                         {'operation': 'list'}, _expect_error_result)
 
 
-def test_olap_dataset_deploy_and_delete(studio):
+def test_olap_dataset_deploy_and_delete(studio, tmp_path, monkeypatch):
+    """Runs against a temp copy of config/olap: deploy/delete re-serialise the JSON files, and a
+    test must never rewrite repository config (not even transiently)."""
+    import shutil
+    from sajha.routes import studio_routes
     c, headers, _ = studio
+    olap = tmp_path / 'olap'
+    shutil.copytree(ROOT / 'config' / 'olap', olap)
+    monkeypatch.setattr(studio_routes, 'OLAP_DIR', olap)
+    repo_olap = {f: f.read_bytes() for f in (ROOT / 'config' / 'olap').glob('*.json')}
     payload = {'name': 'zz_test_ds', 'source_table': 'sales', 'dimensions': ['zz_test_dim'],
                'measures': ['zz_test_measure'],
                'dimension_definitions': [{'name': 'zz_test_dim', 'column': 'region', 'type': 'standard'}],
                'measure_definitions': [{'name': 'zz_test_measure', 'expression': 'SUM(amount)',
                                         'format': 'number', 'description': ''}]}
-    olap = ROOT / 'config' / 'olap'
-    saved = {f: f.read_bytes() for f in olap.glob('*.json')}  # deploy/delete re-serialise them
     r = c.post('/admin/studio/olap/deploy', json=payload, headers=headers)
     try:
         assert r.json()['success'], r.text
-        ds = json.loads((ROOT / 'config' / 'olap' / 'datasets.json').read_text())['datasets']['zz_test_ds']
+        ds = json.loads((olap / 'datasets.json').read_text())['datasets']['zz_test_ds']
         assert ds['created_by'] == 'MCP Studio' and ds['display_name'] == 'zz_test_ds'
         assert c.post('/admin/studio/olap/deploy', json=payload, headers=headers).json()['success'] is False
         dims = json.loads((olap / 'dimensions.json').read_text())['dimensions']
@@ -379,13 +388,12 @@ def test_olap_dataset_deploy_and_delete(studio):
     finally:
         r = c.post('/admin/studio/olap/delete', json={'name': 'zz_test_ds'}, headers=headers)
     assert r.json()['success'], r.text
-    assert 'zz_test_ds' not in json.loads((ROOT / 'config' / 'olap' / 'datasets.json').read_text())['datasets']
+    assert 'zz_test_ds' not in json.loads((olap / 'datasets.json').read_text())['datasets']
     assert 'zz_test_dim' not in json.loads((olap / 'dimensions.json').read_text())['dimensions']
     assert 'zz_test_measure' not in json.loads((olap / 'measures.json').read_text())['measures']
     # Shipped datasets cannot be deleted from Studio
     assert c.post('/admin/studio/olap/delete', json={'name': 'customer_olap'}, headers=headers).status_code == 403
-    for f, data in saved.items():
-        f.write_bytes(data)
+    assert {f: f.read_bytes() for f in (ROOT / 'config' / 'olap').glob('*.json')} == repo_olap
 
 
 def test_delete_refuses_tools_studio_did_not_create(studio):

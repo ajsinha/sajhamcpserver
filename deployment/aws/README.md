@@ -26,7 +26,7 @@ Internet → ALB (port 443/80)
 npm install -g aws-cdk
 
 # 2. Install CDK Python dependencies
-cd aws/cdk
+cd deployment/aws/cdk
 pip install -r requirements.txt
 
 # 3. Bootstrap CDK (first time only)
@@ -34,7 +34,7 @@ cdk bootstrap
 
 # 4. Build and push container image
 cd ..
-docker build -t sajha-mcp-server .
+docker build -f Dockerfile -t sajha-mcp-server ../..   # deployment/aws/Dockerfile, repository root as context
 aws ecr get-login-password | docker login --username AWS --password-stdin <account>.dkr.ecr.<region>.amazonaws.com
 docker tag sajha-mcp-server:latest <account>.dkr.ecr.<region>.amazonaws.com/sajha-mcp-server:latest
 docker push <account>.dkr.ecr.<region>.amazonaws.com/sajha-mcp-server:latest
@@ -58,6 +58,29 @@ cdk deploy -c cpu=2048 -c memory=4096 -c desired_count=3
 # Larger database
 cdk deploy -c db_instance=r6g.large
 ```
+
+### Several tasks
+
+Production runs 2–6 Fargate tasks behind the ALB. The stack sets
+`SAJHA_STATE_BACKEND=database`, so OAuth codes, MCP sessions and tasks, rate limits and
+change notifications are shared through RDS. The tasks must also share the session secret
+and the OAuth signing key: their data directories are not shared. Set them through the
+environment, as listed in
+[Scaling and State §5](../../docs/architecture/Scaling%20and%20State.md#5-secrets-every-worker-must-share).
+The stack does this for the JWT and session secrets: it creates `sajha/<env>/jwt` and
+`sajha/<env>/session` in Secrets Manager (generated once) and passes them to every task as
+`SAJHA_JWT_SECRET` and `SAJHA_SECRET_KEY`. Secrets Manager cannot generate an RSA key, so
+if you use the built-in OAuth authorization server, store a PEM yourself and name it:
+
+```bash
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out key.pem
+aws secretsmanager create-secret --name sajha/prod/oauth-signing-key --secret-string file://key.pem
+cdk deploy -c environment=prod -c oauth_signing_key_secret=sajha/prod/oauth-signing-key
+```
+
+The tasks then get it as `SAJHA_MCP_AUTH_BUILTIN_SIGNING_KEY_PEM`.
+To use ElastiCache Redis instead of RDS, set `SAJHA_STATE_BACKEND=redis` and
+`SAJHA_STATE_REDIS_URL`.
 
 ## What CDK Creates
 
@@ -121,7 +144,7 @@ cdk ls          # List stacks
 
 ```bash
 # Run with Docker Compose (no AWS needed)
-cd aws
+cd deployment/aws
 docker compose up
 # → SAJHA at http://localhost:3002
 # → PostgreSQL at localhost:5432

@@ -1,16 +1,22 @@
 {
   "name": "fbi_get_agency_details",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetAgencyDetailsTool",
-  "description": "Retrieve detailed information about a specific law enforcement agency",
-  "version": "2.9.8",
+  "description": "Directory details for one law enforcement agency by ORI (name, type, county, coordinates, NIBRS status) plus its staffing from the police-employee data",
+  "version": "3.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "ori": {
         "type": "string",
-        "description": "Originating Agency Identifier (ORI) code (e.g., 'CA0190000' for LAPD)",
-        "pattern": "^[A-Z]{2}[0-9]{7}$"
+        "description": "9-character agency ORI code (e.g. VT0040100); find one with fbi_search_agencies",
+        "pattern": "^[A-Za-z0-9]{9}$"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Year for the staffing figures (defaults to last calendar year)",
+        "minimum": 1985,
+        "maximum": 2100
       }
     },
     "required": [
@@ -21,95 +27,129 @@
     "type": "object",
     "properties": {
       "ori": {
-        "type": "string",
-        "description": "Agency ORI code"
+        "type": "string"
       },
       "agency_name": {
-        "type": "string",
-        "description": "Full name of the law enforcement agency"
+        "type": [
+          "string",
+          "null"
+        ]
       },
       "agency_type": {
-        "type": "string",
-        "description": "Type of agency (city, county, state, federal, etc.)"
+        "type": [
+          "string",
+          "null"
+        ]
       },
       "location": {
         "type": "object",
         "properties": {
           "state": {
-            "type": "string",
-            "description": "State abbreviation"
+            "type": "string"
           },
           "state_name": {
-            "type": "string",
-            "description": "Full state name"
-          },
-          "city": {
-            "type": "string",
-            "description": "City where agency is headquartered"
+            "type": "string"
           },
           "county": {
-            "type": "string",
-            "description": "County where agency is located"
+            "type": [
+              "string",
+              "null"
+            ]
           },
-          "region": {
-            "type": "string",
-            "description": "FBI region designation"
-          }
-        }
-      },
-      "jurisdiction": {
-        "type": "object",
-        "properties": {
-          "population": {
-            "type": "integer",
-            "description": "Population served by the agency"
+          "latitude": {
+            "type": [
+              "number",
+              "null"
+            ]
           },
-          "square_miles": {
-            "type": "number",
-            "description": "Area covered in square miles"
-          }
-        }
-      },
-      "personnel": {
-        "type": "object",
-        "properties": {
-          "total_officers": {
-            "type": "integer",
-            "description": "Total number of sworn officers"
-          },
-          "total_civilians": {
-            "type": "integer",
-            "description": "Total number of civilian employees"
-          },
-          "officers_per_1000": {
-            "type": "number",
-            "description": "Officers per 1,000 residents"
+          "longitude": {
+            "type": [
+              "number",
+              "null"
+            ]
           }
         }
       },
       "reporting_status": {
         "type": "object",
         "properties": {
-          "participates_in_ucr": {
-            "type": "boolean",
-            "description": "Whether agency reports to UCR"
+          "is_nibrs": {
+            "type": "boolean"
           },
-          "participates_in_nibrs": {
-            "type": "boolean",
-            "description": "Whether agency reports to NIBRS"
-          },
-          "last_reported_year": {
-            "type": "integer",
-            "description": "Most recent year of data submission"
+          "nibrs_start_date": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
+      },
+      "personnel": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "description": "null when the agency reported no staffing for the year",
+        "properties": {
+          "year": {
+            "type": "integer"
+          },
+          "male_officers": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "female_officers": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "total_officers": {
+            "type": "integer"
+          },
+          "male_civilians": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "female_civilians": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "total_civilians": {
+            "type": "integer"
+          },
+          "total_employees": {
+            "type": "integer"
+          },
+          "employees_per_1000": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "population_served": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      },
+      "personnel_error": {
+        "type": "string"
       }
     },
     "required": [
       "ori",
       "agency_name",
-      "agency_type",
-      "location"
+      "location",
+      "reporting_status"
     ]
   },
   "metadata": {
@@ -124,18 +164,12 @@
     ],
     "rateLimit": 120,
     "cacheTTL": 3600,
-    "note": "Get comprehensive agency information including jurisdiction, personnel, and reporting status",
+    "note": "Calls /agency/byStateAbbr/{state} (the state is the first two letters of the ORI) and /pe/{state}/{ori}.",
     "examples": [
       {
-        "description": "Get LAPD details",
+        "description": "Burlington (VT) Police Department",
         "input": {
-          "ori": "CA0190000"
-        }
-      },
-      {
-        "description": "Get Chicago Police Department information",
-        "input": {
-          "ori": "IL0160000"
+          "ori": "VT0040100"
         }
       }
     ]

@@ -8,10 +8,13 @@
   ('Tools', 'tools', [
     ('Use', [
       (url_for('dashboard'), 'speedometer2', 'Dashboard', 'Server status, tools and recent activity'),
-      (url_for('tools_list'), 'tools', 'All tools', 'Browse, inspect and execute every registered tool'),
+      (url_for('tools_list'), 'tools', 'All tools', 'Browse, inspect and execute every registered tool')]
+      + ([(url_for('playground_page'), 'filetype-py', 'Python Playground', 'Python in your browser; call tools with import sajha')]
+         if playground_enabled is defined and playground_enabled() else []) + [
       (url_for('reports_dashboard'), 'bar-chart-line', 'Reports', 'Usage and performance reports')]),
     ('Monitor', [
-      (url_for('monitoring_tools'), 'graph-up', 'Tool metrics', 'Calls, latency and errors per tool')]
+      (url_for('monitoring_tools'), 'graph-up', 'Tool metrics', 'Calls, latency and errors per tool'),
+      (url_for('monitoring_usage'), 'cash-coin', 'Usage & cost', 'Tokens, spend, tool calls and budgets')]
       + ([(url_for('monitoring_users'), 'people', 'User activity', 'Who called what, and when')] if is_admin else []))]),
   ('AI', 'cpu', [
     ('Ask', [
@@ -41,7 +44,8 @@
       (url_for('admin_tools'), 'tools', 'Tools', 'Enable, disable and configure tools'),
       (url_for('admin_users'), 'people', 'Users', 'Accounts and roles'),
       (url_for('admin_prompts'), 'chat-square-text', 'Prompts', 'Create, edit and retire prompts'),
-      (url_for('admin_apikeys'), 'key', 'API keys', 'Keys, scopes and expiry')]),
+      (url_for('admin_apikeys'), 'key', 'API keys', 'Keys, scopes and expiry'),
+      (url_for('admin_federation_page'), 'diagram-2', 'Federation', 'Other MCP servers behind SAJHA: upstreams and approvals')]),
     ('Operations', [
       ('/admin/system-monitor', 'activity', 'System monitor', 'CPU, memory and connections'),
       ('/admin/async-tasks', 'skip-forward-circle', 'Async tasks', 'Long-running calls in flight'),
@@ -55,7 +59,8 @@
       (url_for('glossary'), 'journal-text', 'Glossary', 'Every term, defined once')]),
     ('Reference', [
       (url_for('help_tools_page'), 'grid-3x3-gap', 'Tool catalog', 'What this server has loaded, by group'),
-      (url_for('about_page'), 'info-circle', 'About SAJHA', 'What it is, and what it is running now')])])] %}
+      (url_for('about_page'), 'info-circle', 'About SAJHA', 'What it is, and what it is running now'),
+      (url_for('comparison_page'), 'bar-chart-steps', 'How it compares', 'Next to MCP frameworks, gateways and hosted platforms')])])] %}
 
 <nav class="navbar navbar-expand-lg sajha-nav fixed-top" aria-label="Main">
   <div class="container-fluid">

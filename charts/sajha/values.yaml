@@ -1,0 +1,295 @@
+# SAJHA MCP Server Helm chart: default values.
+# Guide: docs/getting-started/Kubernetes Deployment.md
+# Every value is validated by values.schema.json.
+
+image:
+  repository: ghcr.io/ajsinha/sajhamcpserver
+  # Empty: the chart's appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Pods. More than one (or autoscaling) needs PostgreSQL and a shared state store; the
+# chart refuses to render otherwise (see "Several replicas" in the guide).
+replicaCount: 1
+# Uvicorn worker processes per pod (run_server.py --workers). Prefer 1 and scale with
+# replicas: probes, metrics and resource limits then describe one process.
+workers: 1
+
+serviceAccount:
+  create: true
+  name: ""
+  # e.g. eks.amazonaws.com/role-arn or iam.gke.io/gcp-service-account for bucket access
+  annotations: {}
+  automountServiceAccountToken: false
+
+podAnnotations: {}
+podLabels: {}
+priorityClassName: ""
+terminationGracePeriodSeconds: 30
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  privileged: false
+  capabilities:
+    drop: [ALL]
+
+service:
+  type: ClusterIP
+  port: 80
+  annotations: {}
+
+# Two Ingress objects: "<release>" for the console and API, and "<release>-streams" for
+# the long-lived paths (/mcp, /api/mcp, /mcp/sse, /mcp/message, /mcp/ws, /api/ai/ask),
+# which get unbuffered proxying and long timeouts.
+ingress:
+  enabled: false
+  className: nginx
+  hosts: []            # e.g. [mcp.example.com]; the first one also sets the public URL
+  tls: []              # e.g. [{secretName: sajha-tls, hosts: [mcp.example.com]}]
+  annotations: {}      # added to both Ingress objects (cert-manager, auth, ...)
+  # ingress-nginx annotations written by the chart; turn off for another controller and
+  # set the equivalent through annotations / streamAnnotations.
+  nginx: true
+  bodySize: 16m
+  timeoutSeconds: 60          # ordinary requests
+  streamTimeoutSeconds: 3600  # SSE and WebSocket streams
+  streamAnnotations: {}       # added to the streams Ingress only
+  # Cookie affinity: not needed when the state store is shared (streams and sessions are
+  # relayed between pods); useful to cut relay hops.
+  sessionAffinity: false
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    memory: 2Gi
+
+probes:
+  startup:
+    path: /health
+    periodSeconds: 5
+    failureThreshold: 60      # up to 5 minutes for the first tool load
+  liveness:
+    path: /health
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /ready
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 0   # 0 = not used
+
+podDisruptionBudget:
+  enabled: true        # rendered only when more than one pod can run
+  minAvailable: 1
+
+topologySpread:
+  enabled: true        # spread pods over nodes when more than one can run
+  maxSkew: 1
+  whenUnsatisfiable: ScheduleAnyway
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ── Application configuration ─────────────────────────────────────────────
+config:
+  # Externally visible origin (mcp.auth.public_url): OAuth issuer and token audience.
+  # Empty: https://<first ingress host> when the ingress is on, else unset.
+  publicUrl: ""
+  # Deep-merged into the image's config/application.yml by the seed init container
+  # (maps merge, lists and scalars replace). Never put secrets here.
+  overrides: {}
+  #  mcp:
+  #    auth: {mode: required}
+  #  hot_reload: {interval_seconds: 60}
+  # Plain environment variables (SAJHA_<DOTTED_KEY>=... overrides most config keys).
+  env: {}
+  # Raw EnvVar entries, e.g. valueFrom references.
+  extraEnv: []
+  # Raw EnvFromSource entries.
+  envFrom: []
+  # Uvicorn trusts X-Forwarded-* only from these addresses. "*" is right when only the
+  # ingress controller can reach the pods (enable networkPolicy).
+  forwardedAllowIps: "*"
+  logLevel: INFO
+
+# ── Secrets every replica must share ───────────────────────────────────────
+# JWT secret, session secret, OAuth signing key (PEM) and the /metrics bearer token.
+# existingSecret: a Secret you manage, with keys jwt-secret, session-secret and
+# optionally oauth-signing-key and metrics-token. Otherwise the chart creates one,
+# generated once and kept across upgrades (lookup) and uninstalls (resource-policy keep).
+secrets:
+  existingSecret: ""
+  keys:
+    jwtSecret: jwt-secret
+    sessionSecret: session-secret
+    oauthSigningKey: oauth-signing-key
+    metricsToken: metrics-token
+
+# LLM provider and data-API keys: every key of these Secrets becomes an environment
+# variable (ANTHROPIC_API_KEY, OPENAI_API_KEY, FMP_API_KEY, SAJHA_AI_<PROVIDER>_API_KEY ...).
+providerKeys:
+  existingSecrets: []
+
+# ── Database ───────────────────────────────────────────────────────────────
+database:
+  type: sqlite               # sqlite (one pod, on the data volume) | postgresql
+  postgresql:
+    host: ""
+    port: 5432
+    name: sajha
+    user: sajha
+    existingSecret: ""       # Secret holding the password
+    passwordKey: password
+    # Alternative: a whole SQLAlchemy URL in a Secret (db.url); wins over the fields above.
+    urlSecret: ""
+    urlKey: url
+
+# ── Shared state (state.backend) ───────────────────────────────────────────
+state:
+  # auto: redis when redis.enabled or a Redis URL is given; database when more than one
+  # process can run; memory otherwise.
+  backend: auto              # auto | memory | redis | database
+  redis:
+    url: ""                  # redis://host:6379/0 (no password); else existingSecret
+    existingSecret: ""
+    urlKey: url
+
+# Bundled single-node Redis (a StatefulSet) for state.backend: redis. For production
+# prefer a managed Redis and state.redis.existingSecret.
+redis:
+  enabled: false
+  image:
+    repository: redis
+    tag: 7-alpine
+    pullPolicy: IfNotPresent
+  existingSecret: ""         # key "redis-password"; else generated
+  persistence:
+    enabled: false           # state is rebuilt by clients; task records live in the database
+    size: 1Gi
+    storageClass: ""
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {memory: 256Mi}
+
+# ── Storage (storage.backend) ──────────────────────────────────────────────
+# Tool and prompt JSON. With several replicas use a bucket (s3 | azure | gcs) so an
+# edit on one pod is seen by all; give pods access through workload identity
+# (serviceAccount.annotations) or credentialsSecret.
+storage:
+  backend: local
+  s3:
+    bucket: ""
+    prefix: sajha/
+    region: ""
+    endpointUrl: ""
+  azure:
+    container: ""
+    accountUrl: ""
+    prefix: sajha/
+  gcs:
+    bucket: ""
+    project: ""
+    prefix: sajha/
+  # Secret whose keys become env (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY,
+  # AZURE_STORAGE_CONNECTION_STRING, ...)
+  credentialsSecret: ""
+
+# ── Volumes ────────────────────────────────────────────────────────────────
+persistence:
+  # /app/data: SQLite database, secrets file, caches, DuckDB data.
+  data:
+    enabled: true
+    existingClaim: ""
+    storageClass: ""
+    accessModes: [ReadWriteOnce]
+    size: 5Gi
+    annotations: {}
+  # /app/config and /app/sajha/tools/impl (Studio-generated code, admin edits). Off: an
+  # emptyDir seeded from the image at every start, so edits last until the pod goes.
+  # Several replicas need ReadWriteMany here to share Studio tools.
+  config:
+    enabled: false
+    existingClaim: ""
+    storageClass: ""
+    accessModes: [ReadWriteOnce]
+    size: 1Gi
+    annotations: {}
+    # missing: copy image defaults only where the volume has no file (keeps edits);
+    # overwrite: image defaults replace volume copies at every start
+    seedMode: missing
+  tmpSizeLimit: 1Gi
+
+extraVolumes: []
+extraVolumeMounts: []
+
+# ── Features ───────────────────────────────────────────────────────────────
+sandbox:
+  # Studio code tools run in a child process (backend subprocess). Inside a pod with the
+  # default seccomp profile the user/PID-namespace step is usually refused and skipped;
+  # rlimits, Landlock and seccomp still apply. See the guide before changing this.
+  backend: subprocess        # subprocess | bwrap | auto
+
+playground:
+  # vendored: the image must be built with PLAYGROUND_ASSETS=true; cdn: cdn.jsdelivr.net
+  assets: vendored
+
+# /metrics (Prometheus). auth token: scrapes send the metrics-token secret.
+metrics:
+  enabled: true
+  auth: token                # token | admin | none
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    labels: {}
+
+# ── NetworkPolicy ──────────────────────────────────────────────────────────
+networkPolicy:
+  enabled: false
+  ingress:
+    # namespaces allowed to reach the HTTP port (ingress controller, Prometheus)
+    namespaceSelectors:
+      - matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+      - matchLabels:
+          kubernetes.io/metadata.name: monitoring
+    extraFrom: []            # more NetworkPolicyPeer entries
+  egress:
+    dns: true
+    # Public HTTPS/HTTP (data APIs, LLM providers, buckets), private ranges excluded
+    internet: true
+    internetPorts: [443, 80]
+    internetExcept:
+      - 10.0.0.0/8
+      - 172.16.0.0/12
+      - 192.168.0.0/16
+      - 169.254.0.0/16
+      - 100.64.0.0/10
+    # PostgreSQL: peers allowed on database.postgresql.port; empty = any address
+    databaseTo: []
+    extra: []                # raw NetworkPolicyEgressRule entries (allowlist hooks)

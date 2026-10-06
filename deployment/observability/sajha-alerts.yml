@@ -1,0 +1,87 @@
+# Prometheus alerting rules for SAJHA. Load with rule_files in prometheus.yml; route with
+# Alertmanager. Every expression uses the families documented in
+# docs/architecture/Observability.md, section 2.2. Several workers publishing under a
+# `worker` label are summed away by the `sum without (worker)` / `sum by` forms.
+groups:
+  - name: sajha
+    rules:
+      - alert: SajhaDown
+        expr: up{job="sajha"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: "SAJHA target {{ $labels.instance }} is not answering /metrics"
+
+      - alert: SajhaHttp5xxRate
+        expr: |
+          sum(rate(sajha_http_requests_total{status=~"5.."}[5m]))
+            / clamp_min(sum(rate(sajha_http_requests_total[5m])), 1e-9) > 0.05
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: "More than 5% of SAJHA HTTP responses are 5xx"
+
+      - alert: SajhaToolErrorRate
+        expr: |
+          sum by (tool) (rate(sajha_tool_calls_total{outcome=~"error|circuit_open"}[10m]))
+            / clamp_min(sum by (tool) (rate(sajha_tool_calls_total[10m])), 1e-9) > 0.25
+          and sum by (tool) (increase(sajha_tool_calls_total[10m])) > 10
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Tool {{ $labels.tool }} fails more than 25% of calls"
+
+      - alert: SajhaToolLatencyP95
+        expr: |
+          histogram_quantile(0.95, sum by (le, tool) (rate(sajha_tool_call_duration_seconds_bucket[10m]))) > 10
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Tool {{ $labels.tool }} p95 latency is above 10s"
+
+      - alert: SajhaCircuitOpen
+        expr: max by (breaker) (sajha_circuit_breaker_state{state="open"}) == 1
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: "Circuit breaker {{ $labels.breaker }} has been open for 5 minutes"
+
+      - alert: SajhaLlmSpendHigh
+        expr: sum(increase(sajha_llm_cost_usd_total[24h])) > 50
+        labels: {severity: warning}
+        annotations:
+          summary: "LLM spend over the last 24h is above $50"
+
+      - alert: SajhaLlmErrors
+        expr: |
+          sum(rate(sajha_llm_calls_total{outcome!~"ok|cache_hit"}[10m]))
+            / clamp_min(sum(rate(sajha_llm_calls_total[10m])), 1e-9) > 0.2
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "More than 20% of LLM calls fail"
+
+      - alert: SajhaAuthFailureBurst
+        expr: sum(increase(sajha_auth_failures_total[5m])) > 50
+        labels: {severity: warning}
+        annotations:
+          summary: "More than 50 failed authentications in 5 minutes"
+
+      - alert: SajhaAccountLockouts
+        expr: sum(increase(sajha_auth_lockouts_total[15m])) > 0
+        labels: {severity: info}
+        annotations:
+          summary: "An account was locked after repeated failed sign-ins"
+
+      - alert: SajhaFederatedUpstreamDown
+        expr: max by (upstream) (sajha_federation_upstream_up) == 0
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: "Federated upstream {{ $labels.upstream }} is not connected"
+
+      - alert: SajhaUsageLedgerDropping
+        expr: sum(increase(sajha_usage_events_dropped_total[15m])) > 0
+        labels: {severity: warning}
+        annotations:
+          summary: "The usage ledger is dropping rows (database slow or queue too small)"

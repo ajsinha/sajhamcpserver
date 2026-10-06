@@ -122,6 +122,20 @@ class CircuitBreakerRegistry:
     def __init__(self):
         self._breakers: Dict[str, CircuitBreaker] = {}
         self._lock = threading.Lock()
+        # prefix -> (label, failure_threshold, recovery_timeout), registered at run time
+        # (federated upstreams: '<prefix>__'); consulted before PROVIDER_MAP
+        self._extra: Dict[str, tuple] = {}
+
+    def register_prefix(self, prefix: str, label: str, failure_threshold: int = 5,
+                        recovery_timeout: int = 60) -> None:
+        """A breaker for every tool whose name starts with ``prefix`` (replaces an earlier one)."""
+        with self._lock:
+            self._extra[prefix] = (label, failure_threshold, recovery_timeout)
+            old = self._breakers.get(prefix)
+            if old is None or old.failure_threshold != failure_threshold \
+                    or old.recovery_timeout != recovery_timeout or old.name != label:
+                self._breakers[prefix] = CircuitBreaker(name=label, failure_threshold=failure_threshold,
+                                                        recovery_timeout=recovery_timeout)
 
     def get_breaker(self, tool_name: str) -> Optional[CircuitBreaker]:
         """Get or create circuit breaker for a tool's provider."""
@@ -138,6 +152,9 @@ class CircuitBreakerRegistry:
             return self._breakers[provider]
 
     def _get_provider(self, tool_name: str) -> Optional[str]:
+        for prefix in list(self._extra):
+            if tool_name.startswith(prefix):
+                return prefix
         for prefix in self.PROVIDER_MAP:
             if tool_name.startswith(prefix):
                 return prefix

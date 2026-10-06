@@ -75,6 +75,15 @@ def _wants_json(request: Request) -> bool:
     return 'application/json' in accept and 'text/html' not in accept
 
 
+def _playground_enabled() -> bool:
+    """playground.enabled, read live (sajha/web/playground.py)."""
+    try:
+        from sajha.web.playground import load_settings
+        return load_settings().enabled
+    except Exception:
+        return False
+
+
 def _password_change_required(token: str) -> bool:
     """True when the session JWT says the user must change their password (claim ``pwc``)."""
     if not token:
@@ -150,6 +159,10 @@ class SajhaMCPServerWebApp:
         app.add_middleware(SecurityHeadersMiddleware)
         app.add_middleware(RequestSizeLimitMiddleware, max_body_size=10 * 1024 * 1024)
 
+        # Outermost: HTTP metrics and the server span (plain ASGI; streams pass through)
+        from sajha.observability.middleware import ObservabilityMiddleware
+        app.add_middleware(ObservabilityMiddleware)
+
     # ── Static Files ─────────────────────────────────────────────
 
     def _mount_static(self, app: FastAPI):
@@ -180,6 +193,10 @@ class SajhaMCPServerWebApp:
         from sajha.routes.ops_routes import router as ops_router
         from sajha.routes.oauth_routes import router as oauth_router
         from sajha.routes.help_routes import router as help_router
+        from sajha.routes.sandbox_routes import router as sandbox_router
+        from sajha.routes.federation_routes import router as federation_router
+        from sajha.routes.playground_routes import router as playground_router
+        from sajha.routes.observability_routes import router as observability_router
 
         routers = [
             auth_router, dashboard_router, api_router, tools_router,
@@ -192,6 +209,10 @@ class SajhaMCPServerWebApp:
             ops_router,
             oauth_router,
             help_router,
+            sandbox_router,
+            federation_router,
+            playground_router,
+            observability_router,
         ]
 
         for router in routers:
@@ -320,6 +341,8 @@ class SajhaMCPServerWebApp:
                 key or page_help.endpoint_of(request)),
             # Banner in common/base.html until a default / admin-set password is changed
             'password_change_required': _password_change_required,
+            # Python Playground menu entry and dashboard action (playground.enabled)
+            'playground_enabled': _playground_enabled,
         })
 
         # Template filters
@@ -448,6 +471,11 @@ class SajhaMCPServerWebApp:
         from sajha.db.engine import init_db, get_db_session
         init_db(s)
 
+        # 1b. Process-shared state (state.backend: memory | redis | database); see
+        #     docs/architecture/Scaling and State.md.  A shared store that does not answer stops start-up.
+        from sajha.core.state import startup_check as _state_startup_check
+        _state_startup_check()
+
         # 2. Initialize storage backend (local or S3)
         from sajha.core.storage import init_storage, get_storage
         storage_config = {
@@ -462,6 +490,16 @@ class SajhaMCPServerWebApp:
 
         # 3. Core managers (tools, prompts, MCP, hot-reload)
         self._init_managers()
+
+        # 3a. Federation: upstream MCP servers' tools as registry tools (federation.enabled,
+        #     off by default). Before composites and the tool-search index so both see them;
+        #     waits at most federation.startup_wait_seconds, never fails start-up.
+        try:
+            import asyncio as _asyncio
+            from sajha.federation import init_federation
+            await _asyncio.to_thread(init_federation, tools_registry)
+        except Exception as e:
+            logger.warning(f'  Federation: unavailable ({e})', exc_info=True)
 
         # 3b. Composite tools (load from DB, build schemas, register)
         try:
@@ -605,11 +643,26 @@ class SajhaMCPServerWebApp:
 
         # Shutdown
         logger.info('Shutting down SAJHA MCP Server...')
+        try:   # flush the usage ledger, stop alerts, the metrics publisher/listener and OTel
+            from sajha.observability import shutdown_observability
+            shutdown_observability()
+        except Exception as e:
+            logger.debug(f'observability shutdown: {e}')
+        try:   # close upstream MCP connections (sajha/federation)
+            from sajha.federation import shutdown_federation
+            shutdown_federation()
+        except Exception as e:
+            logger.debug(f'federation shutdown: {e}')
         try:   # end MCP subscriptions/listen streams (and legacy push forwarders)
             from sajha.core.change_bus import get_change_bus
             get_change_bus().shutdown()
         except Exception as e:
             logger.debug(f'change bus shutdown: {e}')
+        try:   # stop the state store's heartbeat and pub/sub threads
+            from sajha.core.state import shutdown as _state_shutdown
+            _state_shutdown()
+        except Exception as e:
+            logger.debug(f'state shutdown: {e}')
         if config_reloader:
             config_reloader.stop()
         if tools_registry:

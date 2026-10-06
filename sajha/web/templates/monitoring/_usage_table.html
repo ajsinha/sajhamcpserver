@@ -1,0 +1,20 @@
+{# One usage table (monitoring/usage.html): tid = the dimension, ttitle, ticon. Rows are filled by the page script. #}
+<div class="card h-100">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-{{ ticon }} me-2" aria-hidden="true"></i>{{ ttitle }}</span>
+    <a class="btn btn-sm btn-outline-secondary obs-csv" id="csv-{{ tid }}" href="#" download><i class="bi bi-download me-1" aria-hidden="true"></i>CSV</a>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive obs-scroll">
+      <table class="table table-sm table-hover obs-table mb-0">
+        <thead><tr>
+          <th scope="col">{{ ttitle[3:]|capitalize if ttitle.startswith('By ') else 'Tool' }}</th>
+          <th scope="col">Tool calls</th><th scope="col">Errors</th>
+          <th scope="col">p50 ms</th><th scope="col">p95 ms</th><th scope="col">p99 ms</th>
+          <th scope="col">LLM calls</th><th scope="col">Tokens</th><th scope="col">Cost</th>
+        </tr></thead>
+        <tbody id="tb-{{ tid }}"><tr><td colspan="9" class="text-muted small">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>

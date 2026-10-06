@@ -17,8 +17,8 @@ CI runs on Python 3.12. The server listens on `http://localhost:3002`
 (`server.host` / `server.port`).
 
 `run_server.py` options: `--config <file.yml>`, `--host`, `--port`, `--reload`
-(development auto-reload), `--workers` (keep 1, see the
-[Architecture](../architecture/Architecture.md) on in-memory state), `--log-level`.
+(development auto-reload), `--workers` (keep 1 unless `state.backend` is `redis` or
+`database`, see [Scaling and State](../architecture/Scaling%20and%20State.md)), `--log-level`.
 
 ## 2. Sign in and secure the defaults
 

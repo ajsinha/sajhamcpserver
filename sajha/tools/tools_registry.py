@@ -248,6 +248,15 @@ class ToolsRegistry:
                 elif 'implementation' in config:
                     impl_path = config['implementation']
                     try:
+                        # User code (Studio Python code and script tools) runs in a
+                        # sandbox and is never imported here: docs/architecture/Sandbox.md
+                        from sajha.sandbox.tools import build_sandboxed_tool
+                        sandboxed = build_sandboxed_tool(config)
+                        if sandboxed is not None:
+                            self.register_tool(sandboxed)
+                            self.logger.info(f"Loaded sandboxed tool: {tool_name}")
+                            self.tool_errors.pop(tool_name, None)
+                            return
                         if isinstance(impl_path, dict):
                             # Legacy Studio script-tool config: the implementation was
                             # written as an object; its wrapper module is

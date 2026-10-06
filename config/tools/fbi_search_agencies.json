@@ -1,95 +1,116 @@
 {
   "name": "fbi_search_agencies",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBISearchAgenciesTool",
-  "description": "Search for law enforcement agencies by name or location to find their ORI codes",
-  "version": "2.9.8",
+  "description": "List or search the law enforcement agencies in one US state (by name, county or type) to find their ORI codes",
+  "version": "3.0.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
-      "agency_name": {
-        "type": "string",
-        "description": "Full or partial name of law enforcement agency to search (e.g., 'Los Angeles', 'NYPD')",
-        "minLength": 3
-      },
       "state": {
         "type": "string",
-        "description": "Filter by US State abbreviation (e.g., CA, NY, TX)",
-        "pattern": "^[A-Z]{2}$"
+        "description": "Two-letter USPS state code (e.g. CA, NY, TX, DC)",
+        "pattern": "^[A-Za-z]{2}$"
+      },
+      "agency_name": {
+        "type": "string",
+        "description": "Case-insensitive substring of the agency name (e.g. 'police', 'sheriff'); omit to list all"
+      },
+      "county": {
+        "type": "string",
+        "description": "Case-insensitive substring of the county name"
       },
       "agency_type": {
         "type": "string",
-        "description": "Filter by type of agency",
+        "description": "Agency type filter ('state' = State Police and Other State Agency)",
         "enum": [
           "city",
           "county",
           "state",
-          "federal",
-          "tribal",
           "university",
+          "tribal",
+          "other",
           "all"
-        ]
+        ],
+        "default": "all"
       },
       "limit": {
         "type": "integer",
-        "description": "Maximum number of results to return",
+        "description": "Maximum agencies returned",
         "minimum": 1,
-        "maximum": 100,
+        "maximum": 500,
         "default": 20
       }
     },
     "required": [
-      "agency_name"
+      "state"
     ]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
+      "state": {
+        "type": "string"
+      },
       "search_query": {
-        "type": "string",
-        "description": "Original search query"
+        "type": "string"
       },
       "total_results": {
         "type": "integer",
-        "description": "Total number of matching agencies found"
+        "description": "Matches before the limit is applied"
       },
       "agencies": {
         "type": "array",
-        "description": "List of matching agencies",
         "items": {
           "type": "object",
           "properties": {
             "ori": {
-              "type": "string",
-              "description": "Agency ORI code"
+              "type": "string"
             },
             "agency_name": {
-              "type": "string",
-              "description": "Full agency name"
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "agency_type": {
-              "type": "string",
-              "description": "Type of agency"
-            },
-            "state": {
-              "type": "string",
-              "description": "State abbreviation"
-            },
-            "state_name": {
-              "type": "string",
-              "description": "Full state name"
-            },
-            "city": {
-              "type": "string",
-              "description": "City where agency is located"
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "county": {
-              "type": "string",
-              "description": "County where agency is located"
+              "type": [
+                "string",
+                "null"
+              ]
             },
-            "population": {
-              "type": "integer",
-              "description": "Population served by agency"
+            "state": {
+              "type": "string"
+            },
+            "state_name": {
+              "type": "string"
+            },
+            "is_nibrs": {
+              "type": "boolean"
+            },
+            "nibrs_start_date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "latitude": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "longitude": {
+              "type": [
+                "number",
+                "null"
+              ]
             }
           },
           "required": [
@@ -101,6 +122,7 @@
       }
     },
     "required": [
+      "state",
       "search_query",
       "total_results",
       "agencies"
@@ -118,27 +140,22 @@
     ],
     "rateLimit": 120,
     "cacheTTL": 3600,
-    "note": "Search and discover law enforcement agencies to find their ORI codes for detailed queries",
+    "note": "Calls /agency/byStateAbbr/{state} and filters locally; the API has no free-text or nationwide agency search.",
     "examples": [
       {
-        "description": "Find all agencies with 'police' in California",
+        "description": "Police departments in Vermont",
         "input": {
+          "state": "VT",
           "agency_name": "police",
-          "state": "CA",
           "limit": 10
         }
       },
       {
-        "description": "Find NYPD ORI code",
+        "description": "Sheriffs in Los Angeles County",
         "input": {
-          "agency_name": "New York City Police"
-        }
-      },
-      {
-        "description": "Find all state police agencies",
-        "input": {
-          "agency_name": "state police",
-          "agency_type": "state"
+          "state": "CA",
+          "county": "los angeles",
+          "agency_type": "county"
         }
       }
     ]

@@ -164,9 +164,15 @@ class IntelligenceService:
     @property
     def resolver(self):
         if self._resolver is None:
+            # Adopt the process-wide resolver only when it indexes *this* service's
+            # registry; a resolver built for another registry (e.g. a different app
+            # instance created earlier in the same process) would shortlist tools
+            # this service cannot see.
             try:
                 from sajha.ai.tool_resolver import get_resolver
-                self._resolver = get_resolver()
+                shared = get_resolver()
+                if shared is not None and getattr(shared, "tools_registry", None) is self.tools_registry:
+                    self._resolver = shared
             except Exception:
                 self._resolver = None
             if self._resolver is None:
@@ -214,6 +220,12 @@ class IntelligenceService:
                    confirm: Optional[List[str]] = None, _objects: bool = False) -> Iterator[Dict[str, Any]]:
         s = self.settings
         ctx = ctx or RequestContext()
+        try:   # the usage ledger attributes the tools this run calls to the asker (sajha/observability)
+            from sajha.observability import caller as _caller
+            if _caller.current().user_id == 'anonymous' and ctx.user_id:
+                _caller.set_caller(_caller.from_request_context(ctx))
+        except Exception:
+            pass
         model = model or s.model
         confirmed: Set[str] = set(confirm or [])
         t0 = time.time()
@@ -314,6 +326,11 @@ class IntelligenceService:
         yield ev("answer", text=res.answer)
         yield ev("confidence", value=round(res.confidence, 4), basis=basis)
         self._write_audit(res, ctx)
+        try:
+            from sajha.observability.metrics import record_ask
+            record_ask(res.stopped_by)
+        except Exception:
+            pass
         yield ev("done", result=res if _objects else res.to_dict())
 
     # ── pieces ─────────────────────────────────────────────────

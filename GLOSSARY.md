@@ -34,6 +34,7 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **url_for** | A custom template function in `app.py` that maps endpoint names to URL paths, giving Flask-style URL resolution in the Jinja2 templates. |
 | **Jinja2** | The template engine behind the web console pages and behind prompt templates, supporting variable substitution, conditions and loops. |
 | **Client SDK** | The Python package in `clientsdk/` (`sajhaclient`). `SajhaMCPClient` wraps the official MCP SDK and by default (`mode="auto"`) probes `server/discover` and adopts 2026-07-28; it also has REST, A2A and transport-level clients. |
+| **sajha CLI** | The `sajha` command (`clientsdk/sajhaclient/cli/`): login and profiles, tools and prompts over MCP, a streamed `ask`, Studio deploy, federation, shell completion, and `serve --stdio`. Exit codes say what failed. |
 | **Plugin** | An extension package in `config/plugins/` (setting `plugins.dir`) with a `plugin.json` manifest, containing tool configs and optionally Python classes. Flow: `discover()`, `validate()` (checksum), `load_plugin()` (install dependencies, register tools). |
 | **Tenant** | An isolated customer or team in multi-tenant mode (`sajha/core/tenancy.py`): tenant-scoped tool configs, its own API key pool, usage quotas (tool calls per day/month, sessions, LLM tokens) and allowed providers. |
 | **A2A** (*Agent-to-Agent*) | A protocol for inter-agent communication. SAJHA publishes an agent card at `/.well-known/agent.json` and serves the task lifecycle (`tasks/send`, `tasks/get`, `tasks/cancel`) as JSON-RPC on `POST /a2a`. These A2A tasks are unrelated to MCP tasks. |
@@ -70,7 +71,7 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Completion** | `completion/complete`: argument autocompletion for prompt arguments (`ref/prompt`) and tool enum values (`ref/tool`). |
 | **Logging** (*MCP*) | Server log messages sent as `notifications/message` at RFC 5424 levels. Legacy clients set the level with `logging/setLevel`; modern clients send `_meta["io.modelcontextprotocol/logLevel"]` per request. |
 | **Progress** | `notifications/progress` messages tied to the request's `progressToken`, reporting how far a long tool call has got. |
-| **Cancellation** | Stopping an in-flight request. Legacy and WebSocket clients send `notifications/cancelled`; on the modern path the client simply closes the connection. |
+| **Cancellation** | Stopping an in-flight request. Legacy and WebSocket clients, and stdio clients of either era, send `notifications/cancelled`; on the modern HTTP path the client simply closes the connection. |
 | **Elicitation** | A server asking the user, through the client, for input: **form** mode (a JSON Schema form) or **URL** mode (send the user to a page). It is a client capability. Legacy servers send `elicitation/create` as a server-to-client request; the modern path asks through MRTR. |
 | **Sampling** | A server asking the client's LLM for a completion (`sampling/createMessage`), optionally with tools. A client capability, used on the legacy path by server-to-client request and on the modern path through MRTR. |
 | **Roots** | The filesystem or URI roots a client exposes (`roots/list`). A client capability, requested through MRTR on the modern path. |
@@ -102,7 +103,7 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **requestState** | The opaque MRTR token echoed back by the client: an HMAC-SHA256 signed (not encrypted) payload bound to the method, tool/prompt/URI, an argument digest and the caller, expiring after `mcp.mrtr.state_ttl_seconds`, accumulating earlier rounds' answers so multi-round flows need no server memory. Tampered, expired or foreign states get `-32602`. |
 | **subscriptions/listen** | The 2026-07-28 long-lived POST answered as an SSE stream. The client opts in to `toolsListChanged`, `promptsListChanged`, `resourcesListChanged` and `resourceSubscriptions`; the first message is `notifications/subscriptions/acknowledged`, and every message carries the `subscriptionId`. Capped by `mcp.subscriptions.max_streams`. |
 | **Change bus** | `sajha/core/change_bus.py`: a thread-safe, coalescing fan-out of list-changed and resource-updated events from `ToolsRegistry` and `PromptsRegistry` to listen streams, the legacy SSE stream and WebSocket. Identical queued events are dropped, so reloading many tools is one notification. |
-| **Tasks extension** (*io.modelcontextprotocol/tasks*) | The 2026-07-28 extension (SEP-2663) for long-running tool calls: a task-capable `tools/call` returns `resultType: "task"` with a `taskId`, and the client uses `tasks/get` (status, inlined result), `tasks/update` (answer input) and `tasks/cancel`. Advertised under `capabilities.extensions` when `mcp.tasks.enabled`; stored in memory per process and per user (`sajha/core/mcp_tasks.py`). |
+| **Tasks extension** (*io.modelcontextprotocol/tasks*) | The 2026-07-28 extension (SEP-2663) for long-running tool calls: a task-capable `tools/call` returns `resultType: "task"` with a `taskId`, and the client uses `tasks/get` (status, inlined result), `tasks/update` (answer input) and `tasks/cancel`. Advertised under `capabilities.extensions` when `mcp.tasks.enabled`; records are scoped per user and kept in the task record store, which is process memory by default and the database for a **Durable task** (`sajha/core/mcp_tasks.py`). |
 | **taskSupport** | A tool's opt-in to the tasks extension, `"execution": {"taskSupport": "optional"}` or `"required"` in its config. Optional tools run synchronously for clients without the extension; required tools refuse them with `-32021`. |
 | **CreateTaskResult** | The flat result of a task-creating call: `resultType: "task"`, `taskId`, `status: "working"`, timestamps, `ttlMs`, `pollIntervalMs`. |
 | **Task status** | A task's state: `working`, `input_required` (parked for client input), `completed` (result inlined; a tool error is `completed` with `isError`), `failed` (protocol-level error) or `cancelled`. |
@@ -122,10 +123,11 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | Term | Meaning |
 |---|---|
 | **Streamable HTTP** | The standard MCP transport, on `POST /mcp`: a JSON-RPC message in, an `application/json` or `text/event-stream` (SSE) response out. Used by both eras; notifications get `202`, JSON arrays (batches) `400`, and a streaming-client `GET /mcp` gets `405`. |
-| **Mcp-Session-Id** | The legacy session header: set on the `initialize` response and sent by the client on every later request. An unknown id gets `404` (re-initialize); `DELETE /mcp` ends the session. Sessions live in process memory (`sajha/core/mcp_sessions.py`). Ignored on the modern path. |
+| **Mcp-Session-Id** | The legacy session header: set on the `initialize` response and sent by the client on every later request. An unknown id gets `404` (re-initialize); `DELETE /mcp` ends the session. Sessions live in the **State store** (process memory by default; `sajha/core/mcp_sessions.py`). Ignored on the modern path. |
 | **HTTP+SSE** (*legacy*) | The 2024-11-05 transport: `GET /mcp/sse` opens an event stream (an `endpoint` event, then messages) and the client POSTs to `/mcp/message`. Legacy era only. |
 | **SSE** (*Server-Sent Events*) | A one-way HTTP streaming format (`text/event-stream`). In MCP it carries streamed responses, notifications and, on the legacy path, server-to-client requests. |
 | **WebSocket extension** | SAJHA's full-duplex transport at `/mcp/ws`, outside the MCP spec and legacy era only. Authenticates with `?token=` (SAJHA JWT) or `?api_key=`; accepts JSON-RPC batches; receives change-bus `list_changed` pushes. Advertised under `experimental.sajha.websocket`. |
+| **stdio transport** | MCP over a subprocess's stdin and stdout, newline-delimited JSON-RPC, logs on stderr only (`sajha/cli/stdio.py`; `sajha serve --stdio` or `run_server.py --stdio`). Serves both eras for desktop clients; one caller per process, set by `--user` or `--api-key`, anonymous otherwise. |
 | **Last-Event-ID** | The SSE reconnect header naming the last event received. SAJHA's legacy streams carry event ids but do not replay; the modern path ignores it. |
 | **Origin allow-list** | `mcp.allowed_origins` (env `SAJHA_MCP_ALLOWED_ORIGINS`): browser `Origin`s allowed to call `/mcp`; others get `403`. Requests without `Origin` and localhost/127.0.0.1/[::1] on any port are always allowed; `"*"` disables the check. |
 | **DNS rebinding** | An attack where a malicious web page re-points its own hostname at `127.0.0.1` to reach a local server from the victim's browser. The Origin allow-list blocks it. |
@@ -191,6 +193,9 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **AuditLogger** | Structured security event logging (`sajha/core/audit.py`) to the `audit_log` table: logins, logouts, user and API key changes, tool executions, config and permission changes, account locks. |
 | **Audit log** | The record of user and security actions kept for security and compliance review. |
 | **SSRF** (*Server-Side Request Forgery*) | Tricking a server into fetching internal URLs. CIMD fetches and async webhook deliveries are guarded against it (vetted, pinned public IPs; no redirects). |
+| **Sandbox** | Where SAJHA runs code it did not ship (Studio Python code and script tools, the admin shell): a separate process per call with no server environment, a temp work dir, limits, and per backend no access to the server's files, processes or network (`sajha/sandbox/`). |
+| **Sandbox backend** | How a sandbox is launched: `subprocess` (default; on Linux with namespaces, Landlock and seccomp), `bwrap`, `nsjail` or `docker`. Chosen by `sandbox.default_backend` or a tool's `sandbox.backend`; `GET /api/sandbox/status` reports what each enforces on the host. |
+| **Sandbox policy** | A tool's `sandbox` block (network, allowed hosts, time, memory, processes, output, packages, secrets, env) over the administrator's `sandbox.defaults`, capped by `sandbox.max`. |
 
 ---
 
@@ -230,6 +235,9 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Prompts Registry** | The singleton (`PromptsRegistry`) that manages prompt definitions in `config/prompts/` and renders them; changes publish to the change bus. |
 | **Prompt management** | The admin functions for creating, editing and deleting prompt templates. |
 | **Tool management** | The admin functions for enabling, disabling, reloading and monitoring tools. |
+| **Federation** | SAJHA fronting other MCP servers and re-exposing their tools (and optionally prompts and resources) as registry tools under its own access control, audit, cache, circuit breakers and rate limits (`sajha/federation/`); off by default (`federation.enabled`). |
+| **Upstream** | An MCP server SAJHA federates: an id, a transport (Streamable HTTP, legacy SSE or stdio), credentials by secret reference, and the approval state of everything it offers. |
+| **Namespaced tool** | A federated tool's name in SAJHA, `<prefix>__<upstream tool name>` (for example `weather__get_forecast`), so upstream names never collide with each other or with native tools. |
 
 ---
 
@@ -293,7 +301,10 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **AsyncTask** | One background execution: `queued`, `running`, `completed`/`failed`, `delivered`, with its tool, arguments, delivery target and result. |
 | **DeliveryRouter** | Sends a finished async task's result to its destination: webhook (POST with retry), Kafka topic or file (atomic write). |
 | **Backpressure** | Refusing new work when a queue is full; the async executor answers HTTP 503. |
-| **Shell tools** / **ShellExecutor** | Sandboxed script execution (`sajha/core/shell_executor.py`), disabled by default: tier 1 Python sandbox, tier 2 allowlisted shell commands, tier 3 unrestricted shell (admin only). Every run is audit-logged. |
+| **State store** | Where SAJHA keeps state that every worker must see: OAuth codes and refresh tokens, MCP sessions, task records, rate-limit windows, LLM budgets, and the pub/sub channel for change notifications (`sajha/core/state/`). `state.backend` is `memory` (one process, the default), `redis` or `database`. |
+| **Durable task** | An MCP 2026-07-28 task whose record is kept in the database (`state.tasks.durable`, on by default with a shared state backend): it survives a restart, any worker can read, cancel or resume it, and a task whose worker died is failed rather than re-run. |
+| **Orphaned task** | A `working` task, or a queued or running async job, whose worker no longer heart-beats in the state store. It is reported `failed` when it is read. |
+| **Shell tools** / **ShellExecutor** | Admin Python and Bash execution (`sajha/core/shell_executor.py`), disabled by default: an import and command filter, then the **Sandbox**. Every run is audit-logged. |
 | **PythonSandbox** | Tier-1 execution: Python in a subprocess with restricted imports, environment, time and memory, from a temporary file deleted afterwards. |
 | **SecurityValidator** | Pre-execution checks for shell tools: blocks dangerous Python imports and builtins (`os`, `subprocess`, `eval`, …) and non-allowlisted or chained shell commands. |
 | **Monitoring** | Observing tool and user activity and health in the console's monitoring pages, refreshed periodically. |
@@ -310,6 +321,20 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Error** | An unexpected condition that prevents normal operation, shown on the console's error page. |
 | **HTTP status code** | The numeric outcome of an HTTP request, e.g. 200 OK, 401 Unauthorized, 403 Forbidden, 404 Not Found, 500 Internal Server Error. |
 | **Exception** | A runtime error raised in application code. |
+| **Prometheus** | An open-source metrics system that scrapes HTTP endpoints for time series. SAJHA serves its metrics in the Prometheus text format on `/metrics` (`sajha/observability/metrics.py`), protected by `observability.metrics.auth`. |
+| **OpenTelemetry** (*OTel*) | The vendor-neutral standard for traces, metrics and logs. SAJHA exports traces and metrics with it when `observability.otel.enabled` and the SDK is installed (`sajha/observability/tracing.py`). |
+| **OTLP** (*OpenTelemetry Protocol*) | The wire protocol OpenTelemetry exporters use (`http/protobuf` or `grpc`) to send telemetry to a collector or backend. |
+| **Span** | One timed operation in a trace, with a name, attributes and a parent. SAJHA nests HTTP, MCP, tool and LLM spans. |
+| **traceparent** | The W3C Trace Context value naming a trace and its parent span. SAJHA continues it from the HTTP header and from an MCP request's `params._meta`. |
+| **Label cardinality** | The number of distinct label sets a metric has; each is a separate time series. SAJHA caps it per family (`observability.metrics.max_series`) and never labels by user. |
+| **Latency percentile** | The latency below which a given share of calls finished: p50 (median), p95, p99. |
+| **Usage ledger** | The `obs_usage_events` table: one row per tool call and per LLM call with caller, outcome, latency, tokens and cost, behind the Usage & cost page (`sajha/observability/usage.py`). |
+| **Token budget** | A daily cap on LLM tokens per user or per role (`ai.budgets`), enforced by the LLM gateway's token tracker; a call over it fails with `BudgetExceeded`. |
+| **Alert rule** | A condition on a metric over a window (`observability.alerts`) that, when it holds, sends one message to a log, an allow-listed webhook or email; or a Prometheus alerting rule. |
+| **Helm chart** | The Kubernetes package in `charts/sajha`: a Deployment with a seed init container, Service, Ingress pair, HPA, PodDisruptionBudget, optional Redis, NetworkPolicies and ServiceMonitor, configured by `values.yaml` and checked by `values.schema.json`. See the Kubernetes Deployment guide. |
+| **Seed init container** | The first container of each SAJHA pod in the Helm chart: copies the image's `config/` and `sajha/tools/impl/` into writable volumes, merges `config.overrides` into `application.yml`, and waits for Redis and PostgreSQL. |
+| **Streams Ingress** | The second Ingress object of the Helm chart, carrying only the long-lived paths (`/mcp`, `/api/mcp`, `/api/ai/ask`) with proxy buffering off and one-hour timeouts. |
+| **Kustomize overlay** | A directory of `deployment/k8s/overlays/` (dev, prod) that `kubectl apply -k` builds on `deployment/k8s/base`; SAJHA's are rendered from the Helm chart by `deployment/k8s/render.py`. |
 
 ---
 
@@ -320,6 +345,9 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **LLM gateway** | `LLMGateway` (`sajha/ai/gateway.py`): the one entry point for LLM calls. It resolves an alias (`default`, `fast`, `reasoning`, `embedding`) to a provider/model, applies role policy and budgets, retries, falls back and caches. Providers talk to vendor APIs directly over HTTP; out of the box only the mock provider is enabled. See the Intelligence Layer guide. |
 | **Intelligence layer** | The part of SAJHA that answers a question itself (`sajha/ai/intelligence.py`): it shortlists tools from the catalog, lets a model call them under the caller's permissions, and returns the answer with the tool calls it rests on and a confidence score. Served at `POST /api/ai/ask`. |
 | **Ask SAJHA** | The console's chat page (`/ask`) over the intelligence layer: it streams each step of an answer (the shortlist, every tool call and result, the answer and its confidence) and draws the tool chain on the live tool catalog. |
+| **LLM provider** | A subclass of `LLMProvider` (`sajha/ai/llm/provider.py`) for one vendor or service: it owns the key, the HTTP client and the model list, and creates the models the gateway calls. Its settings are a pydantic `config_model`, each field overridable as `SAJHA_AI_<PROVIDER>_<FIELD>`. |
+| **Model capabilities** | What a model declares it can do (`ModelCapabilities`): tools, structured output, vision, streaming, context window, prices and tags. The gateway sends a request only to a model whose capabilities cover it. |
+| **Planner** | What decides each step of an ask: answer now, or call which of the offered tools. Today it is the model the `ai.ask.model` alias resolves to (`mock-planner` out of the box); a pluggable planner is proposed in the Extending the Intelligence Layer guide. |
 | **Mock provider** | The built-in LLM provider that needs no network or key (`sajha/ai/llm/mock.py`). Its `mock-planner` model picks tools from keywords and numbers in the question; it serves every model alias until a real provider is enabled. |
 | **Semantic tool search** | Natural-language tool discovery (`sajha/ai/tool_resolver.py`, `POST /api/ai/resolve-tool`): ranks tools by a query over their name, description, parameters, tags and literature. The embedder is set by `ai.tool_search.embedder`. |
 | **bm25** (*embedder*) | The default tool-search ranker: a dependency-free lexical BM25 index (`sajha/ai/lexical.py`) with IDF weighting, needing no model and no network. |
@@ -340,6 +368,10 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Copy** | Copying rendered output to the clipboard for use elsewhere. |
 | **curl** | A command-line tool for making HTTP requests, used in the console's example calls. |
 | **Created at** | The timestamp when an item such as an API key was generated. |
+| **Playground** | The Python Playground (`/playground`): a small notebook that runs Python in the visitor's browser with Pyodide in a Web Worker; `import sajha` calls this server's tools and Ask SAJHA with the user's own session. Nothing runs on the server. |
+| **Pyodide** | CPython compiled to WebAssembly, with numpy, pandas, matplotlib and other packages built for it; the Playground's Python. Vendored by `scripts/fetch_pyodide.py` or loaded from a CDN (`playground.assets`). |
+| **WebAssembly** (*Wasm*) | A portable binary instruction format browsers run in a sandbox at near-native speed. Compiling it needs the CSP source `'wasm-unsafe-eval'`, which SAJHA grants only to the Playground's worker. |
+| **Cross-origin isolation** | A page state (`crossOriginIsolated`) a browser grants when the page sends `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`; it enables `SharedArrayBuffer`, which the Playground's Stop button uses to interrupt Python. Only `/playground` sends these headers. |
 
 ---
 

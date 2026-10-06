@@ -1,0 +1,48 @@
+{# Sandbox policy a new user-code tool gets. Context: sandbox (sajha.sandbox.studio_policy()). #}
+{% if sandbox %}
+<details class="card mb-3 sandbox-policy" id="sandbox-policy">
+    <summary class="card-header d-flex align-items-center" style="cursor:pointer">
+        <i class="bi bi-shield-lock me-2"></i>
+        {% if sandbox.sandboxed %}
+        <span>Runs in the sandbox: backend <code>{{ sandbox.backend }}</code>,
+            network <code>{{ sandbox.policy.network }}</code>,
+            {{ sandbox.policy.timeout_seconds }}s, {{ sandbox.policy.memory_mb }} MB</span>
+        {% else %}
+        <span class="text-warning">Sandbox off (<code>sandbox.enforce_for_generated_tools: false</code>):
+            this tool will run inside the server process</span>
+        {% endif %}
+    </summary>
+    <div class="card-body small">
+        <p class="mb-2">
+            The tool's code never runs in the server: each call starts a fresh sandbox that cannot read the
+            server's files, configuration or environment, and gets only what its policy grants. Change the
+            policy in the tool's JSON <code>sandbox</code> block; the administrator's
+            <code>sandbox.defaults</code> fill unset values and <code>sandbox.max</code> caps them.
+            <a href="{{ guide_url('Sandbox.md') }}">Sandbox design</a>.
+        </p>
+        <div class="row">
+            <div class="col-md-5">
+                <table class="table table-sm mb-2">
+                    <tbody>
+                    {% for key in ['timeout_seconds', 'cpu_seconds', 'memory_mb', 'max_output_bytes', 'max_processes', 'max_file_mb', 'network'] %}
+                    <tr><td><code>{{ key }}</code></td><td>{{ sandbox.policy[key] }}</td></tr>
+                    {% endfor %}
+                    <tr><td><code>secrets</code></td>
+                        <td>{% if sandbox.secrets_allowlist %}may request: {{ sandbox.secrets_allowlist | join(', ') }}{% else %}none allowlisted{% endif %}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-md-7">
+                <ul class="list-unstyled mb-0">
+                    {% for g in sandbox.guarantees %}
+                    <li>
+                        <i class="bi {{ 'bi-check-circle text-success' if g.enforced else 'bi-exclamation-triangle text-warning' }} me-1"></i>
+                        {{ g.guarantee }} <span class="text-muted">({{ g.how }})</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</details>
+{% endif %}

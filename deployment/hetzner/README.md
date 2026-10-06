@@ -65,6 +65,20 @@ sed -i 's/sajha.example.com/your-domain.com/' Caddyfile
 docker compose up -d
 ```
 
+## Several Workers (optional)
+
+A bigger server can run several SAJHA workers. They share state through Redis (the
+optional `scale` profile in `docker-compose.yml`) or through the PostgreSQL service:
+
+```bash
+UVICORN_WORKERS=4 SAJHA_STATE_BACKEND=redis docker compose --profile scale up -d
+# or, with no extra container:
+UVICORN_WORKERS=4 SAJHA_STATE_BACKEND=database docker compose up -d
+curl -s localhost:3002/health   # "state": {"backend": "redis", "reachable": true, ...}
+```
+
+See [Scaling and State](../../docs/architecture/Scaling%20and%20State.md).
+
 ## Recommended Hetzner Server Types
 
 | Type | vCPU | RAM | Storage | Cost | Suitable For |

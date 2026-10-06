@@ -1,4 +1,4 @@
-"""Provider tool regressions: PBoC / BoJ (FRED), FBI (api.data.gov key), UN Comtrade,
+"""Provider tool regressions: PBoC / BoJ (FRED), UN Comtrade,
 duckdb_sql, and the OLAP pivot / time-series tools. All HTTP is mocked."""
 import io
 import json
@@ -127,29 +127,7 @@ def test_boj_configs_match_implementation():
             assert rec.requests, (name, value)
 
 
-# ── FBI ──────────────────────────────────────────────────────────────────────
-
-def test_fbi_sends_api_key_header(monkeypatch):
-    from sajha.tools.impl.fbi_tool_refactored import FBIGetNationalStatisticsTool
-    monkeypatch.delenv('FBI_API_KEY', raising=False)
-    monkeypatch.delenv('DATA_GOV_API_KEY', raising=False)
-    tool = FBIGetNationalStatisticsTool({'api_key': 'fbi-test-key'})
-    rec = _Recorder(lambda req: {'total_incidents': 1000, 'population': 100000})
-    with mock.patch('urllib.request.urlopen', rec):
-        result = tool.execute({'offense_type': 'robbery', 'year': 2022})
-    assert rec.requests[0].get_header('X-api-key') == 'fbi-test-key'
-    assert result['national_data']['rate_per_100k'] == 1000.0
-
-
-def test_fbi_key_resolution(monkeypatch):
-    from sajha.tools.impl.fbi_tool_refactored import FBIGetNationalStatisticsTool
-    monkeypatch.delenv('FBI_API_KEY', raising=False)
-    monkeypatch.delenv('DATA_GOV_API_KEY', raising=False)
-    assert FBIGetNationalStatisticsTool({'api_key': '${fbi.api.key:}'}).api_key == 'DEMO_KEY'
-    monkeypatch.setenv('FBI_API_KEY', 'env-key')
-    assert FBIGetNationalStatisticsTool({'api_key': ''}).api_key == 'env-key'
-    for name in ('fbi_get_national_statistics', 'fbi_compare_states', 'fbi_search_agencies'):
-        assert _config(name)['api_key'] == '${fbi.api.key:}'
+# ── FBI ── (tests/test_fbi_tools.py) ─────────────────────────────────────────
 
 
 # ── UN Comtrade ──────────────────────────────────────────────────────────────
@@ -283,6 +261,65 @@ def test_olap_time_series_examples(olap_tools):
     json.dumps(result)
 
 
+def test_olap_customer_analytics_dataset(olap_tools):
+    pivot = olap_tools['olap_pivot_table'].execute({
+        'dataset': 'customer_analytics', 'rows': ['customer_segment'], 'columns': ['customer_tier'],
+        'values': [{'measure': 'customer_count'}, {'measure': 'total_revenue'}],
+        'include_totals': False})
+    assert pivot.get('success'), pivot
+    assert {r['customer_tier'] for r in pivot['data']} == {'Bronze', 'Silver', 'Gold', 'Platinum'}
+    assert sum(r['customer_count'] for r in pivot['data']) == 200   # every sample customer
+    by_city = olap_tools['olap_pivot_table'].execute({
+        'dataset': 'customer_analytics', 'rows': ['region', 'city'],
+        'values': [{'measure': 'avg_orders_per_customer'}, {'measure': 'avg_customer_value'}]})
+    assert by_city.get('success') and len(by_city['data']) > 5, by_city
+    series = olap_tools['olap_time_series'].execute({
+        'dataset': 'customer_analytics', 'time_dimension': 'signup_date', 'time_grain': 'month',
+        'measures': ['customer_count']})
+    assert series.get('success'), series
+    assert len(series['data']) == 12          # sample customers sign up during 2023
+    json.dumps(series)
+
+
+def test_olap_inventory_analysis_dataset(olap_tools):
+    tool = olap_tools['olap_pivot_table']
+    result = tool.execute({
+        'dataset': 'inventory_analysis', 'rows': ['warehouse'], 'columns': ['product_category'],
+        'values': [{'measure': 'total_value'}, {'measure': 'stock_quantity'}], 'include_totals': False})
+    assert result.get('success'), result
+    assert {r['warehouse'] for r in result['data']} == {'Northeast DC', 'Southeast DC', 'Central DC', 'West DC'}
+    assert all(r['total_value'] >= 0 for r in result['data'])
+    by_supplier = tool.execute({
+        'dataset': 'inventory_analysis', 'rows': ['supplier'],
+        'values': [{'measure': 'days_of_supply'}, {'measure': 'reorder_point'}, {'measure': 'unit_cost'}],
+        'filters': [{'dimension': 'product_category', 'operator': '=', 'value': 'Electronics'}],
+        'include_totals': False})
+    assert by_supplier.get('success'), by_supplier
+    assert {r['supplier'] for r in by_supplier['data']} <= {'TechSource Inc.', 'Pacific Components'}
+    json.dumps(by_supplier)
+
+
+def test_olap_dataset_tables_created_idempotently():
+    """An existing star schema without customer_data/inventory_data gets them added once;
+    existing relations are never replaced."""
+    import duckdb
+    import random
+    from sajha.olap.sample_data_generator import SampleDataGenerator
+    conn = duckdb.connect(':memory:')
+    gen = SampleDataGenerator(conn)
+    random.seed(1)
+    assert gen.generate_all_sample_data(num_customers=20, num_orders=100)['success']
+    conn.execute('DROP VIEW customer_data')
+    conn.execute('DROP TABLE inventory_data')
+    assert gen.ensure_dataset_tables() == ['customer_data', 'inventory_data']
+    before = conn.execute('SELECT SUM(stock_qty) FROM inventory_data').fetchone()
+    assert gen.ensure_dataset_tables() == []
+    assert conn.execute('SELECT SUM(stock_qty) FROM inventory_data').fetchone() == before
+    assert conn.execute('SELECT COUNT(DISTINCT customer_id) FROM customer_data').fetchone()[0] == 20
+    # a database lacking the source tables is left alone
+    assert SampleDataGenerator(duckdb.connect(':memory:')).ensure_dataset_tables() == []
+
+
 def test_olap_execute_inside_running_event_loop(olap_tools):
     import asyncio
 
@@ -310,3 +347,17 @@ def test_un_comtrade_retries_on_rate_limit(monkeypatch):
     with mock.patch('urllib.request.urlopen', urlopen):
         result = un.UNGetTradeBalanceTool().execute({'country_code': 'USA', 'year': 2022})
     assert len(calls) == 2 and result['data']['balance'] == 5.0
+
+
+def test_olap_demo_data_is_built_on_first_use_only():
+    """Constructing an OLAP tool is cheap (every OLAP config builds one at startup); the demo
+    star schema is generated on the first call and only once."""
+    from sajha.tools.impl.duckdb_olap_advanced import DuckDBOLAPAdvancedTool
+    tool = DuckDBOLAPAdvancedTool(_config('olap_pivot_table'))
+    assert not tool._table_exists('sales_data')
+    example = _config('olap_pivot_table')['examples'][0]['input']
+    assert tool.execute(example).get('success')
+    assert tool._table_exists('sales_data')
+    with mock.patch.object(tool.sample_generator, 'generate_all_sample_data') as regen:
+        assert tool.execute(example).get('success')
+    regen.assert_not_called()

@@ -1,0 +1,76 @@
+{{- if .Values.ingress.enabled }}
+{{- $fullname := include "sajha.fullname" . }}
+{{- $ing := .Values.ingress }}
+{{- /* path list per Ingress: the streams object carries every long-lived endpoint */}}
+{{- $streamPaths := list (dict "path" "/mcp" "type" "Prefix") (dict "path" "/api/mcp" "type" "Prefix") (dict "path" "/api/ai/ask" "type" "Exact") }}
+{{- range $kind := list "main" "streams" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullname }}{{ if eq $kind "streams" }}-streams{{ end }}
+  labels:
+    {{- include "sajha.labels" $ | nindent 4 }}
+  annotations:
+    {{- if $ing.nginx }}
+    nginx.ingress.kubernetes.io/proxy-body-size: {{ $ing.bodySize | quote }}
+    {{- if eq $kind "streams" }}
+    # MCP Streamable HTTP, legacy SSE, WebSocket and the Ask SAJHA event stream: events
+    # must reach the client as they are written, and a stream may stay open for an hour.
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: {{ $ing.streamTimeoutSeconds | quote }}
+    nginx.ingress.kubernetes.io/proxy-send-timeout: {{ $ing.streamTimeoutSeconds | quote }}
+    {{- else }}
+    nginx.ingress.kubernetes.io/proxy-read-timeout: {{ $ing.timeoutSeconds | quote }}
+    nginx.ingress.kubernetes.io/proxy-send-timeout: {{ $ing.timeoutSeconds | quote }}
+    {{- end }}
+    {{- if $ing.sessionAffinity }}
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: sajha-route
+    {{- end }}
+    {{- end }}
+    {{- with $ing.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- if eq $kind "streams" }}
+    {{- with $ing.streamAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- end }}
+spec:
+  {{- with $ing.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with $ing.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range $host := (default (list "") $ing.hosts) }}
+    - {{- if $host }} host: {{ $host | quote }}{{ end }}
+      http:
+        paths:
+          {{- if eq $kind "streams" }}
+          {{- range $streamPaths }}
+          - path: {{ .path }}
+            pathType: {{ .type }}
+            backend:
+              service:
+                name: {{ $fullname }}
+                port:
+                  name: http
+          {{- end }}
+          {{- else }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullname }}
+                port:
+                  name: http
+          {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

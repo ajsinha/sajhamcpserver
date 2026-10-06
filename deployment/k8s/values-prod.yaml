@@ -1,0 +1,36 @@
+# Values for deployment/k8s/overlays/prod (also usable with helm install -f).
+# Three to ten pods behind ingress-nginx, PostgreSQL, the bundled Redis as the state
+# store, NetworkPolicy on. Replace sajha.example.com and the Secret names.
+fullnameOverride: sajha
+secrets:
+  existingSecret: sajha-secrets
+replicaCount: 3
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+database:
+  type: postgresql
+  postgresql:
+    host: postgres
+    name: sajha
+    user: sajha
+    existingSecret: sajha-postgres
+    passwordKey: password
+redis:
+  enabled: true
+  existingSecret: sajha-redis
+persistence:
+  data:
+    enabled: false     # PostgreSQL holds the shared data; caches stay per pod
+ingress:
+  enabled: true
+  hosts: [sajha.example.com]
+  tls:
+    - secretName: sajha-tls
+      hosts: [sajha.example.com]
+networkPolicy:
+  enabled: true
+metrics:
+  serviceMonitor:
+    enabled: false     # true when the Prometheus Operator CRDs are installed

@@ -90,6 +90,11 @@ PAGE_HELP: dict = {
         'terms': ['Ask SAJHA', 'Intelligence layer', 'Semantic tool search', 'Confidence score',
                   'destructiveHint', 'Mock provider'],
         'guide': 'Intelligence Layer.md'},
+    'playground_page': {
+        'what': 'Run Python in your browser (Pyodide): numpy, pandas and matplotlib, with import sajha '
+                'to call this server\'s tools under your own permissions. Nothing runs on the server.',
+        'terms': ['Playground', 'Pyodide', 'WebAssembly', 'Cross-origin isolation', 'Tool'],
+        'guide': 'Python Playground.md'},
     'ai_settings_page': {
         'what': 'LLM providers, their models and the default the server uses.',
         'terms': ['LLM gateway', 'Semantic tool search', 'Embedding', 'bm25 (embedder)',
@@ -106,6 +111,12 @@ PAGE_HELP: dict = {
         'terms': ['User activity', 'Session (web)', 'Active users', 'Request count',
                   'Last activity', 'Audit log'],
         'guide': 'Security Model.md'},
+    'monitoring_usage': {
+        'what': 'Tokens, LLM spend, tool calls, errors and latency by user, API key, role, model and tool, '
+                'with today\'s budgets and the alert rules; administrators see everyone, others their own calls.',
+        'terms': ['Usage ledger', 'Token budget', 'Latency percentile', 'Error rate', 'Prometheus',
+                  'Alert rule'],
+        'guide': 'Observability.md'},
     # ── Admin ────────────────────────────────────────────────────────────────
     'admin_tools_page': {
         'what': 'Enable, disable and reload tools, with their call counts and timings.',
@@ -144,6 +155,10 @@ PAGE_HELP: dict = {
         'terms': ['Monitoring', 'Circuit breaker', 'ProviderHealth', 'Tool cache / cache_ttl',
                   'Latency'],
         'guide': 'TUTORIAL_06_configure_tool_caching.md'},
+    'admin_federation_page': {
+        'what': 'Upstream MCP servers whose tools SAJHA re-exposes: their state, and approval of what they offer.',
+        'terms': ['Federation', 'Upstream', 'Namespaced tool', 'Circuit breaker', 'Tool access'],
+        'guide': 'Federation.md'},
     'admin_async_tasks_page': {
         'what': 'Background tool runs submitted for asynchronous execution, and where their results go.',
         'terms': ['Async execution', 'AsyncTask', 'DeliveryRouter', 'Backpressure'],
@@ -152,7 +167,7 @@ PAGE_HELP: dict = {
     'studio_home': {
         'what': 'Build tools in the browser; this page is also the Python code tool creator.',
         'terms': ['MCP Studio', 'Creator', '@sajhamcptool decorator', 'AST', 'Type hints',
-                  'Code generation'],
+                  'Code generation', 'Sandbox', 'Sandbox policy'],
         'guide': 'MCP Studio User Guide.md'},
     'studio_examples': {
         'what': 'Worked examples to start a Python code tool from.',
@@ -169,8 +184,9 @@ PAGE_HELP: dict = {
                   'SQLite', 'PostgreSQL', 'MySQL', 'Literature'],
         'guide': 'MCP Studio DBQuery Tool Creator Guide.md'},
     'studio_script': {
-        'what': 'Run a shell or Python script as a tool.',
-        'terms': ['Creator', 'Shell tools / ShellExecutor', 'Input Schema', 'Code generation'],
+        'what': 'Run a shell or Python script as a tool, in a sandbox.',
+        'terms': ['Creator', 'Sandbox', 'Sandbox backend', 'Sandbox policy', 'Input Schema',
+                  'Code generation'],
         'guide': 'MCP Studio Script Tool Creator Guide.md'},
     'studio_powerbi': {
         'what': 'Export a Power BI report as a tool.',

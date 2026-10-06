@@ -12,7 +12,7 @@ FROM python:3.11-slim AS builder
 WORKDIR /build
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt \
-    && pip install --no-cache-dir --prefix=/install boto3 awscli
+    && pip install --no-cache-dir --prefix=/install boto3 awscli "redis>=5.0.0,<9.0.0"
 
 # ── Stage 2: Production image ────────────────────────────────
 FROM python:3.11-slim AS production
@@ -46,8 +46,8 @@ COPY config/tools/           /app/config/tools/
 COPY config/prompts/         /app/config/prompts/
 
 # ── Copy AWS bootstrap and health check ──────────────────────
-COPY aws/scripts/bootstrap.sh  /app/bootstrap.sh
-COPY aws/scripts/health_check.sh /app/health_check.sh
+COPY deployment/aws/scripts/bootstrap.sh  /app/bootstrap.sh
+COPY deployment/aws/scripts/health_check.sh /app/health_check.sh
 RUN chmod +x /app/bootstrap.sh /app/health_check.sh
 
 # ── Create writable directories ──────────────────────────────

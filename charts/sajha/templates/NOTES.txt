@@ -1,0 +1,24 @@
+SAJHA MCP Server {{ .Chart.AppVersion }} is installed as "{{ include "sajha.fullname" . }}".
+
+  pods:          {{ include "sajha.maxReplicas" . }} at most, {{ .Values.workers }} worker(s) each
+  database:      {{ .Values.database.type }}
+  state.backend: {{ include "sajha.stateBackend" . }}
+  storage:       {{ .Values.storage.backend }}
+{{- with include "sajha.publicUrl" . }}
+  public URL:    {{ . }}  (MCP endpoint {{ . }}/mcp)
+{{- end }}
+
+Reach it without an ingress:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "sajha.fullname" . }} 3002:{{ .Values.service.port }}
+  open http://127.0.0.1:3002  (sign in as admin / admin123, then change the password)
+
+Check it:
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "sajha.fullname" . }} -- python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:3002/health').read()[:300])"
+{{- if not .Values.secrets.existingSecret }}
+
+Secrets (JWT, session, OAuth signing key, metrics token) are in Secret
+{{ include "sajha.secretName" . }}; it is kept on uninstall. Back it up.
+{{- end }}
+
+Guide: docs/getting-started/Kubernetes Deployment.md

@@ -77,6 +77,17 @@ class AuthContext:
         return mcp_session_for(self)
 
 
+def _observe_auth_failure(method: str, lockout: bool = False) -> None:
+    """sajha_auth_failures_total / sajha_auth_lockouts_total (sajha/observability); never raises."""
+    try:
+        from sajha.observability.metrics import record_auth_failure, record_lockout
+        record_auth_failure(method)
+        if lockout:
+            record_lockout()
+    except Exception:
+        pass
+
+
 class AuthManager:
     """
     Centralized authentication — used by FastAPI dependencies and routes.
@@ -109,12 +120,14 @@ class AuthManager:
 
         if not user or not user.enabled:
             logger.warning(f'Login failed: user not found or disabled — {login_id!r}')
+            _observe_auth_failure('password')
             return None, 'invalid'
 
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         locked_until = user.locked_until.replace(tzinfo=None) if user.locked_until else None
         if locked_until and locked_until > now:
             logger.warning(f'Login refused: account locked until {locked_until.isoformat()}Z — {login_id!r}')
+            _observe_auth_failure('password')
             return None, 'locked'
 
         if not verify_password(password, user.password_hash):
@@ -132,6 +145,7 @@ class AuthManager:
             AuditDAO(db).log(action='user.login_failed', user_id=user.user_id,
                              resource_type='user', resource_id=user.user_id)
             logger.warning(f'Login failed: bad password — {login_id!r}')
+            _observe_auth_failure('password', lockout=outcome == 'locked')
             return None, outcome
 
         # Success
@@ -228,6 +242,8 @@ class AuthManager:
 
         Returns an AuthContext (may be unauthenticated).
         """
+        failed = []     # credentials presented that did not authenticate (sajha_auth_failures_total)
+
         # 1. Bearer token (JWT)
         auth_header = request.headers.get('Authorization', '')
         if auth_header.startswith('Bearer '):
@@ -235,6 +251,7 @@ class AuthManager:
             ctx = AuthManager.authenticate_jwt(db, token)
             if ctx:
                 return ctx
+            failed.append('bearer')
 
         # 2. X-API-Key header
         api_key = request.headers.get('X-API-Key', '')
@@ -242,12 +259,14 @@ class AuthManager:
             ctx = AuthManager.authenticate_apikey(db, api_key)
             if ctx:
                 return ctx
+            failed.append('apikey')
 
         # 3. API key directly in Authorization header
         if auth_header and auth_header.startswith('sja_'):
             ctx = AuthManager.authenticate_apikey(db, auth_header)
             if ctx:
                 return ctx
+            failed.append('apikey')
 
         # 4. Session cookie (JWT stored in cookie for web UI)
         session_token = request.cookies.get('sajha_token', '')
@@ -256,7 +275,10 @@ class AuthManager:
             if ctx:
                 ctx.auth_type = 'session'
                 return ctx
+            failed.append('session')
 
+        for method in failed:
+            _observe_auth_failure(method)
         return AuthContext(authenticated=False)
 
 

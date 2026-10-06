@@ -230,6 +230,7 @@ def mcp_session_for(auth) -> Dict:
             'roles': list(auth.roles or []),
             'is_admin': bool(auth.is_admin),
             'auth_type': auth.auth_type,
+            'api_key_name': getattr(auth, 'api_key_name', None),
             'authenticated': True,
         }
     else:

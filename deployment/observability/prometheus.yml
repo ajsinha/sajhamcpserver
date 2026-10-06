@@ -1,0 +1,26 @@
+# Prometheus scrape configuration for SAJHA (docs/architecture/Observability.md, section 2).
+# SAJHA side: observability.metrics.auth: token and SAJHA_OBSERVABILITY_METRICS_TOKEN=<token>.
+# Put the same token in /etc/prometheus/sajha-metrics-token (mode 0400).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+
+rule_files:
+  - sajha-alerts.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  - job_name: sajha
+    metrics_path: /metrics
+    scheme: http                      # https behind TLS termination
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/sajha-metrics-token
+    static_configs:
+      - targets: ['sajha:3002']       # one target per SAJHA process or pod
+        labels:
+          service: sajha

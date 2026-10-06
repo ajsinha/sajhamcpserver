@@ -31,20 +31,26 @@ results in the [compliance reports](docs/protocol/)).
   built-in authorization server (PKCE, client ID metadata documents, rotating refresh
   tokens) or your own identity provider. API keys and JWTs keep working.
 - **Compose and generate tools.** The composite builder designs pipelines of existing
-  tools with confidence tracking (registering the saved composite as a tool fails in this
-  release; see the [Composition Framework](docs/architecture/Composition%20Framework.md)).
+  tools with confidence tracking; a saved composite is registered as a tool and callable
+  over MCP (see the [Composition Framework](docs/architecture/Composition%20Framework.md)).
   MCP Studio's generators turn a Python function, a REST call,
-  a SQL query, a script, Power BI or DAX, LiveLink or SharePoint into a tool (the Studio
-  pages' deploy actions are not wired up in this release; see the
+  a SQL query, a script, Power BI or DAX, LiveLink or SharePoint into a tool, and deploy
+  loads it into the running server (see the
   [MCP Studio User Guide](docs/studio/MCP%20Studio%20User%20Guide.md)).
 - **Operations built in.** Users, roles and API keys; per-tool output cache;
-  per-provider circuit breakers; metrics and health probes; audit log; multi-tenancy;
+  per-provider circuit breakers; Prometheus metrics, OpenTelemetry tracing, a usage and
+  cost dashboard and alerts ([Observability](docs/architecture/Observability.md)); health
+  probes; audit log; multi-tenancy;
   plugins; tool versioning; background execution with webhook, Kafka or file delivery.
 - **AI-aware.** Natural-language tool search (lexical by default, embeddings optional)
   and an LLM gateway for Anthropic, OpenAI, AWS Bedrock, Together.ai, Ollama and Azure
   OpenAI.
 - **Runs anywhere.** SQLite or PostgreSQL; configs and prompts on local disk, S3, Azure
   Blob or GCS with hot reload; deployment recipes for AWS, Hetzner and bare metal.
+
+How SAJHA compares with MCP frameworks, gateways and hosted platforms, including where
+they are stronger, is on the server's **How it compares** page (`/comparison`, under Help),
+with a dated source for every verdict; its data lives in `sajha/web/competitive.py`.
 
 ## Quick start
 
@@ -70,6 +76,10 @@ with SajhaMCPSyncClient("http://localhost:3002") as mcp:
     print(mcp.negotiated_protocol_version)    # 2026-07-28
     result = mcp.call_tool("calc_percentage_change", {"old_value": 80, "new_value": 100})
 ```
+
+From a terminal, `pip install './clientsdk[cli]'` gives the `sajha` command (`sajha login`,
+`sajha tools call ...`, `sajha ask "..."`), and `python run_server.py --stdio` serves MCP to
+desktop clients such as Claude Desktop and Claude Code: see [Command Line](docs/clients/Command%20Line.md).
 
 More in the [Quick Start](docs/getting-started/Quick%20Start.md).
 

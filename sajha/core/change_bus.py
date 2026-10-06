@@ -14,6 +14,12 @@ Consumers (asyncio):
     * the legacy 2024-11-05 HTTP+SSE stream (GET /mcp/sse)
     * the WebSocket transport (/mcp/ws)
 
+Across workers: when a shared state store is configured (``state.backend``
+redis or database) :meth:`ChangeBus.attach_store` makes every publish also go
+to the store's ``changes`` channel, and events from other workers are fanned
+out to this worker's subscriptions (not to its synchronous listeners, which
+stay local).  See docs/architecture/Scaling and State.md.
+
 Each consumer holds a :class:`Subscription` bound to its event loop.  Publishing
 is thread-safe (``loop.call_soon_threadsafe``) and coalescing: while an event is
 queued but not yet delivered to a subscriber, an identical event is dropped, so
@@ -26,6 +32,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
+import uuid
 from dataclasses import dataclass
 from typing import Callable, FrozenSet, Iterable, List, Optional, Set
 
@@ -47,6 +54,8 @@ _NOTIFICATION_METHODS = {
 }
 
 _CLOSED = object()   # sentinel: the bus is shutting down
+
+CHANGES_CHANNEL = "changes"   # state-store channel carrying events between workers
 
 
 @dataclass(frozen=True)
@@ -116,6 +125,36 @@ class ChangeBus:
         self._lock = threading.Lock()
         self._subs: List[Subscription] = []
         self._listeners: List[Callable[[ChangeEvent], None]] = []
+        self._store = None
+        self._unsubscribe_store: Optional[Callable[[], None]] = None
+        self.origin = uuid.uuid4().hex          # tags this bus's relayed events (skip our own echo)
+
+    # -- cross-worker ---------------------------------------------------
+
+    def attach_store(self, store) -> None:
+        """Relay events through ``store`` pub/sub (shared backends).  Idempotent."""
+        if self._store is store:
+            return
+        self.detach_store()
+
+        def on_remote(message: dict) -> None:
+            if message.get("origin") == self.origin:
+                return
+            kind = message.get("kind")
+            if kind in _NOTIFICATION_METHODS:
+                self._fan_out(ChangeEvent(kind, message.get("uri") if kind == RESOURCE_UPDATED else None),
+                              listeners=False)
+
+        self._unsubscribe_store = store.subscribe(CHANGES_CHANNEL, on_remote)
+        self._store = store
+
+    def detach_store(self) -> None:
+        if self._unsubscribe_store is not None:
+            try:
+                self._unsubscribe_store()
+            except Exception:
+                pass
+        self._store, self._unsubscribe_store = None, None
 
     def subscribe(self, kinds: Iterable[str], resource_uris: Iterable[str] = (),
                   loop: Optional[asyncio.AbstractEventLoop] = None) -> Subscription:
@@ -150,9 +189,18 @@ class ChangeBus:
         if kind not in _NOTIFICATION_METHODS:
             raise ValueError(f"unknown change kind: {kind}")
         event = ChangeEvent(kind, uri if kind == RESOURCE_UPDATED else None)
+        self._fan_out(event, listeners=True)
+        store = self._store
+        if store is not None:
+            try:
+                store.publish(CHANGES_CHANNEL, {"kind": event.kind, "uri": event.uri, "origin": self.origin})
+            except Exception as e:   # other workers miss this event; this one is unaffected
+                logger.warning(f"change-bus relay to other workers failed: {e}")
+
+    def _fan_out(self, event: ChangeEvent, listeners: bool) -> None:
         with self._lock:
             subs = [s for s in self._subs if s.wants(event)]
-            listeners = list(self._listeners)
+            listeners = list(self._listeners) if listeners else []
         for sub in subs:
             sub._offer(event)
         for fn in listeners:

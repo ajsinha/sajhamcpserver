@@ -3,10 +3,11 @@ SAJHA MCP Server — Help routes: the help catalog, the guides, the glossary, Ab
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Public, like the rest of the documentation (no login needed): /help, /help/c/{cid},
-/help/guides, /help/guides/{name}, /glossary, /help/tools, /about. What they serve is
-the guides under docs/ (docs/archive/ excluded), GLOSSARY.md, and the tool registry's
-names and descriptions, which the public landing page already shows. Nothing here
-reads users, keys, configuration values or secrets.
+/help/guides, /help/guides/{name}, /glossary, /help/tools, /about, /comparison. What they
+serve is the guides under docs/ (docs/archive/ excluded), GLOSSARY.md, the tool registry's
+names and descriptions, which the public landing page already shows, and the comparison
+data in sajha/web/competitive.py. Nothing here reads users, keys, configuration values or
+secrets.
 
 The help catalog is sajha/web/help_catalog.py, guides are found and rendered by
 sajha/web/guides.py, and definitions come from GLOSSARY.md via sajha/web/glossary.py.
@@ -85,10 +86,15 @@ async def help_guide(name: str, request: Request, auth: AuthContext = Depends(ge
     try:
         body, toc = render_guide(text, rel, get_settings().app_github_repo)
     except ImportError:
-        logger.error('Python-Markdown is not installed: pip install -r requirements.txt')
-        return render(request, 'common/error.html', {
-            'error': 'Guide viewer unavailable',
-            'message': 'The markdown renderer is not installed on this server.'}, status_code=500)
+        # The guide is still readable as its source; the operator gets the fix in the log.
+        logger.warning('Python-Markdown is not installed (pip install -r requirements.txt); '
+                       'serving %s as plain text', rel)
+        from markupsafe import escape
+        body = ('<p class="small-muted">This server has no markdown renderer installed, so the '
+                'guide is shown as its source. An administrator can fix this with '
+                '<code>pip install -r requirements.txt</code>.</p>'
+                f'<pre class="guide-source">{escape(text)}</pre>')
+        toc = []
     folder = folder_of(rel)
     return render(request, 'help/guide_view.html', {
         **_user_ctx(auth),
@@ -144,6 +150,16 @@ async def about_page(request: Request, auth: AuthContext = Depends(get_current_u
         ctx['oauth_builtin'] = oauth_settings.is_builtin()
         ctx['db_type'] = get_settings().db_type
     return render(request, 'help/about.html', ctx)
+
+
+# ── How SAJHA compares (sajha/web/competitive.py) ───────────────────────────
+
+@router.get('/comparison', name='comparison_page')
+async def comparison_page(request: Request, auth: AuthContext = Depends(get_current_user)):
+    from sajha.web.competitive import page_context
+    from sajha.web.help_catalog import related_for
+    return render(request, 'help/comparison.html', {
+        **_user_ctx(auth), **page_context(), 'help_related': related_for('comparison_page')})
 
 
 # ── Superseded pages: 301 to their owners ───────────────────────────────────

@@ -72,7 +72,7 @@ filesystem (local disk, EBS, EFS) or a managed service, and never on S3, Azure B
 | Audit log | `audit_log` table in the same database | follows the database |
 | Tool output cache | `cache.dir` (default `data/cache`) | local or ephemeral disk |
 | OAuth signing key | `mcp.auth.builtin.signing_key_path`, default `<data.dir>/oauth/signing_key.pem` | real filesystem, and shared (EFS) when several instances must sign with the same key |
-| MCP sessions and MCP tasks | process memory (`MCPSessionStore`, `TaskStore`) | not persisted; lost on restart and not shared between workers |
+| MCP sessions, MCP tasks, OAuth codes, rate limits | the state store (`state.backend`, [Scaling and State](../architecture/Scaling%20and%20State.md)) | `memory` (default): lost on restart, not shared between workers. `redis` or `database`: shared; task records durable in the database |
 
 ---
 

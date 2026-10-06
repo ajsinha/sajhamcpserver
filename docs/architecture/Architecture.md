@@ -38,9 +38,10 @@ SAJHA is one FastAPI (ASGI) application served by Uvicorn, started by
    configs, prompts, Studio output, docs        users, roles, keys, audit, LLM config, ...
 ```
 
-The default is one process. Several components keep state in process memory
-(MCP sessions, MCP tasks, `subscriptions/listen` streams, OAuth codes and refresh
-tokens), so more than one worker needs sticky routing; see section 9.
+The default is one process. Cross-request state (MCP sessions, MCP tasks, OAuth codes
+and refresh tokens, rate limits, change notifications) goes through the state store,
+which is process memory by default and Redis or the database when several workers run;
+see section 9 and [Scaling and State](Scaling%20and%20State.md).
 
 ---
 
@@ -62,7 +63,8 @@ order:
 4. **Handlers.** `MCPHandler` is created over the registries; the hot-reload manager
    (`sajha/core/hot_reload_manager.py`) starts.
 5. **Optional subsystems**, each failing soft (logged, server still starts):
-   composite tools from the database, observability (metrics, health probes),
+   composite tools from the database, observability (Prometheus metrics, OpenTelemetry,
+   the usage ledger, alert rules, health probes; see [Observability](Observability.md)),
    tenancy, plugins, the LLM gateway, and the semantic tool index.
 6. **Template globals** (version, theme, navigation) are registered.
 
@@ -89,11 +91,12 @@ version shown everywhere is `app.version`. Details:
 | `sajha/routes/mcp_routes.py` | HTTP endpoints; Origin check; authorization; era detection; session lookup; SSE responses |
 | `sajha/core/mcp_handler.py` (`MCPHandler`) | The shared method implementations: tools, prompts, resources, completion, logging; the legacy (handshake) JSON-RPC dispatcher |
 | `sajha/core/mcp_2025_11_25.py` | Version negotiation, `MCPError`, Origin validation, icon building, the legacy task/elicitation/sampling managers, SSE event tracking |
-| `sajha/core/mcp_sessions.py` | In-memory `Mcp-Session-Id` sessions and server→client request correlation |
+| `sajha/core/mcp_sessions.py` | `Mcp-Session-Id` sessions (in the state store) and server→client request correlation |
 | `sajha/core/mcp_modern.py` | The 2026-07-28 envelope: `_meta` validation, header ladder, `server/discover`, `resultType`, caching hints, streamed `tools/call`, `subscriptions/listen`, `x-mcp-header` validation |
 | `sajha/core/mcp_tool_context.py` | Per-call context a tool uses to report progress and logs and to see cancellation |
 | `sajha/core/mcp_mrtr.py` | Multi Round-Trip Requests: `InputRequired`, HMAC-signed `requestState` |
-| `sajha/core/mcp_tasks.py` | The tasks extension store (`TaskStore`): per user, in memory, TTL and cap |
+| `sajha/core/state/` | The state store (`state.backend`: memory, Redis, database): key/value with TTLs, atomic updates and counters, sliding windows, pub/sub; worker heartbeats |
+| `sajha/core/mcp_tasks.py` | The tasks extension store (`TaskStore`): per user, records in the task record store, TTL and cap, orphan detection |
 | `sajha/core/mcp_apps.py`, `mcp_app_views/` | MCP Apps: `ui://` views and `_meta.ui` validation |
 | `sajha/core/change_bus.py` | Thread-safe, coalescing fan-out of list-changed and resource-updated events |
 | `sajha/core/mcp_conformance_fixtures.py` | Conformance-suite fixtures, off by default |
@@ -140,6 +143,9 @@ without an auth manager, so the hooks are inactive in this release. See the
   (`webhooks.py`), async background execution with webhook/Kafka/file delivery
   (`async_executor.py`), and the sandboxed shell tools (`shell_executor.py`, disabled
   by default).
+- **User code** (Studio Python code and script tools, the shell) runs outside the
+  process through `sajha/sandbox/`: the registry loads such tools as sandboxed stand-ins
+  that never import their code. See [Sandbox](Sandbox.md).
 
 ## 6. Composition
 
@@ -177,7 +183,8 @@ parameters between steps; `EntropyGuard` tracks cumulative confidence
 | Database (SQLite default, PostgreSQL) | Users, roles, permissions, API keys, sessions, audit log, rate-limit log, tenants, prompts metadata, composite tools, tool versions and usage, LLM providers, models and usage | `sajha/db/`, `db/scripts/<type>/` |
 | Storage backend (local, S3, Azure Blob, GCS) | Tool and prompt configs, Studio output, guides served at `/help/guides` | `sajha/core/storage.py`; [Storage Guide](../getting-started/Storage%20Guide.md) |
 | Local disk (`data/`) | Tool output cache, async results, shell scratch, DuckDB/SQL data files, the OAuth signing key | config keys under `cache`, `async`, `shell`, `data`, `mcp.auth.builtin` |
-| Process memory | MCP sessions, MCP tasks, listen streams, OAuth pending consents, codes, refresh tokens and DCR clients | `mcp_sessions.py`, `mcp_tasks.py`, `sajha/auth/oauth/` |
+| State store (`state.backend`: memory, Redis or the database) | MCP sessions, MCP task records, OAuth pending consents, codes, refresh tokens and DCR clients, rate-limit windows, LLM budgets, change-bus relay | `sajha/core/state/`; [Scaling and State](Scaling%20and%20State.md) |
+| Process memory | Listen streams and other open connections, caches, circuit breakers, metrics | see the inventory in [Scaling and State](Scaling%20and%20State.md#3-inventory-of-process-state) |
 
 Mutable state (the SQLite file, audit log, cache) does not belong on an object store;
 keep it on a real filesystem or a managed database.
@@ -191,9 +198,11 @@ size limits, rate limiting and the audit log (`sajha/core/audit.py`). The model,
 defaults and the deployment checklist are in the
 [Security Model](../security/Security%20Model.md).
 
-**Scaling out.** Because of the in-memory state in section 8, run one worker per
-instance or route each client to the same worker. Set `mcp.mrtr.state_secret` and
-share the OAuth signing key so that any instance can verify what another issued.
+**Scaling out.** With the default `state.backend: memory`, run one worker per instance or
+route each client to the same worker. With `redis` or `database`, any worker serves any
+request. Either way, share the secrets (`mcp.mrtr.state_secret` or the session secret, the
+JWT secret, the OAuth signing key) so that any instance can verify what another issued; see
+[Scaling and State](Scaling%20and%20State.md).
 
 ## 10. Web UI
 

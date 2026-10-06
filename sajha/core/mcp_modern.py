@@ -566,6 +566,8 @@ class ModernMCPServer:
 
     def __init__(self, handler):
         self.handler = handler
+        # tasks/update may reach a worker that did not start the task: it rebuilds the runner here
+        get_task_store().set_resumer(self._task_runner_from_spec)
 
     # -- identity / capabilities ----------------------------------
 
@@ -627,6 +629,47 @@ class ModernMCPServer:
     async def handle(self, body: Any, headers: Mapping[str, str], raw_headers: List[Tuple[str, str]],
                      session: Optional[Dict], receive: Optional[Callable[[], Awaitable[Dict[str, Any]]]] = None
                      ) -> Union[Tuple[int, Optional[Dict[str, Any]]], ModernStream]:
+        """:meth:`_handle` with observability: the caller context, an ``mcp`` span continuing
+        ``params._meta.traceparent``, and ``sajha_mcp_requests_total{era="modern"}``."""
+        import time as _time
+        from sajha.observability import caller as _caller, metrics as _metrics, tracing as _tracing
+        method = body.get("method") if isinstance(body, dict) else None
+        name = method if isinstance(method, str) and method in self.METHODS else "unknown"
+        params = body.get("params") if isinstance(body, dict) else None
+        meta = params.get("_meta") if isinstance(params, dict) else None
+        meta = meta if isinstance(meta, dict) else {}
+        tp, ts = meta.get("traceparent"), meta.get("tracestate")
+        token = _caller.set_caller(_caller.from_session(session))
+        t0 = _time.perf_counter()
+        outcome = "error"
+        try:
+            with _tracing.span(f"mcp {name}", {"mcp.method": name, "mcp.era": "modern",
+                                               "rpc.jsonrpc.request_id": str(body.get("id"))
+                                               if isinstance(body, dict) else None},
+                               traceparent=tp if isinstance(tp, str) else None,
+                               tracestate=ts if isinstance(ts, str) else None) as span:
+                result = await self._handle(body, headers, raw_headers, session, receive)
+                if isinstance(result, ModernStream):
+                    outcome = "stream"
+                else:
+                    status, payload = result
+                    if payload is None:
+                        outcome = "notification"
+                    elif isinstance(payload, dict) and "error" in payload:
+                        outcome = "error"
+                        _tracing.set_error(span, str((payload.get("error") or {}).get("message", "")))
+                    else:
+                        outcome = "ok"
+                _tracing.set_attrs(span, **{"mcp.outcome": outcome})
+                return result
+        finally:
+            _metrics.record_mcp("modern", name, outcome, _time.perf_counter() - t0)
+            if outcome != "stream":          # a stream's tool runs later, as this caller
+                _caller.reset(token)
+
+    async def _handle(self, body: Any, headers: Mapping[str, str], raw_headers: List[Tuple[str, str]],
+                      session: Optional[Dict], receive: Optional[Callable[[], Awaitable[Dict[str, Any]]]] = None
+                      ) -> Union[Tuple[int, Optional[Dict[str, Any]]], ModernStream]:
         """
         Serve one modern POST body.  Returns (http_status, json_body) — a
         ``None`` body means "202 Accepted, empty" (an accepted notification) —
@@ -981,27 +1024,40 @@ class ModernMCPServer:
                      session: Optional[Dict], tool_ctx: ModernToolContext) -> Dict[str, Any]:
         owner = (session or {}).get("user_id")
         call_params = {k: v for k, v in params.items() if k not in ("inputResponses", "requestState", "task")}
+        runner = self._task_runner(name, call_params, ctx.client_capabilities, session)
+        # enough to rebuild the runner on another worker (tasks/update there; see sajha.core.mcp_tasks)
+        spec = {"name": name, "params": call_params, "clientCapabilities": ctx.client_capabilities,
+                "session": session}
+        try:
+            task = get_task_store().create(owner, runner, responses=tool_ctx.input_responses, state=tool_ctx.state,
+                                           spec=spec)
+        except OverflowError as e:
+            raise ModernError(INTERNAL_ERROR, str(e))
+        return {"resultType": "task", **task.envelope()}
 
+    def _task_runner(self, name: str, call_params: Dict[str, Any], client_capabilities: Dict[str, Any],
+                     session: Optional[Dict]):
         async def runner(task) -> Dict[str, Any]:
-            run_ctx = ModernToolContext(client_capabilities=ctx.client_capabilities,
+            run_ctx = ModernToolContext(client_capabilities=client_capabilities,
                                         input_responses=task.responses, state=task.state,
                                         state_verified=True).bind_loop()
             task.context = run_ctx
             try:
                 return await self._invoke_tool(name, call_params, session, run_ctx)
             except InputRequired as ir:
-                missing = missing_capabilities_for(ir.requests, ctx.client_capabilities)
+                missing = missing_capabilities_for(ir.requests, client_capabilities)
                 if missing:
                     raise MCPError(MISSING_REQUIRED_CLIENT_CAPABILITY,
                                    f"Tool {name} needs client input the client cannot provide",
                                    {"requiredCapabilities": missing})
                 raise
+        return runner
 
-        try:
-            task = get_task_store().create(owner, runner, responses=tool_ctx.input_responses, state=tool_ctx.state)
-        except OverflowError as e:
-            raise ModernError(INTERNAL_ERROR, str(e))
-        return {"resultType": "task", **task.envelope()}
+    def _task_runner_from_spec(self, spec: Dict[str, Any]):
+        if not isinstance(spec, dict) or not isinstance(spec.get("name"), str):
+            return None
+        return self._task_runner(spec["name"], spec.get("params") or {}, spec.get("clientCapabilities") or {},
+                                 spec.get("session"))
 
     def _task_method(self, method: str, params: Dict[str, Any], ctx: ModernRequestContext,
                      session: Optional[Dict]) -> Dict[str, Any]:

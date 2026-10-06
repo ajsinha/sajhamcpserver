@@ -57,7 +57,7 @@ def mode(monkeypatch):
         monkeypatch.setenv('SAJHA_MCP_AUTH_MODE', value)
     set_mode('required')
     import sajha.security as sec
-    sec._auth_limiter._hits.clear()      # the consent-page login is rate limited per IP
+    sec._auth_limiter.reset()            # the consent-page login is rate limited per IP
     return set_mode
 
 
@@ -133,6 +133,69 @@ class TestModeOff:
     def test_anonymous_mcp_allowed(self, client, monkeypatch):
         monkeypatch.setenv('SAJHA_MCP_AUTH_MODE', 'off')
         assert _mcp(client).status_code == 200
+
+
+# ── credentials that were sent but are invalid: 401 in every mode, never anonymous ──
+
+MODERN_LIST = {'jsonrpc': '2.0', 'id': 1, 'method': 'tools/list', 'params': {'_meta': {
+    'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientCapabilities': {},
+    'io.modelcontextprotocol/clientInfo': {'name': 'pytest', 'version': '1'}}}}
+MODERN_HEADERS = {'MCP-Protocol-Version': '2026-07-28', 'Mcp-Method': 'tools/list',
+                  'Accept': 'application/json, text/event-stream'}
+BAD_CREDENTIALS = [{'X-API-Key': 'sja_' + '0' * 32}, {'Authorization': 'Bearer not-a-jwt'},
+                   {'Authorization': 'sja_' + '1' * 32}]
+
+
+class TestInvalidCredentialsRejected:
+    @pytest.mark.parametrize('auth_mode', ['off', 'optional', 'required'])
+    @pytest.mark.parametrize('headers', BAD_CREDENTIALS, ids=['x-api-key', 'bearer', 'auth-apikey'])
+    @pytest.mark.parametrize('body', [INIT, MODERN_LIST], ids=['2025-11-25', '2026-07-28'])
+    def test_mcp_post(self, client, monkeypatch, auth_mode, headers, body):
+        monkeypatch.setenv('SAJHA_MCP_AUTH_MODE', auth_mode)
+        extra = MODERN_HEADERS if body is MODERN_LIST else {}
+        r = _mcp(client, body=body, headers={**extra, **headers})
+        assert r.status_code == 401, r.text
+        assert r.json()['error'] == 'invalid_token'
+        assert 'error="invalid_token"' in r.headers['www-authenticate']
+
+    @pytest.mark.parametrize('auth_mode', ['off', 'optional'])
+    def test_no_credentials_stays_anonymous(self, client, monkeypatch, auth_mode):
+        monkeypatch.setenv('SAJHA_MCP_AUTH_MODE', auth_mode)
+        assert _mcp(client).status_code == 200
+        assert _mcp(client, body=MODERN_LIST, headers=MODERN_HEADERS).status_code == 200
+
+    def test_stale_session_cookie_alone_stays_anonymous(self, client, monkeypatch):
+        monkeypatch.setenv('SAJHA_MCP_AUTH_MODE', 'off')
+        client.cookies.clear()
+        client.cookies.set('sajha_token', 'expired-or-forged')
+        try:
+            assert client.post('/mcp', json=INIT).status_code == 200
+        finally:
+            client.cookies.clear()
+
+    def test_sse_message_get_and_delete(self, client, monkeypatch):
+        monkeypatch.setenv('SAJHA_MCP_AUTH_MODE', 'off')
+        client.cookies.clear()
+        bad = {'X-API-Key': 'sja_' + '0' * 32}
+        assert client.post('/mcp/message', json=INIT, headers=bad).status_code == 401
+        assert client.get('/mcp', headers={**bad, 'Accept': 'text/event-stream'}).status_code == 401
+        assert client.delete('/mcp', headers=bad).status_code == 401
+
+    def test_a2a(self, client, monkeypatch):
+        monkeypatch.setenv('SAJHA_MCP_AUTH_MODE', 'off')
+        client.cookies.clear()
+        body = {'jsonrpc': '2.0', 'id': 1, 'method': 'tasks/get', 'params': {'id': 'nope'}}
+        r = client.post('/a2a', json=body, headers={'X-API-Key': 'sja_' + '0' * 32})
+        assert r.status_code == 401 and r.json()['error']['code'] == -32001
+        assert client.post('/a2a', json=body).status_code != 401     # anonymous: not an auth error
+
+    def test_websocket_closes_1008(self, client, monkeypatch):
+        from starlette.websockets import WebSocketDisconnect
+        monkeypatch.setenv('SAJHA_MCP_AUTH_MODE', 'off')
+        with pytest.raises(WebSocketDisconnect) as e:
+            with client.websocket_connect('/mcp/ws?api_key=sja_' + '0' * 32) as ws:
+                ws.receive_text()
+        assert e.value.code == 1008
 
 
 # ── resource server ────────────────────────────────────────────────

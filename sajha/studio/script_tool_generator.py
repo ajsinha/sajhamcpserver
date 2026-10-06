@@ -298,7 +298,10 @@ class ScriptToolGenerator:
                 "created_at": datetime.now().isoformat(),
                 "created_by": "MCP Studio Script Tool Creator",
                 "generator_version": "2.9.8"
-            }
+            },
+            # The script runs in the sandbox (docs/architecture/Sandbox.md); unset
+            # keys take the administrator's sandbox.defaults.
+            "sandbox": {"network": "none", "timeout_seconds": config.timeout_seconds}
         }
         
         # Add literature if provided
