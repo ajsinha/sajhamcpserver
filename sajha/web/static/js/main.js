@@ -273,7 +273,7 @@ function showLoading() {
     const overlay = `
         <div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-flex 
              justify-content-center align-items-center" 
-             style="background: rgba(0,0,0,0.5); z-index: 9999;">
+             style="background: color-mix(in srgb, var(--sajha-nav-to) 55%, transparent); z-index: 9999;">
             <div class="spinner-border text-light" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
@@ -332,3 +332,60 @@ const API = {
         });
     }
 };
+
+// ── Theme-aware chart colours ──────────────────────────────────────────────
+// Chart.js draws on a canvas, which cannot read CSS variables, so charts take
+// their colours from the design tokens at runtime and are re-coloured when the
+// theme changes. A chart opts in by setting chart.$sajhaRestyle = function () {...}.
+window.SajhaChartTheme = (function () {
+    function token(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue('--sajha-' + name).trim();
+    }
+    // Resolve any CSS colour (hex, rgb, color-mix) to an rgba() string with the given alpha.
+    var probe;
+    function color(name, alpha) {
+        var raw = name.indexOf('(') >= 0 || name.charAt(0) === '#' ? name : token(name);
+        if (!probe) { probe = document.createElement('canvas').getContext('2d'); }
+        probe.fillStyle = '#000';
+        probe.fillStyle = raw;
+        var v = probe.fillStyle; // normalised to #rrggbb or rgba(...)
+        var r, g, b;
+        if (v.charAt(0) === '#') {
+            r = parseInt(v.substr(1, 2), 16); g = parseInt(v.substr(3, 2), 16); b = parseInt(v.substr(5, 2), 16);
+        } else {
+            var m = v.match(/[\d.]+/g) || [0, 0, 0];
+            r = +m[0]; g = +m[1]; b = +m[2];
+        }
+        return 'rgba(' + r + ',' + g + ',' + b + ',' + (alpha == null ? 1 : alpha) + ')';
+    }
+    // Series palette: accent, indigo, ok, warn, slate.
+    function palette() {
+        return ['crimson', 'indigo', 'ok', 'warn', 'slate'].map(function (n) { return color(n); });
+    }
+    function applyDefaults() {
+        if (!window.Chart) { return; }
+        Chart.defaults.color = color('slate');
+        Chart.defaults.borderColor = color('border');
+        Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+    }
+    function restyleAll() {
+        if (!window.Chart) { return; }
+        applyDefaults();
+        Object.values(Chart.instances || {}).forEach(function (c) {
+            if (c.options && c.options.scales) {
+                Object.values(c.options.scales).forEach(function (s) {
+                    if (s.grid) { s.grid.color = color('border'); }
+                    if (s.ticks) { s.ticks.color = color('slate'); }
+                    if (s.title) { s.title.color = color('slate'); }
+                });
+            }
+            if (c.options && c.options.plugins && c.options.plugins.legend && c.options.plugins.legend.labels) {
+                c.options.plugins.legend.labels.color = color('ink');
+            }
+            if (typeof c.$sajhaRestyle === 'function') { c.$sajhaRestyle(); }
+            c.update('none');
+        });
+    }
+    new MutationObserver(restyleAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return { token: token, color: color, palette: palette, applyDefaults: applyDefaults, restyleAll: restyleAll };
+})();

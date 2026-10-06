@@ -135,15 +135,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const toolData = {{ top_tools|tojson }};
     if (toolData && toolData.length > 0) {
         const ctx = document.getElementById('usageChart').getContext('2d');
-        new Chart(ctx, {
+        const T = window.SajhaChartTheme;
+        T.applyDefaults();
+        const usageChart = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: toolData.map(t => t.tool_name),
                 datasets: [{
                     label: 'Calls',
                     data: toolData.map(t => t.total_calls),
-                    backgroundColor: 'rgba(13, 110, 253, 0.6)',
-                    borderColor: 'rgba(13, 110, 253, 1)',
+                    backgroundColor: T.color('crimson', 0.65),
+                    borderColor: T.color('crimson'),
                     borderWidth: 1
                 }]
             },
@@ -153,6 +155,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 scales: { y: { beginAtZero: true } }
             }
         });
+        usageChart.$sajhaRestyle = function () {
+            const d = usageChart.data.datasets[0];
+            d.backgroundColor = T.color('crimson', 0.65);
+            d.borderColor = T.color('crimson');
+        };
     }
 });
 

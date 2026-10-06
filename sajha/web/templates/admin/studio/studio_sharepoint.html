@@ -12,47 +12,29 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     }
     
     .creator-header {
-        background: linear-gradient(135deg, #0078d4 0%, #004578 100%);
-        border-radius: 12px;
         padding: 25px;
         margin-bottom: 25px;
-        color: #fff;
     }
     
     .creator-header h3 {
-        color: #fff;
         margin-bottom: 8px;
     }
     
     .creator-header .subtitle {
-        color: #a0d8ff;
         font-size: 0.95rem;
     }
     
     .form-section {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         margin-bottom: 20px;
         overflow: hidden;
     }
     
     .section-header {
-        background: linear-gradient(135deg, #0078d4 0%, #004578 100%);
-        color: white;
         padding: 15px 20px;
         font-weight: 600;
         display: flex;
         align-items: center;
         gap: 10px;
-    }
-    
-    .section-header.secondary {
-        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
-    }
-    
-    .section-header.success {
-        background: linear-gradient(135deg, #198754 0%, #157347 100%);
     }
     
     .section-body {
@@ -68,9 +50,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     
     .tool-type-btn {
         padding: 15px 25px;
-        border: 2px solid #dee2e6;
-        border-radius: 10px;
-        background: #fff;
+        border: 2px solid;
         cursor: pointer;
         font-weight: 600;
         transition: all 0.2s;
@@ -79,14 +59,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     }
     
     .tool-type-btn:hover {
-        border-color: #0078d4;
         transform: translateY(-2px);
-    }
-    
-    .tool-type-btn.active {
-        border-color: #0078d4;
-        background: #0078d4;
-        color: white;
     }
     
     .tool-type-btn i {
@@ -99,27 +72,31 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         display: inline-flex;
         align-items: center;
         padding: 8px 15px;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
+        border: 1px solid var(--sajha-border);
+        border-radius: 9px;
+        background: var(--sajha-surface);
+        color: var(--sajha-ink);
         margin: 5px;
         cursor: pointer;
         transition: all 0.2s;
     }
     
     .operation-checkbox:hover {
-        background: #f8f9fa;
+        background: var(--sajha-crimson-tint);
     }
     
     .operation-checkbox input:checked + span {
-        color: #0078d4;
+        color: var(--sajha-crimson);
         font-weight: 600;
     }
     
+    /* Dark in every theme: the deepest colour of the theme's own gradient */
     .preview-code {
-        background: #1e1e1e;
-        color: #d4d4d4;
+        background: var(--sajha-nav-to) !important;
+        color: var(--sajha-on-nav) !important;
+        border: 0 !important;
         padding: 20px;
-        border-radius: 8px;
+        border-radius: 14px !important;
         font-family: 'Cascadia Code', 'Fira Code', monospace;
         font-size: 0.85rem;
         max-height: 400px;
@@ -127,30 +104,33 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     }
     
     .btn-deploy {
-        background: linear-gradient(135deg, #198754 0%, #157347 100%);
-        border: none;
+        background: var(--sajha-ok) !important;
+        color: var(--sajha-on-crimson) !important;
+        border: none !important;
+        border-radius: 9px;
         padding: 12px 30px;
         font-weight: 600;
         font-size: 1.1rem;
     }
     
     .btn-deploy:hover {
-        background: linear-gradient(135deg, #157347 0%, #146c43 100%);
+        background: color-mix(in srgb, var(--sajha-ok) 85%, var(--sajha-ink)) !important;
     }
     
     .variable-hint {
         font-size: 0.8rem;
-        color: #6c757d;
+        color: var(--sajha-slate);
         margin-top: 4px;
     }
     
     .variable-hint code {
-        background: #e9ecef;
+        background: var(--sajha-crimson-tint) !important;
         padding: 2px 6px;
         border-radius: 3px;
-        color: #0078d4;
+        color: var(--sajha-crimson) !important;
     }
 </style>
+{% include 'admin/studio/_studio_theme.html' %}
 {% endblock %}
 
 {% block content %}

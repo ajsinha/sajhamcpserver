@@ -198,6 +198,8 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 <script>
 // Initialize performance chart
 const ctx = document.getElementById('performanceChart').getContext('2d');
+const T = window.SajhaChartTheme;
+T.applyDefaults();
 const performanceChart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -205,12 +207,14 @@ const performanceChart = new Chart(ctx, {
         datasets: [{
             label: 'Requests per Minute',
             data: generateDemoData(30),
-            borderColor: 'rgb(75, 192, 192)',
+            borderColor: T.color('crimson'),
+            backgroundColor: T.color('crimson', 0.15),
             tension: 0.1
         }, {
             label: 'Average Response Time (ms)',
             data: generateDemoData(30, 50, 200),
-            borderColor: 'rgb(255, 99, 132)',
+            borderColor: T.color('indigo'),
+            backgroundColor: T.color('indigo', 0.15),
             tension: 0.1,
             yAxisID: 'y1'
         }]
@@ -247,6 +251,12 @@ const performanceChart = new Chart(ctx, {
         }
     }
 });
+performanceChart.$sajhaRestyle = function () {
+    ['crimson', 'indigo'].forEach(function (n, i) {
+        const d = performanceChart.data.datasets[i];
+        if (d) { d.borderColor = T.color(n); d.backgroundColor = T.color(n, 0.15); }
+    });
+};
 
 // Generate time labels for last 30 minutes
 function generateTimeLabels() {

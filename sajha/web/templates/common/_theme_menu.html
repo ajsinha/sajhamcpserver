@@ -1,0 +1,14 @@
+{# The theme menu: four colour schemes over one design, the same four MAYA offers, by the same
+   names. Each item carries a swatch of its own accent so the choice can be made by eye, and its
+   name so it can be made without one. #}
+<div class="dropdown">
+  <button class="tool dropdown-toggle" type="button" id="theme-toggle" data-bs-toggle="dropdown"
+          aria-expanded="false" aria-label="Choose a colour theme" title="Theme">
+    <i class="bi bi-palette" aria-hidden="true"></i></button>
+  <ul class="dropdown-menu dropdown-menu-end theme-menu" role="menu">
+    {% for key, label, swatch in [('light','Crimson','#A51C30'),('dark','Dark','#1F1F23'),('blue','Blue','#0079C1'),('green','Green','#006039')] %}
+    <li><button class="dropdown-item" type="button" role="menuitemradio" aria-checked="false"
+                data-theme-choice="{{ key }}"><span class="theme-swatch" style="background: {{ swatch }}" aria-hidden="true"></span>{{ label }}</button></li>
+    {% endfor %}
+  </ul>
+</div>

@@ -1,0 +1,163 @@
+<!-- Shared MCP Studio look (MAYA design system). Every colour comes from tokens.css, so the
+     studio pages follow all four themes. Included after each page's own <style> block. -->
+<style>
+    /* Page header: the MAYA hero */
+    .creator-header {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(120deg, var(--sajha-nav-from), var(--sajha-nav-via) 50%, var(--sajha-nav-to));
+        color: var(--sajha-on-nav);
+        border-radius: 20px;
+        box-shadow: 0 24px 50px -24px rgba(41,51,82,.7);
+    }
+    .creator-header::before {
+        content: "";
+        position: absolute;
+        width: 420px; height: 420px; right: -120px; top: -200px; border-radius: 50%;
+        background: radial-gradient(circle, color-mix(in srgb, var(--sajha-on-nav) 22%, transparent), transparent 65%);
+        pointer-events: none;
+    }
+    .creator-header > * { position: relative; }
+    .creator-header h1, .creator-header h2, .creator-header h3, .creator-header h4,
+    .creator-header i, .creator-header p, .creator-header small { color: var(--sajha-on-nav); }
+    .creator-header .subtitle, .creator-header .text-muted { color: var(--sajha-on-nav) !important; opacity: .88; }
+    .creator-header .btn-outline-light {
+        color: var(--sajha-on-nav) !important;
+        border-color: color-mix(in srgb, var(--sajha-on-nav) 55%, transparent) !important;
+        font-weight: 600;
+    }
+    .creator-header .btn-outline-light:hover {
+        background: color-mix(in srgb, var(--sajha-on-nav) 16%, transparent) !important;
+        border-color: var(--sajha-on-nav) !important;
+    }
+    .creator-header .btn-light { color: var(--sajha-crimson-deep) !important; font-weight: 700; }
+    .creator-header .badge.bg-light { background: var(--sajha-on-nav) !important; color: var(--sajha-crimson-deep) !important; }
+
+    /* Panels */
+    .form-section {
+        background: var(--sajha-surface);
+        border: 1px solid var(--sajha-border);
+        border-radius: 14px;
+        box-shadow: var(--shadow-sm);
+        color: var(--sajha-ink);
+    }
+    .section-body { color: var(--sajha-ink); }
+    .help-text { color: var(--sajha-slate); }
+
+    /* Section headers: MAYA card-header (tint fading out, ink text, icon in a gradient tile).
+       The old primary/success/info/warning/secondary rainbow variants all share this one look. */
+    .section-header,
+    .section-header.primary, .section-header.secondary, .section-header.success,
+    .section-header.info, .section-header.warning, .section-header.danger {
+        background: linear-gradient(90deg, var(--sajha-crimson-tint), transparent);
+        color: var(--sajha-ink);
+        border-bottom: 1px solid var(--sajha-border);
+    }
+    .section-header > i:first-child {
+        flex: 0 0 28px; width: 28px; height: 28px; border-radius: 8px;
+        display: inline-grid; place-items: center; font-size: .9rem;
+        color: var(--sajha-on-nav);
+        background: linear-gradient(135deg, var(--sajha-nav-via), var(--sajha-nav-to));
+        box-shadow: 0 6px 14px -8px var(--sajha-crimson);
+        margin: 0 !important;
+    }
+
+    /* Choice buttons (type / method / format pickers) */
+    .studio-choice, .method-btn, .format-btn, .db-type-btn, .script-type-btn, .auth-type-btn, .tool-type-btn {
+        background: var(--sajha-surface);
+        color: var(--sajha-ink);
+        border-color: var(--sajha-border);
+        border-radius: 9px;
+    }
+    .method-btn:hover, .format-btn:hover, .db-type-btn:hover, .script-type-btn:hover,
+    .auth-type-btn:hover, .tool-type-btn:hover {
+        border-color: var(--sajha-crimson);
+        background: var(--sajha-crimson-tint);
+    }
+    .method-btn.active, .format-btn.active, .db-type-btn.active, .script-type-btn.active,
+    .auth-type-btn.active, .tool-type-btn.active {
+        background: var(--sajha-crimson);
+        border-color: var(--sajha-crimson);
+        color: var(--sajha-on-crimson);
+    }
+
+    /* Code areas stay dark in every theme: the deepest colour of the theme's own gradient. */
+    /* textarea.X matches the specificity of style.css's textarea.form-control rule; later wins. */
+    .schema-editor, .query-editor, .script-editor, .dax-editor, .code-textarea, .output-textarea,
+    textarea.schema-editor, textarea.query-editor, textarea.script-editor, textarea.dax-editor,
+    textarea.code-textarea, textarea.output-textarea,
+    textarea.schema-editor:focus, textarea.query-editor:focus, textarea.script-editor:focus,
+    textarea.dax-editor:focus, textarea.code-textarea:focus, textarea.output-textarea:focus {
+        background: var(--sajha-nav-to) !important;
+        color: var(--sajha-on-nav) !important;
+        border-color: color-mix(in srgb, var(--sajha-on-nav) 18%, transparent) !important;
+        caret-color: var(--sajha-on-nav);
+    }
+    textarea.schema-editor:focus, textarea.query-editor:focus, textarea.script-editor:focus, textarea.dax-editor:focus {
+        border-color: color-mix(in srgb, var(--sajha-on-nav) 55%, var(--sajha-nav-via)) !important;
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--sajha-on-nav) 22%, transparent) !important;
+    }
+    .schema-editor::placeholder, .query-editor::placeholder, .script-editor::placeholder,
+    .dax-editor::placeholder, .code-textarea::placeholder, .output-textarea::placeholder {
+        color: var(--sajha-on-nav) !important; opacity: .5;
+    }
+    .preview-panel {
+        background: var(--sajha-nav-to);
+        border-radius: 14px;
+        box-shadow: 0 14px 40px color-mix(in srgb, var(--sajha-nav-to) 35%, transparent);
+    }
+    .preview-header {
+        background: color-mix(in srgb, var(--sajha-nav-to) 80%, #000);
+        color: var(--sajha-on-nav);
+        border-bottom: 1px solid color-mix(in srgb, var(--sajha-on-nav) 14%, transparent);
+    }
+    .preview-header h5, .preview-header h6, .preview-header span, .preview-header i { color: var(--sajha-on-nav); }
+    .preview-content, .preview-content pre, .preview-content code,
+    .preview-panel pre, .preview-panel code {
+        background: transparent !important;
+        border: 0 !important;
+        color: var(--sajha-on-nav) !important;
+    }
+    .preview-header .btn-outline-light, .preview-header .btn-outline-secondary {
+        color: var(--sajha-on-nav) !important;
+        border-color: color-mix(in srgb, var(--sajha-on-nav) 40%, transparent) !important;
+        background: transparent !important;
+    }
+    .preview-header .btn-outline-light:hover, .preview-header .btn-outline-secondary:hover {
+        background: color-mix(in srgb, var(--sajha-on-nav) 16%, transparent) !important;
+    }
+    /* Syntax accents are tints of the window's own text, so they stay light on the dark ground */
+    .syn-k { color: var(--sajha-on-nav); font-weight: 700; }
+    .syn-f { color: color-mix(in srgb, var(--sajha-on-nav) 72%, var(--sajha-nav-via)); }
+    .syn-s { color: color-mix(in srgb, var(--sajha-on-nav) 58%, var(--sajha-nav-via)); }
+    .syn-c { color: var(--sajha-on-nav); opacity: .55; font-style: italic; }
+
+    /* Status messages carry meaning: ok / bad */
+    .status-message { border-radius: 9px; color: var(--sajha-ink); }
+    .status-message.success {
+        background: color-mix(in srgb, var(--sajha-ok) 12%, var(--sajha-surface));
+        border: 1px solid var(--sajha-ok);
+        border-left-width: 4px;
+        color: var(--sajha-ink);
+    }
+    .status-message.error {
+        background: color-mix(in srgb, var(--sajha-bad) 12%, var(--sajha-surface));
+        border: 1px solid var(--sajha-bad);
+        border-left-width: 4px;
+        color: var(--sajha-ink);
+    }
+    .status-message.warning {
+        background: color-mix(in srgb, var(--sajha-warn) 14%, var(--sajha-surface));
+        border: 1px solid var(--sajha-warn);
+        border-left-width: 4px;
+        color: var(--sajha-ink);
+    }
+
+    /* Tag inputs */
+    .tag-input-container { background: var(--sajha-surface); border-color: var(--sajha-border); border-radius: 9px; }
+    .tag-input { background: transparent; color: var(--sajha-ink); }
+    .tag { background: var(--sajha-crimson); color: var(--sajha-on-crimson); border-radius: 999px; }
+
+    /* Action buttons */
+    .btn-action { border-radius: 9px; }
+</style>

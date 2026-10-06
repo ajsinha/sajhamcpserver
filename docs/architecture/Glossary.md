@@ -141,7 +141,7 @@
 
 ## T
 
-**Theme:** One of four visual styles applied via `data-theme` attribute on `<html>`. Light (white, blue accents), Dark (navy glass-morphism), Wall Street (black, amber, Consolas), Ubuntu (aubergine, orange). CSS uses `var(--t-*)` variables, 545 lines total.
+**Theme:** One of four colour schemes over one design, identical to MAYA's: Crimson (stored as `light`), Dark, Blue and Green, chosen from the palette menu and stored per browser. Applied via `data-theme` on `<html>`; with no choice stored the page follows the system light/dark preference. Colours are defined only in `static/css/tokens.css` (`--sajha-*`); `style.css` maps its `var(--t-*)` roles onto them.
 
 **TransportCoalgebra:** Abstract interface for MCP transport clients (`clientsdk/sajhaclient/mcp_client.py`). `step(method, params) → (result, new_state)`. Implementations: `HTTPTransport`, `SSETransport`, `WSTransport`. Enables `bisimilar()` equivalence testing.
 

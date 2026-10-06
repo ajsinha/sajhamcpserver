@@ -12,56 +12,29 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     }
     
     .creator-header {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border-radius: 12px;
         padding: 25px;
         margin-bottom: 25px;
-        color: #e0e0e0;
     }
     
     .creator-header h3 {
-        color: #ff6b6b;
         margin-bottom: 8px;
     }
     
     .creator-header .subtitle {
-        color: #9cdcfe;
         font-size: 0.95rem;
     }
     
     .form-section {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         margin-bottom: 20px;
         overflow: hidden;
     }
     
     .section-header {
-        background: linear-gradient(135deg, #ff6b6b 0%, #ee5253 100%);
-        color: white;
         padding: 15px 20px;
         font-weight: 600;
         display: flex;
         align-items: center;
         gap: 10px;
-    }
-    
-    .section-header.primary {
-        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
-    }
-    
-    .section-header.success {
-        background: linear-gradient(135deg, #198754 0%, #157347 100%);
-    }
-    
-    .section-header.info {
-        background: linear-gradient(135deg, #0dcaf0 0%, #0aa8c7 100%);
-        color: #212529;
-    }
-    
-    .section-header.secondary {
-        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
     }
     
     .section-body {
@@ -76,9 +49,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     
     .script-type-btn {
         padding: 12px 24px;
-        border: 2px solid #dee2e6;
-        border-radius: 8px;
-        background: #fff;
+        border: 2px solid;
         cursor: pointer;
         font-weight: 600;
         transition: all 0.2s;
@@ -88,19 +59,18 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         min-width: 100px;
     }
     
-    .script-type-btn:hover {
-        border-color: #ff6b6b;
-    }
-    
-    .script-type-btn.active {
-        border-color: #ff6b6b;
-        background: #ff6b6b;
-        color: white;
-    }
-    
     .script-type-btn i {
         font-size: 1.5rem;
         margin-bottom: 5px;
+    }
+    
+    .script-type-btn small {
+        color: var(--sajha-slate);
+    }
+    
+    .script-type-btn.active small {
+        color: var(--sajha-on-crimson);
+        opacity: .85;
     }
     
     .script-editor {
@@ -109,29 +79,21 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         width: 100%;
         min-height: 300px;
         resize: vertical;
-        background: #1e1e1e;
-        color: #d4d4d4;
-        border: 1px solid #404040;
-        border-radius: 8px;
+        border: 1px solid;
+        border-radius: 9px;
         padding: 15px;
     }
     
     .script-editor:focus {
         outline: none;
-        border-color: #ff6b6b;
-        box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.25);
     }
     
     .preview-panel {
-        background: #1e1e1e;
-        border-radius: 12px;
         overflow: hidden;
     }
     
     .preview-header {
-        background: #2d2d2d;
         padding: 12px 15px;
-        border-bottom: 1px solid #404040;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -139,7 +101,6 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     
     .preview-header h6 {
         margin: 0;
-        color: #e0e0e0;
         font-size: 14px;
     }
     
@@ -147,15 +108,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         padding: 15px;
         max-height: 300px;
         overflow-y: auto;
-        color: #9cdcfe;
         font-family: monospace;
         font-size: 12px;
         white-space: pre-wrap;
     }
     
     .example-card {
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
+        background: var(--sajha-surface);
+        border: 1px solid var(--sajha-border);
+        border-radius: 14px;
         padding: 15px;
         margin-bottom: 15px;
         cursor: pointer;
@@ -163,17 +124,17 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     }
     
     .example-card:hover {
-        border-color: #ff6b6b;
-        box-shadow: 0 2px 8px rgba(255, 107, 107, 0.15);
+        border-color: var(--sajha-crimson);
+        box-shadow: var(--shadow-md);
     }
     
     .example-card h6 {
-        color: #ff6b6b;
+        color: var(--sajha-crimson);
         margin-bottom: 5px;
     }
     
     .example-card p {
-        color: #6c757d;
+        color: var(--sajha-slate);
         font-size: 0.85rem;
         margin-bottom: 5px;
     }
@@ -181,31 +142,17 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     .btn-action {
         padding: 12px 30px;
         font-weight: 600;
-        border-radius: 8px;
         font-size: 1rem;
     }
     
     .status-message {
         padding: 15px 20px;
-        border-radius: 8px;
         margin-bottom: 20px;
         display: none;
     }
     
     .status-message.show {
         display: block;
-    }
-    
-    .status-message.success {
-        background: #d1e7dd;
-        color: #0f5132;
-        border: 1px solid #badbcc;
-    }
-    
-    .status-message.error {
-        background: #f8d7da;
-        color: #842029;
-        border: 1px solid #f5c2c7;
     }
     
     .collapse-toggle {
@@ -226,17 +173,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         flex-wrap: wrap;
         gap: 5px;
         padding: 8px;
-        border: 1px solid #ced4da;
-        border-radius: 6px;
-        background: white;
+        border: 1px solid;
         min-height: 44px;
     }
     
     .tag {
-        background: #ff6b6b;
-        color: white;
         padding: 4px 10px;
-        border-radius: 4px;
         font-size: 0.85rem;
         display: flex;
         align-items: center;
@@ -257,28 +199,25 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     }
     
     .file-upload-area {
-        border: 2px dashed #dee2e6;
-        border-radius: 8px;
+        border: 2px dashed var(--sajha-border);
+        border-radius: 14px;
         padding: 30px;
         text-align: center;
         cursor: pointer;
         transition: all 0.2s;
-        background: #f8f9fa;
+        background: color-mix(in srgb, var(--sajha-crimson-tint) 50%, var(--sajha-surface));
+        color: var(--sajha-slate);
     }
     
-    .file-upload-area:hover {
-        border-color: #ff6b6b;
-        background: #fff5f5;
-    }
-    
+    .file-upload-area:hover,
     .file-upload-area.dragover {
-        border-color: #ff6b6b;
-        background: #fff5f5;
+        border-color: var(--sajha-crimson);
+        background: var(--sajha-crimson-tint);
     }
     
     .file-upload-area i {
         font-size: 2rem;
-        color: #6c757d;
+        color: var(--sajha-slate);
         margin-bottom: 10px;
     }
     
@@ -288,103 +227,8 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         margin-bottom: 10px;
         align-items: center;
     }
-    
-    /* ===== DARK THEME OVERRIDES ===== */
-    html[data-theme="dark"] .form-section,
-    [data-theme="dark"] .form-section {
-        background: #2d2d2d !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
-    }
-    
-    html[data-theme="dark"] .section-body,
-    [data-theme="dark"] .section-body {
-        background: #2d2d2d !important;
-        color: #e0e0e0 !important;
-    }
-    
-    html[data-theme="dark"] .section-body label,
-    html[data-theme="dark"] .section-body p,
-    html[data-theme="dark"] .section-body span,
-    html[data-theme="dark"] .section-body div {
-        color: #e0e0e0 !important;
-    }
-    
-    html[data-theme="dark"] .section-body small,
-    html[data-theme="dark"] .help-text {
-        color: #a0a0a0 !important;
-    }
-    
-    html[data-theme="dark"] .form-control,
-    html[data-theme="dark"] .form-select {
-        background: #1e1e1e !important;
-        color: #e0e0e0 !important;
-        border-color: #444 !important;
-    }
-    
-    html[data-theme="dark"] .form-control::placeholder {
-        color: #888 !important;
-    }
-    
-    html[data-theme="dark"] .script-type-btn {
-        background: #2d2d2d !important;
-        border-color: #444 !important;
-        color: #e0e0e0 !important;
-    }
-    
-    html[data-theme="dark"] .script-type-btn:hover {
-        border-color: #dc3545 !important;
-    }
-    
-    html[data-theme="dark"] .script-type-btn.active {
-        background: #dc3545 !important;
-        color: white !important;
-    }
-    
-    html[data-theme="dark"] .script-type-btn small {
-        color: #888 !important;
-    }
-    
-    html[data-theme="dark"] .script-type-btn.active small {
-        color: rgba(255, 255, 255, 0.8) !important;
-    }
-    
-    html[data-theme="dark"] .script-editor {
-        background: #1e1e1e !important;
-        color: #d4d4d4 !important;
-        border-color: #444 !important;
-    }
-    
-    html[data-theme="dark"] .file-upload-area {
-        background: #1e1e1e !important;
-        border-color: #555 !important;
-    }
-    
-    html[data-theme="dark"] .file-upload-area i {
-        color: #888 !important;
-    }
-    
-    html[data-theme="dark"] .file-upload-area p {
-        color: #a0a0a0 !important;
-    }
-    
-    html[data-theme="dark"] .env-var-row input {
-        background: #1e1e1e !important;
-        color: #e0e0e0 !important;
-        border-color: #444 !important;
-    }
-    
-    html[data-theme="dark"] .status-message.success {
-        background: rgba(25, 135, 84, 0.2) !important;
-        color: #75b798 !important;
-        border: 1px solid #3d8b5e !important;
-    }
-    
-    html[data-theme="dark"] .status-message.error {
-        background: rgba(220, 53, 69, 0.2) !important;
-        color: #ea868f !important;
-        border: 1px solid #8c3a42 !important;
-    }
 </style>
+{% include 'admin/studio/_studio_theme.html' %}
 {% endblock %}
 
 {% block content %}

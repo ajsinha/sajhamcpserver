@@ -202,6 +202,8 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 <script>
 // Initialize activity chart
 const ctx = document.getElementById('activityChart').getContext('2d');
+const T = window.SajhaChartTheme;
+T.applyDefaults();
 const activityChart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -209,14 +211,14 @@ const activityChart = new Chart(ctx, {
         datasets: [{
             label: 'Active Users',
             data: generateDemoData(30, 0, 10),
-            borderColor: 'rgb(75, 192, 192)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: T.color('crimson'),
+            backgroundColor: T.color('crimson', 0.15),
             tension: 0.1
         }, {
             label: 'API Requests',
             data: generateDemoData(30, 0, 50),
-            borderColor: 'rgb(255, 99, 132)',
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            borderColor: T.color('indigo'),
+            backgroundColor: T.color('indigo', 0.15),
             tension: 0.1
         }]
     },
@@ -238,6 +240,12 @@ const activityChart = new Chart(ctx, {
         }
     }
 });
+activityChart.$sajhaRestyle = function () {
+    ['crimson', 'indigo'].forEach(function (n, i) {
+        const d = activityChart.data.datasets[i];
+        if (d) { d.borderColor = T.color(n); d.backgroundColor = T.color(n, 0.15); }
+    });
+};
 
 // Generate time labels for last 30 minutes
 function generateTimeLabels() {

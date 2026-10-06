@@ -12,59 +12,29 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     }
     
     .creator-header {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border-radius: 12px;
         padding: 25px;
         margin-bottom: 25px;
-        color: #e0e0e0;
     }
     
     .creator-header h3 {
-        color: #ffc107;
         margin-bottom: 8px;
     }
     
     .creator-header .subtitle {
-        color: #9cdcfe;
         font-size: 0.95rem;
     }
     
     .form-section {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         margin-bottom: 20px;
         overflow: hidden;
     }
     
     .section-header {
-        background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-        color: #212529;
         padding: 15px 20px;
         font-weight: 600;
         display: flex;
         align-items: center;
         gap: 10px;
-    }
-    
-    .section-header.primary {
-        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
-        color: white;
-    }
-    
-    .section-header.success {
-        background: linear-gradient(135deg, #198754 0%, #157347 100%);
-        color: white;
-    }
-    
-    .section-header.info {
-        background: linear-gradient(135deg, #0dcaf0 0%, #0aa8c7 100%);
-        color: #212529;
-    }
-    
-    .section-header.secondary {
-        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
-        color: white;
     }
     
     .section-body {
@@ -75,35 +45,31 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
         font-size: 13px;
         min-height: 200px;
-        background: #1e1e1e;
-        color: #d4d4d4;
-        border: 1px solid #404040;
-        border-radius: 8px;
+        border: 1px solid;
+        border-radius: 9px;
         padding: 15px;
     }
     
     .query-editor:focus {
         outline: none;
-        border-color: #ffc107;
-        box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.25);
     }
     
     .literature-editor {
         font-family: inherit;
         min-height: 120px;
-        border-radius: 8px;
+        border-radius: 9px;
     }
     
     .param-row {
-        background: #f8f9fa;
-        border-radius: 8px;
+        background: color-mix(in srgb, var(--sajha-crimson-tint) 50%, var(--sajha-surface));
+        border-radius: 9px;
         padding: 15px;
         margin-bottom: 10px;
-        border: 1px solid #dee2e6;
+        border: 1px solid var(--sajha-border);
     }
     
     .param-row:hover {
-        border-color: #ffc107;
+        border-color: var(--sajha-crimson);
     }
     
     .db-type-select {
@@ -114,9 +80,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     
     .db-type-btn {
         padding: 12px 24px;
-        border: 2px solid #dee2e6;
-        border-radius: 8px;
-        background: #fff;
+        border: 2px solid;
         cursor: pointer;
         font-weight: 600;
         transition: all 0.2s;
@@ -126,31 +90,17 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         min-width: 100px;
     }
     
-    .db-type-btn:hover {
-        border-color: #ffc107;
-    }
-    
-    .db-type-btn.active {
-        border-color: #ffc107;
-        background: #ffc107;
-        color: #212529;
-    }
-    
     .db-type-btn i {
         font-size: 1.5rem;
         margin-bottom: 5px;
     }
     
     .preview-panel {
-        background: #1e1e1e;
-        border-radius: 12px;
         overflow: hidden;
     }
     
     .preview-header {
-        background: #2d2d2d;
         padding: 12px 15px;
-        border-bottom: 1px solid #404040;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -158,7 +108,6 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     
     .preview-header h6 {
         margin: 0;
-        color: #e0e0e0;
         font-size: 14px;
     }
     
@@ -166,15 +115,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         padding: 15px;
         max-height: 400px;
         overflow-y: auto;
-        color: #9cdcfe;
         font-family: monospace;
         font-size: 12px;
         white-space: pre-wrap;
     }
     
     .example-card {
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
+        background: var(--sajha-surface);
+        border: 1px solid var(--sajha-border);
+        border-radius: 14px;
         padding: 15px;
         margin-bottom: 15px;
         cursor: pointer;
@@ -182,17 +131,17 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     }
     
     .example-card:hover {
-        border-color: #ffc107;
-        box-shadow: 0 2px 8px rgba(255, 193, 7, 0.15);
+        border-color: var(--sajha-crimson);
+        box-shadow: var(--shadow-md);
     }
     
     .example-card h6 {
-        color: #ffc107;
+        color: var(--sajha-crimson);
         margin-bottom: 5px;
     }
     
     .example-card p {
-        color: #6c757d;
+        color: var(--sajha-slate);
         font-size: 0.85rem;
         margin-bottom: 5px;
     }
@@ -200,37 +149,27 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     .db-badge {
         font-size: 0.75rem;
         padding: 2px 8px;
-        border-radius: 4px;
+        border-radius: 999px;
+        font-weight: 600;
+        background: var(--sajha-crimson-tint);
+        color: var(--sajha-ink);
+        border: 1px solid var(--sajha-border);
     }
     
     .btn-action {
         padding: 12px 30px;
         font-weight: 600;
-        border-radius: 8px;
         font-size: 1rem;
     }
     
     .status-message {
         padding: 15px 20px;
-        border-radius: 8px;
         margin-bottom: 20px;
         display: none;
     }
     
     .status-message.show {
         display: block;
-    }
-    
-    .status-message.success {
-        background: #d1e7dd;
-        color: #0f5132;
-        border: 1px solid #badbcc;
-    }
-    
-    .status-message.error {
-        background: #f8d7da;
-        color: #842029;
-        border: 1px solid #f5c2c7;
     }
     
     .collapse-toggle {
@@ -251,93 +190,18 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     }
     
     .schema-preview {
-        background: #f8f9fa;
-        border-radius: 8px;
+        background: color-mix(in srgb, var(--sajha-crimson-tint) 50%, var(--sajha-surface));
+        color: var(--sajha-ink);
+        border: 1px solid var(--sajha-border);
+        border-radius: 9px;
         padding: 15px;
         font-family: monospace;
         font-size: 12px;
         max-height: 200px;
         overflow-y: auto;
     }
-    
-    /* ===== DARK THEME OVERRIDES ===== */
-    html[data-theme="dark"] .form-section,
-    [data-theme="dark"] .form-section {
-        background: #2d2d2d !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
-    }
-    
-    html[data-theme="dark"] .section-body,
-    [data-theme="dark"] .section-body {
-        background: #2d2d2d !important;
-        color: #e0e0e0 !important;
-    }
-    
-    html[data-theme="dark"] .section-body label,
-    html[data-theme="dark"] .section-body p,
-    html[data-theme="dark"] .section-body span,
-    html[data-theme="dark"] .section-body div {
-        color: #e0e0e0 !important;
-    }
-    
-    html[data-theme="dark"] .section-body small,
-    html[data-theme="dark"] .help-text {
-        color: #a0a0a0 !important;
-    }
-    
-    html[data-theme="dark"] .form-control,
-    html[data-theme="dark"] .form-select {
-        background: #1e1e1e !important;
-        color: #e0e0e0 !important;
-        border-color: #444 !important;
-    }
-    
-    html[data-theme="dark"] .form-control::placeholder {
-        color: #888 !important;
-    }
-    
-    html[data-theme="dark"] .db-type-btn {
-        background: #2d2d2d !important;
-        border-color: #444 !important;
-        color: #e0e0e0 !important;
-    }
-    
-    html[data-theme="dark"] .db-type-btn:hover {
-        border-color: #ffc107 !important;
-    }
-    
-    html[data-theme="dark"] .db-type-btn.active {
-        background: #ffc107 !important;
-        color: #212529 !important;
-    }
-    
-    html[data-theme="dark"] .param-row {
-        background: #2d2d2d !important;
-        border: 1px solid #444 !important;
-    }
-    
-    html[data-theme="dark"] .schema-preview {
-        background: #1e1e1e !important;
-        color: #d4d4d4 !important;
-        border: 1px solid #444 !important;
-    }
-    
-    html[data-theme="dark"] .collapse-toggle {
-        color: #e0e0e0 !important;
-    }
-    
-    html[data-theme="dark"] .status-message.success {
-        background: rgba(25, 135, 84, 0.2) !important;
-        color: #75b798 !important;
-        border: 1px solid #3d8b5e !important;
-    }
-    
-    html[data-theme="dark"] .status-message.error {
-        background: rgba(220, 53, 69, 0.2) !important;
-        color: #ea868f !important;
-        border: 1px solid #8c3a42 !important;
-    }
 </style>
+{% include 'admin/studio/_studio_theme.html' %}
 {% endblock %}
 
 {% block content %}
@@ -517,7 +381,7 @@ ORDER BY sale_date DESC"></textarea>
 
             <!-- Action Buttons -->
             <div class="d-flex gap-3 mb-4">
-                <button type="button" id="previewBtn" class="btn btn-warning btn-action" onclick="previewTool()">
+                <button type="button" id="previewBtn" class="btn btn-primary btn-action" onclick="previewTool()">
                     <i class="bi bi-eye me-2"></i>Preview Tool
                 </button>
                 <button type="button" id="deployBtn" class="btn btn-success btn-action" onclick="deployTool()" disabled>
@@ -541,22 +405,22 @@ ORDER BY sale_date DESC"></textarea>
                     <div class="example-card" onclick="loadExample('sales')">
                         <h6><i class="bi bi-graph-up me-1"></i>Sales by Region</h6>
                         <p>Query sales data filtered by region and date range</p>
-                        <span class="db-badge bg-warning text-dark">DuckDB</span>
+                        <span class="db-badge">DuckDB</span>
                     </div>
                     <div class="example-card" onclick="loadExample('users')">
                         <h6><i class="bi bi-people me-1"></i>User Search</h6>
                         <p>Search users by name with pagination</p>
-                        <span class="db-badge bg-info text-dark">SQLite</span>
+                        <span class="db-badge">SQLite</span>
                     </div>
                     <div class="example-card" onclick="loadExample('inventory')">
                         <h6><i class="bi bi-box-seam me-1"></i>Inventory Status</h6>
                         <p>Check inventory levels by category</p>
-                        <span class="db-badge bg-primary text-white">PostgreSQL</span>
+                        <span class="db-badge">PostgreSQL</span>
                     </div>
                     <div class="example-card" onclick="loadExample('aggregation')">
                         <h6><i class="bi bi-calculator me-1"></i>Sales Aggregation</h6>
                         <p>Aggregate sales with grouping</p>
-                        <span class="db-badge bg-warning text-dark">DuckDB</span>
+                        <span class="db-badge">DuckDB</span>
                     </div>
                 </div>
             </div>

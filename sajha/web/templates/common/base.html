@@ -2,7 +2,7 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-<html lang="en" data-theme="light">
+<html lang="en" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,210 +12,27 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     
-    <!-- Theme initialization (prevent flash) -->
-    <script>
-        (function() {
-            const savedTheme = localStorage.getItem('sajha-theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-        })();
-    </script>
-    
+    {% include "common/_theme_init.html" %}
+
     <!-- Bootstrap CSS (vendored) -->
     <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
     <!-- Bootstrap Icons (vendored) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}">
-    <!-- Ubuntu webfont (vendored) -->
-    <link href="{{ url_for('static', filename='vendor/ubuntu/ubuntu.css') }}" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <!-- Design tokens (the four themes) and the stylesheet built on them -->
+    <link href="{{ url_for('static', filename='css/tokens.css') }}?v={{ app_version }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}?v={{ app_version }}" rel="stylesheet">
     
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="sajha-app">
     <!-- #6 Skip-to-content link (A11y) -->
-    <a href="#main-content" class="skip-link">Skip to content</a>
+    <a href="#main-content" class="visually-hidden-focusable sajha-skip">Skip to content</a>
     {% include "common/_icons.html" ignore missing %}
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid">
-            <a class="navbar-brand" style="display:flex;align-items:center;gap:6px" href="{{ url_for('dashboard') }}">
-                <svg class="sajha-icon" style="width:22px;height:22px"><use href="#icon-sajha"/></svg> SAJHA MCP Server
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    {% if session.token %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard') }}">
-                            <i class="bi bi-speedometer2"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('tools_list') }}">
-                            <i class="bi bi-tools"></i> Tools
-                        </a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-cpu"></i> AI
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('ai_settings') }}"><i class="bi bi-cloud me-2"></i>LLM</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('prompts_list') }}"><i class="bi bi-chat-square-text me-2"></i>Prompts</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="monitoringDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-graph-up"></i> Monitoring
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('monitoring_tools') }}">Tools Metrics</a></li>
-                            {% if user and user.roles and 'admin' in user.roles %}
-                            <li><a class="dropdown-item" href="{{ url_for('monitoring_users') }}">User Activity</a></li>
-                            {% endif %}
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('reports_dashboard') }}">
-                            <i class="bi bi-bar-chart-line"></i> Reports
-                        </a>
-                    </li>
-                    {% if user and user.roles and 'admin' in user.roles %}
-                    <!-- MCP Studio - Top Level Menu -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="studioDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-magic"></i> MCP Studio
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('studio_home') }}">
-                                    <i class="bi bi-house me-2"></i>Studio Home
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('studio_home') }}#python-creator">
-                                    <i class="bi bi-code-slash me-2 text-primary"></i>Python Code Tool
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('studio_rest') }}">
-                                    <i class="bi bi-cloud-arrow-up me-2 text-success"></i>REST Service Tool
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('studio_dbquery') }}">
-                                    <i class="bi bi-database me-2 text-warning"></i>DB Query Tool
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('studio_script') }}">
-                                    <i class="bi bi-terminal me-2 text-danger"></i>Script Tool
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('studio_powerbi') }}">
-                                    <i class="bi bi-bar-chart-fill me-2" style="color: #f2c811;"></i>PowerBI Report
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('studio_powerbidax') }}">
-                                    <i class="bi bi-braces me-2" style="color: #00d4aa;"></i>PowerBI DAX Query
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('studio_livelink') }}">
-                                    <i class="bi bi-folder2-open me-2" style="color: #0077b6;"></i>IBM LiveLink
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('studio_olap') }}">
-                                    <i class="bi bi-graph-up-arrow me-2" style="color: #00d4aa;"></i>OLAP Dataset
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('composite_builder') }}">
-                                    <i class="bi bi-boxes me-2 text-info"></i>Composite Builder
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                    <!-- Admin Menu -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-gear-fill"></i> Admin
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('admin_tools') }}"><i class="bi bi-tools me-2"></i>Manage Tools</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin_users') }}"><i class="bi bi-people me-2"></i>Manage Users</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin_prompts') }}"><i class="bi bi-chat-square-text me-2"></i>Manage Prompts</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin_apikeys') }}"><i class="bi bi-key me-2"></i>API Keys</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/admin/system-monitor"><i class="bi bi-activity me-2"></i>System Monitor</a></li>
-                            <li><a class="dropdown-item" href="/admin/async-tasks"><i class="bi bi-skip-forward-circle me-2"></i>Async Tasks</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('ai_settings') }}"><i class="bi bi-cpu me-2"></i>AI Providers & Models</a></li>
-                        </ul>
-                    </li>
-                    {% endif %}
-                    {% endif %}
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('help_page') }}">
-                            <i class="bi bi-question-circle"></i> Help
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('about_page') }}">
-                            <i class="bi bi-info-circle"></i> About
-                        </a>
-                    </li>
-                    <!-- Theme Selector -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" title="Theme" aria-label="Change theme">
-                            <i class="bi bi-palette"></i>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><button class="dropdown-item" type="button" data-theme-pick="light"><i class="bi bi-sun me-2"></i>Light</button></li>
-                            <li><button class="dropdown-item" type="button" data-theme-pick="dark"><i class="bi bi-moon-stars me-2"></i>Dark</button></li>
-                            <li><button class="dropdown-item" type="button" data-theme-pick="wallstreet"><i class="bi bi-graph-up me-2"></i>Wall Street</button></li>
-                            <li><button class="dropdown-item" type="button" data-theme-pick="ubuntu"><i class="bi bi-ubuntu me-2"></i>Ubuntu</button></li>
-                        </ul>
-                    </li>
-                    {% if session.token and user %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i> {{ user.user_name }}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="#">Profile</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">
-                                <i class="bi bi-box-arrow-right"></i> Logout
-                            </a></li>
-                        </ul>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('login') }}">
-                            <i class="bi bi-box-arrow-in-right"></i> Login
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </nav>
-    
+    {% include "common/_nav.html" %}
+
     <!-- Main Content -->
-    <main class="container-fluid py-4" id="main-content">
+    <main class="container-fluid sajha-content" id="main-content">
         {% block content %}{% endblock %}
     </main>
     
@@ -223,12 +40,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     {% block page_glossary %}{% endblock %}
     
     <!-- Footer -->
-    <footer class="footer mt-auto py-3">
-        <div class="container text-center">
-            <span class="text-muted">© {{ app_copyright_years }} {{ app_name }} | {{ app_author }} · Version {{ app_version }}</span>
-        </div>
+    <footer class="sajha-foot">
+        <p class="mb-0">{{ app_name }} {{ app_version }} · <a href="/help">Help</a> · <a href="/about">About</a>
+            · © {{ app_copyright_years }} {{ app_author }}</p>
     </footer>
-    
+
     <!-- jQuery (vendored) -->
     <script src="{{ url_for('static', filename='vendor/jquery/jquery.min.js') }}"></script>
     <!-- Bootstrap JS (vendored) -->
@@ -240,40 +56,45 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     
-    <!-- Theme + UX Scripts -->
+    {% include "common/_theme_script.html" %}
+
+    <!-- UX Scripts -->
     <script>
-        // Theme switcher
-        function sajhaSetTheme(t) {
-            document.documentElement.setAttribute('data-theme', t);
-            localStorage.setItem('sajha-theme', t);
-        }
-        sajhaSetTheme(localStorage.getItem('sajha-theme') || 'light');
-
         document.addEventListener('DOMContentLoaded', function() {
-            // Theme picker
-            document.querySelectorAll('[data-theme-pick]').forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    sajhaSetTheme(this.getAttribute('data-theme-pick'));
-                });
+            // #1 Active location: the mega item whose link best matches the path, and its menu
+            var path = window.location.pathname, best = null, bestLen = 0;
+            document.querySelectorAll('.sajha-nav .mega-item').forEach(function(item) {
+                var href = (item.getAttribute('href') || '').split('#')[0];
+                try { href = new URL(href, window.location.origin).pathname; } catch (e) { return; }
+                var hit = path === href || (href !== '/' && path.startsWith(href + '/')) || (href === '/dashboard' && path === '/');
+                if (hit && href.length > bestLen) { best = item; bestLen = href.length; }
             });
+            if (best) {
+                best.classList.add('active'); best.setAttribute('aria-current', 'page');
+                var toggle = best.closest('.mega').querySelector('.nav-link');
+                toggle.classList.add('active'); toggle.setAttribute('aria-current', 'true');
+            }
 
-            // #1 Active nav highlighting
-            var path = window.location.pathname;
-            document.querySelectorAll('.navbar .nav-link').forEach(function(link) {
-                var href = link.getAttribute('href');
-                if (href && href !== '#' && path.startsWith(href) && href !== '/') {
-                    link.classList.add('active-page');
-                } else if (href === '/' && path === '/dashboard') {
-                    link.classList.add('active-page');
-                }
-            });
-            // Also highlight parent dropdown toggle
-            document.querySelectorAll('.dropdown-item').forEach(function(item) {
-                var href = item.getAttribute('href');
-                if (href && path.startsWith(href) && href !== '#') {
-                    var toggle = item.closest('.dropdown').querySelector('.dropdown-toggle');
-                    if (toggle) toggle.classList.add('active-page');
-                }
+            // Mega menu (MAYA's): on a wide screen a panel opens on hover as well as on click/keyboard.
+            var wide = window.matchMedia('(min-width: 992px)');
+            document.querySelectorAll('.sajha-nav .mega').forEach(function (li) {
+                var toggle = li.querySelector('[data-bs-toggle="dropdown"]');
+                var timer = null;
+                if (!toggle || !window.bootstrap) return;
+                var dd = window.bootstrap.Dropdown.getOrCreateInstance(toggle);
+                li.addEventListener('mouseenter', function () {
+                    if (!wide.matches) return;
+                    clearTimeout(timer);
+                    document.querySelectorAll('.sajha-nav .mega .dropdown-toggle.show').forEach(function (t) {
+                        if (t !== toggle) window.bootstrap.Dropdown.getOrCreateInstance(t).hide();
+                    });
+                    timer = setTimeout(function () { dd.show(); }, 90);
+                });
+                li.addEventListener('mouseleave', function () {
+                    if (!wide.matches) return;
+                    clearTimeout(timer);
+                    timer = setTimeout(function () { dd.hide(); }, 180);
+                });
             });
 
             // #22 Keyboard shortcuts

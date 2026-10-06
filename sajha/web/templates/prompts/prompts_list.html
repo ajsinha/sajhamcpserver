@@ -33,7 +33,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         {% if active_category %}
         <span class="badge bg-primary me-2">
             Category: {{ active_category }}
-            <a href="{{ url_for('prompts_list') }}" class="text-white ms-1">
+            <a href="{{ url_for('prompts_list') }}" class="ms-1" style="color:inherit">
                 <i class="bi bi-x"></i>
             </a>
         </span>
@@ -41,7 +41,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         {% if active_tag %}
         <span class="badge bg-info me-2">
             Tag: {{ active_tag }}
-            <a href="{{ url_for('prompts_list') }}" class="text-white ms-1">
+            <a href="{{ url_for('prompts_list') }}" class="ms-1" style="color:inherit">
                 <i class="bi bi-x"></i>
             </a>
         </span>

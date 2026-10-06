@@ -2,448 +2,197 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 SAJHA MCP Server — Landing Page
+The front door, in MAYA's landing language (lp2-*): a centred hero over the living mesh, a strip
+of numbers, capability cards, the three transports, a closing call. Colour comes only from the
+tokens, so it is the same page in all four themes.
 -->
-<html lang="en">
+<html lang="en" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SAJHA — The Intelligence Layer for AI Agents</title>
-    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-    <link href="{{ url_for('static', filename='vendor/plus-jakarta-sans/font.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='vendor/jetbrains-mono/font.css') }}" rel="stylesheet">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+    {% include "common/_theme_init.html" %}
+    <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}">
+    <link href="{{ url_for('static', filename='css/tokens.css') }}?v={{ app_version }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}?v={{ app_version }}" rel="stylesheet">
     <style>
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-        :root {
-            --navy: #0a1628;
-            --navy-mid: #12213b;
-            --navy-light: #1a2f50;
-            --blue: #0079c1;
-            --blue-bright: #00a3e0;
-            --blue-glow: rgba(0, 163, 224, 0.15);
-            --cyan: #06d6a0;
-            --white: #f0f4f8;
-            --white-pure: #ffffff;
-            --gray: #8892a4;
-            --gray-light: #c1c8d4;
-            --glass: rgba(255, 255, 255, 0.04);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --glass-hover: rgba(255, 255, 255, 0.08);
-        }
-
-        body {
-            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
-            background: var(--navy);
-            color: var(--white);
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* ═══ Navigation ═══ */
-        .top-nav {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-            padding: 1.25rem 2rem;
-            display: flex; align-items: center; justify-content: space-between;
-            backdrop-filter: blur(20px);
-            background: rgba(10, 22, 40, 0.8);
-            border-bottom: 1px solid var(--glass-border);
-            transition: all 0.3s ease;
-        }
-        .top-nav.scrolled { padding: 0.75rem 2rem; background: rgba(10, 22, 40, 0.95); }
-        .logo {
-            font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px;
-            background: linear-gradient(135deg, var(--blue-bright), var(--cyan));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        .logo span { font-weight: 400; opacity: 0.7; -webkit-text-fill-color: var(--gray); margin-left: 0.5rem; font-size: 0.8rem; }
-        .nav-links { display: flex; gap: 2rem; align-items: center; }
-        .nav-links a {
-            color: var(--gray-light); text-decoration: none; font-size: 0.9rem; font-weight: 500;
-            transition: color 0.2s;
-        }
-        .nav-links a:hover { color: var(--white-pure); }
-        .btn-login {
-            display: inline-flex; align-items: center; gap: 0.5rem;
-            padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem;
-            background: linear-gradient(135deg, var(--blue), var(--blue-bright));
-            color: var(--white-pure); text-decoration: none; border: none; cursor: pointer;
-            transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0, 121, 193, 0.3);
-        }
-        .btn-login:hover {
-            transform: translateY(-2px); box-shadow: 0 6px 25px rgba(0, 121, 193, 0.5);
-            color: var(--white-pure);
-        }
-
-        /* ═══ Hero ═══ */
-        .hero {
-            min-height: 100vh; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; text-align: center;
-            padding: 8rem 2rem 4rem; position: relative;
-        }
-        .hero::before {
-            content: ''; position: absolute; inset: 0;
-            background:
-                radial-gradient(ellipse 80% 60% at 50% 20%, rgba(0, 121, 193, 0.12) 0%, transparent 70%),
-                radial-gradient(ellipse 60% 50% at 80% 60%, rgba(6, 214, 160, 0.06) 0%, transparent 60%),
-                radial-gradient(ellipse 50% 40% at 20% 80%, rgba(0, 163, 224, 0.08) 0%, transparent 60%);
-            pointer-events: none;
-        }
-        .hero-badge {
-            display: inline-flex; align-items: center; gap: 0.5rem;
-            padding: 0.4rem 1rem; border-radius: 20px; margin-bottom: 2rem;
-            background: var(--glass); border: 1px solid var(--glass-border);
-            font-size: 0.8rem; color: var(--blue-bright); font-weight: 500;
-            animation: fadeInUp 0.8s ease 0.2s both;
-        }
-        .hero-badge i { font-size: 0.7rem; }
-        .hero h1 {
-            font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 800; letter-spacing: -2px;
-            line-height: 1.1; margin-bottom: 1.5rem; max-width: 900px;
-            animation: fadeInUp 0.8s ease 0.4s both;
-        }
-        .hero h1 .gradient-text {
-            background: linear-gradient(135deg, var(--blue-bright) 0%, var(--cyan) 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        .hero-sub {
-            font-size: 1.2rem; color: var(--gray); max-width: 640px;
-            line-height: 1.7; margin-bottom: 3rem;
-            animation: fadeInUp 0.8s ease 0.6s both;
-        }
-        .hero-actions {
-            display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
-            animation: fadeInUp 0.8s ease 0.8s both;
-        }
-        .btn-hero {
-            padding: 0.9rem 2rem; border-radius: 10px; font-weight: 600; font-size: 1rem;
-            text-decoration: none; transition: all 0.3s ease; display: inline-flex;
-            align-items: center; gap: 0.5rem;
-        }
-        .btn-hero-primary {
-            background: linear-gradient(135deg, var(--blue), var(--blue-bright));
-            color: var(--white-pure); box-shadow: 0 4px 20px rgba(0, 121, 193, 0.4);
-        }
-        .btn-hero-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0, 121, 193, 0.5); color: var(--white-pure); }
-        .btn-hero-outline {
-            background: transparent; color: var(--gray-light);
-            border: 1.5px solid var(--glass-border);
-        }
-        .btn-hero-outline:hover { border-color: var(--blue-bright); color: var(--white-pure); background: var(--glass); }
-        .hero-code {
-            margin-top: 4rem; max-width: 680px; width: 100%; text-align: left;
-            animation: fadeInUp 0.8s ease 1s both;
-        }
-        .code-window {
-            background: var(--navy-mid); border-radius: 12px; overflow: hidden;
-            border: 1px solid var(--glass-border); box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        .code-bar {
-            padding: 0.7rem 1rem; display: flex; align-items: center; gap: 0.5rem;
-            background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--glass-border);
-        }
-        .code-dot { width: 10px; height: 10px; border-radius: 50%; }
-        .code-dot.r { background: #ff5f57; }
-        .code-dot.y { background: #febc2e; }
-        .code-dot.g { background: #28c840; }
-        .code-bar span { margin-left: auto; font-size: 0.75rem; color: var(--gray); font-family: 'JetBrains Mono', monospace; }
-        .code-body {
-            padding: 1.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
-            line-height: 1.8; color: var(--gray-light);
-        }
-        .code-body .kw { color: #c792ea; }
-        .code-body .fn { color: #82aaff; }
-        .code-body .str { color: #c3e88d; }
-        .code-body .cmt { color: #546e7a; }
-        .code-body .num { color: #f78c6c; }
-
-        /* ═══ Stats ═══ */
-        .stats {
-            padding: 5rem 2rem; display: flex; justify-content: center;
-            gap: 4rem; flex-wrap: wrap;
-            border-top: 1px solid var(--glass-border);
-            border-bottom: 1px solid var(--glass-border);
-            background: rgba(0, 121, 193, 0.02);
-        }
-        .stat { text-align: center; }
-        .stat-num {
-            font-size: 3rem; font-weight: 800; letter-spacing: -2px;
-            background: linear-gradient(135deg, var(--blue-bright), var(--cyan));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        .stat-label { color: var(--gray); font-size: 0.85rem; font-weight: 500; margin-top: 0.25rem; }
-
-        /* ═══ Features ═══ */
-        .features { padding: 6rem 2rem; max-width: 1200px; margin: 0 auto; }
-        .section-label {
-            font-size: 0.8rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
-            color: var(--blue-bright); margin-bottom: 0.75rem;
-        }
-        .section-title {
-            font-size: 2.2rem; font-weight: 700; letter-spacing: -1px; margin-bottom: 1rem;
-        }
-        .section-desc { color: var(--gray); font-size: 1rem; max-width: 600px; line-height: 1.7; margin-bottom: 3rem; }
-        .feature-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;
-        }
-        .feature-card {
-            background: var(--glass); border: 1px solid var(--glass-border);
-            border-radius: 16px; padding: 2rem; transition: all 0.3s ease;
-            position: relative; overflow: hidden;
-        }
-        .feature-card:hover {
-            border-color: rgba(0, 163, 224, 0.3); background: var(--glass-hover);
-            transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.2);
-        }
-        .feature-card::after {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-            background: linear-gradient(90deg, transparent, var(--blue-bright), transparent);
-            opacity: 0; transition: opacity 0.3s;
-        }
-        .feature-card:hover::after { opacity: 1; }
-        .feature-icon {
-            width: 48px; height: 48px; border-radius: 12px; display: flex;
-            align-items: center; justify-content: center; margin-bottom: 1.25rem;
-            font-size: 1.3rem;
-        }
-        .feature-card h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
-        .feature-card p { color: var(--gray); font-size: 0.88rem; line-height: 1.6; margin: 0; }
-
-        /* ═══ Transports ═══ */
-        .transports { padding: 6rem 2rem; max-width: 1200px; margin: 0 auto; }
-        .transport-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
-        .transport-card {
-            background: var(--glass); border: 1px solid var(--glass-border);
-            border-radius: 16px; padding: 2rem; text-align: center;
-            transition: all 0.3s ease;
-        }
-        .transport-card:hover { border-color: rgba(0, 163, 224, 0.3); transform: translateY(-4px); }
-        .transport-card .proto {
-            font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
-            color: var(--blue-bright); background: var(--blue-glow);
-            padding: 0.3rem 0.8rem; border-radius: 6px; display: inline-block; margin-bottom: 1rem;
-        }
-        .transport-card h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
-        .transport-card p { color: var(--gray); font-size: 0.85rem; line-height: 1.6; }
-
-        /* ═══ CTA ═══ */
-        .cta {
-            padding: 6rem 2rem; text-align: center;
-            background: linear-gradient(180deg, var(--navy) 0%, var(--navy-mid) 100%);
-            border-top: 1px solid var(--glass-border);
-        }
-        .cta h2 { font-size: 2.5rem; font-weight: 700; letter-spacing: -1px; margin-bottom: 1rem; }
-        .cta p { color: var(--gray); font-size: 1.1rem; margin-bottom: 2rem; }
-
-        /* ═══ Footer ═══ */
-        .footer {
-            padding: 3rem 2rem; border-top: 1px solid var(--glass-border);
-            display: flex; justify-content: space-between; align-items: center;
-            max-width: 1200px; margin: 0 auto; flex-wrap: wrap; gap: 1rem;
-        }
-        .footer-left { color: var(--gray); font-size: 0.85rem; }
-        .footer-links { display: flex; gap: 2rem; }
-        .footer-links a { color: var(--gray); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
-        .footer-links a:hover { color: var(--blue-bright); }
-
-        /* ═══ Animations ═══ */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .fade-in { animation: fadeInUp 0.8s ease both; }
-
-        /* ═══ Hero intelligence-mesh canvas ═══ */
-        #heroNet {
-            position: absolute; inset: 0; width: 100%; height: 100%;
-            z-index: 0; pointer-events: none;
-            /* sits above the .hero::before gradient, below the hero copy */
-        }
-        .hero > .hero-badge,
-        .hero > h1,
-        .hero > .hero-sub,
-        .hero > .hero-actions,
-        .hero > .hero-code { position: relative; z-index: 2; }
-        /* If the visitor prefers reduced motion, the JS draws a single static
-           frame and never starts the loop — the mesh becomes a calm backdrop. */
-        @media (prefers-reduced-motion: reduce) {
-            #heroNet { opacity: 0.55; }
-        }
-
-        /* ═══ Responsive ═══ */
-        @media (max-width: 768px) {
-            .hero h1 { font-size: 2rem; letter-spacing: -1px; }
-            .hero-sub { font-size: 1rem; }
-            .stats { gap: 2rem; }
-            .stat-num { font-size: 2rem; }
-            .transport-grid { grid-template-columns: 1fr; }
-            .nav-links { gap: 1rem; }
-            .footer { flex-direction: column; text-align: center; }
-        }
+        /* Only layout here; every colour is a token from tokens.css. */
+        html { scroll-padding-top: 76px; }
+        .lp2-hero { flex-direction: column; min-height: calc(100vh - 64px); }
+        .lp2-title { margin-left: auto; margin-right: auto; }
+        /* the living mesh sits behind the hero copy */
+        #heroNet { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+        @media (prefers-reduced-motion: reduce) { #heroNet { opacity: .55; } }
+        .lp2-hero .lp2-code { position: relative; z-index: 1; margin: 3rem auto 0; max-width: 680px; width: 100%; text-align: left; }
+        .lp2-proto { display: inline-block; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px;
+            font-weight: 600; color: var(--sajha-crimson); background: var(--sajha-crimson-tint);
+            padding: .25rem .7rem; border-radius: 6px; margin-bottom: .9rem; }
+        .lp2-transport { text-align: center; }
+        .sajha-nav .nav-public .nav-link { padding-top: 1.3rem !important; padding-bottom: 1.3rem !important; }
+        .sajha-foot-links a { margin: 0 .5rem; text-decoration: none; }
     </style>
 </head>
-<body>
+<body class="sajha-app">
+<a href="#main-content" class="visually-hidden-focusable sajha-skip">Skip to content</a>
+{% include "common/_icons.html" ignore missing %}
 
-<!-- Navigation -->
-<nav class="top-nav" id="topNav">
-    <div class="logo">SAJHA<span>v{{ app_version }}</span></div>
-    <div class="nav-links">
-        <a href="#features">Features</a>
-        <a href="#transports">Transports</a>
-        <a href="/help">Help</a>
-        <a href="/about">About</a>
-        <a href="/docs">Docs</a>
-        <a href="/login" class="btn-login"><i class="bi bi-box-arrow-in-right"></i> Sign In</a>
+<!-- Navigation: MAYA's public bar -->
+<nav class="navbar navbar-expand-lg sajha-nav fixed-top" aria-label="Main">
+    <div class="container-fluid">
+        <a class="navbar-brand sajha-brand" href="/">
+            <svg class="sajha-mark" aria-hidden="true"><use href="#icon-sajha"/></svg>
+            <span><span class="name">SAJHA</span><small>MCP Server v{{ app_version }}</small></span></a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sajha-public-menu"
+                aria-controls="sajha-public-menu" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-list" aria-hidden="true"></i></button>
+        <div class="collapse navbar-collapse" id="sajha-public-menu">
+            <ul class="navbar-nav me-auto nav-public">
+                <li class="nav-item"><a class="nav-link" href="#features"><i class="bi bi-grid" aria-hidden="true"></i> Features</a></li>
+                <li class="nav-item"><a class="nav-link" href="#transports"><i class="bi bi-hdd-network" aria-hidden="true"></i> Transports</a></li>
+                <li class="nav-item"><a class="nav-link" href="/help"><i class="bi bi-question-circle" aria-hidden="true"></i> Help</a></li>
+                <li class="nav-item"><a class="nav-link" href="/about"><i class="bi bi-info-circle" aria-hidden="true"></i> About</a></li>
+                <li class="nav-item"><a class="nav-link" href="/docs"><i class="bi bi-book" aria-hidden="true"></i> Docs</a></li>
+            </ul>
+            <div class="d-flex align-items-center gap-2 pb-2 pb-lg-0">
+                {% include "common/_theme_menu.html" %}
+                <a class="btn btn-light btn-sm fw-bold" href="/login"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Sign In</a>
+            </div>
+        </div>
     </div>
 </nav>
 
+<main class="container-fluid sajha-content" id="main-content">
+
 <!-- Hero -->
-<section class="hero">
+<section class="lp2-hero">
     <canvas id="heroNet" aria-hidden="true"></canvas>
-    <div class="hero-badge"><i class="bi bi-circle-fill"></i> MCP Protocol 2025-11-25 (latest) · Fully Compliant · Production Ready</div>
-    <h1>The <span class="gradient-text">Intelligence Layer</span><br>for AI Agents</h1>
-    <p class="hero-sub">497 tools. 6 LLM providers. 3 transports. One protocol.<br>
-    SAJHA connects every AI agent to financial markets, government data, analytics, and enterprise systems through a single MCP endpoint.</p>
-    <div class="hero-actions">
-        <a href="/login" class="btn-hero btn-hero-primary"><i class="bi bi-rocket-takeoff"></i> Get Started</a>
-        <a href="/docs" class="btn-hero btn-hero-outline"><i class="bi bi-book"></i> Documentation</a>
-    </div>
-    <div class="hero-code">
-        <div class="code-window">
-            <div class="code-bar">
-                <div class="code-dot r"></div><div class="code-dot y"></div><div class="code-dot g"></div>
-                <span>connect.py</span>
-            </div>
-            <div class="code-body">
-<span class="kw">from</span> sajhaclient <span class="kw">import</span> <span class="fn">MCPWebSocketClient</span>, <span class="fn">ApiKeyAuth</span><br>
-<br>
-<span class="kw">with</span> <span class="fn">MCPWebSocketClient</span>(auth=<span class="fn">ApiKeyAuth</span>(<span class="str">"sja_key"</span>)) <span class="kw">as</span> ws:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;ws.<span class="fn">initialize</span>()<br>
-&nbsp;&nbsp;&nbsp;&nbsp;tools = ws.<span class="fn">list_tools</span>()&nbsp;&nbsp;<span class="cmt"># 497 tools available</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;quote = ws.<span class="fn">call_tool</span>(<span class="str">"yahoo_quote"</span>, symbol=<span class="str">"AAPL"</span>)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;risk&nbsp; = ws.<span class="fn">call_tool</span>(<span class="str">"calc_var"</span>, returns=quote[<span class="str">"history"</span>])
-            </div>
+    <div class="lp2-hero-inner">
+        <div class="lp2-badge"><i class="bi bi-circle-fill" aria-hidden="true"></i> MCP Protocol 2025-11-25 (latest) · Fully Compliant · Production Ready</div>
+        <h1 class="lp2-title">The <span class="lp2-gradient">Intelligence Layer</span><br>for AI Agents</h1>
+        <p class="lp2-sub">497 tools. 6 LLM providers. 3 transports. One protocol.<br>
+        SAJHA connects every AI agent to financial markets, government data, analytics, and enterprise systems through a single MCP endpoint.</p>
+        <div class="lp2-actions">
+            <a href="/login" class="lp2-btn lp2-btn-primary"><i class="bi bi-rocket-takeoff" aria-hidden="true"></i> Get Started</a>
+            <a href="/docs" class="lp2-btn lp2-btn-outline"><i class="bi bi-book" aria-hidden="true"></i> Documentation</a>
         </div>
+    </div>
+    <div class="lp2-code" aria-label="An example of the SAJHA client">
+        <div class="lp2-code-bar"><span></span><span></span><span></span><em>connect.py</em></div>
+<pre><span class="k">from</span> sajhaclient <span class="k">import</span> <span class="f">MCPWebSocketClient</span>, <span class="f">ApiKeyAuth</span>
+
+<span class="k">with</span> <span class="f">MCPWebSocketClient</span>(auth=<span class="f">ApiKeyAuth</span>(<span class="s">"sja_key"</span>)) <span class="k">as</span> ws:
+    ws.<span class="f">initialize</span>()
+    tools = ws.<span class="f">list_tools</span>()  <span class="c"># 497 tools available</span>
+    quote = ws.<span class="f">call_tool</span>(<span class="s">"yahoo_quote"</span>, symbol=<span class="s">"AAPL"</span>)
+    risk  = ws.<span class="f">call_tool</span>(<span class="s">"calc_var"</span>, returns=quote[<span class="s">"history"</span>])</pre>
     </div>
 </section>
 
 <!-- Stats -->
-<section class="stats">
-    <div class="stat"><div class="stat-num">497</div><div class="stat-label">Built-in Tools</div></div>
-    <div class="stat"><div class="stat-num">6</div><div class="stat-label">LLM Providers</div></div>
-    <div class="stat"><div class="stat-num">3</div><div class="stat-label">Transports</div></div>
-    <div class="stat"><div class="stat-num">19</div><div class="stat-label">Database Tables</div></div>
-    <div class="stat"><div class="stat-num">79+</div><div class="stat-label">API Endpoints</div></div>
-    <div class="stat"><div class="stat-num">12</div><div class="stat-label">MCP Methods</div></div>
+<section class="lp2-stats" aria-label="SAJHA in numbers">
+    <div><span class="lp2-num">497</span><span class="lp2-label">Built-in Tools</span></div>
+    <div><span class="lp2-num">6</span><span class="lp2-label">LLM Providers</span></div>
+    <div><span class="lp2-num">3</span><span class="lp2-label">Transports</span></div>
+    <div><span class="lp2-num">19</span><span class="lp2-label">Database Tables</span></div>
+    <div><span class="lp2-num">79+</span><span class="lp2-label">API Endpoints</span></div>
+    <div><span class="lp2-num">12</span><span class="lp2-label">MCP Methods</span></div>
 </section>
 
 <!-- Features -->
-<section class="features" id="features">
-    <div class="section-label">Capabilities</div>
-    <h2 class="section-title">Not a tool server. An intelligence server.</h2>
-    <p class="section-desc">SAJHA embeds the LLM gateway, so it can reason about tools, resolve intent, compose workflows, and track costs. Other MCP servers are dumb pipes.</p>
-    <div class="feature-grid">
-        <div class="feature-card">
-            <div class="feature-icon" style="background: rgba(0, 163, 224, 0.1); color: var(--blue-bright);"><i class="bi bi-cpu"></i></div>
+<section class="lp2-section" id="features">
+    <p class="lp2-eyebrow lp2-centre">Capabilities</p>
+    <h2 class="lp2-h2 lp2-centre">Not a tool server. An intelligence server.</h2>
+    <p class="lp2-desc lp2-centre">SAJHA embeds the LLM gateway, so it can reason about tools, resolve intent, compose workflows, and track costs. Other MCP servers are dumb pipes.</p>
+    <div class="lp2-grid">
+        <article class="lp2-card"><i class="bi bi-cpu" aria-hidden="true"></i>
             <h3>Embedded LLM Gateway</h3>
-            <p>Anthropic, OpenAI, Bedrock, Together, Ollama, Azure — all via official SDKs. Registry factory for custom providers. DB-managed models with user-level overrides.</p>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon" style="background: rgba(6, 214, 160, 0.1); color: var(--cyan);"><i class="bi bi-search"></i></div>
+            <p>Anthropic, OpenAI, Bedrock, Together, Ollama, Azure — all via official SDKs. Registry factory for custom providers. DB-managed models with user-level overrides.</p></article>
+        <article class="lp2-card"><i class="bi bi-search" aria-hidden="true"></i>
             <h3>Semantic Tool Discovery</h3>
-            <p>Describe what you need in English. Vector embeddings of 497 tool descriptions resolve intent to the right tool with confidence scores and auto-extracted parameters.</p>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;"><i class="bi bi-boxes"></i></div>
+            <p>Describe what you need in English. Vector embeddings of 497 tool descriptions resolve intent to the right tool with confidence scores and auto-extracted parameters.</p></article>
+        <article class="lp2-card"><i class="bi bi-boxes" aria-hidden="true"></i>
             <h3>Composite Tools</h3>
-            <p>Chain multiple tools into one call. Sibling pattern runs tools in parallel. Parent-Child fans out per record. Dynamic schemas built at boot from DB definitions.</p>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon" style="background: rgba(220, 53, 69, 0.1); color: #dc3545;"><i class="bi bi-graph-up"></i></div>
+            <p>Chain multiple tools into one call. Sibling pattern runs tools in parallel. Parent-Child fans out per record. Dynamic schemas built at boot from DB definitions.</p></article>
+        <article class="lp2-card"><i class="bi bi-graph-up" aria-hidden="true"></i>
             <h3>OpenTelemetry Observability</h3>
-            <p>Per-tool p50/p95/p99 latency histograms. Error spike alerting. Health probes for Kubernetes. Optional OTEL SDK exports to Datadog, Grafana, Splunk.</p>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon" style="background: rgba(111, 66, 193, 0.1); color: #6f42c1;"><i class="bi bi-people"></i></div>
+            <p>Per-tool p50/p95/p99 latency histograms. Error spike alerting. Health probes for Kubernetes. Optional OTEL SDK exports to Datadog, Grafana, Splunk.</p></article>
+        <article class="lp2-card"><i class="bi bi-people" aria-hidden="true"></i>
             <h3>Multi-Tenancy</h3>
-            <p>Tenant-isolated tool access with wildcard patterns. Per-tenant quotas, data isolation, and API key pools. Enterprise-ready from day one.</p>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon" style="background: rgba(40, 167, 69, 0.1); color: #28a745;"><i class="bi bi-puzzle"></i></div>
+            <p>Tenant-isolated tool access with wildcard patterns. Per-tenant quotas, data isolation, and API key pools. Enterprise-ready from day one.</p></article>
+        <article class="lp2-card"><i class="bi bi-puzzle" aria-hidden="true"></i>
             <h3>Plugin System</h3>
-            <p>Drop a plugin directory with JSON tool configs or Python classes. Auto-discovered, checksum-verified, dependency-installed. Publish and share tool packs.</p>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon" style="background: rgba(0, 163, 224, 0.1); color: var(--blue-bright);"><i class="bi bi-shield-lock"></i></div>
+            <p>Drop a plugin directory with JSON tool configs or Python classes. Auto-discovered, checksum-verified, dependency-installed. Publish and share tool packs.</p></article>
+        <article class="lp2-card"><i class="bi bi-shield-lock" aria-hidden="true"></i>
             <h3>Multi-Layer Security</h3>
-            <p>Four auth methods: JWT, API Key, Session Cookie, OAuth SSO. RBAC with wildcard tool permissions. Every call authenticated, authorised, and audit-logged.</p>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon" style="background: rgba(6, 214, 160, 0.1); color: var(--cyan);"><i class="bi bi-magic"></i></div>
+            <p>Four auth methods: JWT, API Key, Session Cookie, OAuth SSO. RBAC with wildcard tool permissions. Every call authenticated, authorised, and audit-logged.</p></article>
+        <article class="lp2-card"><i class="bi bi-magic" aria-hidden="true"></i>
             <h3>MCP Studio</h3>
-            <p>7 visual tool creators: Python, REST, DB Query, Script, PowerBI Report, PowerBI DAX, LiveLink. Analysts create tools without writing code. Hot-reload deploys in seconds.</p>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;"><i class="bi bi-clock-history"></i></div>
+            <p>7 visual tool creators: Python, REST, DB Query, Script, PowerBI Report, PowerBI DAX, LiveLink. Analysts create tools without writing code. Hot-reload deploys in seconds.</p></article>
+        <article class="lp2-card"><i class="bi bi-clock-history" aria-hidden="true"></i>
             <h3>Tool Versioning</h3>
-            <p>Run v1 and v2 side-by-side. Deprecation lifecycle with sunset dates. Contract testing validates all 497 tools against live APIs. Zero surprises in production.</p>
-        </div>
+            <p>Run v1 and v2 side-by-side. Deprecation lifecycle with sunset dates. Contract testing validates all 497 tools against live APIs. Zero surprises in production.</p></article>
     </div>
 </section>
 
 <!-- Transports -->
-<section class="transports" id="transports">
-    <div class="section-label">Connectivity</div>
-    <h2 class="section-title">Three ways to connect. One protocol.</h2>
-    <p class="section-desc">Every transport uses the same MCPHandler — identical JSON-RPC 2.0, same 12 methods, same auth, same audit logging.</p>
-    <div class="transport-grid">
-        <div class="transport-card">
-            <div class="proto">POST /mcp</div>
+<section class="lp2-section" id="transports">
+    <p class="lp2-eyebrow lp2-centre">Connectivity</p>
+    <h2 class="lp2-h2 lp2-centre">Three ways to connect. One protocol.</h2>
+    <p class="lp2-desc lp2-centre">Every transport uses the same MCPHandler — identical JSON-RPC 2.0, same 12 methods, same auth, same audit logging.</p>
+    <div class="lp2-grid">
+        <article class="lp2-card lp2-transport">
+            <div class="lp2-proto">POST /mcp</div>
             <h3>HTTP POST</h3>
-            <p>Stateless request-response. One call, one result. Best for automation scripts, CI/CD pipelines, and simple tool execution.</p>
-        </div>
-        <div class="transport-card">
-            <div class="proto">GET /mcp/sse</div>
+            <p>Stateless request-response. One call, one result. Best for automation scripts, CI/CD pipelines, and simple tool execution.</p></article>
+        <article class="lp2-card lp2-transport">
+            <div class="lp2-proto">GET /mcp/sse</div>
             <h3>Server-Sent Events</h3>
-            <p>Server-push streaming. Persistent connection for long-running tools, progress updates, and real-time web UI feeds.</p>
-        </div>
-        <div class="transport-card">
-            <div class="proto">WS /mcp/ws</div>
+            <p>Server-push streaming. Persistent connection for long-running tools, progress updates, and real-time web UI feeds.</p></article>
+        <article class="lp2-card lp2-transport">
+            <div class="lp2-proto">WS /mcp/ws</div>
             <h3>WebSocket</h3>
-            <p>Full-duplex bidirectional. Server pushes notifications without polling. Best for interactive agents and real-time dashboards.</p>
-        </div>
+            <p>Full-duplex bidirectional. Server pushes notifications without polling. Best for interactive agents and real-time dashboards.</p></article>
     </div>
 </section>
 
 <!-- CTA -->
-<section class="cta">
+<section class="lp2-cta">
     <h2>Ready to connect your agents?</h2>
     <p>497 tools waiting. Zero setup required. Start in 30 seconds.</p>
-    <a href="/login" class="btn-hero btn-hero-primary" style="font-size: 1.1rem; padding: 1rem 2.5rem;"><i class="bi bi-rocket-takeoff"></i> Sign In to SAJHA</a>
+    <div class="lp2-actions">
+        <a href="/login" class="lp2-btn lp2-btn-light"><i class="bi bi-rocket-takeoff" aria-hidden="true"></i> Sign In to SAJHA</a>
+        <a href="/docs" class="lp2-btn lp2-btn-ghost">Documentation</a>
+    </div>
 </section>
 
+</main>
+
 <!-- Footer -->
-<footer class="footer">
-    <div class="footer-left">© {{ app_copyright_years }} {{ app_name }} | {{ app_author }} · Version {{ app_version }}</div>
-    <div class="footer-links">
-        <a href="/help"><i class="bi bi-question-circle me-1"></i>Help</a>
-        <a href="/about"><i class="bi bi-info-circle me-1"></i>About</a>
-        <a href="/docs"><i class="bi bi-book me-1"></i>Docs</a>
-        <a href="{{ app_github_repo }}"><i class="bi bi-github me-1"></i>GitHub</a>
-    </div>
+<footer class="sajha-foot">
+    <p class="mb-1">© {{ app_copyright_years }} {{ app_name }} | {{ app_author }} · Version {{ app_version }}</p>
+    <p class="mb-0 sajha-foot-links">
+        <a href="/help"><i class="bi bi-question-circle me-1" aria-hidden="true"></i>Help</a>
+        <a href="/about"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>About</a>
+        <a href="/docs"><i class="bi bi-book me-1" aria-hidden="true"></i>Docs</a>
+        <a href="{{ app_github_repo }}"><i class="bi bi-github me-1" aria-hidden="true"></i>GitHub</a>
+    </p>
 </footer>
 
-<script>
-// Scroll effect for nav
-window.addEventListener('scroll', () => {
-    document.getElementById('topNav').classList.toggle('scrolled', window.scrollY > 50);
-});
+<script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
+{% include "common/_theme_script.html" %}
 
-// Smooth scroll
-document.querySelectorAll('a[href^="#"]').forEach(a => {
-    a.addEventListener('click', e => {
+<script>
+// Smooth scroll for in-page links (the fixed bar's height is allowed for by scroll-padding-top)
+document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+        var target = document.querySelector(a.getAttribute('href'));
+        if (!target) return;
         e.preventDefault();
-        document.querySelector(a.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
+        target.scrollIntoView({ behavior: 'smooth' });
+        var menu = document.getElementById('sajha-public-menu');
+        if (menu && menu.classList.contains('show') && window.bootstrap) bootstrap.Collapse.getOrCreateInstance(menu).hide();
     });
 });
 </script>
@@ -456,11 +205,29 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     var ctx = canvas.getContext('2d');
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // Palette pulled from the page's CSS custom properties so it tracks the theme.
-    var css = getComputedStyle(document.documentElement);
-    var BLUE   = (css.getPropertyValue('--blue-bright') || '#00a3e0').trim();
-    var CYAN   = (css.getPropertyValue('--cyan') || '#06d6a0').trim();
-    var FAINT  = 'rgba(120,160,210,';   // edge lines, alpha appended
+    // Palette read from the theme tokens, and read again whenever the theme changes.
+    // Each colour is resolved to [r, g, b] so alpha can be applied on the canvas.
+    var probe = document.createElement('span');
+    probe.style.display = 'none';
+    document.body.appendChild(probe);
+    function rgbOf(token) {
+        probe.style.color = '';
+        probe.style.color = 'var(' + token + ')';
+        var m = getComputedStyle(probe).color.match(/[\d.]+/g) || [0, 0, 0];
+        return [+m[0], +m[1], +m[2]];
+    }
+    function rgba(c, a) { return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; }
+    var C = {};
+    function readPalette() {
+        C.accent  = rgbOf('--sajha-crimson');   // the theme's accent (was blue)
+        C.second  = rgbOf('--sajha-indigo');    // the second hue of the gradient (was cyan)
+        C.ink     = rgbOf('--sajha-ink');
+        C.slate   = rgbOf('--sajha-slate');
+        C.surface = rgbOf('--sajha-surface');
+    }
+    readPalette();
+    var FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+    var MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 
     // AI agents (left) and data providers (right). These labels ARE the message:
     // a heterogeneous fleet of agents and data sources unified by one hub.
@@ -506,7 +273,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
         packets.push({
             from: fwd ? a : b, to: fwd ? b : a,
             t: 0, speed: 0.006 + Math.random() * 0.006,
-            color: Math.random() > 0.5 ? BLUE : CYAN
+            hue: Math.random() > 0.5 ? 'accent' : 'second'
         });
     }
 
@@ -525,30 +292,30 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
         ctx.beginPath();
         ctx.moveTo(n.x, n.y);
         ctx.quadraticCurveTo(c.x, c.y, hub.x, hub.y);
-        ctx.strokeStyle = FAINT + (0.06 + n.glow * 0.22) + ')';
+        ctx.strokeStyle = rgba(C.slate, 0.10 + n.glow * 0.30);
         ctx.lineWidth = 1;
         ctx.stroke();
         return c;
     }
 
-    function dot(n, ctrl) {
+    function dot(n) {
         var dm = Math.hypot(n.x - mouse.x, n.y - mouse.y);
         if (dm < 120) n.glow = Math.max(n.glow, 1 - dm / 120);
         var rad = 3 + n.glow * 2.5;
         // halo
         var g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, 22);
-        g.addColorStop(0, 'rgba(0,163,224,' + (0.18 + n.glow * 0.5) + ')');
-        g.addColorStop(1, 'rgba(0,163,224,0)');
+        g.addColorStop(0, rgba(C.accent, 0.14 + n.glow * 0.4));
+        g.addColorStop(1, rgba(C.accent, 0));
         ctx.fillStyle = g;
         ctx.beginPath(); ctx.arc(n.x, n.y, 22, 0, 7); ctx.fill();
         // core
-        ctx.fillStyle = n.glow > 0.4 ? CYAN : BLUE;
+        ctx.fillStyle = rgba(n.glow > 0.4 ? C.second : C.accent, 1);
         ctx.beginPath(); ctx.arc(n.x, n.y, rad, 0, 7); ctx.fill();
         // label
-        ctx.font = '600 11px "JetBrains Mono", ui-monospace, monospace';
+        ctx.font = '600 11px ' + MONO;
         ctx.textBaseline = 'middle';
         ctx.textAlign = n.side < 0 ? 'right' : 'left';
-        ctx.fillStyle = 'rgba(193,200,212,' + (0.35 + n.glow * 0.55) + ')';
+        ctx.fillStyle = rgba(C.ink, 0.40 + n.glow * 0.5);
         ctx.fillText(n.label, n.x + (n.side < 0 ? -12 : 12), n.y);
         n.glow *= 0.92;
     }
@@ -556,27 +323,27 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     function drawHub(pulse) {
         var R = 16 + pulse * 6;
         var g = ctx.createRadialGradient(hub.x, hub.y, 0, hub.x, hub.y, 64 + pulse * 18);
-        g.addColorStop(0, 'rgba(6,214,160,' + (0.16 + pulse * 0.10) + ')');
-        g.addColorStop(0.5, 'rgba(0,163,224,0.06)');
-        g.addColorStop(1, 'rgba(0,163,224,0)');
+        g.addColorStop(0, rgba(C.second, 0.14 + pulse * 0.10));
+        g.addColorStop(0.5, rgba(C.accent, 0.06));
+        g.addColorStop(1, rgba(C.accent, 0));
         ctx.fillStyle = g;
         ctx.beginPath(); ctx.arc(hub.x, hub.y, 64 + pulse * 18, 0, 7); ctx.fill();
         // pulsing ring
-        ctx.strokeStyle = 'rgba(6,214,160,' + (0.5 - pulse * 0.4) + ')';
+        ctx.strokeStyle = rgba(C.accent, 0.5 - pulse * 0.4);
         ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.arc(hub.x, hub.y, 26 + pulse * 26, 0, 7); ctx.stroke();
         // core
-        ctx.fillStyle = '#eafcff';
+        ctx.fillStyle = rgba(C.surface, 1);
         ctx.beginPath(); ctx.arc(hub.x, hub.y, 6, 0, 7); ctx.fill();
-        ctx.fillStyle = CYAN;
+        ctx.fillStyle = rgba(C.accent, 1);
         ctx.beginPath(); ctx.arc(hub.x, hub.y, R * 0.32, 0, 7); ctx.fill();
         // wordmark
-        ctx.font = '800 12px "Plus Jakarta Sans", sans-serif';
+        ctx.font = '800 12px ' + FONT;
         ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-        ctx.fillStyle = 'rgba(234,252,255,0.85)';
+        ctx.fillStyle = rgba(C.ink, 0.8);
         ctx.fillText('SAJHA', hub.x, hub.y + R + 8);
-        ctx.font = '600 9px "JetBrains Mono", monospace';
-        ctx.fillStyle = 'rgba(0,163,224,0.7)';
+        ctx.font = '600 9px ' + MONO;
+        ctx.fillStyle = rgba(C.accent, 0.75);
         ctx.fillText('497 TOOLS · 1 PROTOCOL', hub.x, hub.y + R + 24);
     }
 
@@ -595,7 +362,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
             var p = packets[i];
             p.t += p.speed * (dt / 16.6);
             if (p.t >= 1) { packets.splice(i, 1); continue; }
-            var pos, lead;
+            var pos;
             if (p.t < 0.5) {                 // node -> hub
                 var n = p.from, ci = (n.side < 0 ? ctrlsL[left.indexOf(n)] : ctrlsR[right.indexOf(n)]);
                 pos = q(n, ci, hub, p.t * 2); n.glow = 1;
@@ -603,11 +370,12 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
                 var n2 = p.to, cj = (n2.side < 0 ? ctrlsL[left.indexOf(n2)] : ctrlsR[right.indexOf(n2)]);
                 pos = q(hub, cj, n2, (p.t - 0.5) * 2); n2.glow = 1;
             }
+            var col = C[p.hue];
             var tr = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, 9);
-            tr.addColorStop(0, p.color); tr.addColorStop(1, 'rgba(0,0,0,0)');
+            tr.addColorStop(0, rgba(col, 1)); tr.addColorStop(1, rgba(col, 0));
             ctx.fillStyle = tr;
             ctx.beginPath(); ctx.arc(pos.x, pos.y, 9, 0, 7); ctx.fill();
-            ctx.fillStyle = '#ffffff';
+            ctx.fillStyle = rgba(C.surface, 1);
             ctx.beginPath(); ctx.arc(pos.x, pos.y, 1.8, 0, 7); ctx.fill();
         }
 
@@ -641,16 +409,23 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     window.addEventListener('resize', function () {
         clearTimeout(rt); rt = setTimeout(init, 150);
     });
-    canvas.addEventListener('pointermove', function () {}, { passive: true });
     window.addEventListener('pointermove', function (e) {
         var r = canvas.getBoundingClientRect();
         mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top;
     }, { passive: true });
-    // pause when the hero scrolls out of view (saves battery)
+    // pause when the tab is hidden (saves battery)
     document.addEventListener('visibilitychange', function () {
         if (document.hidden) { cancelAnimationFrame(frame); }
         else if (!reduce) { tprev = performance.now(); frame = requestAnimationFrame(render); }
     });
+    // a theme change (the palette menu, or the system's light/dark) recolours the mesh
+    new MutationObserver(function () { readPalette(); if (reduce) staticFrame(); })
+        .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-bs-theme'] });
+    if (window.matchMedia) {
+        var mq = window.matchMedia('(prefers-color-scheme: dark)');
+        var onScheme = function () { readPalette(); if (reduce) staticFrame(); };
+        if (mq.addEventListener) mq.addEventListener('change', onScheme); else if (mq.addListener) mq.addListener(onScheme);
+    }
 
     init();
 })();

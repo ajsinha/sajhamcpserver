@@ -10,17 +10,11 @@ Each section appears exactly once. No hardcoded structural colors.
 <div class="container py-4">
 
     <!-- ── Hero ───────────────────────────────────────────────── -->
-    <div class="row mb-4">
-        <div class="col-12 text-center">
-            <i class="bi bi-diagram-3" style="font-size:2.75rem;color:var(--t-link)"></i>
-            <h1 class="mt-2 mb-1" style="color:var(--t-heading)">About SAJHA MCP Server</h1>
-            <p class="text-muted mb-2">A Production-Grade Model Context Protocol Implementation</p>
-            <div>
-                <span class="badge text-bg-success">v{{ app_version }} · Stable</span>
-                <span class="badge text-bg-primary">FastAPI</span>
-                <span class="badge text-bg-info">MCP 2025-11-25</span>
-            </div>
-        </div>
+    <div class="about-hero">
+        <i class="bi bi-diagram-3 d-block mb-2" style="font-size:2.75rem;position:relative"></i>
+        <h1>SAJHA</h1>
+        <p>About SAJHA MCP Server: a production-grade Model Context Protocol implementation</p>
+        <span class="version-badge">v{{ app_version }} · Stable · FastAPI · MCP 2025-11-25</span>
     </div>
 
     <!-- ── Overview + Meaning of SAJHA ────────────────────────── -->
@@ -38,8 +32,8 @@ Each section appears exactly once. No hardcoded structural colors.
             <div class="card h-100">
                 <div class="card-header card-header-info"><i class="bi bi-translate me-2"></i>The Meaning of SAJHA</div>
                 <div class="card-body d-flex align-items-center">
-                    <div class="rounded-circle d-none d-sm-inline-flex align-items-center justify-content-center me-3 flex-shrink-0" style="width:84px;height:84px;background:var(--t-card-hdr)">
-                        <span style="font-size:2rem;font-family:'Noto Sans Devanagari',sans-serif;color:var(--t-link)">साझा</span>
+                    <div class="rounded-circle d-none d-sm-inline-flex align-items-center justify-content-center me-3 flex-shrink-0" style="width:84px;height:84px;background:var(--sajha-crimson-tint)">
+                        <span style="font-size:2rem;font-family:'Noto Sans Devanagari',sans-serif;color:var(--sajha-crimson)">साझा</span>
                     </div>
                     <div>
                         <p class="small mb-2"><strong>SAJHA</strong> (Hindi: साझा, Urdu: ساجھا) means <em>"shared," "common," "mutual,"</em> or <em>"collaborative."</em></p>
@@ -111,7 +105,7 @@ Each section appears exactly once. No hardcoded structural colors.
                 <div class="card-header card-header-secondary"><i class="bi bi-search me-2"></i>Semantic Tool Discovery</div>
                 <div class="card-body">
                     <p class="small">Describe what you need in plain English — SAJHA finds the best tools:</p>
-                    <div class="small" style="background:var(--t-card-hdr);border-radius:6px;padding:0.5rem;font-family:monospace;color:var(--t-text)">
+                    <div class="small" style="background:var(--sajha-canvas);border:1px solid var(--sajha-border);border-radius:6px;padding:0.5rem;font-family:monospace;color:var(--sajha-ink)">
                         "find companies with high debt ratios"<br>
                         → fmp_key_metrics (0.89)<br>
                         → fmp_financial_ratios (0.85)<br>
@@ -198,7 +192,7 @@ Each section appears exactly once. No hardcoded structural colors.
                             <h5 class="mb-0">Protocol Version: <strong>2025-11-25</strong> (latest)</h5>
                             <small class="text-muted">Released November 25, 2025 by the MCP Steering Group</small>
                         </div>
-                        <span class="badge text-bg-success px-3 py-2"><i class="bi bi-check-circle me-1"></i>Fully Compliant</span>
+                        <span class="badge bg-success px-3 py-2"><i class="bi bi-check-circle me-1"></i>Fully Compliant</span>
                     </div>
                     <div class="row g-3">
                         <div class="col-md-3"><h6><i class="bi bi-clock-history me-2 text-primary"></i>Tasks (SEP-1686)</h6><p class="small mb-0">Async tracking for long-running requests. Create, poll, cancel. States: working → completed/failed/cancelled.</p></div>
@@ -230,9 +224,11 @@ Each section appears exactly once. No hardcoded structural colors.
                         ('SQLAlchemy + SQLite/PostgreSQL','ORM with pluggable database backends'),
                         ('YAML Configuration','Single application.yml with env var substitution')
                     ] %}
+                    <ul class="cap-list">
                     {% for name, desc in stack %}
-                    <div class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>{{ name }}</strong><br><span class="text-muted small ms-4">{{ desc }}</span></div>
+                    <li><strong>{{ name }}</strong><br><span class="text-muted small">{{ desc }}</span></li>
                     {% endfor %}
+                    </ul>
                 </div>
             </div>
         </div>

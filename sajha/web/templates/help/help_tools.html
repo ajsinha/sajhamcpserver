@@ -13,12 +13,13 @@
 {% endblock %}
 {% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <nav class="help-crumbs" aria-label="Breadcrumb"><a href="/help"><i class="bi bi-life-preserver me-1"></i>Help</a><i class="bi bi-chevron-right"></i><span>Tool Catalog</span></nav>
+    <div class="help-topic-hero">
+        <div class="ico"><i class="bi bi-tools"></i></div>
         <div>
-            <h1 class="h3 mb-1"><i class="bi bi-tools me-2"></i>Tool Catalog</h1>
-            <a href="/help" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Back to Help</a>
+            <h1 class="h3">Tool Catalog</h1>
+            <p>Browse every tool by provider group. <span class="badge rounded-pill px-3 py-2 ms-1"><i class="bi bi-gear me-1"></i>{{ tool_stats.total_tools }} tools in {{ tool_stats.total_groups }} groups</span></p>
         </div>
-        <span class="badge bg-primary rounded-pill px-3 py-2"><i class="bi bi-gear me-1"></i>{{ tool_stats.total_tools }} tools in {{ tool_stats.total_groups }} groups</span>
     </div>
 
     <!-- Search -->
@@ -34,17 +35,19 @@
 
     <!-- Tool Group Cards -->
     <div class="row g-3" id="toolGroupGrid">
+        {% set tok_map = {'primary':'crimson','success':'ok','info':'indigo','warning':'warn','danger':'bad','secondary':'slate','dark':'indigo'} %}
         {% for group in tool_groups %}
+        {% set tok = 'var(--sajha-' ~ tok_map.get(group.color, 'crimson') ~ ')' %}
         <div class="col-md-6 col-lg-4 tool-group-col" data-name="{{ group.name }}">
             <div class="card tool-group-card">
-                <div class="tool-group-header bg-{{ group.color }} text-white">
+                <div class="tool-group-header" style="background:{{ tok }};color:var(--sajha-on-crimson)">
                     <span><i class="{{ group.icon }} me-2"></i><strong>{{ group.name }}</strong></span>
-                    <span class="badge bg-white text-dark">{{ group.tool_count }} tools</span>
+                    <span class="badge" style="background:var(--sajha-surface);color:var(--sajha-ink)">{{ group.tool_count }} tools</span>
                 </div>
                 <div class="tool-group-body">
                     <p>{{ group.description }}</p>
                     {% for cat in group.categories %}
-                    <div class="tool-group-desc bg-{{ group.color }} bg-opacity-10 text-{{ group.color }}" title="{{ cat }}">{{ cat }}</div>
+                    <div class="tool-group-desc" style="background:color-mix(in srgb, {{ tok }} 12%, var(--sajha-surface));color:color-mix(in srgb, {{ tok }} 80%, var(--sajha-ink))" title="{{ cat }}">{{ cat }}</div>
                     {% endfor %}
                 </div>
                 <div class="tool-group-footer">

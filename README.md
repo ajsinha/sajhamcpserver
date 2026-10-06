@@ -84,7 +84,7 @@ python run_server.py --log-level DEBUG             # Verbose logging
 | **Multi-Tenancy** | Tenant-isolated tools with fnmatch wildcards, per-tenant quotas (daily/monthly), data isolation |
 | **Plugins** | Drop directory + plugin.json manifest → discover → validate (SHA-256) → load. Hot-reload |
 | **Tool Versioning** | v1/v2 side-by-side. Lifecycle: active → deprecated → sunset → retired. Contract testing |
-| **UI** | 4 themes (Light, Dark, Wall Street, Ubuntu). 42 screens. Custom SVG icon set. Full A11y (WCAG AA) |
+| **UI** | 4 themes shared with MAYA (Crimson, Dark, Blue, Green). 42 screens. Custom SVG icon set. Full A11y (WCAG AA) |
 | **Client SDK** | Zero-dependency Python: SajhaClient, MCPClient, MCPSSEClient, MCPWebSocketClient, A2AClient. TransportCoalgebra + bisimilar() + ClientPipeline |
 | **Configuration** | YAML-only: `config/application.yml` with `${ENV_VAR:default}` substitution. Overridable via `--config` CLI or `SAJHA_CONFIG_FILE` env var. PropertiesConfigurator with native YAML support |
 | **Database** | SQLite default, PostgreSQL ready. 19 tables. Two SQL scripts only (schema + seed) |

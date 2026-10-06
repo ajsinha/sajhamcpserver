@@ -75,7 +75,7 @@
 
             <div class="table-responsive">
                 <table class="table" data-sajha-table="false table-striped table-hover" id="toolsListTable">
-                    <thead class="table-light">
+                    <thead>
                         <tr>
                             <th style="width:130px">Group</th>
                             <th>Tool Name</th>
@@ -109,12 +109,12 @@
 
 {% block extra_css %}
 <style>
-.tool-card{border:1px solid var(--theme-card-border);border-radius:var(--radius-md);padding:1rem;transition:all var(--transition-fast);background:var(--theme-card-bg);height:100%}
-.tool-card:hover{border-color:var(--t-link);transform:translateY(-2px);box-shadow:var(--shadow-md)}
-.tool-card .tool-name{font-weight:600;font-size:.9rem;color:var(--t-link);text-decoration:none;display:block;margin-bottom:.25rem}
+.tool-card{border:1px solid var(--sajha-border);border-radius:var(--radius);padding:1rem;transition:all var(--ease-fast);background:var(--sajha-surface);height:100%}
+.tool-card:hover{border-color:var(--sajha-crimson);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.tool-card .tool-name{font-weight:600;font-size:.9rem;color:var(--sajha-crimson);text-decoration:none;display:block;margin-bottom:.25rem}
 .tool-card .tool-name:hover{text-decoration:underline}
-.tool-card .tool-desc{font-size:.8rem;color:var(--theme-text-muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.tool-card .tool-provider{font-size:.7rem;font-weight:600;padding:.15rem .5rem;border-radius:4px;background:rgba(0,121,193,.1);color:var(--t-link);display:inline-block;margin-top:.5rem}
+.tool-card .tool-desc{font-size:.8rem;color:var(--sajha-slate);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tool-card .tool-provider{font-size:.7rem;font-weight:600;padding:.15rem .5rem;border-radius:4px;background:var(--sajha-crimson-tint);color:var(--sajha-crimson);display:inline-block;margin-top:.5rem}
 </style>
 {% endblock %}
 
@@ -132,11 +132,14 @@ const toolsData = [
     {% endfor %}
 ];
 
-const GC = {fmp:'#0d6efd',openbb:'#198754',yf:'#ffc107',av:'#6f42c1',fred:'#dc3545',
-    cg:'#fd7e14',calc:'#20c997',edgar:'#6610f2',wb:'#0dcaf0',duckdb:'#adb5bd',
-    tavily:'#d63384',sec:'#495057',imf:'#e91e63',ecb:'#795548',boc:'#607d8b',
-    boj:'#ff5722',pboc:'#9c27b0',rbi:'#00bcd4',ir:'#8bc34a',un:'#3f51b5',
-    fbi:'#f44336',wiki:'#009688',sqlselect:'#cddc39',olap:'#ff9800',msdoc:'#673ab7'};
+// Group colours come from the active theme's tokens (crimson, indigo, ok, warn, slate + mixes)
+const GPAL = ['var(--sajha-crimson)','var(--sajha-indigo)','var(--sajha-ok)','var(--sajha-warn)',
+    'var(--sajha-slate)','var(--sajha-crimson-deep)',
+    'color-mix(in srgb, var(--sajha-indigo) 55%, var(--sajha-ok))',
+    'color-mix(in srgb, var(--sajha-crimson) 55%, var(--sajha-warn))',
+    'color-mix(in srgb, var(--sajha-indigo) 60%, var(--sajha-crimson))'];
+function gcol(g){ let h=0; for (const ch of String(g||'')) h=(h*31+ch.charCodeAt(0))>>>0; return GPAL[h%GPAL.length]; }
+function gstyle(c){ return `background:color-mix(in srgb, ${c} 14%, var(--sajha-surface));color:color-mix(in srgb, ${c} 80%, var(--sajha-ink));border:1px solid color-mix(in srgb, ${c} 35%, transparent);`; }
 
 let currentPage = 1, rowsPerPage = 25, filteredData = [...toolsData];
 
@@ -157,7 +160,7 @@ groups.forEach(g => {
 const bb = document.getElementById('groupBadges');
 groups.forEach(g => {
     const b = document.createElement('span');
-    b.className = 'badge rounded-pill'; b.style.cssText = `background:${GC[g]||'#6c757d'};cursor:pointer;font-size:0.72rem;`;
+    b.className = 'badge rounded-pill'; b.style.cssText = `${gstyle(gcol(g))}cursor:pointer;font-size:0.72rem;`;
     b.textContent = `${g} (${groupCounts[g]})`;
     b.onclick = () => { gs.value = g; applyFilters(); };
     bb.appendChild(b);
@@ -196,11 +199,11 @@ function renderTable() {
 
     tbody.innerHTML = '';
     filteredData.slice(s, e).forEach(t => {
-        const c = GC[t.group]||'#6c757d';
+        const c = gcol(t.group);
         const pBadge = t.totalParams > 0 ? `<span class="badge bg-secondary">${t.totalParams}</span>` : '<span class="badge bg-light text-dark">0</span>';
         const cacheBadge = t.cacheTtl > 0 ? `<span class="badge bg-info" title="Cached ${t.cacheTtl}s"><i class="bi bi-database me-1"></i>${t.cacheTtl >= 3600 ? Math.round(t.cacheTtl/3600)+'h' : t.cacheTtl >= 60 ? Math.round(t.cacheTtl/60)+'m' : t.cacheTtl+'s'}</span>` : '';
         tbody.innerHTML += `<tr>
-            <td><span class="badge" style="background:${c}">${t.group.toUpperCase()}</span></td>
+            <td><span class="badge" style="${gstyle(c)}">${t.group.toUpperCase()}</span></td>
             <td><strong>${search ? hl(t.name, search) : t.name}</strong> ${cacheBadge}</td>
             <td class="small">${search ? hl(t.description, search) : t.description}</td>
             <td>${pBadge}</td>
@@ -280,14 +283,13 @@ function renderCards() {
     const data = filteredData || allTools;
     data.forEach(t => {
         const group = (t.name || '').split('_')[0];
-        const colors = {fmp:'#0079c1',openbb:'#ff6600',fred:'#004b87',yahoo:'#7b0099',alpha:'#28a745',coingecko:'#8bc34a',calc:'#dc3545',olap:'#6f42c1',duckdb:'#ffc107'};
-        const color = colors[group] || '#6c757d';
+        const color = gcol(group);
         const card = document.createElement('div');
         card.className = 'col-md-6 col-lg-4 col-xl-3';
         card.innerHTML = `<div class="tool-card">
             <a href="/tools/${t.name}/schema" class="tool-name">${t.name}</a>
             <div class="tool-desc">${t.description || 'No description'}</div>
-            <span class="tool-provider" style="background:${color}15;color:${color}">${group.toUpperCase()}</span>
+            <span class="tool-provider" style="${gstyle(color)}">${group.toUpperCase()}</span>
         </div>`;
         container.appendChild(card);
     });

@@ -27,34 +27,38 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Total Users</h5>
-                    <h2 class="mb-0">{{ users|length }}</h2>
+            <div class="card stat-tile">
+                <div class="ico"><i class="bi bi-people"></i></div>
+                <div>
+                    <div class="num" style="color:var(--sajha-crimson)">{{ users|length }}</div>
+                    <div class="lbl">Total Users</div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Active Users</h5>
-                    <h2 class="mb-0">{{ active_count.value }}</h2>
+            <div class="card stat-tile">
+                <div class="ico"><i class="bi bi-person-check"></i></div>
+                <div>
+                    <div class="num" style="color:var(--sajha-ok)">{{ active_count.value }}</div>
+                    <div class="lbl">Active Users</div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Administrators</h5>
-                    <h2 class="mb-0">{{ admin_count.value }}</h2>
+            <div class="card stat-tile">
+                <div class="ico"><i class="bi bi-shield-lock"></i></div>
+                <div>
+                    <div class="num" style="color:var(--sajha-warn)">{{ admin_count.value }}</div>
+                    <div class="lbl">Administrators</div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Inactive Users</h5>
-                    <h2 class="mb-0">{{ inactive_count.value }}</h2>
+            <div class="card stat-tile">
+                <div class="ico"><i class="bi bi-person-x"></i></div>
+                <div>
+                    <div class="num" style="color:var(--sajha-bad)">{{ inactive_count.value }}</div>
+                    <div class="lbl">Inactive Users</div>
                 </div>
             </div>
         </div>

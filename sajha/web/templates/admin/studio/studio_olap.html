@@ -9,10 +9,7 @@
     }
     
     .creator-header {
-        background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
-        color: white;
         padding: 30px;
-        border-radius: 12px;
         margin-bottom: 30px;
     }
     
@@ -21,42 +18,29 @@
     }
     
     .creator-header .subtitle {
-        opacity: 0.9;
         margin-bottom: 0;
     }
     
+    /* Hero icon tile, as MAYA's help-topic-hero .ico */
+    .olap-logo {
+        width: 50px;
+        height: 50px;
+        flex: 0 0 50px;
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--sajha-on-nav) 16%, transparent);
+    }
+    
     .form-section {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         margin-bottom: 20px;
         overflow: hidden;
     }
     
     .section-header {
-        background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
-        color: white;
         padding: 15px 20px;
         font-weight: 600;
         display: flex;
         align-items: center;
         gap: 10px;
-    }
-    
-    .section-header.primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    
-    .section-header.success {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    }
-    
-    .section-header.info {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    }
-    
-    .section-header.warning {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     }
     
     .section-body {
@@ -65,24 +49,24 @@
     
     .help-text {
         font-size: 0.85rem;
-        color: #6c757d;
         margin-top: 5px;
     }
     
     .dimension-row, .measure-row, .join-row {
-        background: #f8f9fa;
-        border-radius: 8px;
+        background: color-mix(in srgb, var(--sajha-crimson-tint) 50%, var(--sajha-surface));
+        border-radius: 9px;
         padding: 15px;
         margin-bottom: 10px;
-        border: 1px solid #e9ecef;
+        border: 1px solid var(--sajha-border);
+        color: var(--sajha-ink);
     }
     
     .dimension-row:hover, .measure-row:hover, .join-row:hover {
-        border-color: #4ecdc4;
+        border-color: var(--sajha-crimson);
     }
     
     .remove-btn {
-        color: #dc3545;
+        color: var(--sajha-bad);
         cursor: pointer;
         opacity: 0.7;
     }
@@ -92,15 +76,17 @@
     }
     
     .olap-info {
-        background: #e8f5e9;
-        border: 1px solid #c8e6c9;
-        border-radius: 8px;
+        background: color-mix(in srgb, var(--sajha-indigo) 8%, var(--sajha-surface));
+        border: 1px solid color-mix(in srgb, var(--sajha-indigo) 30%, var(--sajha-border));
+        border-left: 4px solid var(--sajha-indigo);
+        border-radius: 0 14px 14px 0;
         padding: 15px;
         margin-bottom: 20px;
+        color: var(--sajha-ink);
     }
     
     .olap-info h6 {
-        color: #2e7d32;
+        color: var(--sajha-heading);
         margin-bottom: 10px;
     }
     
@@ -110,144 +96,49 @@
     }
     
     .olap-info li {
-        color: #333;
+        color: var(--sajha-ink);
         margin-bottom: 5px;
     }
     
     .quick-tips {
-        background: #fff3e0;
-        border: 1px solid #ffcc80;
-        border-radius: 8px;
+        background: color-mix(in srgb, var(--sajha-warn) 12%, var(--sajha-surface));
+        border: 1px solid color-mix(in srgb, var(--sajha-warn) 35%, var(--sajha-border));
+        border-left: 4px solid var(--sajha-warn);
+        border-radius: 0 14px 14px 0;
         padding: 15px;
+        color: var(--sajha-ink);
     }
     
     .quick-tips h6 {
-        color: #e65100;
+        color: var(--sajha-heading);
         margin-bottom: 10px;
     }
     
+    .quick-tips li {
+        color: var(--sajha-ink);
+    }
+    
+    /* Dark in every theme: the deepest colour of the theme's own gradient */
     .code-preview {
-        background: #1e1e1e;
-        color: #d4d4d4;
-        border-radius: 8px;
+        background: var(--sajha-nav-to);
+        color: var(--sajha-on-nav);
+        border-radius: 9px;
         padding: 15px;
         font-family: 'Consolas', 'Monaco', monospace;
         font-size: 12px;
         max-height: 300px;
         overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
     }
     
     .status-message {
         padding: 10px 15px;
-        border-radius: 6px;
         margin-bottom: 10px;
         display: none;
     }
-    
-    .status-message.success {
-        background: #d4edda;
-        color: #155724;
-        border: 1px solid #c3e6cb;
-    }
-    
-    .status-message.error {
-        background: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-    }
-    
-    /* Dark theme overrides */
-    html[data-theme="dark"] .form-section,
-    [data-theme="dark"] .form-section {
-        background: #2d2d2d !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
-    }
-    
-    html[data-theme="dark"] .section-body,
-    [data-theme="dark"] .section-body {
-        background: #2d2d2d !important;
-        color: #e0e0e0 !important;
-    }
-    
-    html[data-theme="dark"] .section-body label,
-    html[data-theme="dark"] .section-body p,
-    html[data-theme="dark"] .section-body span,
-    [data-theme="dark"] .section-body label,
-    [data-theme="dark"] .section-body p,
-    [data-theme="dark"] .section-body span {
-        color: #e0e0e0 !important;
-    }
-    
-    html[data-theme="dark"] .help-text,
-    [data-theme="dark"] .help-text {
-        color: #a0a0a0 !important;
-    }
-    
-    html[data-theme="dark"] .dimension-row,
-    html[data-theme="dark"] .measure-row,
-    html[data-theme="dark"] .join-row,
-    [data-theme="dark"] .dimension-row,
-    [data-theme="dark"] .measure-row,
-    [data-theme="dark"] .join-row {
-        background: #1e1e1e !important;
-        border-color: #444 !important;
-    }
-    
-    html[data-theme="dark"] .form-control,
-    html[data-theme="dark"] .form-select,
-    [data-theme="dark"] .form-control,
-    [data-theme="dark"] .form-select {
-        background: #1e1e1e !important;
-        color: #e0e0e0 !important;
-        border-color: #444 !important;
-    }
-    
-    html[data-theme="dark"] .olap-info,
-    [data-theme="dark"] .olap-info {
-        background: rgba(25, 135, 84, 0.15) !important;
-        border-color: #3d8b5e !important;
-    }
-    
-    html[data-theme="dark"] .olap-info h6,
-    [data-theme="dark"] .olap-info h6 {
-        color: #75b798 !important;
-    }
-    
-    html[data-theme="dark"] .olap-info li,
-    [data-theme="dark"] .olap-info li {
-        color: #c0c0c0 !important;
-    }
-    
-    html[data-theme="dark"] .quick-tips,
-    [data-theme="dark"] .quick-tips {
-        background: rgba(255, 152, 0, 0.15) !important;
-        border-color: #bf7d00 !important;
-    }
-    
-    html[data-theme="dark"] .quick-tips h6,
-    [data-theme="dark"] .quick-tips h6 {
-        color: #ffb74d !important;
-    }
-    
-    html[data-theme="dark"] .quick-tips li,
-    [data-theme="dark"] .quick-tips li {
-        color: #c0c0c0 !important;
-    }
-    
-    html[data-theme="dark"] .status-message.success,
-    [data-theme="dark"] .status-message.success {
-        background: rgba(25, 135, 84, 0.2) !important;
-        color: #75b798 !important;
-        border-color: #3d8b5e !important;
-    }
-    
-    html[data-theme="dark"] .status-message.error,
-    [data-theme="dark"] .status-message.error {
-        background: rgba(220, 53, 69, 0.2) !important;
-        color: #ea868f !important;
-        border-color: #8c3a42 !important;
-    }
 </style>
+{% include 'admin/studio/_studio_theme.html' %}
 {% endblock %}
 
 {% block content %}
@@ -256,8 +147,7 @@
     <!-- Header -->
     <div class="creator-header">
         <div class="d-flex align-items-center">
-            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" 
-                 style="width: 50px; height: 50px; background: rgba(255,255,255,0.2);">
+            <div class="olap-logo d-flex align-items-center justify-content-center me-3">
                 <i class="bi bi-graph-up-arrow fs-4"></i>
             </div>
             <div>
@@ -395,7 +285,7 @@
     
     <!-- Preview Section -->
     <div class="form-section">
-        <div class="section-header" style="background: linear-gradient(135deg, #434343 0%, #000000 100%);">
+        <div class="section-header">
             <i class="bi bi-code-square"></i> Configuration Preview
         </div>
         <div class="section-body">

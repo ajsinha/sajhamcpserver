@@ -2,27 +2,27 @@
 {% block title %}Dashboard - SAJHA MCP Server{% endblock %}
 {% block extra_css %}
 <style>
-.metric-card{background:var(--theme-card-bg);border:1px solid var(--theme-card-border);border-radius:var(--radius-lg);padding:1.5rem;transition:all var(--transition-normal)}
+.metric-card{background:var(--sajha-surface);border:1px solid var(--sajha-border);border-radius:var(--radius-lg);padding:1.5rem;transition:all var(--ease);box-shadow:var(--shadow-sm)}
 .metric-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
 .metric-value{font-size:2.2rem;font-weight:700;letter-spacing:-1px;line-height:1}
-.metric-label{font-size:.8rem;font-weight:600;color:var(--theme-text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:.5rem}
+.metric-label{font-size:.8rem;font-weight:600;color:var(--sajha-slate);text-transform:uppercase;letter-spacing:1px;margin-top:.5rem}
 .metric-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:1rem}
-.activity-item{padding:.75rem 0;border-bottom:1px solid var(--theme-card-border);display:flex;align-items:center;gap:1rem}
+.activity-item{padding:.75rem 0;border-bottom:1px solid var(--sajha-border);display:flex;align-items:center;gap:1rem}
 .activity-item:last-child{border:none}
 .activity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.quick-action{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-radius:var(--radius-md);border:1px solid var(--theme-card-border);text-decoration:none;color:var(--theme-text);transition:all var(--transition-fast);background:var(--theme-card-bg)}
-.quick-action:hover{border-color:var(--t-link);color:var(--t-link);transform:translateX(4px)}
+.quick-action{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-radius:var(--radius);border:1px solid var(--sajha-border);text-decoration:none;color:var(--sajha-ink);transition:all var(--ease-fast);background:var(--sajha-surface)}
+.quick-action:hover{border-color:var(--sajha-crimson);color:var(--sajha-crimson);background:var(--sajha-crimson-tint);transform:translateX(4px)}
 .quick-action i{font-size:1.2rem;width:24px;text-align:center}
-.welcome-bar{background:linear-gradient(135deg,var(--t-link) 0%,var(--sajha-blue-light) 100%);color:#fff;border-radius:var(--radius-lg);padding:1.5rem 2rem;margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
-.welcome-bar h2{font-size:1.5rem;font-weight:700;margin:0}
+.welcome-bar{background:linear-gradient(120deg,var(--sajha-nav-from),var(--sajha-nav-via) 50%,var(--sajha-nav-to));color:var(--sajha-on-nav);box-shadow:0 18px 40px -24px var(--sajha-glow);border-radius:var(--radius-lg);padding:1.5rem 2rem;margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
+.welcome-bar h2{font-size:1.5rem;font-weight:700;margin:0;color:var(--sajha-on-nav)}
 .welcome-bar p{margin:0;opacity:.85;font-size:.9rem}
-.transport-badge{display:inline-flex;align-items:center;gap:.25rem;padding:.25rem .6rem;border-radius:6px;font-size:.7rem;font-weight:600;font-family:'JetBrains Mono',monospace}
+.transport-badge{background:color-mix(in srgb, var(--sajha-on-nav) 15%, transparent);color:var(--sajha-on-nav);display:inline-flex;align-items:center;gap:.25rem;padding:.25rem .6rem;border-radius:6px;font-size:.7rem;font-weight:600;font-family:'JetBrains Mono',monospace}
 </style>
 {% endblock %}
 {% block content %}
 <div class="container-fluid">
     <!-- #11 Onboarding wizard (shows only until dismissed) -->
-    <div id="onboarding" class="card mb-3" style="display:none; border-left: 4px solid var(--t-link);">
+    <div id="onboarding" class="card mb-3" style="display:none; border-left: 4px solid var(--sajha-crimson);">
         <div class="card-body py-3">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
@@ -48,9 +48,9 @@
             <p>Role: {{ user.roles|join(', ') }} · SAJHA MCP Server v{{ app_version }}</p>
         </div>
         <div class="d-flex gap-2">
-            <span class="transport-badge" style="background:rgba(255,255,255,.15)"><i class="bi bi-circle-fill" style="font-size:6px;color:#28a745"></i> HTTP</span>
-            <span class="transport-badge" style="background:rgba(255,255,255,.15)"><i class="bi bi-circle-fill" style="font-size:6px;color:#28a745"></i> SSE</span>
-            <span class="transport-badge" style="background:rgba(255,255,255,.15)"><i class="bi bi-circle-fill" style="font-size:6px;color:#28a745"></i> WebSocket</span>
+            <span class="transport-badge"><i class="bi bi-circle-fill" style="font-size:6px;color:var(--sajha-ok)"></i> HTTP</span>
+            <span class="transport-badge"><i class="bi bi-circle-fill" style="font-size:6px;color:var(--sajha-ok)"></i> SSE</span>
+            <span class="transport-badge"><i class="bi bi-circle-fill" style="font-size:6px;color:var(--sajha-ok)"></i> WebSocket</span>
         </div>
     </div>
 
@@ -58,29 +58,29 @@
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
             <div class="metric-card">
-                <div class="metric-icon" style="background:rgba(0,121,193,.1);color:var(--t-link)"><i class="bi bi-tools"></i></div>
-                <div class="metric-value" style="color:var(--t-link)">{{ tools_count }}</div>
+                <div class="metric-icon" style="background:var(--sajha-crimson-tint);color:var(--sajha-crimson)"><i class="bi bi-tools"></i></div>
+                <div class="metric-value" style="color:var(--sajha-crimson)">{{ tools_count }}</div>
                 <div class="metric-label">Active Tools</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="metric-card">
-                <div class="metric-icon" style="background:rgba(40,167,69,.1);color:var(--color-success)"><i class="bi bi-people"></i></div>
-                <div class="metric-value" style="color:var(--color-success)">{{ users_count }}</div>
+                <div class="metric-icon" style="background:color-mix(in srgb, var(--sajha-ok) 12%, transparent);color:var(--sajha-ok)"><i class="bi bi-people"></i></div>
+                <div class="metric-value" style="color:var(--sajha-ok)">{{ users_count }}</div>
                 <div class="metric-label">Users</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="metric-card">
-                <div class="metric-icon" style="background:rgba(111,66,193,.1);color:#6f42c1"><i class="bi bi-chat-square-text"></i></div>
-                <div class="metric-value" style="color:#6f42c1">{{ prompts_count }}</div>
+                <div class="metric-icon" style="background:color-mix(in srgb, var(--sajha-indigo) 12%, transparent);color:var(--sajha-indigo)"><i class="bi bi-chat-square-text"></i></div>
+                <div class="metric-value" style="color:var(--sajha-indigo)">{{ prompts_count }}</div>
                 <div class="metric-label">Prompts</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="metric-card">
-                <div class="metric-icon" style="background:rgba(220,53,69,.1);color:var(--color-danger)"><i class="bi bi-exclamation-triangle"></i></div>
-                <div class="metric-value" style="color:var(--color-danger)">{{ tool_errors|length }}</div>
+                <div class="metric-icon" style="background:color-mix(in srgb, var(--sajha-bad) 12%, transparent);color:var(--sajha-bad)"><i class="bi bi-exclamation-triangle"></i></div>
+                <div class="metric-value" style="color:var(--sajha-bad)">{{ tool_errors|length }}</div>
                 <div class="metric-label">Tool Errors</div>
             </div>
         </div>
@@ -90,29 +90,29 @@
     <div class="row g-3 mb-4" id="opsMetrics">
         <div class="col-md-3">
             <div class="metric-card">
-                <div class="d-flex justify-content-between"><small class="text-muted">CACHE</small><i class="bi bi-database" style="color:var(--color-info)"></i></div>
+                <div class="d-flex justify-content-between"><small class="text-muted">CACHE</small><i class="bi bi-database" style="color:var(--sajha-indigo)"></i></div>
                 <div class="h3 mb-0" id="cacheHitRate">—%</div>
                 <small class="text-muted" id="cacheDetail">— hits / — misses</small>
-                <div class="usage-bar mt-2" style="height:4px;background:var(--t-card-hdr);border-radius:2px"><div id="cacheBar" style="width:0%;height:100%;background:var(--color-info);border-radius:2px"></div></div>
+                <div class="usage-bar mt-2" style="height:4px;background:var(--sajha-crimson-tint);border-radius:2px"><div id="cacheBar" style="width:0%;height:100%;background:var(--sajha-indigo);border-radius:2px"></div></div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="metric-card">
-                <div class="d-flex justify-content-between"><small class="text-muted">PROVIDERS</small><i class="bi bi-cloud-check" style="color:var(--color-success)"></i></div>
+                <div class="d-flex justify-content-between"><small class="text-muted">PROVIDERS</small><i class="bi bi-cloud-check" style="color:var(--sajha-ok)"></i></div>
                 <div class="h3 mb-0" id="providerSummary">—</div>
                 <small class="text-muted" id="providerDetail">— healthy · — degraded · — down</small>
             </div>
         </div>
         <div class="col-md-3">
             <div class="metric-card">
-                <div class="d-flex justify-content-between"><small class="text-muted">RECENT RUNS</small><i class="bi bi-play-circle" style="color:var(--color-warning)"></i></div>
+                <div class="d-flex justify-content-between"><small class="text-muted">RECENT RUNS</small><i class="bi bi-play-circle" style="color:var(--sajha-warn)"></i></div>
                 <div class="h3 mb-0" id="replayCount">—</div>
                 <small class="text-muted" id="replayDetail">last 5 min</small>
             </div>
         </div>
         <div class="col-md-3">
             <div class="metric-card">
-                <div class="d-flex justify-content-between"><small class="text-muted">AUDIT</small><i class="bi bi-shield-check" style="color:var(--color-success)"></i></div>
+                <div class="d-flex justify-content-between"><small class="text-muted">AUDIT</small><i class="bi bi-shield-check" style="color:var(--sajha-ok)"></i></div>
                 <div class="h3 mb-0" id="auditCount">—</div>
                 <small class="text-muted" id="auditDetail">security events today</small>
             </div>
@@ -125,10 +125,10 @@
             <div class="card h-100">
                 <div class="card-header card-header-primary"><i class="bi bi-lightning me-2"></i>Quick Actions</div>
                 <div class="card-body d-flex flex-column gap-2">
-                    <a href="/tools" class="quick-action"><svg class="sajha-icon" style="color:var(--t-link)"><use href="#icon-tool"/></svg><div><strong>Browse Tools</strong><br><small class="text-muted">Search and test {{ tools_count }} tools</small></div></a>
-                    <a href="/studio" class="quick-action"><svg class="sajha-icon" style="color:#8a2be2"><use href="#icon-mcp"/></svg><div><strong>MCP Studio</strong><br><small class="text-muted">Create new tools visually</small></div></a>
-                    <a href="/composite/builder" class="quick-action"><svg class="sajha-icon" style="color:var(--color-warning)"><use href="#icon-composite"/></svg><div><strong>Composite Builder</strong><br><small class="text-muted">Chain tools together</small></div></a>
-                    <a href="/ai/settings" class="quick-action"><svg class="sajha-icon" style="color:var(--color-info)"><use href="#icon-provider"/></svg><div><strong>AI Settings</strong><br><small class="text-muted">LLM providers and models</small></div></a>
+                    <a href="/tools" class="quick-action"><svg class="sajha-icon" style="color:var(--sajha-crimson)"><use href="#icon-tool"/></svg><div><strong>Browse Tools</strong><br><small class="text-muted">Search and test {{ tools_count }} tools</small></div></a>
+                    <a href="/studio" class="quick-action"><svg class="sajha-icon" style="color:var(--sajha-indigo)"><use href="#icon-mcp"/></svg><div><strong>MCP Studio</strong><br><small class="text-muted">Create new tools visually</small></div></a>
+                    <a href="/composite/builder" class="quick-action"><svg class="sajha-icon" style="color:var(--sajha-warn)"><use href="#icon-composite"/></svg><div><strong>Composite Builder</strong><br><small class="text-muted">Chain tools together</small></div></a>
+                    <a href="/ai/settings" class="quick-action"><svg class="sajha-icon" style="color:var(--sajha-indigo)"><use href="#icon-provider"/></svg><div><strong>AI Settings</strong><br><small class="text-muted">LLM providers and models</small></div></a>
                     <a href="/reports" class="quick-action"><i class="bi bi-bar-chart text-success"></i><div><strong>Reports</strong><br><small class="text-muted">Usage analytics and audit</small></div></a>
                     {% if is_admin %}
                     <a href="/admin/users" class="quick-action"><i class="bi bi-shield-lock text-danger"></i><div><strong>Admin Panel</strong><br><small class="text-muted">Users, roles, API keys</small></div></a>
@@ -181,14 +181,14 @@
         <!-- Tool Errors & Activity -->
         <div class="col-lg-4">
             <div class="card h-100">
-                <div class="card-header" style="background:var(--t-text2);color:#fff"><i class="bi bi-activity me-2"></i>Status</div>
+                <div class="card-header card-header-primary"><i class="bi bi-activity me-2"></i>Status</div>
                 <div class="card-body">
                     {% if tool_errors %}
                     <h6 class="text-danger mb-2"><i class="bi bi-exclamation-triangle me-1"></i>Tool Load Failures</h6>
                     <div style="max-height:200px;overflow-y:auto">
                         {% for name, error in tool_errors.items() %}
                         <div class="activity-item">
-                            <div class="activity-dot" style="background:var(--color-danger)"></div>
+                            <div class="activity-dot" style="background:var(--sajha-bad)"></div>
                             <div class="small"><strong>{{ name }}</strong><br><span class="text-muted">{{ error[:80] }}</span></div>
                         </div>
                         {% endfor %}

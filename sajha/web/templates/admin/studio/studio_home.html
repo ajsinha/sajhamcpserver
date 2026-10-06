@@ -12,18 +12,20 @@
         min-height: 600px;
     }
     
+    /* Code windows stay dark in every theme (deepest colour of the theme gradient) */
     .code-editor-panel {
         display: flex;
         flex-direction: column;
-        background: #1e1e1e;
-        border-radius: 8px;
+        background: var(--sajha-nav-to);
+        border-radius: 14px;
         overflow: hidden;
+        box-shadow: 0 14px 40px color-mix(in srgb, var(--sajha-nav-to) 35%, transparent);
     }
     
     .panel-header {
-        background: #2d2d2d;
+        background: color-mix(in srgb, var(--sajha-nav-to) 80%, #000);
         padding: 12px 15px;
-        border-bottom: 1px solid #404040;
+        border-bottom: 1px solid color-mix(in srgb, var(--sajha-on-nav) 14%, transparent);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -31,7 +33,7 @@
     
     .panel-header h5 {
         margin: 0;
-        color: #e0e0e0;
+        color: var(--sajha-on-nav);
         font-size: 14px;
         font-weight: 600;
     }
@@ -39,9 +41,8 @@
     .code-textarea {
         flex: 1;
         width: 100%;
-        border: none;
-        background: #1e1e1e;
-        color: #d4d4d4;
+        border: none !important;
+        border-radius: 0;
         font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
         font-size: 13px;
         line-height: 1.5;
@@ -62,19 +63,19 @@
     
     .output-section {
         flex: 1;
-        background: #1e1e1e;
-        border-radius: 8px;
+        background: var(--sajha-nav-to);
+        border-radius: 14px;
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        box-shadow: 0 14px 40px color-mix(in srgb, var(--sajha-nav-to) 35%, transparent);
     }
     
     .output-textarea {
         flex: 1;
         width: 100%;
-        border: none;
-        background: #1e1e1e;
-        color: #9cdcfe;
+        border: none !important;
+        border-radius: 0;
         font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
         font-size: 12px;
         line-height: 1.4;
@@ -84,28 +85,28 @@
     }
     
     .btn-delete-exists {
-        background: #dc3545;
-        border: 2px solid #ff6b6b;
-        color: white;
+        background: var(--sajha-bad);
+        border: 2px solid color-mix(in srgb, var(--sajha-bad) 60%, var(--sajha-surface));
+        color: var(--sajha-on-crimson);
         padding: 8px 16px;
-        border-radius: 4px;
+        border-radius: 9px;
         font-size: 13px;
         font-weight: 600;
-        box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+        box-shadow: 0 0 10px color-mix(in srgb, var(--sajha-bad) 50%, transparent);
         animation: pulse-danger 2s infinite;
     }
     
     .btn-delete-exists:hover {
-        background: #c82333;
-        border-color: #ff4757;
-        box-shadow: 0 0 15px rgba(220, 53, 69, 0.7);
-        color: white;
+        background: color-mix(in srgb, var(--sajha-bad) 85%, var(--sajha-ink));
+        border-color: var(--sajha-bad);
+        box-shadow: 0 0 15px color-mix(in srgb, var(--sajha-bad) 70%, transparent);
+        color: var(--sajha-on-crimson);
     }
     
     @keyframes pulse-danger {
-        0% { box-shadow: 0 0 5px rgba(220, 53, 69, 0.5); }
-        50% { box-shadow: 0 0 15px rgba(220, 53, 69, 0.8); }
-        100% { box-shadow: 0 0 5px rgba(220, 53, 69, 0.5); }
+        0% { box-shadow: 0 0 5px color-mix(in srgb, var(--sajha-bad) 50%, transparent); }
+        50% { box-shadow: 0 0 15px color-mix(in srgb, var(--sajha-bad) 80%, transparent); }
+        100% { box-shadow: 0 0 5px color-mix(in srgb, var(--sajha-bad) 50%, transparent); }
     }
     
     .delete-warning-icon {
@@ -113,74 +114,73 @@
     }
     
     .tool-name-input {
-        background: #2d2d2d;
-        border: 1px solid #404040;
-        color: #e0e0e0;
         padding: 8px 12px;
-        border-radius: 4px;
+        border-radius: 9px;
         font-family: 'Consolas', monospace;
     }
     
-    .tool-name-input:focus {
-        border-color: #007acc;
-        outline: none;
-    }
-    
     .tool-name-input.is-valid {
-        border-color: #28a745;
+        border-color: var(--sajha-ok) !important;
     }
     
     .tool-name-input.is-invalid {
-        border-color: #dc3545;
+        border-color: var(--sajha-bad) !important;
     }
     
     .btn-studio {
         padding: 8px 16px;
-        border-radius: 4px;
+        border-radius: 9px;
         font-size: 13px;
-        font-weight: 500;
+        font-weight: 600;
         cursor: pointer;
         transition: all 0.2s;
     }
     
     .btn-analyze {
-        background: #007acc;
+        background: var(--sajha-crimson);
         border: none;
-        color: white;
+        color: var(--sajha-on-crimson);
     }
     
     .btn-analyze:hover {
-        background: #005a9e;
+        background: var(--sajha-crimson-strong);
+        color: var(--sajha-on-crimson);
     }
     
     .btn-deploy {
-        background: #28a745;
+        background: var(--sajha-ok);
         border: none;
-        color: white;
+        color: var(--sajha-on-crimson);
     }
     
     .btn-deploy:hover {
-        background: #218838;
+        background: color-mix(in srgb, var(--sajha-ok) 85%, var(--sajha-ink));
+        color: var(--sajha-on-crimson);
     }
     
     .btn-deploy:disabled {
-        background: #6c757d;
+        background: var(--sajha-slate);
+        color: var(--sajha-on-crimson);
         cursor: not-allowed;
     }
     
     .btn-clear {
-        background: #6c757d;
-        border: none;
-        color: white;
+        background: var(--sajha-surface);
+        border: 1px solid var(--sajha-border);
+        color: var(--sajha-ink);
     }
     
     .btn-clear:hover {
-        background: #5a6268;
+        background: var(--sajha-crimson-tint);
+        border-color: var(--sajha-slate);
+        color: var(--sajha-ink);
     }
     
-    .status-bar {
-        background: #007acc;
-        color: white;
+    .code-editor-panel .status-bar {
+        background: color-mix(in srgb, var(--sajha-nav-to) 80%, #000);
+        color: var(--sajha-on-nav);
+        border-top: 1px solid color-mix(in srgb, var(--sajha-on-nav) 14%, transparent);
+        border-radius: 0;
         padding: 6px 15px;
         font-size: 12px;
         display: flex;
@@ -188,43 +188,48 @@
         align-items: center;
     }
     
-    .status-bar.error {
-        background: #dc3545;
+    .code-editor-panel .status-bar.error {
+        background: var(--sajha-bad);
+        color: var(--sajha-on-crimson);
     }
     
-    .status-bar.success {
-        background: #28a745;
+    .code-editor-panel .status-bar.success {
+        background: var(--sajha-ok);
+        color: var(--sajha-on-crimson);
     }
     
     .analysis-info {
-        background: #2d2d2d;
-        border-radius: 8px;
+        background: var(--sajha-surface);
+        border: 1px solid var(--sajha-border);
+        border-radius: 14px;
+        box-shadow: var(--shadow-sm);
         padding: 15px;
         margin-bottom: 15px;
     }
     
     .analysis-info h6 {
-        color: #e0e0e0;
+        color: var(--sajha-heading);
         margin-bottom: 10px;
     }
     
     .param-badge {
         display: inline-block;
-        background: #404040;
-        color: #9cdcfe;
+        background: var(--sajha-crimson-tint);
+        color: var(--sajha-ink);
+        border: 1px solid var(--sajha-border);
         padding: 3px 8px;
-        border-radius: 4px;
+        border-radius: 6px;
         font-size: 12px;
         margin: 2px;
         font-family: monospace;
     }
     
     .param-badge.required {
-        border-left: 3px solid #f14c4c;
+        border-left: 3px solid var(--sajha-bad);
     }
     
     .param-badge.optional {
-        border-left: 3px solid #4ec9b0;
+        border-left: 3px solid var(--sajha-slate);
     }
     
     .spinner-border-sm {
@@ -232,44 +237,71 @@
         height: 1rem;
     }
     
+    /* Intro: MAYA card-header look */
     .studio-intro {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border-radius: 8px;
+        background: linear-gradient(90deg, var(--sajha-crimson-tint), var(--sajha-surface));
+        border: 1px solid var(--sajha-border);
+        border-radius: 14px;
         padding: 20px;
         margin-bottom: 20px;
-        color: #e0e0e0;
+        color: var(--sajha-ink);
     }
     
     .studio-intro h4 {
-        color: #4ec9b0;
+        color: var(--sajha-heading);
         margin-bottom: 10px;
     }
     
+    .studio-intro h4 i { color: var(--sajha-crimson); }
+    
     .studio-intro code {
-        background: #2d2d2d;
         padding: 2px 6px;
-        border-radius: 3px;
-        color: #ce9178;
+        border-radius: 6px;
     }
     
     .file-badge {
         display: inline-block;
         padding: 3px 8px;
-        border-radius: 4px;
+        border-radius: 6px;
         font-size: 11px;
         font-family: monospace;
+        background: color-mix(in srgb, var(--sajha-on-nav) 16%, transparent);
+        color: var(--sajha-on-nav);
+        border: 1px solid color-mix(in srgb, var(--sajha-on-nav) 30%, transparent);
     }
     
-    .file-badge.json {
-        background: #c6a827;
-        color: #1e1e1e;
+    /* Tool-type cards: one look for all of them, icon in a gradient tile */
+    .tool-method-card .card-header {
+        background: linear-gradient(90deg, var(--sajha-crimson-tint), transparent) !important;
+        color: var(--sajha-ink) !important;
+        box-shadow: none;
+        gap: .7rem;
     }
-    
-    .file-badge.python {
-        background: #3572a5;
-        color: white;
+    .tool-method-card .card-header > i:first-child,
+    .studio-ico {
+        flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px;
+        display: inline-grid; place-items: center; font-size: 1.15rem !important;
+        color: var(--sajha-on-nav) !important;
+        background: linear-gradient(135deg, var(--sajha-nav-via), var(--sajha-nav-to));
+        box-shadow: 0 8px 18px -8px var(--sajha-crimson);
+        margin: 0 !important;
     }
+    .tool-method-card .card-header small { color: var(--sajha-slate); opacity: 1 !important; }
+    .studio-version {
+        font-size: 0.6rem;
+        background: linear-gradient(135deg, var(--sajha-nav-via), var(--sajha-nav-to)) !important;
+        color: var(--sajha-on-nav) !important;
+    }
+    .studio-overview {
+        background: color-mix(in srgb, var(--sajha-indigo) 8%, var(--sajha-surface)) !important;
+        border: 1px solid var(--sajha-border) !important;
+        border-left: 4px solid var(--sajha-indigo) !important;
+        border-radius: 14px;
+        color: var(--sajha-ink);
+    }
+    .studio-overview > i { color: var(--sajha-indigo) !important; }
 </style>
+{% include 'admin/studio/_studio_theme.html' %}
 {% endblock %}
 
 {% block content %}
@@ -288,7 +320,7 @@
         <div>
             <h4 class="mb-1">
                 <i class="bi bi-magic me-2"></i>MCP Studio
-                <span class="badge bg-gradient text-white ms-2" style="font-size: 0.6rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">v{{ app_version }}</span>
+                <span class="badge studio-version ms-2">v{{ app_version }}</span>
             </h4>
             <small class="text-muted">Enterprise Visual Tool Creation Platform</small>
         </div>
@@ -306,7 +338,7 @@
     </div>
     
     <!-- MCP Studio Overview Banner -->
-    <div class="alert alert-info d-flex align-items-center mb-4" role="alert" style="background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%); border: none;">
+    <div class="alert alert-info studio-overview d-flex align-items-center mb-4" role="alert">
         <i class="bi bi-lightbulb-fill me-3 fs-4 text-info"></i>
         <div>
             <strong>MCP Studio</strong> enables you to create MCP-compliant tools in three ways: 
@@ -319,8 +351,8 @@
     <div class="row mb-4">
         <!-- Python Code Creator Card -->
         <div class="col-lg-4 col-md-6 mb-3">
-            <div class="card h-100 border-primary shadow-sm tool-method-card" style="border-width: 2px;">
-                <div class="card-header card-header-primary d-flex align-items-center">
+            <div class="card h-100 shadow-sm tool-method-card">
+                <div class="card-header d-flex align-items-center">
                     <i class="bi bi-code-slash fs-4 me-2"></i>
                     <div>
                         <h5 class="mb-0">Python Code Tool</h5>
@@ -361,8 +393,8 @@
         
         <!-- REST Service Creator Card -->
         <div class="col-lg-4 col-md-6 mb-3">
-            <div class="card h-100 border-success shadow-sm tool-method-card">
-                <div class="card-header card-header-success d-flex align-items-center">
+            <div class="card h-100 shadow-sm tool-method-card">
+                <div class="card-header d-flex align-items-center">
                     <i class="bi bi-cloud-arrow-up fs-4 me-2"></i>
                     <div>
                         <h5 class="mb-0">REST Service Tool</h5>
@@ -394,7 +426,7 @@
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <a href="{{ url_for('studio_rest') }}" class="btn btn-success w-100">
+                    <a href="{{ url_for('studio_rest') }}" class="btn btn-primary w-100">
                         <i class="bi bi-arrow-right me-1"></i>Open REST Creator
                     </a>
                 </div>
@@ -403,8 +435,8 @@
         
         <!-- DB Query Tool Creator Card -->
         <div class="col-lg-4 col-md-6 mb-3">
-            <div class="card h-100 border-warning shadow-sm tool-method-card">
-                <div class="card-header card-header-warning text-dark d-flex align-items-center">
+            <div class="card h-100 shadow-sm tool-method-card">
+                <div class="card-header d-flex align-items-center">
                     <i class="bi bi-database fs-4 me-2"></i>
                     <div>
                         <h5 class="mb-0">Database Query Tool</h5>
@@ -436,7 +468,7 @@
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <a href="{{ url_for('studio_dbquery') }}" class="btn btn-warning w-100 text-dark">
+                    <a href="{{ url_for('studio_dbquery') }}" class="btn btn-primary w-100">
                         <i class="bi bi-arrow-right me-1"></i>Open DB Query Creator
                     </a>
                 </div>
@@ -445,8 +477,8 @@
         
         <!-- Script Tool Creator Card -->
         <div class="col-lg-4 col-md-6 mb-3">
-            <div class="card h-100 border-danger shadow-sm tool-method-card">
-                <div class="card-header card-header-danger d-flex align-items-center">
+            <div class="card h-100 shadow-sm tool-method-card">
+                <div class="card-header d-flex align-items-center">
                     <i class="bi bi-terminal fs-4 me-2"></i>
                     <div>
                         <h5 class="mb-0">Script Tool</h5>
@@ -478,7 +510,7 @@
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <a href="{{ url_for('studio_script') }}" class="btn btn-danger w-100">
+                    <a href="{{ url_for('studio_script') }}" class="btn btn-primary w-100">
                         <i class="bi bi-arrow-right me-1"></i>Open Script Creator
                     </a>
                 </div>
@@ -487,8 +519,8 @@
         
         <!-- PowerBI Report Tool Creator Card -->
         <div class="col-lg-4 col-md-6 mb-3">
-            <div class="card h-100 shadow-sm tool-method-card" style="border: 2px solid #f2c811;">
-                <div class="card-header d-flex align-items-center" style="background: linear-gradient(135deg, #f2c811 0%, #e6b800 100%); color: #212529;">
+            <div class="card h-100 shadow-sm tool-method-card">
+                <div class="card-header d-flex align-items-center">
                     <i class="bi bi-bar-chart-fill fs-4 me-2"></i>
                     <div>
                         <h5 class="mb-0">PowerBI Report</h5>
@@ -520,7 +552,7 @@
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <a href="{{ url_for('studio_powerbi') }}" class="btn w-100" style="background: #f2c811; color: #212529; font-weight: 600;">
+                    <a href="{{ url_for('studio_powerbi') }}" class="btn btn-primary w-100">
                         <i class="bi bi-arrow-right me-1"></i>Open PowerBI Creator
                     </a>
                 </div>
@@ -529,8 +561,8 @@
         
         <!-- PowerBI DAX Query Tool Creator Card -->
         <div class="col-lg-4 col-md-6 mb-3">
-            <div class="card h-100 shadow-sm tool-method-card" style="border: 2px solid #00d4aa;">
-                <div class="card-header d-flex align-items-center" style="background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%); color: #212529;">
+            <div class="card h-100 shadow-sm tool-method-card">
+                <div class="card-header d-flex align-items-center">
                     <i class="bi bi-braces fs-4 me-2"></i>
                     <div>
                         <h5 class="mb-0">PowerBI DAX</h5>
@@ -562,7 +594,7 @@
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <a href="{{ url_for('studio_powerbidax') }}" class="btn w-100" style="background: #00d4aa; color: #212529; font-weight: 600;">
+                    <a href="{{ url_for('studio_powerbidax') }}" class="btn btn-primary w-100">
                         <i class="bi bi-arrow-right me-1"></i>Open DAX Creator
                     </a>
                 </div>
@@ -571,8 +603,8 @@
         
         <!-- IBM LiveLink Document Tool Creator Card -->
         <div class="col-lg-4 col-md-6 mb-3">
-            <div class="card h-100 shadow-sm tool-method-card" style="border: 2px solid #0077b6;">
-                <div class="card-header d-flex align-items-center" style="background: linear-gradient(135deg, #0077b6 0%, #023e8a 100%); color: white;">
+            <div class="card h-100 shadow-sm tool-method-card">
+                <div class="card-header d-flex align-items-center">
                     <i class="bi bi-folder2-open fs-4 me-2"></i>
                     <div>
                         <h5 class="mb-0">IBM LiveLink</h5>
@@ -604,7 +636,7 @@
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <a href="{{ url_for('studio_livelink') }}" class="btn w-100" style="background: #0077b6; color: white; font-weight: 600;">
+                    <a href="{{ url_for('studio_livelink') }}" class="btn btn-primary w-100">
                         <i class="bi bi-arrow-right me-1"></i>Open LiveLink Creator
                     </a>
                 </div>
@@ -613,8 +645,8 @@
         
         <!-- Microsoft SharePoint Tool Creator Card -->
         <div class="col-lg-4 col-md-6 mb-3">
-            <div class="card h-100 shadow-sm tool-method-card" style="border: 2px solid #0078d4;">
-                <div class="card-header d-flex align-items-center" style="background: linear-gradient(135deg, #0078d4 0%, #004578 100%); color: white;">
+            <div class="card h-100 shadow-sm tool-method-card">
+                <div class="card-header d-flex align-items-center">
                     <i class="bi bi-microsoft fs-4 me-2"></i>
                     <div>
                         <h5 class="mb-0">SharePoint</h5>
@@ -646,7 +678,7 @@
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <a href="{{ url_for('studio_sharepoint') }}" class="btn w-100" style="background: #0078d4; color: white; font-weight: 600;">
+                    <a href="{{ url_for('studio_sharepoint') }}" class="btn btn-primary w-100">
                         <i class="bi bi-arrow-right me-1"></i>Open SharePoint Creator
                     </a>
                 </div>
@@ -655,16 +687,15 @@
         
         <!-- OLAP Dataset Creator Card -->
         <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card h-100 border-0 shadow-sm tool-card" style="border-left: 4px solid #4ecdc4 !important;">
+            <div class="card h-100 shadow-sm tool-card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
                             <h5 class="mb-0">OLAP Analytics</h5>
                             <small class="opacity-75">Advanced Analytics</small>
                         </div>
-                        <div class="rounded-circle d-flex align-items-center justify-content-center" 
-                             style="width: 50px; height: 50px; background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);">
-                            <i class="bi bi-graph-up-arrow text-white fs-5"></i>
+                        <div class="studio-ico">
+                            <i class="bi bi-graph-up-arrow fs-5"></i>
                         </div>
                     </div>
                     <p class="text-muted small mb-3">
@@ -687,7 +718,7 @@
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <a href="{{ url_for('studio_olap') }}" class="btn w-100" style="background: #4ecdc4; color: white; font-weight: 600;">
+                    <a href="{{ url_for('studio_olap') }}" class="btn btn-primary w-100">
                         <i class="bi bi-arrow-right me-1"></i>Open OLAP Creator
                     </a>
                 </div>
@@ -727,7 +758,7 @@
     <!-- Tool Name Input -->
     <div class="row mb-3">
         <div class="col-md-4">
-            <label class="form-label text-light small">Tool Name</label>
+            <label class="form-label small">Tool Name</label>
             <div class="d-flex gap-2">
                 <input type="text" id="toolName" class="form-control tool-name-input flex-grow-1" 
                        placeholder="my_custom_tool" pattern="[a-z][a-z0-9_]*">
@@ -757,15 +788,15 @@
         <div class="row">
             <div class="col-md-6">
                 <small class="text-muted">Description:</small>
-                <p id="toolDescription" class="mb-2 text-light"></p>
+                <p id="toolDescription" class="mb-2"></p>
             </div>
             <div class="col-md-3">
                 <small class="text-muted">Category:</small>
-                <p id="toolCategory" class="mb-2 text-light"></p>
+                <p id="toolCategory" class="mb-2"></p>
             </div>
             <div class="col-md-3">
                 <small class="text-muted">Function:</small>
-                <p id="toolFunction" class="mb-2 text-light font-monospace"></p>
+                <p id="toolFunction" class="mb-2 font-monospace"></p>
             </div>
         </div>
         <div>

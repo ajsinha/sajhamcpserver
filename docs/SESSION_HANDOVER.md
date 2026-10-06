@@ -55,7 +55,7 @@ run_server.py → SajhaMCPServerWebApp (FastAPI)
 | MCP tools | 497 |
 | DB tables | 19 (16 model + 3 junction/utility) |
 | Security controls | 42 |
-| CSS themes | 4 (Light, Dark, Wall Street, Ubuntu) |
+| CSS themes | 4, shared with MAYA (Crimson, Dark, Blue, Green) |
 
 ### Key Modules
 

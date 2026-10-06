@@ -1,0 +1,27 @@
+{# The theme menu's behaviour, MAYA's: crimson is stored as "light"; only dark is dark to Bootstrap. #}
+<script>
+  (function () {
+    var THEMES = ['light', 'dark', 'blue', 'green'];
+    function applyTheme(t) {
+      var root = document.documentElement;
+      if (!t || THEMES.indexOf(t) < 0) { return; }
+      root.setAttribute('data-theme', t);
+      root.setAttribute('data-bs-theme', t === 'dark' ? 'dark' : 'light');
+    }
+    function markChoice() {
+      var t = document.documentElement.getAttribute('data-theme');
+      document.querySelectorAll('[data-theme-choice]').forEach(function (b) {
+        b.setAttribute('aria-checked', b.getAttribute('data-theme-choice') === t ? 'true' : 'false');
+      });
+    }
+    window.sajhaSetTheme = function (t) {
+      applyTheme(t);
+      try { localStorage.setItem('sajha.theme', t); } catch (e) { /* storage blocked */ }
+      markChoice();
+    };
+    markChoice();
+    document.querySelectorAll('[data-theme-choice]').forEach(function (b) {
+      b.addEventListener('click', function (ev) { ev.preventDefault(); window.sajhaSetTheme(b.getAttribute('data-theme-choice')); });
+    });
+  })();
+</script>

@@ -4,138 +4,138 @@
 
 {% block extra_css %}
 <style>
+    /* Example code windows stay dark in every theme (deepest colour of the theme gradient) */
     .example-card {
-        background: #1e1e1e;
-        border-radius: 8px;
+        background: var(--sajha-nav-to);
+        border-radius: 14px;
         margin-bottom: 20px;
         overflow: hidden;
+        box-shadow: 0 14px 40px color-mix(in srgb, var(--sajha-nav-to) 35%, transparent);
     }
     
     .example-header {
-        background: #2d2d2d;
+        background: color-mix(in srgb, var(--sajha-nav-to) 80%, #000);
         padding: 15px 20px;
-        border-bottom: 1px solid #404040;
+        border-bottom: 1px solid color-mix(in srgb, var(--sajha-on-nav) 14%, transparent);
     }
     
     .example-header h5 {
-        color: #4ec9b0;
+        color: var(--sajha-on-nav);
         margin: 0;
     }
     
     .example-description {
-        color: #a0a0a0;
+        color: var(--sajha-on-nav);
+        opacity: .7;
         font-size: 13px;
         margin-top: 5px;
     }
     
     .example-code {
         padding: 15px 20px;
-        background: #1e1e1e;
+        background: var(--sajha-nav-to);
     }
     
     .example-code pre {
-        background: transparent;
-        color: #d4d4d4;
+        background: transparent !important;
+        border: 0 !important;
+        padding: 0 !important;
+        color: var(--sajha-on-nav) !important;
         margin: 0;
         font-size: 13px;
         line-height: 1.5;
     }
     
-    .example-code .decorator {
-        color: #dcdcaa;
-    }
-    
-    .example-code .keyword {
-        color: #569cd6;
-    }
-    
-    .example-code .string {
-        color: #ce9178;
-    }
-    
-    .example-code .function {
-        color: #dcdcaa;
-    }
-    
-    .example-code .param {
-        color: #9cdcfe;
-    }
-    
-    .example-code .type {
-        color: #4ec9b0;
-    }
-    
-    .example-code .comment {
-        color: #6a9955;
-    }
+    /* Syntax accents are tints of the window's own text colour, light in every theme */
+    .example-code .keyword { color: var(--sajha-on-nav); font-weight: 700; }
+    .example-code .decorator,
+    .example-code .function,
+    .example-code .type { color: color-mix(in srgb, var(--sajha-on-nav) 72%, var(--sajha-nav-via)); }
+    .example-code .string,
+    .example-code .param { color: color-mix(in srgb, var(--sajha-on-nav) 58%, var(--sajha-nav-via)); }
+    .example-code .comment { color: var(--sajha-on-nav); opacity: .55; font-style: italic; }
     
     .example-footer {
-        background: #252526;
+        background: color-mix(in srgb, var(--sajha-nav-to) 80%, #000);
+        border-top: 1px solid color-mix(in srgb, var(--sajha-on-nav) 14%, transparent);
         padding: 10px 20px;
         display: flex;
         justify-content: flex-end;
     }
     
     .btn-use-example {
-        background: #007acc;
+        background: var(--sajha-crimson);
         border: none;
-        color: white;
+        color: var(--sajha-on-crimson);
         padding: 6px 16px;
-        border-radius: 4px;
+        border-radius: 9px;
         font-size: 13px;
+        font-weight: 600;
     }
     
     .btn-use-example:hover {
-        background: #005a9e;
-        color: white;
+        background: var(--sajha-crimson-strong);
+        color: var(--sajha-on-crimson);
     }
     
+    /* Decorator guide: a regular MAYA panel */
     .decorator-guide {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border-radius: 8px;
+        background: var(--sajha-surface);
+        border: 1px solid var(--sajha-border);
+        border-radius: 14px;
+        box-shadow: var(--shadow-sm);
+        color: var(--sajha-ink);
         padding: 25px;
         margin-bottom: 25px;
     }
     
     .decorator-guide h4 {
-        color: #4ec9b0;
+        color: var(--sajha-heading);
         margin-bottom: 15px;
     }
     
+    .decorator-guide h4 i { color: var(--sajha-crimson); }
+    
     .decorator-guide code {
-        background: #2d2d2d;
         padding: 2px 6px;
-        border-radius: 3px;
-        color: #dcdcaa;
+        border-radius: 6px;
     }
     
     .param-table {
         width: 100%;
         margin-top: 15px;
+        border: 1px solid var(--sajha-border);
+        border-radius: 9px;
+        border-collapse: separate;
+        border-spacing: 0;
+        overflow: hidden;
     }
     
     .param-table th {
-        background: #2d2d2d;
-        color: #9cdcfe;
+        background: linear-gradient(180deg, var(--sajha-surface), var(--sajha-crimson-tint));
+        color: var(--sajha-ink);
         padding: 10px;
         text-align: left;
         font-size: 13px;
+        border-bottom: 1px solid var(--sajha-border);
     }
     
     .param-table td {
-        background: #1e1e1e;
-        color: #d4d4d4;
+        background: var(--sajha-surface);
+        color: var(--sajha-ink);
         padding: 10px;
         font-size: 13px;
-        border-bottom: 1px solid #404040;
+        border-bottom: 1px solid var(--sajha-border);
     }
     
+    .param-table tr:last-child td { border-bottom: 0; }
+    
     .param-table code {
-        background: #2d2d2d;
         padding: 2px 6px;
-        border-radius: 3px;
+        border-radius: 6px;
     }
 </style>
+{% include 'admin/studio/_studio_theme.html' %}
 {% endblock %}
 
 {% block content %}
@@ -156,7 +156,7 @@
     <!-- Decorator Guide -->
     <div class="decorator-guide">
         <h4><i class="bi bi-code-square me-2"></i>The @sajhamcptool Decorator</h4>
-        <p class="text-light mb-3">
+        <p class="mb-3">
             Use the <code>@sajhamcptool</code> decorator to mark Python functions for conversion to MCP tools.
             The decorator accepts the following parameters:
         </p>
@@ -210,9 +210,9 @@
             </tbody>
         </table>
         
-        <div class="mt-4 p-3 bg-dark rounded">
-            <h6 class="text-light"><i class="bi bi-lightbulb me-2"></i>Pro Tips</h6>
-            <ul class="text-light small mb-0">
+        <div class="help-box tip mt-4 mb-0">
+            <h6 class="hb-title"><i class="bi bi-lightbulb me-2"></i>Pro Tips</h6>
+            <ul class="small mb-0">
                 <li>Use <strong>type hints</strong> on parameters - they define the input schema</li>
                 <li>Parameters <strong>without defaults</strong> become required fields</li>
                 <li>Parameters <strong>with defaults</strong> become optional with those defaults</li>
@@ -222,7 +222,7 @@
     </div>
     
     <!-- Examples -->
-    <h5 class="text-light mb-3"><i class="bi bi-collection me-2"></i>Code Examples</h5>
+    <h5 class="mb-3"><i class="bi bi-collection me-2"></i>Code Examples</h5>
     
     {% for example in examples %}
     <div class="example-card">

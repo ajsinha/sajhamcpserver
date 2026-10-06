@@ -2,9 +2,13 @@
 {% block title %}Tutorials - Help - SAJHA MCP Server{% endblock %}
 {% block content %}
 <div class="container-fluid">
-    <div class="mb-4">
-        <h1 class="h3 mb-1"><i class="bi bi-mortarboard me-2"></i>Tutorials</h1>
-        <a href="/help" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Back to Help</a>
+    <nav class="help-crumbs" aria-label="Breadcrumb"><a href="/help"><i class="bi bi-life-preserver me-1"></i>Help</a><i class="bi bi-chevron-right"></i><span>Tutorials</span></nav>
+    <div class="help-topic-hero">
+        <div class="ico"><i class="bi bi-mortarboard"></i></div>
+        <div>
+            <h1 class="h3">Tutorials</h1>
+            <p>Step-by-step guides for the most common tasks.</p>
+        </div>
     </div>
 
     <!-- Getting Started -->
@@ -93,7 +97,7 @@
         </div>
         <div class="col-md-6">
             <div class="card h-100">
-                <div class="card-header"><i class="bi bi-people me-2" style="color:#6f42c1"></i>Set Up Multi-Tenancy</div>
+                <div class="card-header"><i class="bi bi-people me-2" style="color:var(--sajha-indigo)"></i>Set Up Multi-Tenancy</div>
                 <div class="card-body">
                     <ol class="small mb-0">
                         <li class="mb-2">Create a tenant: <code>POST /api/tenants</code> with name, tool_patterns, and quotas.</li>

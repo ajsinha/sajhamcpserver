@@ -1,0 +1,20 @@
+{# Runs in <head>, before the first paint, so a stored theme never flashes the default. With no
+   choice stored the page follows the system's light/dark preference (tokens.css does that). The
+   old SAJHA themes are forgotten: light and dark carry over, Wall Street and Ubuntu do not. #}
+<script>
+  (function () {
+    var THEMES = ['light', 'dark', 'blue', 'green'], t = null;
+    try {
+      t = localStorage.getItem('sajha.theme');
+      if (!t) { var old = localStorage.getItem('sajha-theme'); if (THEMES.indexOf(old) >= 0) { t = old; localStorage.setItem('sajha.theme', t); } }
+      localStorage.removeItem('sajha-theme');
+    } catch (e) { /* storage blocked */ }
+    var root = document.documentElement;
+    if (THEMES.indexOf(t) >= 0) {
+      root.setAttribute('data-theme', t);
+      root.setAttribute('data-bs-theme', t === 'dark' ? 'dark' : 'light');
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      root.setAttribute('data-bs-theme', 'dark');
+    }
+  })();
+</script>

@@ -2,9 +2,13 @@
 {% block title %}Storage Management - Help - {{ app_name }}{% endblock %}
 {% block content %}
 <div class="container-fluid">
-    <div class="mb-4">
-        <h1 class="h3 mb-1"><i class="bi bi-hdd-stack me-2"></i>Storage Management</h1>
-        <a href="/help" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Back to Help</a>
+    <nav class="help-crumbs" aria-label="Breadcrumb"><a href="/help"><i class="bi bi-life-preserver me-1"></i>Help</a><i class="bi bi-chevron-right"></i><span>Storage Management</span></nav>
+    <div class="help-topic-hero">
+        <div class="ico"><i class="bi bi-hdd-stack"></i></div>
+        <div>
+            <h1 class="h3">Storage Management</h1>
+            <p>Run on local disk, EFS, S3, Azure Blob or GCS.</p>
+        </div>
     </div>
 
     <!-- Overview -->
@@ -48,10 +52,10 @@
             <table class="table table-sm align-middle">
                 <thead><tr><th>Data</th><th>Examples</th><th>Where</th></tr></thead>
                 <tbody>
-                    <tr><td><span class="badge text-bg-success">Read-mostly</span></td>
+                    <tr><td><span class="badge bg-success">Read-mostly</span></td>
                         <td>tool JSON configs, prompts, docs, reference CSVs, DuckDB source data</td>
                         <td>Object store (s3/azure/gcs) — fine</td></tr>
-                    <tr><td><span class="badge text-bg-danger">Mutable state</span></td>
+                    <tr><td><span class="badge bg-danger">Mutable state</span></td>
                         <td>SQLite <code>sajha.db</code>, audit log, output cache, sessions</td>
                         <td>EFS path or a managed service (RDS / DynamoDB) — <strong>never object storage</strong></td></tr>
                 </tbody>

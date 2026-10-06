@@ -12,57 +12,29 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     }
     
     .creator-header {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border-radius: 12px;
         padding: 25px;
         margin-bottom: 25px;
-        color: #e0e0e0;
     }
     
     .creator-header h3 {
-        color: #4ec9b0;
         margin-bottom: 8px;
     }
     
     .creator-header .subtitle {
-        color: #9cdcfe;
         font-size: 0.95rem;
     }
     
     .form-section {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         margin-bottom: 20px;
         overflow: hidden;
     }
     
     .section-header {
-        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
-        color: white;
         padding: 15px 20px;
         font-weight: 600;
         display: flex;
         align-items: center;
         gap: 10px;
-    }
-    
-    .section-header.secondary {
-        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
-    }
-    
-    .section-header.success {
-        background: linear-gradient(135deg, #198754 0%, #157347 100%);
-    }
-    
-    .section-header.warning {
-        background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-        color: #212529;
-    }
-    
-    .section-header.info {
-        background: linear-gradient(135deg, #0dcaf0 0%, #0aa8c7 100%);
-        color: #212529;
     }
     
     .section-body {
@@ -77,66 +49,46 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     
     .method-btn {
         padding: 10px 20px;
-        border: 2px solid #dee2e6;
-        border-radius: 8px;
-        background: #fff;
+        border: 2px solid var(--sajha-border);
         cursor: pointer;
         font-weight: 600;
         transition: all 0.2s;
     }
     
-    .method-btn:hover {
-        border-color: #0d6efd;
+    /* HTTP verbs keep a meaning: reads are safe (ok), writes change state (crimson),
+       replacements are cautionary (warn), deletes are destructive (bad). */
+    .method-btn.get { --verb: var(--sajha-ok); }
+    .method-btn.post { --verb: var(--sajha-crimson); }
+    .method-btn.put { --verb: var(--sajha-warn); }
+    .method-btn.delete { --verb: var(--sajha-bad); }
+    .method-btn.patch { --verb: var(--sajha-indigo); }
+    .method-btn.get, .method-btn.post, .method-btn.put, .method-btn.delete, .method-btn.patch { color: var(--verb); }
+    .method-btn.get:hover, .method-btn.post:hover, .method-btn.put:hover,
+    .method-btn.delete:hover, .method-btn.patch:hover { border-color: var(--verb); }
+    .method-btn.get.active, .method-btn.post.active, .method-btn.put.active,
+    .method-btn.delete.active, .method-btn.patch.active {
+        background: var(--verb); border-color: var(--verb); color: var(--sajha-on-crimson);
     }
-    
-    .method-btn.active {
-        border-color: #0d6efd;
-        background: #0d6efd;
-        color: white;
-    }
-    
-    .method-btn.get { color: #198754; }
-    .method-btn.get.active { background: #198754; border-color: #198754; color: white; }
-    
-    .method-btn.post { color: #0d6efd; }
-    .method-btn.post.active { background: #0d6efd; border-color: #0d6efd; color: white; }
-    
-    .method-btn.put { color: #fd7e14; }
-    .method-btn.put.active { background: #fd7e14; border-color: #fd7e14; color: white; }
-    
-    .method-btn.delete { color: #dc3545; }
-    .method-btn.delete.active { background: #dc3545; border-color: #dc3545; color: white; }
-    
-    .method-btn.patch { color: #6f42c1; }
-    .method-btn.patch.active { background: #6f42c1; border-color: #6f42c1; color: white; }
     
     .schema-editor {
         font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
         font-size: 13px;
         min-height: 200px;
-        background: #1e1e1e;
-        color: #d4d4d4;
-        border: 1px solid #404040;
-        border-radius: 8px;
+        border: 1px solid;
+        border-radius: 9px;
         padding: 15px;
     }
     
     .schema-editor:focus {
         outline: none;
-        border-color: #007acc;
-        box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.25);
     }
     
     .preview-panel {
-        background: #1e1e1e;
-        border-radius: 12px;
         overflow: hidden;
     }
     
     .preview-header {
-        background: #2d2d2d;
         padding: 12px 15px;
-        border-bottom: 1px solid #404040;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -144,7 +96,6 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     
     .preview-header h6 {
         margin: 0;
-        color: #e0e0e0;
         font-size: 14px;
     }
     
@@ -152,15 +103,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         padding: 15px;
         max-height: 300px;
         overflow-y: auto;
-        color: #9cdcfe;
         font-family: monospace;
         font-size: 12px;
         white-space: pre-wrap;
     }
     
     .example-card {
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
+        background: var(--sajha-surface);
+        border: 1px solid var(--sajha-border);
+        border-radius: 9px;
         padding: 15px;
         margin-bottom: 15px;
         cursor: pointer;
@@ -168,17 +119,22 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     }
     
     .example-card:hover {
-        border-color: #0d6efd;
-        box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+        border-color: var(--sajha-crimson);
+        box-shadow: var(--shadow-sm);
+        transform: translateY(-1px);
+    }
+    
+    .example-card.example-accent {
+        border-left: 3px solid var(--sajha-crimson);
     }
     
     .example-card h6 {
-        color: #0d6efd;
+        color: var(--sajha-crimson);
         margin-bottom: 5px;
     }
     
     .example-card p {
-        color: #6c757d;
+        color: var(--sajha-slate);
         font-size: 0.85rem;
         margin-bottom: 5px;
     }
@@ -186,12 +142,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     .example-card .method-badge {
         font-size: 0.75rem;
         padding: 2px 8px;
-        border-radius: 4px;
+        border-radius: 999px;
     }
     
     .auth-section {
-        background: #f8f9fa;
-        border-radius: 8px;
+        background: color-mix(in srgb, var(--sajha-crimson-tint) 50%, var(--sajha-surface));
+        border: 1px solid var(--sajha-border);
+        border-radius: 9px;
         padding: 15px;
         margin-top: 10px;
     }
@@ -204,9 +161,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     
     .auth-toggle .form-check {
         padding: 10px 20px;
-        background: white;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
+        background: var(--sajha-surface);
+        color: var(--sajha-ink);
+        border: 1px solid var(--sajha-border);
+        border-radius: 9px;
     }
     
     .headers-list {
@@ -225,31 +183,17 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     .btn-action {
         padding: 12px 30px;
         font-weight: 600;
-        border-radius: 8px;
         font-size: 1rem;
     }
     
     .status-message {
         padding: 15px 20px;
-        border-radius: 8px;
         margin-bottom: 20px;
         display: none;
     }
     
     .status-message.show {
         display: block;
-    }
-    
-    .status-message.success {
-        background: #d1e7dd;
-        color: #0f5132;
-        border: 1px solid #badbcc;
-    }
-    
-    .status-message.error {
-        background: #f8d7da;
-        color: #842029;
-        border: 1px solid #f5c2c7;
     }
     
     .collapse-toggle {
@@ -270,17 +214,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         flex-wrap: wrap;
         gap: 5px;
         padding: 8px;
-        border: 1px solid #ced4da;
-        border-radius: 6px;
-        background: white;
+        border: 1px solid;
         min-height: 44px;
     }
     
     .tag {
-        background: #0d6efd;
-        color: white;
         padding: 4px 10px;
-        border-radius: 4px;
         font-size: 0.85rem;
         display: flex;
         align-items: center;
@@ -304,153 +243,28 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         padding: 4px;
     }
     
-    /* Response Format Buttons */
+    /* Response Format Buttons: one neutral look, crimson when chosen */
     .format-btn {
         padding: 8px 16px;
-        border: 2px solid #dee2e6;
-        border-radius: 8px;
-        background: #fff;
+        border: 2px solid var(--sajha-border);
         cursor: pointer;
         font-weight: 500;
         transition: all 0.2s;
         font-size: 0.9rem;
     }
     
-    .format-btn:hover {
-        border-color: #6f42c1;
-        background: #f8f5ff;
-    }
-    
-    .format-btn.active {
-        border-color: #6f42c1;
-        background: #6f42c1;
-        color: white;
-    }
-    
-    .format-btn[data-format="json"] { color: #198754; }
-    .format-btn[data-format="json"].active { background: #198754; border-color: #198754; }
-    
-    .format-btn[data-format="csv"] { color: #0d6efd; }
-    .format-btn[data-format="csv"].active { background: #0d6efd; border-color: #0d6efd; }
-    
-    .format-btn[data-format="xml"] { color: #fd7e14; }
-    .format-btn[data-format="xml"].active { background: #fd7e14; border-color: #fd7e14; }
-    
-    .format-btn[data-format="text"] { color: #6c757d; }
-    .format-btn[data-format="text"].active { background: #6c757d; border-color: #6c757d; }
-    
     .csv-options-panel {
-        background: #f0f8ff;
-        border: 1px solid #b8daff;
-        border-radius: 8px;
+        background: color-mix(in srgb, var(--sajha-indigo) 8%, var(--sajha-surface));
+        border: 1px solid color-mix(in srgb, var(--sajha-indigo) 35%, var(--sajha-border));
+        border-left: 4px solid var(--sajha-indigo);
+        border-radius: 9px;
         padding: 15px;
         margin-top: 15px;
+        color: var(--sajha-ink);
     }
-    
-    /* ===== DARK THEME OVERRIDES ===== */
-    html[data-theme="dark"] .form-section,
-    [data-theme="dark"] .form-section {
-        background: #2d2d2d !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
-    }
-    
-    html[data-theme="dark"] .section-body,
-    [data-theme="dark"] .section-body {
-        background: #2d2d2d !important;
-        color: #e0e0e0 !important;
-    }
-    
-    html[data-theme="dark"] .section-body label,
-    html[data-theme="dark"] .section-body p,
-    html[data-theme="dark"] .section-body span,
-    html[data-theme="dark"] .section-body div {
-        color: #e0e0e0 !important;
-    }
-    
-    html[data-theme="dark"] .section-body small,
-    html[data-theme="dark"] .help-text {
-        color: #a0a0a0 !important;
-    }
-    
-    html[data-theme="dark"] .form-control,
-    html[data-theme="dark"] .form-select {
-        background: #1e1e1e !important;
-        color: #e0e0e0 !important;
-        border-color: #444 !important;
-    }
-    
-    html[data-theme="dark"] .form-control::placeholder {
-        color: #888 !important;
-    }
-    
-    html[data-theme="dark"] .method-btn {
-        background: #2d2d2d !important;
-        border-color: #444 !important;
-    }
-    
-    html[data-theme="dark"] .method-btn:hover {
-        border-color: #0d6efd !important;
-    }
-    
-    html[data-theme="dark"] .auth-section {
-        background: #2d2d2d !important;
-        border: 1px solid #444 !important;
-    }
-    
-    html[data-theme="dark"] .auth-toggle .form-check {
-        background: #1e1e1e !important;
-        border-color: #444 !important;
-        color: #e0e0e0 !important;
-    }
-    
-    html[data-theme="dark"] .auth-toggle .form-check-label {
-        color: #e0e0e0 !important;
-    }
-    
-    html[data-theme="dark"] .example-card {
-        background: #1e1e1e !important;
-        border-color: #444 !important;
-    }
-    
-    html[data-theme="dark"] .example-card h6 {
-        color: #6ea8fe !important;
-    }
-    
-    html[data-theme="dark"] .example-card p {
-        color: #a0a0a0 !important;
-    }
-    
-    html[data-theme="dark"] .csv-options-panel {
-        background: rgba(13, 110, 253, 0.1) !important;
-        border-color: #3d7fcc !important;
-    }
-    
-    html[data-theme="dark"] .csv-options-panel label {
-        color: #e0e0e0 !important;
-    }
-    
-    html[data-theme="dark"] .format-btn {
-        background: #2d2d2d !important;
-        border-color: #444 !important;
-    }
-    
-    html[data-theme="dark"] .param-row {
-        background: #2d2d2d !important;
-        border: 1px solid #444 !important;
-    }
-    
-    html[data-theme="dark"] .status-message.success {
-        background: rgba(25, 135, 84, 0.2) !important;
-        color: #75b798 !important;
-        border: 1px solid #3d8b5e !important;
-    }
-    
-    html[data-theme="dark"] .status-message.error {
-        background: rgba(220, 53, 69, 0.2) !important;
-        color: #ea868f !important;
-        border: 1px solid #8c3a42 !important;
-    }
+
 </style>
+{% include 'admin/studio/_studio_theme.html' %}
 {% endblock %}
 
 {% block content %}
@@ -687,7 +501,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
             <!-- Response Format Configuration -->
             <div class="form-section">
-                <div class="section-header" style="background: linear-gradient(135deg, #6f42c1 0%, #563d7c 100%); color: white;">
+                <div class="section-header">
                     <i class="bi bi-file-earmark-text"></i>
                     Response Format
                 </div>
@@ -819,7 +633,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         <p>Simple no-parameter API</p>
                         <span class="method-badge bg-success text-white">GET</span>
                     </div>
-                    <div class="example-card" onclick="loadExample('fred_csv')" style="border-left: 3px solid #0d6efd;">
+                    <div class="example-card example-accent" onclick="loadExample('fred_csv')">
                         <h6><i class="bi bi-file-earmark-spreadsheet me-1 text-primary"></i>FRED Economic Data</h6>
                         <p>CSV response example - economic data</p>
                         <span class="method-badge bg-success text-white">GET</span>

@@ -1,5 +1,27 @@
 # SAJHA MCP Server — Changelog
 
+## Unreleased — MAYA design language and themes
+
+SAJHA now uses MAYA's look and MAYA's four themes, with the same names and the same colour values.
+
+- **Themes:** Crimson (stored as `light`), Dark, Blue and Green replace Light / Dark / Wall Street / Ubuntu.
+  - The palette menu matches MAYA's: a swatch and a name for each theme.
+  - With nothing stored, the page follows the system's light/dark setting.
+  - A stored Light or Dark choice carries over; a stored Wall Street or Ubuntu choice resets to the default.
+- **Tokens:** `static/css/tokens.css` is MAYA's token set, renamed from `--maya-*` to `--sajha-*`. It is the only place colours are defined.
+  - `style.css` maps its `--t-*` roles onto these tokens once and re-points Bootstrap's variables at them.
+- **Chrome:**
+  - A fixed gradient top bar with mega-menu panels (`common/_nav.html`).
+  - Gradient `h1`s, soft-shadow 14px cards, alerts with a left rule, gradient primary buttons.
+  - Hero banners and MAYA's footer.
+  - The system-ui font at 14px.
+- **Pages:**
+  - Sign-in stands on the theme gradient.
+  - The landing page is laid out with MAYA's `lp2-*` sections.
+  - The Studio pages share `_studio_theme.html`.
+  - Help and About use MAYA's hero, card and box classes.
+  - Charts read their colours from the tokens (`window.SajhaChartTheme`) and re-colour when the theme changes.
+
 ## v5.3.0 (June 2026) — Storage-Backed Registries, Studio & Cloud Hot-Reload
 
 Builds on the v5.2.0 multi-cloud storage abstraction by routing the live subsystems

@@ -1,0 +1,147 @@
+/*
+ * SAJHA design tokens: the four themes (Crimson, Dark, Blue, Green), taken unchanged from
+ * MAYA so the two products share one palette. This is the ONLY place colours are defined;
+ * style.css maps every --t-* role onto these. The token names say "crimson" because they
+ * name a role (the accent), not a hue.
+ * Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+ */
+:root {
+  --sajha-crimson: #A51C30;
+  --sajha-crimson-strong: #8A1626;
+  --sajha-crimson-deep: #6E1120;
+  --sajha-crimson-tint: #FBEEF0;
+  --sajha-ink: #1A1A1A;
+  --sajha-slate: #6B7480;
+  --sajha-surface: #FFFFFF;
+  --sajha-canvas: #F7F5F2;
+  --sajha-indigo: #293352;
+  --sajha-on-crimson: #FFFFFF;
+  --sajha-border: #E3DED7;
+  --sajha-ok: #1E6B3A;
+  --sajha-warn: #7A5200;
+  --sajha-bad: #8A1626;
+  --sajha-highlight: #F4DDA0;
+  --sajha-heading: #6E1120;
+  /* the navigation gradient: crimson-deep → crimson → indigo, white text on all three */
+  --sajha-nav-from: #5C0E1B;
+  --sajha-nav-via: #A51C30;
+  --sajha-nav-to: #293352;
+  --sajha-on-nav: #FFFFFF;
+  --sajha-glow: #F3C6CF;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --sajha-crimson: #DE6B81;
+    --sajha-crimson-strong: #D4526A;
+    --sajha-crimson-deep: #E07A8E;  /* spec §16.6 says #A51C30: 2.20:1 on the dark surface, fails the gate */
+    --sajha-crimson-tint: #2A1A1E;
+    --sajha-ink: #ECECEF;
+    --sajha-slate: #8996A0;
+    --sajha-surface: #1F1F23;
+    --sajha-canvas: #151517;
+    --sajha-indigo: #A9B6D6;
+    --sajha-on-crimson: #151517;
+    --sajha-border: #34343A;
+    --sajha-ok: #7FD39B;
+    --sajha-warn: #E8C26A;
+    --sajha-bad: #F08A9C;
+  --sajha-highlight: #5A4712;
+  --sajha-heading: #DE6B81;
+  --sajha-nav-from: #2E0810;
+  --sajha-nav-via: #6E1120;
+  --sajha-nav-to: #1B2138;
+  --sajha-on-nav: #FFFFFF;
+  --sajha-glow: #4A2530;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --sajha-crimson: #DE6B81;
+  --sajha-crimson-strong: #D4526A;
+  --sajha-crimson-deep: #E07A8E;  /* spec §16.6 says #A51C30: 2.20:1 on the dark surface, fails the gate */
+  --sajha-crimson-tint: #2A1A1E;
+  --sajha-ink: #ECECEF;
+  --sajha-slate: #8996A0;
+  --sajha-surface: #1F1F23;
+  --sajha-canvas: #151517;
+  --sajha-indigo: #A9B6D6;
+  --sajha-on-crimson: #151517;
+  --sajha-border: #34343A;
+  --sajha-ok: #7FD39B;
+  --sajha-warn: #E8C26A;
+  --sajha-bad: #F08A9C;
+  --sajha-highlight: #5A4712;
+  --sajha-heading: #DE6B81;
+  --sajha-nav-from: #2E0810;
+  --sajha-nav-via: #6E1120;
+  --sajha-nav-to: #1B2138;
+  --sajha-on-nav: #FFFFFF;
+  --sajha-glow: #4A2530;
+  color-scheme: dark;
+}
+
+/*
+ * Two further themes. Each redefines the same tokens and nothing else, so the gradients,
+ * the glow, the type and every layout stay exactly as the crimson theme has them: only the
+ * colour changes. The token names still say "crimson" because they name a role -- the
+ * accent -- rather than a hue; renaming them would touch every stylesheet for no gain.
+ *
+ * Blue is taken from the SAJHA server's palette: #0079C1 as the accent, #003168 as the deep
+ * navy it hovers to, #00A3E0 in the glow. Green follows Rolex: #006039 as the accent, a
+ * warm cream ground, and the house gold carried in the highlight and the glow. The semantic
+ * colours keep their meaning in both -- "bad" stays a red in a blue theme and "ok" is a
+ * yellower green than the accent in the green one, so a status is never mistaken for
+ * decoration.
+ */
+:root[data-theme="blue"] {
+  --sajha-crimson: #0079C1;
+  --sajha-crimson-strong: #00609A;
+  --sajha-crimson-deep: #003168;
+  --sajha-crimson-tint: #E6F2FA;
+  --sajha-ink: #1E293B;
+  --sajha-slate: #536578;
+  --sajha-surface: #FFFFFF;
+  --sajha-canvas: #F0F5FA;
+  --sajha-indigo: #003168;
+  --sajha-on-crimson: #FFFFFF;
+  --sajha-border: #DCE4EE;
+  --sajha-ok: #1E6B3A;
+  --sajha-warn: #7A5200;
+  --sajha-bad: #B42318;
+  --sajha-highlight: #CDE8F7;
+  --sajha-heading: #003168;
+  --sajha-nav-from: #002654;
+  --sajha-nav-via: #0079C1;
+  --sajha-nav-to: #003168;
+  --sajha-on-nav: #FFFFFF;
+  --sajha-glow: #CBE6F7;
+  color-scheme: light;
+}
+
+:root[data-theme="green"] {
+  --sajha-crimson: #006039;
+  --sajha-crimson-strong: #004D2E;
+  --sajha-crimson-deep: #00331F;
+  --sajha-crimson-tint: #E8F3EC;
+  --sajha-ink: #1A1A1A;
+  --sajha-slate: #5E6A64;
+  --sajha-surface: #FFFFFF;
+  --sajha-canvas: #F7F5EF;
+  --sajha-indigo: #1C3A2E;
+  --sajha-on-crimson: #FFFFFF;
+  --sajha-border: #E3DECF;
+  --sajha-ok: #3A6B1E;
+  --sajha-warn: #7A5200;
+  --sajha-bad: #A4161A;
+  --sajha-highlight: #EBDDB2;
+  --sajha-heading: #004D2E;
+  --sajha-nav-from: #00261A;
+  --sajha-nav-via: #006039;
+  --sajha-nav-to: #1C3A2E;
+  --sajha-on-nav: #FFFFFF;
+  --sajha-glow: #E6D7A8;
+  color-scheme: light;
+}
