@@ -36,8 +36,13 @@
         radial-gradient(700px 320px at 0 0, color-mix(in srgb, var(--sajha-indigo) 10%, transparent), transparent 70%),
         var(--sajha-canvas);
     --t-text: var(--sajha-ink); --t-text2: color-mix(in srgb, var(--sajha-ink) 72%, var(--sajha-slate));
-    --t-muted: var(--sajha-slate); --t-faint: var(--sajha-slate);
-    --t-heading: var(--sajha-heading); --t-link: var(--sajha-crimson); --t-link-h: var(--sajha-crimson-strong);
+    /* Text roles are nudged toward ink so they hold 4.5:1 on tinted panels too, not only on
+       white: slate on crimson-tint is 4.19:1, and Blue's accent on its canvas is 4.3:1. Mixing
+       toward ink darkens them on the light themes and lightens them on Dark, so one rule serves
+       all four themes and the tokens themselves stay MAYA's. */
+    --t-muted: color-mix(in srgb, var(--sajha-slate) 85%, var(--sajha-ink)); --t-faint: var(--t-muted);
+    --t-accent-text: color-mix(in srgb, var(--sajha-crimson) 70%, var(--sajha-ink));
+    --t-heading: color-mix(in srgb, var(--sajha-heading) 80%, var(--sajha-ink)); --t-link: var(--t-accent-text); --t-link-h: color-mix(in srgb, var(--sajha-crimson) 55%, var(--sajha-ink));
     --t-card: var(--sajha-surface); --t-card-b: var(--sajha-border);
     --t-card-hb: color-mix(in srgb, var(--sajha-crimson) 45%, var(--sajha-border));
     --t-card-hdr: var(--sajha-crimson-tint); --t-card-hdr-t: var(--sajha-ink);
@@ -53,7 +58,7 @@
     --t-dd-hb: var(--sajha-crimson-tint); --t-dd-ht: var(--sajha-ink);
     --t-ft: transparent; --t-ft-t: var(--sajha-slate);
     --t-ban: linear-gradient(120deg, var(--sajha-nav-from), var(--sajha-nav-via) 50%, var(--sajha-nav-to)); --t-ban-t: var(--sajha-on-nav);
-    --t-tab-t: var(--sajha-ink); --t-tab-a: var(--sajha-crimson); --t-tab-ab: var(--sajha-crimson);
+    --t-tab-t: var(--sajha-ink); --t-tab-a: var(--t-accent-text); --t-tab-ab: var(--sajha-crimson);
     --t-btn: var(--sajha-crimson); --t-btn-t: var(--sajha-on-crimson);
     --t-bdg-l: var(--sajha-crimson-tint); --t-bdg-lt: var(--sajha-ink);
     --t-grad: linear-gradient(135deg, var(--sajha-nav-via), var(--sajha-nav-to));
@@ -423,10 +428,6 @@ small, .small { color: inherit; }
 
 /* ── Card text color inheritance for nested Bootstrap elements ── */
 .card .text-muted { color: var(--t-muted) !important; }
-.card small { color: var(--t-muted); }
-.card p { color: var(--t-text); }
-.card strong { color: var(--t-text); }
-.card label { color: var(--t-text); }
 
 /* ── Remaining Bootstrap color classes ── */
 
@@ -456,8 +457,9 @@ small, .small { color: inherit; }
 /* Btn outline remaining */
 .btn-outline-dark { color: var(--t-text) !important; border-color: var(--t-card-b) !important; }
 .btn-outline-dark:hover { background: var(--t-dd-hb) !important; }
-.btn-outline-light { color: var(--t-text) !important; border-color: var(--t-card-b) !important; }
-.btn-outline-light:hover { background: var(--t-dd-hb) !important; }
+/* outline-light lives on the dark grounds (gradient headers, code-panel bars), as in Bootstrap */
+.btn-outline-light { color: var(--sajha-on-nav) !important; border-color: color-mix(in srgb, var(--sajha-on-nav) 55%, transparent) !important; background: transparent !important; }
+.btn-outline-light:hover, .btn-outline-light.active { background: color-mix(in srgb, var(--sajha-on-nav) 16%, transparent) !important; color: var(--sajha-on-nav) !important; }
 
 /* Fix tool group card text overflow */
 .tool-group-desc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block; }
@@ -466,7 +468,6 @@ small, .small { color: inherit; }
 /* ═══ CONTRAST FIXES (WCAG AA compliance) ═══ */
 .text-secondary { color: var(--t-muted) !important; }
 .text-body-secondary { color: var(--t-muted) !important; }
-small, .small { color: var(--t-text2) !important; }
 .form-text { color: var(--t-muted) !important; }
 .form-control::placeholder { color: var(--t-inp-ph) !important; }
 .form-select { color: var(--t-inp-t) !important; background-color: var(--t-inp) !important; border-color: var(--t-inp-b) !important; }
@@ -554,17 +555,17 @@ pre, code { color: var(--t-text) !important; background: var(--t-inp) !important
 .mega-panel.cols-3.show { grid-template-columns: repeat(3, minmax(260px, 300px)); }
 .mega-panel.cols-4.show { grid-template-columns: repeat(4, minmax(240px, 270px)); }
 @keyframes mega-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-.mega-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .09em; color: var(--sajha-slate);
+.mega-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .09em; color: var(--t-muted);
   padding: 0 .55rem .45rem; margin-bottom: .35rem; border-bottom: 1px solid var(--sajha-border); }
 .mega-item { display: flex; gap: .7rem; align-items: flex-start; padding: .55rem; border-radius: 10px; color: var(--sajha-ink); text-decoration: none; }
 .mega-item:hover, .mega-item:focus-visible { background: var(--sajha-crimson-tint); color: var(--sajha-ink); }
 .mega-item.active { background: var(--sajha-crimson-tint); }
-.mega-item.active .mega-label { color: var(--sajha-crimson); }
+.mega-item.active .mega-label { color: var(--t-accent-text); }
 .mega-icon { flex: 0 0 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font-size: 1.05rem;
   color: var(--sajha-on-nav); background: linear-gradient(135deg, var(--sajha-nav-via), var(--sajha-nav-to));
   box-shadow: 0 4px 10px -4px rgba(165,28,48,.6); }
 .mega-label { display: block; font-weight: 650; line-height: 1.25; }
-.mega-desc { display: block; font-size: 12px; color: var(--sajha-slate); line-height: 1.35; }
+.mega-desc { display: block; font-size: 12px; color: var(--t-muted); line-height: 1.35; }
 
 .sajha-search { position: relative; margin: 0 .8rem; flex: 0 1 260px; }
 .sajha-search i { position: absolute; left: .7rem; top: 50%; transform: translateY(-50%); color: var(--sajha-on-nav); opacity: .8; }
@@ -588,7 +589,7 @@ pre, code { color: var(--t-text) !important; background: var(--t-inp) !important
 .sajha-content { padding: 1.4rem 1.8rem 3rem; max-width: 1560px; margin: 0 auto; }
 .sajha-banner { padding: .3rem 1.8rem; font-size: 12.5px; }
 .sajha-banner.warn { background: linear-gradient(90deg, var(--sajha-crimson-tint), var(--sajha-surface)); color: var(--sajha-ink); border-bottom: 1px solid var(--sajha-border); }
-.sajha-banner.info { background: var(--sajha-surface); color: var(--sajha-slate); border-bottom: 1px solid var(--sajha-border); }
+.sajha-banner.info { background: var(--sajha-surface); color: var(--t-muted); border-bottom: 1px solid var(--sajha-border); }
 .sajha-public { min-height: 100vh;
   background: radial-gradient(900px 500px at 85% -10%, color-mix(in srgb, var(--sajha-glow) 35%, transparent), transparent 60%),
               linear-gradient(135deg, var(--sajha-nav-from), var(--sajha-nav-via) 45%, var(--sajha-nav-to)); }
@@ -608,15 +609,15 @@ pre, code { color: var(--t-text) !important; background: var(--t-inp) !important
 h1, .h1 { font-size: 1.55rem; color: var(--sajha-heading); font-weight: 650; }
 h2, .h2 { font-size: 1.2rem; font-weight: 650; }
 h3, .h3 { font-size: 1.02rem; font-weight: 650; }
-.lead-slate { color: var(--sajha-slate); }
+.lead-slate { color: var(--t-muted); }
 .card { background: var(--sajha-surface); border-color: var(--sajha-border); }
 .card-header { background: transparent; font-weight: 650; }
 .form-control, .form-select { background: var(--sajha-surface); color: var(--sajha-ink); border-color: var(--sajha-border); font-size: 13.5px; }
 .form-label { font-weight: 600; font-size: 12.5px; color: var(--sajha-ink); margin-bottom: .2rem; }
 .nav-tabs .nav-link { color: var(--sajha-ink); }
-.nav-tabs .nav-link.active { color: var(--sajha-crimson); border-bottom-color: var(--sajha-surface); font-weight: 600; background: var(--sajha-surface); }
+.nav-tabs .nav-link.active { color: var(--t-accent-text); border-bottom-color: var(--sajha-surface); font-weight: 600; background: var(--sajha-surface); }
 .kv { display: grid; grid-template-columns: max-content 1fr; gap: .2rem 1rem; }
-.kv dt { color: var(--sajha-slate); font-weight: 500; }
+.kv dt { color: var(--t-muted); font-weight: 500; }
 .kv dd { margin: 0; word-break: break-all; }
 
 /* Status pills: glyph + word, never colour alone (§16.5) */
@@ -625,8 +626,8 @@ h3, .h3 { font-size: 1.02rem; font-weight: 650; }
 .pill.ok { border-color: var(--sajha-ok); color: var(--sajha-ok); }
 .pill.warn { border-color: var(--sajha-warn); color: var(--sajha-warn); }
 .pill.bad { border-color: var(--sajha-bad); color: var(--sajha-bad); }
-.pill.brand { border-color: var(--sajha-crimson); color: var(--sajha-crimson); }
-.small-muted { color: var(--sajha-slate); font-size: 12px; }
+.pill.brand { border-color: var(--sajha-crimson); color: var(--t-accent-text); }
+.small-muted { color: var(--t-muted); font-size: 12px; }
 /* Polish: depth, gradients and rhythm. Colour still comes only from tokens.css. */
 body.sajha-app { background:
   radial-gradient(900px 380px at 100% 0, color-mix(in srgb, var(--sajha-glow) 55%, transparent), transparent 70%),
@@ -669,8 +670,8 @@ a.stat-tile:hover { transform: translateY(-3px); color: var(--sajha-ink); box-sh
 .stat-tile .ico { flex: 0 0 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-size: 1.35rem; color: var(--sajha-on-nav);
   background: linear-gradient(135deg, var(--sajha-nav-via), var(--sajha-nav-to)); box-shadow: 0 8px 18px -8px var(--sajha-crimson); }
 .stat-tile .num { font-size: 1.7rem; font-weight: 800; line-height: 1; }
-.stat-tile .lbl { font-size: 12px; color: var(--sajha-slate); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
-h1 small, h1 span, h1 a, h1 code { color: var(--sajha-slate); }
+.stat-tile .lbl { font-size: 12px; color: var(--t-muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+h1 small, h1 span, h1 a, h1 code { color: var(--t-muted); }
 @media (min-width: 992px) {
   .sajha-nav .mega { position: static; }
   .sajha-nav .mega-panel { position: absolute; left: 0; right: 0; top: 100%; justify-content: center; }
@@ -689,40 +690,40 @@ h1 small, h1 span, h1 a, h1 code { color: var(--sajha-slate); }
 .help-hero .btn-light, .about-hero .btn-light { color: var(--sajha-crimson-deep); font-weight: 700; }
 .help-toolbar { position: sticky; top: 64px; z-index: 5; padding: .7rem 0 .6rem; margin-bottom: 1rem; background: var(--sajha-canvas); }
 .help-search { position: relative; max-width: 640px; margin: 0 auto .7rem; }
-.help-search i { position: absolute; left: .9rem; top: 50%; transform: translateY(-50%); color: var(--sajha-slate); }
+.help-search i { position: absolute; left: .9rem; top: 50%; transform: translateY(-50%); color: var(--t-muted); }
 .help-search input { width: 100%; padding: .65rem 1rem .65rem 2.4rem; font-size: 1rem; border-radius: 999px; outline: none;
   border: 2px solid var(--sajha-border); background: var(--sajha-surface); color: var(--sajha-ink); box-shadow: 0 6px 18px -12px rgba(41,51,82,.4); }
 .help-search input:focus { border-color: var(--sajha-crimson); }
 .cat-chips, .help-related .chips, .help-onpage { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; }
 .cat-chips .chip, .help-related .chip, .help-onpage .chip { display: inline-flex; align-items: center; gap: .4rem; font-size: 12.5px; font-weight: 600; padding: .25rem .8rem;
   border: 1px solid var(--sajha-border); border-radius: 999px; text-decoration: none; color: var(--sajha-ink); background: var(--sajha-surface); }
-.cat-chips .chip:hover, .help-related .chip:hover, .help-onpage .chip:hover { border-color: var(--sajha-crimson); color: var(--sajha-crimson); }
-.cat-chips .chip span { color: var(--sajha-slate); font-variant-numeric: tabular-nums; }
+.cat-chips .chip:hover, .help-related .chip:hover, .help-onpage .chip:hover { border-color: var(--sajha-crimson); color: var(--t-accent-text); }
+.cat-chips .chip span { color: var(--t-muted); font-variant-numeric: tabular-nums; }
 .help-cat { border: 1px solid var(--sajha-border); border-radius: 16px; margin-bottom: 1rem; background: var(--sajha-surface);
   box-shadow: 0 8px 24px -18px rgba(41,51,82,.35); scroll-margin-top: 170px; }
 .help-cat > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: .8rem; padding: .9rem 1.2rem; font-weight: 700; font-size: 1.1rem; }
 .help-cat > summary::-webkit-details-marker { display: none; }
-.help-cat > summary::after { content: "\F282"; font-family: "bootstrap-icons"; color: var(--sajha-slate); margin-left: .4rem; }
+.help-cat > summary::after { content: "\F282"; font-family: "bootstrap-icons"; color: var(--t-muted); margin-left: .4rem; }
 .help-cat[open] > summary::after { content: "\F286"; }
 .help-cat[open] > summary { border-bottom: 1px solid var(--sajha-border); }
 .help-cat .cat-name { display: flex; align-items: center; gap: .7rem; margin-right: auto; }
 .cat-ico, .hc-ico, .mini-ico { display: inline-grid; place-items: center; color: var(--sajha-on-nav); border-radius: 10px;
   background: linear-gradient(135deg, var(--sajha-nav-via), var(--sajha-nav-to)); box-shadow: 0 6px 14px -8px var(--sajha-crimson); }
 .cat-ico { width: 34px; height: 34px; }
-.help-cat .cat-count { font-size: 12px; font-weight: 700; color: var(--sajha-crimson); background: var(--sajha-crimson-tint); border-radius: 999px; padding: .1rem .6rem; }
-.help-cat .cat-blurb { color: var(--sajha-slate); margin: .8rem 1.2rem .2rem; }
+.help-cat .cat-count { font-size: 12px; font-weight: 700; color: var(--t-accent-text); background: var(--sajha-crimson-tint); border-radius: 999px; padding: .1rem .6rem; }
+.help-cat .cat-blurb { color: var(--t-muted); margin: .8rem 1.2rem .2rem; }
 .help-cat .cat-body { padding: .6rem 1.2rem 1.2rem; }
 .help-card { text-decoration: none; color: var(--sajha-ink); transition: transform .15s, box-shadow .15s, border-color .15s; border: 1px solid var(--sajha-border); }
 .help-card:hover { transform: translateY(-4px); color: var(--sajha-ink); border-color: var(--sajha-crimson); box-shadow: 0 18px 34px -18px rgba(41,51,82,.55); }
 .help-card .card-body { display: flex; flex-direction: column; gap: .5rem; }
 .help-card .hc-title { display: flex; align-items: center; gap: .7rem; font-weight: 700; font-size: 1.02rem; }
 .hc-ico { flex: 0 0 38px; height: 38px; font-size: 1.1rem; }
-.help-card p { color: var(--sajha-slate); margin: 0; flex: 1; }
-.help-card .more { color: var(--sajha-crimson); font-weight: 700; font-size: 13px; }
+.help-card p { color: var(--t-muted); margin: 0; flex: 1; }
+.help-card .more { color: var(--t-accent-text); font-weight: 700; font-size: 13px; }
 .help-card .badge, .help-topic-hero .badge { background: var(--sajha-crimson); color: var(--sajha-on-crimson); font-size: 10.5px; vertical-align: middle; }
-.help-none { text-align: center; color: var(--sajha-slate); padding: 2rem; }
+.help-none { text-align: center; color: var(--t-muted); padding: 2rem; }
 
-.help-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; font-size: 13px; color: var(--sajha-slate); margin-bottom: .8rem; }
+.help-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; font-size: 13px; color: var(--t-muted); margin-bottom: .8rem; }
 .help-crumbs a { text-decoration: none; font-weight: 600; }
 .help-crumbs .bi-chevron-right { font-size: 10px; }
 .help-topic-hero { display: flex; gap: 1.1rem; align-items: center; padding: 1.3rem 1.5rem; border-radius: 18px; margin-bottom: 1.4rem; color: var(--sajha-on-nav);
@@ -753,7 +754,7 @@ h1 small, h1 span, h1 a, h1 code { color: var(--sajha-slate); }
 .help-example pre { margin: 0; border: 0; border-radius: 0; max-height: none; background: var(--sajha-surface); padding: .9rem 1rem; }
 .help-defs { display: grid; grid-template-columns: max-content 1fr; gap: .45rem 1.2rem; margin: .8rem 0 1rem; padding: .9rem 1.1rem;
   background: var(--sajha-surface); border: 1px solid var(--sajha-border); border-radius: 12px; }
-.help-defs dt code { color: var(--sajha-crimson); }
+.help-defs dt code { color: var(--t-accent-text); }
 .help-defs dd { margin: 0; }
 .help-screen { display: inline-flex; align-items: center; gap: .35rem; font-size: 12.5px; font-weight: 700; padding: .15rem .65rem; border-radius: 999px;
   text-decoration: none; background: var(--sajha-crimson-tint); border: 1px solid var(--sajha-border); }
@@ -762,7 +763,7 @@ h1 small, h1 span, h1 a, h1 code { color: var(--sajha-slate); }
 .help-mini:hover { transform: translateY(-2px); }
 .help-pager { display: flex; justify-content: space-between; gap: 1rem; margin: 2rem 0 1rem; max-width: 1100px; }
 .help-related { max-width: 1100px; padding: 1rem 1.2rem; border-radius: 14px; background: var(--sajha-surface); border: 1px solid var(--sajha-border); }
-.help-related .head { font-weight: 700; color: var(--sajha-slate); margin-bottom: .6rem; }
+.help-related .head { font-weight: 700; color: var(--t-muted); margin-bottom: .6rem; }
 .help-related .chips { justify-content: flex-start; }
 .help-related .chip.all { background: var(--sajha-crimson-tint); }
 
@@ -777,13 +778,13 @@ h1 small, h1 span, h1 a, h1 code { color: var(--sajha-slate); }
 .about-feature .fi { width: 54px; height: 54px; border-radius: 14px; display: grid; place-items: center; font-size: 1.45rem; margin-bottom: .8rem;
   color: var(--sajha-on-nav); background: linear-gradient(135deg, var(--sajha-nav-via), var(--sajha-nav-to)); box-shadow: 0 8px 18px -8px var(--sajha-crimson); }
 .about-feature h3 { margin-bottom: .35rem; }
-.about-feature p { color: var(--sajha-slate); margin: 0; }
+.about-feature p { color: var(--t-muted); margin: 0; }
 .about-problem .bad { color: var(--sajha-bad); }
-.about-problem .fix { color: var(--sajha-slate); font-size: 13px; margin-left: 1.5rem; }
-.cap-group { color: var(--sajha-crimson); font-weight: 700; padding-bottom: .35rem; margin-bottom: .6rem; border-bottom: 1px solid var(--sajha-border); }
+.about-problem .fix { color: var(--t-muted); font-size: 13px; margin-left: 1.5rem; }
+.cap-group { color: var(--t-accent-text); font-weight: 700; padding-bottom: .35rem; margin-bottom: .6rem; border-bottom: 1px solid var(--sajha-border); }
 .cap-list { list-style: none; padding: 0; margin: 0; }
 .cap-list li { position: relative; padding-left: 1.4rem; margin-bottom: .4rem; line-height: 1.45; }
-.cap-list li::before { content: "\F270"; font-family: "bootstrap-icons"; position: absolute; left: 0; color: var(--sajha-crimson); }
+.cap-list li::before { content: "\F270"; font-family: "bootstrap-icons"; position: absolute; left: 0; color: var(--t-accent-text); }
 .tech-badge { display: inline-block; margin: .2rem; padding: .3rem .75rem; border-radius: 8px; font-size: 12.5px; font-weight: 600;
   background: var(--sajha-crimson-tint); border: 1px solid var(--sajha-border); color: var(--sajha-ink); }
 .about-author { text-align: center; padding: 2rem; }
@@ -793,15 +794,15 @@ h1 small, h1 span, h1 a, h1 code { color: var(--sajha-slate); }
 /* The page's closing line. The slogan is set in italics wherever it appears (§16.6), and
    the rest of the line is quiet enough that it never competes with the content above it. */
 .sajha-foot { max-width: 1560px; margin: 0 auto; padding: .85rem 1.8rem 1.6rem; text-align: center;
-  border-top: 1px solid var(--sajha-border); color: var(--sajha-slate); font-size: 12px; }
+  border-top: 1px solid var(--sajha-border); color: var(--t-muted); font-size: 12px; }
 .sajha-foot-slogan { font-style: italic; color: var(--sajha-heading); font-size: 13px; margin-right: .35rem; }
-.sajha-foot a { color: var(--sajha-slate); }
-.sajha-foot a:hover { color: var(--sajha-crimson); }
+.sajha-foot a { color: var(--t-muted); }
+.sajha-foot a:hover { color: var(--t-accent-text); }
 /* The theme menu. The check mark is the aria state, drawn, so what a screen reader is told
    and what the eye sees cannot disagree. */
 .theme-menu .dropdown-item { display: flex; align-items: center; gap: .55rem; font-size: 13.5px; }
 .theme-swatch { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,.18); flex: none; }
-.theme-menu [aria-checked="true"]::after { content: "\2713"; margin-left: auto; color: var(--sajha-crimson); font-weight: 700; }
+.theme-menu [aria-checked="true"]::after { content: "\2713"; margin-left: auto; color: var(--t-accent-text); font-weight: 700; }
 /* The theme button outside the signed-in toolbar, where .sajha-tools does not reach. */
 .sajha-nav .tool { position: relative; display: inline-flex; align-items: center; border: 0;
   background: transparent; color: var(--sajha-on-nav); padding: .35rem .5rem; border-radius: 8px; }
@@ -827,13 +828,13 @@ h1 small, h1 span, h1 a, h1 code { color: var(--sajha-slate); }
 .lp2-fig-wide { padding: 1.2rem 1rem .6rem; border: 1px solid var(--sajha-border); border-radius: 12px;
   background: var(--sajha-surface); }
 .lp2-figsec .lp2-eyebrow { text-align: center; }
-.lp2-replay { position: absolute; right: .6rem; bottom: .4rem; font-size: 12px; color: var(--sajha-slate);
+.lp2-replay { position: absolute; right: .6rem; bottom: .4rem; font-size: 12px; color: var(--t-muted);
   background: none; border: 0; padding: .2rem .4rem; border-radius: 6px; }
-.lp2-replay:hover, .lp2-replay:focus-visible { color: var(--sajha-crimson); }
+.lp2-replay:hover, .lp2-replay:focus-visible { color: var(--t-accent-text); }
 @media (max-width: 575.98px) { .lp2-fig-hero { display: none; } }
 .lp2-hero-inner { position: relative; z-index: 1; max-width: 900px; }
 .lp2-badge { display: inline-flex; align-items: center; gap: .5rem; padding: .38rem 1rem;
-  border-radius: 999px; margin-bottom: 1.6rem; font-size: 12.5px; color: var(--sajha-slate);
+  border-radius: 999px; margin-bottom: 1.6rem; font-size: 12.5px; color: var(--t-muted);
   border: 1px solid var(--sajha-border);
   background: color-mix(in srgb, var(--sajha-surface) 78%, transparent); }
 .lp2-badge i { font-size: .55rem; color: var(--sajha-ok); }
@@ -842,7 +843,7 @@ h1 small, h1 span, h1 a, h1 code { color: var(--sajha-slate); }
 .lp2-gradient { background: linear-gradient(135deg, var(--sajha-nav-via), var(--sajha-nav-to));
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .lp2-sub { max-width: 690px; margin: 0 auto 2rem; font-size: 1.07rem; line-height: 1.65;
-  color: var(--sajha-slate); }
+  color: var(--t-muted); }
 .lp2-actions { display: flex; flex-wrap: wrap; gap: .8rem; justify-content: center; }
 .lp2-btn { display: inline-flex; align-items: center; gap: .5rem; padding: .78rem 1.7rem;
   border-radius: 999px; font-weight: 700; font-size: .98rem; text-decoration: none;
@@ -854,7 +855,7 @@ h1 small, h1 span, h1 a, h1 code { color: var(--sajha-slate); }
 .lp2-btn-primary:hover { color: var(--sajha-on-nav); }
 .lp2-btn-outline { color: var(--sajha-ink); border: 1.5px solid var(--sajha-border);
   background: color-mix(in srgb, var(--sajha-surface) 70%, transparent); }
-.lp2-btn-outline:hover { color: var(--sajha-crimson); border-color: var(--sajha-crimson); }
+.lp2-btn-outline:hover { color: var(--t-accent-text); border-color: var(--sajha-crimson); }
 
 .lp2-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;
   padding: 2rem 0; margin-bottom: 1rem; text-align: center;
@@ -864,14 +865,14 @@ h1 small, h1 span, h1 a, h1 code { color: var(--sajha-slate); }
   font-variant-numeric: tabular-nums;
   background: linear-gradient(135deg, var(--sajha-nav-via), var(--sajha-nav-to));
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-.lp2-label { font-size: 12.5px; color: var(--sajha-slate); }
+.lp2-label { font-size: 12.5px; color: var(--t-muted); }
 
 .lp2-section { padding: 3.2rem 0 1rem; }
 .lp2-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
-  color: var(--sajha-crimson); margin-bottom: .6rem; }
+  color: var(--t-accent-text); margin-bottom: .6rem; }
 .lp2-h2 { font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: 800; letter-spacing: -.015em;
   color: var(--sajha-heading); margin-bottom: .8rem; text-wrap: balance; }
-.lp2-desc { max-width: 640px; color: var(--sajha-slate); line-height: 1.65; margin-bottom: 2rem; }
+.lp2-desc { max-width: 640px; color: var(--t-muted); line-height: 1.65; margin-bottom: 2rem; }
 .lp2-centre { text-align: center; margin-left: auto; margin-right: auto; }
 
 .lp2-chain { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2.5rem;
@@ -884,7 +885,7 @@ h1 small, h1 span, h1 a, h1 code { color: var(--sajha-slate); }
 .lp2-card:hover { transform: translateY(-4px); border-color: var(--sajha-crimson);
   box-shadow: 0 10px 28px color-mix(in srgb, var(--sajha-nav-via) 14%, transparent); }
 .lp2-card > i { display: inline-grid; place-items: center; width: 42px; height: 42px; border-radius: 10px;
-  font-size: 1.2rem; color: var(--sajha-crimson); background: var(--sajha-crimson-tint); margin-bottom: .9rem; }
+  font-size: 1.2rem; color: var(--t-accent-text); background: var(--sajha-crimson-tint); margin-bottom: .9rem; }
 .lp2-card h3 { font-size: 1.02rem; font-weight: 700; color: var(--sajha-heading); margin-bottom: .45rem; }
 .lp2-card p { margin: 0; font-size: 13.8px; line-height: 1.6; color: var(--sajha-ink); opacity: .86; }
 
@@ -894,9 +895,9 @@ h1 small, h1 span, h1 a, h1 code { color: var(--sajha-slate); }
 .lp2-ways-list { display: grid; gap: .8rem; }
 .lp2-way { display: flex; gap: .9rem; align-items: flex-start; padding: .9rem 1rem; border-radius: 12px;
   background: var(--sajha-surface); border: 1px solid var(--sajha-border); }
-.lp2-way i { font-size: 1.3rem; color: var(--sajha-crimson); line-height: 1.2; }
+.lp2-way i { font-size: 1.3rem; color: var(--t-accent-text); line-height: 1.2; }
 .lp2-way strong { display: block; color: var(--sajha-heading); }
-.lp2-way span { font-size: 13px; color: var(--sajha-slate); }
+.lp2-way span { font-size: 13px; color: var(--t-muted); }
 /* The code window takes the deepest colour of the theme's own gradient, so it is dark in all
    four and still belongs to the page it sits on. */
 .lp2-code { border-radius: 14px; overflow: hidden; background: var(--sajha-nav-to);
@@ -931,7 +932,7 @@ h1 small, h1 span, h1 a, h1 code { color: var(--sajha-slate); }
 .cmp { display: inline-block; padding: .08rem .55rem; border-radius: 999px; font-size: 12px; font-weight: 600; }
 .cmp-yes { color: var(--sajha-ok); background: color-mix(in srgb, var(--sajha-ok) 12%, transparent); }
 .cmp-partial { color: var(--sajha-warn); background: color-mix(in srgb, var(--sajha-warn) 12%, transparent); }
-.cmp-no { color: var(--sajha-slate); background: color-mix(in srgb, var(--sajha-slate) 10%, transparent); }
+.cmp-no { color: var(--t-muted); background: color-mix(in srgb, var(--sajha-slate) 10%, transparent); }
 
 /* ── Where SAJHA's own rules (above, with !important) would otherwise win over MAYA's ── */
 .sajha-app main#main-content { position: relative; z-index: 1; }
@@ -974,3 +975,50 @@ body.sajha-public { background: radial-gradient(900px 500px at 85% -10%, color-m
 /* the landing page's code window is dark in every theme; SAJHA's global pre/code rule must not repaint it */
 .lp2-code pre, .lp2-code code { background: transparent !important; border: 0 !important; color: var(--sajha-on-nav) !important; padding: 1.1rem 1.2rem !important; }
 .lp2-code code { padding: 0 !important; }
+
+/* ── Contrast fixes (axe colour-contrast audit, all four themes) ── */
+/* an active / checked outline button is filled, so its text must be the on-accent colour */
+.btn-outline-primary.active, .btn-outline-primary:active, .btn-check:checked + .btn-outline-primary,
+.btn-check:active + .btn-outline-primary, .btn-outline-primary.dropdown-toggle.show {
+  background: var(--sajha-crimson) !important; border-color: var(--sajha-crimson) !important; color: var(--sajha-on-crimson) !important; }
+.btn-outline-secondary.active, .btn-check:checked + .btn-outline-secondary {
+  background: var(--sajha-slate) !important; border-color: var(--sajha-slate) !important; color: var(--sajha-on-crimson) !important; }
+/* text placed on an accent ground keeps the ground's text colour */
+.active small, .active .small, .active .text-muted, .btn small, .btn .text-muted { color: inherit !important; }
+/* muted text inside the dark code/preview panels */
+.bg-dark .text-muted, pre .text-muted, .lp2-code .text-muted, .preview-content .text-muted { color: color-mix(in srgb, var(--sajha-on-nav) 70%, transparent) !important; }
+/* accent text on tinted panels */
+.text-primary, .lp2-proto, .variable-hint code { color: var(--t-accent-text) !important; }
+.pagination .page-link { color: var(--t-accent-text) !important; }
+
+/* highlight.js ships GitHub-dark colours, so its blocks are dark in every theme */
+pre:has(> code.hljs), pre:has(> code[class*="language-"]) {
+  background: color-mix(in srgb, var(--sajha-nav-to) 45%, #0d1117) !important; color: #e6edf3 !important; border: 0 !important; }
+pre code.hljs, pre code[class*="language-"] { background: transparent !important; color: #e6edf3 !important; }
+pre .hljs-comment, pre .hljs-quote { color: #9da7b3 !important; }
+
+/* the vendored JSON editor, re-pointed at the tokens */
+.jsoneditor, .jsoneditor-menu { border-color: var(--sajha-border) !important; }
+.jsoneditor-menu { background: var(--t-ban) !important; }
+.jsoneditor-tree, .jsoneditor-outer, div.jsoneditor-tree table, .jsoneditor textarea.jsoneditor-text, .ace-jsoneditor .ace_gutter, .ace-jsoneditor .ace_scroller {
+  background: var(--sajha-surface) !important; color: var(--sajha-ink) !important; }
+div.jsoneditor-field, div.jsoneditor-value { color: var(--sajha-ink) !important; }
+div.jsoneditor-readonly, div.jsoneditor-default { color: var(--t-muted) !important; }
+div.jsoneditor-value.jsoneditor-string { color: var(--sajha-ok) !important; }
+div.jsoneditor-value.jsoneditor-number, div.jsoneditor-value.jsoneditor-boolean { color: var(--sajha-warn) !important; }
+div.jsoneditor-value.jsoneditor-null { color: var(--sajha-indigo) !important; }
+.jsoneditor input, .jsoneditor-search input, .jsoneditor-frame { background: var(--sajha-surface) !important; color: var(--sajha-ink) !important; }
+tr.jsoneditor-highlight, tr.jsoneditor-selected, div.jsoneditor-field.jsoneditor-highlight, div.jsoneditor-value.jsoneditor-highlight { background: var(--sajha-crimson-tint) !important; }
+
+/* the avatar and unread dot are white chips on the bar; their text takes the bar's darkest stop,
+   which is dark in every theme (crimson-deep turns light pink in Dark: 2.9:1 on white) */
+.sajha-tools .avatar, .sajha-tools .dot { color: var(--sajha-nav-from) !important; }
+/* the JSON editor's toolbar sits on the gradient */
+.jsoneditor-menu > button, .jsoneditor-menu .jsoneditor-modes > button { color: var(--sajha-on-nav) !important; }
+div.jsoneditor-treepath, div.jsoneditor-treepath * { color: var(--t-muted) !important; }
+/* links in gradient heroes and headers */
+.creator-header a:not(.btn), .help-hero a:not(.btn), .help-topic-hero a:not(.btn), .about-hero a:not(.btn),
+.welcome-banner a:not(.btn), .welcome-bar a:not(.btn), .card-header-primary a:not(.btn) { color: var(--sajha-on-nav) !important; text-decoration: underline; }
+/* grey outline buttons read in ink, as MAYA's do; the slate border carries the 'secondary' */
+.btn-outline-secondary { color: var(--sajha-ink) !important; border-color: var(--sajha-border) !important; }
+.lp2-sub { color: var(--t-text2) !important; }
