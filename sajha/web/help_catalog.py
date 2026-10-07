@@ -183,8 +183,8 @@ CATALOG: List[dict] = [
                'Design for tools whose work is done by a model: modes, config, running as the caller, '
                'config-driven planners (ReAct, Reflect, loops), memory tiers with disk spill, safety, build plan.'),
             _g('SAJHA fleet (design)', 'Fleet.md', 'bi-diagram-3',
-               'Design for SAJHA servers sharing tools across domains: membership, automatic proxy tools, '
-               'user identity across servers, two-sided authorization, data residency, linked audit.'),
+               'Design for SAJHA servers sharing tools across domains: gossip membership, automatic proxy tools, '
+               'API-key identity with a synced key directory, two-sided authorization, residency, snapshots.'),
             _g('Roadmap', 'Roadmap.md', 'bi-signpost-2',
                'What is not built yet and what should come next: release hygiene, the gaps the guides record, '
                'and recommended enhancements, each with its size, dependencies and the guide that owns it.'),
