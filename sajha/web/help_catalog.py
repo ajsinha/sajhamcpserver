@@ -192,6 +192,9 @@ CATALOG: List[dict] = [
             _g('SAJHA Net (design)', 'SAJHA Net.md', 'bi-diagram-3',
                'Design for SAJHA servers sharing tools across domains: gossip membership, automatic proxy tools, '
                'API-key identity with a synced key directory, two-sided authorization, residency, snapshots.'),
+            _g('Implementation plan', 'Implementation Plan.md', 'bi-list-ol',
+               'The build order for LLM tools, SAJHA Net and the open roadmap items, in five waves, '
+               'each a release with its contents, dependencies, exit gates and risks.'),
             _g('Roadmap', 'Roadmap.md', 'bi-signpost-2',
                'What is not built yet and what should come next: release hygiene, the gaps the guides record, '
                'and recommended enhancements, each with its size, dependencies and the guide that owns it.'),

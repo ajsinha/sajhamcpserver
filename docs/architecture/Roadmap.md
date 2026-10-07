@@ -15,6 +15,9 @@ and this roadmap is the one to fix.
 
 ## 1. How to read this
 
+The order in which these items are built, together with the LLM tools and SAJHA Net designs, is the
+[Implementation Plan](Implementation%20Plan.md): five waves, each a release.
+
 **Horizons.** *Now* is what release 7.0.0 needs before it is cut. *Next* is the work that
 closes the gaps an operator meets first (access control, sign-in, the intelligence layer,
 evidence of performance). *Later* is larger work that changes what kind of product SAJHA
