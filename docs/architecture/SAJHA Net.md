@@ -748,6 +748,21 @@ description and title belong to it too, but a difference there is only a warning
   alert) and **evicts that tool name**: no copy of it is listed, resolvable, callable or a fallback
   target anywhere in the net, including on the hosts that offer it, for net calls and for plain-name
   calls alike.
+- **The error says which server differs.** Members group the hosts offering the name by contract
+  hash. When one group is larger, the hosts outside it are named as **differing** and the others as
+  **agreeing**; on a tie every group is listed. The message also says what differs, down to the first
+  differing place in each schema (a JSON Pointer) or annotation:
+
+  ```
+  ERROR  sajhanet  Tool var_calc quarantined in risk-net: cust-na offers a different contract.
+         Differs: inputSchema /properties/horizon/type  (cust-na: "string"; others: "integer").
+         Agreeing: risk-eu, treasury-na, risk-apac (3).  Differing: cust-na (1).
+         Fix: correct var_calc on cust-na, or stop exporting it there. The tool is unavailable
+         everywhere in risk-net until then.
+  ```
+
+  The same text is the notice's detail, the conflicts-queue entry and the audit record, so every
+  member's log and console says the same thing about the same server.
 - **Quarantine lifts by itself** once the contract is the same everywhere again: when every host
   still offering that name in the net offers the identical contract (the odd host is fixed, stops
   exporting the tool, or leaves). Entering and leaving quarantine are both logged and audited.
@@ -755,6 +770,17 @@ description and title belong to it too, but a difference there is only a warning
   that cannot see every offer (because export rules show a tool to some peers only) still converge
   through gossip. The rule is normative in the
   [protocol spec](../protocol/SAJHA%20Net%20Protocol.md#107-one-name-one-contract).
+- **Worked example: the differing host deactivates the tool.** `cust-na` offers `var_calc` with a
+  different schema, so every member of `risk-net` quarantines `var_calc` and reports `cust-na` as
+  differing. `cust-na`'s administrator disables the tool (or removes it from the export rules).
+  `cust-na`'s catalog no longer contains `var_calc`, so its catalog digest changes; gossip carries the
+  new digest to every member within a few rounds; each member pulls `cust-na`'s catalog, finds no
+  `var_calc` there, re-checks the remaining offers, sees they all share one contract, and lifts the
+  quarantine on its own. Each member logs it and raises an info notice ("`var_calc` active again in
+  risk-net; cust-na no longer offers it"), and the tool is listed, resolvable and callable again,
+  served by the agreeing hosts, typically within seconds. If `cust-na` later offers `var_calc` again
+  with the agreed contract, it simply joins the hosts serving it; with a different one, the
+  quarantine starts again.
 - **Escape hatch.** A host that needs its own differing copy for its local callers stops exporting
   it (its export rules). It is then not part of the net's contract for that name, the conflict ends,
   and its local copy works for its own callers as before.

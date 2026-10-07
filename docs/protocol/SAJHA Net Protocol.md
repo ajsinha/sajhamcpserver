@@ -1258,6 +1258,15 @@ when hosts disagree: the name is quarantined until they agree.
 
 ## 11. Net key directory
 
+**Reporting a conflict.** A member reporting a `contract_conflict` (log, notice, conflicts document,
+audit) MUST group the offering hosts by contract hash and, when one group is strictly larger than every
+other, name the hosts outside it as `differing` and those in it as `agreeing`; on a tie it lists every
+group without naming a differing side. It SHOULD include, for each differing group, the first
+differing location: `inputSchema` or `outputSchema` with a JSON Pointer, or the annotation name, with
+both values. Re-activation is reported the same way, naming the change that ended the conflict
+(`fixed`, `withdrawn`, `left`, `dead`).
+
+
 ### 11.1 Key record
 
 Each participant with feature `key_directory` publishes one record per API key it issued, signed by
@@ -1990,6 +1999,7 @@ vectors for SIG-01, SIG-12 and REC-01.
 | CAT-06 | S A | Each catalog entry carries every member of the tool definition the host shows its own clients (name, title, description, both schemas, annotations, `_meta`) with an informational `version` and a `contract_hash` computed as §10.2 (annotations included); a home that computes a different hash does not import the tool and flags the peer. |
 | CAT-07 | S | A peer's tools disappear from `tools/list`, aliases, resolution and caches as soon as it is `left` or `dead`; while it is `suspect` they are listed with `state: "unavailable"` and no call is sent to it; after it returns they are listed again only after a successful pull. |
 | CAT-08 | S | After a restart, no remote tool is listed or callable until that peer's catalog response (full or `unchanged`) has arrived in this run, even though a stored copy exists. |
+| CON-06 | S A | A conflict report names the differing host(s) when a strict majority agrees, lists all groups on a tie, and gives the first differing JSON Pointer or annotation; when the differing host withdraws the tool, every member re-activates it and reports `withdrawn`. |
 | CON-01 | S A | Hosts offering a tool with the same `contract_hash` are one tool; a difference only in description or title is a warning, not a conflict; `version` plays no part. |
 | CON-02 | S A | When two hosts in a net offer a tool with different `contract_hash` values, every member that sees both quarantines it: no copy is listed, resolved, callable or a fallback target, by plain or qualified name; callers get `contract_conflict` naming every offering host and hash; the event is logged at error level, alerted, counted and audited. |
 | CON-03 | S A | An offering host quarantines its own tool too: its local callers cannot reach it by plain name and forwarded calls get `-32011 contract_conflict`; after it stops exporting the tool, the conflict ends and its local callers reach it again. |
