@@ -72,6 +72,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Workflows](architecture/Workflows.md): DAGs of tools, composites and Ask SAJHA steps; cron, webhook, file and event triggers; durable runs that resume after a crash; re-run from a step; publish as a tool
 - [Tool Quality](architecture/Tool%20Quality.md): test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, rollback and sunset dates
 - [Policy and Audit](architecture/Policy%20and%20Audit.md): declarative rules on every tool call (deny, approval, argument constraints, rate limits, quotas, redaction, injection screening); the hash-chained, signed audit and SIEM export
+- [LLM Tools](architecture/LLM%20Tools.md): design (not built) for tools whose work is done by a model, configured like any tool and governed the same way
 - [Roadmap](architecture/Roadmap.md): what is not built yet and what should come next, by horizon (now, next, later), each item linked to the guide that records the gap
 
 ## MCP Studio
