@@ -209,7 +209,7 @@ Python entry-point group (`sajha.net.plugins`), as planners already can.
 |---|---|---|---|
 | **Membership provider** | how participants find each other and detect arrivals and departures | `gossip` (SWIM, section 6.3), `static` (a list in configuration) | Kubernetes service discovery, DNS SRV, a registry, Consul |
 | **Admission and certificates** | who may join and how they prove it | `builtin_ca` (section 6.4), `manual` (section 6.5) | an organisation PKI, SPIFFE/SPIRE workload identities, cloud certificate services |
-| **Peer connector** | how calls and catalogs travel to a participant | `sajha_native` (MCP with the extension over mutual TLS), `mcp_generic` (plain MCP: Streamable HTTP, SSE, stdio, through federation's connection code) | gRPC, a message bus, an air-gapped file drop |
+| **Peer connector** | how calls and catalogs travel to a participant | `sajha_native` (MCP with the extension, signed requests on the normal HTTP port), `mcp_generic` (plain MCP: Streamable HTTP, SSE, stdio, through federation's connection code) | gRPC, a message bus, an air-gapped file drop |
 | **Identity resolver** | how the user travels with a call and is verified (section 10.2) | `api_key` | `assertion`, `token_exchange`, `none` (service identity only, for sponsored servers that have no user concept) |
 | **Catalog source** | where a participant's tools come from | `native` (with net metadata), `mcp_tools_list` (any MCP server, metadata filled in by the sponsor) | an OpenAPI import, a registry listing |
 | **Key directory store** | where synced key records live | `database` (the `sajhanet_api_keys` table) | Redis, an external secrets service |
@@ -225,7 +225,7 @@ Python entry-point group (`sajha.net.plugins`), as planners already can.
 - SAJHA's integration (the registry hooks for proxy tools, the policy engine, the audit log, the
   console, the CLI) sits on top and depends on the core, never the other way round.
 - The **SAJHA Net agent** is a small separate program built from the core: it runs next to any MCP
-  server, terminates mutual TLS, gossips, publishes the server's catalog with net metadata,
+  server, verifies signed requests, gossips, publishes the server's catalog with net metadata,
   verifies forwarded keys, applies its export rules, and forwards allowed calls to the server.
 - Every interface has a contract test suite that each implementation, shipped or third-party,
   must pass before it can be selected.
@@ -275,9 +275,10 @@ server is needed.
   value so pods keep their name.
 - **Admission is by certificate.** The net has its own certificate authority. Each instance
   holds a key pair and a certificate signed by the SAJHA Net CA whose subject names the net and
-  the instance name, so an instance cannot claim a name it was not issued. Every request between instances is mutual TLS, and an instance accepts a peer only
-  if its certificate chains to the SAJHA Net CA, names the same net, and is not on the net's
-  revocation list. Holding such a certificate is what makes a server an instance: there is no
+  the instance name, so an instance cannot claim a name it was not issued. Every request between instances is **signed** with the sender's private key and carries its
+  certificate (section 6.7), and an instance accepts a peer's request only if the certificate chains
+  to the net CA, names the same net, matches the signature, and is not on the net's revocation
+  list. Holding such a certificate is what makes a server an instance: there is no
   separate approval step, which is how instances can come and go automatically.
 - **Revocation.** A net administrator removes an instance by adding its instance name (or certificate
   serial) to the revocation list, which is signed with the SAJHA Net CA's key and spread by gossip
@@ -318,8 +319,9 @@ instances it is far more than enough.
   reaches every instance in a few rounds.
 - **Anti-entropy.** Every `full_sync_interval_seconds` an instance exchanges its whole membership
   list and digests with one random instance, which repairs anything a lost message missed.
-- **Transport.** Gossip messages are small HTTPS POSTs over the same mutual TLS as calls, not
-  UDP, so they pass through Kubernetes services, ingress and corporate proxies unchanged.
+- **Transport.** Gossip messages are small HTTP POSTs on SAJHA's normal port, signed like every
+  other request between instances (section 6.7). There is no other port, no UDP and no separate
+  listener, so gossip passes through Kubernetes services, ingress and corporate proxies unchanged.
 - **Digests trigger pulls.** Gossip carries only digests. When an instance sees a peer's catalog
   hash or key-directory version change, it pulls the changed part from that peer (sections 7.2 and 10.3). Gossip never carries tools, schemas or keys themselves.
 - **One gossip agent per instance.** An instance running several workers elects one of them to run
@@ -396,6 +398,36 @@ instance knows it is back.
   above is the same.
 - **Several workers.** The worker that wins the gossip lease (section 6.3) performs the rejoin;
   the others read the membership list from the state store as usual.
+
+### 6.7 One port: how instances talk
+
+Everything between instances uses SAJHA's normal HTTP port: the same server, the same listener,
+the same port MCP clients and the web console use. There is no second port, no UDP and no other
+TCP connection to open in a firewall.
+
+- **Paths.** Net traffic is ordinary HTTP under one path prefix, `/sajhanet/`: gossip
+  messages, catalog and key-directory pulls, block and digest exchange, and CA enrollment and
+  renewal. Calls to remote tools go to the host's normal MCP endpoint, with net headers added.
+  These paths are refused unless SAJHA Net is enabled, and are never served to browsers.
+- **Signed requests, not mutual TLS.** In most deployments TLS ends at an ingress, load balancer
+  or nginx in front of SAJHA, so a peer's TLS client certificate would never reach SAJHA. Instead
+  every request between instances carries an **HTTP Message Signature** (RFC 9421) made with the
+  sender's private key, covering the method, path, the important headers, a content digest of the
+  body (RFC 9530), a creation time and a nonce, plus the sender's net certificate in a header. The
+  receiver checks the certificate against the net CA and the revocation list, checks the signature
+  with the certificate's key, refuses requests older than `signature_max_age_seconds`, and keeps
+  seen nonces in its state store for that window so a request cannot be replayed. This works the
+  same whether TLS ends at SAJHA, at a proxy, or (in a lab) not at all.
+- **Responses are signed too**, so an instance knows a catalog, key-directory record or tool result
+  really came from the peer it asked, even through proxies.
+- **TLS still protects the wire.** Signatures prove who sent a request; HTTPS keeps it private.
+  Forwarded API keys (section 10.2) travel only over HTTPS hops (`require_https`, on by default);
+  turning that off is for a lab only and the console says so in red.
+- **Mutual TLS remains an option** (`mtls: optional | required`, off by default because asking for
+  client certificates can make browsers prompt console users) for deployments where SAJHA
+  terminates TLS itself and wants the handshake check as well; it is never the only check.
+- **Proxies need nothing special.** Because identity is inside the request, a proxy only has to
+  pass headers through unchanged, which is the default for ingress controllers and nginx.
 
 ---
 
@@ -520,7 +552,7 @@ caller ──► HOME instance                                   HOST instance
            5 policy engine (deny / redact / approval / rate limit)
            6 breaker, rate limit, hop check (section 14)
            7 identity resolver: attach the user's API key;
-             mutual TLS, trace id, hop count ──────────────► 8 verify instance certificate, revocation
+             signed request, trace id, hop count ──────────► 8 verify signature, certificate, revocation
                                                             9 identity resolver: hash the key, look
                                                               it up in the net key directory, check
                                                               enabled, expiry, home instance
@@ -549,7 +581,8 @@ caller ◄── 17 result
 
 ### 10.1 Instance identity
 
-Every request between instances is mutual TLS with a net certificate (section 6.1). A request
+Every request between instances is signed with the sender's key and carries its net certificate
+(sections 6.1 and 6.7). A request
 from a server without one, or from a revoked instance, is refused before anything else is read.
 
 ### 10.2 User identity: a pluggable resolver, API keys first
@@ -576,7 +609,7 @@ change anywhere else.
    persistent key file if the database does not know it or is unavailable (section 20.3);
    either way the hash, enabled flag, expiry and tool allowlist are checked.
 3. When the call goes to a proxy tool, the home instance forwards the **key itself** to the host
-   instance in a dedicated header, over the mutual-TLS connection, together with the trace id and
+   instance in a dedicated header of the signed request, over HTTPS, together with the trace id and
    hop count.
 4. The host instance hashes the key and looks it up in its **net key directory** (section 10.3,
    which includes keys from instances' persistent key files),
@@ -590,7 +623,7 @@ change anywhere else.
 **Handling rules for forwarded keys.** The raw key exists only in memory during the call: it is
 never logged, never written to the audit log (the key's id and prefix are), never stored, never
 put in a trace attribute, and never forwarded onward when re-export is on (a further hop gets
-the key id inside an instance-signed assertion instead). Only mutual-TLS connections may carry it.
+the key id inside an instance-signed assertion instead). Only HTTPS hops may carry it (section 6.7).
 
 **Why forward the key rather than only its id.** Forwarding lets the host instance verify the
 user's possession of the key independently, against its own synced copy, instead of trusting
@@ -812,7 +845,7 @@ Residency is about where data flows, in both directions.
 - **No transitive re-export by default.** An instance exports only its own tools, never proxies it
   imported (`sajhanet.reexport: false`). Without re-export, every remote call is exactly one hop.
 - **When re-export is enabled**, each call carries a hop count and the list of instances it has
-  visited (in headers carried over mutual TLS). An instance refuses a call that would exceed
+  visited (in signed headers). An instance refuses a call that would exceed
   `sajhanet.max_hops` or revisit an instance, so A → B → A loops cannot form.
 - **Remote LLM tools** count toward both the LLM-tool depth limit and the hop limit.
 
@@ -908,9 +941,10 @@ the `sajha` command line.
 
 | Threat | Mitigation |
 |---|---|
-| A rogue server pretends to be an instance | Mutual TLS with certificates from the SAJHA Net CA only; the signed revocation list is checked on every request; gossip from a server without a net certificate is refused |
+| A rogue server pretends to be an instance | Every request signed with a key whose certificate comes from the SAJHA Net CA only, with a timestamp, nonce and body digest; the signed revocation list is checked on every request; gossip from a server without a net certificate is refused |
 | A compromised instance impersonates users | Host instances authorize the named user against their own export and access rules, never "the instance says so"; role maps grant nothing by default; revocation is immediate |
-| A forwarded API key is captured | Keys travel only over mutual TLS, are never logged, stored or traced, and are accepted only from their home instance, so a captured key cannot be replayed through another instance; a net that wants no key in transit switches to the `assertion` resolver (section 10.2) |
+| A request is replayed or altered in transit | Signatures cover method, path, key headers and a body digest; a creation time and nonce with a short window, seen nonces kept in the state store |
+| A forwarded API key is captured | Keys travel only in signed requests over HTTPS, are never logged, stored or traced, and are accepted only from their home instance, so a captured key cannot be replayed through another instance; a net that wants no key in transit switches to the `assertion` resolver (section 10.2) |
 | An administrator on one instance takes over another | Net settings can only be changed by an administrator signed in to that instance; remote administrators' tool calls are configurable (`remote_admin`) and audited |
 | The CA key is stolen | It lives only on the CA instance as an owner-only secret; certificates are short-lived; re-keying the CA and re-enrolling instances is a documented procedure |
 | Default keys are read from the vault | AES-256-GCM with the instance's vault key (from the environment, never in the database); only the home instance can decrypt |
@@ -939,11 +973,14 @@ sajhanet:
   base_url: https://sajha-risk-eu.example.internal
   region: eu-west
   labels: { domain: risk, jurisdiction: EU, entity: acme-eu }
-  identity:                         # mutual TLS with a net-CA certificate (section 6.1)
+  identity:                         # net-CA certificate; requests are signed (section 6.7)
     cert_ref: file:/etc/sajha/sajhanet/instance.crt
     key_ref: file:/etc/sajha/sajhanet/instance.key      # secret references, never values
     ca_ref: file:/etc/sajha/sajhanet/ca.pem
     revocation_list_ref: file:/etc/sajha/sajhanet/revoked.json   # signed; also spread by gossip
+    signature_max_age_seconds: 30   # a signed request older than this is refused (replay window)
+    require_https: true             # forwarded API keys only over HTTPS hops; false only for a lab
+    mtls: off                       # extra check when SAJHA itself terminates TLS: off | optional | required
   users: { match_by_name: true, unknown: refuse, remote_admin: admin }   # section 11.3
   default_keys: { enabled: true, vault: accounts }   # section 10.2
   ca: { enabled: false, key_ref: file:/etc/sajha/sajhanet/ca.key, cert_validity_days: 30, enrollment_token_minutes: 30 }   # section 6.4, CA instance only
@@ -1080,6 +1117,10 @@ at any point in the retained window, and an instance can be rebuilt after losing
   loopback, `localhost` and link-local addresses are never used, and with nothing acceptable the
   instance stays out of the net with a clear message; the underscore tool-name prefix for IPv4 and
   fully expanded IPv6, never containing `__`; tool names over a provider's length limit are reported.
+- **One port and signatures:** all net traffic on the normal port behind a TLS-terminating proxy;
+  bad, missing, expired, replayed or wrong-certificate signatures refused; body tampering caught by
+  the digest; signed responses verified; forwarded keys refused over plain HTTP unless the lab
+  override is on.
 - **Membership:** restart rejoins through last-known peers with seeds down; a dead instance found
   again by peers' low-rate probes; unconfirmed remote tools after restart; joins through a seed, clean leaves, crashes detected through indirect probes,
   false suspicion refuted, rejoin with a higher incarnation, revocation spreading, a server
@@ -1121,7 +1162,7 @@ Each phase ends green: full suite, multi-instance tests, both conformance suites
 
 | Phase | Scope |
 |---|---|
-| 1 | The protocol-only core and every plug-in interface (section 5.3) from the start, each with its contract tests; then membership: the SAJHA Net CA run by SAJHA (CA instance, enrollment tokens, renewal, revocation), certificates and mutual TLS, revocation list, gossip agent (SWIM failure detection, dissemination, anti-entropy, seeds, incarnations, leases across workers); SAJHA Net page (instances and their states) |
+| 1 | The protocol-only core and every plug-in interface (section 5.3) from the start, each with its contract tests; then membership: the SAJHA Net CA run by SAJHA (CA instance, enrollment tokens, renewal, revocation), certificates and signed requests on the normal port, revocation list, gossip agent (SWIM failure detection, dissemination, anti-entropy, seeds, incarnations, leases across workers); SAJHA Net page (instances and their states) |
 | 2 | Catalog exchange driven by gossip digests, the host and tool table, screening and trust levels, automatic proxy tools, qualified names and alias rules, `tools/list` with net metadata, Tools page badges and filters |
 | 3 | Identity resolver interface; the `api_key` resolver; default API keys for every user, kept encrypted at home; users across instances (links, name matching, unknown users, remote administrators); blocking at all four levels; the net key directory with signed records, digest-driven sync and the `sajhanet_api_keys` table in both schema files; host-side verification; persistent key file and periodic snapshots (these two also benefit a SAJHA that is not in a net); export and import rules, role maps; linked audit and tracing; metrics; per-peer isolation |
 | 4 | Residency: data classes, residency rules on arguments and results, residency-aware shortlists, memory handling of remote results |
@@ -1160,7 +1201,7 @@ What this design would add, in combination, is aimed at regulated, multi-domain 
   `auto` trust and remote LLM tools are on (sections 7.3 and 13). Screening stays on as a
   safeguard against a compromised instance.
 - **Membership by gossip:** instances discover each other and detect arrivals and departures
-  automatically (section 6), which makes admission by net certificate and mutual TLS the
+  automatically (section 6), which makes admission by net certificate and signed requests the
   instance authentication.
 - **User identity:** the user's API key, issued by one instance, is forwarded with the call and
   checked against a net key directory synced to every instance; the identity resolver is
