@@ -1,0 +1,674 @@
+{
+ "replies": {
+  "length": {
+   "choices": [
+    {
+     "finish_reason": "length",
+     "index": 0,
+     "message": {
+      "content": "The quarterly",
+      "role": "assistant"
+     }
+    }
+   ],
+   "model": "ollama-golden",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 3,
+    "prompt_tokens": 20,
+    "total_tokens": 23
+   }
+  },
+  "parallel_tool_calls": {
+   "choices": [
+    {
+     "finish_reason": "tool_calls",
+     "index": 0,
+     "message": {
+      "role": "assistant",
+      "tool_calls": [
+       {
+        "function": {
+         "arguments": "{\"symbol\": \"AAPL\"}",
+         "name": "get_quote"
+        },
+        "id": "ocall_1_get_quote",
+        "type": "function"
+       },
+       {
+        "function": {
+         "arguments": "{\"symbol\": \"MSFT\"}",
+         "name": "get_quote"
+        },
+        "id": "ocall_2_get_quote",
+        "type": "function"
+       }
+      ]
+     }
+    }
+   ],
+   "model": "ollama-golden",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 38,
+    "prompt_tokens": 150,
+    "total_tokens": 188
+   }
+  },
+  "text": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "message": {
+      "content": "AAPL closed at 231.40.",
+      "role": "assistant"
+     }
+    }
+   ],
+   "model": "ollama-golden",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 9,
+    "prompt_tokens": 33,
+    "total_tokens": 42
+   }
+  }
+ },
+ "requests": {
+  "developer_role": {
+   "body": {
+    "messages": [
+     {
+      "content": "Answer in one line.",
+      "role": "system"
+     },
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "ollama-golden",
+    "options": {
+     "num_predict": 4096
+    },
+    "stream": false
+   },
+   "path": "/api/chat"
+  },
+  "image": {
+   "body": {
+    "messages": [
+     {
+      "content": "What is in this chart?",
+      "images": [
+       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "ollama-golden",
+    "options": {
+     "num_predict": 4096
+    },
+    "stream": false
+   },
+   "path": "/api/chat"
+  },
+  "image_http_url": {
+   "error": "unsupported_feature",
+   "message": "ollama/ollama-golden does not support messages[0] image http(s) URL (passed through to OpenAI-compatible servers only)"
+  },
+  "json_object": {
+   "body": {
+    "format": "json",
+    "messages": [
+     {
+      "content": "AAPL quote as JSON",
+      "role": "user"
+     }
+    ],
+    "model": "ollama-golden",
+    "options": {
+     "num_predict": 4096
+    },
+    "stream": false
+   },
+   "path": "/api/chat"
+  },
+  "n2": {
+   "body": {
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "ollama-golden",
+    "options": {
+     "num_predict": 4096
+    },
+    "stream": false
+   },
+   "path": "/api/chat"
+  },
+  "parallel_off": {
+   "error": "unsupported_feature",
+   "message": "ollama/ollama-golden does not support parallel_tool_calls: false"
+  },
+  "passthrough": {
+   "error": "unsupported_feature",
+   "message": "ollama/ollama-golden does not support presence_penalty, logprobs (passed through to OpenAI-compatible servers only)"
+  },
+  "plain": {
+   "body": {
+    "messages": [
+     {
+      "content": "Be brief.",
+      "role": "system"
+     },
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "ollama-golden",
+    "options": {
+     "num_predict": 300,
+     "stop": [
+      "END"
+     ],
+     "temperature": 0.2
+    },
+    "stream": false
+   },
+   "path": "/api/chat"
+  },
+  "reasoning": {
+   "body": {
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "ollama-golden",
+    "options": {
+     "num_predict": 4096
+    },
+    "stream": false,
+    "think": "low"
+   },
+   "path": "/api/chat"
+  },
+  "sampling": {
+   "body": {
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "ollama-golden",
+    "options": {
+     "num_predict": 4096,
+     "seed": 7,
+     "top_p": 0.9
+    },
+    "stream": false
+   },
+   "path": "/api/chat"
+  },
+  "structured": {
+   "body": {
+    "format": {
+     "additionalProperties": false,
+     "properties": {
+      "price": {
+       "type": "number"
+      },
+      "symbol": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "symbol",
+      "price"
+     ],
+     "type": "object"
+    },
+    "messages": [
+     {
+      "content": "AAPL quote as JSON",
+      "role": "user"
+     }
+    ],
+    "model": "ollama-golden",
+    "options": {
+     "num_predict": 4096
+    },
+    "stream": false
+   },
+   "path": "/api/chat"
+  },
+  "tool_named": {
+   "error": "unsupported_feature",
+   "message": "ollama/ollama-golden does not support a named tool_choice"
+  },
+  "tool_named_only_tool": {
+   "error": "unsupported_feature",
+   "message": "ollama/ollama-golden does not support a named tool_choice"
+  },
+  "tool_none": {
+   "body": {
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "ollama-golden",
+    "options": {
+     "num_predict": 4096
+    },
+    "stream": false
+   },
+   "path": "/api/chat"
+  },
+  "tool_required": {
+   "error": "unsupported_feature",
+   "message": "ollama/ollama-golden does not support tool_choice \"required\""
+  },
+  "tool_round_trip": {
+   "body": {
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     },
+     {
+      "content": "",
+      "role": "assistant",
+      "tool_calls": [
+       {
+        "function": {
+         "arguments": {
+          "symbol": "AAPL"
+         },
+         "name": "get_quote"
+        }
+       },
+       {
+        "function": {
+         "arguments": {
+          "symbol": "MSFT"
+         },
+         "name": "get_quote"
+        }
+       }
+      ]
+     },
+     {
+      "content": "{\"price\": 231.4}",
+      "role": "tool",
+      "tool_name": "get_quote"
+     },
+     {
+      "content": "ERROR: upstream timeout",
+      "role": "tool",
+      "tool_name": "get_quote"
+     }
+    ],
+    "model": "ollama-golden",
+    "options": {
+     "num_predict": 4096
+    },
+    "stream": false,
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/api/chat"
+  },
+  "tools": {
+   "body": {
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "ollama-golden",
+    "options": {
+     "num_predict": 4096
+    },
+    "stream": false,
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     },
+     {
+      "function": {
+       "description": "FX rate",
+       "name": "get_fx",
+       "parameters": {
+        "properties": {
+         "pair": {
+          "type": "string"
+         }
+        },
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/api/chat"
+  }
+ },
+ "stream_request": {
+  "body": {
+   "messages": [
+    {
+     "content": "What did AAPL and MSFT close at?",
+     "role": "user"
+    }
+   ],
+   "model": "ollama-golden",
+   "options": {
+    "num_predict": 4096
+   },
+   "stream": true,
+   "tools": [
+    {
+     "function": {
+      "description": "Latest price for a ticker",
+      "name": "get_quote",
+      "parameters": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      }
+     },
+     "type": "function"
+    },
+    {
+     "function": {
+      "description": "FX rate",
+      "name": "get_fx",
+      "parameters": {
+       "properties": {
+        "pair": {
+         "type": "string"
+        }
+       },
+       "type": "object"
+      }
+     },
+     "type": "function"
+    }
+   ]
+  },
+  "path": "/api/chat"
+ },
+ "streams": {
+  "text": {
+   "chunks": [
+    {
+     "choices": [
+      {
+       "delta": {
+        "content": "AAPL closed ",
+        "role": "assistant"
+       },
+       "index": 0
+      }
+     ],
+     "model": "ollama-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "content": "at 231.40."
+       },
+       "index": 0
+      }
+     ],
+     "model": "ollama-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {},
+       "finish_reason": "stop",
+       "index": 0
+      }
+     ],
+     "model": "ollama-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [],
+     "model": "ollama-golden",
+     "object": "chat.completion.chunk",
+     "sajha": {
+      "attempts": [],
+      "cached": false,
+      "cost_usd": 0.0,
+      "ignored": [],
+      "latency_ms": 0,
+      "provider": "",
+      "qualified_model": "",
+      "trace_id": "",
+      "usage_estimated": false
+     },
+     "usage": {
+      "completion_tokens": 9,
+      "prompt_tokens": 33,
+      "total_tokens": 42
+     }
+    }
+   ],
+   "completion": {
+    "choices": [
+     {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+       "content": "AAPL closed at 231.40.",
+       "role": "assistant"
+      }
+     }
+    ],
+    "model": "ollama-golden",
+    "object": "chat.completion",
+    "sajha": {
+     "attempts": [],
+     "cached": false,
+     "cost_usd": 0.0,
+     "ignored": [],
+     "latency_ms": 0,
+     "provider": "",
+     "qualified_model": "",
+     "trace_id": "",
+     "usage_estimated": false
+    },
+    "usage": {
+     "completion_tokens": 9,
+     "prompt_tokens": 33,
+     "total_tokens": 42
+    }
+   }
+  },
+  "tool_fragments": {
+   "chunks": [
+    {
+     "choices": [
+      {
+       "delta": {
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "{\"symbol\": \"AAPL\"}",
+           "name": "get_quote"
+          },
+          "id": "ocall_1_get_quote",
+          "index": 0,
+          "type": "function"
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "ollama-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "{\"symbol\": \"MSFT\"}",
+           "name": "get_quote"
+          },
+          "id": "ocall_2_get_quote",
+          "index": 1,
+          "type": "function"
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "ollama-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {},
+       "finish_reason": "tool_calls",
+       "index": 0
+      }
+     ],
+     "model": "ollama-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [],
+     "model": "ollama-golden",
+     "object": "chat.completion.chunk",
+     "sajha": {
+      "attempts": [],
+      "cached": false,
+      "cost_usd": 0.0,
+      "ignored": [],
+      "latency_ms": 0,
+      "provider": "",
+      "qualified_model": "",
+      "trace_id": "",
+      "usage_estimated": false
+     },
+     "usage": {
+      "completion_tokens": 38,
+      "prompt_tokens": 150,
+      "total_tokens": 188
+     }
+    }
+   ],
+   "completion": {
+    "choices": [
+     {
+      "finish_reason": "tool_calls",
+      "index": 0,
+      "message": {
+       "role": "assistant",
+       "tool_calls": [
+        {
+         "function": {
+          "arguments": "{\"symbol\": \"AAPL\"}",
+          "name": "get_quote"
+         },
+         "id": "ocall_1_get_quote",
+         "type": "function"
+        },
+        {
+         "function": {
+          "arguments": "{\"symbol\": \"MSFT\"}",
+          "name": "get_quote"
+         },
+         "id": "ocall_2_get_quote",
+         "type": "function"
+        }
+       ]
+      }
+     }
+    ],
+    "model": "ollama-golden",
+    "object": "chat.completion",
+    "sajha": {
+     "attempts": [],
+     "cached": false,
+     "cost_usd": 0.0,
+     "ignored": [],
+     "latency_ms": 0,
+     "provider": "",
+     "qualified_model": "",
+     "trace_id": "",
+     "usage_estimated": false
+    },
+    "usage": {
+     "completion_tokens": 38,
+     "prompt_tokens": 150,
+     "total_tokens": 188
+    }
+   }
+  }
+ }
+}

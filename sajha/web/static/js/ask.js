@@ -18,6 +18,58 @@
  */
 (function () {
   'use strict';
+
+  /* The "Servers and tools" log under the sky: one line per tool call, server — tool, newest last.
+     The server comes from the tool's name: a plain name runs here; "upstream__tool" on a federated
+     upstream; "net__host__tool" on a SAJHA Net host. It scrolls itself unless the reader scrolled up. */
+  var callLog = (function () {
+    var log = document.getElementById('askCallsLog'), count = document.getElementById('askCallsCount');
+    var data = {}; try { data = JSON.parse(document.getElementById('askData').textContent) || {}; } catch (e) {}
+    var here = data.server_name || 'this server', rows = {}, total = 0, lastTurn = null, MAX = 300;
+    function serverOf(name) {
+      var parts = String(name).split('__');
+      if (parts.length >= 3) return { server: parts[0] + ' / ' + parts[1], kind: 'net', tool: parts.slice(2).join('__') };
+      if (parts.length === 2) return { server: parts[0], kind: 'federated', tool: parts[1] };
+      return { server: here, kind: 'local', tool: name };
+    }
+    function stamp() { var d = new Date(); return d.toTimeString().slice(0, 8); }
+    function nearBottom() { return !log || log.scrollHeight - log.scrollTop - log.clientHeight < 28; }
+    function add(li) {
+      var stick = nearBottom();
+      log.appendChild(li);
+      while (log.children.length > MAX) log.removeChild(log.firstChild);
+      if (stick) log.scrollTop = log.scrollHeight;
+    }
+    function span(cls, text) { var s = document.createElement('span'); s.className = cls; s.textContent = text; return s; }
+    return {
+      start: function (turn, id, name) {
+        if (!log) return;
+        if (turn !== lastTurn) {
+          lastTurn = turn;
+          var sep = document.createElement('li'); sep.className = 'ask-call-turn';
+          sep.textContent = turn && turn.q ? turn.q : 'New question';
+          add(sep);
+        }
+        var s = serverOf(name), li = document.createElement('li');
+        li.className = 'ask-call is-running is-' + s.kind;
+        li.appendChild(span('ask-call-time', stamp()));
+        li.appendChild(span('ask-call-server', s.server));
+        li.appendChild(span('ask-call-sep', '—'));
+        var code = document.createElement('code'); code.className = 'ask-call-tool'; code.textContent = s.tool; li.appendChild(code);
+        li.appendChild(span('ask-call-state', 'running'));
+        rows[id] = li; total += 1; add(li);
+        count.textContent = total + (total === 1 ? ' call' : ' calls');
+      },
+      end: function (id, ok, ms) {
+        var li = rows[id]; if (!li) return;
+        li.classList.remove('is-running');
+        var st = li.querySelector('.ask-call-state');
+        if (ok === null) { li.classList.add('is-waiting'); st.textContent = 'waiting for you'; return; }
+        li.classList.add(ok ? 'is-ok' : 'is-error');
+        st.textContent = (ok ? 'done' : 'failed') + (ms != null ? ' · ' + ms + ' ms' : '');
+      }
+    };
+  })();
   var C = window.SajhaConstellation;
   var reduce = C.reduce;
   var D = {};
@@ -545,6 +597,7 @@
         setStatus('Planned ' + t.plan.steps.length + ' step' + (t.plan.steps.length === 1 ? '' : 's'), 'busy');
         break;
       case 'tool_call':
+        callLog.start(t, ev.id, ev.name);
         t.steps.push({ id: ev.id, name: ev.name, arguments: ev.arguments, done: false });
         paint(t, ['chain']);
         skyCall(ev.id, ev.name, now);
@@ -560,6 +613,7 @@
         paint(t, ['chain', 'plan']);
         var waiting = t.steps.some(function (st) { return st.id === ev.id && (st.status === 'needs_confirmation' || st.status === 'needs_connection'); });
         skyResult(ev.id, waiting ? null : !!ev.ok, waiting ? 'waiting for you' : ev.summary, now);
+        callLog.end(ev.id, waiting ? null : !!ev.ok, ev.latency_ms);
         if (!waiting) setStatus(ev.name + (ev.ok ? ' answered' : ' failed'), ev.ok ? 'busy' : 'bad');
         break;
       case 'needs_confirmation':

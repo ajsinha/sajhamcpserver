@@ -9,6 +9,7 @@ user preferences, token usage, and semantic tool resolution.
 import json
 import logging
 from datetime import datetime
+from typing import Optional
 
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
@@ -395,6 +396,16 @@ def _tool_blurbs(limit: int = 120, visible=None) -> dict:
     return out
 
 
+
+def _local_server_name() -> str:
+    """The name the Ask page shows for this server in its calls log: the SAJHA Net instance name
+    when one is configured, otherwise the host name."""
+    import socket
+    from sajha.core.config import _get
+    name = _get('sajhanet.instance_name', '') or ''
+    return str(name) or socket.gethostname()
+
+
 @router.get('/ask')
 async def ask_page(request: Request, auth: AuthContext = Depends(require_auth)):
     """Ask SAJHA: a chat over POST /api/ai/ask, with the tool chain drawn live on the catalog's sky."""
@@ -412,6 +423,7 @@ async def ask_page(request: Request, auth: AuthContext = Depends(require_auth)):
             'total': live['total_tools'],
             'descriptions': _tool_blurbs(visible=can_see),
             'examples': ASK_EXAMPLES,
+            'server_name': _local_server_name(),
             'is_admin': bool(auth.is_admin),
             'enabled': bool(svc is not None and svc.settings.enabled),
             'user': auth.user_id or '',
@@ -553,16 +565,18 @@ def _memory_or_error():
 
 
 @router.get('/api/ai/conversations')
-async def api_list_conversations(auth: AuthContext = Depends(require_auth)):
-    """The caller's conversations, most recent first."""
+async def api_list_conversations(tool: Optional[str] = None, auth: AuthContext = Depends(require_auth)):
+    """The caller's conversations, most recent first: the Ask SAJHA page's by default,
+    ``?tool=<name>`` one LLM tool's, ``?tool=*`` all of them."""
     from starlette.concurrency import run_in_threadpool
-    from sajha.ai.memory import conversation_view
+    from sajha.ai.memory import ANY, conversation_view
     mem, err = _memory_or_error()
     if err:
         return err
     if not auth.user_id:
         return JSONResponse({'conversations': []})
-    rows = await run_in_threadpool(lambda: mem.store.list(auth.user_id))
+    scope = ANY if tool == '*' else (tool or None)
+    rows = await run_in_threadpool(lambda: mem.store.list(auth.user_id, tool_name=scope))
     return JSONResponse({'conversations': [conversation_view(r) for r in rows],
                          'retention_days': mem.settings.retention_days, 'enabled': mem.enabled})
 
@@ -684,7 +698,8 @@ async def api_docs_reindex(request: Request, auth: AuthContext = Depends(require
 
 @router.post('/api/ai/docs/uploads')
 async def api_docs_upload(request: Request, auth: AuthContext = Depends(require_admin)):
-    """Add a document: JSON {filename, content} (UTF-8 text: .md, .txt, .rst, .html)."""
+    """Add a document: JSON {filename, content} (UTF-8 text: .md, .txt, .rst, .html), or
+    {filename, content_base64} for a PDF or Word (.docx) file (needs pypdf / python-docx)."""
     from starlette.concurrency import run_in_threadpool
     idx, err = _doc_index_or_error()
     if err:
@@ -693,10 +708,21 @@ async def api_docs_upload(request: Request, auth: AuthContext = Depends(require_
         data = await request.json()
     except Exception:
         data = None
-    if not isinstance(data, dict) or not data.get('filename') or not isinstance(data.get('content'), str):
-        return JSONResponse({'error': 'body must be JSON: {"filename": "...", "content": "..."}'}, status_code=400)
+    raw = None
+    if isinstance(data, dict) and isinstance(data.get('content_base64'), str):
+        import base64
+        import binascii
+        try:
+            raw = base64.b64decode(data['content_base64'], validate=True)
+        except (binascii.Error, ValueError):
+            return JSONResponse({'error': 'content_base64 is not valid base64'}, status_code=400)
+    elif isinstance(data, dict) and isinstance(data.get('content'), str):
+        raw = data['content'].encode('utf-8')
+    if not isinstance(data, dict) or not data.get('filename') or raw is None:
+        return JSONResponse({'error': 'body must be JSON: {"filename": "...", "content": "..."} '
+                                      'or {"filename": "...", "content_base64": "..."}'}, status_code=400)
     try:
-        out = await run_in_threadpool(lambda: idx.save_upload(str(data['filename']), data['content'].encode('utf-8')))
+        out = await run_in_threadpool(lambda: idx.save_upload(str(data['filename']), raw))
     except ValueError as e:
         return JSONResponse({'error': str(e)}, status_code=400)
     return JSONResponse(out, status_code=201)

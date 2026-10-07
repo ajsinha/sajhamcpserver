@@ -252,6 +252,13 @@ LLM_TOKENS = Counter(REGISTRY, 'sajha_llm_tokens_total', 'LLM tokens by provider
 LLM_COST = Counter(REGISTRY, 'sajha_llm_cost_usd_total', 'LLM spend in US dollars by provider and model.',
                    ('provider', 'model'))
 ASK_RUNS = Counter(REGISTRY, 'sajha_ask_runs_total', 'Ask SAJHA runs by what stopped them.', ('stopped_by',))
+LLM_TOOL_CONVERSATIONS = Gauge(REGISTRY, 'sajha_llm_tool_conversations',
+                               'Stored conversations by tool (ask = the Ask SAJHA page), as of the last purge.',
+                               ('tool',))
+LLM_TOOL_TURNS = Counter(REGISTRY, 'sajha_llm_tool_turns_total', 'Conversation turns stored, by tool (ask = the '
+                         'Ask SAJHA page).', ('tool',))
+LLM_TOOL_PURGED = Counter(REGISTRY, 'sajha_llm_tool_purged_total',
+                          'Conversations deleted by the purge (expired, past retention, or over a cap).')
 AUTH_FAILURES = Counter(REGISTRY, 'sajha_auth_failures_total', 'Failed authentications by method.', ('method',))
 AUTH_LOCKOUTS = Counter(REGISTRY, 'sajha_auth_lockouts_total', 'Accounts locked after repeated failed sign-ins.')
 SANDBOX_RUNS = Counter(REGISTRY, 'sajha_sandbox_runs_total', 'Sandbox runs by backend and outcome.',

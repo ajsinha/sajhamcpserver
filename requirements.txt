@@ -71,6 +71,12 @@ ollama>=0.4.0,<1.0.0              # Ollama local models
 # For optional API-driven vector search set ai.tool_search.embedder: gateway (uses the
 # already-configured LLM embedding provider, e.g. OpenAI).
 
+# ── RAG document sources (optional — only to index PDF and Word files) ─────
+# Imported when such a file is met (sajha/ai/rag/extract.py); without them those files are
+# skipped and the index build names the package to install. Text types need nothing extra.
+# pypdf>=4.0,<7.0                            # .pdf
+# python-docx>=1.1,<2.0                      # .docx
+
 # ── Cloud storage backends (optional — only for storage.backend != local) ────
 # All lazy-imported in sajha/core/storage.py, so the default 'local' install
 # pulls none of these. Install only the SDK for the backend you select.

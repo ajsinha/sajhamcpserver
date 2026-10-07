@@ -34,25 +34,25 @@ and through `IntelligenceService.ask`, and fails if an excerpt here stops matchi
  IntelligenceService.stream_ask (sajha/ai/intelligence.py)
    1 shortlist   ToolResolver ranks tools; RBAC and policy filter them      (not pluggable)
    2 loop        for each step: the PLANNER (ai.ask.planner, section 4.5) decides; the default,
-                 react, calls gateway.chat(ChatRequest, model=ai.ask.model)
+                 react, calls the gateway with model=ai.ask.model
                    │                                      ▲
-                   │                                      │ ChatResponse: text and/or ToolCallParts
+                   │                                      │ ChatCompletion: text and/or tool_calls
                    ▼                                      │
-                 LLMGateway: alias → candidates → policy, budget, retries, fallback, cache
-                   │
+                 LLMGateway.chat_completions_create: alias → candidates → policy, budget,
+                   │                                   retries, fallback, cache
                    ▼
-                 ChatModel.generate(request)      ◄── a MODEL (section 3); under react it plans too (section 4)
-                   │
-                 LLMProvider: key, httpx client, catalogue, health   ◄── a PROVIDER (section 2)
+                 ChatModel.chat_completions_create  ◄── a MODEL (section 3); under react it plans too (section 4)
+                   │  prepare (refusals, capabilities) → _create → wire / parse at the edge
+                 LLMProvider: credentials, httpx clients, catalogue, health   ◄── a PROVIDER (section 2)
                  the loop runs each tool call (offered? destructive? execute_with_tracking)
-                 and feeds the results back as ToolResultParts
-   3 synthesis   one more gateway.chat with response_schema → {answer, citations, caveats}
+                 and feeds the results back as role "tool" messages
+   3 synthesis   one more call with response_format json_schema → {answer, citations, caveats}
    4 confidence  from the composition framework, not from the model
 ```
 
 | You want | You write | Registered by | Section |
 |---|---|---|---|
-| SAJHA to talk to a new LLM service | an `LLMProvider` subclass with a pydantic `config_model`, plus a `ChatModel` (and optionally an `EmbeddingModel`) | `@register_provider`, `ai.providers[].class`, or a `sajha.llm_providers` entry point | 2 |
+| SAJHA to talk to a new LLM service | an `LLMProvider` subclass with a pydantic `config_model`, plus a `ChatModel` that translates the canonical (OpenAI Chat Completions) format to the service (and optionally an `EmbeddingModel`) | `@register_provider`, `ai.providers[].class`, or a `sajha.llm_providers` entry point | 2 |
 | A model id the provider does not know, with different capabilities or prices | nothing: a `models:` entry in the provider's config | configuration | 3.6 |
 | A model with its own behaviour on an existing provider | a `ChatModel` subclass (usually of that provider's model class) | `@register_model(provider=..., model_id=...)` | 3.6 |
 | Real planning in Ask SAJHA | nothing: enable a tool-capable provider and point the `default` alias at it | configuration | 4.3 |
@@ -81,6 +81,12 @@ attributes are the whole declaration:
 | `unknown_model_capabilities` | Capabilities assumed for a model id nobody described | tools, 32k context |
 | `chat_model_class` / `embedding_model_class` | What `chat_model()` / `embedding_model()` build | `AcmeChatModel` / `AcmeEmbeddingModel` |
 | `live_models_ttl_s` | How long `list_models()` is cached | default `60` |
+| `openai_compatible` | The service speaks Chat Completions: passed-through fields (§13.6) are accepted | `False` |
+| `developer_role` | The service takes role `developer` (else it is sent as `system`) | `False` |
+| `feature_defaults` | Defaults for the canonical feature flags of its models (3.2) | none |
+
+Its OpenAI-style face: `provider.models()` returns `ModelInfo` objects (like
+`GET /v1/models`) and `provider.model(name)` the model object.
 
 The provider is a factory: the gateway calls `chat_model(model_id)` (or
 `embedding_model(model_id)`) and then works only with the model object. Steps 2.1 to 2.8
@@ -147,18 +153,24 @@ settings page). Put the key into headers in `auth_headers()`:
         return headers
 ```
 
-`auth_headers()` is read once, when the HTTP client is first built, so a rotated key takes
-effect when the gateway is rebuilt (at the next start). If your service uses short-lived tokens, fetch them per request instead and pass them
-as `headers=` to the helpers in 2.3. Never log a key: `SecretStore.redact()` masks
-key-shaped strings in any text you must log.
+`auth_headers()` is read once, when the HTTP clients are first built, so a rotated key takes
+effect when the gateway is rebuilt (at the next start). If your service uses short-lived
+tokens, return them from `request_headers()` (and `arequest_headers()` for the async path),
+which `HTTPChatModel` calls on every request. `sajha/ai/llm/cloud_auth.py` has cached,
+refresh-before-expiry token sources for Google (service-account files, workload identity)
+and Microsoft Entra ID (client secret, workload identity, managed identity); the Gemini and
+Anthropic providers use the first for Vertex AI and Azure OpenAI the second. Never log a
+key: `SecretStore.redact()` masks key-shaped strings in any text you must log.
 
 ### 2.3 HTTP: `self.http` and the helpers
 
 Do not import a vendor SDK. `self.http` is a lazily built `httpx.Client`
 (`build_client` in `sajha/ai/llm/http.py`) with the provider's `base_url`, `auth_headers()`,
 `extra_headers`, `proxy`, `verify_tls`/`ca_bundle` and timeouts, and with the `transport=`
-that tests inject (section 5). Wrap each call in `self.slot()`, which enforces
-`max_concurrency`. The helpers do the error handling for you:
+that tests inject (section 5); `self.ahttp` is the `httpx.AsyncClient` for the running event
+loop, built the same way. Wrap each call in `self.slot()` (or `async with self.aslot()`),
+which enforces `max_concurrency`. A model built on `HTTPChatModel` (3.1) gets all of this
+without calling the helpers itself. The helpers do the error handling for you:
 
 | Helper (`sajha/ai/llm/http.py`) | Does |
 |---|---|
@@ -169,6 +181,7 @@ that tests inject (section 5). Wrap each call in `self.slot()`, which enforces
 | `safe_json_loads(s)` | Parse streamed argument fragments without raising |
 | `map_http_error(resp, provider, model)` | The default status mapping (used when `classify` returns `None`) |
 | `transport_errors(provider, model)` | Turn `httpx` timeouts and connection errors into `ProviderUnavailable` |
+| `apost_json`, `astream_post`, `aiter_sse`, `aiter_ndjson`, `atransport_errors` | The async twins, for `self.ahttp` |
 
 ### 2.4 Errors: map onto the taxonomy
 
@@ -216,12 +229,13 @@ def fault_error(fault: Dict[str, Any], provider: str, model: str = "", status: O
 | 404 (unknown model) | 404 | `UnsupportedFeature` | next candidate |
 | 451, `policy` | a 4xx mentioning a content filter, safety or guardrail | `ContentFiltered` | raised: no retry, no fallback |
 | anything else 4xx | other 4xx | `InvalidRequest` | raised: no retry, no fallback |
+| a 200 whose generation failed (Gemini `MALFORMED_FUNCTION_CALL`, Cohere `ERROR`) | — | `ModelFailed` | next candidate; not counted toward the breaker |
 
 Rules: set `provider=` (and `model=` where known) on every error; set `retry_after` when the
 service says how long to wait; never raise `RateLimited` or `ProviderUnavailable` for a
 request that can never succeed (it would be retried). Inside a stream, the gateway falls back
 only before the first event; an error after that reaches the caller, so map mid-stream faults
-too (the `fault` event in `AcmeChatModel.stream`).
+too (the `fault` event in `AcmeStreamTranslator.feed`).
 
 ### 2.5 Models and the catalogue
 
@@ -366,145 +380,193 @@ A model is a subclass of `ChatModel` or `EmbeddingModel` (`sajha/ai/llm/model.py
 provider creates it with `(provider, model_id, capabilities, **options)`; the model reads its
 provider's config and client through `self.provider`.
 
+Models are written against the **canonical format**: the OpenAI Chat Completions request,
+response, stream-chunk and embeddings shapes, as pydantic models in
+`sajha/ai/llm/canonical.py` (`ChatCompletionRequest`, `ChatMessage`, `ToolDefinition`,
+`ChatCompletion`, `ChatCompletionChunk`, `EmbeddingsResponse`, ...). A request stripped of
+its `sajha` field is a valid OpenAI request; a response stripped of `sajha` is a valid OpenAI
+response. Which fields are supported, passed through or refused is settled in
+[LLM Tools §13.6](LLM%20Tools.md#136-field-coverage); a model only translates.
+
 ### 3.1 The `ChatModel` contract
 
-| Method | Required | Contract |
+Callers use the OpenAI-style methods, which the base class implements; a model implements
+the hooks underneath them.
+
+| Method | Who | Contract |
 |---|---|---|
-| `generate(request) -> ChatResponse` | yes | Call `self.validate(request)` first. Return the assistant `Message` (text and/or `ToolCallPart`s), a finish reason (`stop`, `tool_calls`, `length`, `content_filter`, `error`; `tool_calls` whenever the message has tool calls), `Usage`, the model id, the provider name and the latency. Raise only SAJHA errors. |
-| `stream(request)` | no | Yields `TextDelta` and `ToolCallDelta` events in arrival order, then exactly one `UsageEvent`, then `Done(response)` last, where `response` is the complete `ChatResponse` (its text is the concatenation of the deltas). The default yields one `Done` from `generate()`. If `capabilities.streaming` is false, delegate to the default. |
-| `agenerate(request)` | no | Default: `generate` on a worker thread. The gateway's async entry point (`achat`) already runs the whole call on a thread, so a native async version is an optimisation, not a requirement. |
-| `count_tokens(request)` | no | Default: about four characters per token over system, messages, tool results and tool schemas. Override if the service can count exactly. Only the mock uses it today. |
-| `validate(request)` | no | Raises `UnsupportedFeature` for tools, structured output or images the model's capabilities do not include. The gateway already filters candidates by capability; `validate` catches a model called directly. |
+| `chat_completions_create(request=None, **fields) -> ChatCompletion` | base class | `prepare` (below), then `_create`, then SAJHA's markers on `sajha` (provider, qualified model, cost from the declared prices, latency, `ignored`, `usage_estimated`, `structured_output`). Makes `n` calls and merges the choices when the model has no native `n`. |
+| `chat_completions_stream(...) -> Iterator[ChatCompletionChunk]` | base class | `_stream`, with one id and `created` on every chunk and a usage chunk (empty `choices`) last, estimated and marked when the vendor sends none. A model without streaming answers in one content chunk. |
+| `achat_completions_create` / `achat_completions_stream` | base class | The async twins: `_acreate` / `_astream`. |
+| `prepare(request) -> Prepared` | base class | The refusals of §13.6 (`InvalidRequest` naming the field), then the model's declared capabilities: an undeclared feature raises `UnsupportedFeature` (the gateway's next candidate); `temperature`/`top_p` on a model without sampling controls are left out and listed in `sajha.ignored`; `json_schema` on a model with JSON mode but no schema output is emulated (JSON mode, the schema in the instructions, validation, one retry). |
+| `_create(request) -> ChatCompletion` | **you** | One call, one choice (or `n` when the model declares native `n`). Raise only SAJHA errors. |
+| `_stream(request) -> Iterator[ChatCompletionChunk]` | you, optional | Default: the answer of `_create` replayed as chunks. |
+| `_acreate` / `_astream` | you, optional | Default: `_create` / `_stream` on a worker thread. |
+| `count_tokens(request)` | optional | About four characters per token; override if the service can count exactly. |
 
-Helpers for subclasses: `make_usage(input, output, cached)` (computes cost from the declared
-prices), `effective_max_tokens(request)` (request, then provider default, then the model's
-cap) and `effective_temperature(request)` (`None` when the model takes no temperature).
+**Over HTTP, write three pure functions instead.** `HTTPChatModel`
+(`sajha/ai/llm/adapter.py`) implements `_create`, `_stream`, `_acreate` and `_astream` — sync
+and native async, Server-Sent Events or NDJSON (`stream_format`), `slot()` / `aslot()`,
+per-request `request_headers()` — on top of:
 
-`EmbeddingModel` has one required method, `embed(texts) -> list of vectors`, one vector per
-text, in order.
+| Hook | Translates |
+|---|---|
+| `wire(request, stream) -> WireCall(path, body, params)` | the canonical request to the vendor's request |
+| `parse(data, request) -> ChatCompletion` | the vendor's reply to the canonical response |
+| `translator(request) -> StreamTranslator` | the vendor's stream events to chunks: `feed(event, data)` returns chunks (helpers `text()`, `tool_start()`, `tool_args()`); set `finish`, `usage`, `refusal`, `state` as they arrive; `close()` emits the finishing chunk and the usage chunk |
+| `classify(resp)` | optional: a vendor error body to a SAJHA error |
 
-The worked example's `generate` and `stream`:
+Because the three are pure, they can be checked against recorded vendor payloads with no
+network (section 5.1). Acme's:
 
 ```python
 # sajha/examples/intelligence/acme_provider.py
-    def generate(self, request: ChatRequest) -> ChatResponse:
-        self.validate(request)                             # UnsupportedFeature -> the gateway's next candidate
-        t0 = time.time()
-        with self.provider.slot():                         # max_concurrency
-            data = post_json(self.provider.http, "/v1/generate", self.payload(request),
-                             provider=self.provider.name, model=self.id, classify=self.provider.classify)
-        msg = self._message(data.get("output") or {})
-        finish = "tool_calls" if msg.tool_calls else FINISH.get(data.get("stop") or "done", "stop")
-        return ChatResponse(msg, finish, self._usage(data.get("tokens") or {}), data.get("model") or self.id,
-                            self.provider.name, int((time.time() - t0) * 1000), raw=data)
+def to_acme_body(request: ChatCompletionRequest, *, model: str, safety: str, max_tokens: int,
+                 temperature: Optional[float], stream: bool) -> Dict[str, Any]:
+    """Pure translation (golden-testable): canonical request -> Acme's /v1/generate body."""
+    turns: List[Dict[str, Any]] = []
+    for m in request.messages:
+        if m.role in ("system", "developer"):
+            continue                                       # joined into "system" below
+        if m.role == "user":
+            turns.append({"speaker": "user", "text": m.text})
+        elif m.role == "assistant":
+            turns.append({"speaker": "assistant", "text": m.text or m.refusal or "",
+                          "calls": [{"call_id": c.id, "function": c.function.name, "args": c.function.args()}
+                                    for c in m.tool_calls or []]})
+        elif m.role == "tool":                             # one turn per tool result
+            turns.append({"speaker": "tool", "call_id": m.tool_call_id, "result": m.text, "error": m.is_error})
 ```
 
 ```python
 # sajha/examples/intelligence/acme_provider.py
-                for event, data in iter_sse(resp):
-                    ev = safe_json_loads(data)
-                    if event == "text":
-                        text.append(ev.get("delta") or "")
-                        yield TextDelta(ev.get("delta") or "")
-                    elif event == "call":
-                        i = int(ev.get("index") or 0)
-                        slot = calls.setdefault(i, {"call_id": "", "function": "", "args": ""})
-                        slot["call_id"] = slot["call_id"] or ev.get("call_id") or ""
-                        slot["function"] = slot["function"] or ev.get("function") or ""
-                        slot["args"] += ev.get("args_fragment") or ""
-                        yield ToolCallDelta(slot["call_id"], ev.get("function") or "", ev.get("args_fragment") or "", i)
-                    elif event == "fault":                 # an error after the stream started
-                        raise (fault_error(ev, self.provider.name, self.id)
-                               or ProviderUnavailable(f"acme: {ev}", provider=self.provider.name, model=self.id))
-                    elif event == "end":
-                        end = ev
+class AcmeStreamTranslator(StreamTranslator):
+    """Acme's SSE events -> chat.completion.chunk objects (close() adds the finish and usage chunks)."""
+
+    def feed(self, event: str, data: Any) -> List[ChatCompletionChunk]:
+        ev = safe_json_loads(data)
+        if event == "text":
+            return self.text(ev.get("delta") or "")
+        if event == "call":
+            i = int(ev.get("index") or 0)
+            if i not in self._calls:
+                return self.tool_start(i, ev.get("call_id") or "", ev.get("function") or "",
+                                       ev.get("args_fragment") or "")
+            return self.tool_args(i, ev.get("args_fragment") or "")
+        if event == "fault":                               # an error after the stream started
+            raise (fault_error(ev, self.model.provider.name, self.model.id)
+                   or ProviderUnavailable(f"acme: {ev}", provider=self.model.provider.name, model=self.model.id))
         # ...
-        yield UsageEvent(usage)                            # usage, then Done, always last
-        yield Done(ChatResponse(msg, finish, usage, self.id, self.provider.name, int((time.time() - t0) * 1000)))
 ```
+
+```python
+# sajha/examples/intelligence/acme_provider.py
+class AcmeChatModel(HTTPChatModel):
+    """wire / parse / translator; HTTPChatModel does the I/O (sync, native async, streaming)."""
+
+    def wire(self, request: ChatCompletionRequest, stream: bool) -> WireCall:
+        return WireCall("/v1/generate", to_acme_body(request, model=self.id, safety=self.provider.config.safety,
+                                                     max_tokens=self.effective_max_tokens(request),
+                                                     temperature=self.effective_temperature(request),
+                                                     stream=stream))
+```
+
+Helpers for subclasses: `effective_max_tokens(request)` (request, then provider default,
+then the model's cap) and `effective_temperature(request)` (`None` when the model takes no
+temperature; `prepare` has already recorded a dropped one in `sajha.ignored`).
+
+**`EmbeddingModel`** implements `_embed(texts, purpose, dimensions)` and returns the vectors
+(or `(vectors, prompt_tokens)` when the vendor reports usage); callers use
+`embeddings_create(model=, input=, dimensions=, encoding_format=, sajha={input_purpose})`.
+`purpose` is `query`, `document` or `None` — map it to the vendor's input type where it has
+one (Cohere `input_type`, Gemini `taskType`). `dimensions` is refused before `_embed` unless
+the model declares `variable_dimensions`; `base64` encoding is done by the base class.
+
+**Models written against the original interface** (`generate(ChatRequest) -> ChatResponse`, optionally `stream`
+yielding `TextDelta`/`ToolCallDelta`/`UsageEvent`/`Done`, and `embed(texts)`) keep working:
+the base class converts at the boundary (`sajha/ai/llm/convert.py`, lossless for everything
+the old types express).
 
 ### 3.2 Capabilities and how the gateway uses them
 
 `ModelCapabilities` is a frozen dataclass declared per model (in a catalogue row, a
-`ModelDescriptor`, a registered class or a `models:` override). The gateway trusts it: it
-never sends a request to a model whose capabilities do not cover it.
+`ModelDescriptor`, a registered class or a `models:` override); `ModelInfo` (what
+`provider.models()` and `gateway.models()` return, like `GET /v1/models`) carries it. The
+gateway trusts it: a request a model cannot honour is refused by that model and goes to the
+alias's next candidate, never sent with the feature quietly dropped.
 
 | Field | Used for |
 |---|---|
-| `tools`, `structured_output`, `vision` | Capability matching. `LLMGateway.request_needs` infers the needs from the request (tools offered with `tool_choice` other than `none`; a `response_schema`; an `ImagePart`), adds any `needs=` the caller passed, and skips a candidate that lacks one ("lacks [...]" in the `NoModelAvailable` message). `validate` raises `UnsupportedFeature` for the same. |
-| `tags` | Also matched by `needs=` (for example `needs="fast"`). `deterministic` makes a response cacheable even without `temperature: 0`. |
-| `context_window` | Matched against a caller's minimum context. |
-| `max_output_tokens` | The cap used when neither the request nor the provider sets one. |
-| `input_cost_per_mtok`, `output_cost_per_mtok` | `make_usage` turns tokens into `cost_usd`. |
-| `temperature` | `false`: the model rejects a sampling temperature; `effective_temperature` returns `None`. |
-| `forced_tool_choice` | `false`: the model cannot be forced to call a tool; degrade `required` or a tool name to `auto` (as `_function_mode` does). |
-| `streaming` | `false` (or the provider's `streaming: false`): `stream` falls back to one `Done`. |
-| `embedding`, `dimensions` | Embedding models. |
+| `tools`, `vision` | Capability matching: `LLMGateway.request_needs` skips a candidate that lacks one ("lacks [...]" in the `NoModelAvailable` message). |
+| `structured_output` | Native `response_format: json_schema`. |
+| `json_mode` | `response_format: json_object`; with `structured_output` false, `json_schema` is emulated. Default: same as `structured_output`. |
+| `forced_tool_choice` | `tool_choice: "required"`. `false`: refused (Ollama has no tool choice at all). |
+| `named_tool_choice` | `tool_choice: {function: {name}}`. Default: same as `forced_tool_choice`. Without it, a named choice is accepted only when that tool is the only one offered (sent as "required"), as for Cohere. |
+| `parallel_tool_control`, `strict_tools`, `seed`, `stop_sequences`, `reasoning_effort`, `native_n` | The request fields of the same names; refused when false (`n` > 1 without `native_n` becomes `n` calls). |
+| `temperature` | `false`: the model takes no sampling controls; `temperature` and `top_p` are left out and listed in `sajha.ignored`. |
+| `tags` | Matched by `needs=` (for example `needs="fast"`). `deterministic` makes a response cacheable without `temperature: 0`. |
+| `context_window`, `max_output_tokens` | A caller's minimum context; the default output cap. |
+| `input_cost_per_mtok`, `output_cost_per_mtok` | `sajha.cost_usd` and the usage ledger. |
+| `streaming` | `false` (or the provider's `streaming: false`): one content chunk. |
+| `embedding`, `dimensions`, `variable_dimensions` | Embedding models. |
+
+The canonical-format flags (`json_mode` to `variable_dimensions`) left unset take the
+provider's `feature_defaults` (`"tagged"` means: models tagged `reasoning`), then the
+defaults above; a `models:` entry can set any of them per model. A provider can also
+override `resolve_capabilities` to state what no model of it can do (Ollama does, for tool
+choice).
 
 Declare what the model really does. A model that claims `structured_output` but returns
 prose breaks Ask SAJHA's synthesis step; one that claims `tools` but ignores them answers
 from recall (confidence 0.5).
 
-### 3.3 Tool calls: to and from the neutral types
+### 3.3 Tool calls, results, refusals and state
 
-| SAJHA type | Direction | Acme wire form |
+| Canonical | Direction | Acme wire form |
 |---|---|---|
-| `ToolSpec(name, description, input_schema)` | request | `functions: [{name, doc, params}]` |
-| `request.tool_choice`: `auto`, `none`, `required`, a tool name | request | `function_mode`: `auto`, (omit functions), `any`, the name |
-| `ToolCallPart(id, name, arguments)` on an assistant `Message` | response, and echoed in later requests | `output.calls: [{call_id, function, args}]`; history turn `{speaker: assistant, calls}` |
-| `ToolResultPart(call_id, content, is_error, name)` in a `Message("tool", ...)` | request | one `{speaker: tool, call_id, result, error}` turn per result |
-
-The payload mapping:
-
-```python
-# sajha/examples/intelligence/acme_provider.py
-        for m in request.messages:
-            if m.role == "system":
-                system.append(m.text)
-            elif m.role == "user":
-                turns.append({"speaker": "user", "text": m.text})
-            elif m.role == "assistant":
-                turns.append({"speaker": "assistant", "text": m.text,
-                              "calls": [{"call_id": c.id, "function": c.name, "args": c.arguments}
-                                        for c in m.tool_calls]})
-            for r in m.tool_results:                       # role "tool": one turn per result
-                turns.append({"speaker": "tool", "call_id": r.call_id, "result": r.content_text(),
-                              "error": r.is_error})
-```
+| `tools: [{type: function, function: {name, description, parameters}}]` | request | `functions: [{name, doc, params}]` |
+| `tool_choice`: `auto`, `none`, `required`, `{type: function, function: {name}}` | request | `function_mode`: `auto`, (omit functions), `any`, the name |
+| assistant `tool_calls: [{id, type: function, function: {name, arguments}}]` | response, and echoed in later requests | `output.calls: [{call_id, function, args}]`; history turn `{speaker: assistant, calls}` |
+| `{role: tool, tool_call_id, content}` (`sajha.is_error`, `sajha.tool_name`) | request | one `{speaker: tool, call_id, result, error}` turn per result |
+| `finish_reason: content_filter` with `message.refusal` | response | `stop: blocked` |
 
 Rules the ask loop relies on:
 
-- `ToolCallPart.arguments` is a **dict**. If the service returns a JSON string, parse it
-  (`safe_json_loads` keeps a broken string as `{"_raw": ...}` rather than raising).
+- `function.arguments` is a **JSON string**, as in OpenAI. A service that returns objects is
+  serialised (`ToolCall.of(id, name, arguments)` accepts either); `call.function.args()`
+  parses it back (a broken string becomes `{"_raw": ...}` rather than raising).
 - Every call has an **id**, unique within the response. If the service has none, synthesise
-  a stable one (Ollama's model does: `ocall_<n>_<name>`); results are matched to calls by it.
-- One step's results arrive together in **one** `Message("tool", parts)`. A service that wants
-  one message per result splits them (as Acme's turns do); one that wants results inside a
-  user message merges them.
-- `ToolResultPart.content` may be a dict or a string; `content_text()` gives a string for
-  services that take only text. `is_error` must reach the service if it has a place for it.
-- `ToolResultPart.name` carries the tool name for services that need it on the result.
+  a stable one (Ollama's adapter does: `ocall_<n>_<name>`); results are matched to calls by it.
+- A tool result's `content` is text; `sajha.structured` marks JSON text of a structured value
+  (Gemini and Bedrock send it as an object), `sajha.is_error` an error result (send it where
+  the service has a place for it, else prefix `ERROR: `), `sajha.tool_name` the tool's name.
+- `finish_reason` is one of `stop`, `length`, `tool_calls`, `content_filter` (`tool_calls`
+  whenever there are tool calls). A refusal is `content_filter` with `message.refusal` set,
+  never an empty answer; a vendor's "the generation failed" finish raises `ModelFailed`.
 - State the service needs echoed on the next turn (Anthropic's thinking blocks, Gemini's thought
-  signatures) goes in `Message.meta`, tagged with your provider's name so it is never sent
-  to another provider.
+  signatures) goes on the assistant message as `sajha.provider_state` with
+  `sajha.provider` set to your provider's name; `message.state_for(provider)` returns it only
+  to the same provider. It is excluded from every dump and never logged.
 
 ### 3.4 Structured output
 
-`request.response_schema` is a JSON Schema the reply must match. Map it onto the service's
-JSON mode (`json_schema` for Acme; `response_format` for OpenAI; `output_config.format` for
-Anthropic; `format` for Ollama) and return the JSON as the message text;
-`ChatResponse.json()` parses it, tolerating code fences. If the service has no such mode,
-declare `structured_output=False`: the gateway will route structured-output requests (such
-as Ask SAJHA's synthesis) to another candidate.
+`response_format: {type: json_schema, json_schema: {name, schema, strict}}` asks for a reply
+that matches a JSON Schema; `{type: json_object}` for any JSON object. Map them onto the
+service's JSON mode (`json_schema` for Acme; `output_config.format` for Anthropic;
+`responseJsonSchema` for Gemini; `format` for Ollama) and return the JSON as the message
+text; `ChatCompletion.parsed()` parses it, tolerating code fences. Declare what the service
+enforces: `structured_output` for a schema, `json_mode` for JSON without one (SAJHA then
+emulates the schema and marks the response `sajha.structured_output: "emulated"`), neither
+if it has no JSON mode (structured-output requests go to another candidate).
 
 ### 3.5 Usage and cost
 
-Report the service's token counts through `make_usage(input, output, cached)`; it applies the
-model's prices. The gateway records usage per user, role, provider and model, enforces
-`ai.budgets` and each role's `daily_tokens` from it, and Ask SAJHA enforces
-`ai.ask.max_tokens` per question from it. A streaming model must still yield a `UsageEvent`
-(estimate with `count_tokens` if the service sends none). Responses served from the gateway
-cache report zero usage.
+Return the service's token counts as `usage` (`CompletionUsage.of(prompt, completion,
+cached, reasoning)`); the base class applies the model's prices to `sajha.cost_usd`. The
+gateway records usage per user, role, provider and model, enforces `ai.budgets` and each
+role's `daily_tokens` from it, and Ask SAJHA enforces `ai.ask.max_tokens` per question from
+it. When the service reports none, leave `usage` unset: the base class estimates it and sets
+`sajha.usage_estimated`. Responses served from the gateway cache report zero usage.
 
 ### 3.6 Adding a model to an existing provider
 
@@ -540,12 +602,14 @@ class AcmeRiskModel(OpenAIChatModel):
     HOUSE_STYLE = "House style: lead with the figure, then the method, then the caveats."
     SEED = 7
 
-    def payload(self, request: ChatRequest, stream: bool = False) -> Dict[str, Any]:
-        if self.HOUSE_STYLE not in request.system:
-            request = replace(request, system=f"{self.HOUSE_STYLE}\n\n{request.system}".strip())
-        body = super().payload(request, stream)
-        body.setdefault("seed", self.SEED)
-        return body
+    def wire(self, request: ChatCompletionRequest, stream: bool) -> WireCall:
+        """The canonical request is edited, then the inherited pass-through does the rest."""
+        update = {}
+        if not any(self.HOUSE_STYLE in m.text for m in request.messages if m.role == "system"):
+            update["messages"] = [ChatMessage.system(self.HOUSE_STYLE)] + list(request.messages)
+        if request.seed is None:
+            update["seed"] = self.SEED
+        return super().wire(request.model_copy(update=update) if update else request, stream)
 ```
 
 The module must be imported for the decorator to run: import it from a provider module you
@@ -692,7 +756,8 @@ What to watch:
 
 Because the loop only asks the model "answer, or call which tools?", a strategy can be a
 `ChatModel` that decides without an LLM, or with one it calls itself. The example
-`RecipePlannerModel` answers known question shapes with fixed recipes: a regular expression
+`RecipePlannerModel` implements `_create` on the canonical request and answers known
+question shapes with fixed recipes: a regular expression
 over the question, a tool, and arguments from the expression's named groups. A question no
 recipe matches raises `UnsupportedFeature`, which the gateway treats as "try the next
 candidate", so a real LLM behind it handles everything else:
@@ -704,7 +769,7 @@ candidate", so a real LLM behind it handles everything else:
             raise UnsupportedFeature("no recipe matches this question", provider=self.provider.name, model=self.id)
         calls, results = self._since_question(request)
         if not calls:                                  # step 1: plan
-            offered = {t.name: t for t in request.tools} if request.tool_choice != "none" else {}
+            offered = {t.name: t for t in request.tools or []} if request.wants_tools else {}
             spec = offered.get(recipe.tool)
             if spec is None:                           # not shortlisted, or the caller may not run it
                 raise UnsupportedFeature(f"recipe {recipe.name}: {recipe.tool} was not offered",
@@ -854,6 +919,24 @@ error mapping for rate limits (with `retry_after`), bad keys, long contexts, ser
 content filters, connection failures and unknown models, in `generate` and in `stream`;
 embeddings where offered; and the key redacted in the effective configuration.
 
+Two more suites hold the canonical format to account:
+
+- **Golden translation tests** (`tests/ai/test_golden_translation.py`) send one set of
+  canonical requests (plain chat, developer role, tools and every `tool_choice`, a tool-call
+  round trip with parallel calls and an error result, `parallel_tool_calls: false`,
+  structured output, JSON mode, images, sampling, reasoning effort, passed-through fields,
+  `n`) through each built-in adapter's pure `wire`, and recorded vendor replies and stream
+  events (`tests/ai/golden/recorded/`) through `parse` and the stream translator, and compare
+  the results with `tests/ai/golden/expected/<provider>.json`. A refusal is recorded as the
+  error it raises. After changing a translation, review the diff and regenerate with
+  `SAJHA_UPDATE_GOLDEN=1`.
+- **The portability suite** (`tests/ai/test_portability.py`) runs canonical requests through
+  the mock and every adapter offline and checks that each response is a well-formed Chat
+  Completion (it round-trips through the typed model with `sajha` removed), that streams
+  have one id, a single finishing chunk and the usage chunk last, that native async works
+  for the HTTP providers, and that every feature a model does not declare is refused with
+  `UnsupportedFeature` rather than dropped.
+
 **A built-in provider** joins the suite with two edits: a `_<kind>` method on `FakeVendor`
 in `tests/ai/fakes.py` that answers like your service (or reuse `openai` if it speaks Chat
 Completions), and an entry in `CASES` in `tests/ai/test_provider_contract.py`:
@@ -964,8 +1047,9 @@ proves the wiring, not the intelligence.
       `ProviderConfig`; no field holds a secret except through `api_key` / `api_key_ref`.
 - [ ] Every failure is a SAJHA error with `provider=` set; `RateLimited` carries
       `retry_after` when the service gives one; mid-stream faults are mapped.
-- [ ] Every call goes through `self.http` (so proxy, TLS, timeouts and test transports apply)
-      inside `self.slot()`.
+- [ ] Every call goes through `self.http` / `self.ahttp` (so proxy, TLS, timeouts and test
+      transports apply) inside `self.slot()` / `self.aslot()`; short-lived tokens come from
+      `request_headers()`.
 - [ ] `health()` is cheap, bounded by `health_timeout_s`, and never spends tokens.
 - [ ] `list_models()` declares honest capabilities and prices for each model.
 - [ ] It ships disabled; a key alone does not enable it.
@@ -973,12 +1057,17 @@ proves the wiring, not the intelligence.
 
 **Model**
 
-- [ ] `generate` calls `validate` first; `finish_reason` is `tool_calls` whenever there are
-      tool calls; arguments are dicts; every call has an id.
-- [ ] `stream` ends with exactly one `UsageEvent` and then `Done`, whose response equals the
-      concatenated deltas.
-- [ ] Usage is reported (estimated if necessary) so budgets and costs work.
-- [ ] Structured output is declared only if the service enforces the schema.
+- [ ] It translates the canonical format (`wire` / `parse` / `translator`, or `_create`);
+      `finish_reason` is a standard value and `tool_calls` whenever there are tool calls;
+      `arguments` are JSON strings; every call has an id; a refusal sets `message.refusal`.
+- [ ] Nothing is dropped silently: every feature it cannot honour is left undeclared, so
+      `prepare` refuses it (or, for sampling controls, names it in `sajha.ignored`).
+- [ ] Streams end with the finishing chunk and then the usage chunk (`StreamTranslator.close`).
+- [ ] Usage is reported where the service gives it, so budgets and costs work.
+- [ ] Structured output is declared only if the service enforces the schema (`json_mode`
+      if it only guarantees JSON).
+- [ ] Golden translation tests exist for it (built-in providers: an entry in
+      `tests/ai/test_golden_translation.py` and recorded payloads).
 
 **Planner**
 

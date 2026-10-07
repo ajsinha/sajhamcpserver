@@ -361,7 +361,8 @@ class ToolResolver:
 
         # Embed the query
         try:
-            vecs = self.embedder.embed([query])
+            embed_query = getattr(self.embedder, 'embed_query', None)
+            vecs = embed_query(query) if embed_query else self.embedder.embed([query])
             if not vecs:
                 return self._fallback_search(query, top_k)
             query_vec = vecs[0]

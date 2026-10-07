@@ -717,6 +717,14 @@ class SajhaMCPServerWebApp:
         except Exception as e:
             logger.warning(f'  Snapshots: unavailable ({e})', exc_info=True)
 
+        # 4h. Conversation memory: the scheduled purge, once per interval across workers
+        #     (ai.llm_tools.memory.purge_interval_minutes; docs/architecture/Intelligence Layer.md)
+        try:
+            from sajha.ai.memory import start_purge
+            logger.info(f'  Conversation purge: {"scheduled" if start_purge() else "off (ai.memory.enabled or purge_interval_minutes)"}')
+        except Exception as e:
+            logger.warning(f'  Conversation purge: unavailable ({e})', exc_info=True)
+
         # 5. Template globals
         self._register_template_globals()
 
@@ -743,6 +751,11 @@ class SajhaMCPServerWebApp:
 
         # Shutdown
         logger.info('Shutting down SAJHA MCP Server...')
+        try:
+            from sajha.ai.memory import shutdown_purge
+            shutdown_purge()
+        except Exception as e:
+            logger.debug(f'conversation purge shutdown: {e}')
         try:
             from sajha.snapshots import shutdown_snapshots
             shutdown_snapshots()

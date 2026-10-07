@@ -6,7 +6,8 @@ The worked example of docs/architecture/Extending the Intelligence Layer.md (sec
 ``@register_model`` binds one model class to one ``provider/model`` id; the provider's
 ``chat_model()`` builds it instead of its default class, and ``list_models()`` lists it
 (source "registered") with the class's ``capabilities``. Wire code, auth, retries, error
-mapping and streaming are inherited from OpenAIChatModel; only the differences are written.
+mapping, streaming and native async are inherited from OpenAIChatModel; only the difference
+is written, as an edit of the canonical request before the pass-through ``wire``.
 
 A model id that only needs different capabilities or prices needs no code at all: list it
 under the provider's ``models:`` in application.yml (or SAJHA_AI_OPENAI_MODELS as JSON).
@@ -14,12 +15,10 @@ under the provider's ``models:`` in application.yml (or SAJHA_AI_OPENAI_MODELS a
 
 from __future__ import annotations
 
-from dataclasses import replace
-from typing import Any, Dict
-
 from sajha.ai.llm import ModelCapabilities, register_model
+from sajha.ai.llm.adapter import WireCall
+from sajha.ai.llm.canonical import ChatCompletionRequest, ChatMessage
 from sajha.ai.llm.providers.openai_compat import OpenAIChatModel
-from sajha.ai.llm.types import ChatRequest
 
 RISK_MODEL = "ft:gpt-6.1-sol:acme:risk:001"
 
@@ -36,9 +35,11 @@ class AcmeRiskModel(OpenAIChatModel):
     HOUSE_STYLE = "House style: lead with the figure, then the method, then the caveats."
     SEED = 7
 
-    def payload(self, request: ChatRequest, stream: bool = False) -> Dict[str, Any]:
-        if self.HOUSE_STYLE not in request.system:
-            request = replace(request, system=f"{self.HOUSE_STYLE}\n\n{request.system}".strip())
-        body = super().payload(request, stream)
-        body.setdefault("seed", self.SEED)
-        return body
+    def wire(self, request: ChatCompletionRequest, stream: bool) -> WireCall:
+        """The canonical request is edited, then the inherited pass-through does the rest."""
+        update = {}
+        if not any(self.HOUSE_STYLE in m.text for m in request.messages if m.role == "system"):
+            update["messages"] = [ChatMessage.system(self.HOUSE_STYLE)] + list(request.messages)
+        if request.seed is None:
+            update["seed"] = self.SEED
+        return super().wire(request.model_copy(update=update) if update else request, stream)

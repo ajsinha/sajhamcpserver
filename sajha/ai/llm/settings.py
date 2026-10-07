@@ -37,7 +37,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError
 logger = logging.getLogger(__name__)
 
 _VAR = re.compile(r"\$\{([^}:]+)(?::([^}]*))?\}")
-SECRET_FIELDS = {"api_key", "aws_secret_access_key", "aws_session_token"}
+SECRET_FIELDS = {"api_key", "aws_secret_access_key", "aws_session_token", "client_secret"}
 REDACTED = "********"
 
 
@@ -211,6 +211,16 @@ class ModelOverride(Layered):
     dimensions: Optional[int] = None
     tags: Optional[List[str]] = None
     deployment: Optional[str] = None         # Azure: the deployment that serves this model
+    # canonical-format features (unset = the provider's default; see model.FEATURE_FLAGS)
+    json_mode: Optional[bool] = None
+    strict_tools: Optional[bool] = None
+    named_tool_choice: Optional[bool] = None
+    parallel_tool_control: Optional[bool] = None
+    seed: Optional[bool] = None
+    stop_sequences: Optional[bool] = None
+    reasoning_effort: Optional[bool] = None
+    native_n: Optional[bool] = None
+    variable_dimensions: Optional[bool] = None
 
 
 class ProviderConfig(Layered):
@@ -302,6 +312,7 @@ class GatewaySettings(Layered):
     trace_prompts: bool = False                # include prompts/outputs on spans (debug only)
     load_entry_points: bool = True             # pip plug-ins in group sajha.llm_providers
     use_db_providers: bool = True              # read keys/models from the llm_providers tables
+    max_samples: int = 8                       # cap on a request's n (choices per call)
 
 
 class AskSettings(Layered):

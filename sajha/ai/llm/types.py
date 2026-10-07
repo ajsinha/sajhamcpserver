@@ -2,8 +2,10 @@
 SAJHA Intelligence Layer — provider-neutral message and request vocabulary.
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
-Plain dataclasses. Nothing here imports a vendor SDK; every provider maps these
-types onto its own wire format and back.
+Plain dataclasses. Nothing here imports a vendor SDK. These are the original types; the
+canonical format is now OpenAI Chat Completions (canonical.py), and convert.py translates
+between the two losslessly, so callers written against ChatRequest / ChatResponse keep
+working while they move. New code should use the canonical types.
 """
 
 from __future__ import annotations
@@ -219,6 +221,8 @@ class ChatResponse:
     latency_ms: int = 0
     raw: Any = None                 # provider payload, never logged
     cached: bool = False            # served from the gateway's response cache
+    refusal: str = ""               # the model's refusal (finish_reason content_filter)
+    notes: Dict[str, Any] = field(default_factory=dict)   # SAJHA markers: ignored, usage_estimated, ...
 
     @property
     def text(self) -> str:

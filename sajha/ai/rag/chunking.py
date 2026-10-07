@@ -6,7 +6,8 @@ Markdown is split at headings first (each passage remembers its heading path and
 heading's anchor, so a citation can link to the section), then long sections into passages
 of about ``size`` characters at paragraph boundaries, with ``overlap`` characters carried
 over. Plain text and HTML (tags stripped) are split by paragraphs alone. Code fences are
-kept whole where they fit.
+kept whole where they fit. PDF and Word files are first turned into text by extract.py
+(Word's headings become Markdown headings, so it is split like Markdown; a PDF like text).
 """
 
 from __future__ import annotations
@@ -19,6 +20,8 @@ from typing import List
 _HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
 _TAGS = re.compile(r"<(script|style)[^>]*>.*?</\1>|<[^>]+>", re.S | re.I)
 TEXT_TYPES = (".md", ".markdown", ".txt", ".rst", ".html", ".htm")
+DOCUMENT_TYPES = (".pdf", ".docx")                 # read through optional packages (extract.py)
+SUPPORTED_TYPES = TEXT_TYPES + DOCUMENT_TYPES
 
 
 @dataclass
@@ -143,7 +146,7 @@ def chunk_document(name: str, text: str, size: int = 1200, overlap: int = 150) -
     low = name.lower()
     if low.endswith((".html", ".htm")):
         return chunk_text(html_to_text(text), size, overlap)
-    if low.endswith((".md", ".markdown")):
+    if low.endswith((".md", ".markdown", ".docx")):        # .docx: extract.py writes its headings as Markdown
         return chunk_markdown(text, size, overlap)
     return chunk_text(text, size, overlap)
 

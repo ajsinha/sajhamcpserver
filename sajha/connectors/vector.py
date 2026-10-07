@@ -221,7 +221,7 @@ def _embed(conn: Connection, text: str) -> List[float]:
     if gw is None:
         raise ConnectorError('no LLM gateway is running to embed the query; pass "vector" instead')
     try:
-        vecs = gw.embed([text], model=str(conn.vector.get('embedding_model') or 'embedding'))
+        vecs = gw.embed([text], model=str(conn.vector.get('embedding_model') or 'embedding'), purpose='query')
     except Exception as e:
         raise ConnectorError(f'embedding the query failed: {e.__class__.__name__}: {e}') from None
     return [float(x) for x in vecs[0]]

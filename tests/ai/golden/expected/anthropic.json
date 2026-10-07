@@ -1,0 +1,1122 @@
+{
+ "replies": {
+  "context_window": {
+   "choices": [
+    {
+     "finish_reason": "length",
+     "index": 0,
+     "message": {
+      "content": "The report",
+      "role": "assistant",
+      "sajha": {
+       "is_error": false,
+       "provider": "anthropic",
+       "provider_state": {
+        "anthropic_content": [
+         {
+          "text": "The report",
+          "type": "text"
+         }
+        ]
+       },
+       "structured": false,
+       "system_field": false,
+       "tool_name": ""
+      }
+     }
+    }
+   ],
+   "model": "claude-golden-20260901",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 2,
+    "prompt_tokens": 999000,
+    "total_tokens": 999002
+   }
+  },
+  "parallel_tool_calls": {
+   "choices": [
+    {
+     "finish_reason": "tool_calls",
+     "index": 0,
+     "message": {
+      "content": "I'll look up both quotes.",
+      "role": "assistant",
+      "sajha": {
+       "is_error": false,
+       "provider": "anthropic",
+       "provider_state": {
+        "anthropic_content": [
+         {
+          "signature": "EqQBCkYI",
+          "thinking": "Two symbols, two calls.",
+          "type": "thinking"
+         },
+         {
+          "text": "I'll look up both quotes.",
+          "type": "text"
+         },
+         {
+          "id": "toolu_01A",
+          "input": {
+           "symbol": "AAPL"
+          },
+          "name": "get_quote",
+          "type": "tool_use"
+         },
+         {
+          "id": "toolu_01B",
+          "input": {
+           "symbol": "MSFT"
+          },
+          "name": "get_quote",
+          "type": "tool_use"
+         }
+        ]
+       },
+       "structured": false,
+       "system_field": false,
+       "tool_name": ""
+      },
+      "tool_calls": [
+       {
+        "function": {
+         "arguments": "{\"symbol\": \"AAPL\"}",
+         "name": "get_quote"
+        },
+        "id": "toolu_01A",
+        "type": "function"
+       },
+       {
+        "function": {
+         "arguments": "{\"symbol\": \"MSFT\"}",
+         "name": "get_quote"
+        },
+        "id": "toolu_01B",
+        "type": "function"
+       }
+      ]
+     }
+    }
+   ],
+   "model": "claude-golden-20260901",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 95,
+    "prompt_tokens": 1700,
+    "prompt_tokens_details": {
+     "cached_tokens": 1200
+    },
+    "total_tokens": 1795
+   }
+  },
+  "pause_turn": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "message": {
+      "content": "Still working.",
+      "role": "assistant",
+      "sajha": {
+       "is_error": false,
+       "provider": "anthropic",
+       "provider_state": {
+        "anthropic_content": [
+         {
+          "text": "Still working.",
+          "type": "text"
+         }
+        ]
+       },
+       "structured": false,
+       "system_field": false,
+       "tool_name": ""
+      }
+     }
+    }
+   ],
+   "model": "claude-golden-20260901",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 4,
+    "prompt_tokens": 25,
+    "total_tokens": 29
+   }
+  },
+  "refusal": {
+   "choices": [
+    {
+     "finish_reason": "content_filter",
+     "index": 0,
+     "message": {
+      "refusal": "The model declined to answer (Anthropic stop_reason: refusal).",
+      "role": "assistant",
+      "sajha": {
+       "is_error": false,
+       "provider": "anthropic",
+       "provider_state": {
+        "anthropic_content": []
+       },
+       "structured": false,
+       "system_field": false,
+       "tool_name": ""
+      }
+     }
+    }
+   ],
+   "model": "claude-golden-20260901",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 1,
+    "prompt_tokens": 25,
+    "total_tokens": 26
+   }
+  },
+  "text": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "message": {
+      "content": "AAPL closed at 231.40.",
+      "role": "assistant",
+      "sajha": {
+       "is_error": false,
+       "provider": "anthropic",
+       "provider_state": {
+        "anthropic_content": [
+         {
+          "text": "AAPL closed at 231.40.",
+          "type": "text"
+         }
+        ]
+       },
+       "structured": false,
+       "system_field": false,
+       "tool_name": ""
+      }
+     }
+    }
+   ],
+   "model": "claude-golden-20260901",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 10,
+    "prompt_tokens": 38,
+    "prompt_tokens_details": {
+     "cached_tokens": 0
+    },
+    "total_tokens": 48
+   }
+  }
+ },
+ "requests": {
+  "developer_role": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "claude-golden",
+    "system": "Answer in one line."
+   },
+   "path": "/v1/messages"
+  },
+  "image": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What is in this chart?",
+        "type": "text"
+       },
+       {
+        "source": {
+         "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+         "media_type": "image/png",
+         "type": "base64"
+        },
+        "type": "image"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "claude-golden"
+   },
+   "path": "/v1/messages"
+  },
+  "image_http_url": {
+   "error": "unsupported_feature",
+   "message": "anthropic/claude-golden does not support messages[0] image http(s) URL (passed through to OpenAI-compatible servers only)"
+  },
+  "json_object": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "AAPL quote as JSON",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "claude-golden",
+    "output_config": {
+     "format": {
+      "schema": {
+       "type": "object"
+      },
+      "type": "json_schema"
+     }
+    }
+   },
+   "path": "/v1/messages"
+  },
+  "n2": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "claude-golden"
+   },
+   "path": "/v1/messages"
+  },
+  "parallel_off": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "claude-golden",
+    "tool_choice": {
+     "disable_parallel_tool_use": true,
+     "type": "auto"
+    },
+    "tools": [
+     {
+      "description": "Latest price for a ticker",
+      "input_schema": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      },
+      "name": "get_quote"
+     }
+    ]
+   },
+   "path": "/v1/messages"
+  },
+  "passthrough": {
+   "error": "unsupported_feature",
+   "message": "anthropic/claude-golden does not support presence_penalty, logprobs (passed through to OpenAI-compatible servers only)"
+  },
+  "plain": {
+   "body": {
+    "max_tokens": 300,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "claude-golden",
+    "stop_sequences": [
+     "END"
+    ],
+    "system": "Be brief.",
+    "temperature": 0.2
+   },
+   "path": "/v1/messages"
+  },
+  "reasoning": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "claude-golden",
+    "output_config": {
+     "effort": "low"
+    }
+   },
+   "path": "/v1/messages"
+  },
+  "sampling": {
+   "error": "unsupported_feature",
+   "message": "anthropic/claude-golden does not support seed"
+  },
+  "structured": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "AAPL quote as JSON",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "claude-golden",
+    "output_config": {
+     "format": {
+      "schema": {
+       "additionalProperties": false,
+       "properties": {
+        "price": {
+         "type": "number"
+        },
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol",
+        "price"
+       ],
+       "type": "object"
+      },
+      "type": "json_schema"
+     }
+    }
+   },
+   "path": "/v1/messages"
+  },
+  "tool_named": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "claude-golden",
+    "tool_choice": {
+     "name": "get_quote",
+     "type": "tool"
+    },
+    "tools": [
+     {
+      "description": "Latest price for a ticker",
+      "input_schema": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      },
+      "name": "get_quote"
+     },
+     {
+      "description": "FX rate",
+      "input_schema": {
+       "properties": {
+        "pair": {
+         "type": "string"
+        }
+       },
+       "type": "object"
+      },
+      "name": "get_fx"
+     }
+    ]
+   },
+   "path": "/v1/messages"
+  },
+  "tool_named_only_tool": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "claude-golden",
+    "tool_choice": {
+     "name": "get_quote",
+     "type": "tool"
+    },
+    "tools": [
+     {
+      "description": "Latest price for a ticker",
+      "input_schema": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      },
+      "name": "get_quote"
+     }
+    ]
+   },
+   "path": "/v1/messages"
+  },
+  "tool_none": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "claude-golden"
+   },
+   "path": "/v1/messages"
+  },
+  "tool_required": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "claude-golden",
+    "tool_choice": {
+     "type": "any"
+    },
+    "tools": [
+     {
+      "description": "Latest price for a ticker",
+      "input_schema": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      },
+      "name": "get_quote"
+     },
+     {
+      "description": "FX rate",
+      "input_schema": {
+       "properties": {
+        "pair": {
+         "type": "string"
+        }
+       },
+       "type": "object"
+      },
+      "name": "get_fx"
+     }
+    ]
+   },
+   "path": "/v1/messages"
+  },
+  "tool_round_trip": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "id": "call_q1",
+        "input": {
+         "symbol": "AAPL"
+        },
+        "name": "get_quote",
+        "type": "tool_use"
+       },
+       {
+        "id": "call_q2",
+        "input": {
+         "symbol": "MSFT"
+        },
+        "name": "get_quote",
+        "type": "tool_use"
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "content": "{\"price\": 231.4}",
+        "is_error": false,
+        "tool_use_id": "call_q1",
+        "type": "tool_result"
+       },
+       {
+        "content": "upstream timeout",
+        "is_error": true,
+        "tool_use_id": "call_q2",
+        "type": "tool_result"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "claude-golden",
+    "tool_choice": {
+     "type": "auto"
+    },
+    "tools": [
+     {
+      "description": "Latest price for a ticker",
+      "input_schema": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      },
+      "name": "get_quote"
+     }
+    ]
+   },
+   "path": "/v1/messages"
+  },
+  "tools": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "claude-golden",
+    "tool_choice": {
+     "type": "auto"
+    },
+    "tools": [
+     {
+      "description": "Latest price for a ticker",
+      "input_schema": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      },
+      "name": "get_quote"
+     },
+     {
+      "description": "FX rate",
+      "input_schema": {
+       "properties": {
+        "pair": {
+         "type": "string"
+        }
+       },
+       "type": "object"
+      },
+      "name": "get_fx"
+     }
+    ]
+   },
+   "path": "/v1/messages"
+  }
+ },
+ "stream_request": {
+  "body": {
+   "max_tokens": 4096,
+   "messages": [
+    {
+     "content": [
+      {
+       "text": "What did AAPL and MSFT close at?",
+       "type": "text"
+      }
+     ],
+     "role": "user"
+    }
+   ],
+   "model": "claude-golden",
+   "stream": true,
+   "tool_choice": {
+    "type": "auto"
+   },
+   "tools": [
+    {
+     "description": "Latest price for a ticker",
+     "input_schema": {
+      "properties": {
+       "symbol": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "symbol"
+      ],
+      "type": "object"
+     },
+     "name": "get_quote"
+    },
+    {
+     "description": "FX rate",
+     "input_schema": {
+      "properties": {
+       "pair": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "name": "get_fx"
+    }
+   ]
+  },
+  "path": "/v1/messages"
+ },
+ "streams": {
+  "refusal": {
+   "chunks": [
+    {
+     "choices": [
+      {
+       "delta": {
+        "refusal": "The model declined to answer (Anthropic stop_reason: refusal).",
+        "role": "assistant",
+        "sajha": {
+         "is_error": false,
+         "provider": "anthropic",
+         "structured": false,
+         "system_field": false,
+         "tool_name": ""
+        }
+       },
+       "finish_reason": "content_filter",
+       "index": 0
+      }
+     ],
+     "model": "claude-golden-20260901",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [],
+     "model": "claude-golden-20260901",
+     "object": "chat.completion.chunk",
+     "sajha": {
+      "attempts": [],
+      "cached": false,
+      "cost_usd": 0.0,
+      "ignored": [],
+      "latency_ms": 0,
+      "provider": "",
+      "qualified_model": "",
+      "trace_id": "",
+      "usage_estimated": false
+     },
+     "usage": {
+      "completion_tokens": 1,
+      "prompt_tokens": 25,
+      "total_tokens": 26
+     }
+    }
+   ],
+   "completion": {
+    "choices": [
+     {
+      "finish_reason": "content_filter",
+      "index": 0,
+      "message": {
+       "refusal": "The model declined to answer (Anthropic stop_reason: refusal).",
+       "role": "assistant",
+       "sajha": {
+        "is_error": false,
+        "provider": "anthropic",
+        "provider_state": {
+         "anthropic_content": []
+        },
+        "structured": false,
+        "system_field": false,
+        "tool_name": ""
+       }
+      }
+     }
+    ],
+    "model": "claude-golden-20260901",
+    "object": "chat.completion",
+    "sajha": {
+     "attempts": [],
+     "cached": false,
+     "cost_usd": 0.0,
+     "ignored": [],
+     "latency_ms": 0,
+     "provider": "",
+     "qualified_model": "",
+     "trace_id": "",
+     "usage_estimated": false
+    },
+    "usage": {
+     "completion_tokens": 1,
+     "prompt_tokens": 25,
+     "total_tokens": 26
+    }
+   }
+  },
+  "tool_fragments": {
+   "chunks": [
+    {
+     "choices": [
+      {
+       "delta": {
+        "content": "Looking up ",
+        "role": "assistant"
+       },
+       "index": 0
+      }
+     ],
+     "model": "claude-golden-20260901",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "content": "both."
+       },
+       "index": 0
+      }
+     ],
+     "model": "claude-golden-20260901",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "",
+           "name": "get_quote"
+          },
+          "id": "toolu_01A",
+          "index": 0,
+          "type": "function"
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "claude-golden-20260901",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "{\"symbol\": \"AA"
+          },
+          "index": 0
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "claude-golden-20260901",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "PL\"}"
+          },
+          "index": 0
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "claude-golden-20260901",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "",
+           "name": "get_quote"
+          },
+          "id": "toolu_01B",
+          "index": 1,
+          "type": "function"
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "claude-golden-20260901",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "{\"symbol\": \"MSFT\"}"
+          },
+          "index": 1
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "claude-golden-20260901",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "sajha": {
+         "is_error": false,
+         "provider": "anthropic",
+         "structured": false,
+         "system_field": false,
+         "tool_name": ""
+        }
+       },
+       "finish_reason": "tool_calls",
+       "index": 0
+      }
+     ],
+     "model": "claude-golden-20260901",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [],
+     "model": "claude-golden-20260901",
+     "object": "chat.completion.chunk",
+     "sajha": {
+      "attempts": [],
+      "cached": false,
+      "cost_usd": 0.0,
+      "ignored": [],
+      "latency_ms": 0,
+      "provider": "",
+      "qualified_model": "",
+      "trace_id": "",
+      "usage_estimated": false
+     },
+     "usage": {
+      "completion_tokens": 95,
+      "prompt_tokens": 1600,
+      "prompt_tokens_details": {
+       "cached_tokens": 1200
+      },
+      "total_tokens": 1695
+     }
+    }
+   ],
+   "completion": {
+    "choices": [
+     {
+      "finish_reason": "tool_calls",
+      "index": 0,
+      "message": {
+       "content": "Looking up both.",
+       "role": "assistant",
+       "sajha": {
+        "is_error": false,
+        "provider": "anthropic",
+        "provider_state": {
+         "anthropic_content": [
+          {
+           "signature": "EqQBCkYI",
+           "thinking": "Two symbols.",
+           "type": "thinking"
+          },
+          {
+           "text": "Looking up both.",
+           "type": "text"
+          },
+          {
+           "id": "toolu_01A",
+           "input": {
+            "symbol": "AAPL"
+           },
+           "name": "get_quote",
+           "type": "tool_use"
+          },
+          {
+           "id": "toolu_01B",
+           "input": {
+            "symbol": "MSFT"
+           },
+           "name": "get_quote",
+           "type": "tool_use"
+          }
+         ]
+        },
+        "structured": false,
+        "system_field": false,
+        "tool_name": ""
+       },
+       "tool_calls": [
+        {
+         "function": {
+          "arguments": "{\"symbol\": \"AAPL\"}",
+          "name": "get_quote"
+         },
+         "id": "toolu_01A",
+         "type": "function"
+        },
+        {
+         "function": {
+          "arguments": "{\"symbol\": \"MSFT\"}",
+          "name": "get_quote"
+         },
+         "id": "toolu_01B",
+         "type": "function"
+        }
+       ]
+      }
+     }
+    ],
+    "model": "claude-golden-20260901",
+    "object": "chat.completion",
+    "sajha": {
+     "attempts": [],
+     "cached": false,
+     "cost_usd": 0.0,
+     "ignored": [],
+     "latency_ms": 0,
+     "provider": "",
+     "qualified_model": "",
+     "trace_id": "",
+     "usage_estimated": false
+    },
+    "usage": {
+     "completion_tokens": 95,
+     "prompt_tokens": 1600,
+     "prompt_tokens_details": {
+      "cached_tokens": 1200
+     },
+     "total_tokens": 1695
+    }
+   }
+  }
+ }
+}

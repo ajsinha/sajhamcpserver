@@ -13,6 +13,8 @@ back without knowing the vendor.
 | ContextTooLong        | prompt over the window     | next candidate (a larger model)          |
 | ContentFiltered       | refused by provider safety | no retry; returned as a refusal          |
 | UnsupportedFeature    | e.g. tools without support | next candidate by capability             |
+| ModelFailed           | the model itself failed    | next candidate (no retry, breaker intact)|
+|                       | (Gemini MALFORMED_FUNCTION_CALL, Cohere ERROR / TIMEOUT)              |
 | InvalidRequest        | malformed request          | no retry                                 |
 | PolicyDenied          | role policy forbids it     | no call                                  |
 | BudgetExceeded        | token budget spent         | no call                                  |
@@ -67,6 +69,14 @@ class UnsupportedFeature(LLMError):
     code = "unsupported_feature"
 
 
+class ModelFailed(LLMError):
+    """The vendor answered, but the generation itself failed (a non-standard ``error`` finish).
+
+    Responses carry only the standard finish reasons, so a vendor's error finish becomes this
+    error and the gateway moves to the alias's next candidate."""
+    code = "model_failed"
+
+
 class InvalidRequest(LLMError):
     code = "invalid_request"
 
@@ -97,4 +107,5 @@ ERROR_BY_NAME = {
     "content_filtered": ContentFiltered,
     "unsupported": UnsupportedFeature,
     "invalid_request": InvalidRequest,
+    "model_failed": ModelFailed,
 }

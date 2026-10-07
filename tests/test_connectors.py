@@ -853,12 +853,13 @@ def test_qdrant_lists_describes_and_searches_with_masking(storage_dir, http, mon
 def test_qdrant_embeds_text_through_the_gateway(storage_dir, http, monkeypatch):
     from sajha.ai import gateway as gw
     calls = []
-    fake_gw = types.SimpleNamespace(embed=lambda texts, model='': calls.append((texts, model)) or [[0.5, 0.5, 0.5]])
+    fake_gw = types.SimpleNamespace(embed=lambda texts, model='', purpose=None: calls.append((texts, model, purpose))
+                                    or [[0.5, 0.5, 0.5]])
     monkeypatch.setattr(gw, '_gateway', fake_gw)
     conn = model.parse({'id': 'kb', 'kind': 'qdrant', 'options': {'url': 'http://q:6333', 'collection': 'docs'},
                         'vector': {'embedding_model': 'embedding'}})
     vector.search(conn, {'query': 'greeting'})
-    assert calls == [(['greeting'], 'embedding')] and json.loads(http[-1].content)['vector'] == [0.5, 0.5, 0.5]
+    assert calls == [(['greeting'], 'embedding', 'query')] and json.loads(http[-1].content)['vector'] == [0.5, 0.5, 0.5]
 
 
 def test_elasticsearch_full_text_search_builds_the_query(storage_dir, http, monkeypatch):

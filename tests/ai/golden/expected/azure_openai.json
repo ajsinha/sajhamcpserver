@@ -1,0 +1,554 @@
+{
+ "requests": {
+  "developer_role": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "Answer in one line.",
+      "role": "developer"
+     },
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep"
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "image": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What is in this chart?",
+        "type": "text"
+       },
+       {
+        "image_url": {
+         "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+        },
+        "type": "image_url"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep"
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "image_http_url": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "image_url": {
+         "url": "https://example.com/chart.png"
+        },
+        "type": "image_url"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep"
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "json_object": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "AAPL quote as JSON",
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep",
+    "response_format": {
+     "type": "json_object"
+    }
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "n2": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep",
+    "n": 2
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "parallel_off": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep",
+    "parallel_tool_calls": false,
+    "tool_choice": "auto",
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "passthrough": {
+   "body": {
+    "logprobs": true,
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep",
+    "presence_penalty": 0.5
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "plain": {
+   "body": {
+    "max_completion_tokens": 300,
+    "messages": [
+     {
+      "content": "Be brief.",
+      "role": "system"
+     },
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep",
+    "stop": [
+     "END"
+    ],
+    "temperature": 0.2
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "reasoning": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep",
+    "reasoning_effort": "low"
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "sampling": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep",
+    "seed": 7,
+    "top_p": 0.9
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "structured": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "AAPL quote as JSON",
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep",
+    "response_format": {
+     "json_schema": {
+      "name": "quote",
+      "schema": {
+       "additionalProperties": false,
+       "properties": {
+        "price": {
+         "type": "number"
+        },
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol",
+        "price"
+       ],
+       "type": "object"
+      },
+      "strict": true
+     },
+     "type": "json_schema"
+    }
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "tool_named": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep",
+    "tool_choice": {
+     "function": {
+      "name": "get_quote"
+     },
+     "type": "function"
+    },
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     },
+     {
+      "function": {
+       "description": "FX rate",
+       "name": "get_fx",
+       "parameters": {
+        "properties": {
+         "pair": {
+          "type": "string"
+         }
+        },
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "tool_named_only_tool": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep",
+    "tool_choice": {
+     "function": {
+      "name": "get_quote"
+     },
+     "type": "function"
+    },
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "tool_none": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep"
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "tool_required": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep",
+    "tool_choice": "required",
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     },
+     {
+      "function": {
+       "description": "FX rate",
+       "name": "get_fx",
+       "parameters": {
+        "properties": {
+         "pair": {
+          "type": "string"
+         }
+        },
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "tool_round_trip": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     },
+     {
+      "content": null,
+      "role": "assistant",
+      "tool_calls": [
+       {
+        "function": {
+         "arguments": "{\"symbol\":\"AAPL\"}",
+         "name": "get_quote"
+        },
+        "id": "call_q1",
+        "type": "function"
+       },
+       {
+        "function": {
+         "arguments": "{\"symbol\":\"MSFT\"}",
+         "name": "get_quote"
+        },
+        "id": "call_q2",
+        "type": "function"
+       }
+      ]
+     },
+     {
+      "content": "{\"price\": 231.4}",
+      "role": "tool",
+      "tool_call_id": "call_q1"
+     },
+     {
+      "content": "ERROR: upstream timeout",
+      "role": "tool",
+      "tool_call_id": "call_q2"
+     }
+    ],
+    "model": "golden-dep",
+    "tool_choice": "auto",
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/openai/v1/chat/completions"
+  },
+  "tools": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "golden-dep",
+    "tool_choice": "auto",
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     },
+     {
+      "function": {
+       "description": "FX rate",
+       "name": "get_fx",
+       "parameters": {
+        "properties": {
+         "pair": {
+          "type": "string"
+         }
+        },
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/openai/v1/chat/completions"
+  }
+ },
+ "stream_request": {
+  "body": {
+   "max_completion_tokens": 4096,
+   "messages": [
+    {
+     "content": "What did AAPL and MSFT close at?",
+     "role": "user"
+    }
+   ],
+   "model": "golden-dep",
+   "stream": true,
+   "stream_options": {
+    "include_usage": true
+   },
+   "tool_choice": "auto",
+   "tools": [
+    {
+     "function": {
+      "description": "Latest price for a ticker",
+      "name": "get_quote",
+      "parameters": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      }
+     },
+     "type": "function"
+    },
+    {
+     "function": {
+      "description": "FX rate",
+      "name": "get_fx",
+      "parameters": {
+       "properties": {
+        "pair": {
+         "type": "string"
+        }
+       },
+       "type": "object"
+      }
+     },
+     "type": "function"
+    }
+   ]
+  },
+  "path": "/openai/v1/chat/completions"
+ }
+}

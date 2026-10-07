@@ -9,6 +9,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha
                config overrides), so a freshly pulled model appears without a restart
   /api/show    per-model capability detection (tools, vision, embedding, context length)
 
+The adapter translates the canonical Chat Completions format to /api/chat: system/developer
+-> system; images (data: URLs) -> ``images``; tool results carry ``tool_name`` (looked up from
+the call); temperature, top_p, seed, stop and max tokens -> ``options``; json_schema ->
+``format`` = the schema, json_object -> ``format: "json"``; reasoning_effort -> ``think``.
+Ollama has no tool_choice, so "required" and named choices are refused (forced_tool_choice
+false), never quietly downgraded to auto.
+
 base_url defaults to http://localhost:11434; OLLAMA_HOST is honoured (a bare host:port gets
 http://). keep_alive, num_ctx, think and any other ``options`` are passed through. health()
 probes /api/tags with a short timeout and caches the answer, so an absent Ollama costs one
@@ -17,23 +24,24 @@ quick probe per health TTL, not one per request.
 
 from __future__ import annotations
 
-import base64
 import json
 import logging
 import threading
 import time
-from typing import Any, ClassVar, Dict, Iterator, List, Optional, Union
+from typing import Any, ClassVar, Dict, List, Optional, Union
 
 from pydantic import Field
 
-from sajha.ai.llm.http import get_json, iter_ndjson, post_json, stream_post
-from sajha.ai.llm.model import (ChatModel, EmbeddingModel, HealthStatus, ModelCapabilities,
-                                ModelDescriptor)
+from sajha.ai.llm.adapter import (HTTPChatModel, StreamTranslator, WireCall, assistant_text, tool_names,
+                                  tool_result_text)
+from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionRequest, ChatMessage, Choice, CompletionUsage,
+                                    FunctionCall, ToolCall, split_data_url)
+from sajha.ai.llm.errors import ProviderUnavailable
+from sajha.ai.llm.http import get_json, post_json
+from sajha.ai.llm.model import EmbeddingModel, HealthStatus, ModelCapabilities, ModelDescriptor
 from sajha.ai.llm.provider import LLMProvider
 from sajha.ai.llm.registry import register_provider
 from sajha.ai.llm.settings import ProviderConfig
-from sajha.ai.llm.types import (ChatRequest, ChatResponse, Done, ImagePart, Message, TextDelta, TextPart,
-                                ToolCallDelta, ToolCallPart, UsageEvent)
 
 logger = logging.getLogger(__name__)
 FINISH = {"stop": "stop", "length": "length", "load": "stop", "unload": "stop"}
@@ -59,133 +67,133 @@ def _norm(model_id: str) -> str:
     return model_id[:-7] if model_id.endswith(":latest") else model_id
 
 
-class OllamaChatModel(ChatModel):
-    def _options(self, request: ChatRequest) -> Dict[str, Any]:
-        cfg = self.provider.config
-        opts: Dict[str, Any] = dict(cfg.options or {})
-        t = self.effective_temperature(request)
-        if t is not None:
-            opts["temperature"] = t
-        opts["num_predict"] = self.effective_max_tokens(request)
-        if request.stop:
-            opts["stop"] = list(request.stop)
-        if cfg.num_ctx:
-            opts["num_ctx"] = cfg.num_ctx
-        return opts
+# ── wire mapping (pure; golden-tested) ─────────────────────────────
 
-    def payload(self, request: ChatRequest, stream: bool) -> Dict[str, Any]:
-        cfg = self.provider.config
-        names: Dict[str, str] = {}
-        msgs: List[Dict[str, Any]] = []
-        if request.system:
-            msgs.append({"role": "system", "content": request.system})
-        for m in request.messages:
-            for c in m.tool_calls:
-                names[c.id] = c.name
-            if m.role in ("system", "user"):
-                if m.text or any(isinstance(p, ImagePart) for p in m.parts):
-                    um: Dict[str, Any] = {"role": m.role, "content": m.text}
-                    imgs = [base64.b64encode(p.data).decode() for p in m.parts if isinstance(p, ImagePart)]
-                    if imgs:
-                        um["images"] = imgs
-                    msgs.append(um)
-            elif m.role == "assistant":
-                am: Dict[str, Any] = {"role": "assistant", "content": m.text}
-                if m.tool_calls:
-                    am["tool_calls"] = [{"function": {"name": c.name, "arguments": c.arguments}}
-                                        for c in m.tool_calls]
-                msgs.append(am)
-            for r in m.tool_results:
-                msgs.append({"role": "tool", "tool_name": r.name or names.get(r.call_id, ""),
-                             "content": ("ERROR: " if r.is_error else "") + r.content_text()})
-        body: Dict[str, Any] = {"model": self.id, "messages": msgs, "stream": stream,
-                                "options": self._options(request)}
-        if request.tools and request.tool_choice != "none":
-            body["tools"] = [{"type": "function", "function": {"name": s.name, "description": s.description,
-                                                               "parameters": s.input_schema or {"type": "object"}}}
-                             for s in request.tools]
-        if request.response_schema:
-            body["format"] = request.response_schema
-        if cfg.keep_alive is not None:
-            body["keep_alive"] = cfg.keep_alive
-        if cfg.think is not None:
-            body["think"] = cfg.think
-        return body
+THINK = {"none": False, "minimal": False, "low": "low", "medium": "medium", "high": "high", "xhigh": "high"}
 
-    def _calls(self, raw: List[Dict[str, Any]], start: int = 0) -> List[ToolCallPart]:
-        out = []
-        for i, tc in enumerate(raw or []):
-            fn = tc.get("function") or {}
-            args = fn.get("arguments") or {}
-            if isinstance(args, str):
-                try:
-                    args = json.loads(args)
-                except Exception:
-                    args = {"_raw": args}
-            name = fn.get("name", "")
-            out.append(ToolCallPart(tc.get("id") or f"ocall_{start + i + 1}_{name}", name, args))
+
+def to_ollama_body(request: ChatCompletionRequest, *, model: str, cfg: "OllamaConfig", max_tokens: int,
+                   temperature: Optional[float], stream: bool) -> Dict[str, Any]:
+    names = tool_names(request)
+    msgs: List[Dict[str, Any]] = []
+    for m in request.messages:
+        if m.role in ("system", "developer", "user"):
+            imgs = [split_data_url(p.image_url.url)[1] for p in m.images]
+            if m.text or imgs:
+                um: Dict[str, Any] = {"role": "user" if m.role == "user" else "system", "content": m.text}
+                if imgs:
+                    um["images"] = imgs
+                msgs.append(um)
+        elif m.role == "assistant":
+            am: Dict[str, Any] = {"role": "assistant", "content": assistant_text(m)}
+            if m.tool_calls:
+                am["tool_calls"] = [{"function": {"name": c.function.name, "arguments": c.function.args()}}
+                                    for c in m.tool_calls]
+            msgs.append(am)
+        elif m.role == "tool":
+            tname = (m.sajha.tool_name if m.sajha and m.sajha.tool_name else "") or names.get(m.tool_call_id or "", "")
+            msgs.append({"role": "tool", "tool_name": tname, "content": tool_result_text(m)})
+    opts: Dict[str, Any] = dict(cfg.options or {})
+    if temperature is not None:
+        opts["temperature"] = temperature
+    if request.top_p is not None:
+        opts["top_p"] = request.top_p
+    if request.seed is not None:
+        opts["seed"] = request.seed
+    opts["num_predict"] = max_tokens
+    if request.stop_list:
+        opts["stop"] = request.stop_list
+    if cfg.num_ctx:
+        opts["num_ctx"] = cfg.num_ctx
+    body: Dict[str, Any] = {"model": model, "messages": msgs, "stream": stream, "options": opts}
+    if request.wants_tools:
+        body["tools"] = [{"type": "function", "function": {
+            "name": t.name, "description": (t.function.description or "") if t.function else "",
+            "parameters": t.parameters_or_default}} for t in request.tools or []]
+    kind = request.output_kind
+    if kind == "json_schema":
+        body["format"] = request.output_schema
+    elif kind == "json_object":
+        body["format"] = "json"
+    if cfg.keep_alive is not None:
+        body["keep_alive"] = cfg.keep_alive
+    if request.reasoning_effort is not None:
+        body["think"] = THINK.get(request.reasoning_effort, True)
+    elif cfg.think is not None:
+        body["think"] = cfg.think
+    body.update(request.extra_body or {})
+    return body
+
+
+def ollama_calls(raw: List[Dict[str, Any]], start: int = 0) -> List[ToolCall]:
+    out = []
+    for i, tc in enumerate(raw or []):
+        fn = tc.get("function") or {}
+        args = fn.get("arguments") or {}
+        if not isinstance(args, str):
+            args = json.dumps(args)
+        name = fn.get("name", "")
+        out.append(ToolCall(id=tc.get("id") or f"ocall_{start + i + 1}_{name}",
+                            function=FunctionCall(name=name, arguments=args or "{}")))
+    return out
+
+
+def ollama_usage(data: Dict[str, Any]) -> Optional[CompletionUsage]:
+    if "prompt_eval_count" not in data and "eval_count" not in data:
+        return None
+    return CompletionUsage.of(data.get("prompt_eval_count") or 0, data.get("eval_count") or 0)
+
+
+def parse_ollama(data: Dict[str, Any], model: str) -> ChatCompletion:
+    m = data.get("message") or {}
+    calls = ollama_calls(m.get("tool_calls") or [])
+    finish = "tool_calls" if calls else FINISH.get(data.get("done_reason") or "stop", "stop")
+    return ChatCompletion(model=data.get("model") or model, choices=[Choice(message=ChatMessage(
+        role="assistant", content=m.get("content") or None, tool_calls=calls or None), finish_reason=finish)],
+        usage=ollama_usage(data))
+
+
+class OllamaStreamTranslator(StreamTranslator):
+    def feed(self, event: str, chunk: Any) -> List:
+        if chunk.get("error"):
+            raise ProviderUnavailable(f"ollama: {chunk['error']}", provider=self.model.provider.name,
+                                      model=self.model.id)
+        out: List = []
+        m = chunk.get("message") or {}
+        out += self.text(m.get("content") or "")
+        for c in ollama_calls(m.get("tool_calls") or [], len(self._calls)):
+            out += self.tool_start(c.id, c.id, c.function.name, c.function.arguments)
+        if chunk.get("done"):
+            self.model_name = chunk.get("model") or self.model_name
+            self.usage = ollama_usage(chunk)
+            self.finish = FINISH.get(chunk.get("done_reason") or "stop", "stop")
         return out
 
-    def _usage(self, data: Dict[str, Any]):
-        return self.make_usage(data.get("prompt_eval_count") or 0, data.get("eval_count") or 0)
 
-    def generate(self, request: ChatRequest) -> ChatResponse:
-        self.validate(request)
-        t0 = time.time()
-        with self.provider.slot():
-            data = post_json(self.provider.http, "/api/chat", self.payload(request, False),
-                             provider=self.provider.name, model=self.id)
-        m = data.get("message") or {}
-        parts: List[Any] = [TextPart(m["content"])] if m.get("content") else []
-        calls = self._calls(m.get("tool_calls") or [])
-        parts.extend(calls)
-        finish = "tool_calls" if calls else FINISH.get(data.get("done_reason") or "stop", "stop")
-        return ChatResponse(Message("assistant", parts), finish, self._usage(data), data.get("model") or self.id,
-                            self.provider.name, int((time.time() - t0) * 1000), raw=data)
+class OllamaChatModel(HTTPChatModel):
+    stream_format = "ndjson"
 
-    def stream(self, request: ChatRequest) -> Iterator:
-        if not self.capabilities.streaming:
-            yield from super().stream(request)
-            return
-        self.validate(request)
-        t0 = time.time()
-        text: List[str] = []
-        calls: List[ToolCallPart] = []
-        final: Dict[str, Any] = {}
-        with self.provider.slot():
-            with stream_post(self.provider.http, "/api/chat", self.payload(request, True),
-                             provider=self.provider.name, model=self.id) as resp:
-                for chunk in iter_ndjson(resp):
-                    if chunk.get("error"):
-                        from sajha.ai.llm.errors import ProviderUnavailable
-                        raise ProviderUnavailable(f"ollama: {chunk['error']}", provider=self.provider.name,
-                                                  model=self.id)
-                    m = chunk.get("message") or {}
-                    if m.get("content"):
-                        text.append(m["content"])
-                        yield TextDelta(m["content"])
-                    for c in self._calls(m.get("tool_calls") or [], len(calls)):
-                        calls.append(c)
-                        yield ToolCallDelta(c.id, c.name, json.dumps(c.arguments), len(calls) - 1)
-                    if chunk.get("done"):
-                        final = chunk
-        parts: List[Any] = [TextPart("".join(text))] if text else []
-        parts.extend(calls)
-        usage = self._usage(final)
-        finish = "tool_calls" if calls else FINISH.get(final.get("done_reason") or "stop", "stop")
-        yield UsageEvent(usage)
-        yield Done(ChatResponse(Message("assistant", parts), finish, usage, self.id, self.provider.name,
-                                int((time.time() - t0) * 1000)))
+    def wire(self, request: ChatCompletionRequest, stream: bool) -> WireCall:
+        return WireCall("/api/chat", to_ollama_body(request, model=self.id, cfg=self.provider.config,
+                                                    max_tokens=self.effective_max_tokens(request),
+                                                    temperature=self.effective_temperature(request), stream=stream))
+
+    def parse(self, data: Dict[str, Any], request: ChatCompletionRequest) -> ChatCompletion:
+        return parse_ollama(data, self.id)
+
+    def translator(self, request: ChatCompletionRequest) -> StreamTranslator:
+        return OllamaStreamTranslator(self, request)
 
 
 class OllamaEmbeddingModel(EmbeddingModel):
-    def embed(self, texts: List[str]) -> List[List[float]]:
+    def _embed(self, texts, purpose=None, dimensions=None):
         cfg = self.provider.config
         body: Dict[str, Any] = {"model": self.id, "input": list(texts)}
         if cfg.keep_alive is not None:
             body["keep_alive"] = cfg.keep_alive
-        if cfg.embedding_dimensions:
-            body["dimensions"] = cfg.embedding_dimensions
+        dims = dimensions or cfg.embedding_dimensions
+        if dims:
+            body["dimensions"] = dims
         with self.provider.slot():
             data = post_json(self.provider.http, "/api/embed", body, provider=self.provider.name, model=self.id)
         return data.get("embeddings") or []
@@ -198,11 +206,17 @@ class OllamaProvider(LLMProvider):
     requires_key = False
     default_base_url = "http://localhost:11434"
     catalog_key = "ollama"
+    feature_defaults = {"seed": True, "reasoning_effort": "tagged", "json_mode": True, "variable_dimensions": True}
     unknown_model_capabilities = ModelCapabilities(tools=True, structured_output=True, context_window=8_192,
                                                    forced_tool_choice=False, tags=frozenset({"local"}))
     chat_model_class = OllamaChatModel
     embedding_model_class = OllamaEmbeddingModel
     live_models_ttl_s = 30.0
+
+    def resolve_capabilities(self, caps: ModelCapabilities) -> ModelCapabilities:
+        """/api/chat has no tool_choice: no model can be forced to call a tool, whatever the catalogue says."""
+        from dataclasses import replace
+        return replace(super().resolve_capabilities(caps), forced_tool_choice=False, named_tool_choice=False)
 
     def __init__(self, *a, **kw):
         super().__init__(*a, **kw)

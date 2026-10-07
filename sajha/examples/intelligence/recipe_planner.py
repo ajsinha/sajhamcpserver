@@ -22,7 +22,6 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import time
 from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import Field
@@ -31,7 +30,8 @@ from sajha.ai.llm import (ChatModel, ConfigurationError, HealthStatus, LLMProvid
                           ModelDescriptor, ProviderConfig, UnsupportedFeature, register_provider)
 from sajha.ai.llm.model import estimate_tokens
 from sajha.ai.llm.settings import Layered
-from sajha.ai.llm.types import ChatRequest, ChatResponse, Message, ToolCallPart
+from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionRequest, ChatMessage, Choice, CompletionUsage,
+                                    ToolCall)
 
 CALL_PREFIX = "recipe_"
 
@@ -66,68 +66,68 @@ def _coerce(value: str, schema: Dict[str, Any]) -> Any:
 
 
 class RecipePlannerModel(ChatModel):
+    """Written against the canonical format: ``_create`` takes a ChatCompletionRequest and returns
+    a ChatCompletion; the base class adds the capability check, streaming and async."""
 
-    def generate(self, request: ChatRequest) -> ChatResponse:
-        self.validate(request)
-        t0 = time.time()
+    def _create(self, request: ChatCompletionRequest) -> ChatCompletion:
         question = next((m.text for m in reversed(request.messages) if m.role == "user" and m.text), "")
         recipe, match = self.provider.find(question)
         if recipe is None:
             raise UnsupportedFeature("no recipe matches this question", provider=self.provider.name, model=self.id)
         calls, results = self._since_question(request)
         if not calls:                                  # step 1: plan
-            offered = {t.name: t for t in request.tools} if request.tool_choice != "none" else {}
+            offered = {t.name: t for t in request.tools or []} if request.wants_tools else {}
             spec = offered.get(recipe.tool)
             if spec is None:                           # not shortlisted, or the caller may not run it
                 raise UnsupportedFeature(f"recipe {recipe.name}: {recipe.tool} was not offered",
                                          provider=self.provider.name, model=self.id)
-            props = (spec.input_schema or {}).get("properties") or {}
+            props = spec.parameters_or_default.get("properties") or {}
             args = dict(recipe.arguments)
             args.update({k: _coerce(v, props.get(k) or {}) for k, v in match.groupdict().items() if v is not None})
             digest = hashlib.sha1(json.dumps([recipe.name, args], sort_keys=True).encode()).hexdigest()[:8]
-            msg = Message.assistant("", [ToolCallPart(f"{CALL_PREFIX}{digest}", recipe.tool, args)])
-            return self._response(request, msg, "tool_calls", t0)
+            msg = ChatMessage.assistant(None, [ToolCall.of(f"{CALL_PREFIX}{digest}", recipe.tool, args)])
+            return self._response(request, msg, "tool_calls")
         if not all(c.id.startswith(CALL_PREFIX) for c in calls):
             # another model planned this question (we deferred at step 1): keep deferring
             raise UnsupportedFeature("not a recipe conversation", provider=self.provider.name, model=self.id)
         text, cited, caveats = self._answer(recipe, calls, results)
-        if request.response_schema:                    # the synthesis call
+        if request.output_kind:                        # the synthesis call
             text = json.dumps({"answer": text, "citations": cited, "caveats": caveats})
-        return self._response(request, Message.assistant(text), "stop", t0)
+        return self._response(request, ChatMessage.assistant(text), "stop")
 
     @staticmethod
-    def _since_question(request: ChatRequest) -> Tuple[List[ToolCallPart], Dict[str, Any]]:
+    def _since_question(request: ChatCompletionRequest) -> Tuple[List[ToolCall], Dict[str, ChatMessage]]:
         last_user = max((i for i, m in enumerate(request.messages) if m.role == "user"), default=-1)
         calls, results = [], {}
         for m in request.messages[last_user + 1:]:
-            calls.extend(m.tool_calls)
-            results.update({r.call_id: r for r in m.tool_results})
+            calls.extend(m.tool_calls or [])
+            if m.role == "tool":
+                results[m.tool_call_id] = m
         return calls, results
 
     @staticmethod
-    def _answer(recipe: Recipe, calls, results):
+    def _answer(recipe: Recipe, calls: List[ToolCall], results: Dict[str, ChatMessage]):
         lines, cited, caveats = [], [], []
         for c in calls:
             r = results.get(c.id)
             if r is None or r.is_error:
-                caveats.append(f"{c.name} did not return a result")
+                caveats.append(f"{c.function.name} did not return a result")
                 continue
-            data = r.content
-            if isinstance(data, str):
-                try:
-                    data = json.loads(data)
-                except ValueError:
-                    data = {"result": data}
+            try:
+                data = json.loads(r.text)
+            except ValueError:
+                data = {"result": r.text}
             fields = _Fields(data if isinstance(data, dict) else {"result": data})
-            fields.setdefault("result", r.content_text())
-            lines.append(recipe.answer.format_map(fields) if recipe.answer else f"{c.name} returned {r.content_text()}")
+            fields.setdefault("result", r.text)
+            lines.append(recipe.answer.format_map(fields) if recipe.answer
+                         else f"{c.function.name} returned {r.text}")
             cited.append(c.id)
         return (" ".join(lines) or "The recipe's tool call failed."), cited, caveats
 
-    def _response(self, request: ChatRequest, msg: Message, finish: str, t0: float) -> ChatResponse:
-        out = msg.text + "".join(json.dumps(c.arguments) for c in msg.tool_calls)
-        usage = self.make_usage(self.count_tokens(request), estimate_tokens(out))
-        return ChatResponse(msg, finish, usage, self.id, self.provider.name, int((time.time() - t0) * 1000))
+    def _response(self, request: ChatCompletionRequest, msg: ChatMessage, finish: str) -> ChatCompletion:
+        out = msg.text + "".join(c.function.arguments for c in msg.tool_calls or [])
+        return ChatCompletion(model=self.id, choices=[Choice(message=msg, finish_reason=finish)],
+                              usage=CompletionUsage.of(self.count_tokens(request), estimate_tokens(out)))
 
 
 @register_provider

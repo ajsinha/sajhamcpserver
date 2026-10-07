@@ -5,28 +5,36 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 Bedrock needs SigV4 request signing, so this provider uses boto3 — an optional dependency
 (``pip install boto3``); without it the provider reports a clear error and stays down.
 Credentials come from the config/env fields below or boto3's default chain (profile, SSO,
-instance role). Tools map to toolSpec / toolUse / toolResult; Converse has no JSON-schema
-output mode, so structured_output is false for Bedrock models. Embeddings: Titan Text v2
-and Cohere Embed through InvokeModel.
+instance role). The adapter translates the canonical Chat Completions format to Converse:
+system/developer -> ``system``; tools -> ``toolSpec``, tool_choice auto | any | {tool: {name}};
+tool calls/results -> ``toolUse`` / ``toolResult`` (``status: error`` for error results);
+images (data: URLs) -> bytes; temperature, top_p, stop -> ``inferenceConfig``; ``extra_body``
+-> ``additionalModelRequestFields``. Converse has no JSON output mode, so ``response_format``
+is refused (structured_output and json_mode are false), as are seed, reasoning_effort and
+``parallel_tool_calls: false``. ``stopReason: guardrail_intervened`` becomes
+``finish_reason: content_filter`` with ``message.refusal``. Async runs in a worker thread
+(boto3 is synchronous). Embeddings: Titan Text v2 (``dimensions``) and Cohere Embed
+(``input_type`` from the request's purpose) through InvokeModel.
 """
 
 from __future__ import annotations
 
+import base64
 import json
-import time
 from typing import Any, ClassVar, Dict, Iterator, List, Optional
 
 from pydantic import SecretStr
 
 from sajha.ai.llm.errors import (AuthenticationFailed, ConfigurationError, ContentFiltered, ContextTooLong,
                                  InvalidRequest, LLMError, ProviderUnavailable, RateLimited, UnsupportedFeature)
-from sajha.ai.llm.http import CONTEXT_MARKERS, safe_json_loads
+from sajha.ai.llm.http import CONTEXT_MARKERS
 from sajha.ai.llm.model import ChatModel, EmbeddingModel, HealthStatus, ModelCapabilities
 from sajha.ai.llm.provider import LLMProvider
 from sajha.ai.llm.registry import register_provider
 from sajha.ai.llm.settings import ProviderConfig
-from sajha.ai.llm.types import (ChatRequest, ChatResponse, Done, ImagePart, Message, TextDelta, TextPart,
-                                ToolCallDelta, ToolCallPart, UsageEvent)
+from sajha.ai.llm.adapter import StreamTranslator, assistant_text, system_text
+from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionRequest, ChatMessage, Choice, CompletionUsage,
+                                    FunctionCall, ToolCall, split_data_url)
 
 STOP = {"end_turn": "stop", "stop_sequence": "stop", "max_tokens": "length", "tool_use": "tool_calls",
         "guardrail_intervened": "content_filter", "content_filtered": "content_filter",
@@ -90,163 +98,197 @@ def _image_format(mime: str) -> str:
     return {"image/jpeg": "jpeg", "image/jpg": "jpeg", "image/gif": "gif", "image/webp": "webp"}.get(mime, "png")
 
 
-class BedrockChatModel(ChatModel):
-    def request_kwargs(self, request: ChatRequest) -> Dict[str, Any]:
-        cfg = self.provider.config
-        msgs: List[Dict[str, Any]] = []
-        system = [request.system] if request.system else []
-        for m in request.messages:
-            if m.role == "system":
-                system.append(m.text)
-                continue
-            role = "assistant" if m.role == "assistant" else "user"
-            content: List[Dict[str, Any]] = []
+GUARDRAIL_REFUSAL = "Blocked by the Bedrock guardrail (stopReason: {reason})."
+
+
+# ── wire mapping (pure; golden-tested) ─────────────────────────────
+
+def _tool_result_content(m: ChatMessage) -> List[Dict[str, Any]]:
+    if m.sajha and m.sajha.structured:
+        try:
+            v = json.loads(m.text)
+            if isinstance(v, dict):
+                return [{"json": v}]
+        except Exception:
+            pass
+    return [{"text": m.text}]
+
+
+def to_bedrock_kwargs(request: ChatCompletionRequest, *, model: str, cfg: "BedrockConfig", max_tokens: int,
+                      temperature: Optional[float]) -> Dict[str, Any]:
+    msgs: List[Dict[str, Any]] = []
+    for m in request.messages:
+        if m.role in ("system", "developer"):
+            continue
+        content: List[Dict[str, Any]] = []
+        if m.role == "assistant":
+            if assistant_text(m):
+                content.append({"text": assistant_text(m)})
+            content += [{"toolUse": {"toolUseId": c.id, "name": c.function.name, "input": c.function.args()}}
+                        for c in m.tool_calls or []]
+            role = "assistant"
+        elif m.role == "tool":
+            content.append({"toolResult": {"toolUseId": m.tool_call_id, "content": _tool_result_content(m),
+                                           "status": "error" if m.is_error else "success"}})
+            role = "user"
+        else:
+            role = "user"
             for p in m.parts:
-                if isinstance(p, TextPart) and p.text:
+                if p.type == "text" and p.text:
                     content.append({"text": p.text})
-                elif isinstance(p, ImagePart):
-                    content.append({"image": {"format": _image_format(p.mime_type), "source": {"bytes": p.data}}})
-                elif isinstance(p, ToolCallPart):
-                    content.append({"toolUse": {"toolUseId": p.id, "name": p.name, "input": p.arguments}})
-            for r in m.tool_results:
-                body = [{"json": r.content}] if isinstance(r.content, dict) else [{"text": r.content_text()}]
-                content.append({"toolResult": {"toolUseId": r.call_id, "content": body,
-                                               "status": "error" if r.is_error else "success"}})
-            if not content:
-                continue
-            if msgs and msgs[-1]["role"] == role:
-                msgs[-1]["content"].extend(content)
-            else:
-                msgs.append({"role": role, "content": content})
-        kw: Dict[str, Any] = {"modelId": self.id, "messages": msgs}
-        if system:
-            kw["system"] = [{"text": "\n\n".join(system)}]
-        inf: Dict[str, Any] = {"maxTokens": self.effective_max_tokens(request)}
-        t = self.effective_temperature(request)
-        if t is not None:
-            inf["temperature"] = t
-        if request.stop:
-            inf["stopSequences"] = list(request.stop)
-        kw["inferenceConfig"] = inf
-        if request.tools and request.tool_choice != "none":
-            tc = request.tool_choice
-            forced = self.capabilities.forced_tool_choice
-            choice = {"auto": {}}
-            if tc == "required" and forced:
-                choice = {"any": {}}
-            elif tc not in ("auto", "required", "none") and forced:
-                choice = {"tool": {"name": tc}}
-            kw["toolConfig"] = {"tools": [{"toolSpec": {"name": s.name, "description": s.description or s.name,
-                                                        "inputSchema": {"json": s.input_schema or {"type": "object"}}}}
-                                          for s in request.tools], "toolChoice": choice}
-        if cfg.guardrail_identifier:
-            kw["guardrailConfig"] = {"guardrailIdentifier": cfg.guardrail_identifier,
-                                     "guardrailVersion": cfg.guardrail_version or "DRAFT"}
-        if cfg.additional_model_request_fields:
-            kw["additionalModelRequestFields"] = cfg.additional_model_request_fields
-        return kw
+                elif p.type == "image_url":
+                    mime, data = split_data_url(p.image_url.url)
+                    content.append({"image": {"format": _image_format(mime), "source": {"bytes": base64.b64decode(data)}}})
+        if not content:
+            continue
+        if msgs and msgs[-1]["role"] == role:
+            msgs[-1]["content"].extend(content)
+        else:
+            msgs.append({"role": role, "content": content})
+    kw: Dict[str, Any] = {"modelId": model, "messages": msgs}
+    system = system_text(request)
+    if system:
+        kw["system"] = [{"text": system}]
+    inf: Dict[str, Any] = {"maxTokens": max_tokens}
+    if temperature is not None:
+        inf["temperature"] = temperature
+    if request.top_p is not None:
+        inf["topP"] = request.top_p
+    if request.stop_list:
+        inf["stopSequences"] = request.stop_list
+    kw["inferenceConfig"] = inf
+    if request.wants_tools:
+        mode = request.tool_choice_mode
+        choice: Dict[str, Any] = {"auto": {}}
+        if mode == "required":
+            choice = {"any": {}}
+        elif mode == "named":
+            choice = {"tool": {"name": request.tool_choice_name}}
+        kw["toolConfig"] = {"tools": [{"toolSpec": {
+            "name": t.name, "description": ((t.function.description if t.function else "") or t.name),
+            "inputSchema": {"json": t.parameters_or_default}}} for t in request.tools or []], "toolChoice": choice}
+    if cfg.guardrail_identifier:
+        kw["guardrailConfig"] = {"guardrailIdentifier": cfg.guardrail_identifier,
+                                 "guardrailVersion": cfg.guardrail_version or "DRAFT"}
+    extra = {**(cfg.additional_model_request_fields or {}), **(request.extra_body or {})}
+    if extra:
+        kw["additionalModelRequestFields"] = extra
+    return kw
 
-    def _message(self, content: List[Dict[str, Any]]) -> Message:
-        parts: List[Any] = []
-        for b in content or []:
-            if b.get("text"):
-                parts.append(TextPart(b["text"]))
-            elif "toolUse" in b:
-                tu = b["toolUse"]
-                parts.append(ToolCallPart(tu.get("toolUseId", ""), tu.get("name", ""), tu.get("input") or {}))
-        return Message("assistant", parts)
 
-    def _usage(self, u: Dict[str, Any]):
-        return self.make_usage(u.get("inputTokens") or 0, u.get("outputTokens") or 0,
-                               u.get("cacheReadInputTokens") or 0)
+def bedrock_usage(u: Dict[str, Any]) -> Optional[CompletionUsage]:
+    if not u:
+        return None
+    return CompletionUsage.of(u.get("inputTokens") or 0, u.get("outputTokens") or 0, u.get("cacheReadInputTokens"))
 
-    def generate(self, request: ChatRequest) -> ChatResponse:
-        self.validate(request)
-        t0 = time.time()
+
+def bedrock_message(content: List[Dict[str, Any]], stop: str) -> tuple:
+    text = "".join(b["text"] for b in content or [] if b.get("text"))
+    calls = [ToolCall(id=b["toolUse"].get("toolUseId", ""), function=FunctionCall(
+        name=b["toolUse"].get("name", ""), arguments=json.dumps(b["toolUse"].get("input") or {})))
+        for b in content or [] if "toolUse" in b]
+    finish = STOP.get(stop or "end_turn", "stop")
+    msg = ChatMessage(role="assistant", content=text or None, tool_calls=calls or None)
+    if finish == "content_filter":
+        msg.refusal, msg.content = text or GUARDRAIL_REFUSAL.format(reason=stop), None   # the guardrail's message
+    elif calls and finish == "stop":
+        finish = "tool_calls"
+    return msg, finish
+
+
+def parse_bedrock(data: Dict[str, Any], model: str) -> ChatCompletion:
+    msg, finish = bedrock_message(((data.get("output") or {}).get("message") or {}).get("content") or [],
+                                  data.get("stopReason") or "end_turn")
+    return ChatCompletion(model=model, choices=[Choice(message=msg, finish_reason=finish)],
+                          usage=bedrock_usage(data.get("usage") or {}))
+
+
+class BedrockStreamTranslator(StreamTranslator):
+    def __init__(self, model, request):
+        super().__init__(model, request)
+        self.stop = ""
+
+    def feed(self, event: str, ev: Any) -> List:
+        out: List = []
+        for k in ev:
+            if k.endswith("Exception"):
+                raise map_bedrock_error(type(k, (Exception,), {"response": {"Error": {
+                    "Code": k, "Message": str(ev[k])}}})(), self.model.provider.name, self.model.id)
+        if "contentBlockStart" in ev:
+            cs = ev["contentBlockStart"]
+            tu = (cs.get("start") or {}).get("toolUse")
+            if tu:
+                out += self.tool_start(cs.get("contentBlockIndex", 0), tu.get("toolUseId", ""), tu.get("name", ""))
+        elif "contentBlockDelta" in ev:
+            cd = ev["contentBlockDelta"]
+            d = cd.get("delta") or {}
+            if "text" in d:
+                out += self.text(d["text"])
+            elif "toolUse" in d:
+                out += self.tool_args(cd.get("contentBlockIndex", 0), d["toolUse"].get("input", ""))
+        elif "messageStop" in ev:
+            self.stop = ev["messageStop"].get("stopReason") or "end_turn"
+            self.finish = STOP.get(self.stop, "stop")
+        elif "metadata" in ev:
+            self.usage = bedrock_usage(ev["metadata"].get("usage") or {}) or self.usage
+        return out
+
+    def close(self) -> List:
+        if self.finish == "content_filter":
+            self.refusal = GUARDRAIL_REFUSAL.format(reason=self.stop)
+        return super().close()
+
+
+class BedrockChatModel(ChatModel):
+    def request_kwargs(self, request: ChatCompletionRequest) -> Dict[str, Any]:
+        return to_bedrock_kwargs(request, model=self.id, cfg=self.provider.config,
+                                 max_tokens=self.effective_max_tokens(request),
+                                 temperature=self.effective_temperature(request))
+
+    def _create(self, request: ChatCompletionRequest) -> ChatCompletion:
         client = self.provider.client()
         try:
             with self.provider.slot():
                 data = client.converse(**self.request_kwargs(request))
         except Exception as e:
             raise map_bedrock_error(e, self.provider.name, self.id) from None
-        msg = self._message(((data.get("output") or {}).get("message") or {}).get("content") or [])
-        finish = STOP.get(data.get("stopReason") or "end_turn", "stop")
-        return ChatResponse(msg, finish, self._usage(data.get("usage") or {}), self.id, self.provider.name,
-                            int((time.time() - t0) * 1000), raw=data)
+        comp = parse_bedrock(data, self.id)
+        comp._raw = data
+        return comp
 
-    def stream(self, request: ChatRequest) -> Iterator:
-        if not self.capabilities.streaming:
-            yield from super().stream(request)
-            return
-        self.validate(request)
-        t0 = time.time()
+    def _stream(self, request: ChatCompletionRequest) -> Iterator:
         client = self.provider.client()
-        blocks: Dict[int, Dict[str, Any]] = {}
-        finish, usage_raw = "stop", {}
+        tr = BedrockStreamTranslator(self, request)
         try:
             with self.provider.slot():
                 resp = client.converse_stream(**self.request_kwargs(request))
                 for ev in resp.get("stream") or []:
-                    for k in ev:
-                        if k.endswith("Exception"):
-                            raise map_bedrock_error(type(k, (Exception,), {"response": {"Error": {
-                                "Code": k, "Message": str(ev[k])}}})(), self.provider.name, self.id)
-                    if "contentBlockStart" in ev:
-                        cs = ev["contentBlockStart"]
-                        idx = cs.get("contentBlockIndex", 0)
-                        tu = (cs.get("start") or {}).get("toolUse")
-                        if tu:
-                            blocks[idx] = {"toolUse": {"toolUseId": tu.get("toolUseId", ""),
-                                                       "name": tu.get("name", ""), "_json": ""}}
-                            yield ToolCallDelta(tu.get("toolUseId", ""), tu.get("name", ""), "", idx)
-                    elif "contentBlockDelta" in ev:
-                        cd = ev["contentBlockDelta"]
-                        idx = cd.get("contentBlockIndex", 0)
-                        d = cd.get("delta") or {}
-                        if "text" in d:
-                            b = blocks.setdefault(idx, {"text": ""})
-                            b["text"] = b.get("text", "") + d["text"]
-                            yield TextDelta(d["text"])
-                        elif "toolUse" in d:
-                            frag = d["toolUse"].get("input", "")
-                            b = blocks.setdefault(idx, {"toolUse": {"toolUseId": "", "name": "", "_json": ""}})
-                            b["toolUse"]["_json"] += frag
-                            yield ToolCallDelta(b["toolUse"]["toolUseId"], "", frag, idx)
-                    elif "messageStop" in ev:
-                        finish = STOP.get(ev["messageStop"].get("stopReason") or "end_turn", "stop")
-                    elif "metadata" in ev:
-                        usage_raw = ev["metadata"].get("usage") or usage_raw
+                    yield from tr.feed("", ev)
         except LLMError:
             raise
         except Exception as e:
             raise map_bedrock_error(e, self.provider.name, self.id) from None
-        content = []
-        for idx in sorted(blocks):
-            b = blocks[idx]
-            if "toolUse" in b:
-                b["toolUse"]["input"] = safe_json_loads(b["toolUse"].pop("_json", ""))
-            content.append(b)
-        usage = self._usage(usage_raw)
-        yield UsageEvent(usage)
-        yield Done(ChatResponse(self._message(content), finish, usage, self.id, self.provider.name,
-                                int((time.time() - t0) * 1000)))
+        yield from tr.close()
 
 
 class BedrockEmbeddingModel(EmbeddingModel):
-    def embed(self, texts: List[str]) -> List[List[float]]:
+    def _embed(self, texts, purpose=None, dimensions=None):
         client = self.provider.client()
         cfg = self.provider.config
         out: List[List[float]] = []
         try:
             if self.id.startswith("cohere."):
-                body = {"texts": list(texts), "input_type": cfg.embedding_input_type}
+                body = {"texts": list(texts),
+                        "input_type": {"query": "search_query", "document": "search_document"}.get(
+                            purpose or "") or cfg.embedding_input_type}
                 data = self._invoke(client, body)
                 emb = data.get("embeddings")
                 return emb.get("float") if isinstance(emb, dict) else emb
+            dims = dimensions or cfg.embedding_dimensions
             for t in texts:
                 body: Dict[str, Any] = {"inputText": t}
-                if cfg.embedding_dimensions:
-                    body["dimensions"] = cfg.embedding_dimensions
+                if dims:
+                    body["dimensions"] = dims
                 out.append(self._invoke(client, body).get("embedding") or [])
         except LLMError:
             raise
@@ -269,6 +311,7 @@ class BedrockProvider(LLMProvider):
     config_model = BedrockConfig
     requires_key = False            # boto3's credential chain
     catalog_key = "bedrock"
+    feature_defaults = {"json_mode": False}
     unknown_model_capabilities = ModelCapabilities(tools=True, structured_output=False, context_window=128_000)
     chat_model_class = BedrockChatModel
     embedding_model_class = BedrockEmbeddingModel

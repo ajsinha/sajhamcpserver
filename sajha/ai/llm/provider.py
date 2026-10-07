@@ -2,9 +2,26 @@
 SAJHA Intelligence Layer — the provider base class.
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
-A provider owns credentials, the HTTP client and the model catalogue, and is a factory for
-ChatModel / EmbeddingModel objects. Its settings are a pydantic ``config_model`` resolved
-from env > vendor env > application.yml > DB > default (see settings.py).
+A provider owns credentials, the HTTP clients (sync and async) and the model catalogue, and
+is a factory for ChatModel / EmbeddingModel objects. Its settings are a pydantic
+``config_model`` resolved from env > vendor env > application.yml > DB > default (see
+settings.py).
+
+The provider interface mirrors an OpenAI-style client (LLM Tools.md §13.3):
+
+    provider.models()            -> list[ModelInfo]    like GET /v1/models
+    provider.model(name)         -> ChatModel | EmbeddingModel
+
+Class attributes a provider sets besides ``name`` and ``config_model``:
+
+    openai_compatible   True for Chat Completions servers: passed-through fields are accepted
+    developer_role      True when the vendor takes role "developer" (else it is sent as system)
+    feature_defaults    defaults for the canonical feature flags of its models (model.FEATURE_FLAGS);
+                        "tagged" means "models tagged reasoning"
+
+Credentials that expire (Entra ID, Google service accounts and workload identity) are served
+per request by ``request_headers()`` / ``arequest_headers()``, which a provider overrides;
+static ones go in ``auth_headers()``.
 """
 
 from __future__ import annotations
@@ -12,14 +29,15 @@ from __future__ import annotations
 import logging
 import threading
 import time
+import weakref
 from abc import ABC
-from contextlib import contextmanager
-from typing import Any, ClassVar, Dict, List, Optional, Type
+from contextlib import asynccontextmanager, contextmanager
+from typing import Any, ClassVar, Dict, List, Optional, Type, Union
 
 from sajha.ai.llm.catalog import CATALOG, DEFAULT_MODELS
 from sajha.ai.llm.errors import ProviderUnavailable, UnsupportedFeature
 from sajha.ai.llm.model import (ChatModel, EmbeddingModel, HealthStatus, ModelCapabilities,
-                                ModelDescriptor)
+                                ModelDescriptor, ModelInfo)
 from sajha.ai.llm.secrets import SecretStore
 from sajha.ai.llm.settings import ModelOverride, ProviderConfig, describe, resolve_layers
 
@@ -72,6 +90,9 @@ class LLMProvider(ABC):
     chat_model_class: ClassVar[Optional[type]] = None
     embedding_model_class: ClassVar[Optional[type]] = None
     live_models_ttl_s: ClassVar[float] = 60.0
+    openai_compatible: ClassVar[bool] = False
+    developer_role: ClassVar[bool] = False
+    feature_defaults: ClassVar[Dict[str, Any]] = {}
 
     def __init__(self, config: Optional[ProviderConfig] = None, secrets: Optional[SecretStore] = None, *,
                  instance_name: str = "", sources: Optional[Dict[str, str]] = None,
@@ -84,6 +105,7 @@ class LLMProvider(ABC):
         self._transport = transport          # httpx transport injected by tests
         self._client = None
         self._client_lock = threading.Lock()
+        self._aclients: "weakref.WeakKeyDictionary" = weakref.WeakKeyDictionary()   # event loop -> AsyncClient
         self._sem = threading.BoundedSemaphore(max(1, int(self.config.max_concurrency or 1)))
         self._models_cache: Optional[Dict[str, ModelDescriptor]] = None
         self._models_cache_at = 0.0
@@ -121,7 +143,20 @@ class LLMProvider(ABC):
         return self.auto_enabled() if e == "auto" else bool(e)
 
     def auth_headers(self) -> Dict[str, str]:
+        """Static headers set once on the HTTP clients."""
         return {}
+
+    def request_headers(self) -> Dict[str, str]:
+        """Per-request headers (short-lived tokens). Default: none."""
+        return {}
+
+    async def arequest_headers(self) -> Dict[str, str]:
+        import anyio
+        return await anyio.to_thread.run_sync(self.request_headers)
+
+    def resolve_capabilities(self, caps: ModelCapabilities) -> ModelCapabilities:
+        """A model's declared capabilities with unset feature flags taken from feature_defaults."""
+        return caps.resolved(type(self).feature_defaults)
 
     # ── HTTP ───────────────────────────────────────────────────────
     @property
@@ -133,6 +168,34 @@ class LLMProvider(ABC):
                     self._client = build_client(self.config, base_url=self.base_url,
                                                 headers=self.auth_headers(), transport=self._transport)
         return self._client
+
+    @property
+    def ahttp(self):
+        """The httpx.AsyncClient for the running event loop (clients are bound to their loop)."""
+        import asyncio
+        loop = asyncio.get_running_loop()
+        client = self._aclients.get(loop)
+        if client is None:
+            from sajha.ai.llm.http import build_async_client
+            client = build_async_client(self.config, base_url=self.base_url, headers=self.auth_headers(),
+                                        transport=self._transport)
+            self._aclients[loop] = client
+        return client
+
+    @asynccontextmanager
+    async def aslot(self, timeout: Optional[float] = None):
+        """The async twin of slot(): waits without blocking the event loop."""
+        import anyio
+        t = timeout if timeout is not None else self.config.read_timeout_s
+        deadline = time.monotonic() + t
+        while not self._sem.acquire(blocking=False):
+            if time.monotonic() >= deadline:
+                raise ProviderUnavailable(f"{self.name}: max_concurrency reached", provider=self.name)
+            await anyio.sleep(0.005)
+        try:
+            yield
+        finally:
+            self._sem.release()
 
     @contextmanager
     def slot(self, timeout: Optional[float] = None):
@@ -181,6 +244,17 @@ class LLMProvider(ABC):
                     out[ov.id] = d
         self._models_cache, self._models_cache_at = out, now
         return list(out.values())
+
+    def models(self) -> List[ModelInfo]:
+        """Every model of this provider with its resolved capabilities (like GET /v1/models)."""
+        return [ModelInfo(d.id, self.name, d.kind, self.resolve_capabilities(d.capabilities),
+                          d.display_name, d.source) for d in self.list_models()]
+
+    def model(self, name: str = "", kind: str = "") -> Union[ChatModel, EmbeddingModel]:
+        """A model by id; ``kind`` (chat | embedding) defaults to what the catalogue says."""
+        if not kind:
+            kind = self.describe_model(name).kind if name else "chat"
+        return self.embedding_model(name) if kind == "embedding" else self.chat_model(name)
 
     def describe_model(self, model_id: str, kind: str = "chat") -> ModelDescriptor:
         for d in self.list_models():
@@ -253,6 +327,7 @@ class LLMProvider(ABC):
             except Exception:
                 pass
             self._client = None
+        self._aclients = weakref.WeakKeyDictionary()     # async clients die with their loops
 
     def describe_config(self) -> Dict[str, Any]:
         sources = dict(self.sources)

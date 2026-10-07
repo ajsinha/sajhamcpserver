@@ -1,0 +1,37 @@
+{
+  "_note": "Recorded-shape Bedrock Converse / ConverseStream payloads (boto3 dicts). Inputs to tests/ai/test_golden_translation.py.",
+  "replies": {
+    "text": {"output": {"message": {"role": "assistant", "content": [{"text": "AAPL closed at 231.40."}]}}, "stopReason": "end_turn",
+             "usage": {"inputTokens": 40, "outputTokens": 10, "totalTokens": 50}, "metrics": {"latencyMs": 512}},
+    "parallel_tool_calls": {"output": {"message": {"role": "assistant", "content": [
+                 {"text": "Looking up both."},
+                 {"toolUse": {"toolUseId": "tooluse_Aq1", "name": "get_quote", "input": {"symbol": "AAPL"}}},
+                 {"toolUse": {"toolUseId": "tooluse_Bq2", "name": "get_quote", "input": {"symbol": "MSFT"}}}]}},
+             "stopReason": "tool_use", "usage": {"inputTokens": 300, "outputTokens": 70, "totalTokens": 370, "cacheReadInputTokens": 128},
+             "metrics": {"latencyMs": 900}},
+    "guardrail": {"output": {"message": {"role": "assistant", "content": [{"text": "Sorry, the model cannot answer this question."}]}},
+             "stopReason": "guardrail_intervened", "usage": {"inputTokens": 30, "outputTokens": 0, "totalTokens": 30}}
+  },
+  "streams": {
+    "tool_fragments": [
+      {"messageStart": {"role": "assistant"}},
+      {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "Looking up "}}},
+      {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "both."}}},
+      {"contentBlockStop": {"contentBlockIndex": 0}},
+      {"contentBlockStart": {"contentBlockIndex": 1, "start": {"toolUse": {"toolUseId": "tooluse_Aq1", "name": "get_quote"}}}},
+      {"contentBlockDelta": {"contentBlockIndex": 1, "delta": {"toolUse": {"input": "{\"symbol\":"}}}},
+      {"contentBlockDelta": {"contentBlockIndex": 1, "delta": {"toolUse": {"input": "\"AAPL\"}"}}}},
+      {"contentBlockStop": {"contentBlockIndex": 1}},
+      {"contentBlockStart": {"contentBlockIndex": 2, "start": {"toolUse": {"toolUseId": "tooluse_Bq2", "name": "get_quote"}}}},
+      {"contentBlockDelta": {"contentBlockIndex": 2, "delta": {"toolUse": {"input": "{\"symbol\":\"MSFT\"}"}}}},
+      {"contentBlockStop": {"contentBlockIndex": 2}},
+      {"messageStop": {"stopReason": "tool_use"}},
+      {"metadata": {"usage": {"inputTokens": 300, "outputTokens": 70, "totalTokens": 370}, "metrics": {"latencyMs": 900}}}
+    ],
+    "guardrail": [
+      {"messageStart": {"role": "assistant"}},
+      {"messageStop": {"stopReason": "guardrail_intervened"}},
+      {"metadata": {"usage": {"inputTokens": 30, "outputTokens": 0, "totalTokens": 30}}}
+    ]
+  }
+}

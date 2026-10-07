@@ -34,8 +34,13 @@ class Embedder(ABC):
 
     @abstractmethod
     def embed(self, texts: List[str]) -> List[List[float]]:
-        """Embed a batch of texts. Returns one vector (list of floats) per input text."""
+        """Embed a batch of texts (documents). Returns one vector (list of floats) per input text."""
         ...
+
+    def embed_query(self, query: str) -> List[List[float]]:
+        """Embed one search query. Vendors with separate query and document inputs (Cohere,
+        Gemini) get the query purpose; others embed it like a document."""
+        return self.embed([query])
 
 
 class GatewayEmbedder(Embedder):
@@ -47,16 +52,19 @@ class GatewayEmbedder(Embedder):
         self.name = f'gateway:{self._model_id}'
         self.dimension = 0
 
-    def embed(self, texts: List[str]) -> List[List[float]]:
+    def embed(self, texts: List[str], purpose: str = 'document') -> List[List[float]]:
         if not texts:
             return []
-        resp = self._gw.embed(list(texts))
+        resp = self._gw.embed(list(texts), purpose=purpose)
         embeddings = getattr(resp, 'embeddings', None) or []
         if getattr(resp, 'dimensions', 0):
             self.dimension = resp.dimensions
         elif embeddings:
             self.dimension = len(embeddings[0])
         return embeddings
+
+    def embed_query(self, query: str) -> List[List[float]]:
+        return self.embed([query], purpose='query')
 
 
 def get_embedder(config, gateway=None) -> Optional[Embedder]:

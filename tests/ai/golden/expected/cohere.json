@@ -1,0 +1,659 @@
+{
+ "replies": {
+  "error": {
+   "error": "model_failed",
+   "message": "cohere finished with ERROR"
+  },
+  "parallel_tool_calls": {
+   "choices": [
+    {
+     "finish_reason": "tool_calls",
+     "index": 0,
+     "message": {
+      "content": "I will look up both quotes.",
+      "role": "assistant",
+      "tool_calls": [
+       {
+        "function": {
+         "arguments": "{\"symbol\":\"AAPL\"}",
+         "name": "get_quote"
+        },
+        "id": "get_quote_8m2",
+        "type": "function"
+       },
+       {
+        "function": {
+         "arguments": "{\"symbol\":\"MSFT\"}",
+         "name": "get_quote"
+        },
+        "id": "get_quote_9k4",
+        "type": "function"
+       }
+      ]
+     }
+    }
+   ],
+   "model": "command-golden",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 40,
+    "prompt_tokens": 900,
+    "total_tokens": 940
+   }
+  },
+  "text": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "message": {
+      "content": "AAPL closed at 231.40.",
+      "role": "assistant"
+     }
+    }
+   ],
+   "model": "command-golden",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 9,
+    "prompt_tokens": 240,
+    "total_tokens": 249
+   }
+  },
+  "timeout": {
+   "error": "model_failed",
+   "message": "cohere finished with TIMEOUT"
+  }
+ },
+ "requests": {
+  "developer_role": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": "Answer in one line.",
+      "role": "system"
+     },
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "command-golden"
+   },
+   "path": "/v2/chat"
+  },
+  "image": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": "What is in this chart?",
+      "role": "user"
+     }
+    ],
+    "model": "command-golden"
+   },
+   "path": "/v2/chat"
+  },
+  "image_http_url": {
+   "error": "unsupported_feature",
+   "message": "cohere/command-golden does not support messages[0] image http(s) URL (passed through to OpenAI-compatible servers only)"
+  },
+  "json_object": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": "AAPL quote as JSON",
+      "role": "user"
+     }
+    ],
+    "model": "command-golden",
+    "response_format": {
+     "type": "json_object"
+    }
+   },
+   "path": "/v2/chat"
+  },
+  "n2": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "command-golden"
+   },
+   "path": "/v2/chat"
+  },
+  "parallel_off": {
+   "error": "unsupported_feature",
+   "message": "cohere/command-golden does not support parallel_tool_calls: false"
+  },
+  "passthrough": {
+   "error": "unsupported_feature",
+   "message": "cohere/command-golden does not support presence_penalty, logprobs (passed through to OpenAI-compatible servers only)"
+  },
+  "plain": {
+   "body": {
+    "max_tokens": 300,
+    "messages": [
+     {
+      "content": "Be brief.",
+      "role": "system"
+     },
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "command-golden",
+    "stop_sequences": [
+     "END"
+    ],
+    "temperature": 0.2
+   },
+   "path": "/v2/chat"
+  },
+  "reasoning": {
+   "error": "unsupported_feature",
+   "message": "cohere/command-golden does not support reasoning_effort"
+  },
+  "sampling": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "command-golden",
+    "p": 0.9,
+    "seed": 7
+   },
+   "path": "/v2/chat"
+  },
+  "structured": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": "AAPL quote as JSON",
+      "role": "user"
+     }
+    ],
+    "model": "command-golden",
+    "response_format": {
+     "json_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "price": {
+        "type": "number"
+       },
+       "symbol": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "symbol",
+       "price"
+      ],
+      "type": "object"
+     },
+     "type": "json_object"
+    }
+   },
+   "path": "/v2/chat"
+  },
+  "tool_named": {
+   "error": "unsupported_feature",
+   "message": "cohere/command-golden does not support a named tool_choice (offer only that tool, with tool_choice \"required\")"
+  },
+  "tool_named_only_tool": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "command-golden",
+    "tool_choice": "REQUIRED",
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/v2/chat"
+  },
+  "tool_none": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "command-golden"
+   },
+   "path": "/v2/chat"
+  },
+  "tool_required": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "command-golden",
+    "tool_choice": "REQUIRED",
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     },
+     {
+      "function": {
+       "description": "FX rate",
+       "name": "get_fx",
+       "parameters": {
+        "properties": {
+         "pair": {
+          "type": "string"
+         }
+        },
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/v2/chat"
+  },
+  "tool_round_trip": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     },
+     {
+      "role": "assistant",
+      "tool_calls": [
+       {
+        "function": {
+         "arguments": "{\"symbol\":\"AAPL\"}",
+         "name": "get_quote"
+        },
+        "id": "call_q1",
+        "type": "function"
+       },
+       {
+        "function": {
+         "arguments": "{\"symbol\":\"MSFT\"}",
+         "name": "get_quote"
+        },
+        "id": "call_q2",
+        "type": "function"
+       }
+      ]
+     },
+     {
+      "content": "{\"price\": 231.4}",
+      "role": "tool",
+      "tool_call_id": "call_q1"
+     },
+     {
+      "content": "ERROR: upstream timeout",
+      "role": "tool",
+      "tool_call_id": "call_q2"
+     }
+    ],
+    "model": "command-golden",
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/v2/chat"
+  },
+  "tools": {
+   "body": {
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "command-golden",
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     },
+     {
+      "function": {
+       "description": "FX rate",
+       "name": "get_fx",
+       "parameters": {
+        "properties": {
+         "pair": {
+          "type": "string"
+         }
+        },
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/v2/chat"
+  }
+ },
+ "stream_request": {
+  "body": {
+   "max_tokens": 4096,
+   "messages": [
+    {
+     "content": "What did AAPL and MSFT close at?",
+     "role": "user"
+    }
+   ],
+   "model": "command-golden",
+   "stream": true,
+   "tools": [
+    {
+     "function": {
+      "description": "Latest price for a ticker",
+      "name": "get_quote",
+      "parameters": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      }
+     },
+     "type": "function"
+    },
+    {
+     "function": {
+      "description": "FX rate",
+      "name": "get_fx",
+      "parameters": {
+       "properties": {
+        "pair": {
+         "type": "string"
+        }
+       },
+       "type": "object"
+      }
+     },
+     "type": "function"
+    }
+   ]
+  },
+  "path": "/v2/chat"
+ },
+ "streams": {
+  "error": {
+   "error": "model_failed",
+   "message": "cohere finished with ERROR"
+  },
+  "tool_fragments": {
+   "chunks": [
+    {
+     "choices": [
+      {
+       "delta": {
+        "content": "I will look up both.",
+        "role": "assistant"
+       },
+       "index": 0
+      }
+     ],
+     "model": "command-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "",
+           "name": "get_quote"
+          },
+          "id": "get_quote_8m2",
+          "index": 0,
+          "type": "function"
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "command-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "{\"symbol\":"
+          },
+          "index": 0
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "command-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "\"AAPL\"}"
+          },
+          "index": 0
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "command-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "{\"symbol\":\"MSFT\"}",
+           "name": "get_quote"
+          },
+          "id": "get_quote_9k4",
+          "index": 1,
+          "type": "function"
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "command-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {},
+       "finish_reason": "tool_calls",
+       "index": 0
+      }
+     ],
+     "model": "command-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [],
+     "model": "command-golden",
+     "object": "chat.completion.chunk",
+     "sajha": {
+      "attempts": [],
+      "cached": false,
+      "cost_usd": 0.0,
+      "ignored": [],
+      "latency_ms": 0,
+      "provider": "",
+      "qualified_model": "",
+      "trace_id": "",
+      "usage_estimated": false
+     },
+     "usage": {
+      "completion_tokens": 40,
+      "prompt_tokens": 900,
+      "total_tokens": 940
+     }
+    }
+   ],
+   "completion": {
+    "choices": [
+     {
+      "finish_reason": "tool_calls",
+      "index": 0,
+      "message": {
+       "content": "I will look up both.",
+       "role": "assistant",
+       "tool_calls": [
+        {
+         "function": {
+          "arguments": "{\"symbol\":\"AAPL\"}",
+          "name": "get_quote"
+         },
+         "id": "get_quote_8m2",
+         "type": "function"
+        },
+        {
+         "function": {
+          "arguments": "{\"symbol\":\"MSFT\"}",
+          "name": "get_quote"
+         },
+         "id": "get_quote_9k4",
+         "type": "function"
+        }
+       ]
+      }
+     }
+    ],
+    "model": "command-golden",
+    "object": "chat.completion",
+    "sajha": {
+     "attempts": [],
+     "cached": false,
+     "cost_usd": 0.0,
+     "ignored": [],
+     "latency_ms": 0,
+     "provider": "",
+     "qualified_model": "",
+     "trace_id": "",
+     "usage_estimated": false
+    },
+    "usage": {
+     "completion_tokens": 40,
+     "prompt_tokens": 900,
+     "total_tokens": 940
+    }
+   }
+  }
+ }
+}

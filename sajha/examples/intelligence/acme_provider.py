@@ -6,8 +6,11 @@ The worked example of docs/architecture/Extending the Intelligence Layer.md (sec
 tests/ai/test_extension_examples.py runs it through the provider contract suite and through
 IntelligenceService.ask, against the fake in acme_fake_server.py.
 
-Acme's wire API is invented for the example and deliberately unlike any vendor's, so every
-mapping a provider does is visible:
+The model is written against the canonical format (OpenAI Chat Completions, typed in
+sajha/ai/llm/canonical.py): three pure functions translate a ChatCompletionRequest to Acme's
+body, Acme's reply to a ChatCompletion and Acme's stream events to chunks; HTTPChatModel
+supplies the I/O, sync and native async. Acme's wire API is invented for the example and
+deliberately unlike any vendor's, so every mapping a provider does is visible:
 
   POST /v1/generate  {"model", "system", "turns", "functions", "function_mode", "json_schema",
                       "temperature", "max_new_tokens", "stop", "safety", "stream"}
@@ -26,17 +29,17 @@ mapping a provider does is visible:
 
 from __future__ import annotations
 
-import time
-from typing import Any, ClassVar, Dict, Iterator, List, Literal, Optional
+from typing import Any, ClassVar, Dict, List, Literal, Optional
 
 import httpx
 
-from sajha.ai.llm import (AuthenticationFailed, ChatModel, ContentFiltered, ContextTooLong, EmbeddingModel,
-                          HealthStatus, LLMError, LLMProvider, ModelCapabilities, ModelDescriptor, ProviderConfig,
+from sajha.ai.llm import (AuthenticationFailed, ContentFiltered, ContextTooLong, EmbeddingModel, HealthStatus,
+                          LLMError, LLMProvider, ModelCapabilities, ModelDescriptor, ProviderConfig,
                           ProviderUnavailable, RateLimited, register_provider)
-from sajha.ai.llm.http import get_json, iter_sse, post_json, safe_json_loads, stream_post
-from sajha.ai.llm.types import (ChatRequest, ChatResponse, Done, Message, TextDelta, TextPart, ToolCallDelta,
-                                ToolCallPart, Usage, UsageEvent)
+from sajha.ai.llm.adapter import HTTPChatModel, StreamTranslator, WireCall, system_text
+from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionChunk, ChatCompletionRequest, ChatMessage, Choice,
+                                    CompletionUsage, ToolCall)
+from sajha.ai.llm.http import get_json, post_json, safe_json_loads
 
 
 # ── 1. Settings: one pydantic field per setting ─────────────────────────────
@@ -72,119 +75,113 @@ def fault_error(fault: Dict[str, Any], provider: str, model: str = "", status: O
     return cls(msg, provider=provider, model=model, status=status)
 
 
-# ── 3. The chat model: SAJHA's neutral request <-> Acme's wire format ───────
+# ── 3. The chat model: the canonical Chat Completions format <-> Acme's wire format ──
 
 FINISH = {"done": "stop", "call": "tool_calls", "max_tokens": "length", "blocked": "content_filter"}
 
 
-class AcmeChatModel(ChatModel):
+def to_acme_body(request: ChatCompletionRequest, *, model: str, safety: str, max_tokens: int,
+                 temperature: Optional[float], stream: bool) -> Dict[str, Any]:
+    """Pure translation (golden-testable): canonical request -> Acme's /v1/generate body."""
+    turns: List[Dict[str, Any]] = []
+    for m in request.messages:
+        if m.role in ("system", "developer"):
+            continue                                       # joined into "system" below
+        if m.role == "user":
+            turns.append({"speaker": "user", "text": m.text})
+        elif m.role == "assistant":
+            turns.append({"speaker": "assistant", "text": m.text or m.refusal or "",
+                          "calls": [{"call_id": c.id, "function": c.function.name, "args": c.function.args()}
+                                    for c in m.tool_calls or []]})
+        elif m.role == "tool":                             # one turn per tool result
+            turns.append({"speaker": "tool", "call_id": m.tool_call_id, "result": m.text, "error": m.is_error})
+    body: Dict[str, Any] = {"model": model, "system": system_text(request), "turns": turns,
+                            "max_new_tokens": max_tokens, "safety": safety, "stream": stream}
+    if temperature is not None:                            # None when the model takes no temperature
+        body["temperature"] = temperature
+    if request.stop_list:
+        body["stop"] = request.stop_list
+    if request.wants_tools:
+        body["functions"] = [{"name": t.name, "doc": (t.function.description or "") if t.function else "",
+                              "params": t.parameters_or_default} for t in request.tools or []]
+        mode = request.tool_choice_mode                   # prepare() already refused what the model cannot force
+        body["function_mode"] = {"required": "any", "named": request.tool_choice_name}.get(mode, "auto")
+    if request.output_kind == "json_schema":
+        body["json_schema"] = request.output_schema
+    return body
 
-    def payload(self, request: ChatRequest, stream: bool = False) -> Dict[str, Any]:
-        system = [request.system] if request.system else []
-        turns: List[Dict[str, Any]] = []
-        for m in request.messages:
-            if m.role == "system":
-                system.append(m.text)
-            elif m.role == "user":
-                turns.append({"speaker": "user", "text": m.text})
-            elif m.role == "assistant":
-                turns.append({"speaker": "assistant", "text": m.text,
-                              "calls": [{"call_id": c.id, "function": c.name, "args": c.arguments}
-                                        for c in m.tool_calls]})
-            for r in m.tool_results:                       # role "tool": one turn per result
-                turns.append({"speaker": "tool", "call_id": r.call_id, "result": r.content_text(),
-                              "error": r.is_error})
-        body: Dict[str, Any] = {"model": self.id, "system": "\n\n".join(s for s in system if s),
-                                "turns": turns, "max_new_tokens": self.effective_max_tokens(request),
-                                "safety": self.provider.config.safety, "stream": stream}
-        t = self.effective_temperature(request)            # None when the model takes no temperature
-        if t is not None:
-            body["temperature"] = t
-        if request.stop:
-            body["stop"] = list(request.stop)
-        if request.tools and request.tool_choice != "none":
-            body["functions"] = [{"name": s.name, "doc": s.description,
-                                  "params": s.input_schema or {"type": "object", "properties": {}}}
-                                 for s in request.tools]
-            body["function_mode"] = self._function_mode(request.tool_choice)
-        if request.response_schema:
-            body["json_schema"] = request.response_schema
-        return body
 
-    def _function_mode(self, tool_choice: str) -> str:
-        if tool_choice == "auto" or not self.capabilities.forced_tool_choice:
-            return "auto"                                  # cannot force: degrade to auto
-        if tool_choice == "required":
-            return "any"
-        return tool_choice                                 # a tool name
+def from_acme_output(output: Dict[str, Any], stop: str) -> tuple:
+    """Acme's output -> (assistant ChatMessage, finish_reason)."""
+    calls = [ToolCall.of(c.get("call_id") or "", c.get("function") or "", c.get("args") or {})
+             for c in output.get("calls") or []]
+    msg = ChatMessage(role="assistant", content=output.get("text") or None, tool_calls=calls or None)
+    finish = "tool_calls" if calls else FINISH.get(stop or "done", "stop")
+    if finish == "content_filter":                         # a refusal: say so, never an empty answer
+        msg.refusal, msg.content = output.get("text") or "Blocked by Acme's content policy.", None
+    return msg, finish
 
-    def _message(self, output: Dict[str, Any]) -> Message:
-        parts: List[Any] = [TextPart(output["text"])] if output.get("text") else []
-        for c in output.get("calls") or []:
-            parts.append(ToolCallPart(c.get("call_id") or "", c.get("function") or "", c.get("args") or {}))
-        return Message("assistant", parts)
 
-    def _usage(self, tokens: Dict[str, Any]) -> Usage:
-        return self.make_usage(tokens.get("in") or 0, tokens.get("out") or 0, tokens.get("cached") or 0)
+def acme_usage(tokens: Dict[str, Any]) -> CompletionUsage:
+    return CompletionUsage.of(tokens.get("in") or 0, tokens.get("out") or 0, tokens.get("cached"))
 
-    def generate(self, request: ChatRequest) -> ChatResponse:
-        self.validate(request)                             # UnsupportedFeature -> the gateway's next candidate
-        t0 = time.time()
-        with self.provider.slot():                         # max_concurrency
-            data = post_json(self.provider.http, "/v1/generate", self.payload(request),
-                             provider=self.provider.name, model=self.id, classify=self.provider.classify)
-        msg = self._message(data.get("output") or {})
-        finish = "tool_calls" if msg.tool_calls else FINISH.get(data.get("stop") or "done", "stop")
-        return ChatResponse(msg, finish, self._usage(data.get("tokens") or {}), data.get("model") or self.id,
-                            self.provider.name, int((time.time() - t0) * 1000), raw=data)
 
-    def stream(self, request: ChatRequest) -> Iterator:
-        if not self.capabilities.streaming:
-            yield from super().stream(request)             # one Done event
-            return
-        self.validate(request)
-        t0 = time.time()
-        text: List[str] = []
-        calls: Dict[int, Dict[str, str]] = {}
-        end: Dict[str, Any] = {}
-        with self.provider.slot():
-            with stream_post(self.provider.http, "/v1/generate", self.payload(request, stream=True),
-                             provider=self.provider.name, model=self.id, classify=self.provider.classify) as resp:
-                for event, data in iter_sse(resp):
-                    ev = safe_json_loads(data)
-                    if event == "text":
-                        text.append(ev.get("delta") or "")
-                        yield TextDelta(ev.get("delta") or "")
-                    elif event == "call":
-                        i = int(ev.get("index") or 0)
-                        slot = calls.setdefault(i, {"call_id": "", "function": "", "args": ""})
-                        slot["call_id"] = slot["call_id"] or ev.get("call_id") or ""
-                        slot["function"] = slot["function"] or ev.get("function") or ""
-                        slot["args"] += ev.get("args_fragment") or ""
-                        yield ToolCallDelta(slot["call_id"], ev.get("function") or "", ev.get("args_fragment") or "", i)
-                    elif event == "fault":                 # an error after the stream started
-                        raise (fault_error(ev, self.provider.name, self.id)
-                               or ProviderUnavailable(f"acme: {ev}", provider=self.provider.name, model=self.id))
-                    elif event == "end":
-                        end = ev
-        parts: List[Any] = [TextPart("".join(text))] if text else []
-        parts += [ToolCallPart(c["call_id"], c["function"], safe_json_loads(c["args"]))
-                  for _, c in sorted(calls.items())]
-        msg = Message("assistant", parts)
-        usage = self._usage(end.get("tokens") or {})
-        finish = "tool_calls" if msg.tool_calls else FINISH.get(end.get("stop") or "done", "stop")
-        yield UsageEvent(usage)                            # usage, then Done, always last
-        yield Done(ChatResponse(msg, finish, usage, self.id, self.provider.name, int((time.time() - t0) * 1000)))
+class AcmeStreamTranslator(StreamTranslator):
+    """Acme's SSE events -> chat.completion.chunk objects (close() adds the finish and usage chunks)."""
+
+    def feed(self, event: str, data: Any) -> List[ChatCompletionChunk]:
+        ev = safe_json_loads(data)
+        if event == "text":
+            return self.text(ev.get("delta") or "")
+        if event == "call":
+            i = int(ev.get("index") or 0)
+            if i not in self._calls:
+                return self.tool_start(i, ev.get("call_id") or "", ev.get("function") or "",
+                                       ev.get("args_fragment") or "")
+            return self.tool_args(i, ev.get("args_fragment") or "")
+        if event == "fault":                               # an error after the stream started
+            raise (fault_error(ev, self.model.provider.name, self.model.id)
+                   or ProviderUnavailable(f"acme: {ev}", provider=self.model.provider.name, model=self.model.id))
+        if event == "end":
+            self.finish = FINISH.get(ev.get("stop") or "done", "stop")
+            if self.finish == "content_filter":
+                self.refusal = "Blocked by Acme's content policy."
+            self.usage = acme_usage(ev.get("tokens") or {})
+        return []
+
+
+class AcmeChatModel(HTTPChatModel):
+    """wire / parse / translator; HTTPChatModel does the I/O (sync, native async, streaming)."""
+
+    def wire(self, request: ChatCompletionRequest, stream: bool) -> WireCall:
+        return WireCall("/v1/generate", to_acme_body(request, model=self.id, safety=self.provider.config.safety,
+                                                     max_tokens=self.effective_max_tokens(request),
+                                                     temperature=self.effective_temperature(request),
+                                                     stream=stream))
+
+    def parse(self, data: Dict[str, Any], request: ChatCompletionRequest) -> ChatCompletion:
+        msg, finish = from_acme_output(data.get("output") or {}, data.get("stop") or "done")
+        return ChatCompletion(model=data.get("model") or self.id, choices=[Choice(message=msg, finish_reason=finish)],
+                              usage=acme_usage(data.get("tokens") or {}))
+
+    def translator(self, request: ChatCompletionRequest) -> StreamTranslator:
+        return AcmeStreamTranslator(self, request)
+
+    def classify(self, resp: httpx.Response) -> Optional[LLMError]:
+        return self.provider.classify(resp)
 
 
 # ── 4. The embedding model ──────────────────────────────────────────────────
 
 class AcmeEmbeddingModel(EmbeddingModel):
-    def embed(self, texts: List[str]) -> List[List[float]]:
+    def _embed(self, texts: List[str], purpose: Optional[str] = None, dimensions: Optional[int] = None):
+        # Acme has no query/document distinction and a fixed size (variable_dimensions is false,
+        # so embeddings_create refuses a "dimensions" request before this is called)
         with self.provider.slot():
             data = post_json(self.provider.http, "/v1/embed", {"model": self.id, "inputs": list(texts)},
                              provider=self.provider.name, model=self.id, classify=self.provider.classify)
-        return data.get("vectors") or []
+        tokens = (data.get("tokens") or {}).get("in")
+        return (data.get("vectors") or [], int(tokens)) if tokens is not None else (data.get("vectors") or [])
 
 
 # ── 5. The provider: credentials, client, catalogue, health ─────────────────

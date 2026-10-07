@@ -7,7 +7,8 @@ What is indexed (``ai.rag``):
 * ``sajha_docs``: SAJHA's own guides (every guide the help pages serve: docs/** without the
   archive and READMEs), each passage citing ``/help/guides/<name>#<section>``;
 * each ``ai.rag.sources`` entry: the files matching ``pattern`` under ``path`` in the storage
-  backend (local | s3 | azure | gcs);
+  backend (local | s3 | azure | gcs): text (md, txt, rst, html) and, when the optional
+  readers are installed, PDF (``pypdf``) and Word ``.docx`` (``python-docx``), see extract.py;
 * ``uploads``: files an admin uploads (``POST /api/ai/docs/uploads``), kept under
   ``ai.rag.uploads_dir`` in the storage backend.
 
@@ -16,7 +17,8 @@ Documents are split into passages (chunking.py), embedded through the gateway's
 and kept in a vector store (stores.py): pgvector when PostgreSQL has it, else in process.
 A search fuses the vector ranking with a BM25 ranking of the same passages (reciprocal rank
 fusion), so it works with no embedder at all (``embedding_model: none``). The index syncs by
-content hash: only changed documents are re-embedded.
+content hash: only changed documents are re-embedded. A PDF or Word file is hashed on its
+bytes, so an unchanged file is skipped before its text is even extracted.
 """
 
 from __future__ import annotations
@@ -31,7 +33,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from sajha.ai.lexical import BM25Index
 from sajha.ai.llm.settings import RagSettings
-from sajha.ai.rag.chunking import TEXT_TYPES, chunk_document, title_of
+from sajha.ai.rag import extract
+from sajha.ai.rag.chunking import SUPPORTED_TYPES, chunk_document, title_of
 from sajha.ai.rag.stores import (InProcessVectorStore, PgVectorStore, StoredChunk, VectorStore, normalize,
                                  pgvector_available)
 
@@ -51,8 +54,8 @@ def _storage():
 def safe_upload_name(name: str) -> str:
     base = posixpath.basename((name or "").replace("\\", "/")).strip()
     base = _SAFE_NAME.sub("_", base).strip(" .")
-    if not base or not base.lower().endswith(TEXT_TYPES):
-        raise ValueError(f"unsupported file {name!r}: upload one of {', '.join(TEXT_TYPES)}")
+    if not base or not base.lower().endswith(SUPPORTED_TYPES):
+        raise ValueError(f"unsupported file {name!r}: upload one of {', '.join(SUPPORTED_TYPES)}")
     return base[:150]
 
 
@@ -109,8 +112,27 @@ class DocIndex:
         return out
 
     # ── documents ───────────────────────────────────────────────
+    def _file(self, source: str, rel: str) -> Dict[str, Any]:
+        """A document from storage. Text is read now; a PDF or Word file is hashed on its bytes
+        and its text extracted only when the hash says it changed (``text`` None until then)."""
+        st = _storage()
+        if extract.is_document(rel):
+            data = st.read_bytes(rel)
+            h = self._bytes_hash(data)
+            return {"source": source, "document": rel, "title": "", "url": "", "text": None, "hash": h}
+        text = st.read_text(rel)
+        return {"source": source, "document": rel, "title": title_of(rel, text), "url": "", "text": text}
+
+    def _load(self, d: Dict[str, Any]) -> None:
+        """Fill in a document's text (PDF, Word): raises ExtractorMissing or ValueError."""
+        if d.get("text") is not None:
+            return
+        text, title = extract.extract_text(d["document"], _storage().read_bytes(d["document"]))
+        d["text"] = text
+        d["title"] = title or title_of(d["document"], text if d["document"].lower().endswith(".docx") else "")
+
     def discover(self) -> List[Dict[str, Any]]:
-        """Every document to index: {source, document, title, url, text}."""
+        """Every document to index: {source, document, title, url, text[, hash]}."""
         st = _storage()
         docs: List[Dict[str, Any]] = []
         if self.settings.index_sajha_docs:
@@ -130,33 +152,33 @@ class DocIndex:
                 logger.warning(f"rag: source {src.name}: cannot list {src.path}: {e}")
                 continue
             for rel in files:
-                if not rel.lower().endswith(TEXT_TYPES):
+                if not rel.lower().endswith(SUPPORTED_TYPES):
                     continue
                 try:
-                    text = st.read_text(rel)
+                    docs.append(self._file(src.name, rel))
                 except Exception as e:
                     logger.warning(f"rag: source {src.name}: cannot read {rel}: {e}")
-                    continue
-                docs.append({"source": src.name, "document": rel, "title": title_of(rel, text),
-                             "url": "", "text": text})
         for rel in self.uploads():
             try:
-                text = st.read_text(rel)
+                docs.append(self._file(UPLOADS, rel))
             except Exception:
                 continue
-            docs.append({"source": UPLOADS, "document": rel, "title": title_of(rel, text), "url": "", "text": text})
         return docs
 
     def uploads(self) -> List[str]:
         d = self.settings.uploads_dir.rstrip("/")
         try:
-            return [r for r in _storage().list_files(d, "*") if r.lower().endswith(TEXT_TYPES)]
+            return [r for r in _storage().list_files(d, "*") if r.lower().endswith(SUPPORTED_TYPES)]
         except Exception:
             return []
 
     def _doc_hash(self, text: str) -> str:
         s = self.settings
         return hashlib.sha256(f"{s.chunk_chars}\x00{s.chunk_overlap}\x00{text}".encode("utf-8")).hexdigest()
+
+    def _bytes_hash(self, data: bytes) -> str:
+        s = self.settings
+        return hashlib.sha256(f"{s.chunk_chars}\x00{s.chunk_overlap}\x00bin\x00".encode() + data).hexdigest()
 
     # ── building ────────────────────────────────────────────────
     def build(self, force: bool = False) -> Dict[str, Any]:
@@ -180,11 +202,12 @@ class DocIndex:
             for d in docs:
                 key = (d["source"], d["document"])
                 seen.add(key)
-                h = self._doc_hash(d["text"])
+                h = d.get("hash") or self._doc_hash(d["text"])
                 if have.get(key) == h:
                     stats["unchanged"] += 1
                     continue
                 try:
+                    self._load(d)
                     n = self._index_document(d, h, embedder)
                     stats["indexed"] += 1
                     stats["chunks"] += n
@@ -295,14 +318,25 @@ class DocIndex:
         name = safe_upload_name(filename)
         if len(data) > self.settings.max_upload_bytes:
             raise ValueError(f"file is larger than ai.rag.max_upload_bytes ({self.settings.max_upload_bytes})")
-        try:
-            text = data.decode("utf-8")
-        except UnicodeDecodeError:
-            raise ValueError("file is not UTF-8 text")
         rel = f"{self.settings.uploads_dir.rstrip('/')}/{name}"
-        _storage().write_text(rel, text)
-        d = {"source": UPLOADS, "document": rel, "title": title_of(rel, text), "url": "", "text": text}
-        n = self._index_document(d, self._doc_hash(text), self.store.embedder() or self.embedder_name())
+        if extract.is_document(name):         # PDF / Word: read it before keeping it
+            try:
+                text, title = extract.extract_text(name, data)
+            except extract.ExtractorMissing as e:
+                raise ValueError(str(e))
+            _storage().write_bytes(rel, data)
+            d = {"source": UPLOADS, "document": rel, "url": "", "text": text,
+                 "title": title or title_of(rel, text if name.lower().endswith(".docx") else "")}
+            h = self._bytes_hash(data)
+        else:
+            try:
+                text = data.decode("utf-8")
+            except UnicodeDecodeError:
+                raise ValueError("file is not UTF-8 text")
+            _storage().write_text(rel, text)
+            d = {"source": UPLOADS, "document": rel, "title": title_of(rel, text), "url": "", "text": text}
+            h = self._doc_hash(text)
+        n = self._index_document(d, h, self.store.embedder() or self.embedder_name())
         self.store.save()
         self._bm25_stale = True
         return {"document": rel, "title": d["title"], "chunks": n}
@@ -324,6 +358,7 @@ class DocIndex:
         out.update(embedder=self.store.embedder() or "none (BM25 only)", built=self._built.is_set(),
                    building=self._building, last_build=self.last_build, uploads=self.uploads(),
                    configured_sources=[s.model_dump() for s in self.settings.sources],
+                   document_readers=extract.available(),
                    index_sajha_docs=self.settings.index_sajha_docs)
         return out
 

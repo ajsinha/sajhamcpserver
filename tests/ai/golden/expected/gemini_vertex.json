@@ -1,0 +1,593 @@
+{
+ "requests": {
+  "developer_role": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    },
+    "systemInstruction": {
+     "parts": [
+      {
+       "text": "Answer in one line."
+      }
+     ]
+    }
+   },
+   "path": "/v1/projects/acme-prj/locations/europe-west4/publishers/google/models/gemini-golden:generateContent"
+  },
+  "image": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What is in this chart?"
+       },
+       {
+        "inlineData": {
+         "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+         "mimeType": "image/png"
+        }
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    }
+   },
+   "path": "/v1/projects/acme-prj/locations/europe-west4/publishers/google/models/gemini-golden:generateContent"
+  },
+  "image_http_url": {
+   "error": "unsupported_feature",
+   "message": "gemini_vertex/gemini-golden does not support messages[0] image http(s) URL (passed through to OpenAI-compatible servers only)"
+  },
+  "json_object": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "AAPL quote as JSON"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096,
+     "responseMimeType": "application/json"
+    }
+   },
+   "path": "/v1/projects/acme-prj/locations/europe-west4/publishers/google/models/gemini-golden:generateContent"
+  },
+  "n2": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "candidateCount": 2,
+     "maxOutputTokens": 4096
+    }
+   },
+   "path": "/v1/projects/acme-prj/locations/europe-west4/publishers/google/models/gemini-golden:generateContent"
+  },
+  "parallel_off": {
+   "error": "unsupported_feature",
+   "message": "gemini_vertex/gemini-golden does not support parallel_tool_calls: false"
+  },
+  "passthrough": {
+   "error": "unsupported_feature",
+   "message": "gemini_vertex/gemini-golden does not support presence_penalty, logprobs (passed through to OpenAI-compatible servers only)"
+  },
+  "plain": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 300,
+     "stopSequences": [
+      "END"
+     ],
+     "temperature": 0.2
+    },
+    "systemInstruction": {
+     "parts": [
+      {
+       "text": "Be brief."
+      }
+     ]
+    }
+   },
+   "path": "/v1/projects/acme-prj/locations/europe-west4/publishers/google/models/gemini-golden:generateContent"
+  },
+  "reasoning": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096,
+     "thinkingConfig": {
+      "thinkingLevel": "low"
+     }
+    }
+   },
+   "path": "/v1/projects/acme-prj/locations/europe-west4/publishers/google/models/gemini-golden:generateContent"
+  },
+  "sampling": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096,
+     "seed": 7,
+     "topP": 0.9
+    }
+   },
+   "path": "/v1/projects/acme-prj/locations/europe-west4/publishers/google/models/gemini-golden:generateContent"
+  },
+  "structured": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "AAPL quote as JSON"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096,
+     "responseJsonSchema": {
+      "additionalProperties": false,
+      "properties": {
+       "price": {
+        "type": "number"
+       },
+       "symbol": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "symbol",
+       "price"
+      ],
+      "type": "object"
+     },
+     "responseMimeType": "application/json"
+    }
+   },
+   "path": "/v1/projects/acme-prj/locations/europe-west4/publishers/google/models/gemini-golden:generateContent"
+  },
+  "tool_named": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    },
+    "toolConfig": {
+     "functionCallingConfig": {
+      "allowedFunctionNames": [
+       "get_quote"
+      ],
+      "mode": "ANY"
+     }
+    },
+    "tools": [
+     {
+      "functionDeclarations": [
+       {
+        "description": "Latest price for a ticker",
+        "name": "get_quote",
+        "parametersJsonSchema": {
+         "properties": {
+          "symbol": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "symbol"
+         ],
+         "type": "object"
+        }
+       },
+       {
+        "description": "FX rate",
+        "name": "get_fx",
+        "parametersJsonSchema": {
+         "properties": {
+          "pair": {
+           "type": "string"
+          }
+         },
+         "type": "object"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "path": "/v1/projects/acme-prj/locations/europe-west4/publishers/google/models/gemini-golden:generateContent"
+  },
+  "tool_named_only_tool": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    },
+    "toolConfig": {
+     "functionCallingConfig": {
+      "allowedFunctionNames": [
+       "get_quote"
+      ],
+      "mode": "ANY"
+     }
+    },
+    "tools": [
+     {
+      "functionDeclarations": [
+       {
+        "description": "Latest price for a ticker",
+        "name": "get_quote",
+        "parametersJsonSchema": {
+         "properties": {
+          "symbol": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "symbol"
+         ],
+         "type": "object"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "path": "/v1/projects/acme-prj/locations/europe-west4/publishers/google/models/gemini-golden:generateContent"
+  },
+  "tool_none": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    }
+   },
+   "path": "/v1/projects/acme-prj/locations/europe-west4/publishers/google/models/gemini-golden:generateContent"
+  },
+  "tool_required": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    },
+    "toolConfig": {
+     "functionCallingConfig": {
+      "mode": "ANY"
+     }
+    },
+    "tools": [
+     {
+      "functionDeclarations": [
+       {
+        "description": "Latest price for a ticker",
+        "name": "get_quote",
+        "parametersJsonSchema": {
+         "properties": {
+          "symbol": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "symbol"
+         ],
+         "type": "object"
+        }
+       },
+       {
+        "description": "FX rate",
+        "name": "get_fx",
+        "parametersJsonSchema": {
+         "properties": {
+          "pair": {
+           "type": "string"
+          }
+         },
+         "type": "object"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "path": "/v1/projects/acme-prj/locations/europe-west4/publishers/google/models/gemini-golden:generateContent"
+  },
+  "tool_round_trip": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "parts": [
+       {
+        "functionCall": {
+         "args": {
+          "symbol": "AAPL"
+         },
+         "id": "call_q1",
+         "name": "get_quote"
+        }
+       },
+       {
+        "functionCall": {
+         "args": {
+          "symbol": "MSFT"
+         },
+         "id": "call_q2",
+         "name": "get_quote"
+        }
+       }
+      ],
+      "role": "model"
+     },
+     {
+      "parts": [
+       {
+        "functionResponse": {
+         "id": "call_q1",
+         "name": "get_quote",
+         "response": {
+          "price": 231.4
+         }
+        }
+       },
+       {
+        "functionResponse": {
+         "id": "call_q2",
+         "name": "get_quote",
+         "response": {
+          "error": "upstream timeout"
+         }
+        }
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    },
+    "toolConfig": {
+     "functionCallingConfig": {
+      "mode": "AUTO"
+     }
+    },
+    "tools": [
+     {
+      "functionDeclarations": [
+       {
+        "description": "Latest price for a ticker",
+        "name": "get_quote",
+        "parametersJsonSchema": {
+         "properties": {
+          "symbol": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "symbol"
+         ],
+         "type": "object"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "path": "/v1/projects/acme-prj/locations/europe-west4/publishers/google/models/gemini-golden:generateContent"
+  },
+  "tools": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    },
+    "toolConfig": {
+     "functionCallingConfig": {
+      "mode": "AUTO"
+     }
+    },
+    "tools": [
+     {
+      "functionDeclarations": [
+       {
+        "description": "Latest price for a ticker",
+        "name": "get_quote",
+        "parametersJsonSchema": {
+         "properties": {
+          "symbol": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "symbol"
+         ],
+         "type": "object"
+        }
+       },
+       {
+        "description": "FX rate",
+        "name": "get_fx",
+        "parametersJsonSchema": {
+         "properties": {
+          "pair": {
+           "type": "string"
+          }
+         },
+         "type": "object"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "path": "/v1/projects/acme-prj/locations/europe-west4/publishers/google/models/gemini-golden:generateContent"
+  }
+ },
+ "stream_request": {
+  "body": {
+   "contents": [
+    {
+     "parts": [
+      {
+       "text": "What did AAPL and MSFT close at?"
+      }
+     ],
+     "role": "user"
+    }
+   ],
+   "generationConfig": {
+    "maxOutputTokens": 4096
+   },
+   "toolConfig": {
+    "functionCallingConfig": {
+     "mode": "AUTO"
+    }
+   },
+   "tools": [
+    {
+     "functionDeclarations": [
+      {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parametersJsonSchema": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      {
+       "description": "FX rate",
+       "name": "get_fx",
+       "parametersJsonSchema": {
+        "properties": {
+         "pair": {
+          "type": "string"
+         }
+        },
+        "type": "object"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  "params": {
+   "alt": "sse"
+  },
+  "path": "/v1/projects/acme-prj/locations/europe-west4/publishers/google/models/gemini-golden:streamGenerateContent"
+ }
+}

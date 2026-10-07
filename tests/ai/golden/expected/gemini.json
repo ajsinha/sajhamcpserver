@@ -1,0 +1,1178 @@
+{
+ "replies": {
+  "malformed_function_call": {
+   "error": "model_failed",
+   "message": "gemini finished with MALFORMED_FUNCTION_CALL"
+  },
+  "parallel_tool_calls": {
+   "choices": [
+    {
+     "finish_reason": "tool_calls",
+     "index": 0,
+     "message": {
+      "role": "assistant",
+      "sajha": {
+       "is_error": false,
+       "provider": "gemini",
+       "provider_state": {
+        "gemini_parts": [
+         {
+          "functionCall": {
+           "args": {
+            "symbol": "AAPL"
+           },
+           "name": "get_quote"
+          },
+          "thoughtSignature": "CiQBVKhc"
+         },
+         {
+          "functionCall": {
+           "args": {
+            "symbol": "MSFT"
+           },
+           "name": "get_quote"
+          }
+         }
+        ]
+       },
+       "structured": false,
+       "system_field": false,
+       "tool_name": ""
+      },
+      "tool_calls": [
+       {
+        "function": {
+         "arguments": "{\"symbol\": \"AAPL\"}",
+         "name": "get_quote"
+        },
+        "id": "gcall_0_get_quote",
+        "type": "function"
+       },
+       {
+        "function": {
+         "arguments": "{\"symbol\": \"MSFT\"}",
+         "name": "get_quote"
+        },
+        "id": "gcall_1_get_quote",
+        "type": "function"
+       }
+      ]
+     }
+    }
+   ],
+   "model": "gemini-golden-001",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 94,
+    "completion_tokens_details": {
+     "reasoning_tokens": 64
+    },
+    "prompt_tokens": 110,
+    "prompt_tokens_details": {
+     "cached_tokens": 50
+    },
+    "total_tokens": 204
+   }
+  },
+  "prompt_blocked": {
+   "error": "content_filtered",
+   "message": "gemini blocked the prompt: PROHIBITED_CONTENT"
+  },
+  "safety": {
+   "choices": [
+    {
+     "finish_reason": "content_filter",
+     "index": 0,
+     "message": {
+      "refusal": "Blocked by the Gemini safety filter (finishReason: SAFETY).",
+      "role": "assistant",
+      "sajha": {
+       "is_error": false,
+       "provider": "gemini",
+       "provider_state": {
+        "gemini_parts": []
+       },
+       "structured": false,
+       "system_field": false,
+       "tool_name": ""
+      }
+     }
+    }
+   ],
+   "model": "gemini-golden-001",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 0,
+    "prompt_tokens": 20,
+    "total_tokens": 20
+   }
+  },
+  "text": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "message": {
+      "content": "AAPL closed at 231.40.",
+      "role": "assistant",
+      "sajha": {
+       "is_error": false,
+       "provider": "gemini",
+       "provider_state": {
+        "gemini_parts": [
+         {
+          "text": "AAPL closed at 231.40."
+         }
+        ]
+       },
+       "structured": false,
+       "system_field": false,
+       "tool_name": ""
+      }
+     }
+    }
+   ],
+   "model": "gemini-golden-001",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 9,
+    "prompt_tokens": 36,
+    "total_tokens": 45
+   }
+  },
+  "two_candidates": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "message": {
+      "content": "Up.",
+      "role": "assistant",
+      "sajha": {
+       "is_error": false,
+       "provider": "gemini",
+       "provider_state": {
+        "gemini_parts": [
+         {
+          "text": "Up."
+         }
+        ]
+       },
+       "structured": false,
+       "system_field": false,
+       "tool_name": ""
+      }
+     }
+    },
+    {
+     "finish_reason": "stop",
+     "index": 1,
+     "message": {
+      "content": "Higher.",
+      "role": "assistant",
+      "sajha": {
+       "is_error": false,
+       "provider": "gemini",
+       "provider_state": {
+        "gemini_parts": [
+         {
+          "text": "Higher."
+         }
+        ]
+       },
+       "structured": false,
+       "system_field": false,
+       "tool_name": ""
+      }
+     }
+    }
+   ],
+   "model": "gemini-golden",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 4,
+    "prompt_tokens": 12,
+    "total_tokens": 16
+   }
+  }
+ },
+ "requests": {
+  "developer_role": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    },
+    "systemInstruction": {
+     "parts": [
+      {
+       "text": "Answer in one line."
+      }
+     ]
+    }
+   },
+   "path": "/v1beta/models/gemini-golden:generateContent"
+  },
+  "image": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What is in this chart?"
+       },
+       {
+        "inlineData": {
+         "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+         "mimeType": "image/png"
+        }
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    }
+   },
+   "path": "/v1beta/models/gemini-golden:generateContent"
+  },
+  "image_http_url": {
+   "error": "unsupported_feature",
+   "message": "gemini/gemini-golden does not support messages[0] image http(s) URL (passed through to OpenAI-compatible servers only)"
+  },
+  "json_object": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "AAPL quote as JSON"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096,
+     "responseMimeType": "application/json"
+    }
+   },
+   "path": "/v1beta/models/gemini-golden:generateContent"
+  },
+  "n2": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "candidateCount": 2,
+     "maxOutputTokens": 4096
+    }
+   },
+   "path": "/v1beta/models/gemini-golden:generateContent"
+  },
+  "parallel_off": {
+   "error": "unsupported_feature",
+   "message": "gemini/gemini-golden does not support parallel_tool_calls: false"
+  },
+  "passthrough": {
+   "error": "unsupported_feature",
+   "message": "gemini/gemini-golden does not support presence_penalty, logprobs (passed through to OpenAI-compatible servers only)"
+  },
+  "plain": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 300,
+     "stopSequences": [
+      "END"
+     ],
+     "temperature": 0.2
+    },
+    "systemInstruction": {
+     "parts": [
+      {
+       "text": "Be brief."
+      }
+     ]
+    }
+   },
+   "path": "/v1beta/models/gemini-golden:generateContent"
+  },
+  "reasoning": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096,
+     "thinkingConfig": {
+      "thinkingLevel": "low"
+     }
+    }
+   },
+   "path": "/v1beta/models/gemini-golden:generateContent"
+  },
+  "sampling": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096,
+     "seed": 7,
+     "topP": 0.9
+    }
+   },
+   "path": "/v1beta/models/gemini-golden:generateContent"
+  },
+  "structured": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "AAPL quote as JSON"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096,
+     "responseJsonSchema": {
+      "additionalProperties": false,
+      "properties": {
+       "price": {
+        "type": "number"
+       },
+       "symbol": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "symbol",
+       "price"
+      ],
+      "type": "object"
+     },
+     "responseMimeType": "application/json"
+    }
+   },
+   "path": "/v1beta/models/gemini-golden:generateContent"
+  },
+  "tool_named": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    },
+    "toolConfig": {
+     "functionCallingConfig": {
+      "allowedFunctionNames": [
+       "get_quote"
+      ],
+      "mode": "ANY"
+     }
+    },
+    "tools": [
+     {
+      "functionDeclarations": [
+       {
+        "description": "Latest price for a ticker",
+        "name": "get_quote",
+        "parametersJsonSchema": {
+         "properties": {
+          "symbol": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "symbol"
+         ],
+         "type": "object"
+        }
+       },
+       {
+        "description": "FX rate",
+        "name": "get_fx",
+        "parametersJsonSchema": {
+         "properties": {
+          "pair": {
+           "type": "string"
+          }
+         },
+         "type": "object"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "path": "/v1beta/models/gemini-golden:generateContent"
+  },
+  "tool_named_only_tool": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    },
+    "toolConfig": {
+     "functionCallingConfig": {
+      "allowedFunctionNames": [
+       "get_quote"
+      ],
+      "mode": "ANY"
+     }
+    },
+    "tools": [
+     {
+      "functionDeclarations": [
+       {
+        "description": "Latest price for a ticker",
+        "name": "get_quote",
+        "parametersJsonSchema": {
+         "properties": {
+          "symbol": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "symbol"
+         ],
+         "type": "object"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "path": "/v1beta/models/gemini-golden:generateContent"
+  },
+  "tool_none": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    }
+   },
+   "path": "/v1beta/models/gemini-golden:generateContent"
+  },
+  "tool_required": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    },
+    "toolConfig": {
+     "functionCallingConfig": {
+      "mode": "ANY"
+     }
+    },
+    "tools": [
+     {
+      "functionDeclarations": [
+       {
+        "description": "Latest price for a ticker",
+        "name": "get_quote",
+        "parametersJsonSchema": {
+         "properties": {
+          "symbol": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "symbol"
+         ],
+         "type": "object"
+        }
+       },
+       {
+        "description": "FX rate",
+        "name": "get_fx",
+        "parametersJsonSchema": {
+         "properties": {
+          "pair": {
+           "type": "string"
+          }
+         },
+         "type": "object"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "path": "/v1beta/models/gemini-golden:generateContent"
+  },
+  "tool_round_trip": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "parts": [
+       {
+        "functionCall": {
+         "args": {
+          "symbol": "AAPL"
+         },
+         "id": "call_q1",
+         "name": "get_quote"
+        }
+       },
+       {
+        "functionCall": {
+         "args": {
+          "symbol": "MSFT"
+         },
+         "id": "call_q2",
+         "name": "get_quote"
+        }
+       }
+      ],
+      "role": "model"
+     },
+     {
+      "parts": [
+       {
+        "functionResponse": {
+         "id": "call_q1",
+         "name": "get_quote",
+         "response": {
+          "price": 231.4
+         }
+        }
+       },
+       {
+        "functionResponse": {
+         "id": "call_q2",
+         "name": "get_quote",
+         "response": {
+          "error": "upstream timeout"
+         }
+        }
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    },
+    "toolConfig": {
+     "functionCallingConfig": {
+      "mode": "AUTO"
+     }
+    },
+    "tools": [
+     {
+      "functionDeclarations": [
+       {
+        "description": "Latest price for a ticker",
+        "name": "get_quote",
+        "parametersJsonSchema": {
+         "properties": {
+          "symbol": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "symbol"
+         ],
+         "type": "object"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "path": "/v1beta/models/gemini-golden:generateContent"
+  },
+  "tools": {
+   "body": {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "What did AAPL and MSFT close at?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096
+    },
+    "toolConfig": {
+     "functionCallingConfig": {
+      "mode": "AUTO"
+     }
+    },
+    "tools": [
+     {
+      "functionDeclarations": [
+       {
+        "description": "Latest price for a ticker",
+        "name": "get_quote",
+        "parametersJsonSchema": {
+         "properties": {
+          "symbol": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "symbol"
+         ],
+         "type": "object"
+        }
+       },
+       {
+        "description": "FX rate",
+        "name": "get_fx",
+        "parametersJsonSchema": {
+         "properties": {
+          "pair": {
+           "type": "string"
+          }
+         },
+         "type": "object"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "path": "/v1beta/models/gemini-golden:generateContent"
+  }
+ },
+ "stream_request": {
+  "body": {
+   "contents": [
+    {
+     "parts": [
+      {
+       "text": "What did AAPL and MSFT close at?"
+      }
+     ],
+     "role": "user"
+    }
+   ],
+   "generationConfig": {
+    "maxOutputTokens": 4096
+   },
+   "toolConfig": {
+    "functionCallingConfig": {
+     "mode": "AUTO"
+    }
+   },
+   "tools": [
+    {
+     "functionDeclarations": [
+      {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parametersJsonSchema": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      {
+       "description": "FX rate",
+       "name": "get_fx",
+       "parametersJsonSchema": {
+        "properties": {
+         "pair": {
+          "type": "string"
+         }
+        },
+        "type": "object"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  "params": {
+   "alt": "sse"
+  },
+  "path": "/v1beta/models/gemini-golden:streamGenerateContent"
+ },
+ "streams": {
+  "safety": {
+   "chunks": [
+    {
+     "choices": [
+      {
+       "delta": {
+        "content": "Here is",
+        "role": "assistant"
+       },
+       "index": 0
+      }
+     ],
+     "model": "gemini-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "refusal": "Blocked by the Gemini safety filter (finishReason: SAFETY).",
+        "sajha": {
+         "is_error": false,
+         "provider": "gemini",
+         "structured": false,
+         "system_field": false,
+         "tool_name": ""
+        }
+       },
+       "finish_reason": "content_filter",
+       "index": 0
+      }
+     ],
+     "model": "gemini-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [],
+     "model": "gemini-golden",
+     "object": "chat.completion.chunk",
+     "sajha": {
+      "attempts": [],
+      "cached": false,
+      "cost_usd": 0.0,
+      "ignored": [],
+      "latency_ms": 0,
+      "provider": "",
+      "qualified_model": "",
+      "trace_id": "",
+      "usage_estimated": false
+     },
+     "usage": {
+      "completion_tokens": 2,
+      "prompt_tokens": 20,
+      "total_tokens": 22
+     }
+    }
+   ],
+   "completion": {
+    "choices": [
+     {
+      "finish_reason": "content_filter",
+      "index": 0,
+      "message": {
+       "content": "Here is",
+       "refusal": "Blocked by the Gemini safety filter (finishReason: SAFETY).",
+       "role": "assistant",
+       "sajha": {
+        "is_error": false,
+        "provider": "gemini",
+        "provider_state": {
+         "gemini_parts": [
+          {
+           "text": "Here is"
+          }
+         ]
+        },
+        "structured": false,
+        "system_field": false,
+        "tool_name": ""
+       }
+      }
+     }
+    ],
+    "model": "gemini-golden",
+    "object": "chat.completion",
+    "sajha": {
+     "attempts": [],
+     "cached": false,
+     "cost_usd": 0.0,
+     "ignored": [],
+     "latency_ms": 0,
+     "provider": "",
+     "qualified_model": "",
+     "trace_id": "",
+     "usage_estimated": false
+    },
+    "usage": {
+     "completion_tokens": 2,
+     "prompt_tokens": 20,
+     "total_tokens": 22
+    }
+   }
+  },
+  "text": {
+   "chunks": [
+    {
+     "choices": [
+      {
+       "delta": {
+        "content": "AAPL closed ",
+        "role": "assistant"
+       },
+       "index": 0
+      }
+     ],
+     "model": "gemini-golden-001",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "content": "at 231.40."
+       },
+       "index": 0
+      }
+     ],
+     "model": "gemini-golden-001",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "sajha": {
+         "is_error": false,
+         "provider": "gemini",
+         "structured": false,
+         "system_field": false,
+         "tool_name": ""
+        }
+       },
+       "finish_reason": "stop",
+       "index": 0
+      }
+     ],
+     "model": "gemini-golden-001",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [],
+     "model": "gemini-golden-001",
+     "object": "chat.completion.chunk",
+     "sajha": {
+      "attempts": [],
+      "cached": false,
+      "cost_usd": 0.0,
+      "ignored": [],
+      "latency_ms": 0,
+      "provider": "",
+      "qualified_model": "",
+      "trace_id": "",
+      "usage_estimated": false
+     },
+     "usage": {
+      "completion_tokens": 9,
+      "prompt_tokens": 36,
+      "total_tokens": 45
+     }
+    }
+   ],
+   "completion": {
+    "choices": [
+     {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+       "content": "AAPL closed at 231.40.",
+       "role": "assistant",
+       "sajha": {
+        "is_error": false,
+        "provider": "gemini",
+        "provider_state": {
+         "gemini_parts": [
+          {
+           "text": "AAPL closed at 231.40."
+          }
+         ]
+        },
+        "structured": false,
+        "system_field": false,
+        "tool_name": ""
+       }
+      }
+     }
+    ],
+    "model": "gemini-golden-001",
+    "object": "chat.completion",
+    "sajha": {
+     "attempts": [],
+     "cached": false,
+     "cost_usd": 0.0,
+     "ignored": [],
+     "latency_ms": 0,
+     "provider": "",
+     "qualified_model": "",
+     "trace_id": "",
+     "usage_estimated": false
+    },
+    "usage": {
+     "completion_tokens": 9,
+     "prompt_tokens": 36,
+     "total_tokens": 45
+    }
+   }
+  },
+  "tool_fragments": {
+   "chunks": [
+    {
+     "choices": [
+      {
+       "delta": {
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "{\"symbol\": \"AAPL\"}",
+           "name": "get_quote"
+          },
+          "id": "gcall_0_get_quote",
+          "index": 0,
+          "type": "function"
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "gemini-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "{\"symbol\": \"MSFT\"}",
+           "name": "get_quote"
+          },
+          "id": "gcall_1_get_quote",
+          "index": 1,
+          "type": "function"
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "gemini-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "sajha": {
+         "is_error": false,
+         "provider": "gemini",
+         "structured": false,
+         "system_field": false,
+         "tool_name": ""
+        }
+       },
+       "finish_reason": "tool_calls",
+       "index": 0
+      }
+     ],
+     "model": "gemini-golden",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [],
+     "model": "gemini-golden",
+     "object": "chat.completion.chunk",
+     "sajha": {
+      "attempts": [],
+      "cached": false,
+      "cost_usd": 0.0,
+      "ignored": [],
+      "latency_ms": 0,
+      "provider": "",
+      "qualified_model": "",
+      "trace_id": "",
+      "usage_estimated": false
+     },
+     "usage": {
+      "completion_tokens": 94,
+      "completion_tokens_details": {
+       "reasoning_tokens": 64
+      },
+      "prompt_tokens": 110,
+      "total_tokens": 204
+     }
+    }
+   ],
+   "completion": {
+    "choices": [
+     {
+      "finish_reason": "tool_calls",
+      "index": 0,
+      "message": {
+       "role": "assistant",
+       "sajha": {
+        "is_error": false,
+        "provider": "gemini",
+        "provider_state": {
+         "gemini_parts": [
+          {
+           "functionCall": {
+            "args": {
+             "symbol": "AAPL"
+            },
+            "name": "get_quote"
+           },
+           "thoughtSignature": "CiQBVKhc"
+          },
+          {
+           "functionCall": {
+            "args": {
+             "symbol": "MSFT"
+            },
+            "name": "get_quote"
+           }
+          }
+         ]
+        },
+        "structured": false,
+        "system_field": false,
+        "tool_name": ""
+       },
+       "tool_calls": [
+        {
+         "function": {
+          "arguments": "{\"symbol\": \"AAPL\"}",
+          "name": "get_quote"
+         },
+         "id": "gcall_0_get_quote",
+         "type": "function"
+        },
+        {
+         "function": {
+          "arguments": "{\"symbol\": \"MSFT\"}",
+          "name": "get_quote"
+         },
+         "id": "gcall_1_get_quote",
+         "type": "function"
+        }
+       ]
+      }
+     }
+    ],
+    "model": "gemini-golden",
+    "object": "chat.completion",
+    "sajha": {
+     "attempts": [],
+     "cached": false,
+     "cost_usd": 0.0,
+     "ignored": [],
+     "latency_ms": 0,
+     "provider": "",
+     "qualified_model": "",
+     "trace_id": "",
+     "usage_estimated": false
+    },
+    "usage": {
+     "completion_tokens": 94,
+     "completion_tokens_details": {
+      "reasoning_tokens": 64
+     },
+     "prompt_tokens": 110,
+     "total_tokens": 204
+    }
+   }
+  }
+ }
+}

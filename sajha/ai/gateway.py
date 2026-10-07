@@ -15,13 +15,32 @@ concrete model and applies policy around it:
   * the response cache keyed on the canonical request;
   * one OpenTelemetry span per call (prompts excluded unless ai.gateway.trace_prompts).
 
-The pre-6.x API (complete, complete_messages, embed, list_all_models, health_check_all, user
-preferences, stats) is kept as thin shims over chat()/embed(), so ai_routes, the tool
-resolver and the AI settings page keep working.
+The interface is shaped like an OpenAI-style client over the canonical Chat Completions types
+(sajha/ai/llm/canonical.py; docs/architecture/LLM Tools.md §13):
+
+    gw.chat_completions_create(model="reasoning", messages=[...], tools=[...]) -> ChatCompletion
+    gw.chat_completions_stream(...)          -> Iterator[ChatCompletionChunk]
+    await gw.achat_completions_create(...)   native async (HTTP providers use httpx.AsyncClient)
+    gw.achat_completions_stream(...)         async iterator of chunks
+    gw.embeddings_create(model="embedding", input=[...]) -> EmbeddingsResponse
+    gw.models(ctx)                           -> list[ModelInfo] the caller's role may use
+
+The caller's identity travels in ``sajha.context`` (a RequestContext); the response's ``sajha``
+says which provider and model answered, the cost, whether the cache answered, the fallback
+attempts, the trace id, and what SAJHA did on the caller's behalf (``ignored``,
+``usage_estimated``, ``structured_output``).
 
     from sajha.ai.gateway import get_gateway
+    from sajha.ai.llm.canonical import ChatMessage, SajhaRequest
     gw = get_gateway()
-    resp = gw.chat(ChatRequest([Message.user("Hello")]), model="default")
+    c = gw.chat_completions_create(model="default", messages=[ChatMessage.user("Hello")],
+                                   sajha=SajhaRequest(context=ctx))
+    c.text, c.sajha.provider, c.sajha.cost_usd
+
+The original interface (chat / stream / achat on ChatRequest and ChatResponse) and the pre-6.x
+API (complete, complete_messages, embed, list_all_models, health_check_all, user preferences,
+stats) are thin shims over the canonical calls (lossless converters in convert.py), so every
+existing caller keeps working.
 """
 
 from __future__ import annotations
@@ -34,20 +53,23 @@ import random
 import threading
 import time
 from contextlib import contextmanager
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from types import SimpleNamespace
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Tuple
 
-from sajha.ai.llm.errors import (AuthenticationFailed, BudgetExceeded, ConfigurationError, ContentFiltered,
-                                 ContextTooLong, InvalidRequest, LLMError, NoModelAvailable, PolicyDenied,
-                                 ProviderUnavailable, RateLimited, UnsupportedFeature)
-from sajha.ai.llm.model import ChatModel, EmbeddingModel, HealthStatus, Needs
+from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionChunk, ChatCompletionRequest, ChunkAccumulator,
+                                    CompletionUsage, EmbeddingsRequest, EmbeddingsResponse, SajhaRequest,
+                                    StreamOptions, check_request, completion_to_chunks)
+from sajha.ai.llm.convert import events_from_chunks, from_canonical_response, to_canonical_request
+from sajha.ai.llm.errors import (AuthenticationFailed, BudgetExceeded, ConfigurationError,
+                                 ContextTooLong, InvalidRequest, LLMError, ModelFailed, NoModelAvailable,
+                                 PolicyDenied, ProviderUnavailable, RateLimited, UnsupportedFeature)
+from sajha.ai.llm.model import ChatModel, EmbeddingModel, HealthStatus, ModelInfo, Needs
 from sajha.ai.llm.provider import LLMProvider
 from sajha.ai.llm.secrets import SecretStore
 from sajha.ai.llm.settings import AISettings, ModelOverride, RolePolicy, load_ai_yaml
-from sajha.ai.llm.types import (ChatRequest, ChatResponse, Done, ImagePart, Message, RequestContext, TextDelta,
-                                ToolCallDelta, Usage, UsageEvent)
+from sajha.ai.llm.types import ChatRequest, ChatResponse, ImagePart, Message, RequestContext, Usage
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +77,7 @@ logger = logging.getLogger(__name__)
 # ── Response cache ──────────────────────────────────────────────
 
 class ResponseCache:
-    """In-memory TTL cache of ChatResponses keyed on (qualified model, canonical request)."""
+    """In-memory TTL cache of ChatCompletions keyed on (qualified model, canonical request)."""
 
     def __init__(self, max_size: int = 500, ttl: int = 3600):
         self._cache: Dict[str, Tuple[Any, float]] = {}
@@ -66,8 +88,10 @@ class ResponseCache:
         self._misses = 0
 
     @staticmethod
-    def key(model: str, request: ChatRequest) -> str:
-        raw = json.dumps({"model": model, "req": request.canonical()}, sort_keys=True, default=str)
+    def key(model: str, request: Any) -> str:
+        """(qualified model, canonical request) -> key. Accepts a ChatCompletionRequest or a ChatRequest."""
+        form = request.cache_key() if hasattr(request, "cache_key") else request.canonical()
+        raw = json.dumps({"model": model, "req": form}, sort_keys=True, default=str)
         return hashlib.sha256(raw.encode()).hexdigest()
 
     def get(self, key: str) -> Optional[Any]:
@@ -331,9 +355,16 @@ class LLMGateway:
         return prov, ("" if mid == "*" else mid)
 
     @staticmethod
-    def request_needs(request: ChatRequest, needs: Any = None) -> Needs:
+    def request_needs(request: Any, needs: Any = None) -> Needs:
+        """Capability flags a request needs (a pre-filter; the model's own check is authoritative)."""
         n = Needs.parse(needs)
         flags = set(n.flags)
+        if isinstance(request, ChatCompletionRequest):
+            if request.wants_tools:
+                flags.add("tools")
+            if request.has_images:
+                flags.add("vision")
+            return Needs(frozenset(flags), n.tags, n.min_context)
         if request.tools and request.tool_choice != "none":
             flags.add("tools")
         if request.response_schema:
@@ -391,25 +422,47 @@ class LLMGateway:
             raise NoModelAvailable(self._no_model_msg(model, attempts))
         return cands[0]
 
+    def models(self, ctx: Optional[RequestContext] = None) -> List[ModelInfo]:
+        """Every model of every active provider the caller's role may use (like GET /v1/models)."""
+        policy = self.effective_policy(ctx)
+        out: List[ModelInfo] = []
+        for name, p in self.providers.items():
+            if not p.active:
+                continue
+            try:
+                out.extend(mi for mi in p.models() if self._allowed(policy, mi.qualified_id))
+            except Exception as e:
+                logger.warning(f"Failed to list models for {name}: {e}")
+        return out
+
     @staticmethod
     def _no_model_msg(model: str, attempts: List[Attempt]) -> str:
         detail = "; ".join(f"{a.candidate}: {a.outcome} ({a.detail})" for a in attempts[-12:])
         return f"no model available for '{model}'" + (f" — {detail}" if detail else "")
 
-    # ── calls ──────────────────────────────────────────────────
-    def _prepare(self, request: ChatRequest, ctx: Optional[RequestContext]) -> ChatRequest:
+    # ── calls: shared steps ────────────────────────────────────
+    def _prepare(self, request: Any, ctx: Optional[RequestContext]) -> Any:
+        """Policy (tool use, output-token cap), request refusals, n cap and budget, before any call.
+        Accepts a ChatCompletionRequest (or, for older callers, a ChatRequest) and returns the same type."""
+        if isinstance(request, ChatRequest):
+            from sajha.ai.llm.convert import from_canonical_request
+            return from_canonical_request(self._prepare(to_canonical_request(request), ctx))
+        check_request(request)
         policy = self.effective_policy(ctx)
         if policy is not None:
-            if request.tools and request.tool_choice != "none" and not policy.tools:
+            if request.wants_tools and not policy.tools:
                 raise PolicyDenied("tool use is not permitted for the caller's role")
             if policy.max_output_tokens:
                 cap = policy.max_output_tokens
-                if request.max_output_tokens is None or request.max_output_tokens > cap:
-                    request = replace(request, max_output_tokens=cap)
+                cur = request.max_output_tokens
+                if cur is None or cur > cap:
+                    request = request.model_copy(update={"max_completion_tokens": cap, "max_tokens": None})
+        if (request.n or 1) > self.settings.gateway.max_samples:
+            raise InvalidRequest(f"n={request.n} exceeds ai.gateway.max_samples ({self.settings.gateway.max_samples})")
         self.check_budget(ctx)
         return request
 
-    def _cacheable(self, request: ChatRequest, cm: ChatModel) -> bool:
+    def _cacheable(self, request: Any, cm: ChatModel) -> bool:
         cs = self.settings.cache
         if not cs.enabled:
             return False
@@ -448,9 +501,9 @@ class LLMGateway:
         with tracer.start_as_current_span(name, attributes={k: v for k, v in attrs.items() if v is not None}) as sp:
             yield sp
 
-    def _record(self, ctx: Optional[RequestContext], resp: ChatResponse) -> None:
+    def _record(self, ctx: Optional[RequestContext], provider: str, model: str, usage: Usage) -> None:
         owner = ctx.budget_owner if ctx else "anonymous"
-        self._tracker.record_usage(owner, list(ctx.roles) if ctx else [], resp.provider, resp.model, resp.usage)
+        self._tracker.record_usage(owner, list(ctx.roles) if ctx else [], provider, model, usage)
 
     @staticmethod
     def _observe(ctx: Optional[RequestContext], provider: str, model: str, outcome: str, seconds: float,
@@ -463,95 +516,126 @@ class LLMGateway:
         except Exception:
             pass
 
-    def _call_with_retries(self, cm: ChatModel, request: ChatRequest) -> ChatResponse:
-        cfg = cm.provider.config
+    def _retry_budget(self, model: Any) -> int:
+        cfg = model.provider.config
+        return cfg.max_retries if cfg.max_retries is not None else self.settings.retry.max_retries
+
+    def _retry_delay(self, e: LLMError, attempt: int, cfg) -> float:
         rs = self.settings.retry
-        retries = cfg.max_retries if cfg.max_retries is not None else rs.max_retries
+        if isinstance(e, RateLimited) and e.retry_after is not None:
+            return min(e.retry_after, rs.max_retry_after_s)
+        return self._backoff(attempt, cfg)
+
+    def _call_with_retries(self, model: Any, call):
+        """``call()`` with retries on RateLimited / ProviderUnavailable (jittered backoff, Retry-After)."""
+        retries = self._retry_budget(model)
         last: Optional[LLMError] = None
         for attempt in range(retries + 1):
             try:
-                return cm.generate(request)
-            except RateLimited as e:
+                return call()
+            except (RateLimited, ProviderUnavailable) as e:
                 last = e
-                delay = min(e.retry_after, rs.max_retry_after_s) if e.retry_after is not None \
-                    else self._backoff(attempt, cfg)
-            except ProviderUnavailable as e:
-                last = e
-                delay = self._backoff(attempt, cfg)
+                delay = self._retry_delay(e, attempt, model.provider.config)
             if attempt < retries:
-                logger.info(f"LLM retry {attempt + 1}/{retries} on {cm.qualified_id} in {delay:.2f}s: {last}")
+                logger.info(f"LLM retry {attempt + 1}/{retries} on {model.qualified_id} in {delay:.2f}s: {last}")
                 self.sleep(delay)
         assert last is not None
         raise last
 
-    def chat(self, request: ChatRequest, *, model: str = "default", needs: Any = None) -> ChatResponse:
-        ctx = request.metadata
-        request = self._prepare(request, ctx)
-        attempts: List[Attempt] = []
-        cands = self.candidates(model, self.request_needs(request, needs), ctx, attempts)
-        if not cands:
-            raise NoModelAvailable(self._no_model_msg(model, attempts))
-        last_err: Optional[LLMError] = None
-        for cm in cands:
-            pname = cm.provider.name
-            key = ResponseCache.key(cm.qualified_id, request) if self._cacheable(request, cm) else None
-            if key:
-                hit = self._cache.get(key)
-                if hit is not None:
-                    resp = replace(hit, cached=True, usage=Usage())
-                    self._audit(ctx, cm, "cache_hit", resp)
-                    self._observe(ctx, pname, cm.id, "cache_hit", 0.0)
-                    return resp
-            attrs = {"llm.provider": pname, "llm.model": cm.id, "llm.alias": model,
-                     "user.id": ctx.user_id if ctx else None}
-            if self.settings.gateway.trace_prompts:
-                attrs["llm.prompt"] = json.dumps(request.canonical(), default=str)[:4000]
-            with self._span("llm.chat", attrs) as span:
-                t0 = time.perf_counter()
-                try:
-                    resp = self._call_with_retries(cm, request)
-                except (RateLimited, ProviderUnavailable) as e:
-                    self.breaker(pname).record_failure()
-                    attempts.append(Attempt(cm.qualified_id, "failed", str(e)))
-                    last_err = e
-                    self._span_outcome(span, "error", e)
-                    self._observe(ctx, pname, cm.id, "error", time.perf_counter() - t0)
-                    continue
-                except AuthenticationFailed as e:
-                    self._mark_down(pname, "authentication failed")
-                    attempts.append(Attempt(cm.qualified_id, "failed", str(e)))
-                    last_err = e
-                    self._span_outcome(span, "auth_failed", e)
-                    self._observe(ctx, pname, cm.id, "auth_failed", time.perf_counter() - t0)
-                    continue
-                except (UnsupportedFeature, ContextTooLong, ConfigurationError) as e:
-                    attempts.append(Attempt(cm.qualified_id, "failed", str(e)))
-                    last_err = e
-                    self._span_outcome(span, e.code, e)
-                    self._observe(ctx, pname, cm.id, e.code, time.perf_counter() - t0)
-                    continue
-                except (ContentFiltered, InvalidRequest) as e:
-                    self._span_outcome(span, e.code, e)
-                    self._observe(ctx, pname, cm.id, e.code, time.perf_counter() - t0)
-                    raise
-                self.breaker(pname).record_success()
-                self._record(ctx, resp)
-                self._observe(ctx, resp.provider or pname, resp.model or cm.id, "ok",
-                              time.perf_counter() - t0, resp.usage)
-                if span is not None:
-                    try:
-                        span.set_attribute("llm.input_tokens", resp.usage.input_tokens)
-                        span.set_attribute("llm.output_tokens", resp.usage.output_tokens)
-                        span.set_attribute("llm.latency_ms", resp.latency_ms)
-                        span.set_attribute("llm.cache_hit", False)
-                        span.set_attribute("llm.outcome", resp.finish_reason)
-                    except Exception:
-                        pass
-                if key and resp.finish_reason in ("stop", "tool_calls"):
-                    self._cache.put(key, resp)
-                self._audit(ctx, cm, "ok", resp)
-                return resp
-        raise NoModelAvailable(self._no_model_msg(model, attempts)) from last_err
+    async def _asleep(self, delay: float) -> None:
+        if self.sleep is time.sleep:
+            import anyio
+            await anyio.sleep(delay)
+        else:
+            self.sleep(delay)                 # an injected (test) sleep
+
+    async def _acall_with_retries(self, model: Any, call):
+        retries = self._retry_budget(model)
+        last: Optional[LLMError] = None
+        for attempt in range(retries + 1):
+            try:
+                return await call()
+            except (RateLimited, ProviderUnavailable) as e:
+                last = e
+                delay = self._retry_delay(e, attempt, model.provider.config)
+            if attempt < retries:
+                logger.info(f"LLM retry {attempt + 1}/{retries} on {model.qualified_id} in {delay:.2f}s: {last}")
+                await self._asleep(delay)
+        assert last is not None
+        raise last
+
+    def _span_attrs(self, cm: ChatModel, alias: str, ctx: Optional[RequestContext],
+                    request: ChatCompletionRequest) -> Dict[str, Any]:
+        attrs = {"llm.provider": cm.provider.name, "llm.model": cm.id, "llm.alias": alias,
+                 "user.id": ctx.user_id if ctx else None}
+        if self.settings.gateway.trace_prompts:
+            attrs["llm.prompt"] = json.dumps(request.cache_key(), default=str)[:4000]
+        return attrs
+
+    def _cache_key(self, cm: ChatModel, request: ChatCompletionRequest) -> Optional[str]:
+        return ResponseCache.key(cm.qualified_id, request) if self._cacheable(request, cm) else None
+
+    def _cache_hit(self, ctx, cm: ChatModel, key: Optional[str], request: ChatCompletionRequest,
+                   attempts: List[Attempt]) -> Optional[ChatCompletion]:
+        if not key:
+            return None
+        hit = self._cache.get(key)
+        if hit is None:
+            return None
+        comp = hit.model_copy(deep=True)
+        comp.usage = CompletionUsage()
+        sj = comp.ensure_sajha()
+        sj.cached, sj.cost_usd, sj.latency_ms = True, 0.0, 0
+        sj.attempts = [vars(a) for a in attempts]
+        self._audit(ctx, cm, "cache_hit", Usage(), request)
+        self._observe(ctx, cm.provider.name, cm.id, "cache_hit", 0.0)
+        return comp
+
+    def _on_failure(self, ctx, cm: ChatModel, e: LLMError, span, t0: float, attempts: List[Attempt]) -> bool:
+        """Bookkeeping for a failed candidate; True when the next candidate should be tried."""
+        pname = cm.provider.name
+        if isinstance(e, (RateLimited, ProviderUnavailable)):
+            self.breaker(pname).record_failure()
+            outcome = "error"
+        elif isinstance(e, AuthenticationFailed):
+            self._mark_down(pname, "authentication failed")
+            outcome = "auth_failed"
+        elif isinstance(e, (UnsupportedFeature, ContextTooLong, ConfigurationError, ModelFailed)):
+            outcome = e.code
+        else:                                # ContentFiltered, InvalidRequest, ...: a property of the request
+            self._span_outcome(span, e.code, e)
+            self._observe(ctx, pname, cm.id, e.code, time.perf_counter() - t0)
+            return False
+        attempts.append(Attempt(cm.qualified_id, "failed", str(e)))
+        self._span_outcome(span, outcome, e)
+        self._observe(ctx, pname, cm.id, outcome, time.perf_counter() - t0)
+        return True
+
+    def _on_success(self, ctx, cm: ChatModel, request: ChatCompletionRequest, comp: ChatCompletion, span,
+                    t0: float, attempts: List[Attempt], key: Optional[str]) -> ChatCompletion:
+        pname = cm.provider.name
+        self.breaker(pname).record_success()
+        sj = comp.ensure_sajha()
+        sj.attempts = [vars(a) for a in attempts]
+        sj.trace_id = sj.trace_id or (ctx.trace_id if ctx else "") or (request.sajha.trace_id if request.sajha else "")
+        u = comp.usage or CompletionUsage()
+        usage = Usage(u.prompt_tokens, u.completion_tokens, u.cached_tokens, sj.cost_usd)
+        self._record(ctx, sj.provider or pname, comp.model or cm.id, usage)
+        self._observe(ctx, sj.provider or pname, comp.model or cm.id, "ok", time.perf_counter() - t0, usage)
+        if span is not None:
+            try:
+                span.set_attribute("llm.input_tokens", usage.input_tokens)
+                span.set_attribute("llm.output_tokens", usage.output_tokens)
+                span.set_attribute("llm.latency_ms", sj.latency_ms)
+                span.set_attribute("llm.cache_hit", False)
+                span.set_attribute("llm.outcome", comp.finish_reason)
+            except Exception:
+                pass
+        # refusals (content_filter) and truncated answers are never cached
+        if key and all(ch.finish_reason in ("stop", "tool_calls") for ch in comp.choices):
+            self._cache.put(key, comp.model_copy(deep=True))
+        self._audit(ctx, cm, "ok", usage, request)
+        return comp
 
     @staticmethod
     def _span_outcome(span, outcome: str, err: Exception) -> None:
@@ -564,75 +648,164 @@ class LLMGateway:
         except Exception:
             pass
 
-    def _audit(self, ctx, cm, outcome, resp) -> None:
+    def _audit(self, ctx, cm, outcome, usage: Optional[Usage], request: Optional[ChatCompletionRequest] = None) -> None:
         if self.audit_hook:
             try:
-                self.audit_hook({"user": ctx.user_id if ctx else "", "model": cm.qualified_id, "outcome": outcome,
-                                 "usage": resp.usage.to_dict() if resp else None})
+                rec = {"user": ctx.user_id if ctx else "", "model": cm.qualified_id, "outcome": outcome,
+                       "usage": usage.to_dict() if usage is not None else None}
+                if request is not None and request.user:
+                    rec["end_user"] = request.user          # the caller's label; never sent to a vendor
+                if request is not None and request.metadata:
+                    rec["metadata"] = dict(request.metadata)
+                self.audit_hook(rec)
             except Exception:
                 pass
 
-    def stream(self, request: ChatRequest, *, model: str = "default", needs: Any = None) -> Iterator:
-        """Stream events from the first candidate that starts; falls back only before the first event."""
-        ctx = request.metadata
-        request = self._prepare(request, ctx)
+    def _begin(self, request: Any, fields: Dict[str, Any]):
+        req = ChatCompletionRequest.coerce(request, **fields)
+        alias, ctx = req.model or "default", req.context
+        req = self._prepare(req, ctx)
         attempts: List[Attempt] = []
-        cands = self.candidates(model, self.request_needs(request, needs), ctx, attempts)
+        cands = self.candidates(alias, self.request_needs(req, req.sajha.needs if req.sajha else None), ctx, attempts)
         if not cands:
-            raise NoModelAvailable(self._no_model_msg(model, attempts))
-        last_err = None
+            raise NoModelAvailable(self._no_model_msg(alias, attempts))
+        return req, alias, ctx, attempts, cands
+
+    # ── the canonical interface ────────────────────────────────
+    def chat_completions_create(self, request: Any = None, /, **fields) -> ChatCompletion:
+        """A Chat Completions call through policy, budgets, cache, retries, breakers and fallback.
+
+        ``model`` is an alias (``default``, ``fast``, ``reasoning``) or ``provider/model``; the
+        caller's identity rides in ``sajha.context`` (a RequestContext)."""
+        req, alias, ctx, attempts, cands = self._begin(request, fields)
+        if req.stream:
+            raise InvalidRequest("stream=true: use chat_completions_stream")
+        last_err: Optional[LLMError] = None
         for cm in cands:
-            pname = cm.provider.name
-            key = ResponseCache.key(cm.qualified_id, request) if self._cacheable(request, cm) else None
-            if key:
-                hit = self._cache.get(key)
-                if hit is not None:
-                    resp = replace(hit, cached=True, usage=Usage())
-                    if resp.text:
-                        yield TextDelta(resp.text)
-                    for i, c in enumerate(resp.tool_calls):
-                        yield ToolCallDelta(c.id, c.name, json.dumps(c.arguments), i)
-                    yield UsageEvent(resp.usage)
-                    yield Done(resp)
-                    self._observe(ctx, pname, cm.id, "cache_hit", 0.0)
-                    return
-            started = False
-            t0 = time.perf_counter()
-            try:
-                for ev in cm.stream(request):
-                    started = True
-                    if isinstance(ev, Done):
-                        self.breaker(pname).record_success()
-                        self._record(ctx, ev.response)
-                        self._observe(ctx, ev.response.provider or pname, ev.response.model or cm.id, "ok",
-                                      time.perf_counter() - t0, ev.response.usage)
-                        if key and ev.response.finish_reason in ("stop", "tool_calls"):
-                            self._cache.put(key, ev.response)
-                    yield ev
-                return
-            except (RateLimited, ProviderUnavailable, AuthenticationFailed, UnsupportedFeature,
-                    ContextTooLong, ConfigurationError) as e:
-                if started:
+            key = self._cache_key(cm, req)
+            hit = self._cache_hit(ctx, cm, key, req, attempts)
+            if hit is not None:
+                return hit
+            with self._span("llm.chat", self._span_attrs(cm, alias, ctx, req)) as span:
+                t0 = time.perf_counter()
+                try:
+                    comp = self._call_with_retries(cm, lambda: cm.chat_completions_create(req))
+                except LLMError as e:
+                    if self._on_failure(ctx, cm, e, span, t0, attempts):
+                        last_err = e
+                        continue
                     raise
-                if isinstance(e, AuthenticationFailed):
-                    self._mark_down(pname, "authentication failed")
-                elif isinstance(e, (RateLimited, ProviderUnavailable)):
-                    self.breaker(pname).record_failure()
-                self._observe(ctx, pname, cm.id, "auth_failed" if isinstance(e, AuthenticationFailed) else
-                              ("error" if isinstance(e, (RateLimited, ProviderUnavailable)) else e.code),
-                              time.perf_counter() - t0)
-                attempts.append(Attempt(cm.qualified_id, "failed", str(e)))
+                return self._on_success(ctx, cm, req, comp, span, t0, attempts, key)
+        raise NoModelAvailable(self._no_model_msg(alias, attempts)) from last_err
+
+    async def achat_completions_create(self, request: Any = None, /, **fields) -> ChatCompletion:
+        """The native-async twin of chat_completions_create (HTTP providers call their vendor
+        with httpx.AsyncClient; others run in a worker thread)."""
+        req, alias, ctx, attempts, cands = self._begin(request, fields)
+        if req.stream:
+            raise InvalidRequest("stream=true: use achat_completions_stream")
+        last_err: Optional[LLMError] = None
+        for cm in cands:
+            key = self._cache_key(cm, req)
+            hit = self._cache_hit(ctx, cm, key, req, attempts)
+            if hit is not None:
+                return hit
+            with self._span("llm.chat", self._span_attrs(cm, alias, ctx, req)) as span:
+                t0 = time.perf_counter()
+                try:
+                    comp = await self._acall_with_retries(cm, lambda: cm.achat_completions_create(req))
+                except LLMError as e:
+                    if self._on_failure(ctx, cm, e, span, t0, attempts):
+                        last_err = e
+                        continue
+                    raise
+                return self._on_success(ctx, cm, req, comp, span, t0, attempts, key)
+        raise NoModelAvailable(self._no_model_msg(alias, attempts)) from last_err
+
+    def chat_completions_stream(self, request: Any = None, /, **fields) -> Iterator[ChatCompletionChunk]:
+        """Stream chunks from the first candidate that starts; falls back only before the first
+        chunk. The final usage chunk is sent when ``stream_options.include_usage`` is set."""
+        req, alias, ctx, attempts, cands = self._begin(request, fields)
+        include = req.include_usage
+        last_err: Optional[LLMError] = None
+        for cm in cands:
+            key = self._cache_key(cm, req)
+            hit = self._cache_hit(ctx, cm, key, req, attempts)
+            if hit is not None:
+                yield from completion_to_chunks(hit, include_usage=include)
+                return
+            started, t0, acc = False, time.perf_counter(), ChunkAccumulator()
+            try:
+                for c in cm.chat_completions_stream(req):
+                    started = True
+                    out = self._stream_step(ctx, cm, req, c, acc, t0, attempts, key)
+                    if out is not None and (include or not out.is_usage):
+                        yield out
+                return
+            except LLMError as e:
+                if started or not self._on_failure(ctx, cm, e, None, t0, attempts):
+                    raise
                 last_err = e
-        raise NoModelAvailable(self._no_model_msg(model, attempts)) from last_err
+        raise NoModelAvailable(self._no_model_msg(alias, attempts)) from last_err
 
-    # async wrappers (sync first; native async can come per provider later)
+    async def achat_completions_stream(self, request: Any = None, /, **fields) -> AsyncIterator[ChatCompletionChunk]:
+        req, alias, ctx, attempts, cands = self._begin(request, fields)
+        include = req.include_usage
+        last_err: Optional[LLMError] = None
+        for cm in cands:
+            key = self._cache_key(cm, req)
+            hit = self._cache_hit(ctx, cm, key, req, attempts)
+            if hit is not None:
+                for c in completion_to_chunks(hit, include_usage=include):
+                    yield c
+                return
+            started, t0, acc = False, time.perf_counter(), ChunkAccumulator()
+            try:
+                async for c in cm.achat_completions_stream(req):
+                    started = True
+                    out = self._stream_step(ctx, cm, req, c, acc, t0, attempts, key)
+                    if out is not None and (include or not out.is_usage):
+                        yield out
+                return
+            except LLMError as e:
+                if started or not self._on_failure(ctx, cm, e, None, t0, attempts):
+                    raise
+                last_err = e
+        raise NoModelAvailable(self._no_model_msg(alias, attempts)) from last_err
+
+    def _stream_step(self, ctx, cm, req, c: ChatCompletionChunk, acc: ChunkAccumulator, t0: float,
+                     attempts: List[Attempt], key: Optional[str]) -> ChatCompletionChunk:
+        acc.add(c)
+        if c.is_usage:                       # the last chunk: account for the whole answer
+            comp = acc.result()
+            done = self._on_success(ctx, cm, req, comp, None, t0, attempts, key)
+            c.sajha = done.sajha
+        return c
+
+    # ── the original interface (ChatRequest / ChatResponse), over the canonical one ──
+    @staticmethod
+    def _legacy_request(request: ChatRequest, model: str, needs: Any) -> ChatCompletionRequest:
+        creq = to_canonical_request(request, model)
+        creq.sajha.needs = needs
+        return creq
+
+    def chat(self, request: ChatRequest, *, model: str = "default", needs: Any = None) -> ChatResponse:
+        return from_canonical_response(self.chat_completions_create(self._legacy_request(request, model, needs)))
+
+    def stream(self, request: ChatRequest, *, model: str = "default", needs: Any = None) -> Iterator:
+        """Legacy events (TextDelta, ToolCallDelta, UsageEvent, Done) from the canonical stream."""
+        creq = self._legacy_request(request, model, needs)
+        creq.stream_options = StreamOptions(include_usage=True)
+        yield from events_from_chunks(self.chat_completions_stream(creq))
+
     async def achat(self, request: ChatRequest, *, model: str = "default", needs: Any = None) -> ChatResponse:
-        import anyio
-        return await anyio.to_thread.run_sync(lambda: self.chat(request, model=model, needs=needs))
+        creq = self._legacy_request(request, model, needs)
+        return from_canonical_response(await self.achat_completions_create(creq))
 
-    async def aembed(self, texts: List[str], model: str = "embedding") -> "EmbeddingVectors":
+    async def aembed(self, texts: List[str], model: str = "embedding", purpose: Optional[str] = None
+                     ) -> "EmbeddingVectors":
         import anyio
-        return await anyio.to_thread.run_sync(lambda: self.embed(texts, model=model))
+        return await anyio.to_thread.run_sync(lambda: self.embed(texts, model=model, purpose=purpose))
 
     # ── embeddings ─────────────────────────────────────────────
     def embedding_model(self, model: str = "embedding") -> EmbeddingModel:
@@ -658,45 +831,57 @@ class LLMGateway:
             return em
         raise NoModelAvailable(self._no_model_msg(model, attempts))
 
-    def embed(self, texts: List[str], provider: str = "", model: str = "") -> EmbeddingVectors:
-        """embed(texts, model="embedding") -> vectors. Also accepts the legacy (provider=, model=) form."""
-        target = model or "embedding"
-        if provider:
-            target = f"{provider}/{model}" if model else provider
-        elif model and model not in self.settings.aliases and "/" not in model:
-            target = "embedding"
-        last = None
-        tried = []
-        entries = self._expand(target, None, "embedding")
-        for entry in entries:
+    def embeddings_create(self, request: Any = None, /, **fields) -> EmbeddingsResponse:
+        """Embeddings through the alias's candidates, with retries and fallback.
+
+        ``sajha.input_purpose`` (query | document) selects the vendor's input type where it has
+        one (Cohere ``input_type``, Gemini ``taskType``)."""
+        req = EmbeddingsRequest.coerce(request, **fields)
+        target = req.model or "embedding"
+        ctx = req.sajha.context if req.sajha else None
+        policy = self.effective_policy(ctx)
+        last: Optional[Exception] = None
+        tried: List[str] = []
+        for entry in self._expand(target, None, "embedding"):
             try:
                 em = self.embedding_model(entry)
             except NoModelAvailable as e:
                 last = e
                 continue
+            if not self._allowed(policy, em.qualified_id):
+                continue
             tried.append(em.qualified_id)
             try:
-                vecs = self._call_embed_with_retries(em, list(texts))
-                return EmbeddingVectors(vecs, em.id, em.provider.name)
+                resp = self._call_with_retries(em, lambda: em.embeddings_create(req))
             except (RateLimited, ProviderUnavailable, AuthenticationFailed, UnsupportedFeature) as e:
                 last = e
                 if isinstance(e, AuthenticationFailed):
                     self._mark_down(em.provider.name, "authentication failed")
                 continue
+            if ctx is not None:
+                sj = resp.sajha
+                self._record(ctx, em.provider.name, em.id,
+                             Usage(resp.usage.prompt_tokens, 0, 0, sj.cost_usd if sj else 0.0))
+            return resp
         raise NoModelAvailable(f"no embedding model available for '{target}' (tried {tried})") from last
 
-    def _call_embed_with_retries(self, em: EmbeddingModel, texts: List[str]):
-        cfg = em.provider.config
-        retries = cfg.max_retries if cfg.max_retries is not None else self.settings.retry.max_retries
-        for attempt in range(retries + 1):
-            try:
-                return em.embed(texts)
-            except (RateLimited, ProviderUnavailable) as e:
-                if attempt >= retries:
-                    raise
-                delay = (min(e.retry_after, self.settings.retry.max_retry_after_s)
-                         if isinstance(e, RateLimited) and e.retry_after is not None else self._backoff(attempt, cfg))
-                self.sleep(delay)
+    async def aembeddings_create(self, request: Any = None, /, **fields) -> EmbeddingsResponse:
+        import anyio
+        return await anyio.to_thread.run_sync(lambda: self.embeddings_create(request, **fields))
+
+    def embed(self, texts: List[str], provider: str = "", model: str = "", purpose: Optional[str] = None
+              ) -> EmbeddingVectors:
+        """embed(texts, model="embedding", purpose="query"|"document"|None) -> vectors. Also accepts
+        the legacy (provider=, model=) form."""
+        target = model or "embedding"
+        if provider:
+            target = f"{provider}/{model}" if model else provider
+        elif model and model not in self.settings.aliases and "/" not in model:
+            target = "embedding"
+        resp = self.embeddings_create(model=target, input=list(texts),
+                                      sajha=SajhaRequest(input_purpose=purpose) if purpose else None)
+        return EmbeddingVectors(resp.vectors, resp.model, resp.sajha.provider if resp.sajha else "")
+
 
     # ── preferences and defaults ───────────────────────────────
     def set_user_preference(self, user_id: str, provider: str = "", model: str = "",

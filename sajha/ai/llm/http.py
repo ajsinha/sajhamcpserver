@@ -4,7 +4,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 Plain httpx: one client per provider built from its config (base URL, headers, proxy, TLS,
 timeouts), JSON calls with vendor errors mapped onto the SAJHA taxonomy, and parsers for
-Server-Sent Events and NDJSON streams.
+Server-Sent Events and NDJSON streams. Every helper has an async twin (``build_async_client``,
+``apost_json``, ``astream_post``, ``aiter_sse``, ``aiter_ndjson``) used by the native async
+path of the HTTP providers.
 """
 
 from __future__ import annotations
@@ -13,8 +15,8 @@ import email.utils
 import json
 import logging
 import time
-from contextlib import contextmanager
-from typing import Any, Callable, Dict, Iterator, Optional, Tuple
+from contextlib import asynccontextmanager, contextmanager
+from typing import Any, AsyncIterator, Callable, Dict, Iterator, Optional, Tuple
 
 import httpx
 
@@ -30,8 +32,7 @@ FILTER_MARKERS = ("content_filter", "content filter", "content management policy
                   "safety", "blocked", "guardrail")
 
 
-def build_client(config, *, base_url: str = "", headers: Optional[Dict[str, str]] = None,
-                 transport: Optional[httpx.BaseTransport] = None) -> httpx.Client:
+def _client_kwargs(config, base_url: str, headers: Optional[Dict[str, str]], transport: Any) -> Dict[str, Any]:
     verify: Any = config.verify_tls
     if config.verify_tls and config.ca_bundle:
         verify = config.ca_bundle
@@ -47,7 +48,22 @@ def build_client(config, *, base_url: str = "", headers: Optional[Dict[str, str]
         kwargs["transport"] = transport
     elif config.proxy:
         kwargs["proxy"] = config.proxy
-    return httpx.Client(**kwargs)
+    return kwargs
+
+
+def build_client(config, *, base_url: str = "", headers: Optional[Dict[str, str]] = None,
+                 transport: Optional[httpx.BaseTransport] = None) -> httpx.Client:
+    return httpx.Client(**_client_kwargs(config, base_url, headers, transport))
+
+
+def build_async_client(config, *, base_url: str = "", headers: Optional[Dict[str, str]] = None,
+                       transport: Any = None) -> httpx.AsyncClient:
+    kw = _client_kwargs(config, base_url, headers, transport)
+    from sajha.observability.tracing import httpx_hooks
+    kw["event_hooks"] = httpx_hooks(asynchronous=True)
+    if transport is not None and not hasattr(transport, "handle_async_request"):
+        kw.pop("transport")
+    return httpx.AsyncClient(**kw)
 
 
 def parse_retry_after(headers) -> Optional[float]:
@@ -110,6 +126,13 @@ def map_http_error(resp: httpx.Response, provider: str, model: str = "") -> LLME
     return InvalidRequest(msg, **kw)
 
 
+def _transport_error(e: Exception, provider: str, model: str) -> LLMError:
+    if isinstance(e, httpx.TimeoutException):
+        return ProviderUnavailable(f"{provider}: timeout ({e.__class__.__name__})", provider=provider, model=model)
+    return ProviderUnavailable(f"{provider}: connection failed ({e.__class__.__name__}: {e})",
+                               provider=provider, model=model)
+
+
 @contextmanager
 def transport_errors(provider: str, model: str = ""):
     """Translate httpx transport failures into ProviderUnavailable."""
@@ -117,12 +140,18 @@ def transport_errors(provider: str, model: str = ""):
         yield
     except LLMError:
         raise
-    except httpx.TimeoutException as e:
-        raise ProviderUnavailable(f"{provider}: timeout ({e.__class__.__name__})",
-                                  provider=provider, model=model) from None
-    except httpx.TransportError as e:
-        raise ProviderUnavailable(f"{provider}: connection failed ({e.__class__.__name__}: {e})",
-                                  provider=provider, model=model) from None
+    except (httpx.TimeoutException, httpx.TransportError) as e:
+        raise _transport_error(e, provider, model) from None
+
+
+@asynccontextmanager
+async def atransport_errors(provider: str, model: str = ""):
+    try:
+        yield
+    except LLMError:
+        raise
+    except (httpx.TimeoutException, httpx.TransportError) as e:
+        raise _transport_error(e, provider, model) from None
 
 
 def post_json(client: httpx.Client, url: str, payload: Dict[str, Any], *, provider: str, model: str = "",
@@ -130,6 +159,21 @@ def post_json(client: httpx.Client, url: str, payload: Dict[str, Any], *, provid
               classify: Optional[Callable[[httpx.Response], Optional[LLMError]]] = None) -> Dict[str, Any]:
     with transport_errors(provider, model):
         resp = client.post(url, json=payload, params=params, headers=headers)
+    if resp.status_code >= 400:
+        err = classify(resp) if classify else None
+        raise err or map_http_error(resp, provider, model)
+    try:
+        return resp.json()
+    except Exception:
+        raise ProviderUnavailable(f"{provider}: non-JSON response", provider=provider, model=model)
+
+
+async def apost_json(client: httpx.AsyncClient, url: str, payload: Dict[str, Any], *, provider: str,
+                     model: str = "", params: Optional[Dict[str, str]] = None,
+                     headers: Optional[Dict[str, str]] = None,
+                     classify: Optional[Callable[[httpx.Response], Optional[LLMError]]] = None) -> Dict[str, Any]:
+    async with atransport_errors(provider, model):
+        resp = await client.post(url, json=payload, params=params, headers=headers)
     if resp.status_code >= 400:
         err = classify(resp) if classify else None
         raise err or map_http_error(resp, provider, model)
@@ -161,26 +205,74 @@ def stream_post(client: httpx.Client, url: str, payload: Dict[str, Any], *, prov
             yield resp
 
 
-def iter_sse(resp: httpx.Response) -> Iterator[Tuple[str, str]]:
-    """Yield (event, data) pairs from a Server-Sent Events response."""
-    event, data = "", []
-    for line in resp.iter_lines():
+@asynccontextmanager
+async def astream_post(client: httpx.AsyncClient, url: str, payload: Dict[str, Any], *, provider: str,
+                       model: str = "", params: Optional[Dict[str, str]] = None,
+                       headers: Optional[Dict[str, str]] = None,
+                       classify: Optional[Callable[[httpx.Response], Optional[LLMError]]] = None):
+    async with atransport_errors(provider, model):
+        async with client.stream("POST", url, json=payload, params=params, headers=headers) as resp:
+            if resp.status_code >= 400:
+                await resp.aread()
+                err = classify(resp) if classify else None
+                raise err or map_http_error(resp, provider, model)
+            yield resp
+
+
+class SSEParser:
+    """Incremental Server-Sent Events parser: feed lines, get (event, data) pairs."""
+
+    def __init__(self):
+        self.event, self.data = "", []
+
+    def feed(self, line: str) -> Optional[Tuple[str, str]]:
         if line == "":
-            if data:
-                yield event or "message", "\n".join(data)
-            event, data = "", []
-            continue
+            out = (self.event or "message", "\n".join(self.data)) if self.data else None
+            self.event, self.data = "", []
+            return out
         if line.startswith(":"):
-            continue
+            return None
         field, _, value = line.partition(":")
         if value.startswith(" "):
             value = value[1:]
         if field == "event":
-            event = value
+            self.event = value
         elif field == "data":
-            data.append(value)
-    if data:
-        yield event or "message", "\n".join(data)
+            self.data.append(value)
+        return None
+
+    def close(self) -> Optional[Tuple[str, str]]:
+        return (self.event or "message", "\n".join(self.data)) if self.data else None
+
+
+def iter_sse(resp: httpx.Response) -> Iterator[Tuple[str, str]]:
+    """Yield (event, data) pairs from a Server-Sent Events response."""
+    p = SSEParser()
+    for line in resp.iter_lines():
+        out = p.feed(line)
+        if out:
+            yield out
+    out = p.close()
+    if out:
+        yield out
+
+
+async def aiter_sse(resp: httpx.Response) -> AsyncIterator[Tuple[str, str]]:
+    p = SSEParser()
+    async for line in resp.aiter_lines():
+        out = p.feed(line)
+        if out:
+            yield out
+    out = p.close()
+    if out:
+        yield out
+
+
+async def aiter_ndjson(resp: httpx.Response) -> AsyncIterator[Dict[str, Any]]:
+    async for line in resp.aiter_lines():
+        line = line.strip()
+        if line:
+            yield json.loads(line)
 
 
 def iter_ndjson(resp: httpx.Response) -> Iterator[Dict[str, Any]]:

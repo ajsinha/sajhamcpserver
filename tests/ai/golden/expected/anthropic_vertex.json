@@ -1,0 +1,562 @@
+{
+ "requests": {
+  "developer_role": {
+   "body": {
+    "anthropic_version": "vertex-2023-10-16",
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "system": "Answer in one line."
+   },
+   "path": "/v1/projects/acme-prj/locations/us-east5/publishers/anthropic/models/claude-golden@20260901:rawPredict"
+  },
+  "image": {
+   "body": {
+    "anthropic_version": "vertex-2023-10-16",
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What is in this chart?",
+        "type": "text"
+       },
+       {
+        "source": {
+         "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+         "media_type": "image/png",
+         "type": "base64"
+        },
+        "type": "image"
+       }
+      ],
+      "role": "user"
+     }
+    ]
+   },
+   "path": "/v1/projects/acme-prj/locations/us-east5/publishers/anthropic/models/claude-golden@20260901:rawPredict"
+  },
+  "image_http_url": {
+   "error": "unsupported_feature",
+   "message": "anthropic_vertex/claude-golden@20260901 does not support messages[0] image http(s) URL (passed through to OpenAI-compatible servers only)"
+  },
+  "json_object": {
+   "body": {
+    "anthropic_version": "vertex-2023-10-16",
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "AAPL quote as JSON",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "output_config": {
+     "format": {
+      "schema": {
+       "type": "object"
+      },
+      "type": "json_schema"
+     }
+    }
+   },
+   "path": "/v1/projects/acme-prj/locations/us-east5/publishers/anthropic/models/claude-golden@20260901:rawPredict"
+  },
+  "n2": {
+   "body": {
+    "anthropic_version": "vertex-2023-10-16",
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ]
+   },
+   "path": "/v1/projects/acme-prj/locations/us-east5/publishers/anthropic/models/claude-golden@20260901:rawPredict"
+  },
+  "parallel_off": {
+   "body": {
+    "anthropic_version": "vertex-2023-10-16",
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "tool_choice": {
+     "disable_parallel_tool_use": true,
+     "type": "auto"
+    },
+    "tools": [
+     {
+      "description": "Latest price for a ticker",
+      "input_schema": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      },
+      "name": "get_quote"
+     }
+    ]
+   },
+   "path": "/v1/projects/acme-prj/locations/us-east5/publishers/anthropic/models/claude-golden@20260901:rawPredict"
+  },
+  "passthrough": {
+   "error": "unsupported_feature",
+   "message": "anthropic_vertex/claude-golden@20260901 does not support presence_penalty, logprobs (passed through to OpenAI-compatible servers only)"
+  },
+  "plain": {
+   "body": {
+    "anthropic_version": "vertex-2023-10-16",
+    "max_tokens": 300,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "stop_sequences": [
+     "END"
+    ],
+    "system": "Be brief.",
+    "temperature": 0.2
+   },
+   "path": "/v1/projects/acme-prj/locations/us-east5/publishers/anthropic/models/claude-golden@20260901:rawPredict"
+  },
+  "reasoning": {
+   "body": {
+    "anthropic_version": "vertex-2023-10-16",
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "output_config": {
+     "effort": "low"
+    }
+   },
+   "path": "/v1/projects/acme-prj/locations/us-east5/publishers/anthropic/models/claude-golden@20260901:rawPredict"
+  },
+  "sampling": {
+   "error": "unsupported_feature",
+   "message": "anthropic_vertex/claude-golden@20260901 does not support seed"
+  },
+  "structured": {
+   "body": {
+    "anthropic_version": "vertex-2023-10-16",
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "AAPL quote as JSON",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "output_config": {
+     "format": {
+      "schema": {
+       "additionalProperties": false,
+       "properties": {
+        "price": {
+         "type": "number"
+        },
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol",
+        "price"
+       ],
+       "type": "object"
+      },
+      "type": "json_schema"
+     }
+    }
+   },
+   "path": "/v1/projects/acme-prj/locations/us-east5/publishers/anthropic/models/claude-golden@20260901:rawPredict"
+  },
+  "tool_named": {
+   "body": {
+    "anthropic_version": "vertex-2023-10-16",
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "tool_choice": {
+     "name": "get_quote",
+     "type": "tool"
+    },
+    "tools": [
+     {
+      "description": "Latest price for a ticker",
+      "input_schema": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      },
+      "name": "get_quote"
+     },
+     {
+      "description": "FX rate",
+      "input_schema": {
+       "properties": {
+        "pair": {
+         "type": "string"
+        }
+       },
+       "type": "object"
+      },
+      "name": "get_fx"
+     }
+    ]
+   },
+   "path": "/v1/projects/acme-prj/locations/us-east5/publishers/anthropic/models/claude-golden@20260901:rawPredict"
+  },
+  "tool_named_only_tool": {
+   "body": {
+    "anthropic_version": "vertex-2023-10-16",
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "tool_choice": {
+     "name": "get_quote",
+     "type": "tool"
+    },
+    "tools": [
+     {
+      "description": "Latest price for a ticker",
+      "input_schema": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      },
+      "name": "get_quote"
+     }
+    ]
+   },
+   "path": "/v1/projects/acme-prj/locations/us-east5/publishers/anthropic/models/claude-golden@20260901:rawPredict"
+  },
+  "tool_none": {
+   "body": {
+    "anthropic_version": "vertex-2023-10-16",
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ]
+   },
+   "path": "/v1/projects/acme-prj/locations/us-east5/publishers/anthropic/models/claude-golden@20260901:rawPredict"
+  },
+  "tool_required": {
+   "body": {
+    "anthropic_version": "vertex-2023-10-16",
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "tool_choice": {
+     "type": "any"
+    },
+    "tools": [
+     {
+      "description": "Latest price for a ticker",
+      "input_schema": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      },
+      "name": "get_quote"
+     },
+     {
+      "description": "FX rate",
+      "input_schema": {
+       "properties": {
+        "pair": {
+         "type": "string"
+        }
+       },
+       "type": "object"
+      },
+      "name": "get_fx"
+     }
+    ]
+   },
+   "path": "/v1/projects/acme-prj/locations/us-east5/publishers/anthropic/models/claude-golden@20260901:rawPredict"
+  },
+  "tool_round_trip": {
+   "body": {
+    "anthropic_version": "vertex-2023-10-16",
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "id": "call_q1",
+        "input": {
+         "symbol": "AAPL"
+        },
+        "name": "get_quote",
+        "type": "tool_use"
+       },
+       {
+        "id": "call_q2",
+        "input": {
+         "symbol": "MSFT"
+        },
+        "name": "get_quote",
+        "type": "tool_use"
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "content": "{\"price\": 231.4}",
+        "is_error": false,
+        "tool_use_id": "call_q1",
+        "type": "tool_result"
+       },
+       {
+        "content": "upstream timeout",
+        "is_error": true,
+        "tool_use_id": "call_q2",
+        "type": "tool_result"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "tool_choice": {
+     "type": "auto"
+    },
+    "tools": [
+     {
+      "description": "Latest price for a ticker",
+      "input_schema": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      },
+      "name": "get_quote"
+     }
+    ]
+   },
+   "path": "/v1/projects/acme-prj/locations/us-east5/publishers/anthropic/models/claude-golden@20260901:rawPredict"
+  },
+  "tools": {
+   "body": {
+    "anthropic_version": "vertex-2023-10-16",
+    "max_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What did AAPL and MSFT close at?",
+        "type": "text"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "tool_choice": {
+     "type": "auto"
+    },
+    "tools": [
+     {
+      "description": "Latest price for a ticker",
+      "input_schema": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      },
+      "name": "get_quote"
+     },
+     {
+      "description": "FX rate",
+      "input_schema": {
+       "properties": {
+        "pair": {
+         "type": "string"
+        }
+       },
+       "type": "object"
+      },
+      "name": "get_fx"
+     }
+    ]
+   },
+   "path": "/v1/projects/acme-prj/locations/us-east5/publishers/anthropic/models/claude-golden@20260901:rawPredict"
+  }
+ },
+ "stream_request": {
+  "body": {
+   "anthropic_version": "vertex-2023-10-16",
+   "max_tokens": 4096,
+   "messages": [
+    {
+     "content": [
+      {
+       "text": "What did AAPL and MSFT close at?",
+       "type": "text"
+      }
+     ],
+     "role": "user"
+    }
+   ],
+   "stream": true,
+   "tool_choice": {
+    "type": "auto"
+   },
+   "tools": [
+    {
+     "description": "Latest price for a ticker",
+     "input_schema": {
+      "properties": {
+       "symbol": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "symbol"
+      ],
+      "type": "object"
+     },
+     "name": "get_quote"
+    },
+    {
+     "description": "FX rate",
+     "input_schema": {
+      "properties": {
+       "pair": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "name": "get_fx"
+    }
+   ]
+  },
+  "path": "/v1/projects/acme-prj/locations/us-east5/publishers/anthropic/models/claude-golden@20260901:streamRawPredict"
+ }
+}

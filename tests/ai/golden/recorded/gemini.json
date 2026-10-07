@@ -1,0 +1,38 @@
+{
+  "_note": "Recorded-shape Gemini generateContent payloads. Inputs to tests/ai/test_golden_translation.py.",
+  "replies": {
+    "text": {"candidates": [{"content": {"role": "model", "parts": [{"text": "AAPL closed at 231.40."}]}, "finishReason": "STOP", "index": 0}],
+             "usageMetadata": {"promptTokenCount": 36, "candidatesTokenCount": 9, "totalTokenCount": 45},
+             "modelVersion": "gemini-golden-001", "responseId": "r-AbC"},
+    "parallel_tool_calls": {"candidates": [{"content": {"role": "model", "parts": [
+                 {"functionCall": {"name": "get_quote", "args": {"symbol": "AAPL"}}, "thoughtSignature": "CiQBVKhc"},
+                 {"functionCall": {"name": "get_quote", "args": {"symbol": "MSFT"}}}]}, "finishReason": "STOP", "index": 0}],
+             "usageMetadata": {"promptTokenCount": 110, "candidatesTokenCount": 30, "thoughtsTokenCount": 64, "cachedContentTokenCount": 50, "totalTokenCount": 204},
+             "modelVersion": "gemini-golden-001", "responseId": "r-DeF"},
+    "safety": {"candidates": [{"finishReason": "SAFETY", "index": 0,
+                 "safetyRatings": [{"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "probability": "HIGH", "blocked": true}]}],
+             "usageMetadata": {"promptTokenCount": 20, "totalTokenCount": 20}, "modelVersion": "gemini-golden-001"},
+    "prompt_blocked": {"promptFeedback": {"blockReason": "PROHIBITED_CONTENT"}, "usageMetadata": {"promptTokenCount": 20}},
+    "malformed_function_call": {"candidates": [{"content": {"parts": []}, "finishReason": "MALFORMED_FUNCTION_CALL", "index": 0}],
+             "usageMetadata": {"promptTokenCount": 110, "totalTokenCount": 110}},
+    "two_candidates": {"candidates": [{"content": {"role": "model", "parts": [{"text": "Up."}]}, "finishReason": "STOP", "index": 0},
+                                      {"content": {"role": "model", "parts": [{"text": "Higher."}]}, "finishReason": "STOP", "index": 1}],
+             "usageMetadata": {"promptTokenCount": 12, "candidatesTokenCount": 4, "totalTokenCount": 16}}
+  },
+  "streams": {
+    "text": [
+      {"candidates": [{"content": {"role": "model", "parts": [{"text": "AAPL closed "}]}, "index": 0}], "modelVersion": "gemini-golden-001"},
+      {"candidates": [{"content": {"role": "model", "parts": [{"text": "at 231.40."}]}, "finishReason": "STOP", "index": 0}],
+       "usageMetadata": {"promptTokenCount": 36, "candidatesTokenCount": 9, "totalTokenCount": 45}, "modelVersion": "gemini-golden-001"}
+    ],
+    "tool_fragments": [
+      {"candidates": [{"content": {"role": "model", "parts": [{"functionCall": {"name": "get_quote", "args": {"symbol": "AAPL"}}, "thoughtSignature": "CiQBVKhc"}]}, "index": 0}]},
+      {"candidates": [{"content": {"role": "model", "parts": [{"functionCall": {"name": "get_quote", "args": {"symbol": "MSFT"}}}]}, "finishReason": "STOP", "index": 0}],
+       "usageMetadata": {"promptTokenCount": 110, "candidatesTokenCount": 30, "thoughtsTokenCount": 64, "totalTokenCount": 204}}
+    ],
+    "safety": [
+      {"candidates": [{"content": {"role": "model", "parts": [{"text": "Here is"}]}, "index": 0}]},
+      {"candidates": [{"finishReason": "SAFETY", "index": 0}], "usageMetadata": {"promptTokenCount": 20, "candidatesTokenCount": 2}}
+    ]
+  }
+}

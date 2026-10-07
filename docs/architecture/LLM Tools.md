@@ -747,6 +747,10 @@ carries both, the stored conversation wins and `messages` is ignored, with a not
 
 ### 10.2 The handle
 
+*Status: built (build step 6).* `ConversationMemory.open()` in `sajha/ai/memory.py` implements
+the rules below, `record()` stores a turn, and `from_client()` the `client` mode; the module
+docstring is the API an LLM tool calls. The `LLMTool` type itself (step 3) does not call it yet.
+
 - No `conversation_id` in the call: SAJHA creates a conversation and returns its id.
 - A valid id the caller owns: SAJHA continues it.
 - An id that does not exist, has expired, belongs to someone else or to another tool: the
@@ -786,7 +790,8 @@ four tiers with an explicit bound and an explicit spill path for each:
 Each call builds the model's context from the summary plus the last `ai.memory.history_turns`
 turns verbatim, and condenses a follow-up into a standalone question so tool shortlisting
 works. LLM tools add a `tool_name` and an `expires_ts` to the conversation row (section 19), so
-each tool's conversations are separate and each can expire on its own schedule.
+each tool's conversations are separate and each can expire on its own schedule. *Built:* both
+columns and their indexes are in both schema files; T0 budgets, T1 and T3 are step 7.
 
 ### 10.4 Bounding RAM and protecting the process
 
@@ -794,9 +799,8 @@ The goal is that no amount of traffic, conversation length or tool output can ta
 process down: under pressure, work slows down or is refused, it does not crash.
 
 1. **Load only the window.** A call reads the conversation row and at most `history_turns` turn
-   rows; older turns are represented by the summary and never loaded. (Today
-   `ConversationMemory.context` reads every turn row of the conversation and slices the window
-   in memory; the design reads only the window.)
+   rows; older turns are represented by the summary and never loaded. *Built:* the only other
+   rows read are turns that have just left the window and are not yet summarised.
 2. **Per-call working-set budget.** Every item a run holds is measured when added. A tool result
    larger than `spill_threshold_kb` is written to the run's spool folder (T3) at once; the run
    keeps a reference and a preview of `ai.ask.max_result_chars` characters, which is all a model
@@ -829,18 +833,18 @@ process down: under pressure, work slows down or is refused, it does not crash.
 
 | Bound | Where it is set | Status |
 |---|---|---|
-| Store words, not data: question, answer and tool names only; raw tool results are never written to the conversation tables (the audit log records the calls) | design rule | already true today |
-| Each stored answer clipped to `max_turn_chars`; questions clipped likewise | `ai.memory.max_turn_chars` | answers today; questions added |
-| Summary clipped to `summary_max_chars` | `ai.memory.summary_max_chars` | today |
-| Turns per conversation: beyond `memory.max_turns`, older turns are folded into the summary and their rows deleted, so a conversation is at most summary + N turns | per tool, ceiling `ai.llm_tools.memory.max_turns` | new |
-| Idle expiry per tool: `memory.ttl_minutes` sets `expires_ts`; renewed on each turn | per tool, ceiling `ai.memory.retention_days` | new |
-| Conversations per user (oldest deleted first) | `ai.memory.max_conversations_per_user` | today |
-| Conversations per user per tool | `ai.llm_tools.memory.max_conversations_per_tool` | new |
-| Scheduled purge: expired conversations deleted by a periodic job that fires once across workers (the same claim mechanism workflow cron and probes use), instead of only opportunistically when someone writes | `ai.llm_tools.memory.purge_interval_minutes` | new (today: at most hourly, on write) |
-| Spool: a run's folder is deleted when the run ends; a janitor deletes folders older than `spool.orphan_minutes` (crashed runs) at start-up and periodically; total size capped by `spool.max_mb` | `ai.llm_tools.memory.spool.*` | new |
-| SQLite file size: deleted rows' pages are reused; an optional `VACUUM` in the purge window returns space to the file system. PostgreSQL relies on autovacuum (operator) | `ai.llm_tools.memory.sqlite_vacuum` | new |
-| No storage for anonymous callers | design rule | new |
-| Users delete their own history | `DELETE /api/ai/conversations` | today |
+| Store words, not data: question, answer and tool names only; raw tool results are never written to the conversation tables (the audit log records the calls) | design rule | built |
+| Each stored answer clipped to `max_turn_chars`; questions clipped likewise | `ai.memory.max_turn_chars` | built (both) |
+| Summary clipped to `summary_max_chars` | `ai.memory.summary_max_chars` | built |
+| Turns per conversation: beyond `memory.max_turns`, older turns are folded into the summary and their rows deleted, so a conversation is at most summary + N turns | per tool, ceiling `ai.llm_tools.memory.max_turns` | built (LLM-tool conversations; the Ask SAJHA page keeps every turn) |
+| Idle expiry per tool: `memory.ttl_minutes` sets `expires_ts`; renewed on each turn | per tool, ceiling `ai.memory.retention_days` | built |
+| Conversations per user (oldest deleted first) | `ai.memory.max_conversations_per_user` | built |
+| Conversations per user per tool | `ai.llm_tools.memory.max_conversations_per_tool` | built |
+| Scheduled purge: expired conversations deleted by a periodic job that fires once across workers (a one-slot claim in the state store, as snapshots use), instead of only opportunistically when someone writes | `ai.llm_tools.memory.purge_interval_minutes` | built (`0` falls back to at most hourly, on write) |
+| Spool: a run's folder is deleted when the run ends; a janitor deletes folders older than `spool.orphan_minutes` (crashed runs) at start-up and periodically; total size capped by `spool.max_mb` | `ai.llm_tools.memory.spool.*` | step 7 |
+| SQLite file size: deleted rows' pages are reused; an optional `VACUUM` in the purge window returns space to the file system. PostgreSQL relies on autovacuum (operator) | `ai.llm_tools.memory.sqlite_vacuum` | built |
+| No storage for anonymous callers | design rule | built |
+| Users delete their own history | `DELETE /api/ai/conversations` | built |
 
 Worst case per user is therefore *conversations per user × (summary + max_turns × 2 × clip
 size)*, and worst case spool is `spool.max_mb`: numbers an operator can compute from config.
@@ -849,6 +853,9 @@ size)*, and worst case spool is `spool.max_mb`: numbers an operator can compute 
 
 - Metrics: stored conversations and turns per tool, purged per run, summarisations
   (`sajha_llm_tool_conversations`, `sajha_llm_tool_turns_total`, `sajha_llm_tool_purged_total`).
+  *Built:* these three (`tool="ask"` labels the Ask SAJHA page); the resource metrics below are
+  step 7. `GET /api/ai/conversations?tool=<name>` lists one tool's conversations; the page is
+  step 10.
 - Resource metrics: working-set bytes and spills per run (`sajha_llm_tool_spilled_total`), spool
   bytes in use (`sajha_llm_tool_spool_bytes`), hot-cache bytes and evictions, queued and refused
   runs (`sajha_llm_tool_runs_refused_total{reason}`), and the memory guard's state (`ok`, `soft`,
@@ -912,9 +919,16 @@ accept or emulate. Code written against SAJHA's provider and model abstraction t
 code written against any OpenAI-compatible SDK, and moves between providers, and in and out of
 SAJHA, without rewriting.
 
+*Status: built (Implementation Plan wave 2), except 13.4, the outward endpoint (wave 3).* The
+canonical types are `sajha/ai/llm/canonical.py`; the model and gateway interfaces, the
+adapters and the credentials for Vertex AI and Entra ID are described as built in the
+[Intelligence Layer](Intelligence%20Layer.md#2-core-abstractions), and writing a provider or
+model against them in [Extending the Intelligence Layer](Extending%20the%20Intelligence%20Layer.md#3-writing-a-model).
+
 ### 13.1 Today
 
-The intelligence layer ([Intelligence Layer](Intelligence%20Layer.md)) has its own neutral types
+*This was the state before the canonical format was built; those types remain, converted
+losslessly, for the callers that have not moved (13.5).* The intelligence layer ([Intelligence Layer](Intelligence%20Layer.md)) has its own neutral types
 in `sajha/ai/llm/types.py`: a `ChatRequest` with `messages` made of typed parts, a separate
 `system` field, `tools` as `ToolSpec` objects with `input_schema`, `response_schema` for
 structured output, a `ChatResponse` with a `finish_reason` normalised to `stop`, `tool_calls`,
@@ -996,6 +1010,14 @@ class LLMProvider(Protocol):                    # a vendor or server, with its c
 - **The mock follows the same format.** The mock provider and its scripted replies speak Chat
   Completions, so tests and the offline default exercise exactly the shapes real providers return.
 
+*Built as above.* The model methods are `chat_completions_create`, `chat_completions_stream`,
+`achat_completions_create`, `achat_completions_stream` and `embeddings_create`; the
+provider's are `models()` and `model(name)`; the gateway has the same methods plus
+`models(ctx)`. Native async is built for every HTTP provider (Bedrock's boto3 runs in a
+worker thread). The declared fallbacks built are JSON-mode emulation of `json_schema`, `n`
+calls for `n` on models without native `n`, and `sajha.ignored` for sampling controls; a
+vendor's error finish raises `ModelFailed`, which sends the gateway to the next candidate.
+
 ### 13.4 SAJHA as an OpenAI-compatible endpoint
 
 Because SAJHA speaks the format internally, it can also offer it outward, opt-in
@@ -1028,12 +1050,32 @@ Because SAJHA speaks the format internally, it can also offer it outward, opt-in
 - `docs/architecture/Extending the Intelligence Layer.md` is rewritten around the new interfaces,
   so a custom provider is written against the format its author already knows.
 
+*Built:* the converters (`sajha/ai/llm/convert.py`); every built-in provider and the mock
+moved to the canonical format, with the original `generate` / `stream` / `embed` kept as
+shims on every model and `chat` / `stream` / `achat` / `embed` on the gateway; Studio's
+Describe a tool and query-side embeddings (tool search, vector connectors) moved; the
+golden tests (`tests/ai/test_golden_translation.py`, recorded payloads in
+`tests/ai/golden/`) and the portability suite (`tests/ai/test_portability.py`); the guide
+rewritten. Not yet moved: the planners and the ask service (they reach the canonical
+gateway through the converters), and document search, whose query embeddings still use the
+document purpose until it passes `purpose="query"`.
+
 ### 13.6 Field coverage
 
 This settles which parts of Chat Completions the canonical format carries. The rule: support
 what the planners, the LLM-tool modes and today's providers need; pass through what only
 OpenAI-compatible servers understand; refuse everything else with a clear error, never drop it
 silently.
+
+*Status: built as specified, including the six behaviours the tables mark as silent before
+(OpenAI's refusal, a forced or named tool choice quietly made `auto`, Cohere's named choice
+over every tool, a dropped temperature, the `error` finish reason, and the document input
+type used for query embeddings). As-built notes: the provider-independent refusals raise
+`InvalidRequest` before any candidate is tried (`check_request`); `user` and `metadata` reach
+the gateway's audit record (not yet the usage ledger); `reasoning_effort` is refused on
+Bedrock; a model always ends its stream with the usage chunk, and the gateway passes it on
+only when `stream_options.include_usage` is set; text a vendor streamed before a safety stop
+stays in `content` next to the `refusal`.*
 
 | Status | Meaning |
 |---|---|

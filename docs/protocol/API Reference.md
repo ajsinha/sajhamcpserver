@@ -367,14 +367,14 @@ curl -X POST http://localhost:3002/api/composite-tools \
 | POST | `/api/ai/ask` | user | Answer a question with SAJHA's tools: `question` (required), `model`, `confirm`, `conversation_id` (`"new"` or an id of the caller's; another user's or an expired id is 404), `planner` (admins; 403 otherwise). JSON `AskResult`, or an SSE step stream with `Accept: text/event-stream` or `?stream=1`. Event schema: [Intelligence Layer](../architecture/Intelligence%20Layer.md#post-apiaiask). |
 | GET | `/api/ai/config` | admin | Effective `ai.*` configuration, each value with its source; secrets redacted. |
 | GET | `/api/ai/planners` | user | Registered planners and the configured default (`ai.ask.planner`). |
-| GET | `/api/ai/conversations` | user | The caller's conversations, most recent first. |
+| GET | `/api/ai/conversations` | user | The caller's conversations, most recent first: the Ask SAJHA page's by default, `?tool=<name>` one LLM tool's, `?tool=*` all. Each carries `tool_name` and `expires_ts`. |
 | GET | `/api/ai/conversations/{conversation_id}` | user | One of the caller's conversations with its turns and summary; 404 for anyone else's. |
 | DELETE | `/api/ai/conversations/{conversation_id}` | user | Delete one of the caller's conversations. |
 | DELETE | `/api/ai/conversations` | user | Delete all of the caller's conversations (`{"deleted": n}`). |
 | POST | `/api/ai/docs/search` | user | Search the document index: `query` (required), `top_k`, `source`. Passages with citations. Callers who may not run `sajha_search_docs` search SAJHA's guides only. |
 | GET | `/api/ai/docs/status` | admin | The document index: store, embedder, documents, sources, uploads, last build. |
 | POST | `/api/ai/docs/reindex` | admin | Re-sync the index now; `{"force": true}` re-embeds everything. |
-| POST | `/api/ai/docs/uploads` | admin | Add a document: `{"filename", "content"}` (UTF-8 `.md`, `.markdown`, `.txt`, `.rst`, `.html`, `.htm`); 201. |
+| POST | `/api/ai/docs/uploads` | admin | Add a document: `{"filename", "content"}` (UTF-8 `.md`, `.markdown`, `.txt`, `.rst`, `.html`, `.htm`), or `{"filename", "content_base64"}` for `.pdf` (needs `pypdf`) and `.docx` (needs `python-docx`); 201. A missing reader answers 400 naming the package. |
 | DELETE | `/api/ai/docs/uploads/{filename}` | admin | Remove an uploaded document from storage and the index. |
 
 ```bash

@@ -17,6 +17,11 @@ real provider is configured, so a fresh install can use the intelligence layer a
                      (structured output only; sajha/ai/llm/mock_toolsmith.py)
     mock-embed       deterministic embeddings from hashed word n-grams (default 256 dims)
 
+The mock speaks the canonical Chat Completions format (chat_completions_create / _stream return
+ChatCompletion and chat.completion.chunk objects), so tests and the offline default exercise the
+same shapes real providers return. A script step may be ``{text}``, ``{json}``, ``{tool_calls}``,
+``{refusal}`` (a content_filter finish with message.refusal), ``{error}`` or ``{sleep_ms}``.
+
 Fault injection (config or per test): latency_ms [lo, hi] (seeded), fail_every N,
 fail_with rate_limited | unavailable | auth | context_too_long | content_filtered.
 Every call is priced at zero but reports token usage, so budgets and usage pages work.
@@ -43,8 +48,11 @@ from sajha.ai.llm.model import (ChatModel, EmbeddingModel, HealthStatus, ModelCa
 from sajha.ai.llm.provider import LLMProvider
 from sajha.ai.llm.registry import register_provider
 from sajha.ai.llm.settings import ProviderConfig
-from sajha.ai.llm.types import (ChatRequest, ChatResponse, Done, Message, TextDelta, TextPart,
-                                ToolCallDelta, ToolCallPart, ToolSpec, UsageEvent)
+from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionChunk, ChatCompletionRequest, ChatMessage,
+                                    Choice, ChoiceDelta, ChunkChoice, CompletionUsage, DeltaFunction, DeltaToolCall,
+                                    ResponseSajha, ToolCall)
+from sajha.ai.llm.convert import from_canonical_request
+from sajha.ai.llm.types import ChatRequest, ToolCallPart, ToolSpec
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +150,10 @@ class MockProvider(LLMProvider):
     config_model = MockConfig
     requires_key = False
     catalog_key = "mock"
+    # the mock declares every canonical feature except native n (so n > 1 exercises the
+    # model's n-calls path)
+    feature_defaults = {"seed": True, "parallel_tool_control": True, "strict_tools": True,
+                        "reasoning_effort": True, "variable_dimensions": True}
 
     MODELS = {
         "mock-echo": ModelCapabilities(tools=False, structured_output=False, context_window=128_000,
@@ -260,33 +272,56 @@ class MockProvider(LLMProvider):
 # ── models ────────────────────────────────────────────────────────
 
 class _MockChat(ChatModel):
+    """The mock speaks the canonical format: ``_create`` returns a ChatCompletion and ``_stream``
+    yields chat.completion.chunk objects, word by word, with tool-call arguments in two fragments.
+    Subclasses decide the reply in ``_reply(legacy_request) -> (text, tool_calls, finish)`` (a
+    lossless legacy view of the request, convenient for the keyword planner); a scripted step can
+    also return a refusal."""
+
     def _reply(self, request: ChatRequest) -> Tuple[str, List[ToolCallPart], str]:
         raise NotImplementedError
 
-    def generate(self, request: ChatRequest) -> ChatResponse:
-        t0 = time.time()
-        self.validate(request)
-        self.provider.inject()
-        text, calls, finish = self._reply(request)
-        msg = Message.assistant(text, calls)
-        out_tokens = estimate_tokens(text + "".join(json.dumps(c.arguments) + c.name for c in calls))
-        usage = self.make_usage(self.count_tokens(request), out_tokens)
-        usage.cost_usd = 0.0
-        return ChatResponse(msg, finish, usage, self.id, self.provider.name,
-                            int((time.time() - t0) * 1000))
+    def _refusal(self) -> Optional[str]:
+        return None
 
-    def stream(self, request: ChatRequest) -> Iterator:
-        resp = self.generate(request)
-        words = re.findall(r"\S+\s*", resp.text)
-        for w in words:
-            yield TextDelta(w)
-        for i, c in enumerate(resp.tool_calls):
-            args = json.dumps(c.arguments)
+    def _create(self, request: ChatCompletionRequest) -> ChatCompletion:
+        self.provider.inject()
+        legacy = from_canonical_request(request)
+        text, calls, finish = self._reply(legacy)
+        refusal = getattr(self, "_last_refusal", None)
+        self._last_refusal = None
+        tcs = [ToolCall.of(c.id, c.name, c.arguments) for c in calls]
+        msg = ChatMessage(role="assistant", content=text or None, tool_calls=tcs or None)
+        if refusal:
+            msg.refusal, msg.content, finish = refusal, None, "content_filter"
+        out_tokens = estimate_tokens(text + (refusal or "") + "".join(json.dumps(c.arguments) + c.name for c in calls))
+        usage = CompletionUsage.of(self.count_tokens(request), out_tokens)
+        return ChatCompletion(model=self.id, choices=[Choice(message=msg, finish_reason=finish)], usage=usage,
+                              sajha=ResponseSajha(provider=self.provider.name, cost_usd=0.0))
+
+    def _stream(self, request: ChatCompletionRequest) -> Iterator[ChatCompletionChunk]:
+        comp = self._create(request)
+        base = dict(id=comp.id, created=comp.created, model=comp.model)
+        first = True
+
+        def delta(**kw):
+            nonlocal first
+            d = ChoiceDelta(role="assistant" if first else None, **kw)
+            first = False
+            return ChatCompletionChunk(**base, choices=[ChunkChoice(delta=d)])
+
+        for w in re.findall(r"\S+\s*", comp.text):
+            yield delta(content=w)
+        for i, c in enumerate(comp.tool_calls):
+            args = c.function.arguments
             mid = len(args) // 2
-            yield ToolCallDelta(c.id, c.name, args[:mid], i)
-            yield ToolCallDelta(c.id, "", args[mid:], i)
-        yield UsageEvent(resp.usage)
-        yield Done(resp)
+            yield delta(tool_calls=[DeltaToolCall(index=i, id=c.id, type="function",
+                                                  function=DeltaFunction(name=c.function.name, arguments=args[:mid]))])
+            yield delta(tool_calls=[DeltaToolCall(index=i, function=DeltaFunction(arguments=args[mid:]))])
+        if comp.refusal:
+            yield delta(refusal=comp.refusal)
+        yield ChatCompletionChunk(**base, choices=[ChunkChoice(delta=ChoiceDelta(), finish_reason=comp.finish_reason)])
+        yield ChatCompletionChunk(**base, choices=[], usage=comp.usage, sajha=comp.sajha)
 
 
 def _last_user_text(request: ChatRequest) -> str:
@@ -303,10 +338,12 @@ class EchoModel(_MockChat):
             return json.dumps({"answer": f"echo: {text}", "citations": [], "caveats": []}), [], "stop"
         return f"echo: {text}", [], "stop"
 
-    def validate(self, request):
-        if request.response_schema:
-            return     # echo wraps itself in the ask schema; good enough for wiring tests
-        super().validate(request)
+    def prepare(self, req, stream=False):
+        if req.output_kind:     # echo wraps itself in the ask schema; good enough for wiring tests
+            prep = super().prepare(req.model_copy(update={"response_format": None}), stream)
+            prep.request = prep.request.model_copy(update={"response_format": req.response_format})
+            return prep
+        return super().prepare(req, stream)
 
 
 class ScriptedModel(_MockChat):
@@ -330,6 +367,8 @@ class ScriptedModel(_MockChat):
             text = json.dumps(step["json"])
         else:
             text = step.get("text", "")
+        if step.get("refusal"):
+            self._last_refusal = step["refusal"]
         finish = step.get("finish_reason") or ("tool_calls" if calls else "stop")
         return text, calls, finish
 

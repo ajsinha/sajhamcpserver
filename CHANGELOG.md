@@ -4,7 +4,88 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
-Nothing yet.
+### Upgrading
+
+- **Database:** new columns `ai_conversations.tool_name` and `ai_conversations.expires_ts`, and
+  indexes `ix_ai_conversations_user_tool_updated` and `ix_ai_conversations_expires`.
+  PostgreSQL: run the statements `python -m sajha.db upgrade-sql` prints (SAJHA never runs DDL
+  there). SQLite for development: recreate the database (the start-up check prints the
+  statements if you prefer to add the columns).
+
+### Conversation memory for LLM tools
+
+- `ConversationMemory.open()`, `record()` and `from_client()` (`sajha/ai/memory.py`): the
+  conversation handle of [LLM Tools](docs/architecture/LLM%20Tools.md) §10 (create when absent,
+  continue when owned, `conversation not found` for an unknown, expired, another user's or another
+  tool's id), per-tool scoping, idle expiry (`ttl_minutes`, renewed each turn), turns beyond
+  `max_turns` folded into the summary and deleted, and `client` history mode. Anonymous callers
+  get nothing stored.
+- Questions are now clipped to `ai.memory.max_turn_chars` like answers, and a turn reads only the
+  verbatim window instead of every turn of the conversation.
+- A scheduled purge (`ai.llm_tools.memory.purge_interval_minutes`, default 15) runs on one worker
+  per interval; it also enforces `ai.llm_tools.memory.max_conversations_per_tool` and can
+  `VACUUM` SQLite (`sqlite_vacuum`). New metrics `sajha_llm_tool_conversations`,
+  `sajha_llm_tool_turns_total`, `sajha_llm_tool_purged_total`.
+- `GET /api/ai/conversations` takes `?tool=<name>` (or `*`); without it, it lists the Ask SAJHA
+  page's conversations as before.
+
+### Documents as RAG sources
+
+- PDF and Word (`.docx`) files in `ai.rag.sources` folders and uploads, read through the
+  optional packages `pypdf` and `python-docx` (commented in `requirements.txt`); without them
+  those files are skipped and the index build names the package to install. Uploads take
+  `content_base64` for them. A PDF or Word file is hashed on its bytes, so an unchanged one is
+  not even extracted on re-index.
+
+### The canonical model interface: OpenAI Chat Completions
+
+Wave 2 of the [Implementation Plan](docs/architecture/Implementation%20Plan.md), stream A:
+[LLM Tools](docs/architecture/LLM%20Tools.md) §13 (except 13.4, the outward endpoint) and the
+Roadmap's X9.
+
+- **One format.** `sajha/ai/llm/canonical.py` types the Chat Completions request, response,
+  stream chunk and embeddings shapes; SAJHA-only data rides in a `sajha` field (the caller's
+  identity, cost, cache hit, fallback attempts, trace id, and the markers `ignored`,
+  `usage_estimated`, `structured_output`). Fields are supported, passed through to
+  OpenAI-compatible servers only, or refused with `invalid_request` naming the field, as §13.6
+  settles.
+- **OpenAI-style interfaces.** Models: `chat_completions_create`, `chat_completions_stream`,
+  `achat_completions_create`, `achat_completions_stream`, `embeddings_create`, `info()`.
+  Providers: `models()` (`ModelInfo`, today's `ModelCapabilities` extended with JSON mode, strict
+  tools, named tool choice, parallel-call control, seed, stop sequences, reasoning effort, native
+  `n` and variable embedding size) and `model(name)`. The gateway: the same methods plus
+  `models(ctx)`, with policy, budgets, cache, retries, breakers and fallback as before. The
+  original `chat` / `stream` / `achat` / `embed` and `generate` / `stream` / `embed` keep working
+  through lossless converters (`sajha/ai/llm/convert.py`).
+- **Adapters at the edge.** Every built-in provider translates the canonical format (OpenAI,
+  Azure OpenAI, Mistral and the presets as a pass-through; Anthropic, Gemini, Bedrock, Cohere,
+  Ollama natively), and the mock speaks it. New request fields: `developer` role, `top_p`,
+  `seed`, `n`, `reasoning_effort`, per-request `parallel_tool_calls` and `strict`,
+  `response_format: json_object`, `stream_options.include_usage`, `user` and `metadata` (audit
+  only), and embeddings `dimensions`, `encoding_format: base64` and `sajha.input_purpose`.
+- **Nothing dropped silently.** OpenAI's `refusal` is kept (refusals from every vendor become
+  `finish_reason: content_filter` with `message.refusal`); a forced or named `tool_choice` on a
+  model that cannot honour it (Ollama, catalogue flag `f`) is refused instead of becoming `auto`;
+  Cohere takes a named choice only when it is the one tool offered; a temperature left out is
+  named in `sajha.ignored`; a vendor's `error` finish (Gemini `MALFORMED_FUNCTION_CALL`, Cohere
+  `ERROR`/`TIMEOUT`) raises the new `ModelFailed` and the gateway tries the next candidate;
+  query embeddings use the query input type (Cohere `search_query`, Gemini `RETRIEVAL_QUERY`) —
+  tool search and vector connectors pass it. A model with JSON mode but no schema output gets
+  `json_schema` emulated (validated, one retry), marked `structured_output: "emulated"`.
+- **Native async** for every HTTP provider (`httpx.AsyncClient` per event loop); the gateway's
+  `achat_completions_create` / `achat_completions_stream` retry and fall back without threads.
+- **Vertex AI** for Gemini and Claude (`platform: vertex`), and **Entra ID** for Azure OpenAI
+  (`auth: entra`: client secret, AKS workload identity or managed identity), with tokens cached
+  and refreshed before expiry (`sajha/ai/llm/cloud_auth.py`); new keys in the
+  [Configuration Reference](docs/getting-started/Configuration%20Reference.md#aiproviders), and
+  `ai.gateway.max_samples` caps `n`.
+- **Tests.** Golden translation tests per provider against recorded vendor payloads
+  (`tests/ai/test_golden_translation.py`, `tests/ai/golden/`), a portability suite through the
+  mock and every adapter offline (`tests/ai/test_portability.py`), and `tests/ai/test_canonical.py`.
+- **Extending.** [Extending the Intelligence Layer](docs/architecture/Extending%20the%20Intelligence%20Layer.md)
+  is rewritten around the new interfaces; a provider over HTTP implements `wire`, `parse` and a
+  `StreamTranslator` on `HTTPChatModel` and gets sync, streaming and native async I/O. The Acme
+  example, the risk-model example and the recipe planner example moved to the canonical format.
 
 ## v7.1.0 (October 2026) — foundations
 

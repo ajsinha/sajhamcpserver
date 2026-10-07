@@ -24,14 +24,16 @@ layer (a new provider, model or planner, step by step, with tested examples) is
  gateway        LLMGateway (sajha/ai/gateway.py): aliases, capability match, policy, budgets,
                 retries + fallback, circuit breaker, response cache, OpenTelemetry span
                                    │
- abstractions   sajha/ai/llm/: Message/ChatRequest/ChatResponse, ChatModel, EmbeddingModel,
-                LLMProvider + pydantic config_model, registry, SecretStore, errors
+ abstractions   sajha/ai/llm/: the canonical format (OpenAI Chat Completions, typed), ChatModel,
+                EmbeddingModel, LLMProvider + pydantic config_model, registry, SecretStore, errors
+                                   │
+ adapters       each provider translates the canonical format to its vendor at the edge
                                    │
  providers      native: anthropic, openai, azure_openai, gemini, bedrock, mistral, cohere,
                 ollama, OpenAI-compatible presets · mock · LegacyProviderAdapter
 ```
 
-Everything above the provider row codes only against SAJHA's own types, so adding or
+Everything above the adapter row codes only against the canonical format, so adding or
 swapping a provider never touches the gateway, the service or its consumers. Nothing in
 `sajha/ai/llm/` imports a vendor SDK: the native providers speak each vendor's REST API with
 `httpx`; Bedrock alone needs SigV4 signing and imports `boto3` lazily (an optional
@@ -39,51 +41,88 @@ dependency; without it the Bedrock provider reports itself down with an install 
 
 | Code | What |
 |---|---|
-| `sajha/ai/llm/types.py` | `Message` and its parts (`TextPart`, `ImagePart`, `ToolCallPart`, `ToolResultPart`), `ToolSpec`, `ChatRequest`, `ChatResponse`, `Usage`, `RequestContext`, stream events (`TextDelta`, `ToolCallDelta`, `UsageEvent`, `Done`) |
-| `sajha/ai/llm/model.py` | `ModelCapabilities`, `ChatModel`, `EmbeddingModel`, `ModelDescriptor`, `HealthStatus`, `Needs` |
+| `sajha/ai/llm/canonical.py` | the canonical format: `ChatCompletionRequest`, `ChatMessage`, `ToolDefinition`, `ResponseFormat`, `ChatCompletion`, `ChatCompletionChunk`, `ChunkAccumulator`, `EmbeddingsRequest`, `EmbeddingsResponse`, the `sajha` fields, and the provider-independent refusals (`check_request`) |
+| `sajha/ai/llm/convert.py` | lossless converters between the original types and the canonical ones |
+| `sajha/ai/llm/adapter.py` | `HTTPChatModel` (sync and native async I/O over `wire` / `parse` / `translator`) and `StreamTranslator` |
+| `sajha/ai/llm/cloud_auth.py` | short-lived credentials: `GoogleTokenSource` (Vertex AI), `EntraTokenSource` (Azure OpenAI) |
+| `sajha/ai/llm/types.py` | the original types: `Message` and its parts (`TextPart`, `ImagePart`, `ToolCallPart`, `ToolResultPart`), `ToolSpec`, `ChatRequest`, `ChatResponse`, `Usage`, `RequestContext`, stream events (`TextDelta`, `ToolCallDelta`, `UsageEvent`, `Done`) |
+| `sajha/ai/llm/model.py` | `ModelCapabilities`, `ModelInfo`, `ChatModel`, `EmbeddingModel`, `ModelDescriptor`, `HealthStatus`, `Needs` |
 | `sajha/ai/llm/provider.py` | `LLMProvider`: credentials, HTTP client, catalogue, model factory, health |
 | `sajha/ai/llm/settings.py` | every config model, the layered resolution, effective-config description |
 | `sajha/ai/llm/registry.py` | `register_provider`, `register_model`, class paths, entry points |
 | `sajha/ai/llm/catalog.py` | curated model ids, context windows and list prices (data only) |
 | `sajha/ai/llm/secrets.py` | `SecretStore` (`env:`, `file:`, `db:` references) and redaction |
-| `sajha/ai/llm/http.py` | httpx client construction, error mapping, SSE and NDJSON parsing |
+| `sajha/ai/llm/http.py` | httpx client construction (sync and async), error mapping, SSE and NDJSON parsing |
 | `sajha/ai/llm/providers/` | the native providers |
 | `sajha/ai/llm/mock.py` | `MockProvider` and its models |
 | `sajha/ai/llm/legacy.py` | `LegacyProviderAdapter` for providers written against the old ABC |
 | `sajha/ai/gateway.py` | `LLMGateway`, `build_gateway`, `init_gateway`, `get_gateway` |
 | `sajha/ai/intelligence.py` | `IntelligenceService`, `AskResult`, `AskStep`, the event stream |
 | `sajha/ai/planners.py` | the `Planner` protocol (`PlanState`, `CallTools`, `Answer`, `Emit`), its registry, and the `react`, `plan_execute`, `recipes` and `router` strategies |
-| `sajha/ai/memory.py` | conversation memory: `ConversationStore` (tables `ai_conversations`, `ai_conversation_turns`), `ConversationMemory` |
-| `sajha/ai/rag/` | document retrieval: `chunking.py`, `stores.py` (in process, pgvector), `index.py` (`DocIndex`), `tool.py` (`sajha_search_docs`) |
+| `sajha/ai/memory.py` | conversation memory: `ConversationStore` (tables `ai_conversations`, `ai_conversation_turns`), `ConversationMemory`, the scheduled purge |
+| `sajha/ai/rag/` | document retrieval: `chunking.py`, `extract.py` (PDF, Word), `stores.py` (in process, pgvector), `index.py` (`DocIndex`), `tool.py` (`sajha_search_docs`) |
 | `sajha/ai/ask_tool.py` | the optional `sajha_ask` MCP tool |
 | `sajha/routes/ai_routes.py` | `POST /api/ai/ask`, `GET /api/ai/config` and the older `/api/ai/*` routes |
 
 ## 2. Core abstractions
 
-**Messages and requests** are plain dataclasses. A `ChatRequest` carries messages, a system
-prompt, offered `ToolSpec`s (built from an MCP tool's name, description and input schema),
-`tool_choice` (`auto`, `none`, `required` or a tool name), an optional `response_schema`
-(structured output), sampling and length limits, and a `RequestContext` (user, roles,
-trace id, budget key, and the RBAC check the ask loop uses). A `ChatResponse` holds the
-assistant `Message` (text and/or tool calls), a finish reason (`stop`, `tool_calls`,
-`length`, `content_filter`, `error`), `Usage` (tokens and cost) and latency.
-`Message.meta` keeps provider round-trip state that must be echoed on the next turn
-(Anthropic thinking blocks, Gemini thought signatures); it is never sent to a different
-provider and never logged.
+**The canonical format** is OpenAI Chat Completions, as typed pydantic models
+(`sajha/ai/llm/canonical.py`): a `ChatCompletionRequest` of `messages` (roles `system`,
+`developer`, `user`, `assistant`, `tool`; content as a string or `text` / `image_url` parts),
+`tools` (functions), `tool_choice`, `parallel_tool_calls`, `response_format` (`json_schema`
+or `json_object`), sampling and length fields, `stream_options`, `user` and `metadata`; a
+`ChatCompletion` of `choices` (each a `message` with `content`, `tool_calls` whose
+`arguments` are a JSON string, `refusal`) with a standard `finish_reason` (`stop`,
+`length`, `tool_calls`, `content_filter`) and `usage` (`prompt_tokens`,
+`completion_tokens`, cached and reasoning token details); `chat.completion.chunk` objects
+for streams, with usage in the last chunk; and `EmbeddingsRequest` / `EmbeddingsResponse`.
+Which fields are supported, passed through to OpenAI-compatible servers only, or refused is
+settled in [LLM Tools §13.6](LLM%20Tools.md#136-field-coverage).
+
+SAJHA's own data travels in one `sajha` field, so a request stripped of it is a valid
+OpenAI request and a response stripped of it a valid OpenAI response. On a request:
+`sajha.context` (a `RequestContext`: user, roles, trace id, budget key and the RBAC check
+the ask loop uses), capability `needs`, and for embeddings `input_purpose` (`query` or
+`document`). On a response: `provider`, `qualified_model`, `cost_usd`, `cached`,
+`latency_ms`, the fallback `attempts`, `trace_id`, and the markers that say what SAJHA did on
+the caller's behalf: `ignored` (sampling parameters left out for a model without them),
+`usage_estimated`, `structured_output` (`native` or `emulated`). Provider round-trip state
+(Anthropic thinking blocks, Gemini thought signatures) rides on an assistant message as
+`sajha.provider_state`: echoed only to the provider that wrote it, excluded from every dump,
+never logged. `user` and `metadata` are recorded in the audit record and never sent to a
+vendor.
+
+The original types (`ChatRequest`, `ChatResponse` with `refusal` and `notes`, the stream
+events `TextDelta`, `ToolCallDelta`, `UsageEvent`, `Done`) remain for existing callers;
+`sajha/ai/llm/convert.py` converts both ways without loss for everything they can express.
+The planners and the ask service still use them; Studio's Describe a tool uses the canonical
+interface.
 
 **Models** are objects: one `ChatModel` or `EmbeddingModel` per configured model, carrying
 `ModelCapabilities` (chat, tools, structured output, vision, streaming, embedding, context
-window, output cap, per-million-token prices, whether it accepts a temperature or a forced
-tool choice, and tags such as `fast`, `reasoning`, `local`, `deterministic`).
-`ChatModel.generate` is the one required method; `stream` defaults to a single `Done`
-event, `agenerate` wraps `generate` in a worker thread (sync first, async wrappers), and
-`validate` raises `UnsupportedFeature` for a request the model cannot serve.
+window, output cap, per-million-token prices, sampling controls, forced and named tool
+choice, JSON mode, strict tools, parallel-call control, seed, stop sequences, reasoning
+effort, native `n`, variable embedding size, and tags such as `fast`, `reasoning`,
+`local`, `deterministic`). Their interface is shaped like an OpenAI-style client:
+`chat_completions_create`, `chat_completions_stream`, `achat_completions_create`,
+`achat_completions_stream`, and `embeddings_create` on embedding models; `info()` returns
+the `ModelInfo` (id, provider, kind, capabilities) that `provider.models()` lists like
+`GET /v1/models`. Every call first runs `prepare`: the provider-independent refusals
+(`InvalidRequest` naming the field), then the declared capabilities — an undeclared feature
+raises `UnsupportedFeature`, `temperature`/`top_p` on a model without sampling controls are
+left out and named in `sajha.ignored`, and `json_schema` on a model with JSON mode but no
+schema output is emulated (JSON mode, the schema in the instructions, validation, one
+retry). Nothing is downgraded silently. `n` > 1 on a model without native `n` becomes `n`
+calls with the choices merged. Models written against the original interface (`generate`,
+`stream`, `embed`) keep working through the converters.
 
 **Providers** are factories. `LLMProvider` declares a registry `name` and a pydantic
 `config_model`; it owns the API key, the `httpx` client (base URL, headers, proxy, TLS,
 timeouts) and a concurrency limit, lists its models (curated catalogue, live discovery
 where the vendor offers it, `@register_model` classes, then database and config
-overrides), and creates `ChatModel`/`EmbeddingModel` objects.
+overrides), and creates `ChatModel`/`EmbeddingModel` objects (`provider.models()` and
+`provider.model(name)` are the OpenAI-style face). Credentials that expire are served per
+request (`request_headers()`), from cached token sources that refresh before expiry.
 
 **Errors** are SAJHA's, so the gateway can react without knowing the vendor:
 
@@ -94,6 +133,7 @@ overrides), and creates `ChatModel`/`EmbeddingModel` objects.
 | `AuthenticationFailed` | bad or missing key | no retry; mark the provider down |
 | `ContextTooLong` | prompt over the window | next candidate |
 | `UnsupportedFeature` | e.g. tools on a model without them, unknown model | next candidate |
+| `ModelFailed` | the vendor answered but the generation failed (Gemini `MALFORMED_FUNCTION_CALL`, Cohere `ERROR`/`TIMEOUT`) | next candidate; not counted toward the breaker |
 | `ContentFiltered` | refused by provider safety | no retry, no fallback; raised |
 | `InvalidRequest` | malformed request | no retry; raised |
 | `PolicyDenied`, `BudgetExceeded` | role policy or token budget | no call |
@@ -103,10 +143,10 @@ overrides), and creates `ChatModel`/`EmbeddingModel` objects.
 
 | Name | Wire API | Tools | Structured output | Streaming | Embeddings | Key variables (vendor) |
 |---|---|---|---|---|---|---|
-| `anthropic` | Messages API | yes | `output_config.format` | SSE | — | `ANTHROPIC_API_KEY` |
+| `anthropic` | Messages API, or Vertex AI (`platform: vertex`, `rawPredict`) | yes | `output_config.format` | SSE | — | `ANTHROPIC_API_KEY`; on Vertex `ANTHROPIC_VERTEX_PROJECT_ID`, `CLOUD_ML_REGION`, `GOOGLE_APPLICATION_CREDENTIALS` |
 | `openai` | Chat Completions | yes | `response_format` json_schema | SSE | `/embeddings` | `OPENAI_API_KEY` |
-| `azure_openai` | Chat Completions, GA `v1` path or deployments + `api-version` | yes | yes | SSE | yes | `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT` |
-| `gemini` | `generateContent` (AI Studio) | yes | `responseJsonSchema` | SSE | `batchEmbedContents` | `GEMINI_API_KEY`, `GOOGLE_API_KEY` |
+| `azure_openai` | Chat Completions, GA `v1` path or deployments + `api-version`; api-key, bearer or Entra ID (`auth: entra`) | yes | yes | SSE | yes | `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`; Entra `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_FEDERATED_TOKEN_FILE` |
+| `gemini` | `generateContent` (AI Studio), or Vertex AI (`platform: vertex`) | yes | `responseJsonSchema` | SSE | `batchEmbedContents` (Vertex: `predict`) | `GEMINI_API_KEY`, `GOOGLE_API_KEY`; on Vertex `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `GOOGLE_APPLICATION_CREDENTIALS` |
 | `bedrock` | Converse / ConverseStream (boto3) | yes | no | event stream | Titan, Cohere (InvokeModel) | AWS credential chain |
 | `mistral` | Chat Completions shape | yes (`any` for required) | yes | SSE | `mistral-embed` | `MISTRAL_API_KEY` |
 | `cohere` | v2 Chat / Embed | yes | `json_object` + schema | SSE | yes | `COHERE_API_KEY` |
@@ -115,8 +155,19 @@ overrides), and creates `ChatModel`/`EmbeddingModel` objects.
 | `vllm`, `lmstudio`, `openai_compatible` | any `/chat/completions` server via `base_url` | yes | per server | SSE | yes | optional |
 | `mock` | in process | yes | yes | yes | `mock-embed` | none |
 
-Each provider maps the neutral types onto its wire format (tool definitions, tool-call ids,
-tool results, images) and maps its errors onto the taxonomy above: 429 →
+Each provider is an adapter: it translates the canonical format to its vendor's API and back,
+once, at the edge (tool definitions and choice, tool-call ids, tool results, images,
+structured output, sampling, refusals, usage, stream events). For the OpenAI-compatible
+servers (OpenAI, Azure OpenAI, Mistral and the presets) the adapter is a pass-through; what
+differs is authentication, base URL and path, and the declared spellings `max_tokens_param`,
+`tool_choice_required` (Mistral's `any`) and `seed_param` (Mistral's `random_seed`). Role
+`developer` goes unchanged to OpenAI and Azure OpenAI and as `system` elsewhere. Refusals
+are kept: OpenAI's `refusal`, Anthropic `stop_reason: refusal`, Gemini safety finishes and
+Bedrock `guardrail_intervened` become `finish_reason: content_filter` with
+`message.refusal`. Embedding purpose maps to Cohere `input_type` (`search_query` /
+`search_document`) and Gemini `taskType` (`RETRIEVAL_QUERY` / `RETRIEVAL_DOCUMENT`). Every
+HTTP provider has a native async path on `httpx.AsyncClient`; Bedrock's runs boto3 in a
+worker thread. Each provider maps its errors onto the taxonomy above: 429 →
 `RateLimited` with `Retry-After`/`retry-after-ms`; 401/403 → `AuthenticationFailed`;
 context-length messages and 413 → `ContextTooLong`; safety blocks → `ContentFiltered`;
 404 (unknown model or deployment) → `UnsupportedFeature`; 5xx, timeouts and connection
@@ -132,6 +183,18 @@ actually pulled on the host (Ollama's `tags` endpoint), with capabilities read f
 `health()` probes the `tags` endpoint with a short timeout and caches the answer, so an absent Ollama costs one quick
 probe per health TTL. A model that is not pulled is skipped as a candidate. `keep_alive`,
 `num_ctx`, `think` and any runtime `options` pass through; `OLLAMA_HOST` is honoured.
+
+**Vertex AI** (`platform: vertex` on `gemini` and `anthropic`) authenticates with a Google
+access token from a service-account file (`credentials_file`, or
+`GOOGLE_APPLICATION_CREDENTIALS`: a signed JWT exchanged for a token), an authorized-user
+file, or, with no file, the metadata server (GKE workload identity, Cloud Run, Compute
+Engine); workload identity federation files use `google-auth` when it is installed. Claude
+on Vertex is called at `publishers/anthropic/models/<model>:rawPredict` with
+`anthropic_version: vertex-2023-10-16` in the body. **Entra ID** (`auth: entra` on
+`azure_openai`) acquires tokens by client secret, by AKS workload identity (the federated
+token file as client assertion) or by managed identity (the App Service identity endpoint,
+else IMDS); `entra_mode: auto` picks the first that is configured. Tokens are cached and
+refreshed five minutes before they expire (`sajha/ai/llm/cloud_auth.py`).
 
 **Legacy providers.** A class written against the pre-6.x ABC in `sajha/ai/providers/` and
 registered with `register_provider_class()` is wrapped by `LegacyProviderAdapter` and served
@@ -193,22 +256,40 @@ the mock is serving every alias.
 
 ## 5. The gateway
 
-`LLMGateway` is the only thing consumers call: `chat(request, model=)`, `stream(request,
-model=)`, `embed(texts, model="embedding")` and `resolve(model, needs, ctx)`.
+`LLMGateway` is the only thing consumers call. Its interface is shaped like an OpenAI-style
+client over the canonical format:
+
+```python
+gw.chat_completions_create(model="reasoning", messages=[...], tools=[...],
+                           sajha=SajhaRequest(context=ctx))   # -> ChatCompletion
+gw.chat_completions_stream(...)        # -> chat.completion.chunk objects
+await gw.achat_completions_create(...) # native async
+gw.achat_completions_stream(...)       # async iterator of chunks
+gw.embeddings_create(model="embedding", input=[...], sajha=SajhaRequest(input_purpose="query"))
+gw.models(ctx)                         # -> ModelInfo the caller's role may use
+```
+
+`resolve(model, needs, ctx)` returns the model a call would use. The original methods
+(`chat(request, model=)`, `stream`, `achat`, `embed(texts, model=, purpose=)`) are shims
+over these.
 
 - **Resolution.** `model` is an alias (ordered candidates), `provider/model`, or a bare
   provider. A user's saved preference goes first, then the system default set from the
   settings page, then the alias list. A candidate is used if its provider is enabled and
   healthy (health cached for `ai.gateway.health_ttl_s`), its circuit is closed, the model is
-  available, its capabilities cover what the request needs (tools, structured output, vision
-  are inferred from the request) and the caller's role policy allows it.
+  available, its capabilities cover what the request needs (tools and vision are inferred
+  from the request) and the caller's role policy allows it. A candidate whose model refuses
+  the request (`UnsupportedFeature`: forced tool choice, structured output, seed, ...) or
+  whose generation fails (`ModelFailed`) is recorded in `sajha.attempts` and the next one
+  is tried. Requests refused for every provider (`InvalidRequest`) fail before any call;
+  `n` is capped by `ai.gateway.max_samples`.
 - **Policy** (`ai.policy.roles`): allowed `provider/model` globs, whether tools may be
   offered, an output-token cap, a daily token allowance. A caller with several roles gets
   the most permissive combination; a role with no entry (and no `ai.policy.default`) is
   unrestricted.
 - **Reliability.** `RateLimited` and `ProviderUnavailable` are retried (`ai.retry`, or the
   provider's own `max_retries` / `backoff_*`) with exponential backoff and jitter, honouring
-  `Retry-After` up to a cap; then the next candidate is tried. Each provider has a
+  `Retry-After` up to a cap; then the next candidate is tried (sync and async alike). Each provider has a
   `CircuitBreaker` (`sajha/core/circuit_breaker.py`) that opens after repeated failures.
   `AuthenticationFailed` marks the provider down for the health TTL. Streams fall back only
   before their first event.
@@ -216,7 +297,10 @@ model=)`, `embed(texts, model="embedding")` and `resolve(model, needs, ctx)`.
   (`ai.budgets`, and a role's `daily_tokens`); over budget is `BudgetExceeded`, not a call.
 - **Cache.** Responses are cached on the canonical request (messages, tools, schema,
   temperature, limits, model) when the temperature is 0, or unset on a deterministic model,
-  or when `ai.cache.cache_nonzero_temperature` is set.
+  or when `ai.cache.cache_nonzero_temperature` is set. Refusals and truncated answers are
+  never cached; a cached answer reports `sajha.cached: true` and zero usage.
+- **Streams.** The final usage chunk is returned when `stream_options.include_usage` is set;
+  usage is always recorded.
 - **Observability.** One OpenTelemetry span (`llm.chat`) per call with provider, model,
   alias, tokens, latency and outcome; prompts are attached only with
   `ai.gateway.trace_prompts`. The tracer is the observability module's when its SDK is
@@ -296,23 +380,49 @@ An ask that sends `conversation_id` is a turn of a conversation: `"new"` starts 
 id the result returns continues it. Without `conversation_id` an ask is answered on its own and
 nothing is kept. For a turn of a conversation the service:
 
-1. loads the conversation, only if it belongs to the caller (another user's id, or an expired
-   one, is "not found": the route answers 404);
+1. loads the conversation, only if it belongs to the caller and to the Ask SAJHA page (another
+   user's id, an LLM tool's, or an expired one, is "not found": the route answers 404);
 2. sends the last `ai.memory.history_turns` turns (question and answer) as earlier messages,
    and a summary of the older ones in the system prompt; the summary is written through the
-   gateway (`ai.memory.model`) once turns leave the verbatim window, and kept;
+   gateway (`ai.memory.model`) once turns leave the verbatim window, and kept. Only the
+   window's rows (and any turns that just left it, for the summary) are read, never the
+   whole conversation;
 3. rewrites the question as a standalone question (`ai.memory.condense`), so "and from 100 to
    150?" after a percentage-change question shortlists the right tool; the rewrite is
    `standalone_question` in the result;
-4. records the turn (question, rewrite, answer, tools, outcome, confidence) after the answer.
+4. records the turn (question, rewrite, answer, tools, outcome, confidence) after the answer;
+   the question and the answer are each clipped to `ai.memory.max_turn_chars`.
 
 Memory is per user and is never shared: every read, write and delete is filtered by the
 caller's user id. It is stored in the `ai_conversations` and `ai_conversation_turns` tables
 (SQLite creates them; on PostgreSQL they come from `db/scripts/postgresql/schema.sql`).
-Conversations idle for `ai.memory.retention_days` are deleted, as are a user's oldest beyond
-`ai.memory.max_conversations_per_user`. A user lists, reads and deletes their own with
-`GET /api/ai/conversations`, `GET` and `DELETE /api/ai/conversations/{id}`, and deletes all of
-them with `DELETE /api/ai/conversations`. The mock answers the summary and rewrite calls
+A conversation row also has a scope, `tool_name` (null for the Ask SAJHA page, else the LLM
+tool that owns it), and an optional `expires_ts`; a conversation is only ever continued in
+its own scope.
+
+**For LLM tools** (the design is [LLM Tools](LLM%20Tools.md) §10) `ConversationMemory` offers
+a small API, documented in the `sajha/ai/memory.py` docstring: `open()` implements the handle
+(no id: a new conversation; an id the caller owns for that tool and that has not expired:
+continued; anything else: `conversation not found`, never "forbidden"), `record()` stores a
+turn, renews `expires_ts` from the tool's `ttl_minutes` (capped by `ai.memory.retention_days`)
+and, beyond the tool's `max_turns` (capped by `ai.llm_tools.memory.max_turns`), folds the
+oldest turns into the summary and deletes their rows; `from_client()` builds the context from
+history the caller sends (`messages: [{role, content}]`, user and assistant only), storing
+nothing. Anonymous callers get no stored conversation. The Ask SAJHA page keeps every turn.
+
+**Purging.** A job deletes conversations idle for `ai.memory.retention_days`, past their own
+`expires_ts`, a user's oldest beyond `ai.memory.max_conversations_per_user`, and a user's oldest
+of one tool beyond `ai.llm_tools.memory.max_conversations_per_tool`. It runs every
+`ai.llm_tools.memory.purge_interval_minutes` on exactly one worker: every worker wakes in the
+same slot and the first to claim the slot in the state store runs it (with `0`, the old
+behaviour: at most hourly, when a turn is written). `ai.llm_tools.memory.sqlite_vacuum` runs
+`VACUUM` after a purge that deleted rows. Metrics: `sajha_llm_tool_conversations{tool}`,
+`sajha_llm_tool_turns_total{tool}` and `sajha_llm_tool_purged_total` (`tool="ask"` is the Ask
+SAJHA page).
+
+A user lists, reads and deletes their own conversations with `GET /api/ai/conversations` (the
+Ask SAJHA page's; `?tool=<name>` one tool's, `?tool=*` all), `GET` and
+`DELETE /api/ai/conversations/{id}`, and deletes all of them with `DELETE /api/ai/conversations`. The mock answers the summary and rewrite calls
 deterministically (an extractive summary; a follow-up with no topic of its own takes the
 previous question's wording with its new numbers or symbols).
 
@@ -325,8 +435,13 @@ index (`sajha/ai/rag/`):
 - **Sources.** SAJHA's own guides (every guide the help pages serve), each passage citing
   `/help/guides/<name>#<section>`; each `ai.rag.sources` entry (files matching a pattern in a
   folder of the storage backend: local, S3, Azure or GCS); and files an admin uploads
-  (`POST /api/ai/docs/uploads`, kept under `ai.rag.uploads_dir`). Text formats only: Markdown,
-  text, reStructuredText and HTML.
+  (`POST /api/ai/docs/uploads`, kept under `ai.rag.uploads_dir`). Formats: Markdown, text,
+  reStructuredText and HTML; and PDF (`.pdf`, needs the optional package `pypdf`) and Word
+  (`.docx`, needs `python-docx`), read by `sajha/ai/rag/extract.py`. Without the package such a
+  file is skipped and the build's `errors` say which package to install (an upload answers 400
+  with the same message); everything else indexes as usual. Word headings become sections like
+  Markdown headings; a PDF is split by paragraphs. A scanned PDF has no text layer and is
+  reported as having no text (there is no OCR).
 - **Passages.** Markdown is split at headings (each passage keeps its section path and anchor),
   then into passages of about `ai.rag.chunk_chars` characters at paragraph boundaries.
 - **Embeddings** come from the gateway's `ai.rag.embedding_model` alias (`embedding`, which is
@@ -339,7 +454,9 @@ index (`sajha/ai/rag/`):
   fusion, the vector side weighted `ai.rag.vector_weight`). Each result has a citation number,
   source, document, title, section, link (for guides), a relative score and the passage.
 - **Syncing.** The index is built in the background at startup and re-synced by content hash
-  (`POST /api/ai/docs/reindex`, admin); `GET /api/ai/docs/status` (admin) reports it.
+  (`POST /api/ai/docs/reindex`, admin); `GET /api/ai/docs/status` (admin) reports it, including
+  which document readers are installed (`document_readers`). A PDF or Word file is hashed on its
+  bytes, so an unchanged one is skipped before its text is extracted.
 
 The help page's **Ask the docs** box (signed-in users) calls `POST /api/ai/docs/search`; a
 caller who may not run `sajha_search_docs` searches SAJHA's guides only.
@@ -432,8 +549,10 @@ when they are set. `sajha_ask` never calls itself. Only when no entry point reco
 ## 7. The mock provider
 
 `mock` needs no network and no keys and passes the same contract tests as the real
-providers. `mock-echo` replies with the last user message; `mock-scripted` plays a script
-(ordered replies or regex rules; text, tool calls, JSON, errors) set in a test with
+providers. It speaks the canonical format: its models return `ChatCompletion` objects and
+stream `chat.completion.chunk` objects, so tests and the offline default exercise the shapes
+real providers return. `mock-echo` replies with the last user message; `mock-scripted` plays a script
+(ordered replies or regex rules; text, tool calls, JSON, refusals, errors) set in a test with
 `set_script()` or loaded from `<scripts_dir>/<name>.yml` as `mock-scripted:<name>`;
 `mock-planner` scores the offered tools against the question's keywords, calls the best
 one or two with arguments filled from the schema (defaults, numbers near the parameter's
@@ -448,26 +567,37 @@ reliability paths. Calls are priced at zero but report token usage.
 
 `tests/ai/`: a provider contract suite run against every provider family offline
 (recorded-shape fake APIs on `httpx.MockTransport`; a fake boto3 client for Bedrock), with
-live runs when a vendor key is present; gateway tests for resolution, retries, fallback,
+live runs when a vendor key is present; golden translation tests
+(`test_golden_translation.py`: canonical requests to each vendor's wire format, recorded
+vendor replies and stream events back, against stored expectations in `tests/ai/golden/`);
+a portability suite (`test_portability.py`: canonical requests through the mock and every
+adapter, well-formed Chat Completions, declared capabilities honoured, native async);
+`test_canonical.py` for the converters, the refusals, the behaviours that used to be silent,
+the gateway's canonical interface, Vertex AI and Entra ID credentials; gateway tests for resolution, retries, fallback,
 breaker, budgets, policy, cache, configuration precedence, registry loading, secrets and
 the legacy shims; ask-loop tests over the real offline `calc_*` tools, including step
 limits, confirmation, injected instructions in tool output, RBAC and the event order; and
 the HTTP route in JSON and SSE. `tests/ai/test_planners.py` runs every built-in planner through
 the same safety tests (RBAC, tools not offered, confirmation, limits, injection, event order)
 and tests each strategy; `tests/ai/test_memory.py` covers multi-turn asks, summaries, privacy
-between users, retention and the conversation routes; `tests/ai/test_rag.py` the chunking,
-the index, uploads, the stores and the search route; `tests/ai/test_tool_index_sync.py` that a
+between users, retention and the conversation routes, and `tests/ai/test_memory_tools.py` the
+LLM-tool handle, scoping, expiry, folding, client history and the scheduled purge;
+`tests/ai/test_rag.py` the chunking, the index, uploads, the stores and the search route, and
+`tests/ai/test_rag_documents.py` PDF and Word sources; `tests/ai/test_tool_index_sync.py` that a
 tool registered by any path is shortlisted without a reload.
 
 ## 9. Not built yet
 
-- Native async providers (the layer is sync with thread-pool async wrappers).
-- Vertex AI for Gemini and Claude; Entra ID token acquisition for Azure (a bearer token can
-  be supplied as the key with `auth: bearer`).
+- SAJHA as an OpenAI-compatible endpoint (`/v1/chat/completions`, `/v1/models`,
+  `/v1/embeddings`; [LLM Tools §13.4](LLM%20Tools.md#134-sajha-as-an-openai-compatible-endpoint)).
+- Native async for Bedrock (boto3 is synchronous; it runs in a worker thread) and for
+  embeddings (a worker thread).
+- The planners and the ask service still call the original `chat()` interface (through the
+  converters); `reasoning_effort` on Bedrock (`additionalModelRequestFields` per model).
 - Over MCP 2026-07-28, destructive-tool confirmation inside `sajha_ask` as a Multi
   Round-Trip Request (it is returned as `needs_confirmation` today).
 - Freshness and agreement in the confidence score; trimming history on `ContextTooLong`.
-- Document connectors (SharePoint, Drive, Confluence) as RAG sources, and binary formats
-  (PDF, Word); today a source is a folder of text files in the storage backend, or an upload.
+- Document connectors (SharePoint, Drive, Confluence, or a connected account) as RAG sources;
+  today a source is a folder in the storage backend, or an upload. No OCR for scanned PDFs.
 - Conversation memory for `sajha_ask` over MCP (its caller has no user identity), and a page
   for browsing past conversations (the API exists).

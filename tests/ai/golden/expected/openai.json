@@ -1,0 +1,1036 @@
+{
+ "replies": {
+  "length": {
+   "choices": [
+    {
+     "finish_reason": "length",
+     "index": 0,
+     "message": {
+      "content": "The quarterly results show",
+      "role": "assistant"
+     }
+    }
+   ],
+   "model": "gpt-golden-2026-09-01",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 5,
+    "prompt_tokens": 20,
+    "total_tokens": 25
+   }
+  },
+  "parallel_tool_calls": {
+   "choices": [
+    {
+     "finish_reason": "tool_calls",
+     "index": 0,
+     "message": {
+      "role": "assistant",
+      "tool_calls": [
+       {
+        "function": {
+         "arguments": "{\"symbol\":\"AAPL\"}",
+         "name": "get_quote"
+        },
+        "id": "call_q1",
+        "type": "function"
+       },
+       {
+        "function": {
+         "arguments": "{\"symbol\":\"MSFT\"}",
+         "name": "get_quote"
+        },
+        "id": "call_q2",
+        "type": "function"
+       }
+      ]
+     }
+    }
+   ],
+   "model": "gpt-golden-2026-09-01",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 44,
+    "completion_tokens_details": {
+     "reasoning_tokens": 12
+    },
+    "prompt_tokens": 120,
+    "prompt_tokens_details": {
+     "cached_tokens": 64
+    },
+    "total_tokens": 164
+   }
+  },
+  "refusal": {
+   "choices": [
+    {
+     "finish_reason": "content_filter",
+     "index": 0,
+     "message": {
+      "refusal": "I'm sorry, I can't help with that request.",
+      "role": "assistant"
+     }
+    }
+   ],
+   "model": "gpt-golden-2026-09-01",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 11,
+    "prompt_tokens": 30,
+    "total_tokens": 41
+   }
+  },
+  "structured": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "message": {
+      "content": "{\"symbol\":\"AAPL\",\"price\":231.4}",
+      "role": "assistant"
+     }
+    }
+   ],
+   "model": "gpt-golden-2026-09-01",
+   "object": "chat.completion",
+   "usage": {
+    "completion_tokens": 12,
+    "prompt_tokens": 60,
+    "total_tokens": 72
+   }
+  },
+  "text": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "message": {
+      "content": "AAPL closed at 231.40.",
+      "role": "assistant"
+     }
+    }
+   ],
+   "model": "gpt-golden-2026-09-01",
+   "object": "chat.completion",
+   "service_tier": "default",
+   "system_fingerprint": "fp_5a1b",
+   "usage": {
+    "completion_tokens": 9,
+    "completion_tokens_details": {
+     "accepted_prediction_tokens": 0,
+     "audio_tokens": 0,
+     "reasoning_tokens": 0,
+     "rejected_prediction_tokens": 0
+    },
+    "prompt_tokens": 41,
+    "prompt_tokens_details": {
+     "audio_tokens": 0,
+     "cached_tokens": 0
+    },
+    "total_tokens": 50
+   }
+  }
+ },
+ "requests": {
+  "developer_role": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "Answer in one line.",
+      "role": "developer"
+     },
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden"
+   },
+   "path": "/chat/completions"
+  },
+  "image": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "What is in this chart?",
+        "type": "text"
+       },
+       {
+        "image_url": {
+         "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+        },
+        "type": "image_url"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden"
+   },
+   "path": "/chat/completions"
+  },
+  "image_http_url": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": [
+       {
+        "image_url": {
+         "url": "https://example.com/chart.png"
+        },
+        "type": "image_url"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden"
+   },
+   "path": "/chat/completions"
+  },
+  "json_object": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "AAPL quote as JSON",
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden",
+    "response_format": {
+     "type": "json_object"
+    }
+   },
+   "path": "/chat/completions"
+  },
+  "n2": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden",
+    "n": 2
+   },
+   "path": "/chat/completions"
+  },
+  "parallel_off": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden",
+    "parallel_tool_calls": false,
+    "tool_choice": "auto",
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/chat/completions"
+  },
+  "passthrough": {
+   "body": {
+    "logprobs": true,
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden",
+    "presence_penalty": 0.5
+   },
+   "path": "/chat/completions"
+  },
+  "plain": {
+   "body": {
+    "max_completion_tokens": 300,
+    "messages": [
+     {
+      "content": "Be brief.",
+      "role": "system"
+     },
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden",
+    "stop": [
+     "END"
+    ],
+    "temperature": 0.2
+   },
+   "path": "/chat/completions"
+  },
+  "reasoning": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden",
+    "reasoning_effort": "low"
+   },
+   "path": "/chat/completions"
+  },
+  "sampling": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden",
+    "seed": 7,
+    "top_p": 0.9
+   },
+   "path": "/chat/completions"
+  },
+  "structured": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "AAPL quote as JSON",
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden",
+    "response_format": {
+     "json_schema": {
+      "name": "quote",
+      "schema": {
+       "additionalProperties": false,
+       "properties": {
+        "price": {
+         "type": "number"
+        },
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol",
+        "price"
+       ],
+       "type": "object"
+      },
+      "strict": true
+     },
+     "type": "json_schema"
+    }
+   },
+   "path": "/chat/completions"
+  },
+  "tool_named": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden",
+    "tool_choice": {
+     "function": {
+      "name": "get_quote"
+     },
+     "type": "function"
+    },
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     },
+     {
+      "function": {
+       "description": "FX rate",
+       "name": "get_fx",
+       "parameters": {
+        "properties": {
+         "pair": {
+          "type": "string"
+         }
+        },
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/chat/completions"
+  },
+  "tool_named_only_tool": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden",
+    "tool_choice": {
+     "function": {
+      "name": "get_quote"
+     },
+     "type": "function"
+    },
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/chat/completions"
+  },
+  "tool_none": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden"
+   },
+   "path": "/chat/completions"
+  },
+  "tool_required": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden",
+    "tool_choice": "required",
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     },
+     {
+      "function": {
+       "description": "FX rate",
+       "name": "get_fx",
+       "parameters": {
+        "properties": {
+         "pair": {
+          "type": "string"
+         }
+        },
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/chat/completions"
+  },
+  "tool_round_trip": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     },
+     {
+      "content": null,
+      "role": "assistant",
+      "tool_calls": [
+       {
+        "function": {
+         "arguments": "{\"symbol\":\"AAPL\"}",
+         "name": "get_quote"
+        },
+        "id": "call_q1",
+        "type": "function"
+       },
+       {
+        "function": {
+         "arguments": "{\"symbol\":\"MSFT\"}",
+         "name": "get_quote"
+        },
+        "id": "call_q2",
+        "type": "function"
+       }
+      ]
+     },
+     {
+      "content": "{\"price\": 231.4}",
+      "role": "tool",
+      "tool_call_id": "call_q1"
+     },
+     {
+      "content": "ERROR: upstream timeout",
+      "role": "tool",
+      "tool_call_id": "call_q2"
+     }
+    ],
+    "model": "gpt-golden",
+    "tool_choice": "auto",
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/chat/completions"
+  },
+  "tools": {
+   "body": {
+    "max_completion_tokens": 4096,
+    "messages": [
+     {
+      "content": "What did AAPL and MSFT close at?",
+      "role": "user"
+     }
+    ],
+    "model": "gpt-golden",
+    "tool_choice": "auto",
+    "tools": [
+     {
+      "function": {
+       "description": "Latest price for a ticker",
+       "name": "get_quote",
+       "parameters": {
+        "properties": {
+         "symbol": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "symbol"
+        ],
+        "type": "object"
+       }
+      },
+      "type": "function"
+     },
+     {
+      "function": {
+       "description": "FX rate",
+       "name": "get_fx",
+       "parameters": {
+        "properties": {
+         "pair": {
+          "type": "string"
+         }
+        },
+        "type": "object"
+       }
+      },
+      "type": "function"
+     }
+    ]
+   },
+   "path": "/chat/completions"
+  }
+ },
+ "stream_request": {
+  "body": {
+   "max_completion_tokens": 4096,
+   "messages": [
+    {
+     "content": "What did AAPL and MSFT close at?",
+     "role": "user"
+    }
+   ],
+   "model": "gpt-golden",
+   "stream": true,
+   "stream_options": {
+    "include_usage": true
+   },
+   "tool_choice": "auto",
+   "tools": [
+    {
+     "function": {
+      "description": "Latest price for a ticker",
+      "name": "get_quote",
+      "parameters": {
+       "properties": {
+        "symbol": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "symbol"
+       ],
+       "type": "object"
+      }
+     },
+     "type": "function"
+    },
+    {
+     "function": {
+      "description": "FX rate",
+      "name": "get_fx",
+      "parameters": {
+       "properties": {
+        "pair": {
+         "type": "string"
+        }
+       },
+       "type": "object"
+      }
+     },
+     "type": "function"
+    }
+   ]
+  },
+  "path": "/chat/completions"
+ },
+ "streams": {
+  "refusal": {
+   "chunks": [
+    {
+     "choices": [
+      {
+       "delta": {
+        "refusal": "I'm sorry, I can't help ",
+        "role": "assistant"
+       },
+       "index": 0
+      }
+     ],
+     "model": "gpt-golden-2026-09-01",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "refusal": "with that request."
+       },
+       "index": 0
+      }
+     ],
+     "model": "gpt-golden-2026-09-01",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {},
+       "finish_reason": "content_filter",
+       "index": 0
+      }
+     ],
+     "model": "gpt-golden-2026-09-01",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [],
+     "model": "gpt-golden-2026-09-01",
+     "object": "chat.completion.chunk",
+     "sajha": {
+      "attempts": [],
+      "cached": false,
+      "cost_usd": 0.0,
+      "ignored": [],
+      "latency_ms": 0,
+      "provider": "",
+      "qualified_model": "",
+      "trace_id": "",
+      "usage_estimated": true
+     },
+     "usage": {
+      "completion_tokens": 11,
+      "prompt_tokens": 85,
+      "total_tokens": 96
+     }
+    }
+   ],
+   "completion": {
+    "choices": [
+     {
+      "finish_reason": "content_filter",
+      "index": 0,
+      "message": {
+       "refusal": "I'm sorry, I can't help with that request.",
+       "role": "assistant"
+      }
+     }
+    ],
+    "model": "gpt-golden-2026-09-01",
+    "object": "chat.completion",
+    "sajha": {
+     "attempts": [],
+     "cached": false,
+     "cost_usd": 0.0,
+     "ignored": [],
+     "latency_ms": 0,
+     "provider": "",
+     "qualified_model": "",
+     "trace_id": "",
+     "usage_estimated": true
+    },
+    "usage": {
+     "completion_tokens": 11,
+     "prompt_tokens": 85,
+     "total_tokens": 96
+    }
+   }
+  },
+  "text": {
+   "chunks": [
+    {
+     "choices": [
+      {
+       "delta": {
+        "content": "AAPL closed ",
+        "role": "assistant"
+       },
+       "index": 0
+      }
+     ],
+     "model": "gpt-golden-2026-09-01",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "content": "at 231.40."
+       },
+       "index": 0
+      }
+     ],
+     "model": "gpt-golden-2026-09-01",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {},
+       "finish_reason": "stop",
+       "index": 0
+      }
+     ],
+     "model": "gpt-golden-2026-09-01",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [],
+     "model": "gpt-golden-2026-09-01",
+     "object": "chat.completion.chunk",
+     "sajha": {
+      "attempts": [],
+      "cached": false,
+      "cost_usd": 0.0,
+      "ignored": [],
+      "latency_ms": 0,
+      "provider": "",
+      "qualified_model": "",
+      "trace_id": "",
+      "usage_estimated": false
+     },
+     "usage": {
+      "completion_tokens": 9,
+      "prompt_tokens": 41,
+      "total_tokens": 50
+     }
+    }
+   ],
+   "completion": {
+    "choices": [
+     {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+       "content": "AAPL closed at 231.40.",
+       "role": "assistant"
+      }
+     }
+    ],
+    "model": "gpt-golden-2026-09-01",
+    "object": "chat.completion",
+    "sajha": {
+     "attempts": [],
+     "cached": false,
+     "cost_usd": 0.0,
+     "ignored": [],
+     "latency_ms": 0,
+     "provider": "",
+     "qualified_model": "",
+     "trace_id": "",
+     "usage_estimated": false
+    },
+    "usage": {
+     "completion_tokens": 9,
+     "prompt_tokens": 41,
+     "total_tokens": 50
+    }
+   }
+  },
+  "tool_fragments": {
+   "chunks": [
+    {
+     "choices": [
+      {
+       "delta": {
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "",
+           "name": "get_quote"
+          },
+          "id": "call_q1",
+          "index": 0,
+          "type": "function"
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "gpt-golden-2026-09-01",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "{\"sym"
+          },
+          "index": 0
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "gpt-golden-2026-09-01",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "bol\":\"AAPL\"}"
+          },
+          "index": 0
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "gpt-golden-2026-09-01",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": "{\"symbol\":\"MSFT\"}",
+           "name": "get_quote"
+          },
+          "id": "call_q2",
+          "index": 1,
+          "type": "function"
+         }
+        ]
+       },
+       "index": 0
+      }
+     ],
+     "model": "gpt-golden-2026-09-01",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [
+      {
+       "delta": {},
+       "finish_reason": "tool_calls",
+       "index": 0
+      }
+     ],
+     "model": "gpt-golden-2026-09-01",
+     "object": "chat.completion.chunk"
+    },
+    {
+     "choices": [],
+     "model": "gpt-golden-2026-09-01",
+     "object": "chat.completion.chunk",
+     "sajha": {
+      "attempts": [],
+      "cached": false,
+      "cost_usd": 0.0,
+      "ignored": [],
+      "latency_ms": 0,
+      "provider": "",
+      "qualified_model": "",
+      "trace_id": "",
+      "usage_estimated": false
+     },
+     "usage": {
+      "completion_tokens": 44,
+      "prompt_tokens": 120,
+      "total_tokens": 164
+     }
+    }
+   ],
+   "completion": {
+    "choices": [
+     {
+      "finish_reason": "tool_calls",
+      "index": 0,
+      "message": {
+       "role": "assistant",
+       "tool_calls": [
+        {
+         "function": {
+          "arguments": "{\"symbol\":\"AAPL\"}",
+          "name": "get_quote"
+         },
+         "id": "call_q1",
+         "type": "function"
+        },
+        {
+         "function": {
+          "arguments": "{\"symbol\":\"MSFT\"}",
+          "name": "get_quote"
+         },
+         "id": "call_q2",
+         "type": "function"
+        }
+       ]
+      }
+     }
+    ],
+    "model": "gpt-golden-2026-09-01",
+    "object": "chat.completion",
+    "sajha": {
+     "attempts": [],
+     "cached": false,
+     "cost_usd": 0.0,
+     "ignored": [],
+     "latency_ms": 0,
+     "provider": "",
+     "qualified_model": "",
+     "trace_id": "",
+     "usage_estimated": false
+    },
+    "usage": {
+     "completion_tokens": 44,
+     "prompt_tokens": 120,
+     "total_tokens": 164
+    }
+   }
+  }
+ }
+}

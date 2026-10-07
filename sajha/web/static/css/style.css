@@ -1796,3 +1796,33 @@ pre.pg-repr { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--sajha-indigo) 5
   .lp2-net-bubble { display: block; font-size: 12.5px; }
 }
 @media (prefers-reduced-motion: reduce) { .lp2-net-bubble, .lp2-net-core, .lp2-net-tool { transition: none; } }
+
+/* ── Ask: the "Servers and tools" calls log under the sky (static/js/ask.js callLog) ── */
+.ask-calls { margin-top: .8rem; border: 1px solid var(--sajha-border); border-radius: 12px; background: var(--sajha-surface); }
+.ask-calls-head { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem; padding: .55rem .8rem;
+  border-bottom: 1px solid var(--sajha-border); }
+.ask-calls-head h3 { margin: 0; font-size: .9rem; font-weight: 700; color: var(--sajha-ink); }
+.ask-calls-count { font-size: .8rem; color: var(--t-muted); font-variant-numeric: tabular-nums; }
+.ask-calls-log { list-style: none; margin: 0; padding: .3rem 0; max-height: 13.5rem; overflow-y: auto; font-size: .86rem; }
+.ask-calls-log:empty::before { content: "Ask a question to see which servers and tools SAJHA uses."; display: block;
+  padding: .5rem .8rem; color: var(--t-muted); }
+.ask-call-turn { padding: .4rem .8rem .15rem; font-size: .78rem; font-weight: 700; color: var(--t-accent-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ask-call { display: grid; grid-template-columns: auto minmax(0, max-content) auto minmax(0, 1fr) auto; gap: .45rem;
+  align-items: baseline; padding: .22rem .8rem; }
+.ask-call-time { color: var(--t-muted); font-variant-numeric: tabular-nums; font-size: .78rem; }
+.ask-call-server { font-weight: 650; color: var(--sajha-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ask-call.is-federated .ask-call-server, .ask-call.is-net .ask-call-server { color: var(--t-accent-text); }
+.ask-call-sep { color: var(--t-muted); }
+.ask-call-tool { font-size: .84rem; color: var(--sajha-ink); overflow-wrap: anywhere; }
+.ask-call-state { font-size: .78rem; font-weight: 650; white-space: nowrap; color: var(--t-muted); }
+.ask-call.is-running .ask-call-state::before { content: "● "; color: var(--sajha-crimson); }
+.ask-call.is-ok .ask-call-state { color: var(--sajha-ok); }
+.ask-call.is-error .ask-call-state { color: var(--sajha-bad); }
+.ask-call.is-waiting .ask-call-state { color: var(--sajha-warn); }
+@media (max-width: 575.98px) {
+  .ask-call { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .ask-call-sep { display: none; }
+  .ask-call-tool { grid-column: 2 / 4; }
+}
+@media (prefers-reduced-motion: reduce) { .ask-calls-log { scroll-behavior: auto; } }

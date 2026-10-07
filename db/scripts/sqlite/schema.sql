@@ -310,9 +310,13 @@ CREATE TABLE IF NOT EXISTS ai_conversations (
     summarized_through   INTEGER          NOT NULL DEFAULT 0,
     turn_count           INTEGER          NOT NULL DEFAULT 0,
     created_ts           REAL             NOT NULL,
-    updated_ts           REAL             NOT NULL
+    updated_ts           REAL             NOT NULL,
+    tool_name            VARCHAR(200),
+    expires_ts           REAL
 );
 CREATE INDEX IF NOT EXISTS ix_ai_conversations_user_updated ON ai_conversations (user_id, updated_ts);
+CREATE INDEX IF NOT EXISTS ix_ai_conversations_user_tool_updated ON ai_conversations (user_id, tool_name, updated_ts);
+CREATE INDEX IF NOT EXISTS ix_ai_conversations_expires ON ai_conversations (expires_ts);
 
 CREATE TABLE IF NOT EXISTS ai_conversation_turns (
     id                   VARCHAR(36)      NOT NULL PRIMARY KEY,

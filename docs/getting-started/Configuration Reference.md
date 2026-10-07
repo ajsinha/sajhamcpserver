@@ -372,17 +372,17 @@ fields below. Built-in providers not listed still exist, disabled.
 | `streaming` | `true` | `false` makes `stream()` fall back to one response. |
 | `health_timeout_s` | `2` (Ollama `1`) | Timeout of a health probe. |
 | `catalog` | `true` | Include the curated model list (`sajha/ai/llm/catalog.py`). |
-| `models` | `[]` | Add or override models: `{id, kind, display_name, enabled, tools, structured_output, vision, streaming, temperature, forced_tool_choice, context_window, max_output_tokens, input_cost_per_mtok, output_cost_per_mtok, dimensions, tags, deployment}`. |
+| `models` | `[]` | Add or override models: `{id, kind, display_name, enabled, tools, structured_output, vision, streaming, temperature, forced_tool_choice, context_window, max_output_tokens, input_cost_per_mtok, output_cost_per_mtok, dimensions, tags, deployment}`, and the canonical-format features `json_mode`, `strict_tools`, `named_tool_choice`, `parallel_tool_control`, `seed`, `stop_sequences`, `reasoning_effort`, `native_n`, `variable_dimensions` (unset: the provider's default; meanings in [Extending the Intelligence Layer §3.2](../architecture/Extending%20the%20Intelligence%20Layer.md#32-capabilities-and-how-the-gateway-uses-them)). |
 
 | Provider | Extra fields | Vendor variables honoured |
 |---|---|---|
-| `anthropic` | `api_version` (`2023-06-01`), `beta_headers`, `auth` (`api_key`/`bearer`), `structured_output_param`, `messages_path`, `extra_body` | `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL` |
-| `openai` | `organization`, `project`, `max_tokens_param`, `strict_schema`, `stream_usage`, `parallel_tool_calls`, `tool_choice_required`, `chat_path`, `embeddings_path`, `extra_body` | `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_ORG_ID`, `OPENAI_PROJECT_ID` |
-| `azure_openai` | the `openai` fields plus `api_style` (`v1`/`deployments`), `api_version` (`2024-10-21`), `deployments` (model id → deployment), `auth` | `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, `OPENAI_API_VERSION` |
-| `gemini` | `api_version` (`v1beta`), `schema_mode` (`json_schema`/`openapi`), `safety_settings`, `generation_config`, `embedding_task_type` | `GEMINI_API_KEY`, `GOOGLE_API_KEY` |
+| `anthropic` | `api_version` (`2023-06-01`), `beta_headers`, `auth` (`api_key`/`bearer`), `structured_output_param`, `messages_path`, `extra_body`; Vertex AI: `platform` (`anthropic`/`vertex`), `vertex_project`, `vertex_location` (`global`), `credentials_file` (a Google service-account or authorized-user JSON; empty: workload identity through the metadata server) | `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL`; `ANTHROPIC_VERTEX_PROJECT_ID`, `CLOUD_ML_REGION`, `GOOGLE_APPLICATION_CREDENTIALS` |
+| `openai` | `organization`, `project`, `max_tokens_param`, `strict_schema` (default for requests that do not set `strict`), `stream_usage`, `parallel_tool_calls` (default for requests that do not set it), `tool_choice_required`, `seed_param` (`seed`), `chat_path`, `embeddings_path`, `extra_body` | `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_ORG_ID`, `OPENAI_PROJECT_ID` |
+| `azure_openai` | the `openai` fields plus `api_style` (`v1`/`deployments`), `api_version` (`2024-10-21`), `deployments` (model id → deployment), `auth` (`api_key`/`bearer`/`entra`); Entra ID (`auth: entra`): `entra_mode` (`auto`/`client_secret`/`workload_identity`/`managed_identity`; `auto` picks the first configured), `tenant_id`, `client_id`, `client_secret` (redacted), `federated_token_file`, `entra_scope` (`https://cognitiveservices.azure.com/.default`), `entra_authority` (`https://login.microsoftonline.com`) | `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, `OPENAI_API_VERSION`; `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_FEDERATED_TOKEN_FILE` |
+| `gemini` | `api_version` (`v1beta`), `schema_mode` (`json_schema`/`openapi`), `safety_settings`, `generation_config`, `embedding_task_type` (used when a request names no purpose); Vertex AI: `platform` (`ai_studio`/`vertex`), `vertex_project`, `vertex_location` (`global`), `vertex_api_version` (`v1`), `credentials_file` (as for `anthropic`) | `GEMINI_API_KEY`, `GOOGLE_API_KEY`; `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `GOOGLE_APPLICATION_CREDENTIALS` |
 | `bedrock` | `region`, `profile`, `aws_access_key_id`, `aws_secret_access_key`, `aws_session_token`, `embedding_input_type`, `guardrail_identifier`, `guardrail_version`, `additional_model_request_fields` | `AWS_REGION`, `AWS_DEFAULT_REGION`, `AWS_PROFILE`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` |
-| `mistral` | the `openai` fields (`tool_choice_required: any`) | `MISTRAL_API_KEY` |
-| `cohere` | `tool_result_format`, `embedding_input_type`, `chat_path`, `embed_path` | `COHERE_API_KEY`, `CO_API_KEY` |
+| `mistral` | the `openai` fields (`tool_choice_required: any`, `seed_param: random_seed`) | `MISTRAL_API_KEY` |
+| `cohere` | `tool_result_format`, `embedding_input_type` (used when a request names no purpose), `chat_path`, `embed_path` | `COHERE_API_KEY`, `CO_API_KEY` |
 | `ollama` | `keep_alive`, `num_ctx`, `think`, `options`, `detect_capabilities`, `live_models`, `health_ttl_s` | `OLLAMA_HOST`, `OLLAMA_BASE_URL` |
 | `groq`, `together`, `fireworks`, `deepseek`, `xai`, `openrouter`, `perplexity`, `vllm`, `lmstudio`, `openai_compatible` | the `openai` fields plus `live_models`, `models_path` | `GROQ_API_KEY`, `TOGETHER_API_KEY`, `FIREWORKS_API_KEY`, `DEEPSEEK_API_KEY`, `XAI_API_KEY`, `OPENROUTER_API_KEY`, `PERPLEXITY_API_KEY` |
 | `mock` | `latency_ms` (`[0, 0]`), `fail_every` (`0`), `fail_with`, `retry_after_s`, `seed` (`42`), `scripts_dir` (`config/ai/mock_scripts`), `embed_dimensions` (`256`), `max_planner_tools` (`2`) | — |
@@ -407,6 +407,7 @@ fields below. Built-in providers not listed still exist, disabled.
 | `ai.gateway.trace_prompts` | `false` | Put prompts on OpenTelemetry spans (debug only). |
 | `ai.gateway.load_entry_points` | `true` | Load `sajha.llm_providers` plug-ins. |
 | `ai.gateway.use_db_providers` | `true` | Read keys and models from the `llm_providers` / `llm_models` tables. |
+| `ai.gateway.max_samples` | `8` | Largest `n` (choices per request) the gateway accepts. |
 | `ai.ask.enabled` | `true` | Serve `POST /api/ai/ask`. |
 | `ai.ask.model` | `default` | Alias or `provider/model` used by ask. |
 | `ai.ask.max_steps` / `max_tool_calls` / `max_tokens` / `timeout_s` | `6` / `10` / `50000` / `60` | Limits of one ask. |
@@ -422,15 +423,19 @@ fields below. Built-in providers not listed still exist, disabled.
 | `ai.ask.planner_config.<planner>` | `{}` | Each planner's settings, validated by its own model. `react`: none. `plan_execute`: `max_replans` (`1`), `max_parallel` (`4`), `max_plan_steps` (`8`), `fallback` (`react`), `model` (alias of the planning call; default the ask's). `recipes`: `recipes: [{name, tool, match (regex, named groups), keywords, arguments, answer}]`, `fallback` (`react`). `router`: `rules: [{match, planner}]`, `use_recipes` (`true`), `multi_step` (`plan_execute`), `default` (`react`), `multi_step_pattern`. Env: `SAJHA_AI_ASK_PLANNER_CONFIG` as JSON. |
 | `ai.memory.enabled` | `true` | Conversation memory for asks that send a `conversation_id` (`sajha/ai/memory.py`). |
 | `ai.memory.history_turns` | `6` | Most recent turns sent to the planner verbatim. |
-| `ai.memory.max_turn_chars` | `2000` | Each stored answer is clipped to this. |
+| `ai.memory.max_turn_chars` | `2000` | Each stored question and answer is clipped to this. |
 | `ai.memory.summarize` / `summary_max_chars` | `true` / `2000` | Summarise turns older than the verbatim window through the gateway, and the summary's length cap. |
 | `ai.memory.condense` | `true` | Rewrite a follow-up into a standalone question before the shortlist. |
 | `ai.memory.model` | `fast` | Alias of the summary and rewrite calls. |
-| `ai.memory.retention_days` | `30` | Conversations idle longer are deleted (checked at most hourly, on a new turn). `0` keeps them. |
+| `ai.memory.retention_days` | `30` | Conversations idle longer are deleted by the purge. `0` keeps them. Also the ceiling of an LLM tool's `memory.ttl_minutes`. |
 | `ai.memory.max_conversations_per_user` | `200` | A user's oldest conversations beyond this are deleted. `0` = no cap. |
+| `ai.llm_tools.memory.max_turns` | `50` | Ceiling of an LLM tool conversation's stored turns; older turns are folded into the summary and their rows deleted. Env `SAJHA_AI_LLM_TOOLS_MEMORY_MAX_TURNS` (likewise for the keys below). |
+| `ai.llm_tools.memory.max_conversations_per_tool` | `50` | A user's oldest conversations of one LLM tool beyond this are deleted. `0` = no cap. |
+| `ai.llm_tools.memory.purge_interval_minutes` | `15` | The purge of expired and over-cap conversations runs this often, on one worker (a slot claimed in the state store). `0`: no schedule; at most hourly when a turn is written. |
+| `ai.llm_tools.memory.sqlite_vacuum` | `false` | `VACUUM` the SQLite file after a purge that deleted rows. |
 | `ai.rag.enabled` | `true` | Build the document index behind `sajha_search_docs` and *Ask the docs* (`sajha/ai/rag/`). |
 | `ai.rag.index_sajha_docs` | `true` | Index SAJHA's own guides (`docs/`, archive and READMEs excluded). |
-| `ai.rag.sources` | `[]` | Admin document sources: `[{name, path, pattern, title}]`; `path` is a folder in the storage backend, `pattern` a glob (default `*.md`). Files: `.md`, `.markdown`, `.txt`, `.rst`, `.html`, `.htm`. Env: JSON. |
+| `ai.rag.sources` | `[]` | Admin document sources: `[{name, path, pattern, title}]`; `path` is a folder in the storage backend, `pattern` a glob (default `*.md`). Files: `.md`, `.markdown`, `.txt`, `.rst`, `.html`, `.htm`; `.pdf` with the optional package `pypdf` and `.docx` with `python-docx` (without it such files are skipped and the build names the package). Env: JSON. |
 | `ai.rag.uploads_dir` | `data/rag/uploads` | Where uploaded documents are kept (storage backend). |
 | `ai.rag.embedding_model` | `embedding` | Gateway alias for passage embeddings; `none` = BM25 only. |
 | `ai.rag.store` | `auto` | `auto` (pgvector when PostgreSQL has the `vector` extension and the `rag_chunks` table, else in process), `memory`, or `pgvector`. |

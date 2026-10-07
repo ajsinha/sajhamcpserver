@@ -72,6 +72,9 @@ units). The live list is the endpoint itself; each family carries `# HELP` and `
 | `sajha_llm_tokens_total` | counter | `provider`, `model`, `direction` (`input`, `output`) |
 | `sajha_llm_cost_usd_total` | counter | `provider`, `model` |
 | `sajha_ask_runs_total` | counter | `stopped_by` (`answer`, `step_limit`, `tool_limit`, `timeout`, `budget`, `error`, `needs_confirmation`) |
+| `sajha_llm_tool_conversations` | gauge | `tool` (`ask` = the Ask SAJHA page); stored conversations, set by each purge |
+| `sajha_llm_tool_turns_total` | counter | `tool` (`ask` = the Ask SAJHA page) |
+| `sajha_llm_tool_purged_total` | counter | none; conversations deleted by the purge |
 | `sajha_auth_failures_total` | counter | `method` (`password`, `bearer`, `apikey`, `session`) |
 | `sajha_auth_lockouts_total` | counter | none |
 | `sajha_sandbox_runs_total` | counter | `backend`, `outcome` (`ok`, `error`, `timeout`, `output_limit`, `runner_error`) |

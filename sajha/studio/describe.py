@@ -312,19 +312,23 @@ def _parse_json(text: str) -> Dict[str, Any]:
 
 def generate(description: str, kind_hint: str = 'auto', user=None, registry=None, gateway=None) -> Dict[str, Any]:
     """Ask the toolsmith model for a raw proposal. Returns (raw proposal, model id)."""
+    from sajha.ai.llm.canonical import ChatMessage, ResponseFormat, SajhaRequest
     from sajha.ai.llm.errors import LLMError
-    from sajha.ai.llm.types import ChatRequest, Message, RequestContext
+    from sajha.ai.llm.types import RequestContext
     gw = gateway or _gateway()
     prompt = build_prompt(description, kind_hint, tool_context(description, registry), database_context())
     ctx = RequestContext(user_id=getattr(user, 'user_id', '') or '', roles=list(getattr(user, 'roles', None) or []),
                          is_admin=True)
-    req = ChatRequest([Message.user(prompt)], system=SYSTEM_PROMPT, response_schema=PROPOSAL_SCHEMA,
-                      temperature=0.0, max_output_tokens=6000, metadata=ctx)
     try:
-        resp = gw.chat(req, model=_target(gw))
+        resp = gw.chat_completions_create(
+            model=_target(gw), messages=[ChatMessage.system(SYSTEM_PROMPT), ChatMessage.user(prompt)],
+            response_format=ResponseFormat.of_schema(PROPOSAL_SCHEMA, name='tool_proposal'),
+            temperature=0.0, max_completion_tokens=6000, sajha=SajhaRequest(context=ctx))
     except LLMError as e:
         raise DescribeError(f'the toolsmith model is not available: {e}', 503)
-    return {'raw': _parse_json(resp.text), 'model': f'{resp.provider}/{resp.model}'}
+    if resp.refusal:
+        raise DescribeError(f'the toolsmith model declined: {resp.refusal}', 502)
+    return {'raw': _parse_json(resp.text), 'model': resp.sajha.qualified_model if resp.sajha else resp.model}
 
 
 # ── validation ───────────────────────────────────────────────────
