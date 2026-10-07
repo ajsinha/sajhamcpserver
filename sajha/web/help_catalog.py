@@ -129,7 +129,7 @@ CATALOG: List[dict] = [
             _g('MCP Apps and Headers Guide', 'MCP Apps and Headers Guide.md', 'bi-window-stack',
                'Interactive tool views (ui:// resources) and x-mcp-header argument mirroring.'),
             _g('SAJHA Net protocol (spec)', 'SAJHA Net Protocol.md', 'bi-share',
-               'Specification (not built) of the io.sajha/net extension: /sajhanet/ endpoints, RFC 9421 '
+               'Specification of the io.sajha/net extension (membership built, the rest not yet): /sajhanet/ endpoints, RFC 9421 '
                'signed requests, gossip, key directory, call forwarding headers, error codes, conformance tests.'),
             _g('API Reference', 'API Reference.md', 'bi-signpost-split',
                'Every HTTP endpoint the server registers: REST, MCP, OAuth, A2A, AI, Studio, '
@@ -191,7 +191,7 @@ CATALOG: List[dict] = [
                'expression grammar, verify checks, validation messages, JSON Schema, shipped strategies, '
                'and the planner editor.'),
             _g('SAJHA Net (design)', 'SAJHA Net.md', 'bi-diagram-3',
-               'Design for SAJHA servers sharing tools across domains: gossip membership, automatic proxy tools, '
+               'Design for SAJHA servers sharing tools across domains (membership built): gossip membership, automatic proxy tools, '
                'API-key identity with a synced key directory, two-sided authorization, residency, snapshots.'),
             _g('System notices', 'System Notices.md', 'bi-exclamation-triangle',
                'One place where SAJHA shows what needs attention: notices from the schema check, circuit '

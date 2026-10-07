@@ -139,6 +139,48 @@ memory
 {{- if and (eq $state "redis") (not .Values.redis.enabled) (not .Values.state.redis.url) (not .Values.state.redis.existingSecret) -}}
 {{- fail "state.backend redis needs redis.enabled, state.redis.url or state.redis.existingSecret" -}}
 {{- end -}}
+{{- if .Values.sajhanet.enabled -}}
+{{- $seen := dict -}}
+{{- range .Values.sajhanet.nets -}}
+{{- if hasKey $seen .name -}}
+{{- fail (printf "sajhanet.nets: the net %s is listed twice" .name) -}}
+{{- end -}}
+{{- $_ := set $seen .name true -}}
+{{- if and (not .founder) (not .seeds) -}}
+{{- fail (printf "sajhanet.nets %s: seeds are required unless founder: true" .name) -}}
+{{- end -}}
+{{- if and $multi (or (not .instanceName) (not .advertiseAddress)) -}}
+{{- fail (printf "sajhanet.nets %s: more than one pod needs instanceName and advertiseAddress (every pod is the same instance; an address name would differ per pod)" .name) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/* The sajhanet section of the configuration, from .Values.sajhanet (secret references
+     point at the mounted Secrets; settings are passed through). */}}
+{{- define "sajha.sajhanetConfig" -}}
+{{- $nets := list -}}
+{{- range .Values.sajhanet.nets -}}
+{{- $n := dict "name" .name -}}
+{{- with .instanceName }}{{- $_ := set $n "instance_name" . -}}{{- end -}}
+{{- with .advertiseAddress }}{{- $_ := set $n "advertise_address" . -}}{{- end -}}
+{{- if .founder }}{{- $_ := set $n "founder" true -}}{{- end -}}
+{{- with .seeds }}{{- $_ := set $n "seeds" . -}}{{- end -}}
+{{- if .identitySecret -}}
+{{- $dir := printf "/etc/sajhanet/%s" .name -}}
+{{- $id := dict "cert_ref" (printf "file:%s/instance.crt" $dir) "key_ref" (printf "file:%s/instance.key" $dir) "ca_ref" (printf "file:%s/ca.pem" $dir) -}}
+{{- if .revocationList }}{{- $_ := set $id "revocation_list_ref" (printf "file:%s/revoked.json" $dir) -}}{{- end -}}
+{{- $_ := set $n "identity" $id -}}
+{{- end -}}
+{{- if .caKeySecret -}}
+{{- $ca := dict "enabled" true "key_ref" (printf "file:/etc/sajhanet-ca/%s/ca.key" .name) -}}
+{{- with .settings }}{{- with .ca }}{{- $ca = merge $ca . -}}{{- end -}}{{- end -}}
+{{- $_ := set $n "ca" $ca -}}
+{{- end -}}
+{{- $n = merge $n (deepCopy (.settings | default dict)) -}}
+{{- $nets = append $nets $n -}}
+{{- end -}}
+{{- toYaml (dict "enabled" true "allowed_networks" .Values.sajhanet.allowedNetworks "nets" $nets) -}}
 {{- end -}}
 
 {{/* Container environment. */}}

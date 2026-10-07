@@ -182,6 +182,19 @@ Kafka or a file.
 |---|---|---|
 | `io.modelcontextprotocol/tasks` | `mcp.tasks.enabled` | this section, and the 2026-07-28 report §3.3 |
 | `io.modelcontextprotocol/ui` (MCP Apps) | `mcp.apps.enabled` | [MCP Apps and Headers Guide](MCP%20Apps%20and%20Headers%20Guide.md) |
+| `io.sajha/net` (SAJHA Net) | `sajhanet.enabled` | [SAJHA Net Protocol](SAJHA%20Net%20Protocol.md#6-capability-negotiation) §6 |
+
+`io.sajha/net` is the one extension SAJHA advertises on **both** eras: the 2025-11-25
+`initialize` result has no `extensions` member, so there it is
+`capabilities.experimental["io.sajha/net"]`, next to SAJHA's own `experimental.sajha`
+(`sajha/core/net_extension.py`). To a request that is not signed by a SAJHA Net participant
+the object is reduced to `{"protocol_versions": [1], "endpoint": "/sajhanet/v1/"}`; a
+request verified for a net gets the full object for that net only (its name, this server's
+instance name there, and the features, identity resolvers and signature algorithms the
+running SAJHA Net components declared). A client declares the extension in either era's
+place (`clientCapabilities.extensions` or `initialize` `capabilities.experimental`);
+`net_extension.client_declaration` reads both. The declaration is a hint: whether a request
+is a net request is decided by its signature.
 
 ---
 
@@ -212,6 +225,11 @@ curl -s http://localhost:3002/mcp -H 'Content-Type: application/json' \
   `llm.sampling`, section 2) answer with an SSE stream on the POST; the client POSTs its
   JSON-RPC responses back.
 - `ping`, `logging/setLevel`, `resources/subscribe` are available here.
+- `notifications/cancelled` (with the session header) cancels the named in-flight
+  `tools/call`: the call runs in a worker thread, so it sets a flag that
+  `mcp_tool_context.is_cancelled()` reports and federated tools act on by cancelling their
+  upstream request (`sajha/core/mcp_cancellation.py`; [Federation](../architecture/Federation.md#7-calls)).
+  Over stdio it also stops waiting for the call.
 
 ---
 

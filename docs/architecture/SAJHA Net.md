@@ -1,6 +1,10 @@
 # SAJHA Net
 
-> **Status: design, not built.** This note is the design for **SAJHA Net**: a network of several SAJHA
+> **Status: being built.** Membership is built (wave 4, phase 4.1): the protocol core and its
+> plug-in interfaces, names and name conflicts, the CA run by SAJHA, signed requests on the normal
+> port, gossip, restarts and adding a peer by address; [section 5.5](#55-what-is-built) lists what
+> and where. Catalogs, proxy tools, identity and the rest of this note are still design. This note
+> is the design for **SAJHA Net**: a network of several SAJHA
 > servers that share their tools with one another while each keeps its own data, credentials,
 > policy, AI layer and conversation memory. It extends [Federation](Federation.md), which
 > today brings other MCP servers' tools into one SAJHA by hand. It is item L16 on the
@@ -191,16 +195,18 @@ Implementation-wise, a net proxy is a subclass of the federated tool with a net 
 (instance identity plus user identity) instead of an upstream credential; discovery, refresh,
 namespacing and failure isolation are shared code.
 
-Federation's code does not yet do everything the net needs. These are changes to build, not
-behaviour that exists today:
+Federation's code did not do everything the net needs. The table names each change; those
+marked **built** are in the code now (section 21.1 has the status of each item):
 
 | Federation today (code) | What the net needs |
 |---|---|
-| An upstream prefix is 1 to 32 characters, starts with a letter and does not end in `_` (`UpstreamConfig.validate`); `namespaced()` cleans names to the MCP rule `[A-Za-z0-9_.-]{1,128}`, which allows `.` | A net proxy's name has two prefixes, `<net>__<instance>__<tool>` (section 8.2); the instance part may be an address name that starts with a digit and is up to 44 characters for IPv6 (section 6.1), and `.` is not accepted by every LLM provider: net proxies need their own name rule and must replace `.` too |
-| A tool whose definition changes goes to status `changed` and is withdrawn from the registry until approved again | `review` trust keeps the previously approved version serving (section 7.3); a changed contract under the same version is refused net-wide (section 8.7) |
-| Annotations are copied from the upstream as they are | Annotations corrected, never widened (section 8.1) |
+| An upstream prefix is 1 to 32 characters, starts with a letter and does not end in `_` (`UpstreamConfig.validate`); `namespaced()` cleaned names to the MCP rule `[A-Za-z0-9_.-]{1,128}`, which allows `.` | A net proxy's name has two prefixes, `<net>__<instance>__<tool>` (section 8.2); the instance part may be an address name that starts with a digit and is up to 44 characters for IPv6 (section 6.1), and `.` is not accepted by every LLM provider. **Built**: the qualified-name rule is `sajha/net/names.py`; the tool part (every character outside `[A-Za-z0-9_-]`, `.` included, becomes `_`) is `sajha/federation/names.py::tool_part`, which federation's `<prefix>__<tool>` now uses too, and two names that map to one are both refused |
+| A tool whose definition changes goes to status `changed` and is withdrawn from the registry until approved again | `review` trust keeps the previously approved version serving (section 7.3); a changed contract under the same version is refused net-wide (section 8.7). **Built** in federation: an upstream's `on_change: hold` keeps the approved version serving (the default stays `withdraw`) |
+| Annotations are copied from the upstream as they are | Annotations corrected, never widened (section 8.1). **Built**: `security.py::correct_annotations`, used by federation for every upstream tool |
+| Imported schemas are taken as they are (only their text is screened) | Schemas checked for valid JSON Schema (section 7.3). **Built**: `security.py::schema_problem`; an invalid tool is `invalid`, with the reason in the approval queue |
 | The tool cache (`sajha/core/cache.py`) keys a result by tool name and arguments only, for any tool with `cache_ttl`; federation refuses `cache_ttl` with `connected_account` for that reason | A cache key that includes the caller, and caching limited to read-only tools; until then proxies do not cache (section 9) |
-| The SSRF guard (`sajha/federation/security.py::check_url`) refuses loopback and private addresses unless `federation.allow_localhost` / `allow_private_networks`, and hosts outside `federation.allowed_hosts` when that is set | Instances usually sit on private networks: the net's guard takes its own settings and binds a peer's URL to its certificate (section 18) |
+| The SSRF guard (`sajha/federation/security.py::check_url`) refuses loopback and private addresses unless `federation.allow_localhost` / `allow_private_networks`, and hosts outside `federation.allowed_hosts` when that is set | Instances usually sit on private networks: the net's guard takes its own settings and binds a peer's URL to its certificate (section 18). **Built**: `check_peer_url`, with `sajhanet.allowed_networks`; binding to the certificate is the request signing's |
+| Federation abandoned its local wait when its caller cancelled; a 2025-11-25 `notifications/cancelled` stopped nothing | Cancellation reaches the host. **Built**: either era's cancellation cancels the upstream request, which the SDK sends on (`sajha/core/mcp_cancellation.py`, [Federation](Federation.md#7-calls)) |
 | No trace context is sent upstream; a server span only continues an inbound `traceparent` | Outbound `traceparent` on every forwarded call (section 16) |
 | Upstreams and approval records are one JSON document at `federation.state_path` in the storage backend | The same storage backend, plus the state store for what changes often (section 20.2) |
 
@@ -282,6 +288,47 @@ Python entry-point group (`sajha.net.plugins`), as planners already can.
 - Every interface has a contract test suite that each implementation, shipped or third-party,
   must pass before it can be selected.
 
+### 5.5 What is built
+
+Wave 4, phase 4.1 built membership; everything else in this note is still design.
+
+- **The protocol core** is `sajha/net/` and imports nothing from the rest of SAJHA
+  (`tests/net/test_net_plugins.py` checks it): names (`names.py`), RFC 8785 canonical JSON
+  (`jcs.py`), the RFC 8941 fields the protocol uses (`sfv.py`), keys, certificates and record
+  signatures (`crypto.py`), RFC 9421 request and response signatures with RFC 9530 digests
+  (`httpsig.py`), the JSON Schemas of every `/sajhanet/v1/` message (`schemas.py`), errors and
+  problem bodies (`errors.py`), the CA (`ca.py`), the SWIM rules and the saved peer list
+  (`membership.py`), and a participant's nodes, one per net, with their endpoints and gossip
+  agent (`node.py`).
+- **Plug-in points** (section 5.3): every interface is in `sajha/net/plugins.py` with a registry,
+  `package.module:Class` selection and the entry-point group `sajha.net.plugins`; each has a
+  contract check in `sajha/net/contract.py` that every implementation passes. Shipped: membership
+  `gossip` and `static`; admission `builtin_ca` and `manual`; connectors `sajha_native` and
+  `in_process`; identity `none`; catalog source `static`; key directory store `memory`; rules
+  `allow_all` and `deny_all`; snapshot sink `local_files`; routing `local_first`,
+  `lowest_latency` and `pinned`. The SAJHA-backed ones (the `api_key` resolver, the `native`
+  catalog, the `database` key store, the policy-engine rules) come with phase 4.2.
+- **SAJHA's integration** is `sajha/net/integration/` (configuration, state store, notices,
+  metrics, audit, the gossip agent's lease) and `sajha/routes/sajhanet_routes.py` (the protocol
+  endpoints, the admin API and the `/admin/sajhanet` page); the command line is `sajha net ...`.
+  The keys are in the [Configuration Reference](../getting-started/Configuration%20Reference.md#sajha-net).
+- **Built of section 6:** named nets kept apart by the signed `Sajha-Net-Name`; configured and
+  address names with the refusals of section 6.1; name ownership by certificate lineage and loud
+  `name_conflict` refusals; the CA per net (init, tokens refused for held names, enrollment,
+  renewal with a new key, revocation by name or serial, the signed list spread by gossip digests);
+  manual mode with pinned thumbprints (in configuration, `identity.pins`, or added with
+  `sajha net pin`); SWIM gossip with suspicion, refutation, dissemination, anti-entropy, leave
+  and dead probing; required seeds and `founder`; restarts through seeds, then the saved peer list,
+  then a discovery plug-in, with back-off; adding a peer by address (admin API, console, CLI) with
+  an optional runtime seed; one gossip agent per net through the renewing lease; and these notice
+  sources of section 17.4: not joined (including no seeds), `name_conflict` (own and seen), member
+  suspect, dead or left, certificate expiring or expired, renewal failing, revocation list stale, a
+  peer added by hand, plain HTTP allowed, and a net still named `default`. The extension is
+  advertised with `user_identity: ["none"]` until the `api_key` resolver exists.
+- **Not yet:** catalogs and everything after section 7, the Instances page and the rest of the
+  console of section 17 (the admin page is a minimal one), mutual TLS (`mtls` stays off), the
+  SAJHA Net agent and the reference library.
+
 ---
 
 ## 6. Membership
@@ -350,9 +397,10 @@ server is needed.
   names the instance) must be issued again. The console warns when an instance runs under an
   address name. An instance with several pods or workers is one instance and needs a configured
   name and an `advertise_address` (its Service), since each pod's own address would name a
-  different instance. The Helm chart has no SAJHA Net value today; the `sajhanet.nets` list, with
-  each net's `instance_name` and `advertise_address`, can already be set through `config.overrides`
-  (deep-merged, with lists replaced whole), and a dedicated chart value is part of the build.
+  different instance. The Helm chart's `sajhanet` values set the nets list, each net's instance
+  name and advertise address, and the Secrets that hold its certificate and keys, and the chart
+  refuses to render several pods with a net that lacks either
+  ([Kubernetes Deployment](../getting-started/Kubernetes%20Deployment.md#sajha-net)).
 - **Admission is by certificate.** Each net has its own certificate authority. In each of its
   nets an instance holds a certificate signed by that net's CA whose subject names the net and the
   instance name there (and preferably a separate key pair per net), so an instance cannot claim a
@@ -453,7 +501,9 @@ The certificate authority is part of SAJHA; no external PKI is needed.
 ### 6.5 Manual mode
 
 Where an administrator prefers not to run a CA, peers can still be added by hand with a one-time
-join offer approved on both sides. Gossip then runs among the approved peers only.
+join offer approved on both sides. Gossip then runs among the approved peers only. As built, the approval
+is a pinned certificate thumbprint on each side (`identity.pins`, or `sajha net pin`), and every
+other rule is the CA mode's (protocol §8.11).
 
 ### 6.6 Restarts
 
@@ -610,10 +660,12 @@ according to the peer's trust level:
 The owner's decision is that net instances are trusted, so `auto` is the default. Screening stays
 on anyway: it is cheap, and it limits the damage if a trusted instance is ever compromised. Under
 `review`, a tool whose description or schema changes after approval is held at its previous
-approved version until reviewed. (Federation today withdraws such a tool until it is approved
-again, section 4; holding the old version is new.) Federation's screening covers descriptions,
+approved version until reviewed. (Federation offers the same per upstream, `on_change: hold`,
+and still withdraws such a tool by default, section 4.) Federation's screening covers descriptions,
 titles and the text inside schemas (`sajha/federation/security.py`, `INJECTION_MARKERS`); the
-JSON Schema validity check is new.
+JSON Schema validity check (`security.py::schema_problem`: a valid 2020-12 schema of type
+`object`, else the tool is `invalid` with the reason in the approval queue) is federation's
+too.
 
 ---
 
@@ -624,7 +676,7 @@ JSON Schema validity check is new.
 For every approved remote tool the home instance's import rules allow, in each of its nets, SAJHA
 creates a **proxy tool** in its registry automatically: the remote schemas, the remote annotations
 (corrected, never widened: a remote tool is at least `openWorldHint: true`; federation copies
-annotations as they are today, so this correction is new), and a net connection. When the tool
+annotations the same way, `security.py::correct_annotations`), and a net connection. When the tool
 disappears from the peer's catalog, the proxy is removed. When the peer goes offline, its proxies
 are marked unavailable or removed at once, as section 8.5 says; there is no grace period.
 
@@ -1686,21 +1738,27 @@ Checking the design against today's code found these pieces that do not exist ye
    as `apikey:<name>` with role `api_consumer`); `owner_id` set; self-service keys; a revocation
    record; a default key per user, kept encrypted in the accounts vault.
 2. Advertising the extension on the 2025-11-25 era (today only 2026-07-28's `server/discover`
-   advertises extensions).
+   advertises extensions). **Built** (wave 4, phase 4.1): `sajha/core/net_extension.py`, on both eras
+   when `sajhanet.enabled`, reduced for unsigned requests; client declarations read from either place.
 3. Every tool call as an audit event (today only policy, approval, admin and workflow events are in
    the chain), and an outbound `traceparent`.
 4. A per-user key for the tool result cache (today the key is tool name plus arguments).
 5. Federation changes: the instance-name prefix rule, `.` replaced in names, annotations corrected
-   rather than copied, the old version kept serving under `review`.
+   rather than copied, the old version kept serving under `review`. **Built** (wave 4, phase 4.1):
+   section 4's table says where.
 6. A SAJHA Net network allowlist in the SSRF guard (today private networks are refused unless
-   `federation.allow_private_networks` is set).
+   `federation.allow_private_networks` is set). **Built** (wave 4, phase 4.1): `check_peer_url` and
+   `sajhanet.allowed_networks`.
 7. A renewing state-store lease (today cron and probes claim one slot at a time and never renew).
 8. Policy conditions for data class and destination, and field-level redaction.
-9. A Helm value for the nets list and instance names.
+9. A Helm value for the nets list and instance names. **Built** (wave 4, phase 4.1): the chart's
+   `sajhanet` values ([Kubernetes Deployment](../getting-started/Kubernetes%20Deployment.md#sajha-net)).
 10. Untracking `config/apikeys.json` and replacing its plaintext legacy keys with the hashed format.
 11. An account page where users manage their own keys.
 12. `notifications/cancelled` reaching the host (today federation only abandons its local task).
-13. JSON Schema validation of imported schemas.
+    **Built** (wave 4, phase 4.1) for federation on both eras; net proxies, being federated tools, get it too.
+13. JSON Schema validation of imported schemas. **Built** (wave 4, phase 4.1) for federation;
+    the same check is there for net catalogs (phase 4.2).
 
 ## 22. Build plan
 

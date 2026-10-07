@@ -24,10 +24,10 @@ UPSTREAM_ID = re.compile(r'^[a-z][a-z0-9_-]{0,31}$')
 SEPARATOR = '__'
 #: MCP tool-name rules (2025-11-25): 1-128 of these characters.
 TOOL_NAME = re.compile(r'^[A-Za-z0-9_.-]{1,128}$')
-_TOOL_NAME_BAD = re.compile(r'[^A-Za-z0-9_.-]')
 
 TRANSPORTS = ('streamable_http', 'sse', 'stdio')
 PROTOCOLS = ('auto', 'legacy', '2026-07-28')
+ON_CHANGE = ('withdraw', 'hold')
 AUTH_TYPES = ('none', 'bearer', 'header', 'oauth_client_credentials', 'connected_account')
 #: what a connected_account upstream may use for discovery (tools/list) when no user is calling
 DISCOVERY_AUTH_TYPES = ('none', 'bearer', 'header', 'oauth_client_credentials')
@@ -143,6 +143,7 @@ class UpstreamConfig:
     expose_prompts: bool = False
     expose_resources: bool = False
     auto_approve: bool = False
+    on_change: str = 'withdraw'      # withdraw | hold: what serves while a changed definition waits
     command: str = ''
     args: List[str] = field(default_factory=list)
     env: Dict[str, str] = field(default_factory=dict)
@@ -153,7 +154,7 @@ class UpstreamConfig:
     FIELDS = ('id', 'url', 'title', 'enabled', 'transport', 'protocol', 'prefix', 'auth', 'headers',
               'timeout_seconds', 'retries', 'max_calls_per_minute', 'cache_ttl', 'cache_per_user', 'breaker',
               'refresh_interval_seconds', 'include_tools', 'exclude_tools', 'expose_prompts',
-              'expose_resources', 'auto_approve', 'command', 'args', 'env', 'env_refs', 'cwd')
+              'expose_resources', 'auto_approve', 'on_change', 'command', 'args', 'env', 'env_refs', 'cwd')
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any], source: str = 'config') -> 'UpstreamConfig':
@@ -221,6 +222,7 @@ class UpstreamConfig:
             expose_prompts=_b('expose_prompts', False),
             expose_resources=_b('expose_resources', False),
             auto_approve=_b('auto_approve', False),
+            on_change=str(data.get('on_change') or 'withdraw').strip(),
             command=str(data.get('command') or '').strip(),
             args=_lst('args'),
             env={str(k): str(v) for k, v in _d('env').items()},
@@ -239,6 +241,8 @@ class UpstreamConfig:
         if not re.match(r'^[A-Za-z][A-Za-z0-9_-]{0,31}$', prefix) or SEPARATOR in prefix or prefix.endswith('_'):
             raise ConfigError('prefix must be 1-32 characters: a letter, then letters, digits, "-" or "_", '
                               'without "__" and not ending in "_"')
+        if self.on_change not in ON_CHANGE:
+            raise ConfigError(f'on_change must be one of {", ".join(ON_CHANGE)}')
         if self.transport not in TRANSPORTS:
             raise ConfigError(f'transport must be one of {", ".join(TRANSPORTS)}')
         if self.protocol not in PROTOCOLS:
@@ -323,8 +327,7 @@ def _is_ref(value: Any) -> bool:
 # ── names ───────────────────────────────────────────────────────────
 
 def namespaced(prefix: str, name: str) -> str:
-    """``<prefix>__<name>``, cleaned to the MCP tool-name rules (a bad character -> '_', <= 128)."""
-    full = f'{prefix}{SEPARATOR}{name}'
-    if TOOL_NAME.match(full):
-        return full
-    return _TOOL_NAME_BAD.sub('_', full)[:128]
+    """``<prefix>__<tool part>``: every character outside ``[A-Za-z0-9_-]`` becomes ``_`` (MCP
+    allows ``.``, but not every LLM provider does; ``names.tool_part``), at most 128 characters."""
+    from sajha.federation.names import tool_part
+    return f'{prefix}{SEPARATOR}{tool_part(name)}'[:128]

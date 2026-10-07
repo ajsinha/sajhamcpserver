@@ -5,9 +5,14 @@ metadata:
   labels:
     {{- include "sajha.labels" . | nindent 4 }}
 data:
+  {{- $overrides := deepCopy (.Values.config.overrides | default dict) }}
+  {{- if .Values.sajhanet.enabled }}
+  {{- $net := include "sajha.sajhanetConfig" . | fromYaml }}
+  {{- $_ := set $overrides "sajhanet" (merge $net (get $overrides "sajhanet" | default dict)) }}
+  {{- end }}
   overrides.yaml: |
-    {{- if .Values.config.overrides }}
-    {{- toYaml .Values.config.overrides | nindent 4 }}
+    {{- if $overrides }}
+    {{- toYaml $overrides | nindent 4 }}
     {{- else }}
     {}
     {{- end }}

@@ -608,7 +608,7 @@ These render templates; they are not JSON APIs. Unauthenticated requests to `use
 |---|---|
 | none / optional | `/`, `/login`, `/help`, `/help/c/{cid}`, `/help/guides`, `/help/guides/{name}`, `/glossary`, `/help/tools`, `/about`, `/comparison`, `/oauth/authorize`; and the 301 redirects `/help/ai`, `/help/enterprise`, `/help/tutorials`, `/help/glossary`, `/help/storage`, `/docs`, `/docs/view/{doc_path}` |
 | user | `/dashboard`, `/account/password`, `/account/apikeys`, `/tools`, `/tools/{tool_name}/execute`, `/tools/{tool_name}/schema`, `/prompts`, `/prompts/{prompt_name}`, `/prompts/{prompt_name}/test`, `/prompts/category/{category}`, `/prompts/tag/{tag}`, `/reports`, `/composite/builder`, `/ai/settings`, `/ask`, `/conversations`, `/playground`, `/monitoring/usage` |
-| admin | `/admin/users`, `/admin/users/create`, `/admin/tools`, `/admin/system-monitor`, `/admin/prompts`, `/admin/async-tasks`, `/admin/apikeys`, `/admin/apikeys/create`, `/admin/apikeys/{key_id}/view`, `/admin/federation`, `/admin/connectors`, `/prompts/create`, `/tools/{tool_name}/config`, `/monitoring/tools`, `/monitoring/users` |
+| admin | `/admin/users`, `/admin/users/create`, `/admin/tools`, `/admin/system-monitor`, `/admin/prompts`, `/admin/async-tasks`, `/admin/apikeys`, `/admin/apikeys/create`, `/admin/apikeys/{key_id}/view`, `/admin/federation`, `/admin/sajhanet`, `/admin/connectors`, `/prompts/create`, `/tools/{tool_name}/config`, `/monitoring/tools`, `/monitoring/users` |
 | studio | `/studio`, `/studio/rest`, `/studio/dbquery`, `/studio/script`, `/studio/livelink`, `/studio/olap`, `/studio/powerbi`, `/studio/powerbidax`, `/studio/sharepoint`, `/studio/examples`, `/studio/api-import`, `/studio/describe`, `/studio/llm` (each needs its creator's permission) |
 | admin (Studio) | `/studio/planners` |
 
@@ -641,7 +641,7 @@ such upstream or item, 502 the upstream failed). Behaviour: [Federation](../arch
 | PUT | `/api/federation/upstreams/{upstream_id}` | admin | Replace an upstream added on the page (not one from configuration). |
 | DELETE | `/api/federation/upstreams/{upstream_id}` | admin | Remove an upstream added on the page; its tools leave the registry. |
 | POST | `/api/federation/upstreams/{upstream_id}/refresh` | admin | Reconnect if needed and re-discover now. |
-| POST | `/api/federation/upstreams/{upstream_id}/items` | admin | `{"kind": "tool" \| "prompt" \| "resource", "name", "action"}`; actions `approve`, `reject`, `disable`, `enable`, `reset`, `approve_all`. Returns `{ok, changed}`. |
+| POST | `/api/federation/upstreams/{upstream_id}/items` | admin | `{"kind": "tool" \| "prompt" \| "resource", "name", "action"}`; actions `approve`, `reject`, `disable`, `enable`, `reset`, `approve_all`. Returns `{ok, changed}`; 400 when approving an `invalid` tool (the reason is in the message). |
 | POST | `/api/federation/test` | admin | Connect to an unsaved upstream definition: `{ok, protocol_version, server_info, tools, prompts, resources}` or `{ok: false, error}`. |
 
 ### 4.17 Connected accounts (`accounts_routes.py`)
@@ -816,6 +816,45 @@ client = OpenAI(base_url="http://localhost:3002/v1", api_key="sja_key")
 client.chat.completions.create(model="sajha:llm_docs_qa", messages=[{"role": "user", "content": "How do I enable OAuth?"}],
                                extra_body={"sajha": {"conversation_id": "new"}})
 ```
+
+### 4.24 SAJHA Net (`sajhanet_routes.py`)
+
+SAJHA servers joined into nets. Off by default (`sajhanet.enabled`); the keys are in the
+[Configuration Reference](../getting-started/Configuration%20Reference.md#sajha-net) and the design
+in [SAJHA Net](../architecture/SAJHA%20Net.md).
+
+**Protocol endpoints.** `/sajhanet/{path}` (every method) carries the SAJHA Net protocol on the
+normal port: the paths, bodies, signatures and refusals are specified, not repeated here, in the
+[SAJHA Net Protocol](SAJHA%20Net%20Protocol.md#72-endpoints) §7. The server answers a bare `404`
+(no body, no signature) when SAJHA Net is off, when `Sajha-Net-Name` is missing or names a net it
+is not in, for a browser navigation (`Sec-Fetch-Mode: navigate`), and on the paths of features it
+does not offer; its responses never carry CORS headers. Requests are signed by participants, not
+authenticated by session or API key. Served today: gossip ping and ping-req, membership sync and
+leave, the revocation list, and on the CA instance enrollment and renewal.
+
+**Admin API.** Admin only; every change is written to the audit log. Errors are
+`{"error": "message", ...}`: 400 a bad request or an address the network rules refuse, 404 a net
+this server is not configured for, 409 a state conflict (a held name, with `holder`; a CA that is
+not here or already initialised), 429 too many peer additions, 502 the peer or CA refused or did
+not answer (with `reason`), 503 SAJHA Net is off.
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/admin/sajhanet` | admin | The SAJHA Net page: each net, this server's name and certificate there, joined or not, the members and their states; add a peer by address. |
+| GET | `/api/sajhanet/status` | admin | `{enabled, protocol_versions, nets: [...]}`: per net the instance name, URL, founder, seeds and runtime seeds, error, joined, refused (a `name_conflict` with the holder), features, incarnation, certificate, revocation-list version, the gossip agent's holder and the members (name, state, URL, incarnation, last seen). |
+| POST | `/api/sajhanet/nets/{net}/peers` | admin | `{"address": "ip:port" \| "host:port" \| URL, "keep_as_seed"?}`: contact that address now with an ordinary signed join. Refused before any contact when the address fails the SSRF rules (`sajhanet.allowed_networks`). On success `{ok, peer, url, kept_as_seed}`; on failure nothing is stored. |
+| DELETE | `/api/sajhanet/nets/{net}/seeds` | admin | `{"url"}`: remove a runtime seed. 404 when it is not one. |
+| POST | `/api/sajhanet/nets/{net}/ca/init` | admin | On the net's CA instance (`ca.enabled`), once: create the CA key (owner-only file at `ca.key_ref`) and certificate, and this server's own certificate. `{ca_certificate, thumbprint, key_ref}`. |
+| GET | `/api/sajhanet/nets/{net}/ca` | admin | On the CA instance: issued certificates (instance, serial, host, thumbprint, not after, `renews`), pending tokens and the revocation list. |
+| POST | `/api/sajhanet/nets/{net}/ca/tokens` | admin | `{"instance", "host"?}`: a single-use enrollment token for that name (shown once), with the CA URL and certificate to give the new server. 409 with `holder` when the name is held by an unrevoked certificate. |
+| POST | `/api/sajhanet/nets/{net}/ca/revoke` | admin | `{"instance"}` (removal from the net) or `{"serial"}` (one certificate), `reason?`: a new signed revocation list version, spread by gossip. |
+| POST | `/api/sajhanet/nets/{net}/enroll` | admin | `{"ca_url", "token"}`: this server generates a key, obtains its certificate from the CA instance and joins. |
+| POST | `/api/sajhanet/nets/{net}/renew` | admin | Renew this server's certificate now with a new key (it also renews by itself when a third of its validity remains). |
+| POST | `/api/sajhanet/nets/{net}/pins` | admin | Manual mode: `{"thumbprint"}` pins a peer's self-signed certificate for the net. |
+| DELETE | `/api/sajhanet/nets/{net}/pins` | admin | Manual mode: `{"thumbprint"}` removes a pin (the revocation in manual mode). |
+
+The command line wraps these as `sajha net ...` ([Command Line](../clients/Command%20Line.md)).
+
 
 ---
 

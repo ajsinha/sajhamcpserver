@@ -31,6 +31,13 @@ spec:
         {{- with $np.ingress.extraFrom }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
+        {{- if .Values.sajhanet.enabled }}
+        # SAJHA Net peers (sajhanet.allowedNetworks)
+        {{- range .Values.sajhanet.allowedNetworks }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+        {{- end }}
   egress:
     {{- if $np.egress.dns }}
     - ports:
@@ -68,6 +75,18 @@ spec:
             cidr: 0.0.0.0/0
             except:
               {{- toYaml $np.egress.internetExcept | nindent 14 }}
+    {{- end }}
+    {{- if and .Values.sajhanet.enabled .Values.sajhanet.allowedNetworks }}
+    # SAJHA Net peers on private networks (sajhanet.allowedNetworks)
+    - ports:
+        {{- range $np.egress.internetPorts }}
+        - {port: {{ . }}, protocol: TCP}
+        {{- end }}
+      to:
+        {{- range .Values.sajhanet.allowedNetworks }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
     {{- end }}
     {{- with $np.egress.extra }}
     {{- toYaml . | nindent 4 }}

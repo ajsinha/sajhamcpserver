@@ -197,6 +197,11 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
 
     # Notification: no id -> 202, no body
     if body.get('jsonrpc') == '2.0' and isinstance(body.get('method'), str) and 'id' not in body:
+        if body['method'] == 'notifications/cancelled' and mcp_session is not None:
+            # stop the named in-flight call (federation passes it on upstream): mcp_cancellation
+            from sajha.core import mcp_cancellation
+            cp = body.get('params') if isinstance(body.get('params'), dict) else {}
+            mcp_cancellation.cancel(mcp_session.session_id, cp.get('requestId'), cp.get('reason'))
         await run_in_threadpool(mcp_handler.handle_request, body, session_data)
         if mcp_session and body['method'] in ('notifications/initialized', 'initialized'):
             mcp_session.initialized = True
@@ -218,7 +223,12 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
                 and _samples(mcp_handler, params.get('name'))):
             return await _stream_sampled_call(body, params, session_data, mcp_session, mcp_handler)
 
-    response = await run_in_threadpool(mcp_handler.handle_request, body, session_data)
+    if method == 'tools/call':
+        from sajha.core import mcp_cancellation
+        with mcp_cancellation.track(getattr(mcp_session, 'session_id', None), body.get('id')):
+            response = await run_in_threadpool(mcp_handler.handle_request, body, session_data)
+    else:
+        response = await run_in_threadpool(mcp_handler.handle_request, body, session_data)
 
     # Legacy 2024-11-05 HTTP+SSE client: the response travels over its SSE stream
     legacy_sid = request.query_params.get('session')
@@ -336,7 +346,8 @@ async def _stream_sampled_call(body: dict, params: dict, session_data: dict, mcp
     stream_id = uuid.uuid4().hex[:12]
 
     def work():
-        with bound(sampler, name):
+        from sajha.core import mcp_cancellation
+        with bound(sampler, name), mcp_cancellation.track(mcp_session.session_id, body.get('id')):
             return handler.handle_request(body, session_data)
 
     async def events():

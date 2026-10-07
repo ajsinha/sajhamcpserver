@@ -271,6 +271,7 @@ class StdioServer:
         self.cancelled: set = set()
         self.legacy_session = None
         self._forwarder: Optional[asyncio.Task] = None
+        self._cancel_scope = f'stdio:{id(self)}'      # mcp_cancellation scope of this connection
 
     # -- output ----------------------------------------------------
 
@@ -378,6 +379,8 @@ class StdioServer:
             return            # unknown or finished: ignore (spec: MAY ignore)
         logger.info(f'request {rid!r} cancelled by client' + (f': {reason}' if reason else ''))
         self.cancelled.add(rid)
+        from sajha.core import mcp_cancellation
+        mcp_cancellation.cancel(self._cancel_scope, rid, reason)   # the worker thread sees it too
         task.cancel()
 
     # -- 2026-07-28 -----------------------------------------------
@@ -442,7 +445,12 @@ class StdioServer:
                     await self._fixture_call(rid, params, fixtures)
                     return
 
-            response = await _run_in_thread(self.handler.handle_request, body, self.session_data)
+            if method == 'tools/call' and is_request:
+                from sajha.core import mcp_cancellation
+                with mcp_cancellation.track(self._cancel_scope, rid):
+                    response = await _run_in_thread(self.handler.handle_request, body, self.session_data)
+            else:
+                response = await _run_in_thread(self.handler.handle_request, body, self.session_data)
             if not is_request:
                 return
             if method == 'initialize' and isinstance(response, dict) and 'result' in response:

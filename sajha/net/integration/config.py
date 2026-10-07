@@ -1,0 +1,193 @@
+"""
+SAJHA Net configuration (design §19): ``sajhanet.*`` in config/application.yml.
+
+* Server-wide scalars resolve as every ``_get`` key does (``SAJHA_SAJHANET_<KEY>`` → YAML → default).
+* ``sajhanet.nets`` is a list read from the YAML (or ``SAJHA_SAJHANET_NETS`` as a JSON list,
+  :func:`sajha.core.net_extension.configured_nets`); an entry without a name is the net ``default``;
+  list order is preference order.
+* Every key that is not net-only or server-wide-only is a shared default a net entry may override.
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+"""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+from sajha.net import names
+from sajha.net.models import CASettings, GossipSettings, IdentitySettings, NetConfig, PeerCacheSettings
+
+GOSSIP_KEYS = ('gossip_interval_ms', 'ping_timeout_ms', 'indirect_probes', 'suspect_timeout_seconds',
+               'full_sync_interval_seconds', 'dead_retention_minutes', 'dead_probe_interval_seconds')
+NET_ONLY = ('name', 'instance_name', 'advertise_address', 'founder', 'seeds', 'identity', 'ca', 'static_peers',
+            'export', 'import')
+
+
+def _raw() -> Dict[str, Any]:
+    """The ``sajhanet`` section of the YAML as written (lists and maps intact)."""
+    path = Path(os.environ.get('SAJHA_CONFIG_FILE', 'config/application.yml'))
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    try:
+        import yaml
+        data = yaml.safe_load(path.read_text(encoding='utf-8')) or {} if path.exists() else {}
+    except Exception:
+        data = {}
+    sec = data.get('sajhanet') if isinstance(data, dict) else None
+    return sec if isinstance(sec, dict) else {}
+
+
+def _g(key: str, default: Any) -> str:
+    from sajha.core.config import _get
+    v = _get('sajhanet.' + key, None)
+    return default if v is None or v == '' else v
+
+
+def _bool(v: Any, default: bool) -> bool:
+    from sajha.core.config import parse_bool
+    return parse_bool(v, default)
+
+
+def _num(v: Any, default: float) -> float:
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return default
+
+
+@dataclass
+class Shared:
+    enabled: bool = False
+    base_url: str = ''
+    region: str = ''
+    labels: Dict[str, str] = field(default_factory=dict)
+    signature_max_age_seconds: float = 30
+    require_https: bool = True
+    min_protocol_version: int = 1
+    mtls: str = 'off'
+    membership: str = 'gossip'
+    admission: str = 'builtin_ca'
+    connector: str = 'sajha_native'
+    data_dir: str = 'data/sajhanet'
+    gossip: GossipSettings = field(default_factory=GossipSettings)
+    peer_cache: PeerCacheSettings = field(default_factory=PeerCacheSettings)
+    max_injections_per_minute: int = 6
+    agent_lease_seconds: float = 15
+
+
+def shared() -> Shared:
+    raw = _raw()
+    s = Shared()
+    s.enabled = _bool(_g('enabled', 'false'), False)
+    s.base_url = str(_g('base_url', '')).rstrip('/')
+    s.region = str(_g('region', ''))
+    labels = raw.get('labels')
+    s.labels = {str(k): str(v) for k, v in labels.items()} if isinstance(labels, dict) else {}
+    s.signature_max_age_seconds = min(300.0, max(1.0, _num(_g('signature_max_age_seconds', 30), 30)))
+    s.require_https = _bool(_g('require_https', 'true'), True)
+    s.min_protocol_version = int(_num(_g('min_protocol_version', 1), 1))
+    s.mtls = str(_g('mtls', 'off')).lower()
+    s.membership = str(_g('plugins.membership', 'gossip'))
+    s.admission = str(_g('plugins.admission', 'builtin_ca'))
+    s.connector = str(_g('plugins.connector', 'sajha_native'))
+    s.data_dir = str(_g('data_dir', 'data/sajhanet'))
+    s.max_injections_per_minute = int(_num(_g('max_injections_per_minute', 6), 6))
+    s.agent_lease_seconds = max(3.0, _num(_g('agent_lease_seconds', 15), 15))
+    g = GossipSettings()
+    for k in GOSSIP_KEYS:
+        setattr(g, k, type(getattr(g, k))(_num(_g('gossip.' + k, getattr(g, k)), getattr(g, k))))
+    s.gossip = g
+    pc = raw.get('peer_cache') if isinstance(raw.get('peer_cache'), dict) else {}
+    s.peer_cache = PeerCacheSettings(path=str(_g('peer_cache.path', pc.get('path') or '')),
+                                     interval_minutes=_num(_g('peer_cache.interval_minutes', 10), 10),
+                                     max_age_days=_num(_g('peer_cache.max_age_days', 7), 7))
+    return s
+
+
+def _file_ref(ref: str, default_path: str) -> str:
+    return ref if ref else 'file:' + default_path
+
+
+def ref_path(ref: str) -> Optional[str]:
+    """The file path of a ``file:`` reference (SAJHA Net writes only files it was given a path for)."""
+    if isinstance(ref, str) and ref.startswith('file:'):
+        return ref[5:]
+    return None
+
+
+def net_configs(s: Optional[Shared] = None, bind_host: str = '0.0.0.0', port: int = 3002
+                ) -> Tuple[List[NetConfig], Dict[str, str]]:
+    """Every configured net as a :class:`NetConfig`, and configuration errors by net name."""
+    from sajha.core.net_extension import configured_nets
+    s = s or shared()
+    out: List[NetConfig] = []
+    errors: Dict[str, str] = {}
+    seen = set()
+    for entry in configured_nets() or ([{'name': 'default'}] if s.enabled else []):
+        nm = str(entry.get('name') or 'default')
+        try:
+            names.net_name_or_default(nm)
+        except names.NameError_ as e:
+            errors[nm] = str(e)
+            continue
+        if nm in seen:
+            errors[nm] = f'net {nm} is listed twice in sajhanet.nets'
+            continue
+        seen.add(nm)
+        d = os.path.join(s.data_dir, nm)
+        ident = entry.get('identity') if isinstance(entry.get('identity'), dict) else {}
+        ca = entry.get('ca') if isinstance(entry.get('ca'), dict) else {}
+        pc = entry.get('peer_cache') if isinstance(entry.get('peer_cache'), dict) else {}
+        gossip = GossipSettings(**vars(s.gossip))
+        for k, v in (entry.get('gossip') or {}).items() if isinstance(entry.get('gossip'), dict) else ():
+            if k in GOSSIP_KEYS:
+                setattr(gossip, k, type(getattr(gossip, k))(_num(v, getattr(gossip, k))))
+        cfg = NetConfig(
+            name=nm,
+            instance_name=str(entry.get('instance_name') or ''),
+            advertise_address=str(entry.get('advertise_address') or ''),
+            founder=_bool(entry.get('founder'), False),
+            seeds=[str(x).rstrip('/') for x in (entry.get('seeds') or []) if x],
+            identity=IdentitySettings(
+                cert_ref=_file_ref(str(ident.get('cert_ref') or ''), os.path.join(d, 'instance.crt')),
+                key_ref=_file_ref(str(ident.get('key_ref') or ''), os.path.join(d, 'instance.key')),
+                ca_ref=_file_ref(str(ident.get('ca_ref') or ''), os.path.join(d, 'ca.pem')),
+                revocation_list_ref=_file_ref(str(ident.get('revocation_list_ref') or ''),
+                                              os.path.join(d, 'revoked.json')),
+                pins=[str(p) for p in (ident.get('pins') or [])]),
+            ca=CASettings(enabled=_bool(ca.get('enabled'), False),
+                          key_ref=_file_ref(str(ca.get('key_ref') or ''), os.path.join(d, 'ca.key')),
+                          cert_ref=_file_ref(str(ca.get('cert_ref') or ''), os.path.join(d, 'ca.pem')),
+                          cert_validity_days=_num(ca.get('cert_validity_days'), 30),
+                          enrollment_token_minutes=_num(ca.get('enrollment_token_minutes'), 30),
+                          enrollments_per_minute=int(_num(ca.get('enrollments_per_minute'), 10))),
+            peer_cache=PeerCacheSettings(
+                path=str(pc.get('path') or (s.peer_cache.path.replace('<net>', nm) if s.peer_cache.path
+                                            else os.path.join(d, 'peers.json'))),
+                interval_minutes=_num(pc.get('interval_minutes'), s.peer_cache.interval_minutes),
+                max_age_days=_num(pc.get('max_age_days'), s.peer_cache.max_age_days)),
+            static_peers=[str(x) for x in (entry.get('static_peers') or [])],
+            base_url=str(entry.get('base_url') or s.base_url).rstrip('/'),
+            region=str(entry.get('region') or s.region),
+            labels={str(k): str(v) for k, v in (entry.get('labels') or s.labels or {}).items()},
+            signature_max_age_seconds=min(300.0, _num(entry.get('signature_max_age_seconds'),
+                                                      s.signature_max_age_seconds)),
+            require_https=_bool(entry.get('require_https'), s.require_https),
+            min_protocol_version=int(_num(entry.get('min_protocol_version'), s.min_protocol_version)),
+            admission=s.admission, membership=s.membership, gossip=gossip,
+            max_injections_per_minute=s.max_injections_per_minute)
+        name, why = names.resolve_instance_name(cfg.instance_name, cfg.advertise_address, bind_host, port)
+        if name is None:
+            errors[nm] = why
+        else:
+            cfg.instance_name = name
+            if not cfg.base_url:
+                if names.is_address_name(name):
+                    cfg.base_url = ('https://' if cfg.require_https else 'http://') + name
+                else:
+                    errors[nm] = 'sajhanet.base_url (or the net entry\'s base_url) is required with a configured name'
+        out.append(cfg)
+    return out, errors

@@ -4,7 +4,67 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
-Nothing yet.
+Wave 4 of the [Implementation Plan](docs/architecture/Implementation%20Plan.md), phase 4.1: stream A,
+SAJHA Net membership ([SAJHA Net](docs/architecture/SAJHA%20Net.md) §5.5 says what is built), and
+stream B, changes to existing code that SAJHA Net builds on (§21.1 items 2, 5, 6, 9, 12 and 13).
+
+### Upgrading
+
+- **Federated tool names:** a `.` in an upstream tool's name now becomes `_`
+  (`v1.convert` is exposed as `<prefix>__v1_convert`), so the name is valid for every LLM
+  provider. Update API-key allowlists or role patterns that named such a tool with its dot.
+  Two upstream names that map to one exposed name are both refused (before, the first won).
+- **Federated annotations** are corrected rather than copied: `openWorldHint` is always
+  `true`, non-boolean hints and unknown keys are dropped, and `destructiveHint` is dropped for
+  a read-only tool.
+- **Federated schemas** must be valid JSON Schema (2020-12) object schemas: a tool whose
+  `inputSchema` or `outputSchema` is not is listed as `invalid`, with the reason, and is not
+  exposed.
+
+### Added
+
+- **SAJHA Net membership** (off by default, `sajhanet.enabled`): servers join named nets, several
+  per server, kept apart on the normal port by the signed `Sajha-Net-Name` header. The protocol
+  core is `sajha/net/` (it imports nothing else from SAJHA): names and qualified names, RFC 9421
+  request and response signatures with RFC 9530 digests and replay protection in the state store,
+  JSON Schemas of every `/sajhanet/v1/` message, RFC 8785 record signatures, the plug-in
+  interfaces of the design with a registry, `package.module:Class` and the entry-point group
+  `sajha.net.plugins`, and a contract check per interface. Membership is SWIM gossip (ping,
+  ping-req, suspicion, refutation, dissemination, anti-entropy, leave, dead probing) with required
+  seeds (`founder` exempt), restarts through the saved peer list (`peers.json`, local disk), and one
+  gossip agent per net and instance through the renewing state-store lease. Names are configured or
+  `<ip>:<port>`; a name belongs to its certificate lineage and a different key claiming it is
+  refused with `409 name_conflict`, an error notice and the `sajha_net_name_conflict` metric. The
+  CA is run by SAJHA, one per net: `sajha net ca init | enroll | revoke | show`, enrollment with
+  single-use tokens refused for held names, renewal with a new key, a signed revocation list spread
+  by gossip; manual mode pins self-signed certificates. Administrators add a peer by address
+  (`/admin/sajhanet`, `POST /api/sajhanet/nets/{net}/peers`, `sajha net peers add`), optionally kept
+  as a runtime seed. Notices for not joined, name conflicts, member state, certificates, renewal,
+  stale revocation lists, peers added and plain HTTP. Keys: `sajhanet.*` in the
+  [Configuration Reference](docs/getting-started/Configuration%20Reference.md#sajha-net); routes in
+  the [API Reference](docs/protocol/API%20Reference.md) §4.24. No schema change.
+- **SAJHA Net Protocol fixes** found while building it: a join sync to a seed or an operator-given
+  address carries `Sajha-Net-To: *` (its name is not known yet); a renewed certificate carries the
+  renewed serial in an extension so members can follow a name's lineage; the enrollment answer
+  omits `"signature";req` (the request is unsigned) and is bound by the CSR's key; §8.9 says the
+  emptied `_meta` objects stay; the §21.2 example covers `sajha-net-name`.
+- **`io.sajha/net` on both eras:** with `sajhanet.enabled` the extension is advertised in
+  `server/discover` (`capabilities.extensions`) and in the 2025-11-25 `initialize` result
+  (`capabilities.experimental`), reduced for requests not signed by a participant; clients'
+  declarations are read from either place (`sajha/core/net_extension.py`).
+- **Federation `on_change: hold`:** per upstream, the previously approved version keeps
+  serving while a changed definition waits for review (default `withdraw`, as before).
+- **Schema validation of imported tools:** new status `invalid` on the federation page and in
+  its API (`items[].reason`); approving such a tool is refused.
+- **Cancellation reaches the upstream from the 2025-11-25 era:** `notifications/cancelled`
+  cancels the named in-flight `tools/call` (HTTP with a session, and stdio), relayed between
+  workers through a shared state store; a federated call then cancels its upstream request
+  (`sajha/core/mcp_cancellation.py`). `is_cancelled()` reports it to any tool.
+- **SAJHA Net peer URL guard:** `check_peer_url` and `sajhanet.allowed_networks` (CIDRs),
+  separate from `federation.allow_private_networks`; loopback and link-local are never allowed.
+- **Helm:** `sajhanet` values (nets, instance names, advertise addresses, Secrets for
+  certificates and keys, allowed networks, NetworkPolicy rules); the chart refuses several pods
+  with a net that has no instance name or advertise address.
 
 ## v7.3.0 (October 2026) — planners, authoring and the OpenAI endpoint
 

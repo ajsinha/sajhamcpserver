@@ -19,7 +19,7 @@
 .st-connected,.st-approved{background:var(--sajha-ok)}
 .st-connecting,.st-pending{background:var(--sajha-indigo)}
 .st-changed{background:var(--sajha-warn)}
-.st-error,.st-rejected{background:var(--sajha-bad)}
+.st-error,.st-rejected,.st-invalid{background:var(--sajha-bad)}
 .st-disabled{background:var(--sajha-slate)}
 .flag{color:var(--sajha-bad);font-weight:600;font-size:.75rem}
 .fed-err{color:var(--sajha-bad);font-size:.8rem;word-break:break-word}
@@ -131,6 +131,7 @@ details.schema pre{background:var(--t-inp);color:var(--t-text);padding:.5rem;bor
           <label><input type="checkbox" id="fPrompts"> Expose prompts</label>
           <label><input type="checkbox" id="fResources"> Expose resources</label>
           <label><input type="checkbox" id="fAuto"> Trust: approve new tools automatically</label>
+          <label><input type="checkbox" id="fHold"> Keep serving the approved version while a change waits</label>
         </div>
       </div>
       <p class="small text-muted mt-2 mb-2">Secrets are references (<code>env:NAME</code>, <code>file:/path</code>, <code>db:llm_providers/&lt;type&gt;</code>), never values.</p>
@@ -203,11 +204,11 @@ function render(u){
   items.forEach(function(it){
     var a='', k=esc(it.kind);
     var call=function(act,label,cls){return btn(act,u.id,it.kind,it.name,label,cls)+' '};
-    if(it.status!=='approved')a+=call('approve','Approve','btn-outline-success');
+    if(it.status!=='approved'&&!(it.reason&&it.status!=='rejected'&&it.status!=='disabled'))a+=call('approve','Approve','btn-outline-success');
     if(it.status==='approved')a+=call('disable','Disable','btn-outline-secondary');
-    if(it.status==='pending'||it.status==='changed')a+=call('reject','Reject','btn-outline-danger');
+    if(it.status==='pending'||it.status==='changed'||it.status==='invalid')a+=call('reject','Reject','btn-outline-danger');
     if(it.status==='rejected'||it.status==='disabled')a+=call('reset','Reset','btn-outline-secondary');
-    h+='<tr><td><code>'+esc(it.exposed)+'</code><div class="fed-meta">'+k+' <code>'+esc(it.name)+'</code></div>'+(it.flagged?'<div class="flag"><i class="bi bi-exclamation-octagon"></i> suspicious text removed</div>':'')+(it.conflict?'<div class="fed-err">'+esc(it.conflict)+'</div>':'')+'</td>';
+    h+='<tr><td><code>'+esc(it.exposed)+'</code><div class="fed-meta">'+k+' <code>'+esc(it.name)+'</code></div>'+(it.flagged?'<div class="flag"><i class="bi bi-exclamation-octagon"></i> suspicious text removed</div>':'')+(it.conflict?'<div class="fed-err">'+esc(it.conflict)+'</div>':'')+(it.reason?'<div class="fed-err">Refused: '+esc(it.reason)+'</div>':'')+(it.held?'<div class="fed-meta">The approved version keeps serving until this change is reviewed</div>':'')+'</td>';
     h+='<td><span class="st st-'+esc(it.status)+'">'+esc(it.status)+'</span></td>';
     h+='<td><div class="fed-desc">'+esc(it.description)+'</div>'+(it.inputSchema?'<details class="schema"><summary>Input schema</summary><pre>'+esc(JSON.stringify(it.inputSchema,null,2))+'</pre></details>':'')+'</td>';
     h+='<td class="fed-actions">'+a+'</td></tr>';
@@ -229,7 +230,7 @@ function list(s){return s?s.split(',').map(function(x){return x.trim()}).filter(
 function formData(){
   var d={id:v('fId'),title:v('fTitle'),prefix:v('fPrefix'),transport:v('fTransport'),enabled:document.getElementById('fEnabled').checked,
     expose_prompts:document.getElementById('fPrompts').checked,expose_resources:document.getElementById('fResources').checked,
-    auto_approve:document.getElementById('fAuto').checked,include_tools:list(v('fInclude')),exclude_tools:list(v('fExclude'))};
+    auto_approve:document.getElementById('fAuto').checked,on_change:document.getElementById('fHold').checked?'hold':'withdraw',include_tools:list(v('fInclude')),exclude_tools:list(v('fExclude'))};
   if(d.transport==='stdio'){d.command=v('fCommand');d.args=list(v('fArgs'))}else{d.url=v('fUrl');d.protocol=v('fProtocol')}
   var at=v('fAuth');
   if(at==='bearer')d.auth={type:at,token_ref:v('fTokenRef')};
@@ -257,7 +258,7 @@ function saveUp(){
 function showForm(){editing=null;document.getElementById('formTitle').textContent='Add upstream';document.getElementById('fId').disabled=false;
   ['fId','fTitle','fPrefix','fUrl','fCommand','fArgs','fTokenRef','fHeader','fValueRef','fTokenUrl','fClientId','fSecretRef','fScope','fTimeout','fRate','fCache','fInclude','fExclude'].forEach(function(i){document.getElementById(i).value=''});
   document.getElementById('fTransport').value='streamable_http';document.getElementById('fProtocol').value='auto';document.getElementById('fAuth').value='none';
-  document.getElementById('fEnabled').checked=true;['fPrompts','fResources','fAuto'].forEach(function(i){document.getElementById(i).checked=false});
+  document.getElementById('fEnabled').checked=true;['fPrompts','fResources','fAuto','fHold'].forEach(function(i){document.getElementById(i).checked=false});
   transportChanged();authChanged();msg('',true);document.getElementById('upForm').style.display='block';document.getElementById('fId').focus()}
 function hideForm(){document.getElementById('upForm').style.display='none';editing=null}
 function editUp(uid){
@@ -272,6 +273,7 @@ function editUp(uid){
   set('fInclude',(d.include_tools||[]).join(', '));set('fExclude',(d.exclude_tools||[]).join(', '));
   document.getElementById('fEnabled').checked=d.enabled!==false;document.getElementById('fPrompts').checked=!!d.expose_prompts;
   document.getElementById('fResources').checked=!!d.expose_resources;document.getElementById('fAuto').checked=!!d.auto_approve;
+  document.getElementById('fHold').checked=d.on_change==='hold';
   transportChanged();authChanged();
 }
 function transportChanged(){var s=v('fTransport')==='stdio';

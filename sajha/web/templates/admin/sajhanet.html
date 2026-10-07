@@ -1,0 +1,101 @@
+{% extends "common/base.html" %}
+{% block title %}SAJHA Net - Admin - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.sn-net{border:1px solid var(--t-card-b);border-radius:var(--radius-lg);background:var(--t-card);margin-bottom:1rem}
+.sn-head{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-bottom:1px solid var(--t-card-b);background:var(--t-card-hdr)}
+.sn-head h2{font-size:1.05rem;margin:0;font-weight:700;color:var(--t-heading)}
+.sn-meta{font-size:.8rem;color:var(--t-muted)}
+.sn-table{font-size:.84rem;width:100%}
+.sn-table th{background:var(--t-card-hdr);color:var(--t-text2);font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;padding:.45rem .75rem}
+.sn-table td{padding:.4rem .75rem;border-bottom:1px solid var(--t-card-b);color:var(--t-text);word-break:break-word}
+.st{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:.72rem;font-weight:600;color:var(--sajha-on-crimson)}
+.st-alive{background:var(--sajha-ok)}
+.st-suspect{background:var(--sajha-warn)}
+.st-dead{background:var(--sajha-bad)}
+.st-left{background:var(--sajha-slate)}
+.sn-err{color:var(--sajha-bad);font-size:.85rem;word-break:break-word}
+@media (max-width:576px){.sn-table th:nth-child(3),.sn-table td:nth-child(3){display:none}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-share me-2" aria-hidden="true"></i>SAJHA Net</h1>
+      <small class="text-muted">The nets this server belongs to, its name and certificate in each, and the members it knows</small>
+    </div>
+    <a class="btn btn-sm btn-outline-primary" href="/admin/sajhanet" aria-label="Reload"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></a>
+  </div>
+
+  {% if not status.enabled %}
+  <div class="alert alert-warning small" role="status">
+    <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>
+    SAJHA Net is off: set <code>sajhanet.enabled: true</code> and list the nets under <code>sajhanet.nets</code> in
+    <code>config/application.yml</code>, then restart. Every <code>/sajhanet/</code> path answers 404 while it is off.
+  </div>
+  {% endif %}
+
+  {% for n in status.nets %}
+  <section class="sn-net" aria-labelledby="net-{{ loop.index }}">
+    <div class="sn-head">
+      <h2 id="net-{{ loop.index }}">{{ n.net }} <span class="sn-meta">as <code>{{ n.instance or '—' }}</code></span></h2>
+      <span class="sn-meta">
+        {% if n.refused %}<span class="st st-dead">name conflict</span>
+        {% elif n.joined %}<span class="st st-alive">joined</span>
+        {% else %}<span class="st st-suspect">not joined</span>{% endif %}
+        {% if n.founder %} founder{% endif %}{% if n.ca and n.ca.enabled %} · CA instance{% endif %}
+      </span>
+    </div>
+    <div class="p-3">
+      {% if n.error %}<p class="sn-err mb-2">{{ n.error }}</p>{% endif %}
+      {% if n.refused %}<p class="sn-err mb-2">The name {{ n.instance }} is held by {{ n.refused.holder_url or 'another participant' }}
+        (certificate {{ n.refused.holder_thumbprint }}, {{ n.refused.holder_state }}). This server does not join until its configuration or certificate changes.</p>{% endif %}
+      {% if n.config_error %}<p class="sn-err mb-2">{{ n.config_error }}</p>{% endif %}
+      <p class="sn-meta mb-2">URL <code>{{ n.url }}</code> · seeds: {{ n.seeds|join(', ') or 'none' }}
+        {% if n.runtime_seeds %} · runtime seeds: {% for s in n.runtime_seeds %}<code>{{ s.url }}</code> ({{ s.added_by }}){% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
+        {% if n.certificate %} · certificate {{ n.certificate.serial }} until {{ n.certificate.not_after }}{% endif %}</p>
+      {% if n.members is defined %}
+      <div class="table-responsive">
+      <table class="sn-table">
+        <thead><tr><th scope="col">Instance</th><th scope="col">State</th><th scope="col">URL</th><th scope="col">Last seen</th></tr></thead>
+        <tbody>
+        {% for m in n.members %}
+          <tr><td><code>{{ m.name }}</code></td><td><span class="st st-{{ m.state }}">{{ m.state }}</span></td>
+              <td>{{ m.url }}</td><td>{{ m.last_seen or '—' }}</td></tr>
+        {% else %}
+          <tr><td colspan="4" class="sn-meta">No other members known yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      <form class="row g-2 mt-2 align-items-end" onsubmit="return addPeer(event, '{{ n.net }}', this)">
+        <div class="col-md-6"><label class="form-label small" for="addr-{{ loop.index }}">Add a peer by address</label>
+          <input class="form-control form-control-sm" id="addr-{{ loop.index }}" name="address" placeholder="10.20.4.17:3002 or https://sajha-peer.example.internal" autocomplete="off"></div>
+        <div class="col-auto"><label class="small"><input type="checkbox" name="keep"> Keep as a runtime seed</label></div>
+        <div class="col-auto"><button class="btn btn-sm btn-success" type="submit">Contact</button></div>
+        <div class="col-12 small" role="status" aria-live="polite"></div>
+      </form>
+      {% endif %}
+    </div>
+  </section>
+  {% else %}
+  {% if status.enabled %}<p class="text-muted">No nets are configured (<code>sajhanet.nets</code>).</p>{% endif %}
+  {% endfor %}
+</div>
+<script>
+function addPeer(ev, net, form){
+  ev.preventDefault();
+  const out = form.querySelector('[role=status]');
+  out.textContent = 'Contacting…';
+  fetch('/api/sajhanet/nets/' + encodeURIComponent(net) + '/peers', {method:'POST', credentials:'same-origin',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({address: form.address.value, keep_as_seed: form.keep.checked})})
+  .then(r => r.json().then(d => ({ok: r.ok, d: d})))
+  .then(x => { out.textContent = x.ok ? ('Joined through ' + x.d.peer + '.') : ('Not added: ' + (x.d.error || 'error') + '. Nothing was stored.');
+               if (x.ok) setTimeout(() => location.reload(), 800); })
+  .catch(e => { out.textContent = 'Not added: ' + e; });
+  return false;
+}
+</script>
+{% endblock %}

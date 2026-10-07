@@ -82,6 +82,14 @@ nothing and says so.
 | `sajha federation list` | Upstream MCP servers, state, approved items (admin) | `GET /api/federation/upstreams` |
 | `sajha federation add --id ID --url URL ...` | Add an upstream (`--def JSON` for the whole definition) (admin) | `POST /api/federation/upstreams` |
 | `sajha federation refresh ID` / `remove ID` | Reconnect and re-list / remove a run-time upstream (admin) | `/api/federation/upstreams/{id}` |
+| `sajha net status` | The SAJHA Nets this server is in: its name in each, joined or refused, and the members it knows (admin) ([SAJHA Net](../architecture/SAJHA%20Net.md)) | `GET /api/sajhanet/status` |
+| `sajha net peers list --net NET` / `peers add ADDRESS --net NET [--keep-as-seed]` | Members and seeds of a net / contact a peer at `ip:port`, `host:port` or a URL now, with an ordinary signed join (admin; never possible through a remote call) | `GET /api/sajhanet/status`, `POST /api/sajhanet/nets/{net}/peers` |
+| `sajha net ca init --net NET` | On the net's CA instance, once: create the CA key and certificate; back the key up | `POST /api/sajhanet/nets/{net}/ca/init` |
+| `sajha net ca enroll INSTANCE --net NET [--host H]` | On the CA instance: a single-use enrollment token for that name (refused, naming the holder, when the name is held) | `POST /api/sajhanet/nets/{net}/ca/tokens` |
+| `sajha net ca revoke INSTANCE --net NET` / `revoke --serial S --net NET` | Remove an instance from the net / revoke one certificate; the signed revocation list spreads by gossip | `POST /api/sajhanet/nets/{net}/ca/revoke` |
+| `sajha net ca show --net NET` | Issued certificates, pending tokens, the revocation list | `GET /api/sajhanet/nets/{net}/ca` |
+| `sajha net enroll --net NET --ca-url URL --token T` | On a new server: obtain its certificate with the token (`-` reads it from stdin) and join | `POST /api/sajhanet/nets/{net}/enroll` |
+| `sajha net renew --net NET` / `pin THUMBPRINT --net NET` | Renew this server's certificate now / manual mode: pin a peer's certificate | `POST /api/sajhanet/nets/{net}/renew`, `/pins` |
 | `sajha workflows list` | Your workflows (administrators: all): enabled, version, owner, triggers ([Workflows](../architecture/Workflows.md)) | `GET /api/workflows` |
 | `sajha workflows run NAME [--input k=v ...] [--input-json JSON] [--wait SEC] [--idempotency-key K]` | Start a run; `--wait` (at most 300 s) waits and prints the output. Exit 1 when the run fails or is cancelled | `POST /api/workflows/{name}/runs` |
 | `sajha workflows runs NAME [--status S] [--limit N]` | Run history | `GET /api/workflows/{name}/runs` |
@@ -92,8 +100,8 @@ nothing and says so.
 | `sajha completion bash\|zsh\|fish` | Print a shell completion script | |
 | `sajha version` (or `--version`) | Print the CLI version | |
 
-The federation commands need a server with the federation API; on one without it they
-exit 5. The server has no general "effective configuration" endpoint; `config show
+The federation and `net` commands need a server with the federation or SAJHA Net API; on one
+without it they exit 5. Every `net` command takes `--net` (default `default`) and `--json`. The server has no general "effective configuration" endpoint; `config show
 --remote` covers the `ai.*` settings, the only ones it reports with their sources.
 
 ### Arguments

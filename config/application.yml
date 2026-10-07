@@ -828,3 +828,43 @@ quality:
   versions:
     enabled: true                  # false: versions files are ignored (every call runs the registered tool)
     reload_seconds: 5              # recheck versions_dir at most this often
+
+# ── SAJHA Net: servers joined into nets (off by default) ─────────────────────
+# Membership, names, the CA and signed requests on this port. Every key:
+# docs/getting-started/Configuration Reference.md#sajha-net; design: docs/architecture/SAJHA Net.md;
+# wire protocol: docs/protocol/SAJHA Net Protocol.md. Keys and certificates are files (secret
+# references), never values here.
+sajhanet:
+  enabled: false
+  nets: []                         # one entry per net, in preference order; an entry looks like:
+  #  - name: acme-net               # omitted: the net is called `default`
+  #    instance_name: risk-eu       # unset: this server's address, <ip>:<port>
+  #    advertise_address: ""        # ip:port peers should use (NAT, containers)
+  #    founder: false               # true only on the net's first server (usually the CA instance)
+  #    seeds: [https://sajha-treasury-na.example.internal]   # at least one unless founder
+  #    identity: {cert_ref: file:data/sajhanet/acme-net/instance.crt, key_ref: file:data/sajhanet/acme-net/instance.key,
+  #               ca_ref: file:data/sajhanet/acme-net/ca.pem, revocation_list_ref: file:data/sajhanet/acme-net/revoked.json}
+  #    ca: {enabled: false, key_ref: file:data/sajhanet/acme-net/ca.key, cert_validity_days: 30, enrollment_token_minutes: 30}
+  base_url: ""                     # https URL peers reach this server on (required with a configured instance_name)
+  region: ""
+  signature_max_age_seconds: 30    # a signed request older than this is refused (at most 300)
+  require_https: true              # false only for a lab: enrollment and peer URLs may then be plain HTTP
+  min_protocol_version: 1
+  data_dir: data/sajhanet          # default home of each net's keys, certificates and peers.json (git-ignored)
+  max_injections_per_minute: 6     # peers an administrator may add by address, per net
+  agent_lease_seconds: 15          # the gossip agent's state-store lease (one agent per net across workers)
+  plugins:
+    membership: gossip             # gossip | static (static_peers in a net entry) | package.module:Class
+    admission: builtin_ca          # builtin_ca | manual (pinned self-signed certificates)
+    connector: sajha_native
+  peer_cache:
+    interval_minutes: 10           # the saved peer list is written on change and at least this often
+    max_age_days: 7                # saved peers not seen for longer are skipped on restart
+  gossip:
+    gossip_interval_ms: 1000
+    ping_timeout_ms: 500
+    indirect_probes: 3
+    suspect_timeout_seconds: 10
+    full_sync_interval_seconds: 30
+    dead_retention_minutes: 60
+    dead_probe_interval_seconds: 30

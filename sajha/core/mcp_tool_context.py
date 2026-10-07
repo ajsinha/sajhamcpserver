@@ -170,4 +170,7 @@ def report_log(level: str, data: Any, logger_name: Optional[str] = None) -> None
 def is_cancelled() -> bool:
     """True once the client went away / the task was cancelled; tools may stop early."""
     ctx = _current.get()
-    return bool(ctx and ctx.cancelled)
+    if ctx is not None and ctx.cancelled:
+        return True
+    from sajha.core import mcp_cancellation     # a 2025-11-25 notifications/cancelled
+    return mcp_cancellation.is_cancelled()

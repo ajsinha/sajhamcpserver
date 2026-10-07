@@ -38,7 +38,8 @@ configured by default, so a fresh SAJHA serves exactly what it served before.
 | Code | What |
 |---|---|
 | `sajha/federation/config.py` | `FederationSettings`, `UpstreamConfig` (parse and validate), the name rules |
-| `sajha/federation/security.py` | URL guard (SSRF), text sanitising, secret references, redaction |
+| `sajha/federation/security.py` | URL guards (SSRF; also SAJHA Net's peer guard), text sanitising, annotation correction, schema validation, secret references, redaction |
+| `sajha/federation/names.py` | the provider-safe tool part of an imported name |
 | `sajha/federation/auth.py` | credentials sent to an upstream: static header, OAuth client credentials |
 | `sajha/federation/connection.py` | `UpstreamConnection`: the official `mcp` SDK v2 `Client` for one upstream |
 | `sajha/federation/tool.py` | `FederatedTool`, the `BaseMCPTool` subclass registered in the registry |
@@ -85,6 +86,7 @@ places, merged at start-up:
 | `include_tools`, `exclude_tools` | all, none | fnmatch patterns on the upstream's own tool names |
 | `expose_prompts`, `expose_resources` | `false` | also federate prompts and resources |
 | `auto_approve` | `false` | trust this upstream: expose new tools without approval |
+| `on_change` | `withdraw` | what serves while a changed definition waits for review: `withdraw` (nothing) or `hold` (the previously approved version; section 6) |
 | `command`, `args`, `env`, `env_refs`, `cwd` | | stdio only: the process to launch |
 
 ### Transports
@@ -137,11 +139,15 @@ federated tools are offered to Ask SAJHA's models. `__` keeps one name valid eve
 and access patterns read naturally: an API key with allowlist `weather__*` may call every
 tool of that upstream and nothing else.
 
-A name the rules reject (a character outside the set, or longer than 128 characters in
-total) is cleaned: each disallowed character becomes `_` and the result is truncated;
-the original name is kept for routing. Two upstream names that clean to the same name, or
-a federated name equal to a native tool's name, are not exposed: the second one is
-reported as a conflict on the admin page. Native tools always win.
+The upstream's own name becomes the **tool part**: every character outside
+`[A-Za-z0-9_-]` becomes `_`, the `.` that MCP allows included, so `v1.get_forecast` is
+exposed as `weather__v1_get_forecast` and the name is valid for every LLM provider
+(`sajha/federation/names.py::tool_part`, shared with SAJHA Net's qualified names). The
+whole name is cut at 128 characters. The original name is kept for routing: the upstream
+is always called with its own name. When two upstream names map to the same exposed name
+(`a.b` and `a_b`), **neither** is exposed and both are reported as a conflict on the admin
+page; a federated name equal to a native tool's name is not exposed either. Native tools
+always win.
 
 Prompts follow the same rule (`<prefix>__<prompt>`). Resource URIs are rewritten to
 `sajha-federation://<upstream id>/<the original URI, percent-encoded>` so they cannot
@@ -176,16 +182,36 @@ administrator approves it. Each item has one status:
 |---|---|---|
 | `pending` | no | discovered, awaiting a decision |
 | `approved` | yes | exposed through SAJHA |
-| `changed` | no | was approved, but the upstream changed its definition since; approve again |
+| `changed` | no, or the approved version with `on_change: hold` | was approved, but the upstream changed its definition since; approve again |
 | `rejected` | no | an administrator said no; stays hidden through refreshes |
 | `disabled` | no | approved once, switched off for now |
+| `invalid` | no | the tool's `inputSchema` or `outputSchema` is not a valid JSON Schema object schema; cannot be approved (the reason is shown) |
 
 `changed` defends against an upstream that swaps a reviewed tool's description or schema
 after approval (a "rug pull"): the definition's hash is stored with the approval, and any
-difference sends the tool back for review. An upstream with `auto_approve: true`, or
-`federation.require_approval: false`, approves new and changed items automatically,
-**except** items whose text tripped the injection screen (section 9), which always wait
-for a person.
+difference sends the tool back for review. What serves meanwhile is the upstream's
+`on_change`: with `withdraw` (the default) the tool leaves the catalog until it is approved
+again; with `hold` the **previously approved version keeps serving** (its description,
+schemas and annotations; the call still goes to the upstream's tool of that name) and the
+admin page says so, until an administrator approves the change, or the upstream goes back
+to the approved definition. A held version needs the approved definition, which SAJHA
+stores with every approval; a tool approved before SAJHA stored it is withdrawn instead.
+The [SAJHA Net](SAJHA%20Net.md#73-approval-of-imported-tools) design gives its `review` trust
+level the same behaviour.
+
+An upstream with `auto_approve: true`, or `federation.require_approval: false`, approves
+new and changed items automatically, **except** items whose text tripped the injection
+screen (section 9), which always wait for a person.
+
+**Schema validation.** Each discovered tool's `inputSchema` (and `outputSchema`, when it has
+one) must be a valid JSON Schema whose `type` is `object`: SAJHA checks it against the
+2020-12 meta-schema (or the dialect its `$schema` names) before anything else. A tool that
+fails is `invalid`, with the reason (for example `inputSchema is not a valid JSON Schema at
+properties/a/type: 'strng' is not valid ...`) on the admin page and in
+`GET /api/federation/upstreams/{id}` (`items[].reason`); approving it is refused. When the
+upstream fixes the schema, the tool is treated as newly discovered. A held version
+(`on_change: hold`) keeps serving while a changed definition is invalid. The same check
+(`security.py::schema_problem`) is meant for SAJHA Net's imported catalogs.
 
 ## 7. Calls
 
@@ -215,8 +241,14 @@ Ask SAJHA, composites) receive the same object as a JSON value. An upstream resu
 `isError: true` is a tool failure in SAJHA too: MCP callers get `isError: true` with the
 upstream's text, and the breaker counts it.
 
-**Schemas pass through.** `inputSchema`, `outputSchema`, `annotations`, `icons` and
-`title` are the upstream's, with descriptions screened (section 9). SAJHA adds
+**Schemas pass through.** `inputSchema`, `outputSchema`, `icons` and `title` are the
+upstream's, validated (section 6) and with descriptions screened (section 9).
+**Annotations are corrected, never widened** (`security.py::correct_annotations`): only the
+MCP hints (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) with
+boolean values are kept, so anything else falls back to the cautious MCP default;
+`destructiveHint` is dropped when the tool claims to be read-only; other keys are dropped;
+and `openWorldHint` is always `true`, because the tool runs on another server. The title is
+screened like any upstream text. SAJHA adds
 `_meta["sajha/federation"] = {"upstream": <id>, "tool": <upstream name>}` to each listed
 tool. The upstream's own `_meta` (MCP Apps views, for instance) and its task support are
 not carried over.
@@ -225,9 +257,21 @@ not carried over.
 asked for it (a 2026-07-28 `tools/call` with `_meta.progressToken` on a streamed
 response).
 
-**Cancellation** propagates: when SAJHA's caller disconnects or cancels, SAJHA cancels
-the upstream request, which the SDK turns into `notifications/cancelled` (2025-11-25) or
-a closed request stream (2026-07-28).
+**Cancellation** reaches the upstream, so it stops its work too. SAJHA's caller cancels a
+call in its own era's way:
+
+* **2026-07-28**: by closing the call's response stream, or `tasks/cancel` for a task;
+* **2025-11-25**: with `notifications/cancelled` naming the request id. The call runs in a
+  worker thread, so the notification sets a flag for that request instead
+  (`sajha/core/mcp_cancellation.py`, keyed by the MCP session and request id; over stdio
+  by the connection). With a shared state store the flag is relayed to whichever worker
+  runs the call.
+
+While SAJHA waits for the upstream it checks both; once cancelled it cancels the upstream
+request, which the SDK sends on as `notifications/cancelled` to a 2025-11-25 upstream or as
+a closed request stream to a 2026-07-28 upstream, and SAJHA's caller gets
+`cancelled by the client`. Tools of SAJHA's own can check the same flag
+(`mcp_tool_context.is_cancelled()`).
 
 **Client input (MRTR, elicitation).** When a 2026-07-28 upstream answers with an
 `InputRequiredResult`, SAJHA surfaces it to its own 2026-07-28 caller as SAJHA's
@@ -269,6 +313,10 @@ by `GET /api/circuits` with SAJHA's other providers.
   `federation.allow_private_networks` (RFC 1918 and unique-local, never link-local, so
   never a cloud metadata address). The check runs when the upstream is saved and again
   before every connection attempt. Redirects are not followed.
+  SAJHA Net peers have a guard of their own (`check_peer_url`): private addresses are
+  allowed there only inside `sajhanet.allowed_networks`, independent of
+  `federation.allow_private_networks`, and loopback and link-local never
+  ([Configuration Reference](../getting-started/Configuration%20Reference.md#sajha-net)).
 * **No secrets in logs.** Credentials are references; resolved values live only in the
   HTTP client's headers. Errors and statuses shown on the page or logged pass through
   `SecretStore.redact`, and a configuration is shown with its references, never their
@@ -340,6 +388,8 @@ is in the [API Reference](../protocol/API%20Reference.md#416-federation-federati
   (upstreams and approvals) is shared by every process that shares the storage backend,
   and `max_calls_per_minute` counts in the state store
   ([Scaling and State](Scaling%20and%20State.md)).
+* A 2025-11-25 `notifications/cancelled` is matched to its request through the MCP session
+  id; a sessionless 2025-11-25 request cannot be cancelled that way.
 * The SSRF guard checks addresses before each connection; a DNS answer that changes
   between that check and the connection itself is not caught. Pin hosts with
   `federation.allowed_hosts` for upstreams outside your control.
@@ -348,9 +398,11 @@ is in the [API Reference](../protocol/API%20Reference.md#416-federation-federati
 
 `tests/test_federation.py` starts an upstream built on the official SDK server
 (`MCPServer`) on a local port, in both protocol eras, and checks: discovery, namespacing
-and name cleaning, schema pass-through, call routing, upstream tool errors, timeouts,
-progress, cancellation, the cache, the circuit breaker, the rate limit, access control on
-namespaced names, approval gating including re-approval after a definition change, the
+and name cleaning (`.` replaced, clashing names refused), schema pass-through, schema
+validation (`invalid`), corrected annotations, call routing, upstream tool errors,
+timeouts, progress, cancellation reaching the upstream from either era, the cache, the
+circuit breaker, the rate limit, access control on namespaced names, approval gating
+including re-approval after a definition change and held versions (`on_change: hold`), the
 injection screen, refresh on a list change, MRTR pass-through, an upstream that is down
 at start-up and one that goes down later, the SSRF guard, the store, the admin API, and
 that federated tools appear in `tools/list` on both eras and in Ask SAJHA's shortlist.

@@ -1,6 +1,7 @@
 # SAJHA Net Protocol
 
-> **Status: specification of a design that is not built yet.** This document specifies the wire
+> **Status: specification; SAJHA implements §5, §7 to §9, §13 and §14 (membership, names, signatures,
+> the CA) and the rest is not built yet.** This document specifies the wire
 > protocol of [SAJHA Net](../architecture/SAJHA%20Net.md): the `io.sajha/net` MCP extension that
 > participants in a net speak to each other. It is written so that someone outside SAJHA can build a
 > participant (a SAJHA Net agent, a library, another server) from it alone. The design note owns the
@@ -163,10 +164,11 @@ to each net separately. Holding a name in one net reserves nothing in another.
 - **Name ownership.** A name belongs to a **certificate lineage**: the certificate that first held it
   in the net, and every certificate the CA issues by renewing it (§14). A renewal is requested with
   the current, still-valid certificate (proof of possession) and the CA marks the new certificate as
-  renewing the old one (the `renews` field of the issued record, naming the previous serial), so the
-  new key is the same holder even though it is a new key pair. Members accept a different key for a
-  held name only when its certificate is in the holder's lineage (a renewal chain they can follow
-  through the CA's issued records or the `renews` field) or when every certificate of the lineage is
+  renewing the old one (the `renews` field of the issued record, naming the previous serial, which the
+  CA also writes into the new certificate, §8.1), so the new key is the same holder even though it is
+  a new key pair. Members accept a different key for a held name only when its certificate is in the
+  holder's lineage (a renewal chain they can follow through the certificates' `renews` extension) or
+  when every certificate of the lineage is
   revoked (§13). The name stays reserved for the lineage whatever the holder's membership state
   (`alive`, `suspect`, `dead`, `left`). A restart, or a renewal by the CA, is the same holder, not a
   conflict.
@@ -544,6 +546,11 @@ Every participant holds, for each net it belongs to, an X.509 v3 certificate iss
 - The CA certificate has `O=<net name>`, `basicConstraints cA=true, pathLen=0` (or larger when the
   net uses intermediates), `keyUsage keyCertSign, cRLSign`.
 
+- **Renewal mark.** A certificate the CA issues by renewal (§14.2) carries the serial of the
+  certificate it renews (lowercase hex, as a DER UTF8String) in a non-critical extension with OID
+  `2.25.190758061232497851004893727469883845651` (a UUID-derived OID, ITU-T X.667). Members follow a
+  name's lineage through it (§5.2); a first certificate has no such extension.
+
 A participant MUST accept a certificate only if it chains to the configured CA certificate of the net
 named in the message's `Sajha-Net-Name` (§7.7), is within its validity period, has `O` equal to that
 net name, and is not on that net's revocation list (§13).
@@ -638,7 +645,7 @@ Other signatures under other labels MAY be present and are ignored.
 |---|---|
 | `Sajha-Net-Version` | RFC 8941 Integer (`1`) |
 | `Sajha-Net-Name` | the net name as written in §5.1 (ASCII), not quoted |
-| `Sajha-Net-From`, `Sajha-Net-To` | the instance name in that net as written in §5.2 (ASCII), not quoted |
+| `Sajha-Net-From`, `Sajha-Net-To` | the instance name in that net as written in §5.2 (ASCII), not quoted; `Sajha-Net-To` MAY instead be `*` on `POST /sajhanet/v1/membership/sync` only, when the sender does not yet know the receiver's name (a seed URL or an operator-given address, §9.7) |
 | `Sajha-Net-Hop` | RFC 8941 Integer, at least 1 |
 | `Sajha-Net-Visited` | RFC 8941 List of Strings, each `<net>/<instance name>` (`"acme-net/risk-eu", "acme-net/treasury-na"`); `/` occurs in neither part |
 | `Sajha-Net-Api-Key` | the raw API key, ASCII |
@@ -671,7 +678,7 @@ failure with the `reason` shown (HTTP status per §7.4; JSON-RPC `-32014` on the
 9. The signature verifies over the RFC 9421 signature base → else `signature_invalid`.
 10. `Sajha-Net-From` equals the certificate's `CN` → else `from_mismatch`; `CN` is not the receiver's
     own name in that net → else `name_conflict`; `Sajha-Net-To` equals the receiver's own name in
-    that net → else `recipient_mismatch`.
+    that net, or is `*` on a membership sync → else `recipient_mismatch`.
 11. The triple (net, `keyid`, `nonce`) has not been seen within the replay window → else `replay`.
     Only after every check above passes, record it for the replay window.
 
@@ -709,7 +716,8 @@ JSON-RPC response in the stream (the one with the request's `id`) MUST carry a m
   `error.data["io.sajha/net"].response_signature`;
 - the value is a `signature` object (§7.6) plus `"request_nonce"`, the nonce of the request;
 - the signing input is `sajha-net-v1:response:<request_nonce>:` followed by the JCS bytes (§8.10) of
-  the whole JSON-RPC response object with the `response_signature` member removed.
+  the whole JSON-RPC response object with the `response_signature` member removed (the objects that
+  contained it stay, even when that leaves them empty, so signer and verifier hash the same bytes).
 
 The home MUST verify it before using the result. Progress and log notifications in the stream are not
 signed; they are advisory and MUST NOT change what the home does with the result.
@@ -937,6 +945,10 @@ priority, design §10.3).
   with one random member (`reason: "anti_entropy"`);
 - when a receiver lacks a certificate it needs (§9.2).
 
+A seed or an operator-given address is a URL, not a member: the sender does not know the receiver's
+instance name before the first answer. Such a join sync carries `Sajha-Net-To: *` (§8.6), the only
+request that may; everything else about it is checked as usual, and the signed response names the
+receiver in `Sajha-Net-From`. A sync to a saved peer, whose name is known, names it.
 Request and response:
 
 ```json
@@ -1533,8 +1545,11 @@ response is:
 ```
 
 The response is signed by the CA participant's own certificate (§8.8, with `Sajha-Net-To` set to the
-requested instance name), which the requester verifies against the CA certificate it was given. The
-CA participant MUST rate-limit enrollment per source address.
+requested instance name), which the requester verifies against the CA certificate it was given.
+Because the request is not signed, the response's covered components omit
+`"signature";req;key="sajhanet"`; the requester binds the answer to its request by checking that the
+issued certificate carries the public key of its own CSR and the subject it asked for. The CA
+participant MUST rate-limit enrollment per source address.
 
 ### 14.2 Renewal
 
@@ -1550,6 +1565,7 @@ CA participant MUST rate-limit enrollment per source address.
 ```
 
 The CSR's subject MUST equal the signing certificate's subject (`403 enrollment_refused` otherwise).
+The new certificate MUST carry the renewal mark of §8.1 naming the signing certificate's serial.
 A new key pair is RECOMMENDED for every renewal. The response is the enroll response. A participant
 SHOULD renew when a third of its certificate's validity remains and keep trying with back-off; the old
 certificate stays valid until its own `notAfter`, so old and new overlap without any extra rule.
@@ -2154,7 +2170,7 @@ Sajha-Net-From: risk-eu
 Sajha-Net-To: cust-na
 Content-Digest: sha-256=:…:
 Sajha-Net-Certificate: :…:
-Signature-Input: sajhanet=("@method" "@path" "@query" "content-type" "content-digest" "sajha-net-version" "sajha-net-from" "sajha-net-to");created=1791374410;nonce="mG3s0QXf2b8Yk1pLr7Hc9A";keyid="_9toR0iCB-Uqt342hN98Scc5b_lGbZ_OZyriwc0-KTQ";alg="ed25519";tag="sajha-net-v1"
+Signature-Input: sajhanet=("@method" "@path" "@query" "content-type" "content-digest" "sajha-net-version" "sajha-net-name" "sajha-net-from" "sajha-net-to");created=1791374410;nonce="mG3s0QXf2b8Yk1pLr7Hc9A";keyid="_9toR0iCB-Uqt342hN98Scc5b_lGbZ_OZyriwc0-KTQ";alg="ed25519";tag="sajha-net-v1"
 Signature: sajhanet=:…:
 
 {"type": "ping", "seq": 1187, "updates": [
@@ -2303,6 +2319,14 @@ The design leaves these open or states them loosely; this specification decides 
     visited list run end to end (§16).
 32. **Withdrawal is immediate** on `left` and `dead`; `suspect` keeps tools listed as unavailable; a
     stored catalog never lists tools after a restart (owner decision; §10.6).
+33. **A join to an address names no recipient.** A seed or operator-given address is a URL, so the
+    join sync to it carries `Sajha-Net-To: *`, accepted on that endpoint only (§8.6, §9.7).
+34. **Renewal lineage travels in the certificate.** A renewed certificate carries the renewed serial in
+    a non-critical extension, so every member can follow a name's lineage without the CA's records
+    (§5.2, §8.1, §14.2).
+35. **The enrollment answer is bound by its key.** The unsigned enrollment request has no signature
+    to cover, so the answer omits `"signature";req` and the requester checks the issued certificate
+    against its own CSR (§14.1).
 
 ## 23. References
 

@@ -181,6 +181,12 @@ PAGE_HELP: dict = {
         'what': 'Upstream MCP servers whose tools SAJHA re-exposes: their state, and approval of what they offer.',
         'terms': ['Federation', 'Upstream', 'Namespaced tool', 'Circuit breaker', 'Tool access'],
         'guide': 'Federation.md'},
+    'admin_sajhanet_page': {
+        'what': 'The SAJHA Nets this server belongs to: its name and certificate in each, whether it has joined, the '
+                'members it knows and their states; add a peer by address.',
+        'terms': ['SAJHA Net', 'Net name', 'Instance name', 'Seed', 'Member state', 'Name conflict',
+                  'SAJHA Net CA', 'Saved peer list'],
+        'guide': 'SAJHA Net.md'},
     'admin_connections_page': {
         'what': 'Which services each user has linked, with what access and when last used; unlink an account, '
                 're-encrypt the vault after a key change. Never a token.',

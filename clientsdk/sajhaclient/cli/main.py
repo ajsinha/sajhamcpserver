@@ -844,6 +844,154 @@ def cmd_federation_remove(ctx: Context) -> int:
     return EXIT_OK
 
 
+# ── commands: SAJHA Net ──────────────────────────────────────────
+
+def _net(ctx: Context, method: str, path: str, body: Optional[Dict] = None):
+    try:
+        return ctx.request(method, "/api/sajhanet" + path, body=body)
+    except SajhaNotFoundError:
+        raise CLIError("this server has no SAJHA Net API (/api/sajhanet), or the net is not configured", EXIT_NOT_FOUND)
+    except SajhaValidationError as e:
+        raise CLIError(_error_text(str(e).split(":", 1)[-1]), EXIT_FAIL)
+    except Exception as e:
+        raise translate(e, ctx.settings.url)
+
+
+def _net_path(ctx: Context, tail: str) -> str:
+    return f"/nets/{ctx.args.net}{tail}"
+
+
+def cmd_net_status(ctx: Context) -> int:
+    data = _net(ctx, "GET", "/status")
+    if ctx.json_output:
+        ctx.out.json(data)
+        return EXIT_OK
+    if not data.get("enabled"):
+        ctx.out.note("SAJHA Net is off on this server (sajhanet.enabled: false)")
+        return EXIT_OK
+    for n in data.get("nets") or []:
+        state = "name conflict" if n.get("refused") else "joined" if n.get("joined") else "not joined"
+        ctx.out.print(f"{n.get('net')}: {n.get('instance') or '-'} ({state}){' founder' if n.get('founder') else ''}"
+                      f"{' CA' if (n.get('ca') or {}).get('initialised') else ''}")
+        for line in [n.get("error"), n.get("config_error")] + list(n.get("last_errors") or []):
+            if line:
+                ctx.out.note(f"  {line}")
+        rows = [(m.get("name"), m.get("state"), m.get("url") or "", m.get("last_seen") or "")
+                for m in n.get("members") or []]
+        if rows:
+            table(ctx.out, rows, ("INSTANCE", "STATE", "URL", "LAST SEEN"))
+    return EXIT_OK
+
+
+def cmd_net_peers_add(ctx: Context) -> int:
+    data = _net(ctx, "POST", _net_path(ctx, "/peers"), {"address": ctx.args.address,
+                                                         "keep_as_seed": bool(ctx.args.keep_as_seed)})
+    if ctx.json_output:
+        ctx.out.json(data)
+    else:
+        ctx.out.print(f"Joined {ctx.args.net} through {data.get('peer')} ({data.get('url')})"
+                      + ("; kept as a runtime seed" if data.get("kept_as_seed") else ""))
+    return EXIT_OK
+
+
+def cmd_net_peers_list(ctx: Context) -> int:
+    data = _net(ctx, "GET", "/status")
+    net = next((n for n in data.get("nets") or [] if n.get("net") == ctx.args.net), None)
+    if net is None:
+        raise CLIError(f"this server is not configured for net {ctx.args.net}", EXIT_NOT_FOUND)
+    if ctx.json_output:
+        ctx.out.json({"members": net.get("members") or [], "seeds": net.get("seeds") or [],
+                      "runtime_seeds": net.get("runtime_seeds") or []})
+        return EXIT_OK
+    rows = [(m.get("name"), m.get("state"), m.get("url") or "") for m in net.get("members") or []]
+    table(ctx.out, rows, ("INSTANCE", "STATE", "URL"))
+    return EXIT_OK
+
+
+def cmd_net_ca_init(ctx: Context) -> int:
+    data = _net(ctx, "POST", _net_path(ctx, "/ca/init"), {})
+    if ctx.json_output:
+        ctx.out.json(data)
+    else:
+        ctx.out.print(f"CA of {ctx.args.net} initialised; thumbprint {data.get('thumbprint')}")
+        ctx.out.note(f"Back up the CA key now ({data.get('key_ref')}); it is the only copy.")
+    return EXIT_OK
+
+
+def cmd_net_ca_enroll(ctx: Context) -> int:
+    data = _net(ctx, "POST", _net_path(ctx, "/ca/tokens"), {"instance": ctx.args.instance,
+                                                             "host": ctx.args.host or ""})
+    if ctx.json_output:
+        ctx.out.json(data)
+    else:
+        ctx.out.print(f"Enrollment token for {data.get('instance')} in {data.get('net')} "
+                      f"(single use, until {data.get('expires_at')}):")
+        ctx.out.print(data.get("token", ""))
+        ctx.out.note(f"On the new server: sajha net enroll --net {data.get('net')} --ca-url {data.get('ca_url')} "
+                     f"--token <token>   (CA thumbprint {data.get('ca_thumbprint')})")
+    return EXIT_OK
+
+
+def cmd_net_ca_revoke(ctx: Context) -> int:
+    if not ctx.args.instance and not ctx.args.serial:
+        raise CLIError("name an instance or give --serial", EXIT_USAGE)
+    data = _net(ctx, "POST", _net_path(ctx, "/ca/revoke"), {"instance": ctx.args.instance or "",
+                                                             "serial": ctx.args.serial or "",
+                                                             "reason": ctx.args.reason or ""})
+    if ctx.json_output:
+        ctx.out.json(data)
+    else:
+        ctx.out.print(f"Revocation list of {data.get('net')} is now version {data.get('version')} "
+                      f"({len(data.get('revoked') or [])} entries); gossip spreads it")
+    return EXIT_OK
+
+
+def cmd_net_ca_show(ctx: Context) -> int:
+    data = _net(ctx, "GET", _net_path(ctx, "/ca"))
+    if ctx.json_output:
+        ctx.out.json(data)
+        return EXIT_OK
+    rows = [(c.get("instance"), c.get("serial"), c.get("not_after"), c.get("renews") or "") for c in data.get("issued") or []]
+    table(ctx.out, rows, ("INSTANCE", "SERIAL", "NOT AFTER", "RENEWS"))
+    rl = data.get("revocation_list") or {}
+    ctx.out.note(f"revocation list version {rl.get('version')}, {len(rl.get('revoked') or [])} entries; "
+                 f"{len(data.get('pending_tokens') or [])} pending tokens")
+    return EXIT_OK
+
+
+def cmd_net_enroll(ctx: Context) -> int:
+    token = ctx.args.token
+    if token == "-":
+        token = sys.stdin.readline().strip()
+    data = _net(ctx, "POST", _net_path(ctx, "/enroll"), {"ca_url": ctx.args.ca_url, "token": token})
+    if ctx.json_output:
+        ctx.out.json(data)
+    else:
+        c = data.get("certificate") or {}
+        ctx.out.print(f"Enrolled in {ctx.args.net} as {c.get('instance')}: certificate {c.get('serial')} "
+                      f"until {c.get('not_after')}")
+    return EXIT_OK
+
+
+def cmd_net_renew(ctx: Context) -> int:
+    data = _net(ctx, "POST", _net_path(ctx, "/renew"), {})
+    if ctx.json_output:
+        ctx.out.json(data)
+    else:
+        c = data.get("certificate") or {}
+        ctx.out.print(f"Renewed: certificate {c.get('serial')} until {c.get('not_after')} (renews {c.get('renews')})")
+    return EXIT_OK
+
+
+def cmd_net_pin(ctx: Context) -> int:
+    data = _net(ctx, "POST", _net_path(ctx, "/pins"), {"thumbprint": ctx.args.thumbprint})
+    if ctx.json_output:
+        ctx.out.json(data)
+    else:
+        ctx.out.print(f"Pinned in {ctx.args.net}: {len(data.get('pins') or [])} thumbprints")
+    return EXIT_OK
+
+
 # ── commands: workflows ──────────────────────────────────────────
 
 _RUN_ID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
@@ -1070,7 +1218,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser = argparse.ArgumentParser(
         prog="sajha", parents=[common],
-        description="SAJHA MCP Server command line: tools, prompts, ask, Studio, federation, workflows, and the "
+        description="SAJHA MCP Server command line: tools, prompts, ask, Studio, federation, SAJHA Net, workflows, and the "
                     "stdio server.",
         epilog="Exit codes: 0 ok, 1 failed, 2 usage, 3 auth, 4 forbidden, 5 not found, 6 unreachable. "
                "Guide: docs/clients/Command Line.md")
@@ -1215,6 +1363,50 @@ def build_parser() -> argparse.ArgumentParser:
     fx = add(fs, "remove", cmd_federation_remove, "remove an upstream added at run time")
     json_flag(fx)
     fx.add_argument("id")
+    p.set_defaults(func=lambda ctx, _p=p: _usage(_p))
+
+    p = add(sub, "net", None, "SAJHA Net: status, peers, the CA, enrollment and renewal (admin)")
+    ns = p.add_subparsers(dest="net_cmd", metavar="ACTION")
+
+    def net_flag(q):
+        q.add_argument("--net", default="default", help="the net (default: default)")
+        json_flag(q)
+    nst = add(ns, "status", cmd_net_status, "the nets this server is in and the members it knows")
+    json_flag(nst)
+    pp = add(ns, "peers", None, "members of a net; add a peer by address")
+    pps = pp.add_subparsers(dest="net_peers_cmd", metavar="ACTION")
+    pl = add(pps, "list", cmd_net_peers_list, "the members and seeds of a net")
+    net_flag(pl)
+    pa = add(pps, "add", cmd_net_peers_add, "contact a peer at an address now (an ordinary signed join)")
+    net_flag(pa)
+    pa.add_argument("address", help="ip:port, host:port or a URL")
+    pa.add_argument("--keep-as-seed", action="store_true", dest="keep_as_seed", help="also keep it as a runtime seed")
+    pp.set_defaults(func=lambda ctx, _p=pp: _usage(_p))
+    cp = add(ns, "ca", None, "the net's CA, on its CA instance: init, enroll (create a token), revoke, show")
+    cps = cp.add_subparsers(dest="net_ca_cmd", metavar="ACTION")
+    ci = add(cps, "init", cmd_net_ca_init, "create the CA key and certificate of a net (once)")
+    net_flag(ci)
+    ce = add(cps, "enroll", cmd_net_ca_enroll, "create a single-use enrollment token for an instance name")
+    net_flag(ce)
+    ce.add_argument("instance")
+    ce.add_argument("--host", help="bind the token to the host the certificate will name")
+    cr = add(cps, "revoke", cmd_net_ca_revoke, "revoke an instance (removal from the net) or one certificate")
+    net_flag(cr)
+    cr.add_argument("instance", nargs="?")
+    cr.add_argument("--serial", help="revoke one certificate by serial (a lost key)")
+    cr.add_argument("--reason")
+    cs = add(cps, "show", cmd_net_ca_show, "issued certificates, pending tokens and the revocation list")
+    net_flag(cs)
+    cp.set_defaults(func=lambda ctx, _p=cp: _usage(_p))
+    ne = add(ns, "enroll", cmd_net_enroll, "obtain this server's certificate from the net's CA with a token")
+    net_flag(ne)
+    ne.add_argument("--ca-url", required=True, dest="ca_url", help="the CA instance's base URL")
+    ne.add_argument("--token", required=True, help="the enrollment token ('-' reads stdin)")
+    nr = add(ns, "renew", cmd_net_renew, "renew this server's certificate now (it also renews by itself)")
+    net_flag(nr)
+    npn = add(ns, "pin", cmd_net_pin, "manual mode: pin a peer's certificate thumbprint")
+    net_flag(npn)
+    npn.add_argument("thumbprint")
     p.set_defaults(func=lambda ctx, _p=p: _usage(_p))
 
     p = add(sub, "workflows", None, "workflows: list, run, run history, show a definition or a run")

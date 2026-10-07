@@ -274,6 +274,33 @@ metrics:
     scrapeTimeout: 10s
     labels: {}
 
+# ── SAJHA Net (sajhanet.*) ─────────────────────────────────────────────────
+# Instances of named nets find each other and share tools. Rendered into the
+# configuration as sajhanet.enabled, sajhanet.allowed_networks and sajhanet.nets; each
+# net's certificate and keys come from Secrets mounted read-only at
+# /etc/sajhanet/<net>/ (never values). Design: docs/architecture/SAJHA Net.md
+sajhanet:
+  enabled: false
+  # CIDRs peers may be reached on (sajhanet.allowed_networks): public addresses are always
+  # allowed, private ranges only when listed, loopback and link-local never. With
+  # networkPolicy.enabled these ranges are also opened for ingress and egress on the HTTP port.
+  allowedNetworks: []        # e.g. [10.20.0.0/16]
+  nets: []
+  #  - name: acme-net              # net name: a-z, 0-9, - and _, starts with a letter, at most 16
+  #    instanceName: risk-eu       # this server's name in the net; needed with more than one pod
+  #    advertiseAddress: ""        # ip:port peers use (a Service or load balancer address);
+  #                                # needed with more than one pod (each pod is the same instance)
+  #    founder: false              # true only on the net's first server (usually the CA instance)
+  #    seeds: [https://sajha-cust-na.example.internal]   # required unless founder
+  #    # Secret with keys instance.crt, instance.key and ca.pem (and revoked.json when
+  #    # revocationList: true), mounted at /etc/sajhanet/<net>/
+  #    identitySecret: acme-net-identity
+  #    revocationList: false
+  #    # CA instance only: Secret with key ca.key, mounted at /etc/sajhanet-ca/<net>/
+  #    caKeySecret: ""
+  #    settings: {}                # any other per-net key, as written in sajhanet.nets
+  #                                # (default_trust, export, import, peer_cache, ...)
+
 # ── NetworkPolicy ──────────────────────────────────────────────────────────
 networkPolicy:
   enabled: false

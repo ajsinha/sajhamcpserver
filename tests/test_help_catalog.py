@@ -224,7 +224,7 @@ def test_page_help_keys_are_real_routes(web):
 NOT_CONSOLE = {'login_page', 'logout', 'root', 'health', 'health_liveness', 'health_readiness',
                'openapi', 'swagger_ui_html', 'swagger_ui_redirect', 'redoc_html'}
 API_PREFIXES = ('/api', '/mcp', '/a2a', '/oauth', '/.well-known', '/static', '/ws', '/admin/apikeys/{key_id}/', '/v1/',
-                '/metrics')
+                '/metrics', '/sajhanet/')
 
 
 def test_every_console_page_has_page_help(web):

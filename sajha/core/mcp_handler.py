@@ -99,9 +99,10 @@ class MCPHandler:
     def server_info(self) -> Dict:
         """Initialize result for the latest protocol version (back-compat accessor)."""
         from sajha.core.mcp_2025_11_25 import LATEST_PROTOCOL_VERSION
+        from sajha.core.net_extension import with_legacy_capabilities
         return {
             "protocolVersion": LATEST_PROTOCOL_VERSION,
-            "capabilities": self.capabilities,
+            "capabilities": with_legacy_capabilities(self.capabilities),
             "serverInfo": self.implementation,
             "instructions": self.instructions,
         }
@@ -422,9 +423,11 @@ class MCPHandler:
         self.logger.info(f"Client initializing: {client_info.get('name', 'Unknown')} "
                         f"v{client_info.get('version', 'Unknown')} "
                         f"(requested protocol {requested}, using {version})")
+        from sajha.core.net_extension import with_legacy_capabilities
         return {
             "protocolVersion": version,
-            "capabilities": self.capabilities,
+            # io.sajha/net under experimental when SAJHA Net is on (SAJHA Net Protocol 6.1)
+            "capabilities": with_legacy_capabilities(self.capabilities),
             "serverInfo": self.implementation,
             "instructions": self.instructions,
         }

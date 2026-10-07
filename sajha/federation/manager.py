@@ -27,7 +27,8 @@ from sajha.federation.config import (ConfigError, FederationSettings, UpstreamCo
                                      namespaced)
 from sajha.federation.connection import (UpstreamConnection, UpstreamTimeout, UpstreamUnavailable,
                                          describe)
-from sajha.federation.security import redact, screen_schema, screen_text
+from sajha.federation.security import (correct_annotations, redact, schema_problem, screen_schema,
+                                       screen_text)
 from sajha.federation.store import FederationStore
 from sajha.federation.tool import FederatedTool, FederatedToolError
 
@@ -35,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 RESOURCE_SCHEME = 'sajha-federation'
 STATE_KEY = 'sajha.federation'
-STATUSES = ('pending', 'approved', 'changed', 'rejected', 'disabled')
+STATUSES = ('pending', 'approved', 'changed', 'rejected', 'disabled', 'invalid')
 KINDS = ('tool', 'prompt', 'resource')
 _TITLE_LIMIT = 200
 _SCHEMA_TEXT_LIMIT = 512
@@ -314,7 +315,7 @@ class FederationManager:
         schema, f3 = screen_schema(raw.get('inputSchema') or {'type': 'object', 'properties': {}},
                                    _SCHEMA_TEXT_LIMIT)
         out_schema, f4 = screen_schema(raw.get('outputSchema') or {}, _SCHEMA_TEXT_LIMIT)
-        ann = dict(raw.get('annotations') or {})
+        ann = correct_annotations(raw.get('annotations'))     # corrected, never widened
         if 'title' in ann:
             ann['title'], f5 = screen_text(ann['title'], _TITLE_LIMIT)
         else:
@@ -325,13 +326,22 @@ class FederationManager:
             d['title'] = title
         if isinstance(out_schema, dict) and out_schema.get('type') == 'object':
             d['outputSchema'] = out_schema
-        if ann:
-            d['annotations'] = ann
+        d['annotations'] = ann
         icons = [i for i in (raw.get('icons') or []) if isinstance(i, dict) and
                  str(i.get('src', '')).startswith(('https://', 'data:image/'))]
         if icons:
             d['icons'] = icons
         return d, bool(f1 or f2 or f3 or f4 or f5)
+
+    @staticmethod
+    def _tool_problem(raw: Dict[str, Any]) -> Optional[str]:
+        """Why an upstream tool cannot be imported (its schemas are not valid JSON Schema
+        object schemas), or None. Shown in the approval queue; such a tool cannot be approved."""
+        if raw.get('inputSchema') is not None:
+            problem = schema_problem(raw.get('inputSchema'), 'inputSchema')
+            if problem:
+                return problem
+        return schema_problem(raw.get('outputSchema'), 'outputSchema', required=False)
 
     def _screen_prompt(self, cfg: UpstreamConfig, raw: Dict[str, Any]) -> Tuple[Dict[str, Any], bool]:
         limit = self.settings.max_description_chars
@@ -388,9 +398,20 @@ class FederationManager:
                 h = _hash(raw)
                 rk = f'{kind}:{ident}'
                 rec = records.get(rk)
-                if rec is None:
+                problem = self._tool_problem(raw) if kind == 'tool' else None
+                if problem:
+                    # refused, whatever was decided before: an invalid schema is never served
+                    rec = dict(rec or {'first_seen': now})
+                    if rec.get('status') != 'invalid' or rec.get('current_hash') != h:
+                        rec['updated_at'] = now
+                    if rec.get('status') in ('approved', 'changed') and rec.get('approved_definition'):
+                        rec['status'] = 'changed'        # a held approved version keeps serving
+                    elif rec.get('status') not in ('rejected', 'disabled'):
+                        rec['status'] = 'invalid'
+                    rec['reason'] = problem
+                elif rec is None or rec.get('status') == 'invalid':
                     rec = {'status': 'approved' if (auto and not flagged) else 'pending', 'hash': h,
-                           'first_seen': now, 'updated_at': now}
+                           'first_seen': (rec or {}).get('first_seen', now), 'updated_at': now}
                 elif rec.get('hash') != h:
                     if rec.get('status') in ('approved', 'changed'):
                         rec['status'] = 'approved' if (auto and not flagged) else 'changed'
@@ -401,6 +422,10 @@ class FederationManager:
                     rec['updated_at'] = now
                 elif rec.get('status') == 'changed':
                     rec['status'] = 'approved'          # the upstream went back to the approved definition
+                if not problem:
+                    rec.pop('reason', None)
+                    if rec.get('status') == 'approved' and rec.get('hash') == h:
+                        rec['approved_definition'] = definition     # what a held version serves
                 rec['flagged'] = bool(flagged)
                 rec['current_hash'] = h
                 records[rk] = rec
@@ -437,15 +462,37 @@ class FederationManager:
             up.conflicts = {}
             if not up.config.enabled:
                 continue
+            # two upstream names that map to one exposed name (a.b and a_b): neither is offered
+            by_exposed: Dict[str, List[str]] = {}
+            for name, item in up.items['tool'].items():
+                by_exposed.setdefault(item['exposed'], []).append(name)
             for name, item in sorted(up.items['tool'].items()):
-                if self._status(up, 'tool', name) != 'approved':
+                item = self._serving(up, name, item)
+                if item is None:
                     continue
                 exposed = item['exposed']
+                clash = [n for n in by_exposed.get(exposed, []) if n != name]
+                if clash:
+                    up.conflicts[name] = (f'{exposed} would also name {", ".join(sorted(clash))}; '
+                                          f'neither is offered')
+                    continue
                 if exposed in out:
                     up.conflicts[name] = f'{exposed} is already exposed by upstream {out[exposed][0].config.id}'
                     continue
                 out[exposed] = (up, name, item)
         return out
+
+    def _serving(self, up: _Upstream, name: str, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """The item to register for an upstream tool: the current one when approved; under
+        ``on_change: hold``, the previously approved version while a changed (or now invalid)
+        definition waits for review; else None."""
+        rec = (getattr(up, 'records', None) or {}).get(f'tool:{name}') or {}
+        status = rec.get('status') or 'pending'
+        if status == 'approved':
+            return item
+        if status == 'changed' and up.config.on_change == 'hold' and isinstance(rec.get('approved_definition'), dict):
+            return {**item, 'definition': rec['approved_definition'], 'hash': rec.get('hash'), 'held': True}
+        return None
 
     def _sync_registry(self, changed_upstream: Optional[str] = None) -> None:
         """Make the registry's federated tools match the approved set (thread-safe, idempotent);
@@ -645,7 +692,12 @@ class FederationManager:
         raise AssertionError('unreachable')
 
     def _wait(self, coro, timeout: float, ctx=None):
-        """Wait for a coroutine on the federation loop; cancel it when the caller is cancelled."""
+        """Wait for a coroutine on the federation loop. When the caller is cancelled (a dropped
+        2026-07-28 stream or task cancel: ``ctx.cancelled``; a 2025-11-25
+        ``notifications/cancelled``: ``mcp_cancellation``), cancel it: the SDK then tells the
+        upstream (``notifications/cancelled``, or on a 2026-07-28 upstream the request's
+        stream is closed), so the upstream stops its work too."""
+        from sajha.core import mcp_cancellation
         fut = self._submit(coro)
         deadline = time.time() + timeout
         while True:
@@ -654,7 +706,7 @@ class FederationManager:
             except concurrent.futures.TimeoutError:
                 if fut.done():          # the coroutine's own TimeoutError (UpstreamTimeout), not the poll's
                     raise
-                if ctx is not None and getattr(ctx, 'cancelled', False):
+                if (ctx is not None and getattr(ctx, 'cancelled', False)) or mcp_cancellation.is_cancelled():
                     fut.cancel()
                     raise FederationError('cancelled by the client')
                 if time.time() >= deadline:
@@ -761,9 +813,16 @@ class FederationManager:
                     continue
                 if action == 'enable' and rec.get('status') != 'disabled':
                     continue
+                if to == 'approved' and rec.get('reason') and rec.get('current_hash') == item['hash']:
+                    if action == 'approve_all':
+                        continue
+                    raise ValueError(f'{kind} {ident} cannot be approved: {rec["reason"]}')
                 rec['status'] = to
                 rec['hash'] = item['hash']
                 rec['updated_at'] = self.store.now()
+                if to == 'approved':
+                    rec['approved_definition'] = item['definition']
+                    rec.pop('reason', None)
                 records[rk] = rec
                 n += 1
             self.store.set_items(upstream_id, records)
@@ -853,6 +912,8 @@ class FederationManager:
                     'arguments': d.get('arguments') if kind == 'prompt' else None,
                     'registered': kind == 'tool' and item['exposed'] in self._tools,
                     'conflict': up.conflicts.get(ident) if kind == 'tool' else None,
+                    'reason': rec.get('reason'),
+                    'held': bool(kind == 'tool' and rec.get('status') == 'changed' and item['exposed'] in self._tools),
                     'first_seen': rec.get('first_seen'), 'updated_at': rec.get('updated_at'),
                 })
         counts = {s: sum(1 for i in items if i['status'] == s) for s in STATUSES}

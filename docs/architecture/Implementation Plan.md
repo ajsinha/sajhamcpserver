@@ -59,7 +59,7 @@ streams, what each phase waits for, and its status.
 | 1 | 7.1.0 | Foundations | Caller identity in tools, API keys owned by users with a default key each, tool calls audited, renewing lease, system notices, release hygiene, CI | none | done (7.1.0) |
 | 2 | 7.2.0 | Model interface and LLM tools | OpenAI-style canonical interface and providers, the LLM tool type and its modes, conversation memory and resource safety, `sajha_ask` moved onto the type | 1 | done (7.2.0) |
 | 3 | 7.3.0 | Planners and authoring | Configurable planners and every shipped strategy, `auto`, Studio LLM tool creator and planner editor, sampling, the OpenAI-compatible endpoint | 2 | done (7.3.0) |
-| 4 | 8.0.0 | SAJHA Net core | Named nets (several per server), membership with required seeds, CA, signed requests on one port, catalogs and proxy tools, resolution order and preferences, offline removal, one name one contract, waterfall fallback, identity across instances, blocks, the Instances page | 1 (3 for remote LLM tools) | in progress, phase 4.1 |
+| 4 | 8.0.0 | SAJHA Net core | Named nets (several per server), membership with required seeds, CA, signed requests on one port, catalogs and proxy tools, resolution order and preferences, offline removal, one name one contract, waterfall fallback, identity across instances, blocks, the Instances page | 1 (3 for remote LLM tools) | in progress, phase 4.2 |
 | 5 | 8.1.0 | Sovereignty, console, other MCP servers | Residency, locality-aware planners, re-export, the full SAJHA Net console, sponsored servers, the agent and library, the extension's conformance suite | 4 | pending |
 Wave 4 is a major version because it adds a new table (`sajhanet_api_keys`), new columns on
 `api_keys` and a new signed protocol surface; operators must apply schema changes on PostgreSQL by
@@ -188,8 +188,8 @@ place from the first release.
 
 | Phase | Streams, in parallel | Depends on | Status |
 |---|---|---|---|
-| 4.1 | A protocol core and plug-in interfaces, membership (names and collisions, CA, signed requests on one port, gossip, restarts, peer cache, admin peer injection) ‖ B changes to existing code (federation names and annotations, SSRF network allowlist, extension on both eras, cancellation to the host, imported schema validation, Helm values) | wave 3 | in progress (B done, A finishing) |
-| 4.2 | C catalogs and routing (catalog exchange, host and tool table, proxies, named nets and preferences, one name one contract with quarantine, offline removal, waterfall fallback) ‖ D identity and authorization (API-key resolver, key directory, users across instances, blocks, export and import rules, role maps, linked audit, notice sources) | 4.1 | pending |
+| 4.1 | A protocol core and plug-in interfaces, membership (names and collisions, CA, signed requests on one port, gossip, restarts, peer cache, admin peer injection) ‖ B changes to existing code (federation names and annotations, SSRF network allowlist, extension on both eras, cancellation to the host, imported schema validation, Helm values) | wave 3 | done |
+| 4.2 | C catalogs and routing (catalog exchange, host and tool table, proxies, named nets and preferences, one name one contract with quarantine, offline removal, waterfall fallback) ‖ D identity and authorization (API-key resolver, key directory, users across instances, blocks, export and import rules, role maps, linked audit, notice sources) | 4.1 | in progress |
 | 4.3 | Instances page and navbar badge, minimal admin pages; three-instance test net (in process and as containers); SAJHA's conformance cases; combined gate, release 8.0.0, drill | 4.2 | pending |
 
 **Exit:** gates of section 9; a three-instance test net (in one process and as three containers)

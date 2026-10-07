@@ -11,7 +11,8 @@ Written for someone who does *not* already know the field. Where a term has a ge
 [MCP 2026-07-28](#3-mcp-2026-07-28-stateless-features) · [Transports](#4-transports-and-sessions) ·
 [Security](#5-authorization-and-security) · [Tools and prompts](#6-tools-prompts-and-resources) ·
 [Studio and composition](#7-studio-and-composition) · [Operations](#8-operations-and-infrastructure) ·
-[AI](#9-ai-integration) · [User interface](#10-user-interface) · [Data sources](#11-data-sources-and-domain)
+[AI](#9-ai-integration) · [User interface](#10-user-interface) · [Data sources](#11-data-sources-and-domain) ·
+[SAJHA Net](#12-sajha-net)
 
 ---
 
@@ -226,7 +227,7 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Upgrade SQL** | The DDL that brings an existing database up to its dialect's schema file (`CREATE TABLE`, `ALTER TABLE ... ADD COLUMN`, `CREATE INDEX`), printed by the start-up schema check and `python -m sajha.db upgrade-sql` for an operator to run; SAJHA never runs it. |
 | **SIEM export** | Streaming audit records to a security information and event management system: syslog (RFC 5424 over TCP or TLS), HTTP (Splunk HEC, Datadog, generic) or a rotated JSON Lines file (`audit.export.sinks`). |
 | **CEF** (*Common Event Format*) | ArcSight's one-line event format: a `CEF:0` header of vendor, product, version, event id, name and severity, then key=value extensions; one of the SIEM export formats. |
-| **HTTP Message Signature** | A signature over chosen parts of an HTTP request or response (method, path, headers, a body digest, a creation time and nonce), defined by RFC 9421. The SAJHA Net protocol (a design, not built) signs every request between participants this way instead of relying on mutual TLS. |
+| **HTTP Message Signature** | A signature over chosen parts of an HTTP request or response (method, path, headers, a body digest, a creation time and nonce), defined by RFC 9421. SAJHA Net signs every request and response between participants this way (label `sajhanet`, Ed25519 or ECDSA P-256) instead of relying on mutual TLS. |
 | **Content-Digest** | An HTTP header carrying a hash of the message body (RFC 9530), for example `sha-256=:...:`; covering it in an HTTP Message Signature makes the body tamper-evident. |
 | **JCS** (*JSON Canonicalization Scheme*) | RFC 8785: one exact byte form of a JSON value (sorted member names, fixed number and string formatting), so a signature over JSON verifies however the JSON was re-serialized on the way. |
 | **OCSF** (*Open Cybersecurity Schema Framework*) | A vendor-neutral JSON schema for security events; SAJHA's `ocsf` export format maps audit records to its API Activity, Authentication and Account Change classes. |
@@ -618,3 +619,30 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **World Bank** | The international financial institution that lends and grants for development and publishes development data. |
 | **WDI** (*World Development Indicators*) | The World Bank's main database of development indicators: economy, health, education and more. |
 | **Poverty rate** | The share of a population living below a poverty line, such as the World Bank's international line in dollars a day at purchasing-power parity. |
+
+## 12. SAJHA Net
+
+| Term | Meaning |
+|---|---|
+| **SAJHA Net** | SAJHA servers (and other MCP servers) joined into a net: they find each other by gossip, prove who they are with net certificates and sign every request between them. Off by default (`sajhanet.enabled`). Membership, names, the CA and signed requests are built; catalogs, proxies and identity follow. |
+| **Net** | One SAJHA Net: its own CA, certificates, members and revocation list. A server may be in several nets at once; nothing learned in one is used in another. |
+| **Net name** | The name of a net (`acme-net`): lowercase letters, digits, `-` and `_`, starting with a letter, at most 16 characters, never `__` and not ending in `_`. A net entry without a name is the net `default`. |
+| **Participant** | Anything that holds a net certificate and speaks the SAJHA Net protocol: a SAJHA instance, an agent in front of an MCP server, or a server built on the reference library. |
+| **Instance name** | A participant's name in one net, unique there: configured (`risk-eu`) or, when none is configured, its address (`10.20.4.17:3002`). It is the CN of the participant's certificate. |
+| **Address name** | An instance name made from the address peers reach the server on, `<ip>:<port>` or `[<ipv6>]:<port>`; never unspecified, loopback, `localhost` or link-local. |
+| **Safe prefix** | The instance part of a qualified tool name: a configured name as is, an address with every `.` and `:` replaced by `_`, IPv6 written out in full. |
+| **Qualified tool name** | `<net>__<safe prefix>__<tool>`: one tool on one host in one net, split at the first two `__`. |
+| **Seed** | An address a server contacts first to join a net. Every net entry needs at least one, except on the net's founder. |
+| **Founder** | The first server of a net (`founder: true`), which may start without seeds and waits to be contacted; usually the CA instance. |
+| **Gossip** (*SWIM*) | How participants keep one membership list without a leader: each pings a random member every interval, asks others to ping one that does not answer, marks it suspect and then dead, and piggybacks changes on the messages. |
+| **Member record** | A participant's own signed statement in a net: name, URL, features, incarnation, sequence and digests. Relays can repeat it but not change it. |
+| **Incarnation** | A participant's own counter in a net, milliseconds since the epoch chosen at start as max(now, last + 1); a higher incarnation overrides any older claim that it is suspect or dead. |
+| **Member state** | `alive`, `suspect` (did not answer a direct or indirect probe), `dead` (suspect past the timeout) or `left` (departed cleanly, signed by itself). |
+| **Saved peer list** | Each net's known members on local disk (`peers.json`), written on change and every ten minutes; tried after the seeds when a server restarts. |
+| **SAJHA Net CA** | The certificate authority of one net, run by its CA instance (`ca.enabled`): issues certificates for enrollment tokens, renews them, and signs the revocation list. |
+| **Enrollment token** | A single-use, short-lived secret bound to one net and one instance name, with which a new server obtains its certificate from the CA; refused for a name already held. |
+| **Revocation list** | The CA-signed list of revoked instance names and certificate serials of a net, spread by gossip and checked on every request. |
+| **Certificate lineage** | The certificate that first held a name in a net and every certificate the CA issued by renewing it; the name belongs to the lineage, so a restart or renewal is not a conflict. |
+| **Name conflict** | A participant claiming a name held by a different, unrevoked key: refused with `409 name_conflict` naming the holder; the refused server does not join and raises an error notice until its configuration or certificate changes. |
+| **Manual mode** | A net without a CA: self-signed certificates whose thumbprints each administrator pins. |
+| **Gossip agent** | The worker that runs a net's membership protocol for an instance: the holder of the renewing state-store lease `sajhanet:agent:<net>`. |

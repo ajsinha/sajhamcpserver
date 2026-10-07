@@ -59,6 +59,15 @@ class Upstream:
             await asyncio.sleep(seconds)
             return 'awake'
 
+        @srv.tool(description='Waits; records whether the call was cancelled.')
+        async def linger(seconds: float) -> str:
+            try:
+                await asyncio.sleep(seconds)
+            except asyncio.CancelledError:
+                self.calls['cancelled'] = self.calls.get('cancelled', 0) + 1
+                raise
+            return 'done'
+
         @srv.tool(description=POISON)
         def define(word: str) -> str:
             return f'{word}: a word'
@@ -173,7 +182,8 @@ def test_discovery_on_both_eras(upstream, make, protocol, version):
     d = t.to_mcp_format()
     assert d['inputSchema']['required'] == ['celsius']
     assert d['outputSchema']['type'] == 'object'                    # pass-through
-    assert d['annotations'] == {'readOnlyHint': True, 'idempotentHint': True, 'openWorldHint': False}
+    # corrected, never widened: a remote tool is always open-world
+    assert d['annotations'] == {'readOnlyHint': True, 'idempotentHint': True, 'openWorldHint': True}
     assert d['_meta']['sajha/federation'] == {'upstream': 'units', 'tool': 'celsius_to_fahrenheit'}
     assert reg.reloads >= 1                                         # tool-search index re-sync
 
@@ -307,6 +317,35 @@ def test_cancellation_releases_the_caller(upstream, make):
     finally:
         ctx.deactivate(token)
     assert time.time() - t0 < 3
+
+
+@pytest.mark.parametrize('protocol', ['legacy', 'auto'])
+def test_cancellation_reaches_the_upstream(upstream, make, protocol):
+    """A 2025-11-25 notifications/cancelled (mcp_cancellation) and a dropped 2026-07-28 stream
+    (ModernToolContext.cancel) both reach the upstream, which stops its own work."""
+    from sajha.core import mcp_cancellation
+    from sajha.core.mcp_tool_context import ModernToolContext
+    m, reg = make([up(upstream.url, protocol=protocol)])
+    for era in ('legacy', 'modern'):
+        before = upstream.calls.get('cancelled', 0)
+        t0 = time.time()
+        if era == 'legacy':
+            with mcp_cancellation.track('session-1', 7):
+                threading.Timer(0.4, mcp_cancellation.cancel, args=('session-1', 7, 'user gave up')).start()
+                with pytest.raises(RuntimeError, match='cancelled'):
+                    reg.tools['units__linger'].execute({'seconds': 10})
+        else:
+            ctx = ModernToolContext()
+            threading.Timer(0.4, ctx.cancel).start()
+            token = ctx.activate()
+            try:
+                with pytest.raises(RuntimeError, match='cancelled'):
+                    reg.tools['units__linger'].execute({'seconds': 10})
+            finally:
+                ctx.deactivate(token)
+        assert time.time() - t0 < 3
+        assert wait_for(lambda: upstream.calls.get('cancelled', 0) > before, 5), (protocol, era)
+    assert not mcp_cancellation.cancel('session-1', 7)            # finished: unknown, ignored
 
 
 def test_mrtr_is_surfaced_and_completed(upstream, make):
@@ -641,3 +680,100 @@ def test_app_admin_api_and_page(app_client):
     assert tools_registry.get_tool('second__celsius_to_fahrenheit') is None        # include_tools
     assert c.delete('/api/federation/upstreams/second', cookies=admin).json()['ok']
     assert tools_registry.get_tool('second__kilometres_to_miles') is None
+
+
+# ── names, annotations, schema validation, held versions (SAJHA Net groundwork) ──
+
+def _offline(tmp_path, require_approval=True, **upstream):
+    """A manager with one upstream that is never connected: discovery is fed by hand."""
+    from sajha.federation.manager import _Upstream
+    settings = FederationSettings(enabled=True, require_approval=require_approval, upstreams=[])
+    reg = Registry()
+    m = FederationManager(reg, settings, FederationStore(str(tmp_path / 'offline.json')))
+    cfg = UpstreamConfig.from_dict({'id': 'units', 'url': 'http://upstream.invalid/mcp', **upstream})
+    m._upstreams['units'] = _Upstream(cfg)
+    return m, reg
+
+
+def _feed(m, tools):
+    m._reconcile(m._upstreams['units'], tools, [], [])
+    m._sync_registry('units')
+
+
+def _tool(name, desc='Converts.', schema=None, **extra):
+    return {'name': name, 'description': desc,
+            'inputSchema': schema if schema is not None else {'type': 'object', 'properties': {'x': {'type': 'number'}}},
+            **extra}
+
+
+def test_dots_are_replaced_and_clashing_names_are_both_refused(tmp_path):
+    assert namespaced('wx', 'get.forecast') == 'wx__get_forecast'
+    m, reg = _offline(tmp_path, require_approval=False)
+    _feed(m, [_tool('a.b'), _tool('a_b'), _tool('v1.convert')])
+    assert set(reg.tools) == {'units__v1_convert'}
+    items = {i['name']: i for i in m.status('units')['items']}
+    assert 'neither is offered' in items['a.b']['conflict'] and 'neither is offered' in items['a_b']['conflict']
+    assert reg.tools['units__v1_convert'].upstream_name == 'v1.convert'      # forwarded under its own name
+
+
+def test_annotations_are_corrected_never_widened(tmp_path):
+    from sajha.federation.security import correct_annotations
+    assert correct_annotations(None) == {'openWorldHint': True}
+    assert correct_annotations({'readOnlyHint': True, 'destructiveHint': True, 'openWorldHint': False,
+                                'idempotentHint': 'yes', 'x-custom': 1, 'title': 'T'}) == \
+        {'title': 'T', 'readOnlyHint': True, 'openWorldHint': True}
+    assert correct_annotations({'readOnlyHint': 'true', 'destructiveHint': False}) == \
+        {'destructiveHint': False, 'openWorldHint': True}
+    m, reg = _offline(tmp_path, require_approval=False)
+    _feed(m, [_tool('wipe', annotations={'readOnlyHint': 1, 'openWorldHint': False})])
+    assert reg.tools['units__wipe'].to_mcp_format()['annotations'] == {'openWorldHint': True}
+
+
+def test_invalid_schemas_are_refused_with_a_reason(tmp_path):
+    from sajha.federation.security import schema_problem
+    assert schema_problem({'type': 'object', 'properties': {'a': {'type': 'string'}}}) is None
+    assert 'type' in schema_problem({'properties': {}})
+    assert 'not a valid JSON Schema' in schema_problem({'type': 'object', 'properties': {'a': {'type': 'strng'}}})
+    assert 'not a valid JSON Schema' in schema_problem({'type': 'object', 'required': 'a'})
+    assert schema_problem(None, 'outputSchema', required=False) is None
+    m, reg = _offline(tmp_path, require_approval=False)
+    _feed(m, [_tool('bad_in', schema={'type': 'object', 'properties': {'a': {'type': 'strng'}}}),
+              _tool('bad_out', outputSchema={'type': 'array'}), _tool('good')])
+    assert set(reg.tools) == {'units__good'}
+    items = {i['name']: i for i in m.status('units')['items']}
+    assert items['bad_in']['status'] == 'invalid' and 'inputSchema is not a valid JSON Schema' in items['bad_in']['reason']
+    assert items['bad_out']['status'] == 'invalid' and 'outputSchema' in items['bad_out']['reason']
+    assert m.status('units')['counts']['invalid'] == 2
+    with pytest.raises(ValueError, match='cannot be approved'):
+        m.set_item_status('units', 'tool', 'bad_in', 'approve')
+    assert m.set_item_status('units', 'tool', '', 'approve_all') == 0
+    # the upstream fixes it: an ordinary new tool again
+    _feed(m, [_tool('bad_in'), _tool('bad_out'), _tool('good')])
+    assert {'units__bad_in', 'units__bad_out'} <= set(reg.tools)
+    assert not {i['name']: i for i in m.status('units')['items']}['bad_in']['reason']
+
+
+@pytest.mark.parametrize('on_change', ['withdraw', 'hold'])
+def test_changed_definition_under_review(tmp_path, on_change):
+    m, reg = _offline(tmp_path, on_change=on_change)
+    _feed(m, [_tool('convert', 'Version one.')])
+    assert reg.tools == {}
+    m.set_item_status('units', 'tool', 'convert', 'approve')
+    assert reg.tools['units__convert'].description == 'Version one.'
+    _feed(m, [_tool('convert', 'Version two.')])
+    item = {i['name']: i for i in m.status('units')['items']}['convert']
+    assert item['status'] == 'changed'
+    if on_change == 'withdraw':
+        assert reg.tools == {} and not item['held']
+    else:   # the approved version keeps serving while the change waits
+        assert reg.tools['units__convert'].description == 'Version one.' and item['held']
+        # a change that breaks the schema is refused, and the held version still serves
+        _feed(m, [_tool('convert', 'Version three.', schema={'type': 'object', 'required': 'x'})])
+        item = {i['name']: i for i in m.status('units')['items']}['convert']
+        assert item['status'] == 'changed' and item['reason'] and item['held']
+        assert reg.tools['units__convert'].description == 'Version one.'
+        _feed(m, [_tool('convert', 'Version two.')])
+    m.set_item_status('units', 'tool', 'convert', 'approve')
+    assert reg.tools['units__convert'].description == 'Version two.'
+    with pytest.raises(ConfigError, match='on_change'):
+        UpstreamConfig.from_dict({'id': 'a', 'url': 'http://x', 'on_change': 'keep'})

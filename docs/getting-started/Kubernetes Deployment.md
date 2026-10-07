@@ -228,6 +228,48 @@ that changes the schema needs, are in [Database Setup](Database%20Setup.md)). Un
 the pods exit with `Refusing to start: database schema is not ready` and the missing
 tables, and restart.
 
+### SAJHA Net
+
+The `sajhanet` values write the `sajhanet` section of the configuration (merged into
+`config.overrides`; the keys are in the
+[Configuration Reference](Configuration%20Reference.md#sajha-net), the design in
+[SAJHA Net](../architecture/SAJHA%20Net.md)). Certificates and keys are never values: each
+net's come from Secrets you create, mounted read-only.
+
+```yaml
+sajhanet:
+  enabled: true
+  allowedNetworks: [10.20.0.0/16]      # sajhanet.allowed_networks
+  nets:
+    - name: acme-net
+      instanceName: risk-eu
+      advertiseAddress: 10.20.4.17:443 # the Service or load-balancer address peers use
+      seeds: [https://sajha-cust-na.example.internal]
+      identitySecret: acme-net-identity
+      settings: {default_trust: review}
+```
+
+| Value | Becomes |
+|---|---|
+| `sajhanet.enabled` | `sajhanet.enabled: true` (off: no `sajhanet` section is written) |
+| `sajhanet.allowedNetworks` | `sajhanet.allowed_networks`; with `networkPolicy.enabled`, also ingress from and egress to these ranges on the HTTP ports (`networkPolicy.egress.internetPorts`) |
+| `nets[].name`, `instanceName`, `advertiseAddress`, `founder`, `seeds` | the net entry's `name`, `instance_name`, `advertise_address`, `founder`, `seeds` |
+| `nets[].identitySecret` | a Secret with keys `instance.crt`, `instance.key` and `ca.pem`, mounted at `/etc/sajhanet/<net>/`; the entry's `identity` refers to those files (`file:` references) |
+| `nets[].revocationList` | `true`: the same Secret also has `revoked.json` (`identity.revocation_list_ref`) |
+| `nets[].caKeySecret` | the CA instance only: a Secret with key `ca.key`, mounted at `/etc/sajhanet-ca/<net>/`; becomes `ca: {enabled: true, key_ref: ...}` |
+| `nets[].settings` | any other key of the net entry, passed through as written (`default_trust`, `export`, `import`, `peer_cache` ...) |
+
+```bash
+kubectl -n sajha create secret generic acme-net-identity \
+    --from-file=instance.crt --from-file=instance.key --from-file=ca.pem
+```
+
+The chart refuses to render a net listed twice, a net without `seeds` that is not the
+`founder`, and, with more than one pod, a net without `instanceName` and
+`advertiseAddress`: every pod is the same instance, and an address name would differ from
+pod to pod. The schema checks net and instance names against the
+[protocol's rules](../protocol/SAJHA%20Net%20Protocol.md#5-names).
+
 ---
 
 ## 7. Metrics

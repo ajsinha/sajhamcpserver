@@ -602,6 +602,8 @@ class ModernMCPServer:
             caps["extensions"][TASKS_EXTENSION] = {}
         if mcp_apps.apps_enabled():
             caps["extensions"][mcp_apps.EXTENSION_ID] = {}
+        from sajha.core.net_extension import add_modern_extension
+        add_modern_extension(caps["extensions"])   # io.sajha/net when SAJHA Net is on
         sajha = copy.deepcopy((legacy.get("experimental") or {}).get("sajha") or {})
         sajha.pop("websocket", None)   # the WebSocket transport is legacy-era only
         if sajha:

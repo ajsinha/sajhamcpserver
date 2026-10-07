@@ -67,6 +67,9 @@ data/secrets/
 # ── Snapshots of users, API keys and tools (snapshots.dir; owner-only, may name users) ──
 data/snapshots/
 
+# ── SAJHA Net keys, certificates and saved peer lists (sajhanet.data_dir; owner-only keys) ──
+data/sajhanet/
+
 # ── LLM-tool spool: large in-flight payloads of running calls (ai.llm_tools.memory.spool) ──
 data/spool/
 

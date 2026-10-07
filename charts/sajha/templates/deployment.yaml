@@ -152,6 +152,20 @@ spec:
               mountPath: /app/temp
             - name: tmp
               mountPath: /tmp
+            {{- if .Values.sajhanet.enabled }}
+            {{- range $i, $n := .Values.sajhanet.nets }}
+            {{- if $n.identitySecret }}
+            - name: sajhanet-{{ $i }}
+              mountPath: /etc/sajhanet/{{ $n.name }}
+              readOnly: true
+            {{- end }}
+            {{- if $n.caKeySecret }}
+            - name: sajhanet-ca-{{ $i }}
+              mountPath: /etc/sajhanet-ca/{{ $n.name }}
+              readOnly: true
+            {{- end }}
+            {{- end }}
+            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -184,6 +198,22 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: {{ .Values.persistence.tmpSizeLimit }}
+        {{- if .Values.sajhanet.enabled }}
+        {{- range $i, $n := .Values.sajhanet.nets }}
+        {{- if $n.identitySecret }}
+        - name: sajhanet-{{ $i }}
+          secret:
+            secretName: {{ $n.identitySecret }}
+            defaultMode: 0400
+        {{- end }}
+        {{- if $n.caKeySecret }}
+        - name: sajhanet-ca-{{ $i }}
+          secret:
+            secretName: {{ $n.caKeySecret }}
+            defaultMode: 0400
+        {{- end }}
+        {{- end }}
+        {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

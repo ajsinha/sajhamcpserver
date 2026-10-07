@@ -173,6 +173,10 @@ class SajhaMCPServerWebApp:
         app.add_middleware(SecurityHeadersMiddleware)
         app.add_middleware(RequestSizeLimitMiddleware, max_body_size=10 * 1024 * 1024)
 
+        # SAJHA Net endpoints are not for browsers: no CORS on /sajhanet/ (protocol §7.3)
+        from sajha.net.integration.asgi import NoCorsForNetPaths
+        app.add_middleware(NoCorsForNetPaths)
+
         # Outermost: HTTP metrics and the server span (plain ASGI; streams pass through)
         from sajha.observability.middleware import ObservabilityMiddleware
         app.add_middleware(ObservabilityMiddleware)
@@ -220,6 +224,7 @@ class SajhaMCPServerWebApp:
         from sajha.routes.notices_routes import router as notices_router
         from sajha.routes.openai_routes import router as openai_router
         from sajha.routes.conversations_routes import router as conversations_router
+        from sajha.routes.sajhanet_routes import router as sajhanet_router
 
         routers = [
             auth_router, dashboard_router, api_router, tools_router,
@@ -245,6 +250,7 @@ class SajhaMCPServerWebApp:
             notices_router,
             openai_router,
             conversations_router,
+            sajhanet_router,
         ]
 
         for router in routers:
@@ -735,6 +741,16 @@ class SajhaMCPServerWebApp:
         except Exception as e:
             logger.warning(f'  Conversation purge: unavailable ({e})', exc_info=True)
 
+        # 4i. SAJHA Net: membership of the configured nets, one gossip agent per net across workers
+        #     (sajhanet.enabled, off by default; docs/architecture/SAJHA Net.md). Never fails start-up.
+        try:
+            import asyncio as _asyncio_sn
+            from sajha.net.integration import init_sajhanet
+            _sn = await _asyncio_sn.to_thread(init_sajhanet)
+            logger.info(f'  SAJHA Net: {"nets " + ", ".join(_sn.runtimes) if _sn.shared.enabled else "off (sajhanet.enabled: false)"}')
+        except Exception as e:
+            logger.warning(f'  SAJHA Net: unavailable ({e})', exc_info=True)
+
         # 5. Template globals
         self._register_template_globals()
 
@@ -766,6 +782,11 @@ class SajhaMCPServerWebApp:
             shutdown_purge()
         except Exception as e:
             logger.debug(f'conversation purge shutdown: {e}')
+        try:   # SAJHA Net: leave every net (the gossip agent's holder), release the leases
+            from sajha.net.integration import shutdown_sajhanet
+            shutdown_sajhanet()
+        except Exception as e:
+            logger.debug(f'SAJHA Net shutdown: {e}')
         try:
             from sajha.snapshots import shutdown_snapshots
             shutdown_snapshots()
