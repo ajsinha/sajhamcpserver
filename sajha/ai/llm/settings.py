@@ -366,9 +366,16 @@ class RagSettings(Layered):
     sources: List[RagSource] = Field(default_factory=list)
     uploads_dir: str = "data/rag/uploads"      # admin-uploaded files (storage-relative)
     embedding_model: str = "embedding"         # gateway alias; "none" = lexical (BM25) only
-    store: Literal["auto", "memory", "pgvector"] = "auto"
-    persist: bool = True                       # persist the in-process index through storage
-    index_path: str = "data/rag/index.json"
+    # The store (sajha/ai/rag/registry.py): auto (sqlite_vec when the extension loads, else
+    # memory) | sqlite_vec | memory | pgvector | a registered name | package.module:Class.
+    store: str = "auto"
+    # Per-store settings, {store name: {key: value}}, e.g. {"sqlite_vec": {"path": ...},
+    # "pgvector": {"dsn": ...}}; merged over each store's defaults. Env: JSON, or one key at a
+    # time as SAJHA_AI_RAG_STORES_<STORE>_<KEY>.
+    stores: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    persist: bool = True                       # keep the index across restarts (false: a throw-away store)
+    index_path: str = "data/rag/index.json"    # the memory store's file (storage backend)
+    embed_batch_size: int = 64                 # passages per embedding call while indexing
     chunk_chars: int = 1200
     chunk_overlap: int = 150
     top_k: int = 5
@@ -382,7 +389,7 @@ SECTION_MODELS: Dict[str, Type[Layered]] = {
     "retry": RetrySettings, "breaker": BreakerSettings, "gateway": GatewaySettings,
     "ask": AskSettings, "memory": MemorySettings, "rag": RagSettings,
 }
-RESERVED_SECTIONS = set(SECTION_MODELS) | {"aliases", "providers", "tool_search"}
+RESERVED_SECTIONS = set(SECTION_MODELS) | {"aliases", "providers", "tool_search", "llm_tools"}
 
 
 class AISettings:

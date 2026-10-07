@@ -103,6 +103,8 @@ WRITTEN_BY_READER = {
     'config/plugins/demo-plugin/plugin.json',                # Tutorial 4 builds these
     'config/plugins/demo-plugin/tools/demo_pct_change.json',
     'config/policies/50-tutorial.yaml',                      # Tutorial 20 writes this policy
+    'config/tools/my_priority.json',                         # Tutorial 26 builds these
+    'config/evals/my_priority.yaml',
 }
 #: Default directories the server reads but does not ship (created on first use), and
 #: so anything a guide puts in them.

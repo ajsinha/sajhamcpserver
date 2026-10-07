@@ -77,6 +77,12 @@ ollama>=0.4.0,<1.0.0              # Ollama local models
 # pypdf>=4.0,<7.0                            # .pdf
 # python-docx>=1.1,<2.0                      # .docx
 
+# ── RAG vector store (optional — the default ai.rag.store, sqlite_vec) ──────
+# The document index's own SQLite file with vector search (sajha/ai/rag/sqlite_vec.py). Needs a
+# Python whose sqlite3 can load extensions; without either, ai.rag.store auto uses the in-memory
+# store and raises a System Notice saying why.
+sqlite-vec>=0.1.6,<1.0
+
 # ── Cloud storage backends (optional — only for storage.backend != local) ────
 # All lazy-imported in sajha/core/storage.py, so the default 'local' install
 # pulls none of these. Install only the SDK for the backend you select.

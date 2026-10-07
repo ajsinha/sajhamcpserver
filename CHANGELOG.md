@@ -4,6 +4,29 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+Nothing yet.
+
+## v7.2.0 (October 2026) — the model interface and LLM tools
+
+Wave 2 of the [Implementation Plan](docs/architecture/Implementation%20Plan.md). SAJHA's model
+interface becomes the OpenAI Chat Completions format end to end; LLM tools (tools whose work is
+done by a model, configured like any tool) arrive with seven modes, per-tool memory and resource
+safety; `sajha_ask` becomes one of them; document search gets a pluggable, disk-based store with
+sqlite-vec as the default and reads PDF and Word.
+
+### Upgrading from 7.1.0
+
+- **Database:** `ai_conversations` gains `tool_name` and `expires_ts` plus two indexes.
+  PostgreSQL: run what `python -m sajha.db upgrade-sql` prints. SQLite for development: recreate
+  the database.
+- **Document search store:** `ai.rag.store: auto` now means sqlite-vec (its own file,
+  `data/rag/vectors.db`) when the `sqlite-vec` package loads, otherwise the in-memory store with a
+  notice; it no longer picks pgvector by itself — set `ai.rag.store: pgvector` to keep using it.
+  Install `sqlite-vec` (in `requirements.txt`). The index rebuilds itself on first start.
+- **LLM tools:** the type is on; the shipped example tools are disabled; `sajha_ask` is now
+  `config/tools/sajha_ask.json` and still switched by `ai.ask.mcp_tool_enabled`.
+- **Optional packages:** `pypdf` and `python-docx` to index PDF and Word files.
+
 ### Upgrading
 
 - **Database:** new columns `ai_conversations.tool_name` and `ai_conversations.expires_ts`, and
@@ -11,6 +34,70 @@ Newest first. The current version is `app.version` in `config/application.yml`.
   PostgreSQL: run the statements `python -m sajha.db upgrade-sql` prints (SAJHA never runs DDL
   there). SQLite for development: recreate the database (the start-up check prints the
   statements if you prefer to add the columns).
+- **Document search store:** `ai.rag.store: auto` (the default) now means the new sqlite_vec
+  store (`data/rag/vectors.db`, created on first build; `pip install -r requirements.txt` brings
+  `sqlite-vec`), else the memory store. It no longer picks pgvector by itself: a deployment that
+  used pgvector sets `ai.rag.store: pgvector`.
+
+### Document search: pluggable stores, sqlite-vec by default
+
+- `ai.rag.store` chooses the store by configuration alone: `sqlite_vec`, `memory`, `pgvector`, a
+  store registered through the new `sajha.rag.stores` entry-point group, or
+  `package.module:Class`; per-store settings live under `ai.rag.stores.<name>` (env
+  `SAJHA_AI_RAG_STORES_<STORE>_<KEY>`). The store contract (`VectorStore`, now with
+  `keyword_search`, `create`, `probe` and `close`) has a contract test suite every shipped store
+  passes (`tests/ai/test_rag_store_contract.py`; pgvector with `SAJHA_TEST_POSTGRES_URL`).
+- New `sqlite_vec` store (`sajha/ai/rag/sqlite_vec.py`): a SQLite file of its own, never SAJHA's
+  database, in WAL mode; sqlite-vec `vec0` for the vectors, FTS5 for the keywords, so both halves
+  of the hybrid search run on disk and only the top k rows reach Python. The embedder and
+  dimension are recorded: a new embedding model rebuilds the index cleanly. When the extension
+  cannot load, `auto` uses the memory store and raises the System Notice `rag.store_fallback`
+  with the reason.
+- pgvector keyword search runs in PostgreSQL (full-text search) instead of an in-process BM25
+  index over every row; the optional schema section shows a GIN index for it.
+- Leaner indexing: documents are read one at a time and passages are embedded
+  `ai.rag.embed_batch_size` (default 64) at a time while the store consumes them. The memory
+  store keeps vectors as float32 arrays (about half the memory of before).
+- Queries are embedded with the `query` purpose (passages keep `document`).
+- `GET /api/ai/docs/status` adds `chunks`, `dimensions`, `store_configured` and `store_fallback`.
+
+### LLM tools: the tool type, seven modes, resource safety; `sajha_ask` moved onto it
+
+- **The LLM-tool type** (`sajha/ai/llm_tools/`, [LLM Tools](docs/architecture/LLM%20Tools.md)): a
+  tool config with `implementation: sajha.ai.llm_tools.LLMTool` and an `llm` block is a tool whose
+  work a model does. Modes `answer` (the intelligence service's planner loop over the allowed
+  tools), `complete`, `extract` (output validated against the schema, one retry with the errors),
+  `classify` (one enum label), `grounded` (answers only from document-search passages, with
+  citations; `no_sources` when nothing is found), `narrate` (runs a composite or published
+  workflow as the caller; the model writes the text) and `judge` (rubric scores, verdict computed
+  by SAJHA). The loader refuses a block that cannot work and lint reports why (`llm-config`,
+  `llm-catalog`, `llm-annotations`); annotations are derived from the tools the model may call.
+- **Runs as the caller:** the model is offered the tool's `tools.allow − tools.deny` intersected
+  with what the caller may execute; every inner call goes through the normal tool path. Nesting
+  needs `nesting.allow`, is capped by `ai.llm_tools.max_depth` and shares the outer run's time and
+  cost. Anonymous callers are refused unless `ai.llm_tools.anonymous.enabled`.
+- **Conversation memory** per the tool's `memory` block (`conversation_id` in and out, or client
+  history); **caching** of deterministic modes with `cache: true`.
+- **Resource safety:** at most `ai.llm_tools.runtime.max_concurrent_runs` runs per process and a
+  bounded queue, then `stopped_by: busy` (REST 503 with `Retry-After`); tool results larger than
+  `spill_threshold_kb`, or past a run's `working_set_max_kb`, spill to `data/spool/llm_tools/<run>/`
+  (deleted at run end; a janitor removes orphans); a memory guard (cgroup-aware) sheds caches and
+  spills at the soft limit, refuses runs and ends running ones at their next step
+  (`memory_pressure`) at the hard limit. System Notices `llm_tools.memory`, `llm_tools.busy`,
+  `llm_tools.spool_full`; new `sajha_llm_tool_*` metrics ([Observability](docs/architecture/Observability.md)).
+- **Results and errors** follow LLM Tools §15: error `stopped_by` values return `isError: true`
+  over MCP and `success: false` over REST. Each run writes an `llm_tool_run` audit record with the
+  trace id its inner `tool.call` records share.
+- **Shipped examples, disabled:** `llm_markets_assistant`, `llm_summarise`, `llm_triage_ticket`,
+  `llm_docs_qa`, with eval sets `config/evals/llm_*.yaml`; an eval set can now name an LLM tool
+  (`tool:` and per-question `arguments`). The mock answers every mode offline.
+- New `ai.llm_tools.*` settings (ceilings; [Configuration Reference](docs/getting-started/Configuration%20Reference.md)).
+- [Tutorial 26: Build an LLM Tool](docs/tutorials/TUTORIAL_26_build_an_llm_tool.md).
+- **Operator notes for `sajha_ask`:** it is now the LLM tool `config/tools/sajha_ask.json`
+  (disabled in the file; `ai.ask.mcp_tool_enabled` still turns it on, at start-up and after each
+  reload). It still runs as the caller and `ai.ask.mcp_allowed_tools` still narrows it. Its result
+  adds `conversation_id` and `caveats`; pass `conversation_id` back to continue. Not built yet:
+  configurable planners and sampling (wave 3).
 
 ### Conversation memory for LLM tools
 

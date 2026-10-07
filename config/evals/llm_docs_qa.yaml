@@ -1,0 +1,16 @@
+# An LLM-tool eval set (docs/architecture/Tool Quality.md §5): the example grounded docs Q&A (mode grounded).
+# Builds the document index of SAJHA's guides on first use (mock embeddings, offline).
+#   python -m sajha.quality eval llm_docs_qa
+name: llm_docs_qa
+description: The example docs Q&A answers from SAJHA's guides with citations.
+tool: llm_docs_qa
+models: [mock/mock-planner]
+defaults:
+  max_tokens: 20000
+  max_latency_ms: 120000
+questions:
+  - id: cites-a-guide
+    question: How do I configure the conversation memory retention for LLM tools?
+    expect_tools: [sajha_search_docs]
+    answer:
+      - regex: "\\[1\\]"

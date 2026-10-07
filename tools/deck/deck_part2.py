@@ -28,6 +28,7 @@ CATEGORIES = [
     ("Documents", ("msdoc", "sharepoint", "sajha"), "Word and Excel, SharePoint, SAJHA's own guides"),
     ("Connected accounts", ("github", "google", "ms365", "slack", "connected"), "Act as the user in SaaS apps"),
     ("Public statistics", ("fbi",), "Crime statistics"),
+    ("LLM tools", ("llm",), "Example LLM tools: assistant, summariser, triage, docs Q&A (disabled by default)"),
 ]
 
 CREATORS = {

@@ -67,6 +67,9 @@ data/secrets/
 # ── Snapshots of users, API keys and tools (snapshots.dir; owner-only, may name users) ──
 data/snapshots/
 
+# ── LLM-tool spool: large in-flight payloads of running calls (ai.llm_tools.memory.spool) ──
+data/spool/
+
 # ── Retired demo credentials: users live in the database only (Roadmap N5) ──
 config/users.json
 

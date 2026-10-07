@@ -14,11 +14,15 @@ What is indexed (``ai.rag``):
 
 Documents are split into passages (chunking.py), embedded through the gateway's
 ``ai.rag.embedding_model`` alias (``embedding``, served by ``mock/mock-embed`` out of the box)
-and kept in a vector store (stores.py): pgvector when PostgreSQL has it, else in process.
-A search fuses the vector ranking with a BM25 ranking of the same passages (reciprocal rank
-fusion), so it works with no embedder at all (``embedding_model: none``). The index syncs by
-content hash: only changed documents are re-embedded. A PDF or Word file is hashed on its
-bytes, so an unchanged file is skipped before its text is even extracted.
+and kept in the store ``ai.rag.store`` names (registry.py; sqlite_vec by default, a SQLite
+file of its own). A search fuses the store's vector ranking with its keyword (BM25) ranking
+(reciprocal rank fusion), so it works with no embedder at all (``embedding_model: none``).
+Document passages are embedded with the "document" purpose and the query with the "query"
+purpose. The index syncs by content hash: only changed documents are re-embedded. A PDF or
+Word file is hashed on its bytes, so an unchanged file is skipped before its text is even
+extracted. Indexing streams: documents are read one at a time and each document's passages
+are embedded ``ai.rag.embed_batch_size`` at a time while the store consumes them, so the
+build never holds the corpus in memory (the memory store itself does, by design).
 """
 
 from __future__ import annotations
@@ -29,14 +33,12 @@ import posixpath
 import re
 import threading
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional
 
-from sajha.ai.lexical import BM25Index
 from sajha.ai.llm.settings import RagSettings
 from sajha.ai.rag import extract
 from sajha.ai.rag.chunking import SUPPORTED_TYPES, chunk_document, title_of
-from sajha.ai.rag.stores import (InProcessVectorStore, PgVectorStore, StoredChunk, VectorStore, normalize,
-                                 pgvector_available)
+from sajha.ai.rag.stores import DimensionChanged, StoredChunk, VectorStore, normalize
 
 logger = logging.getLogger(__name__)
 
@@ -65,10 +67,8 @@ class DocIndex:
         self.settings = settings or RagSettings()
         self.gateway = gateway
         self._engine = engine
+        self.store_fallback: Optional[str] = None      # why ai.rag.store is not the store in use
         self.store = store or self._choose_store()
-        self._bm25 = BM25Index()
-        self._bm25_ids: Dict[str, StoredChunk] = {}
-        self._bm25_stale = True
         self._lock = threading.RLock()
         self._built = threading.Event()
         self._building = False
@@ -76,23 +76,19 @@ class DocIndex:
 
     # ── setup ───────────────────────────────────────────────────
     def _choose_store(self) -> VectorStore:
-        mode = self.settings.store
-        engine = self._engine
-        if mode in ("auto", "pgvector") and engine is None:
-            try:
-                from sajha.db.engine import get_engine
-                engine = get_engine()
-            except Exception:
-                engine = None
-        if mode in ("auto", "pgvector") and pgvector_available(engine):
-            logger.info("  RAG: pgvector store (rag_chunks)")
-            return PgVectorStore(engine)
-        if mode == "pgvector":
-            logger.warning("  RAG: ai.rag.store is pgvector but PostgreSQL has no vector extension or no "
-                           "rag_chunks table (see the optional section of db/scripts/postgresql/schema.sql); "
-                           "using the in-process store")
-        return InProcessVectorStore(self.settings.index_path if self.settings.persist else None,
-                                    storage=lambda: _storage())
+        from sajha.ai.rag.registry import select_store
+        store, self.store_fallback = select_store(self.settings, self._engine)
+        if getattr(store, "_storage", False) is None:        # the memory store reads through index._storage
+            store._storage = lambda: _storage()
+        logger.info(f"  RAG: store {store.name}" + (f" (fallback: {self.store_fallback})" if self.store_fallback else ""))
+        return store
+
+    def close(self) -> None:
+        """Release the store's connections and files."""
+        try:
+            self.store.close()
+        except Exception as e:
+            logger.debug(f"rag: closing the store: {e}")
 
     def embedder_name(self) -> str:
         alias = (self.settings.embedding_model or "").strip()
@@ -104,10 +100,12 @@ class DocIndex:
             logger.info(f"rag: no embedding model for {alias!r} ({e}); lexical search only")
             return ""
 
-    def _embed(self, texts: List[str]) -> Optional[List[List[float]]]:
+    def _embed(self, texts: List[str], purpose: str = "document") -> List[List[float]]:
+        """Normalized vectors for ``texts``: passages with purpose "document", a query with "query"."""
         out: List[List[float]] = []
-        for i in range(0, len(texts), 64):
-            vecs = self.gateway.embed(texts[i:i + 64], model=self.settings.embedding_model)
+        n = max(1, int(self.settings.embed_batch_size or 64))
+        for i in range(0, len(texts), n):
+            vecs = self.gateway.embed(texts[i:i + n], model=self.settings.embedding_model, purpose=purpose)
             out.extend(normalize(v) for v in vecs)
         return out
 
@@ -133,8 +131,11 @@ class DocIndex:
 
     def discover(self) -> List[Dict[str, Any]]:
         """Every document to index: {source, document, title, url, text[, hash]}."""
+        return list(self.iter_documents())
+
+    def iter_documents(self) -> Iterator[Dict[str, Any]]:
+        """``discover()`` one document at a time (the build holds one document's text at once)."""
         st = _storage()
-        docs: List[Dict[str, Any]] = []
         if self.settings.index_sajha_docs:
             from sajha.web.guides import guide_files, guide_url
             for rel in guide_files():
@@ -143,8 +144,8 @@ class DocIndex:
                 except Exception:
                     continue
                 name = rel.rsplit("/", 1)[-1]
-                docs.append({"source": SAJHA_DOCS, "document": rel, "title": title_of(name, text),
-                             "url": guide_url(name), "text": text})
+                yield {"source": SAJHA_DOCS, "document": rel, "title": title_of(name, text),
+                       "url": guide_url(name), "text": text}
         for src in self.settings.sources:
             try:
                 files = st.list_files(src.path.rstrip("/"), src.pattern)
@@ -155,15 +156,17 @@ class DocIndex:
                 if not rel.lower().endswith(SUPPORTED_TYPES):
                     continue
                 try:
-                    docs.append(self._file(src.name, rel))
+                    d = self._file(src.name, rel)
                 except Exception as e:
                     logger.warning(f"rag: source {src.name}: cannot read {rel}: {e}")
+                    continue
+                yield d
         for rel in self.uploads():
             try:
-                docs.append(self._file(UPLOADS, rel))
+                d = self._file(UPLOADS, rel)
             except Exception:
                 continue
-        return docs
+            yield d
 
     def uploads(self) -> List[str]:
         d = self.settings.uploads_dir.rstrip("/")
@@ -188,39 +191,14 @@ class DocIndex:
                 return {"status": "already building"}
             self._building = True
         t0 = time.time()
-        stats = {"documents": 0, "indexed": 0, "unchanged": 0, "removed": 0, "chunks": 0, "errors": []}
         try:
-            embedder = self.embedder_name()
-            if isinstance(self.store, InProcessVectorStore) and not self.store.documents():
-                self.store.load(embedder)
-            if force or self.store.embedder() not in ("", embedder):
+            try:
+                stats = self._sync(force)
+            except DimensionChanged as e:
+                logger.info(f"  RAG: the embedding dimension changed ({e}); rebuilding the index")
                 self.store.clear()
-            have = self.store.documents()
-            docs = self.discover()
-            stats["documents"] = len(docs)
-            seen = set()
-            for d in docs:
-                key = (d["source"], d["document"])
-                seen.add(key)
-                h = d.get("hash") or self._doc_hash(d["text"])
-                if have.get(key) == h:
-                    stats["unchanged"] += 1
-                    continue
-                try:
-                    self._load(d)
-                    n = self._index_document(d, h, embedder)
-                    stats["indexed"] += 1
-                    stats["chunks"] += n
-                except Exception as e:
-                    stats["errors"].append(f"{d['document']}: {e}"[:300])
-                    logger.warning(f"rag: cannot index {d['document']}: {e}")
-            for key in set(have) - seen:
-                self.store.delete_document(*key)
-                stats["removed"] += 1
-            self.store.save()
-            self._bm25_stale = True
-            stats.update(embedder=embedder or "none (BM25 only)", store=self.store.name,
-                         duration_ms=int((time.time() - t0) * 1000), at=time.time())
+                stats = self._sync(True)
+            stats.update(store=self.store.name, duration_ms=int((time.time() - t0) * 1000), at=time.time())
             self.last_build = stats
             logger.info(f"  RAG: {stats['documents']} documents ({stats['indexed']} indexed, {stats['unchanged']} "
                         f"unchanged, {stats['removed']} removed) in {stats['duration_ms']} ms, "
@@ -231,21 +209,67 @@ class DocIndex:
                 self._building = False
             self._built.set()
 
+    def _sync(self, force: bool) -> Dict[str, Any]:
+        stats: Dict[str, Any] = {"documents": 0, "indexed": 0, "unchanged": 0, "removed": 0, "chunks": 0,
+                                 "errors": []}
+        embedder = self.embedder_name()
+        if not self.store.documents():
+            self.store.load(embedder)
+        if force or self.store.embedder() not in ("", embedder):
+            self.store.clear()
+        have = self.store.documents()
+        seen = set()
+        for d in self.iter_documents():
+            stats["documents"] += 1
+            key = (d["source"], d["document"])
+            seen.add(key)
+            h = d.get("hash") or self._doc_hash(d["text"])
+            if have.get(key) == h:
+                stats["unchanged"] += 1
+                continue
+            try:
+                self._load(d)
+                n = self._index_document(d, h, embedder)
+                stats["indexed"] += 1
+                stats["chunks"] += n
+            except DimensionChanged:
+                raise
+            except Exception as e:
+                stats["errors"].append(f"{d['document']}: {e}"[:300])
+                logger.warning(f"rag: cannot index {d['document']}: {e}")
+        for key in set(have) - seen:
+            self.store.delete_document(*key)
+            stats["removed"] += 1
+        self.store.save()
+        stats["embedder"] = embedder or "none (BM25 only)"
+        return stats
+
     def _index_document(self, d: Dict[str, Any], doc_hash: str, embedder: str) -> int:
+        """Chunk one document and stream its passages to the store, embedding them
+        ``ai.rag.embed_batch_size`` at a time."""
         s = self.settings
         pieces = chunk_document(d["document"], d["text"], s.chunk_chars, s.chunk_overlap)
-        chunks = []
-        for p in pieces:
-            cid = hashlib.sha1(f"{d['source']}\x00{d['document']}\x00{p.ordinal}\x00{doc_hash}".encode()).hexdigest()[:32]
-            url = d["url"] + ("#" + p.anchor if d["url"] and p.anchor else "")
-            chunks.append(StoredChunk(cid, d["source"], d["document"], d["title"], p.heading, p.anchor, url, p.text,
-                                      p.ordinal))
-        if embedder and chunks:
-            vecs = self._embed([f"{c.title} — {c.heading}\n{c.text}" for c in chunks])
-            for c, v in zip(chunks, vecs or []):
-                c.vector = v
-        self.store.replace_document(d["source"], d["document"], doc_hash, embedder, chunks)
-        return len(chunks)
+        size = max(1, int(s.embed_batch_size or 64))
+        count = [0]
+
+        def passages() -> Iterator[StoredChunk]:
+            for i in range(0, len(pieces), size):
+                batch = []
+                for p in pieces[i:i + size]:
+                    cid = hashlib.sha1(f"{d['source']}\x00{d['document']}\x00{p.ordinal}\x00{doc_hash}"
+                                       .encode()).hexdigest()[:32]
+                    url = d["url"] + ("#" + p.anchor if d["url"] and p.anchor else "")
+                    batch.append(StoredChunk(cid, d["source"], d["document"], d["title"], p.heading, p.anchor, url,
+                                             p.text, p.ordinal))
+                if embedder:
+                    vecs = self._embed([f"{c.title} — {c.heading}\n{c.text}" for c in batch], "document")
+                    for c, v in zip(batch, vecs):
+                        c.vector = v
+                count[0] += len(batch)
+                yield from batch
+
+        self.store.replace_document(d["source"], d["document"], doc_hash, embedder, passages())
+        return count[0]
 
     def build_in_background(self) -> None:
         threading.Thread(target=self._safe_build, name="rag-index-build", daemon=True).start()
@@ -266,16 +290,6 @@ class DocIndex:
             self._built.wait(wait_s)
 
     # ── searching ───────────────────────────────────────────────
-    def _lexical(self) -> BM25Index:
-        if self._bm25_stale:
-            with self._lock:
-                if self._bm25_stale:
-                    chunks = self.store.chunks()
-                    self._bm25_ids = {c.id: c for c in chunks}
-                    self._bm25.build({c.id: (f"{c.title} {c.heading} {c.text}", {}) for c in chunks})
-                    self._bm25_stale = False
-        return self._bm25
-
     def search(self, query: str, top_k: Optional[int] = None, sources: Optional[List[str]] = None
                ) -> List[Dict[str, Any]]:
         """The passages that best answer ``query``, best first, each with its citation."""
@@ -290,19 +304,21 @@ class DocIndex:
         embedder = self.store.embedder()
         if embedder and self.gateway is not None:
             try:
-                qv = self._embed([query])[0]
+                qv = self._embed([query], "query")[0]
                 w = max(0.0, float(self.settings.vector_weight))
                 for rank, (c, _score) in enumerate(self.store.search(qv, pool, sources)):
                     ranked[c.id] = ranked.get(c.id, 0.0) + w / (_RRF_K + rank + 1)
                     found[c.id] = c
             except Exception as e:
                 logger.info(f"rag: vector search failed ({e}); lexical only")
-        lex = self._lexical()
-        hits = [h for h in lex.search(query, pool * 3)
-                if not sources or self._bm25_ids.get(h[0], StoredChunk("", "", "", "", "", "", "", "")).source in sources]
-        for rank, (cid, _d, _c, _cat) in enumerate(hits[:pool]):
-            ranked[cid] = ranked.get(cid, 0.0) + 1.0 / (_RRF_K + rank + 1)
-            found.setdefault(cid, self._bm25_ids.get(cid))
+        try:
+            hits = self.store.keyword_search(query, pool, sources)
+        except Exception as e:
+            logger.info(f"rag: keyword search failed ({e})")
+            hits = []
+        for rank, (c, _score) in enumerate(hits):
+            ranked[c.id] = ranked.get(c.id, 0.0) + 1.0 / (_RRF_K + rank + 1)
+            found.setdefault(c.id, c)
         best = sorted((cid for cid in ranked if found.get(cid) is not None), key=lambda c: -ranked[c])[:k]
         top = ranked[best[0]] if best else 1.0
         out = []
@@ -338,7 +354,6 @@ class DocIndex:
             h = self._doc_hash(text)
         n = self._index_document(d, h, self.store.embedder() or self.embedder_name())
         self.store.save()
-        self._bm25_stale = True
         return {"document": rel, "title": d["title"], "chunks": n}
 
     def delete_upload(self, filename: str) -> bool:
@@ -350,7 +365,6 @@ class DocIndex:
         st.delete(rel)
         self.store.delete_document(UPLOADS, rel)
         self.store.save()
-        self._bm25_stale = True
         return True
 
     def stats(self) -> Dict[str, Any]:
@@ -359,7 +373,8 @@ class DocIndex:
                    building=self._building, last_build=self.last_build, uploads=self.uploads(),
                    configured_sources=[s.model_dump() for s in self.settings.sources],
                    document_readers=extract.available(),
-                   index_sajha_docs=self.settings.index_sajha_docs)
+                   index_sajha_docs=self.settings.index_sajha_docs,
+                   store_configured=self.settings.store, store_fallback=self.store_fallback)
         return out
 
 
@@ -371,6 +386,8 @@ _index: Optional[DocIndex] = None
 def init_doc_index(settings: Optional[RagSettings] = None, gateway=None) -> Optional[DocIndex]:
     global _index
     settings = settings or RagSettings()
+    if _index is not None:
+        _index.close()
     if not settings.enabled:
         _index = None
         return None

@@ -2,8 +2,9 @@
 
 This guide is for developers who want SAJHA's intelligence layer to use something it does
 not ship with: a new LLM **provider** (a vendor or an in-house service), a new **model**
-(a fine-tune, a custom route, a model with its own behaviour), or a real **planner** in
-place of the offline `mock-planner` that Ask SAJHA uses out of the box.
+(a fine-tune, a custom route, a model with its own behaviour), a real **planner** in
+place of the offline `mock-planner` that Ask SAJHA uses out of the box, or another
+**document store** for document search (§6).
 
 What the layer is and why it is built this way is the
 [Intelligence Layer](Intelligence%20Layer.md) design document; every configuration key is
@@ -1039,7 +1040,78 @@ proves the wiring, not the intelligence.
 
 ---
 
-## 6. Checklist before shipping
+## 6. Writing a document store
+
+Document search keeps its passages in a store that `ai.rag.store` names (the shipped ones,
+`sqlite_vec`, `memory` and `pgvector`, are described in
+[Intelligence Layer](Intelligence%20Layer.md#stores)). Another store (a vector database, a search
+service) is a subclass of `VectorStore` in `sajha/ai/rag/stores.py`, whose docstrings are the
+contract:
+
+| Method | Must |
+|---|---|
+| `create(options, settings, engine)` (class method) | build the store from its `ai.rag.stores.<name>` options (its `defaults`, overlaid with configuration and `SAJHA_AI_RAG_STORES_<NAME>_<KEY>`; values from the environment arrive as strings) and the `ai.rag` settings; raise `StoreUnavailable` with a reason when it cannot run |
+| `probe(options)` (class method) | return None, or why the store cannot run here (cheap; no side effects) |
+| `documents()` | return `{(source, document): content hash}`, metadata only |
+| `embedder()` | name the embedder of the stored vectors (`""` when empty or keyword-only) |
+| `replace_document(source, document, doc_hash, embedder, chunks)` | replace one document's passages atomically; `chunks` may be a generator (the index embeds batch by batch while the store reads it), so read it once and keep no more of it than one write needs; clear the store when `embedder` differs from the stored one; raise `DimensionChanged` when a vector's length differs from the stored ones under the same embedder |
+| `delete_document`, `clear` | remove one document, or everything |
+| `search(vector, top_k, sources)` | return the `top_k` nearest passages by cosine similarity, best first, as `(StoredChunk, similarity)`, only from `sources` when given |
+| `keyword_search(query, top_k, sources)` | the same for the query's words; the default is an in-process BM25 index over `chunks()`, so override it when the store can rank words itself |
+| `chunks()` | iterate every passage (vectors may be omitted) |
+| `stats()`, `save()`, `load(embedder)`, `close()` | report; persist where needed; release connections and files |
+
+A store is used from the background build and from searches at once, so it must be thread
+safe; it should return only the rows asked for, so SAJHA stays small whatever the corpus.
+
+```python
+# mypackage/rag_store.py
+from sajha.ai.rag.registry import register_store
+from sajha.ai.rag.stores import StoreUnavailable, VectorStore
+
+
+@register_store
+class AcmeVectorStore(VectorStore):
+    name = "acme"
+    defaults = {"url": "http://localhost:9200", "collection": "sajha"}
+
+    @classmethod
+    def create(cls, options, settings=None, engine=None):
+        try:
+            import acme_client
+        except ImportError:
+            raise StoreUnavailable("pip install acme-client") from None
+        return cls(acme_client.connect(options["url"]), options["collection"])
+
+    # documents, embedder, replace_document, delete_document, clear, search,
+    # keyword_search, chunks: see the table above
+```
+
+Registration, any one of:
+
+- `ai.rag.store: mypackage.rag_store:AcmeVectorStore` (the module is imported on start-up);
+- the `@register_store` decorator, in a module SAJHA imports;
+- an entry point, so installing the package is enough and `ai.rag.store: acme` selects it:
+
+```toml
+# pyproject.toml of your package
+[project.entry-points."sajha.rag.stores"]
+acme = "mypackage.rag_store:AcmeVectorStore"
+```
+
+Settings go under `ai.rag.stores.acme` in `config/application.yml`, secrets in the environment
+(`SAJHA_AI_RAG_STORES_ACME_API_KEY`). If the store cannot start, document search falls back to
+the memory store and the System Notice `rag.store_fallback` shows your `StoreUnavailable`
+message.
+
+**Testing.** `tests/ai/test_rag_store_contract.py` holds the cases every shipped store passes
+(documents and hashes, cosine ranking, source filters, keyword ranking, replace, delete, clear,
+a failed write leaving the document unchanged, embedder and dimension changes, keyword-only
+mode). Add your store to its `make_store` and `STORES` (or copy the cases), and run it.
+
+---
+
+## 7. Checklist before shipping
 
 **Provider**
 
@@ -1086,3 +1158,11 @@ proves the wiring, not the intelligence.
       [Configuration Reference](../getting-started/Configuration%20Reference.md#ai); its
       models go in `sajha/ai/llm/catalog.py`; the change goes in the CHANGELOG.
 - [ ] An out-of-tree provider documents its own fields; it needs no change here.
+
+**Document store**
+
+- [ ] `create` raises `StoreUnavailable` with a reason an operator can act on; no secret is
+      read from `config/application.yml`.
+- [ ] Both searches run where the data is and return only `top_k` rows; `replace_document`
+      streams its chunks and is atomic.
+- [ ] It is thread safe and passes the cases of `tests/ai/test_rag_store_contract.py`.

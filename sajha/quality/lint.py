@@ -199,7 +199,23 @@ def lint_registry(registry: Any, tool_glob: str = '', suite: Any = None) -> List
             outs = cfg.get('outputSchema')
         cases = suite.for_tool(name) if suite is not None else []
         findings.extend(lint_tool(name, cfg, ins, outs, cases))
+        if isinstance(cfg.get('llm'), dict):
+            findings.extend(_lint_llm(name, cfg, registry, getattr(tool, 'declared_annotations', None)))
+    # LLM tools whose llm block the loader refused are not in the catalog: report why
+    for name, cfg in sorted((getattr(registry, 'tool_configs', {}) or {}).items()):
+        if name in tools or not isinstance(cfg, dict) or not isinstance(cfg.get('llm'), dict):
+            continue
+        if tool_glob and not any(fnmatch.fnmatchcase(name, g.strip()) for g in tool_glob.split(',') if g.strip()):
+            continue
+        findings.extend(_lint_llm(name, cfg, registry, None))
     return findings
+
+
+def _lint_llm(name: str, cfg: Dict[str, Any], registry: Any, declared: Any) -> List[Finding]:
+    """LLM-tool rules (docs/architecture/Tool Quality.md §3): llm-config, llm-catalog, llm-annotations."""
+    from sajha.ai.llm_tools.config import lint_findings
+    return [Finding(name, level, rule, message, 'llm') for level, rule, message in
+            lint_findings(name, cfg, registry, declared)]
 
 
 def summarise(findings: List[Finding]) -> Dict[str, Any]:

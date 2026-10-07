@@ -1,0 +1,112 @@
+{
+  "name": "llm_markets_assistant",
+  "implementation": "sajha.ai.llm_tools.LLMTool",
+  "description": "Answers questions about markets, the economy and financial calculations using SAJHA's calculator, market-data and central-bank tools. Cites the tool calls it used. Pass conversation_id from a previous answer to ask a follow-up. An example LLM tool (mode answer), disabled until an administrator enables it.",
+  "version": "1.0.0",
+  "enabled": false,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "question": {
+        "type": "string",
+        "description": "The question, in plain words."
+      },
+      "conversation_id": {
+        "type": "string",
+        "description": "From a previous answer, to continue that conversation."
+      },
+      "confirm": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Fingerprints of destructive calls the user confirmed."
+      }
+    },
+    "required": [
+      "question"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "answer": {
+        "type": "string"
+      },
+      "confidence": {
+        "type": "number"
+      },
+      "citations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "caveats": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "conversation_id": {
+        "type": "string"
+      },
+      "stopped_by": {
+        "type": "string"
+      },
+      "pending": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "answer",
+      "stopped_by"
+    ]
+  },
+  "llm": {
+    "mode": "answer",
+    "model": "reasoning",
+    "system_prompt": "You answer questions about markets and the economy for analysts. Prefer tool results over recall, give figures with their units, and say when data is missing.",
+    "tools": {
+      "allow": [
+        "calc_*",
+        "yahoo_*",
+        "fred_*",
+        "boc_*"
+      ],
+      "deny": [
+        "*_delete*"
+      ]
+    },
+    "limits": {
+      "max_steps": 6,
+      "max_tool_calls": 10,
+      "timeout_s": 60,
+      "max_cost_usd": 0.2
+    },
+    "memory": {
+      "mode": "conversation",
+      "ttl_minutes": 1440,
+      "max_turns": 20
+    },
+    "output": {
+      "citations": true,
+      "steps": false
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Intelligence",
+    "tags": [
+      "assistant",
+      "markets",
+      "llm-tool",
+      "example"
+    ]
+  }
+}

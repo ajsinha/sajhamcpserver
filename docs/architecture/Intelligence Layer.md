@@ -60,8 +60,9 @@ dependency; without it the Bedrock provider reports itself down with an install 
 | `sajha/ai/intelligence.py` | `IntelligenceService`, `AskResult`, `AskStep`, the event stream |
 | `sajha/ai/planners.py` | the `Planner` protocol (`PlanState`, `CallTools`, `Answer`, `Emit`), its registry, and the `react`, `plan_execute`, `recipes` and `router` strategies |
 | `sajha/ai/memory.py` | conversation memory: `ConversationStore` (tables `ai_conversations`, `ai_conversation_turns`), `ConversationMemory`, the scheduled purge |
-| `sajha/ai/rag/` | document retrieval: `chunking.py`, `extract.py` (PDF, Word), `stores.py` (in process, pgvector), `index.py` (`DocIndex`), `tool.py` (`sajha_search_docs`) |
-| `sajha/ai/ask_tool.py` | the optional `sajha_ask` MCP tool |
+| `sajha/ai/rag/` | document retrieval: `chunking.py`, `extract.py` (PDF, Word), `stores.py` (the store contract, the memory and pgvector stores), `sqlite_vec.py` (the default store), `registry.py` (`ai.rag.store` selection), `index.py` (`DocIndex`), `tool.py` (`sajha_search_docs`) |
+| `sajha/ai/ask_tool.py` | the optional `sajha_ask` MCP tool: a shim over the LLM-tool type ([LLM Tools](LLM%20Tools.md)), defined in `config/tools/sajha_ask.json` |
+| `sajha/ai/llm_tools/` | LLM tools: the `LLMTool` type and its modes, the `llm` block's validation, resource safety ([LLM Tools](LLM%20Tools.md)) |
 | `sajha/routes/ai_routes.py` | `POST /api/ai/ask`, `GET /api/ai/config` and the older `/api/ai/*` routes |
 
 ## 2. Core abstractions
@@ -445,14 +446,14 @@ index (`sajha/ai/rag/`):
 - **Passages.** Markdown is split at headings (each passage keeps its section path and anchor),
   then into passages of about `ai.rag.chunk_chars` characters at paragraph boundaries.
 - **Embeddings** come from the gateway's `ai.rag.embedding_model` alias (`embedding`, which is
-  `mock/mock-embed` out of the box); `none` means lexical search only.
-- **Stores.** In process by default (pure Python, persisted through the storage backend, so a
-  restart re-embeds only changed documents); pgvector when the database is PostgreSQL with the
-  `vector` extension and the `rag_chunks` table, which is an optional section of
-  `db/scripts/postgresql/schema.sql` that a DBA runs (SAJHA runs no DDL there).
-- **Search** fuses the vector ranking with a BM25 ranking of the same passages (reciprocal rank
-  fusion, the vector side weighted `ai.rag.vector_weight`). Each result has a citation number,
-  source, document, title, section, link (for guides), a relative score and the passage.
+  `mock/mock-embed` out of the box); `none` means lexical search only. Passages are embedded
+  with the `document` purpose and the query with the `query` purpose (models that embed the
+  two differently get the right one), `ai.rag.embed_batch_size` passages per call.
+- **Stores** (below) keep the passages and answer both halves of a search.
+- **Search** fuses the store's vector ranking with its keyword (BM25) ranking of the same
+  passages (reciprocal rank fusion, the vector side weighted `ai.rag.vector_weight`). Each
+  result has a citation number, source, document, title, section, link (for guides), a relative
+  score and the passage.
 - **Syncing.** The index is built in the background at startup and re-synced by content hash
   (`POST /api/ai/docs/reindex`, admin); `GET /api/ai/docs/status` (admin) reports it, including
   which document readers are installed (`document_readers`). A PDF or Word file is hashed on its
@@ -460,6 +461,49 @@ index (`sajha/ai/rag/`):
 
 The help page's **Ask the docs** box (signed-in users) calls `POST /api/ai/docs/search`; a
 caller who may not run `sajha_search_docs` searches SAJHA's guides only.
+
+#### Stores
+
+`ai.rag.store` chooses where the passages live, by configuration alone; each store's settings
+are under `ai.rag.stores.<name>` (keys in the
+[Configuration Reference](../getting-started/Configuration%20Reference.md)):
+
+| Store | Where the passages are | Vector search | Keyword search | Memory |
+|---|---|---|---|---|
+| `sqlite_vec` | a SQLite file of its own (`ai.rag.stores.sqlite_vec.path`) | sqlite-vec `vec0`, cosine | SQLite FTS5 (BM25, Porter stemming) | top k rows only |
+| `memory` | the process; persisted through the storage backend as `ai.rag.index_path` | pure Python scan | in-process BM25 | every passage, its vector and its terms |
+| `pgvector` | `rag_chunks` in PostgreSQL (SAJHA's database, or `ai.rag.stores.pgvector.dsn`) | pgvector `<=>` | PostgreSQL full-text search | top k rows only |
+
+`auto`, the default, is `sqlite_vec` when the sqlite-vec extension loads and `memory`
+otherwise. The registry (`sajha/ai/rag/registry.py`) also accepts a store registered by a
+package (entry-point group `sajha.rag.stores`) or named as `package.module:Class`; writing one is
+in [Extending the Intelligence Layer](Extending%20the%20Intelligence%20Layer.md#6-writing-a-document-store).
+When the chosen store cannot run (the package is missing, this Python's `sqlite3` cannot load
+extensions, PostgreSQL has no `vector` extension or `rag_chunks` table), the index uses the
+memory store and raises the System Notice `rag.store_fallback` with the reason; the notice
+clears once the store runs. The store in use, and any fallback reason, are in
+`GET /api/ai/docs/status` (`store`, `store_configured`, `store_fallback`).
+
+- **sqlite_vec** never touches SAJHA's own database: it opens its file with Python's `sqlite3`
+  (refusing a path that is SAJHA's SQLite database), in WAL mode, with one writer connection
+  and a reader connection per thread, so searches run while the index builds. The file holds
+  `rag_documents`, `rag_chunks`, the FTS5 table `rag_fts` (kept in step by triggers), the
+  `vec0` table `rag_vec` (created on the first vector with that embedder's dimension; never in
+  keyword-only mode) and `rag_meta` (schema version, embedder, dimension). A different
+  embedder clears the file; a different dimension under the same embedder name makes the build
+  start again from scratch. With `ai.rag.persist: false` the store is a temporary file removed
+  when it closes. The file is local even when the storage backend is S3, Azure or GCS: on a host
+  without a persistent disk a restart re-embeds everything.
+- **memory** holds every passage's text, its vector (float32, 4 bytes per dimension) and a BM25
+  index of its words in the process, so its memory grows with the corpus, and a search scans
+  every vector in Python. It suits small setups and tests; it is also the fallback.
+- **pgvector** needs the optional section of `db/scripts/postgresql/schema.sql`, which a DBA
+  runs (SAJHA runs no DDL there); that section also shows the optional HNSW and full-text
+  indexes for large corpora.
+
+Indexing streams: documents are read one at a time, and each document's passages are embedded
+`ai.rag.embed_batch_size` at a time while the store consumes them, so a build never holds the
+corpus in memory; only the memory store keeps it, by design.
 
 ### `POST /api/ai/ask`
 
@@ -537,14 +581,17 @@ A walkthrough is [Tutorial 10: Ask SAJHA](../tutorials/TUTORIAL_10_ask_sajha.md)
 
 ### `sajha_ask` (MCP)
 
-With `ai.ask.mcp_tool_enabled: true` the service is also registered as the MCP tool
-`sajha_ask` (`question`, optional `model` and `confirm`). The ask runs as the MCP caller
-(the caller context of `sajha/observability/caller.py`): its user ID and roles, and only the
-tools that caller may execute, narrowed further to the `ai.ask.mcp_allowed_tools` patterns
+`sajha_ask` is an [LLM tool](LLM%20Tools.md) in mode `answer`, defined in
+`config/tools/sajha_ask.json` (`question`, optional `model`, `conversation_id` and `confirm`;
+conversation memory; every tool allowed). The file keeps it disabled; `ai.ask.mcp_tool_enabled:
+true` turns it on, at start-up and after every reload of the catalog. The ask runs as the MCP
+caller (the caller context of `sajha/observability/caller.py`): its user ID and roles, and only
+the tools that caller may execute, narrowed further to the `ai.ask.mcp_allowed_tools` patterns
 when they are set. `sajha_ask` never calls itself. Only when no entry point recorded a caller
 (code that runs the tool directly) do its inner calls fall back to the anonymous MCP policy
 (`mcp.anonymous.*`) plus `ai.ask.mcp_allowed_tools`
-([Inner calls](../security/Security%20Model.md#inner-calls)).
+([Inner calls](../security/Security%20Model.md#inner-calls)). A signed-in caller gets a
+`conversation_id` to continue the conversation; anonymous callers keep nothing.
 
 ## 7. The mock provider
 
@@ -582,8 +629,10 @@ the same safety tests (RBAC, tools not offered, confirmation, limits, injection,
 and tests each strategy; `tests/ai/test_memory.py` covers multi-turn asks, summaries, privacy
 between users, retention and the conversation routes, and `tests/ai/test_memory_tools.py` the
 LLM-tool handle, scoping, expiry, folding, client history and the scheduled purge;
-`tests/ai/test_rag.py` the chunking, the index, uploads, the stores and the search route, and
-`tests/ai/test_rag_documents.py` PDF and Word sources; `tests/ai/test_tool_index_sync.py` that a
+`tests/ai/test_rag.py` the chunking, the index, uploads, the stores and the search route,
+`tests/ai/test_rag_store_contract.py` the store contract every shipped store passes (pgvector
+when `SAJHA_TEST_POSTGRES_URL` names a PostgreSQL database), the registry and the index on
+sqlite_vec, and `tests/ai/test_rag_documents.py` PDF and Word sources; `tests/ai/test_tool_index_sync.py` that a
 tool registered by any path is shortlisted without a reload.
 
 ## 9. Not built yet
@@ -599,5 +648,4 @@ tool registered by any path is shortlisted without a reload.
 - Freshness and agreement in the confidence score; trimming history on `ContextTooLong`.
 - Document connectors (SharePoint, Drive, Confluence, or a connected account) as RAG sources;
   today a source is a folder in the storage backend, or an upload. No OCR for scanned PDFs.
-- Conversation memory for `sajha_ask` over MCP (its caller has no user identity), and a page
-  for browsing past conversations (the API exists).
+- A page for browsing past conversations (the API exists; LLM Tools build step 10).

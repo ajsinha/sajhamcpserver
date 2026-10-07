@@ -376,6 +376,20 @@ class ScriptedModel(_MockChat):
 class PlannerModel(_MockChat):
     """Keyword planner. Plans only from the user's question, never from tool output."""
 
+    def _create(self, request: ChatCompletionRequest) -> ChatCompletion:
+        mode = (request.metadata or {}).get("sajha_llm_mode")
+        if mode:                                   # an LLM tool's call (sajha/ai/llm/mock_llm_tools.py)
+            from sajha.ai.llm import mock_llm_tools
+            text = mock_llm_tools.reply(mode, mock_llm_tools.last_user(request.messages), request.output_schema,
+                                        mock_llm_tools.system_text(request.messages))
+            if text is not None:
+                self.provider.inject()
+                msg = ChatMessage(role="assistant", content=text)
+                usage = CompletionUsage.of(self.count_tokens(request), estimate_tokens(text))
+                return ChatCompletion(model=self.id, choices=[Choice(message=msg, finish_reason="stop")], usage=usage,
+                                      sajha=ResponseSajha(provider=self.provider.name, cost_usd=0.0))
+        return super()._create(request)
+
     def _reply(self, request: ChatRequest):
         props = ((request.response_schema or {}).get("properties") or {})
         if "steps" in props:                       # a plan_execute planning call (sajha/ai/planners.py)

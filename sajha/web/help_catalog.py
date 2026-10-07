@@ -183,9 +183,9 @@ CATALOG: List[dict] = [
             _g('Data Connectors', 'Data Connectors.md', 'bi-database-gear',
                'Enterprise databases, warehouses, vector stores and search clusters as governed, read-only '
                'tools: drivers, the statement guard, limits, masking, curated views, per-user credentials.'),
-            _g('LLM tools (design)', 'LLM Tools.md', 'bi-chat-square-text',
-               'Design for tools whose work is done by a model: modes, config, running as the caller, '
-               'config-driven planners (ReAct, Reflect, loops), memory tiers with disk spill, safety, build plan.'),
+            _g('LLM tools', 'LLM Tools.md', 'bi-chat-square-text',
+               'Tools whose work is done by a model, configured like any tool: seven modes, running as the '
+               'caller, conversation memory, spill to disk and the memory guard; config-driven planners (design).'),
             _g('Planner reference (design)', 'Planner Reference.md', 'bi-signpost-split',
                'Planner files in full: keys, every stage type, transitions and bounded loops, the when '
                'expression grammar, verify checks, validation messages, JSON Schema, shipped strategies.'),
@@ -367,6 +367,9 @@ CATALOG: List[dict] = [
             _g('25. Connect a database', 'TUTORIAL_25_connect_a_database.md', 'bi-database-gear',
                'Run PostgreSQL in Docker, connect it read-only, browse the catalog, mask a column, add a curated '
                'view, watch the guard refuse writes, and ask SAJHA a question about the data.'),
+            _g('26. Build an LLM tool', 'TUTORIAL_26_build_an_llm_tool.md', 'bi-chat-square-text',
+               'Write a classifier and a summariser as config files, call them on the mock model, add memory to '
+               'an assistant, watch it run as the caller, and evaluate it before enabling it.'),
         ],
     },
     {

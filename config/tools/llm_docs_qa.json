@@ -1,0 +1,84 @@
+{
+  "name": "llm_docs_qa",
+  "implementation": "sajha.ai.llm_tools.LLMTool",
+  "description": "Answers questions about SAJHA only from its documentation and the configured document sources, citing each passage it used, and says 'Not found in the sources' rather than guess. An example LLM tool (mode grounded), disabled until an administrator enables it.",
+  "version": "1.0.0",
+  "enabled": false,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "question": {
+        "type": "string",
+        "description": "The question about SAJHA, in plain words."
+      },
+      "conversation_id": {
+        "type": "string",
+        "description": "From a previous answer, to continue that conversation."
+      }
+    },
+    "required": [
+      "question"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "answer": {
+        "type": "string"
+      },
+      "confidence": {
+        "type": "number"
+      },
+      "citations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "caveats": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "conversation_id": {
+        "type": "string"
+      },
+      "stopped_by": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "answer",
+      "stopped_by"
+    ]
+  },
+  "llm": {
+    "mode": "grounded",
+    "model": "default",
+    "rag": {
+      "sources": [
+        "sajha_docs"
+      ],
+      "top_k": 4
+    },
+    "memory": {
+      "mode": "conversation",
+      "ttl_minutes": 240,
+      "max_turns": 10
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Intelligence",
+    "tags": [
+      "documentation",
+      "rag",
+      "grounded",
+      "llm-tool",
+      "example"
+    ]
+  }
+}

@@ -165,6 +165,9 @@ the registry:
 | a tool whose name says it deletes, drops, purges, removes, revokes, truncates or wipes has `destructiveHint: true` | warning |
 | a tool whose name says it only reads (`get`, `list`, `search`, `fetch`, `query`, ...) has `readOnlyHint: true` | info |
 | every test case's `arguments` validate against the input schema (unless the case expects an error) | error |
+| `llm-config`: an [LLM tool](LLM%20Tools.md)'s `llm` block passes the loader's checks (LLM Tools §5.2), including one the loader refused, so the tool is not in the catalog | error |
+| `llm-catalog`: every `tools.allow` pattern matches a tool; a `narrate` source is in the catalog | error |
+| `llm-annotations`: an LLM tool's config claims no less than its derived annotations (read-only only if every tool it may call is; destructive if any is) | warning |
 
 The report groups findings by tool, with counts per level; JSON and JUnit outputs are the same
 findings. Lint is static: no tool runs.
@@ -236,6 +239,23 @@ pair and scores each answer:
   `tolerance`, `equals`), case-insensitive except `regex` flags you give;
 * **limits**: steps, total tokens, cost and latency against the question's (or the set's
   default) limits; the ask must stop by `answer` unless `expect_stop` says otherwise.
+
+**LLM tools.** A set with `tool: <name>` evaluates that [LLM tool](LLM%20Tools.md) instead of
+Ask SAJHA (enabled or not): each question's `arguments` are the call (default
+`{question: <question>}`), memory is off and no audit record is written. The checks apply to the
+result's `answer`, `text` or `label` (else its JSON), and `expect_tools` to the inner tool calls.
+The shipped example LLM tools have theirs: `config/evals/llm_*.yaml`.
+
+```yaml
+name: llm_triage_ticket
+tool: llm_triage_ticket
+models: [mock/mock-planner]
+questions:
+  - id: billing
+    question: A double charge on an invoice goes to billing.
+    arguments: {message: "I was charged twice on my last invoice and need a refund."}
+    answer: [{equals: billing}]
+```
 
 A question passes when all three hold. A run's summary: tool-selection accuracy, answer
 accuracy, pass rate, mean steps, total and mean tokens, total cost, mean and p95 latency, per

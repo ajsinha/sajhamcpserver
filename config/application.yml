@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 7.1.0
+  version: 7.2.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   email: ajsinha@gmail.com
@@ -435,8 +435,40 @@ ai:
     max_result_chars: 4000
     mcp_tool_enabled: false            # register the sajha_ask MCP tool
     planner: react                     # react | plan_execute | recipes | router (sajha/ai/planners.py)
-  # Conversation memory (ai.memory.*) and document search (ai.rag.*) use their defaults:
-  # docs/getting-started/Configuration Reference.md lists every key.
+  # LLM tools: tools whose work a model does (docs/architecture/LLM Tools.md). Every value is a
+  # CEILING: a tool's own llm.limits may ask for less, never more. Env: SAJHA_AI_LLM_TOOLS_<SECTION>_<FIELD>.
+  llm_tools:
+    enabled: true                      # the tool type; each LLM tool still has its own "enabled"
+    default_model: default             # alias used by a tool that names no model
+    max_depth: 2                       # LLM tools nested inside LLM tools (nesting.allow)
+    limits: { max_steps: 8, max_tool_calls: 16, timeout_s: 120, max_input_chars: 20000, max_output_tokens: 4000, max_cost_usd: 1.00 }
+    anonymous: { enabled: false, max_steps: 3, max_cost_usd: 0.02 }
+    memory:
+      max_turns: 50                    # per tool conversation; older turns fold into the summary
+      max_conversations_per_tool: 50
+      purge_interval_minutes: 15
+      working_set_max_kb: 2048         # per running call; larger items spill to the spool
+      spill_threshold_kb: 256          # a tool result larger than this is spooled at once
+      cache: { enabled: false, max_mb: 64, ttl_s: 300 }    # optional write-through conversation hot cache
+      spool: { dir: data/spool/llm_tools, max_mb: 1024, per_run_mb: 128, orphan_minutes: 60 }
+    runtime:
+      max_concurrent_runs: 8           # per process; more wait in the queue, then get stopped_by busy
+      max_queued: 32
+      queue_timeout_s: 30
+      memory_guard: { soft_pct: 70, hard_pct: 85, soft_mb: 0, hard_mb: 0, interval_s: 2 }
+    result_cache: { max_entries: 1000, ttl_s: 3600 }        # deterministic modes with "cache": true
+  # Conversation memory (ai.memory.*) uses its defaults; docs/getting-started/Configuration
+  # Reference.md lists every key.
+  # Document search (sajha/ai/rag): where the passage index lives. Env: SAJHA_AI_RAG_<KEY>,
+  # and SAJHA_AI_RAG_STORES_<STORE>_<KEY> per store (e.g. SAJHA_AI_RAG_STORES_PGVECTOR_DSN).
+  rag:
+    store: auto                        # auto (sqlite_vec, else memory) | sqlite_vec | memory | pgvector | package.module:Class
+    stores:
+      sqlite_vec:
+        path: data/rag/vectors.db      # a SQLite file of its own (never SAJHA's database)
+      pgvector:
+        dsn: ""                        # empty = SAJHA's database; put a DSN in the env, not here
+    embed_batch_size: 64               # passages per embedding call while indexing
   # Semantic tool search — natural-language query → top-k matching tools.
   tool_search:
     enabled: true

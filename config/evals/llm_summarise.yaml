@@ -1,0 +1,26 @@
+# An LLM-tool eval set (docs/architecture/Tool Quality.md §5): the example summariser (mode complete).
+#   python -m sajha.quality eval llm_summarise
+name: llm_summarise
+description: The example summariser keeps the lead sentence and its figures and stays within the sentence limit.
+tool: llm_summarise
+models: [mock/mock-planner]
+defaults:
+  max_tokens: 5000
+  max_latency_ms: 30000
+questions:
+  - id: lead-sentence
+    question: Summarise a short company update in one sentence.
+    arguments:
+      text: "Revenue rose 12% to 4.2 billion dollars in the third quarter. Margins were flat. The company kept its outlook for the year."
+      max_sentences: 1
+    answer:
+      - contains: "Revenue rose 12% to 4.2 billion dollars"
+      - not_contains: "Margins"
+  - id: two-sentences
+    question: Summarise a release note in two sentences.
+    arguments:
+      text: "SAJHA 7.1 adds LLM tools. Each one is a config file. Older clients keep working unchanged."
+      max_sentences: 2
+    answer:
+      - contains: "Each one is a config file"
+      - not_contains: "Older clients"

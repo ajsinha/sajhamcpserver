@@ -73,7 +73,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Workflows](architecture/Workflows.md): DAGs of tools, composites and Ask SAJHA steps; cron, webhook, file and event triggers; durable runs that resume after a crash; re-run from a step; publish as a tool
 - [Tool Quality](architecture/Tool%20Quality.md): test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, rollback and sunset dates
 - [Policy and Audit](architecture/Policy%20and%20Audit.md): declarative rules on every tool call (deny, approval, argument constraints, rate limits, quotas, redaction, injection screening); the hash-chained, signed audit and SIEM export
-- [LLM Tools](architecture/LLM%20Tools.md): design (not built) for tools whose work is done by a model, configured like any tool and governed the same way
+- [LLM Tools](architecture/LLM%20Tools.md): tools whose work is done by a model, configured like any tool and governed the same way (modes, memory and resource safety built; configurable planners, sampling and the OpenAI-compatible endpoint are design)
 - [Planner Reference](architecture/Planner%20Reference.md): design (not built) reference for planner files: keys, the stage library, transitions and bounded loops, the `when` expression language, verify checks, validation messages, a JSON Schema and every shipped strategy in full
 - [SAJHA Net](architecture/SAJHA%20Net.md): design (not built) for several SAJHA servers sharing tools while each keeps its own data, policy, AI and memory
 - [System Notices](architecture/System%20Notices.md): what needs attention, from every subsystem: the console banner, the dashboard System status panel, the navbar badge, acknowledgement and the admin API
@@ -158,6 +158,7 @@ These guides document each provider's tools, parameters and API keys.
 23. [Tutorial 23: Test and Canary Your Tools](tutorials/TUTORIAL_23_test_and_canary_your_tools.md)
 24. [Tutorial 24: Describe a Tool](tutorials/TUTORIAL_24_describe_a_tool.md)
 25. [Tutorial 25: Connect a Database](tutorials/TUTORIAL_25_connect_a_database.md)
+26. [Tutorial 26: Build an LLM Tool](tutorials/TUTORIAL_26_build_an_llm_tool.md)
 
 ## Clients and security
 

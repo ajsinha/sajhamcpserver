@@ -1,0 +1,117 @@
+{
+  "name": "sajha_ask",
+  "implementation": "sajha.ai.ask_tool.SajhaAskTool",
+  "description": "Answer a natural-language question by letting SAJHA pick and run its own tools; returns the answer with the tool calls it relied on and a confidence score. Pass conversation_id from a previous answer to ask a follow-up. Turned on and off by ai.ask.mcp_tool_enabled.",
+  "version": "2.0.0",
+  "enabled": false,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "question": {
+        "type": "string",
+        "description": "The question to answer with SAJHA's tools."
+      },
+      "model": {
+        "type": "string",
+        "description": "Model alias or provider/model (default: the tool's model, ai.llm_tools.default_model)."
+      },
+      "conversation_id": {
+        "type": "string",
+        "description": "From a previous answer, to continue that conversation."
+      },
+      "confirm": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Fingerprints of destructive tool calls the user has confirmed."
+      }
+    },
+    "required": [
+      "question"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "answer": {
+        "type": "string"
+      },
+      "confidence": {
+        "type": "number"
+      },
+      "citations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "caveats": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "stopped_by": {
+        "type": "string"
+      },
+      "conversation_id": {
+        "type": "string"
+      },
+      "pending": {
+        "type": "array"
+      },
+      "connections": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
+      },
+      "steps": {
+        "type": "array"
+      },
+      "models": {
+        "type": "array"
+      },
+      "shortlist": {
+        "type": "array"
+      },
+      "planner": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "answer",
+      "stopped_by"
+    ]
+  },
+  "llm": {
+    "mode": "answer",
+    "tools": {
+      "allow": [
+        "*"
+      ]
+    },
+    "memory": {
+      "mode": "conversation",
+      "ttl_minutes": 1440,
+      "max_turns": 20
+    },
+    "output": {
+      "citations": true,
+      "steps": true
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Intelligence",
+    "tags": [
+      "ai",
+      "ask",
+      "agent",
+      "llm-tool"
+    ]
+  }
+}

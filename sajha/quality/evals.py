@@ -4,7 +4,9 @@ SAJHA MCP Server — evals for Ask SAJHA: golden question sets, a runner, scores
 An eval set (``quality.evals_dir``, ``config/evals/*.yaml``) lists questions with the tools
 that should be called, checks on the answer, and limits (steps, tokens, cost, latency). The
 runner asks every question through ``IntelligenceService.ask`` once per (model, planner) and
-scores tool selection, answer checks and limits. Runs are saved in ``quality_runs`` and two
+scores tool selection, answer checks and limits. A set with ``tool: <name>`` evaluates that LLM
+tool instead (sajha/ai/llm_tools): each question's ``arguments`` (default ``{question: ...}``)
+are its call, and the checks apply to its answer, text or label. Runs are saved in ``quality_runs`` and two
 runs can be compared. Works offline on the mock provider. Docs: docs/architecture/Tool Quality.md §5.
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
@@ -43,6 +45,7 @@ class EvalQuestion:
     max_cost_usd: Optional[float] = None
     max_latency_ms: Optional[float] = None
     expect_stop: str = 'answer'
+    arguments: Optional[Dict[str, Any]] = None       # an LLM-tool set: the call's arguments
 
 
 @dataclass
@@ -54,11 +57,12 @@ class EvalSet:
     tools: List[str] = field(default_factory=list)
     questions: List[EvalQuestion] = field(default_factory=list)
     source: str = ''
+    tool: str = ''                                   # an LLM tool to evaluate instead of Ask SAJHA
 
     def to_dict(self) -> Dict[str, Any]:
         return {'name': self.name, 'description': self.description, 'models': self.models,
                 'planners': self.planners, 'tools': self.tools, 'questions': len(self.questions),
-                'source': self.source}
+                'source': self.source, 'tool': self.tool}
 
 
 def _num(v: Any, what: str, cast=float):
@@ -107,7 +111,7 @@ def parse_set(doc: Any, source: str = '') -> EvalSet:
 
     es = EvalSet(name=name, description=str(doc.get('description') or ''), models=lst(doc.get('models') or doc.get('model'), 'models'),
                  planners=lst(doc.get('planners') or doc.get('planner'), 'planners'), tools=lst(doc.get('tools'), 'tools'),
-                 source=source)
+                 source=source, tool=str(doc.get('tool') or ''))
     qs = doc.get('questions') or []
     if not isinstance(qs, list) or not qs:
         raise EvalError(f'{source}: questions must be a non-empty list')
@@ -120,6 +124,8 @@ def parse_set(doc: Any, source: str = '') -> EvalSet:
             raise EvalError(f'{source}: duplicate question id {qid!r}')
         seen.add(qid)
         merged = {**defaults, **q}
+        if q.get('arguments') is not None and not isinstance(q.get('arguments'), dict):
+            raise EvalError(f'{source}: {qid}: arguments must be an object')
         checks = merged.get('answer') or []
         if isinstance(checks, dict):
             checks = [checks]
@@ -132,7 +138,8 @@ def parse_set(doc: Any, source: str = '') -> EvalSet:
             max_tokens=_num(merged.get('max_tokens'), f'{qid}: max_tokens', int),
             max_cost_usd=_num(merged.get('max_cost_usd'), f'{qid}: max_cost_usd'),
             max_latency_ms=_num(merged.get('max_latency_ms'), f'{qid}: max_latency_ms'),
-            expect_stop=str(merged.get('expect_stop') or 'answer')))
+            expect_stop=str(merged.get('expect_stop') or 'answer'),
+            arguments=dict(q['arguments']) if isinstance(q.get('arguments'), dict) else None))
     return es
 
 
@@ -195,8 +202,8 @@ def _matches(name: str, patterns: List[str]) -> bool:
 
 
 def score(q: EvalQuestion, result: Any) -> Dict[str, Any]:
-    """Score one AskResult against its question."""
-    called = [s.name for s in (result.steps or [])]
+    """Score one AskResult (or an LLM tool's RunInfo) against its question."""
+    called = [getattr(s, 'name', s) for s in (result.steps or [])]
     called_set = set(called)
     missing = [t for t in q.expect_tools if not any(fnmatch.fnmatchcase(c, t) for c in called_set)]
     forbidden = sorted({c for c in called_set if _matches(c, q.forbid_tools)})
@@ -274,6 +281,8 @@ def run_set(service: Any, es: EvalSet, model: Optional[str] = None, planner: Opt
             ctx: Any = None, on_question: Optional[Callable[[Dict[str, Any]], None]] = None) -> Dict[str, Any]:
     """Ask every question of ``es`` once on ``model``/``planner``; returns {set, model, planner, summary, questions}."""
     from sajha.ai.llm.types import RequestContext
+    if es.tool:
+        return run_tool_set(service, es, model, ctx, on_question)
     if es.tools:
         from sajha.ai.intelligence import IntelligenceService
         service = IntelligenceService(service.gateway, FilteredRegistry(service.tools_registry, es.tools),
@@ -296,6 +305,51 @@ def run_set(service: Any, es: EvalSet, model: Optional[str] = None, planner: Opt
         if on_question:
             on_question(row)
     return {'set': es.name, 'model': model or 'default', 'planner': planner or 'default',
+            'started_at': t0, 'duration_s': round(time.time() - t0, 3),
+            'summary': summarise(rows), 'questions': rows}
+
+
+def _llm_tool(service: Any, name: str):
+    """The LLM tool ``name`` from the service's registry, or built from its config even when disabled."""
+    reg = service.tools_registry
+    tool = reg.get_tool(name) if reg is not None else None
+    if tool is None:
+        cfg = (getattr(reg, 'tool_configs', {}) or {}).get(name)
+        if cfg is None:
+            raise EvalError(f'no tool {name!r} in the catalog')
+        import importlib
+        mod, cls = str(cfg.get('implementation')).rsplit('.', 1)
+        tool = getattr(importlib.import_module(mod), cls)(cfg)
+    if not hasattr(tool, 'run') or not isinstance(getattr(tool, 'config', {}).get('llm'), dict):
+        raise EvalError(f'{name} is not an LLM tool')
+    tool.registry, tool.service, tool.gateway = reg, service, service.gateway
+    return tool
+
+
+def run_tool_set(service: Any, es: EvalSet, model: Optional[str] = None, ctx: Any = None,
+                 on_question: Optional[Callable[[Dict[str, Any]], None]] = None) -> Dict[str, Any]:
+    """Call the set's LLM tool once per question (memory off, no audit record) and score each run."""
+    from sajha.ai.llm.types import RequestContext
+    tool = _llm_tool(service, es.tool)
+    ctx = ctx or RequestContext(user_id='eval', roles=['admin'], is_admin=True)
+    rows = []
+    t0 = time.time()
+    for q in es.questions:
+        args = dict(q.arguments) if q.arguments is not None else {'question': q.question}
+        try:
+            info = tool.run(args, ctx=ctx, model=model or None, remember=False, audit=False)
+            row = score(q, info)
+        except Exception as e:
+            logger.warning(f'eval {es.name}/{q.id}: {e}', exc_info=True)
+            row = {'id': q.id, 'question': q.question, 'passed': False, 'tool_ok': False, 'answer_ok': False,
+                   'limits_ok': False, 'tools_called': [], 'expect_tools': q.expect_tools, 'tool_recall': 0.0,
+                   'tool_precision': 0.0, 'steps': 0, 'tokens': 0, 'cost_usd': 0.0, 'latency_ms': 0,
+                   'stopped_by': 'error', 'answer': '', 'error': str(e), 'reasons': [f'call failed: {e}'],
+                   'models': [], 'planner': ''}
+        rows.append(row)
+        if on_question:
+            on_question(row)
+    return {'set': es.name, 'model': model or 'default', 'planner': f'tool:{es.tool}',
             'started_at': t0, 'duration_s': round(time.time() - t0, 3),
             'summary': summarise(rows), 'questions': rows}
 

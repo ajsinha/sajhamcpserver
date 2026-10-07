@@ -75,6 +75,18 @@ units). The live list is the endpoint itself; each family carries `# HELP` and `
 | `sajha_llm_tool_conversations` | gauge | `tool` (`ask` = the Ask SAJHA page); stored conversations, set by each purge |
 | `sajha_llm_tool_turns_total` | counter | `tool` (`ask` = the Ask SAJHA page) |
 | `sajha_llm_tool_purged_total` | counter | none; conversations deleted by the purge |
+| `sajha_llm_tool_stopped_total` | counter | `tool`, `reason` (a `stopped_by` value, [LLM Tools](LLM%20Tools.md) §15) |
+| `sajha_llm_tool_steps` | histogram | `tool`; planner steps (or model calls) per LLM-tool run |
+| `sajha_llm_tool_inner_calls_total` | counter | `tool`; inner tool calls made by LLM tools |
+| `sajha_llm_tool_tokens_total` / `sajha_llm_tool_cost_usd_total` | counter | `tool`; model tokens and spend of LLM-tool runs |
+| `sajha_llm_tool_runs_refused_total` | counter | `reason` (`queue_full`, `queue_timeout`, `memory`) |
+| `sajha_llm_tool_runs` | gauge | `state` (`running`, `queued`) |
+| `sajha_llm_tool_spilled_total` | counter | none; working-set items written to the spool |
+| `sajha_llm_tool_working_set_bytes` | histogram | none; the largest in-memory working set of each run |
+| `sajha_llm_tool_spool_bytes` | gauge | none; spool bytes in use in this process |
+| `sajha_llm_tool_cache_bytes` / `sajha_llm_tool_cache_evictions_total` | gauge / counter | `cache` (`result`, `conversation`) |
+| `sajha_llm_tool_memory_guard_state` | gauge | none; `0` ok, `1` soft, `2` hard (an alert rule on `>= 1` warns before refusals start) |
+| `sajha_llm_tool_memory_resident_bytes` | gauge | none; the resident memory the guard last measured |
 | `sajha_auth_failures_total` | counter | `method` (`password`, `bearer`, `apikey`, `session`) |
 | `sajha_auth_lockouts_total` | counter | none |
 | `sajha_sandbox_runs_total` | counter | `backend`, `outcome` (`ok`, `error`, `timeout`, `output_limit`, `runner_error`) |

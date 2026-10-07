@@ -1,0 +1,26 @@
+# An LLM-tool eval set (docs/architecture/Tool Quality.md §5): the example classifier (mode classify).
+#   python -m sajha.quality eval llm_triage_ticket
+name: llm_triage_ticket
+description: The example triage classifier routes support messages to the right queue.
+tool: llm_triage_ticket
+models: [mock/mock-planner]
+defaults:
+  max_tokens: 5000
+  max_latency_ms: 30000
+questions:
+  - id: billing
+    question: A double charge on an invoice goes to billing.
+    arguments: {message: "I was charged twice on my last invoice and need a refund."}
+    answer: [{equals: billing}]
+  - id: technical
+    question: An outage report goes to technical.
+    arguments: {message: "The dashboard shows an error and the export is not working since this morning."}
+    answer: [{equals: technical}]
+  - id: account
+    question: A sign-in problem goes to account.
+    arguments: {message: "I cannot sign in; my password reset link never arrives."}
+    answer: [{equals: account}]
+  - id: sales
+    question: A pricing question goes to sales.
+    arguments: {message: "What is the pricing for the enterprise plan, and can you send a quote?"}
+    answer: [{equals: sales}]

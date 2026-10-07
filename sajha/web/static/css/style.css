@@ -1803,7 +1803,22 @@ pre.pg-repr { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--sajha-indigo) 5
   border-bottom: 1px solid var(--sajha-border); }
 .ask-calls-head h3 { margin: 0; font-size: .9rem; font-weight: 700; color: var(--sajha-ink); }
 .ask-calls-count { font-size: .8rem; color: var(--t-muted); font-variant-numeric: tabular-nums; }
-.ask-calls-log { list-style: none; margin: 0; padding: .3rem 0; max-height: 13.5rem; overflow-y: auto; font-size: .86rem; }
+.ask-calls-log { list-style: none; margin: 0; padding: .3rem 0; height: 9rem; overflow-y: scroll; font-size: .86rem;
+  scrollbar-width: thin; scrollbar-color: var(--t-muted) transparent; }
+.ask-calls-log::-webkit-scrollbar { width: 8px; }
+.ask-calls-log::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--t-muted) 60%, transparent); border-radius: 8px; }
+.ask-calls-tools { display: inline-flex; align-items: center; gap: .6rem; }
+.ask-calls-clear { font-size: .78rem; font-weight: 600; color: var(--sajha-ink); background: var(--sajha-surface);
+  border: 1px solid var(--sajha-border); border-radius: 7px; padding: .15rem .55rem; }
+.ask-calls-clear:hover { border-color: var(--sajha-crimson); }
+.ask-calls-clear:focus-visible { outline: 2px solid var(--sajha-crimson); outline-offset: 2px; }
+/* wide screens: the sky column is pinned; if the screen is too short for sky + log, the column scrolls instead of hiding the log */
+/* wide screens: the right column ends level with the chat (ask.js fit()); the sky's caption becomes its tooltip
+   (kept for screen readers) so filter + sky + log fill exactly the chat's height */
+@media (min-width: 992px) {
+  .ask-sky-col { max-height: calc(100vh - 64px - 2rem); overflow-y: auto; }
+  .ask-sky-cap { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+}
 .ask-calls-log:empty::before { content: "Ask a question to see which servers and tools SAJHA uses."; display: block;
   padding: .5rem .8rem; color: var(--t-muted); }
 .ask-call-turn { padding: .4rem .8rem .15rem; font-size: .78rem; font-weight: 700; color: var(--t-accent-text);

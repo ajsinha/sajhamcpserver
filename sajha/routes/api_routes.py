@@ -83,9 +83,14 @@ async def api_tool_execute(
             user_agent=request.headers.get('User-Agent'),
         )
 
-        body = {'success': True, 'result': result}
+        body = {'success': not getattr(result, 'is_error', False), 'result': result}
         if version_meta:
             body['_meta'] = version_meta
+        status = getattr(result, 'http_status', None)
+        if status:       # an LLM tool that refused the run to protect the process (busy): 503 + Retry-After
+            retry = getattr(result, 'retry_after', None)
+            return JSONResponse(body, status_code=int(status),
+                                headers={'Retry-After': str(int(retry))} if retry else None)
         return JSONResponse(body)
     except Exception as e:
         from sajha.accounts.errors import ConnectedAccountRequired

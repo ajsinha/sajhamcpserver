@@ -41,6 +41,12 @@
       if (stick) log.scrollTop = log.scrollHeight;
     }
     function span(cls, text) { var s = document.createElement('span'); s.className = cls; s.textContent = text; return s; }
+    var clearBtn = document.getElementById('askCallsClear');
+    if (clearBtn) clearBtn.addEventListener('click', function () {
+      if (!log) return;
+      log.textContent = ''; rows = {}; total = 0; lastTurn = null;
+      count.textContent = 'No calls yet';
+    });
     return {
       start: function (turn, id, name) {
         if (!log) return;
@@ -288,9 +294,12 @@
     var top = gridEl.getBoundingClientRect().top + window.scrollY;
     var h = Math.max(480, window.innerHeight - top - 16);
     pageEl.style.setProperty('--ask-h', h + 'px');
-    var fEl = document.querySelector('.ask-filter');
-    pageEl.style.setProperty('--ask-sky-h', Math.max(320, h - (capEl ? capEl.offsetHeight + 12 : 0) -
-                                                        (fEl ? fEl.offsetHeight + 8 : 0)) + 'px');
+    // the right column ends level with the chat: sky + the "Servers and tools" log fill exactly the
+    // space from the sky's top to the bottom of the chat window
+    var skyEl = document.getElementById('askSky'), callsEl = document.querySelector('.ask-calls');
+    var skyTop = skyEl.getBoundingClientRect().top + window.scrollY;
+    var callsH = callsEl ? callsEl.offsetHeight + parseFloat(getComputedStyle(callsEl).marginTop || 0) : 0;
+    pageEl.style.setProperty('--ask-sky-h', Math.max(260, Math.round(top + h - skyTop - callsH) - 2) + 'px');
   }
   fit();
   window.addEventListener('resize', fit);

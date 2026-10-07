@@ -45,6 +45,7 @@ selected store.
 | MCP Studio generators | `config/tools/<name>.json` | the generated tool **JSON** is written through `write_tool_config()` |
 | Guide pages (`/help/guides`, `/help/guides/{name}`) | `docs/**/*.md` except `docs/archive/` and `README.md` files | recursive listing (reused for 30 s) and a read per page; a guide is found by its file name |
 | Semantic tool search vector index | `data/tool_search_index.json` | loaded at start and rewritten after re-embedding; only when `ai.tool_search.embedder` is `gateway` (the default `bm25` builds nothing to persist) and `ai.tool_search.persist` is true |
+| Document search sources, uploads and memory-store index | `ai.rag.sources[].path`, `ai.rag.uploads_dir` (default `data/rag/uploads`), `ai.rag.index_path` (default `data/rag/index.json`) | sources listed and read at each index build; uploads written and deleted; the index file only with `ai.rag.store: memory` and `ai.rag.persist` true ([Intelligence Layer](../architecture/Intelligence%20Layer.md#stores)) |
 | Federation store | `federation.state_path` (default `config/federation/federation.json`) | upstreams added on `/admin/federation` and every item's approval; read at start, rewritten on change ([Federation](../architecture/Federation.md)) |
 
 The tools and prompts paths come from `config.tools.dir` / `config.prompts.dir` (defaults
@@ -71,6 +72,7 @@ filesystem (local disk, EBS, EFS) or a managed service, and never on S3, Azure B
 |-------|----------------|-----------|
 | Database (SQLite `data/sajha.db`, from `db.path`) | file on disk, via SQLAlchemy | real filesystem or EFS, or set `db.type: postgresql` (e.g. RDS). SQLite on an object store will corrupt. |
 | Audit log | `audit_log` table in the same database | follows the database |
+| Document search index (sqlite_vec store) | `ai.rag.stores.sqlite_vec.path` (default `data/rag/vectors.db`), its own SQLite file | real filesystem; on ephemeral disk a restart re-embeds every document |
 | Tool output cache | `cache.dir` (default `data/cache`) | local or ephemeral disk |
 | Snapshots of users, keys and tools | `snapshots.dir` (default `data/snapshots`), owner-only files renamed into place | real filesystem; shared (EFS) when several hosts should continue one chain ([Policy and Audit](../architecture/Policy%20and%20Audit.md#75-snapshots-of-users-api-keys-and-tools)) |
 | OAuth signing key | `mcp.auth.builtin.signing_key_path`, default `<data.dir>/oauth/signing_key.pem` | real filesystem, and shared (EFS) when several instances must sign with the same key |

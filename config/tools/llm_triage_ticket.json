@@ -1,0 +1,66 @@
+{
+  "name": "llm_triage_ticket",
+  "implementation": "sajha.ai.llm_tools.LLMTool",
+  "description": "Classifies a support message into one queue: billing, technical, account, sales or other, with a short reason. Use it to route or tag incoming requests. An example LLM tool (mode classify), disabled until an administrator enables it.",
+  "version": "1.0.0",
+  "enabled": false,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "message": {
+        "type": "string",
+        "description": "The support message to classify."
+      }
+    },
+    "required": [
+      "message"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "label": {
+        "type": "string",
+        "enum": [
+          "billing",
+          "technical",
+          "account",
+          "sales",
+          "other"
+        ]
+      },
+      "reason": {
+        "type": "string"
+      },
+      "confidence": {
+        "type": "number"
+      },
+      "stopped_by": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "label",
+      "stopped_by"
+    ]
+  },
+  "llm": {
+    "mode": "classify",
+    "model": "fast",
+    "system_prompt": "billing: invoices, charges, refunds, payment. technical: errors, outages, bugs, the product not working. account: sign-in, password, profile, access. sales: pricing, plans, quotes, buying. other: anything else.",
+    "template": "Classify this support message:\n\n{{input.message}}",
+    "cache": true
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Intelligence",
+    "tags": [
+      "classify",
+      "triage",
+      "llm-tool",
+      "example"
+    ]
+  }
+}

@@ -7,7 +7,7 @@ metadata:
   labels:
     app.kubernetes.io/name: sajha
     app.kubernetes.io/instance: sajha
-    app.kubernetes.io/version: 7.1.0
+    app.kubernetes.io/version: 7.2.0
     app.kubernetes.io/part-of: sajha
   annotations:
     helm.sh/resource-policy: keep
@@ -25,7 +25,7 @@ metadata:
   labels:
     app.kubernetes.io/name: sajha
     app.kubernetes.io/instance: sajha
-    app.kubernetes.io/version: 7.1.0
+    app.kubernetes.io/version: 7.2.0
     app.kubernetes.io/part-of: sajha
 spec:
   replicas: 1
@@ -44,7 +44,7 @@ spec:
         app.kubernetes.io/instance: sajha
         app.kubernetes.io/component: server
       annotations:
-        checksum/config: ac73152e3b54dd0c9c7b9b7e2b1deae2d5b945452922b1ac376437875db22c62
+        checksum/config: c396ed8e6adeabdd846a4a66e9ef8e793ae0838186705b15434d0fcad8e69ba7
     spec:
       serviceAccountName: sajha
       automountServiceAccountToken: false
@@ -60,7 +60,7 @@ spec:
           type: RuntimeDefault
       initContainers:
       - name: seed
-        image: ghcr.io/ajsinha/sajhamcpserver:7.1.0
+        image: ghcr.io/ajsinha/sajhamcpserver:7.2.0
         imagePullPolicy: IfNotPresent
         command:
         - python
@@ -92,7 +92,7 @@ spec:
           mountPath: /seed/impl
       containers:
       - name: sajha
-        image: ghcr.io/ajsinha/sajhamcpserver:7.1.0
+        image: ghcr.io/ajsinha/sajhamcpserver:7.2.0
         imagePullPolicy: IfNotPresent
         args:
         - --host

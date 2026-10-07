@@ -1,0 +1,64 @@
+{
+  "name": "llm_summarise",
+  "implementation": "sajha.ai.llm_tools.LLMTool",
+  "description": "Summarises a piece of text in a few sentences, keeping names, figures and units exactly. Calls no tools. An example LLM tool (mode complete), disabled until an administrator enables it.",
+  "version": "1.0.0",
+  "enabled": false,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "The text to summarise."
+      },
+      "max_sentences": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "default": 2,
+        "description": "At most this many sentences."
+      }
+    },
+    "required": [
+      "text"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string"
+      },
+      "stopped_by": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "text",
+      "stopped_by"
+    ]
+  },
+  "llm": {
+    "mode": "complete",
+    "model": "fast",
+    "system_prompt": "You write short, faithful summaries. Keep names, numbers and units exactly as written.",
+    "template": "Summarise the following text in at most {{input.max_sentences}} sentences.\n\n{{input.text}}",
+    "limits": {
+      "max_input_chars": 20000,
+      "max_output_tokens": 400
+    },
+    "cache": true
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Intelligence",
+    "tags": [
+      "summarise",
+      "text",
+      "llm-tool",
+      "example"
+    ]
+  }
+}

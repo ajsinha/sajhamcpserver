@@ -417,7 +417,7 @@ fields below. Built-in providers not listed still exist, disabled.
 | `ai.ask.confirm_destructive` | `true` | Hold destructive tools for confirmation. |
 | `ai.ask.synthesize` | `true` | Final structured-output call. |
 | `ai.ask.audit` | `true` | Write an `ai_ask` audit entry per ask. |
-| `ai.ask.mcp_tool_enabled` | `false` | Register the `sajha_ask` MCP tool. |
+| `ai.ask.mcp_tool_enabled` | `false` | Turns the `sajha_ask` MCP tool on (an LLM tool defined in `config/tools/sajha_ask.json`, which stays disabled there); applied at start-up and after every reload of the catalog. |
 | `ai.ask.mcp_allowed_tools` | `[]` | fnmatch patterns that narrow what `sajha_ask` may run; its inner calls run as the MCP caller, so it never runs a tool the caller may not. Empty: the caller's access alone. Only where no caller was recorded (code calling the tool directly) are they added to the anonymous MCP policy. |
 | `ai.ask.planner` | `react` | The planning strategy (`sajha/ai/planners.py`): `react`, `plan_execute`, `recipes`, `router` (`model` is an alias of `react`), another registered name, or `package.module:Class`. Unknown names fail at startup. |
 | `ai.ask.planner_config.<planner>` | `{}` | Each planner's settings, validated by its own model. `react`: none. `plan_execute`: `max_replans` (`1`), `max_parallel` (`4`), `max_plan_steps` (`8`), `fallback` (`react`), `model` (alias of the planning call; default the ask's). `recipes`: `recipes: [{name, tool, match (regex, named groups), keywords, arguments, answer}]`, `fallback` (`react`). `router`: `rules: [{match, planner}]`, `use_recipes` (`true`), `multi_step` (`plan_execute`), `default` (`react`), `multi_step_pattern`. Env: `SAJHA_AI_ASK_PLANNER_CONFIG` as JSON. |
@@ -429,6 +429,24 @@ fields below. Built-in providers not listed still exist, disabled.
 | `ai.memory.model` | `fast` | Alias of the summary and rewrite calls. |
 | `ai.memory.retention_days` | `30` | Conversations idle longer are deleted by the purge. `0` keeps them. Also the ceiling of an LLM tool's `memory.ttl_minutes`. |
 | `ai.memory.max_conversations_per_user` | `200` | A user's oldest conversations beyond this are deleted. `0` = no cap. |
+| `ai.llm_tools.enabled` | `true` | The LLM-tool type ([LLM Tools](../architecture/LLM%20Tools.md)); each LLM tool still has its own `enabled`. Every `ai.llm_tools` value is a ceiling a tool's `llm` block may only lower. Env `SAJHA_AI_LLM_TOOLS_<FIELD>`; nested sections `SAJHA_AI_LLM_TOOLS_<SECTION>_<FIELD>` (for example `SAJHA_AI_LLM_TOOLS_RUNTIME_MAX_CONCURRENT_RUNS`). |
+| `ai.llm_tools.default_model` | `default` | Alias of an LLM tool that names no `model`. |
+| `ai.llm_tools.max_depth` | `2` | LLM tools nested in one call chain (a tool calls another only with `nesting.allow`). |
+| `ai.llm_tools.limits.max_steps` / `max_tool_calls` / `timeout_s` | `8` / `16` / `120` | Ceilings of one run's planner steps, inner tool calls and wall time. |
+| `ai.llm_tools.limits.max_input_chars` / `max_output_tokens` / `max_cost_usd` | `20000` / `4000` / `1.00` | Ceilings of the rendered input, each model call's output tokens and one run's model cost (nested runs spend from the outer run's remainder). |
+| `ai.llm_tools.anonymous.enabled` | `false` | May anonymous callers run LLM tools at all. When on, `max_steps` (`3`) and `max_cost_usd` (`0.02`) cap their runs, and they never get stored memory. |
+| `ai.llm_tools.memory.working_set_max_kb` | `2048` | Bytes of tool results one running call keeps in memory; past it the oldest results spill to the spool. |
+| `ai.llm_tools.memory.spill_threshold_kb` | `256` | A tool result larger than this is written to the spool at once; the run keeps a preview of `ai.ask.max_result_chars` characters. |
+| `ai.llm_tools.memory.cache.enabled` / `max_mb` / `ttl_s` | `false` / `64` / `300` | Optional write-through hot cache of conversation rows and turn windows, bounded by measured bytes; emptied under memory pressure. |
+| `ai.llm_tools.memory.spool.dir` | `data/spool/llm_tools` | Per-run folders for spilled payloads (local disk), deleted when the run ends. |
+| `ai.llm_tools.memory.spool.max_mb` / `per_run_mb` | `1024` / `128` | Caps of the spool in total (this process) and per run; past a cap a payload is truncated with a marker and the `llm_tools.spool_full` notice is raised. |
+| `ai.llm_tools.memory.spool.orphan_minutes` | `60` | The janitor (at start-up and every minute while runs happen) deletes run folders older than this that no live run owns. |
+| `ai.llm_tools.runtime.max_concurrent_runs` / `max_queued` / `queue_timeout_s` | `8` / `32` / `30` | Runs executing at once per process, runs waiting, and how long one waits before `stopped_by: busy`. |
+| `ai.llm_tools.runtime.retry_after_s` | `5` | The `Retry-After` of a REST 503 for a busy run. |
+| `ai.llm_tools.runtime.memory_guard.soft_pct` / `hard_pct` | `70` / `85` | Soft and hard limits as percentages of the cgroup memory limit (else physical memory). Soft: caches emptied, working sets spilled, queued runs wait. Hard: new runs refused (`busy`), running ones end at their next step (`memory_pressure`). |
+| `ai.llm_tools.runtime.memory_guard.soft_mb` / `hard_mb` | `0` / `0` | Absolute limits in MB instead of the percentages (both must be set). |
+| `ai.llm_tools.runtime.memory_guard.interval_s` / `enabled` | `2` / `true` | How often the guard samples resident memory, and whether it runs. |
+| `ai.llm_tools.result_cache.max_entries` / `ttl_s` | `1000` / `3600` | Results of `complete`, `extract`, `classify` and `judge` tools that set `cache: true`, keyed by tool, version, model, caller and arguments. |
 | `ai.llm_tools.memory.max_turns` | `50` | Ceiling of an LLM tool conversation's stored turns; older turns are folded into the summary and their rows deleted. Env `SAJHA_AI_LLM_TOOLS_MEMORY_MAX_TURNS` (likewise for the keys below). |
 | `ai.llm_tools.memory.max_conversations_per_tool` | `50` | A user's oldest conversations of one LLM tool beyond this are deleted. `0` = no cap. |
 | `ai.llm_tools.memory.purge_interval_minutes` | `15` | The purge of expired and over-cap conversations runs this often, on one worker (a slot claimed in the state store). `0`: no schedule; at most hourly when a turn is written. |
@@ -438,8 +456,13 @@ fields below. Built-in providers not listed still exist, disabled.
 | `ai.rag.sources` | `[]` | Admin document sources: `[{name, path, pattern, title}]`; `path` is a folder in the storage backend, `pattern` a glob (default `*.md`). Files: `.md`, `.markdown`, `.txt`, `.rst`, `.html`, `.htm`; `.pdf` with the optional package `pypdf` and `.docx` with `python-docx` (without it such files are skipped and the build names the package). Env: JSON. |
 | `ai.rag.uploads_dir` | `data/rag/uploads` | Where uploaded documents are kept (storage backend). |
 | `ai.rag.embedding_model` | `embedding` | Gateway alias for passage embeddings; `none` = BM25 only. |
-| `ai.rag.store` | `auto` | `auto` (pgvector when PostgreSQL has the `vector` extension and the `rag_chunks` table, else in process), `memory`, or `pgvector`. |
-| `ai.rag.persist` / `index_path` | `true` / `data/rag/index.json` | Persist the in-process index through the storage backend, so a restart re-embeds only changed documents. |
+| `ai.rag.store` | `auto` | Where the passages live ([Intelligence Layer](../architecture/Intelligence%20Layer.md#stores)): `auto` (`sqlite_vec` when the sqlite-vec extension loads, else `memory`, with the System Notice `rag.store_fallback` saying why), `sqlite_vec`, `memory`, `pgvector`, a store registered through the `sajha.rag.stores` entry-point group, or `package.module:Class`. A store that cannot run falls back to `memory` with the same notice. |
+| `ai.rag.stores` | `{}` | Per-store settings, `{<store>: {<key>: value}}`, over each store's defaults. Env: the whole map as JSON in `SAJHA_AI_RAG_STORES`, or one key at a time as `SAJHA_AI_RAG_STORES_<STORE>_<KEY>` (which wins). |
+| `ai.rag.stores.sqlite_vec.path` | `data/rag/vectors.db` | The sqlite_vec store's own SQLite file (never SAJHA's database; a local file whatever the storage backend). Needs the `sqlite-vec` package and a Python whose `sqlite3` can load extensions. |
+| `ai.rag.stores.pgvector.dsn` | `""` | SQLAlchemy URL of the PostgreSQL database holding `rag_chunks`; empty uses SAJHA's database. Set it in the environment (`SAJHA_AI_RAG_STORES_PGVECTOR_DSN`), not in the file. |
+| `ai.rag.stores.pgvector.batch_size` / `text_search_config` | `256` / `english` | Rows per insert; the PostgreSQL text-search configuration for keyword search. |
+| `ai.rag.persist` / `index_path` | `true` / `data/rag/index.json` | Keep the index across restarts, so a restart re-embeds only changed documents. `index_path` is the memory store's file in the storage backend. With `false` the memory store is not saved and sqlite_vec uses a temporary file. |
+| `ai.rag.embed_batch_size` | `64` | Passages per embedding call while indexing; each document's passages stream to the store batch by batch. |
 | `ai.rag.chunk_chars` / `chunk_overlap` | `1200` / `150` | Passage size and overlap, in characters. |
 | `ai.rag.top_k` | `5` | Passages returned when a search gives no `top_k`. |
 | `ai.rag.vector_weight` | `0.5` | Weight of the vector ranking in the fusion with BM25 (whose weight is 1). |

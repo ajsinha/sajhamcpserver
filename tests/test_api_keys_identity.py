@@ -196,26 +196,47 @@ def test_sajha_ask_inner_access_is_the_callers():
 
 
 def test_sajha_ask_runs_as_the_caller(monkeypatch):
+    """sajha_ask is an LLM tool (config/tools/sajha_ask.json): the ask it runs carries the caller's identity,
+    and the tools it may offer are the caller's, never more."""
     from sajha.ai import ask_tool, intelligence
+    from sajha.ai.intelligence import AskResult
     from sajha.observability.caller import Caller, reset, set_caller
     seen = {}
 
+    class Memory:
+        def open(self, cid, question, ctx, **kw):
+            from sajha.ai.memory import MemoryContext
+            return MemoryContext('', True, standalone=question, stored=False)
+
+        def record(self, *a, **kw):
+            return None
+
+    class Registry:
+        tools = {'wiki_search': object(), 'calc_add': object()}
+
+        def get_tool(self, name):
+            return self.tools.get(name)
+
     class Svc:
         settings = type('S', (), {'mcp_allowed_tools': []})()
+        memory = Memory()
+        tools_registry = Registry()
 
         def ask(self, question, ctx, **kw):
-            seen['ctx'] = ctx
-            return type('R', (), {'to_dict': lambda self: {'answer': 'ok'}})()
+            seen['ctx'], seen['kw'] = ctx, kw
+            return AskResult(question=question, answer='ok')
 
     monkeypatch.setattr(intelligence, 'get_intelligence', lambda: Svc())
     token = set_caller(Caller('erin', roles=('user',), access=lambda n: n == 'wiki_search'))
     try:
-        assert ask_tool.SajhaAskTool().execute({'question': 'q'}) == {'answer': 'ok'}
+        out = ask_tool.SajhaAskTool().execute({'question': 'q'})
     finally:
         reset(token)
+    assert out['answer'] == 'ok' and out['stopped_by'] == 'answer'
     ctx = seen['ctx']
     assert ctx.user_id == 'erin' and ctx.roles == ['user']
     assert ctx.can_use_tool('wiki_search') and not ctx.can_use_tool('calc_add')
+    assert seen['kw']['tools'] == ['wiki_search']
 
 
 def test_caller_from_session_carries_the_policy():

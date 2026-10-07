@@ -678,11 +678,15 @@ class SajhaMCPServerWebApp:
             from sajha.ai.ask_tool import register_if_enabled, TOOL_NAME
             if _get_gw() is not None:
                 _svc = init_intelligence(_get_gw(), tools_registry)
-                if register_if_enabled(tools_registry, _svc.settings):
-                    tools_registry.add_reload_listener(
-                        lambda: tools_registry.get_tool(TOOL_NAME) or register_if_enabled(tools_registry, _svc.settings))
+                # sajha_ask is an LLM tool (config/tools/sajha_ask.json); ai.ask.mcp_tool_enabled turns
+                # it on or off, now and after every reload of the catalog
+                register_if_enabled(tools_registry, _svc.settings)
+                tools_registry.add_reload_listener(lambda: register_if_enabled(tools_registry, _svc.settings))
                 logger.info(f'  Intelligence: ask ready (model alias {_svc.settings.model!r}, '
                             f'sajha_ask MCP tool {"on" if _svc.settings.mcp_tool_enabled else "off"})')
+            # LLM tools: the spool janitor clears folders left by a crashed process (LLM Tools §10.5)
+            from sajha.ai.llm_tools.runtime import get_runtime as _llm_runtime
+            _llm_runtime().tick()
         except Exception as e:
             logger.warning(f'  Intelligence: unavailable ({e})', exc_info=True)
 

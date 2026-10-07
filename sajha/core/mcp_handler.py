@@ -723,9 +723,13 @@ class MCPHandler:
             except ImportError:
                 pass
             except Exception as e:
-                self.logger.warning(
-                    f"Tool {getattr(tool, 'name', '?')} result does not match its outputSchema: "
-                    f"{str(e).splitlines()[0]}")
+                if not getattr(result, 'is_error', False):
+                    self.logger.warning(
+                        f"Tool {getattr(tool, 'name', '?')} result does not match its outputSchema: "
+                        f"{str(e).splitlines()[0]}")
+        if getattr(result, 'is_error', False):
+            # a tool that reports how it ended (an LLM tool's error stopped_by, LLM Tools §15)
+            response["isError"] = True
         return response
 
     def _tool_output_schema(self, tool) -> Optional[Dict]:

@@ -259,6 +259,35 @@ LLM_TOOL_TURNS = Counter(REGISTRY, 'sajha_llm_tool_turns_total', 'Conversation t
                          'Ask SAJHA page).', ('tool',))
 LLM_TOOL_PURGED = Counter(REGISTRY, 'sajha_llm_tool_purged_total',
                           'Conversations deleted by the purge (expired, past retention, or over a cap).')
+# LLM tools (sajha/ai/llm_tools; docs/architecture/LLM Tools.md §10.6 and §16)
+LLM_TOOL_STOPPED = Counter(REGISTRY, 'sajha_llm_tool_stopped_total', 'LLM-tool runs by tool and what ended them.',
+                           ('tool', 'reason'))
+LLM_TOOL_STEPS = Histogram(REGISTRY, 'sajha_llm_tool_steps', 'Steps (model rounds) per LLM-tool run.', ('tool',),
+                           buckets=(1, 2, 3, 4, 6, 8, 12, 16, 24, 32))
+LLM_TOOL_INNER_CALLS = Counter(REGISTRY, 'sajha_llm_tool_inner_calls_total', 'Inner tool calls made by LLM tools.',
+                               ('tool',))
+LLM_TOOL_TOKENS = Counter(REGISTRY, 'sajha_llm_tool_tokens_total', 'Model tokens spent by LLM tools.', ('tool',))
+LLM_TOOL_COST = Counter(REGISTRY, 'sajha_llm_tool_cost_usd_total', 'Model spend of LLM tools in US dollars.',
+                        ('tool',))
+LLM_TOOL_SPILLED = Counter(REGISTRY, 'sajha_llm_tool_spilled_total',
+                           'Working-set items of LLM-tool runs written to the spool instead of kept in memory.')
+LLM_TOOL_WORKING_SET = Histogram(REGISTRY, 'sajha_llm_tool_working_set_bytes',
+                                 'Largest in-memory working set of each LLM-tool run, in bytes.', (),
+                                 buckets=(16384, 65536, 262144, 1048576, 2097152, 4194304, 16777216))
+LLM_TOOL_SPOOL_BYTES = Gauge(REGISTRY, 'sajha_llm_tool_spool_bytes', 'Bytes in the LLM-tool spool (this process).')
+LLM_TOOL_CACHE_BYTES = Gauge(REGISTRY, 'sajha_llm_tool_cache_bytes',
+                             'Bytes held by the LLM-tool hot cache and result cache.', ('cache',))
+LLM_TOOL_CACHE_EVICTIONS = Counter(REGISTRY, 'sajha_llm_tool_cache_evictions_total',
+                                   'Entries evicted from the LLM-tool caches (size, age or memory pressure).',
+                                   ('cache',))
+LLM_TOOL_REFUSED = Counter(REGISTRY, 'sajha_llm_tool_runs_refused_total',
+                           'LLM-tool runs refused to protect the process, by reason.', ('reason',))
+LLM_TOOL_RUNS = Gauge(REGISTRY, 'sajha_llm_tool_runs', 'LLM-tool runs executing and waiting in the queue.',
+                      ('state',))
+LLM_TOOL_GUARD = Gauge(REGISTRY, 'sajha_llm_tool_memory_guard_state',
+                       "The memory guard's state: 0 ok, 1 soft, 2 hard.")
+LLM_TOOL_RSS = Gauge(REGISTRY, 'sajha_llm_tool_memory_resident_bytes',
+                     'Resident memory of the process as the memory guard last measured it.')
 AUTH_FAILURES = Counter(REGISTRY, 'sajha_auth_failures_total', 'Failed authentications by method.', ('method',))
 AUTH_LOCKOUTS = Counter(REGISTRY, 'sajha_auth_lockouts_total', 'Accounts locked after repeated failed sign-ins.')
 SANDBOX_RUNS = Counter(REGISTRY, 'sajha_sandbox_runs_total', 'Sandbox runs by backend and outcome.',

@@ -448,9 +448,10 @@ COMMIT;
 -- ============================================================================
 -- OPTIONAL: pgvector store for document search (sajha/ai/rag/stores.py)
 -- ============================================================================
--- SAJHA's document index (sajha_search_docs, "Ask the docs") keeps its passages in
--- process by default. With ai.rag.store auto (the default) or pgvector, it uses this
--- table instead when the database has the pgvector extension and the table exists.
+-- SAJHA's document index (sajha_search_docs, "Ask the docs") keeps its passages in a
+-- SQLite file of its own by default (ai.rag.store: auto / sqlite_vec). With
+-- ai.rag.store: pgvector it uses this table instead (in this database, or the one
+-- ai.rag.stores.pgvector.dsn names) when the pgvector extension and the table exist.
 -- It is not part of the schema check: run it only if you want the index in PostgreSQL.
 -- Needs the pgvector extension installed on the server (https://github.com/pgvector/pgvector).
 -- Uncomment and run once, as a user allowed to create extensions:
@@ -475,3 +476,8 @@ COMMIT;
 -- An approximate-nearest-neighbour index needs a fixed dimension: declare the column as
 -- vector(<dims>) for your embedding model (mock-embed: 256) and add
 -- CREATE INDEX IF NOT EXISTS ix_rag_chunks_embedding ON rag_chunks USING hnsw (embedding vector_cosine_ops);
+--
+-- Keyword search uses PostgreSQL full-text search over the same rows; for a large corpus add
+-- (with the configuration of ai.rag.stores.pgvector.text_search_config, default english)
+-- CREATE INDEX IF NOT EXISTS ix_rag_chunks_fts ON rag_chunks USING gin
+--     (to_tsvector('english'::regconfig, coalesce(title, '') || ' ' || coalesce(heading, '') || ' ' || text));
