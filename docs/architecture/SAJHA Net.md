@@ -260,9 +260,14 @@ server is needed.
   join and says why at start-up and on its SAJHA Net settings page; local tools keep working.
 - **Where an address name cannot be used as is.** Tool names allow only letters, digits, `_` and
   `-` for every LLM provider, so the prefix of qualified tool names uses a safe form of the
-  address: dots and colons become `-`, brackets are dropped, and `ip-` is put in front
-  (`10.20.4.17:3002` gives `ip-10-20-4-17-3002__var_calc`). Everywhere else (the console, gossip,
-  audit, `alice@10.20.4.17:3002`) the address is shown as written.
+  address: dots and colons become `_` (owner decision), so `10.20.4.17:3002` gives
+  `10_20_4_17_3002__var_calc`. An IPv6 address is first written out in full, without `::`
+  shortening and without brackets, so the safe form never contains `__`, which separates the
+  instance from the tool (`[2001:db8::7]:3002` gives
+  `2001_0db8_0000_0000_0000_0000_0000_0007_3002__var_calc`). Such names are long, and some
+  providers cap tool names at 64 characters, which is one more reason to configure a short name
+  for IPv6 instances. Everywhere else (the console, gossip, audit, `alice@10.20.4.17:3002`) the
+  address is shown as written.
 - **Prefer a configured name in production.** An address name changes when the address does
   (DHCP, a restart that moves a container or Kubernetes pod), and with it every qualified tool
   name, user link, block and pinned alias that refers to the instance. The console warns when an
@@ -1037,7 +1042,8 @@ at any point in the retained window, and an instance can be rebuilt after losing
 - **Instance names:** a configured name is used as is; without one, the advertised address, a
   specific bind address or the default-route interface gives `<ip>:<port>`; `0.0.0.0`, `::`,
   loopback, `localhost` and link-local addresses are never used, and with nothing acceptable the
-  instance stays out of the net with a clear message; the safe tool-name prefix for IPv4 and IPv6.
+  instance stays out of the net with a clear message; the underscore tool-name prefix for IPv4 and
+  fully expanded IPv6, never containing `__`; tool names over a provider's length limit are reported.
 - **Membership:** joins through a seed, clean leaves, crashes detected through indirect probes,
   false suspicion refuted, rejoin with a higher incarnation, revocation spreading, a server
   without a net certificate refused; a network split heals through anti-entropy.
