@@ -98,6 +98,10 @@ nobody can sign in until `seed.sql` has run.
 Set it with `db.schema_check` or `SAJHA_DB_SCHEMA_CHECK`. The same check runs on SQLite
 after `schema.sql`.
 
+Tables SAJHA no longer uses (such as `tool_versions` from earlier releases; tool versions live
+in `config/tool_versions/*.yaml`) are ignored by the check and never dropped. Drop them by hand
+if you want them gone, for example `DROP TABLE tool_versions;`.
+
 ## 4. Upgrades
 
 Most releases do not change the schema. One that does says so in its

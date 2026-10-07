@@ -42,7 +42,7 @@ the API key where SAJHA can read it by reference:
 SAJHA_API_IMPORT_ALLOW_LOCALHOST=true PETSTORE_KEY=demo-key python run_server.py
 ```
 
-(The keys are in the [Configuration Reference](../getting-started/Configuration%20Reference.md#api-import).)
+(The keys are in the [Configuration Reference](../getting-started/Configuration%20Reference.md#api_import).)
 
 ### 3. Read the spec
 
@@ -182,3 +182,4 @@ spec file works the same way, and `--graphql` imports a GraphQL endpoint by intr
 - [API Import](../architecture/API%20Import.md): Swagger 2.0 conversion, `$ref` handling,
   OAuth client credentials, per-user connected accounts, GraphQL, and the limits
 - [MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md#import-an-api)
+- Next tutorial: [Policies, Approvals and a Tamper-Evident Audit](TUTORIAL_20_policies_approvals_and_audit.md)

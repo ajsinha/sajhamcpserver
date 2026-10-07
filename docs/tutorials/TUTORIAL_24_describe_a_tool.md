@@ -167,3 +167,5 @@ Delete `my_stats` from **MCP Studio** (or `sajha studio delete my_stats`).
 
 Three proposals and one deployed tool, each checked as untrusted input, tested before it
 could be deployed, and deployed only as the exact version you approved.
+
+Next tutorial: [Connect a Database](TUTORIAL_25_connect_a_database.md).

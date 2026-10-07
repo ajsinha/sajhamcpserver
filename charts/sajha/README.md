@@ -10,6 +10,10 @@ helm install sajha charts/sajha -n sajha --create-namespace \
 helm test sajha -n sajha
 ```
 
+With PostgreSQL, apply the schema files first: the chart never creates tables, the install
+notes print the two `psql` commands, and pods crash-loop with the refusal message until
+the schema exists ([Database Setup](../../docs/getting-started/Database%20Setup.md)).
+
 Every value is described in [`values.yaml`](values.yaml) and validated by
 [`values.schema.json`](values.schema.json). The guide is
 [Kubernetes Deployment](../../docs/getting-started/Kubernetes%20Deployment.md); the

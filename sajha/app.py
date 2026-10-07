@@ -45,6 +45,10 @@ def render(request: Request, template_name: str, context: dict = None, status_co
     ctx = context or {}
     if 'session' not in ctx:
         ctx['session'] = {'token': request.cookies.get('sajha_token', '')}
+    if 'can_studio' not in ctx:
+        # The navigation shows MCP Studio to admins and to roles with the studio permission
+        from sajha.auth import can_use_studio
+        ctx['can_studio'] = can_use_studio(getattr(request.state, 'auth', None))
     return templates.TemplateResponse(request, template_name, ctx, status_code=status_code)
 
 

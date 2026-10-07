@@ -1,5 +1,6 @@
 """
-SAJHA MCP Server — Studio "Import an API": the page and its JSON endpoints (admin only).
+SAJHA MCP Server — Studio "Import an API": the page and its JSON endpoints (MCP Studio access:
+admin, or a role with the studio permission).
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 
   GET  /studio/api-import                     the page
@@ -24,7 +25,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 
 from sajha.app import render
-from sajha.auth import AuthContext, require_admin
+from sajha.auth import AuthContext, require_studio
 
 logger = logging.getLogger(__name__)
 
@@ -75,12 +76,12 @@ async def _run(fn, *args, **kwargs) -> JSONResponse:
 # ── page ────────────────────────────────────────────────────────────
 
 @pages.get('/api-import')
-async def studio_api_import(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_api_import(request: Request, auth: AuthContext = Depends(require_studio)):
     from sajha.api_import import settings
     from sajha.api_import.service import connected_accounts_available
     return render(request, 'admin/studio/studio_api_import.html', {
         'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
-        'is_admin': True,
+        'is_admin': auth.is_admin,
         'max_tools': settings.max_tools(),
         'allow_localhost': settings.allow_localhost(),
         'allow_private': settings.allow_private_networks(),
@@ -91,13 +92,13 @@ async def studio_api_import(request: Request, auth: AuthContext = Depends(requir
 # ── actions ─────────────────────────────────────────────────────────
 
 @actions.post('/parse')
-async def api_import_parse(request: Request, auth: AuthContext = Depends(require_admin)):
+async def api_import_parse(request: Request, auth: AuthContext = Depends(require_studio)):
     from sajha.api_import import service
     return await _run(service.plan, await _body(request), _registry())
 
 
 @actions.post('/test')
-async def api_import_test(request: Request, auth: AuthContext = Depends(require_admin)):
+async def api_import_test(request: Request, auth: AuthContext = Depends(require_studio)):
     from sajha.api_import import service
     data = await _body(request)
     _audit(auth, 'test', {'prefix': data.get('prefix'), 'operation': data.get('operation')})
@@ -105,7 +106,7 @@ async def api_import_test(request: Request, auth: AuthContext = Depends(require_
 
 
 @actions.post('/deploy')
-async def api_import_deploy(request: Request, auth: AuthContext = Depends(require_admin)):
+async def api_import_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
     from sajha.api_import import service
     data = await _body(request)
     response = await _run(service.deploy, data, _registry(), auth.user_id)
@@ -118,19 +119,19 @@ async def api_import_deploy(request: Request, auth: AuthContext = Depends(requir
 
 
 @reads.get('/apis')
-async def api_import_list(auth: AuthContext = Depends(require_admin)):
+async def api_import_list(auth: AuthContext = Depends(require_studio)):
     from sajha.api_import import service
     return await _run(lambda: {'success': True, 'apis': service.list_apis(_registry())})
 
 
 @reads.get('/apis/{api_id}')
-async def api_import_get(api_id: str, auth: AuthContext = Depends(require_admin)):
+async def api_import_get(api_id: str, auth: AuthContext = Depends(require_studio)):
     from sajha.api_import import service
     return await _run(lambda: {'success': True, 'request': service.reimport_request(api_id)})
 
 
 @actions.post('/delete')
-async def api_import_delete(request: Request, auth: AuthContext = Depends(require_admin)):
+async def api_import_delete(request: Request, auth: AuthContext = Depends(require_studio)):
     from sajha.api_import import service
     api_id = str((await _body(request)).get('api_id') or '').strip().lower()
     response = await _run(service.delete_api, api_id, _registry())

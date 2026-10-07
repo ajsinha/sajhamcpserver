@@ -171,3 +171,4 @@ SAJHA's own guides only.
   `db/scripts/postgresql/schema.sql`, then `ai.rag.store: pgvector`
 - Use a real model for planning, rewrites and summaries:
   [Intelligence Layer §4](../architecture/Intelligence%20Layer.md#4-configuration)
+- Next tutorial: [Schedule a Workflow](TUTORIAL_22_schedule_a_workflow.md)

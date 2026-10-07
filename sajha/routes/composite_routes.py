@@ -1,12 +1,16 @@
 """
 SAJHA MCP Server v3 — Composite Tool Routes
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
+
+Reading composites needs any sign-in. The composite builder is part of MCP Studio:
+creating one needs Studio access (admin, or a role with the ``studio`` permission);
+a non-admin may change or delete only the composites they created.
 """
 import json, logging
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from sajha.auth import AuthContext, require_auth, require_admin
+from sajha.auth import AuthContext, require_auth, require_studio
 from sajha.db.engine import get_db
 
 logger = logging.getLogger(__name__)
@@ -48,7 +52,7 @@ async def api_get(name: str, auth: AuthContext = Depends(require_auth), db: Sess
 
 
 @router.post('/api/composite-tools')
-async def api_create(request: Request, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
+async def api_create(request: Request, auth: AuthContext = Depends(require_studio), db: Session = Depends(get_db)):
     from sajha.db.dao import CompositeToolDAO
     data = await request.json()
     dao = CompositeToolDAO(db)
@@ -69,10 +73,17 @@ async def api_create(request: Request, auth: AuthContext = Depends(require_admin
 
 
 @router.put('/api/composite-tools/{name}')
-async def api_update(name: str, request: Request, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
+async def api_update(name: str, request: Request, auth: AuthContext = Depends(require_studio), db: Session = Depends(get_db)):
     from sajha.db.dao import CompositeToolDAO
     data = await request.json()
+    if not isinstance(data, dict):
+        return JSONResponse({'error': 'Expected a JSON object'}, status_code=400)
+    for key in ('id', 'created_by', 'created_at'):
+        data.pop(key, None)
     dao = CompositeToolDAO(db)
+    refused = _not_owner(dao, name, auth)
+    if refused:
+        return refused
     rec = dao.update(name, **data)
     if not rec:
         return JSONResponse({'error': 'Not found'}, status_code=404)
@@ -81,9 +92,13 @@ async def api_update(name: str, request: Request, auth: AuthContext = Depends(re
 
 
 @router.delete('/api/composite-tools/{name}')
-async def api_delete(name: str, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
+async def api_delete(name: str, auth: AuthContext = Depends(require_studio), db: Session = Depends(get_db)):
     from sajha.db.dao import CompositeToolDAO
-    if CompositeToolDAO(db).delete(name):
+    dao = CompositeToolDAO(db)
+    refused = _not_owner(dao, name, auth)
+    if refused:
+        return refused
+    if dao.delete(name):
         try:
             engine = _get_engine()
             if engine:
@@ -117,6 +132,17 @@ async def api_preview_schema(name: str, auth: AuthContext = Depends(require_auth
         })
     except Exception as e:
         return JSONResponse({'error': str(e)}, status_code=500)
+
+
+def _not_owner(dao, name: str, auth: AuthContext):
+    """A 403 when a non-admin changes a composite someone else created (None otherwise)."""
+    if auth.is_admin:
+        return None
+    rec = dao.get_by_name(name)
+    if rec is not None and (rec.created_by or '') != (auth.user_id or ''):
+        return JSONResponse({'error': f'"{name}" was created by someone else; only its creator or an '
+                                      f'administrator may change or delete it'}, status_code=403)
+    return None
 
 
 def _get_engine():

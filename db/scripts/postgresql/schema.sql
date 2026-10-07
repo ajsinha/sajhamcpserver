@@ -239,18 +239,6 @@ CREATE TABLE IF NOT EXISTS tenants (
     created_at           TIMESTAMPTZ      DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS tool_versions (
-    id                   VARCHAR(36)      NOT NULL PRIMARY KEY,
-    tool_name            VARCHAR(255)     NOT NULL,
-    version              VARCHAR(50)      NOT NULL,
-    lifecycle            VARCHAR(20)      DEFAULT 'active',
-    deprecated_at        TIMESTAMPTZ,
-    sunset_date          VARCHAR(20),
-    successor            VARCHAR(255),
-    changelog            TEXT,
-    created_at           TIMESTAMPTZ      DEFAULT CURRENT_TIMESTAMP
-);
-
 -- ── State store: state.backend database, and the durable task store
 --    (sajha/core/state/database.py). If state.database.url names another database,
 --    run this file there too.

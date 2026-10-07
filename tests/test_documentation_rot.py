@@ -201,6 +201,27 @@ def test_app_urls_are_registered_routes(doc):
     assert not bad, f'{os.path.basename(doc)} names app URLs that no route serves: {sorted(set(bad))}'
 
 
+# ── 5. Every registered route is in the API Reference ───────────────────────
+
+API_REFERENCE = os.path.join(REPO, 'docs', 'protocol', 'API Reference.md')
+
+
+def _param_blind(path):
+    """'/api/x/{tool_name}' and '/api/x/{tool}' are the same route: compare shapes."""
+    return re.sub(r'\{[^}]+\}', '{}', path).rstrip('/') or '/'
+
+
+def test_every_route_is_in_the_api_reference():
+    """The API Reference says it lists every route the server registers (CLAUDE.md: it owns
+    "HTTP endpoints"). A route added without a row there fails here. Paths are compared by
+    shape, so a parameter may be named differently ({tool} vs {tool_name})."""
+    paths, _ = _routes()
+    documented = {_param_blind(p) for p in
+                  re.findall(r'`(?:(?:GET|POST|PUT|PATCH|DELETE|WS)\s+)?(/[^`\s?#]*)', _read(API_REFERENCE))}
+    missing = sorted(p for p in paths if _param_blind(p) not in documented)
+    assert not missing, f'routes missing from docs/protocol/API Reference.md: {missing}'
+
+
 # ── The checker is honest ───────────────────────────────────────────────────
 
 def test_there_are_documents_to_check():

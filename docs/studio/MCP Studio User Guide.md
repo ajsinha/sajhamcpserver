@@ -26,7 +26,7 @@ All Studio pages are server-rendered under `/studio` (see `sajha/routes/studio_r
 
 How to get there in the UI:
 
-- **Top navigation → MCP Studio** (shown to administrators). It lists Studio home, the Python, REST, Import an API, DB query and script creators, the PowerBI, PowerBI DAX, LiveLink and OLAP creators, and the Composite builder.
+- **Top navigation → MCP Studio** (shown to everyone who may use Studio; see [Permissions](#permissions)). It lists Studio home, the Python, REST, Import an API, DB query and script creators, the PowerBI, PowerBI DAX, LiveLink and OLAP creators, and the Composite builder.
 - **Studio sub-navigation**: a row of chips at the top of each Studio page (Home, Python, REST, Import an API, DB Query, Script, PowerBI, DAX, LiveLink, SharePoint, OLAP, Composite).
 - **Studio home cards**: one card per creator. The SharePoint creator is not in the top navigation menu; use its card, its sub-navigation chip or the direct URL.
 - The **Dashboard** quick actions also link to `/studio`.
@@ -50,7 +50,7 @@ Deploy refuses a name that is already in use. To change a deployed tool, delete 
 
 ### Action endpoints: deploy, load and delete
 
-The page buttons post JSON to admin-only endpoints under `/admin/studio/`:
+The page buttons post JSON to endpoints under `/admin/studio/` (the `/admin` prefix is historical; they need Studio access, not the admin role):
 
 | Creator | Endpoints |
 |---------|-----------|
@@ -59,7 +59,7 @@ The page buttons post JSON to admin-only endpoints under `/admin/studio/`:
 | OLAP dataset | `olap/deploy`, `olap/delete` (body `{"name": ...}`) |
 | Any tool Studio generated | `delete` (body `{"tool_name": ...}`) |
 
-All of them need an administrator session or an admin bearer token. Each answers `{"success": true, ...}` or `{"success": false, "error": "..."}`.
+All of them need a signed-in session or bearer token for a user with Studio access ([Permissions](#permissions)); API keys do not carry it. Each answers `{"success": true, ...}` or `{"success": false, "error": "..."}`.
 
 - **Deploy** validates the name (3 to 64 characters: a lowercase letter, then lowercase letters, digits or underscores; not already a tool), writes the generated module and, last, the JSON config, then loads the tool into the running registry. The tool is in MCP `tools/list` and callable as soon as the response arrives. If the generated tool fails to load, its files are removed and the load error is returned.
 - **Delete** unregisters the tool and removes the files Studio generated for it: the JSON config, the generated module and, for script tools, the script. It refuses (HTTP 403) any tool Studio did not generate, so shipped tools cannot be deleted from here.
@@ -101,7 +101,7 @@ Tool configs are written through the storage layer (`write_tool_config` in `sajh
 
 ## Sandboxed creators
 
-The Python code and script creators write a `sandbox` block into the tool config (`{"network": "none"}`, plus the script's timeout for script tools); keys it leaves out take the administrator's `sandbox.defaults`, and every value is capped by `sandbox.max`. The **Runs in the sandbox** panel on those creator pages shows the policy a new tool gets and what the active backend enforces on this host. With `sandbox.enforce_for_generated_tools: false` the panel says the sandbox is off and these tools load in-process. What each backend guarantees, and every key of a tool's `sandbox` block, is in [Sandbox](../architecture/Sandbox.md); [Tutorial 14](../tutorials/TUTORIAL_14_sandboxed_studio_tools.md) walks through it.
+The Python code and script creators write a `sandbox` block into the tool config (`{"network": "none"}`, plus the script's timeout for script tools); keys it leaves out take the administrator's `sandbox.defaults`, and every value is capped by `sandbox.max`. The **Runs in the sandbox** panel on those creator pages shows the policy a new tool gets and what the active backend enforces on this host. With `sandbox.enforce_for_generated_tools: false` the panel says the sandbox is off and these tools load in-process, so only an administrator can deploy them. What each backend guarantees, and every key of a tool's `sandbox` block, is in [Sandbox](../architecture/Sandbox.md); [Tutorial 14](../tutorials/TUTORIAL_14_sandboxed_studio_tools.md) walks through it.
 
 ## Import an API
 
@@ -114,8 +114,8 @@ instead of one endpoint at a time:
 2. **API and base URL.** Choose one of the spec's servers and its variables, or type a base
    URL; set a per-call timeout and an optional calls-per-minute limit.
 3. **Authentication.** One row per security scheme the spec declares (API key, bearer,
-   basic, OAuth 2.0 client credentials, or the caller's connected account when that feature
-   is installed); secrets are secret references such as `env:PETSTORE_KEY`. **Add a
+   basic, OAuth 2.0 client credentials, or the caller's
+   [connected account](../architecture/Connected%20Accounts.md)); secrets are secret references such as `env:PETSTORE_KEY`. **Add a
    credential** applies one to every operation.
 4. **Operations.** Filter by tag, method or path; each row shows the proposed tool name
    (editable), its hints (read-only, destructive, idempotent, paged) and any flag
@@ -165,9 +165,11 @@ How the proposal is checked, the deploy gate and the limits are in
 
 ## Permissions
 
-- Every `/studio` page and every `/admin/studio/` action endpoint requires an administrator (`require_admin`). Other signed-in users get *Access Forbidden*.
-- The **MCP Studio** menu in the top navigation is shown only to administrators.
-- The permission model (`sajha/db/models`) uses a `studio` resource type, for example a `studio_dev` role, only as an illustration. The Studio routes do not check it.
+- **Who can use Studio:** an administrator, or a signed-in user whose role has the `studio` permission (a `permissions` row with resource type `studio` and actions `*` or `use`). The seeded `developer` role has it (`db/scripts/<dialect>/seed.sql`). Every `/studio` page, every `/admin/studio/` action endpoint (including Describe a tool and Import an API) and the `/api/studio/` reads check it (`require_studio` in `sajha/auth/__init__.py`); anyone else, `user` and `viewer` included, gets *Access Forbidden* (403). API keys never have Studio access.
+- The **MCP Studio** menu in the top navigation, and the Studio links on the Dashboard, are shown to the same people.
+- **Developers can deploy and delete Studio tools**, including Describe a tool proposals: the deploy gate is the same for everyone (reviewed hash, explicit approval, passing tests or `accept_failures`, and the policy engine's `studio.deploy` decision, so a policy can deny developers or `require_approval` for them). A developer sees and deploys only their own Describe drafts; an administrator sees all of them.
+- **Composite builder:** creating a composite needs Studio access; a developer can change or delete only the composites they created (`created_by`), an administrator any of them.
+- **Admin only:** deploying a Python code or script tool while `sandbox.enforce_for_generated_tools` is `false` (that code would run inside the server, so a developer gets 403), changing the sandbox policy and its `sandbox.max` limits (configuration), and deleting tools Studio did not create (refused for everyone; use Admin > Tools). Federation, data connectors, policies, approvals, audit, users and API keys stay admin only.
 - Deploying writes to `config/tools/`, `sajha/tools/impl/` and, for scripts, `config/scripts/`. The server process needs write access to those paths, and to the configured storage backend.
 
 Generated tools are ordinary tools once registered. Who can see and run them is governed by the normal tool permissions and API-key scopes.
@@ -181,6 +183,7 @@ Generated tools are ordinary tools once registered. Who can see and run them is 
 | Python code (`@sajhamcptool`) | `/studio` | [Python Code Tool Creator Guide](MCP%20Studio%20Python%20Code%20Tool%20Creator%20Guide.md) |
 | REST service | `/studio/rest` | [REST Tool Creator Guide](MCP%20Studio%20REST%20Tool%20Creator%20Guide.md) |
 | Import an API | `/studio/api-import` | [API Import](../architecture/API%20Import.md) |
+| Describe a tool | `/studio/describe` | [Tool Generation](../architecture/Tool%20Generation.md) |
 | Database query | `/studio/dbquery` | [DBQuery Tool Creator Guide](MCP%20Studio%20DBQuery%20Tool%20Creator%20Guide.md) |
 | Script | `/studio/script` | [Script Tool Creator Guide](MCP%20Studio%20Script%20Tool%20Creator%20Guide.md) |
 | PowerBI report | `/studio/powerbi` | [PowerBI Tool Creator Guide](MCP%20Studio%20PowerBI%20Tool%20Creator%20Guide.md) |

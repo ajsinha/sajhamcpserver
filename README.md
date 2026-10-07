@@ -41,44 +41,68 @@ Tools page.
 **Serve tools to any MCP client.** Both spec eras on one `/mcp` endpoint, chosen per
 request: stateless 2026-07-28 (streaming, `subscriptions/listen`, Multi Round-Trip
 Requests, tasks, MCP Apps, `x-mcp-header`) and session-based 2025-11-25 with the older
-versions. Streamable HTTP, SSE, WebSocket and stdio. The official conformance suite runs
-against a live server for both eras on every push to `develop` and `main`
+versions, over Streamable HTTP, SSE, WebSocket and stdio. The official conformance suite
+runs against a live server for both eras on every push to `develop` and `main`
 ([workflow](.github/workflows/mcp-conformance.yml)).
 → [MCP Protocol Guide](docs/protocol/MCP%20Protocol%20Guide.md)
 
-**Govern.** OAuth 2.1 on `/mcp` (off, optional or required; built-in authorization server
-or your identity provider), users and roles, API keys scoped to the tools they may call,
-Origin checks and rate limits, an audit log, and a sandbox for user code (subprocess,
-bubblewrap, nsjail or Docker).
+**Govern every call.** OAuth 2.1 on `/mcp` (built-in authorization server or your identity
+provider), users, roles and API keys scoped to the tools they may call, nothing for
+anonymous callers by default, and declarative policy rules on every path a tool runs
+through: deny, human approval, argument constraints, quotas, PII redaction and
+prompt-injection screening. Every audit record is hash-chained and signed, and can be
+streamed to a SIEM. User code runs in a sandbox (subprocess, bubblewrap, nsjail or Docker).
 → [Security Model](docs/security/Security%20Model.md) ·
+[Policy and Audit](docs/architecture/Policy%20and%20Audit.md) ·
 [OAuth Guide](docs/protocol/OAuth%20Guide.md) · [Sandbox](docs/architecture/Sandbox.md)
 
-**Build and compose.** MCP Studio turns a Python function, a REST call, a SQL query, a
-script, Power BI, LiveLink, SharePoint or an OLAP dataset into a tool and deploys it into
-the running server. Composite tools chain tools with confidence tracking. Federation puts
-other MCP servers' tools in the same catalog, behind the same governance and approval.
+**Build tools.** MCP Studio turns a Python function, a REST call, a SQL query, a script,
+Power BI, LiveLink, SharePoint or an OLAP dataset into a tool and deploys it into the
+running server. Import an API turns an OpenAPI, Swagger or GraphQL description into a
+reviewed set of tools; Describe a tool has a model propose one from a sentence, then
+checks and tests it before an administrator approves the deploy. Composite tools chain
+tools with confidence tracking, and federation puts other MCP servers' tools in the same
+catalog under the same governance.
 → [MCP Studio User Guide](docs/studio/MCP%20Studio%20User%20Guide.md) ·
+[API Import](docs/architecture/API%20Import.md) ·
+[Tool Generation](docs/architecture/Tool%20Generation.md) ·
 [Composition Framework](docs/architecture/Composition%20Framework.md) ·
 [Federation](docs/architecture/Federation.md)
 
-**Ask.** The intelligence layer: LLM providers and models behind one gateway with aliases,
-budgets and policy, an offline mock model as the default so it works with no keys, and
-`/api/ai/ask`. **Ask SAJHA** is the chat page that shows the tools it uses as it uses
-them. The **Python Playground** runs Python in your browser and calls tools with your own
-permissions. The `sajha` command line (`pip install './clientsdk[cli]'`) and the Python
-client SDK work from outside.
+**Reach your data and accounts.** Data connectors put PostgreSQL, MySQL, SQL Server,
+Oracle, Snowflake, BigQuery, Databricks and vector stores behind read-only tools with a
+statement guard, limits and column masking. Connected accounts let each user link
+GitHub, Slack, Google, Microsoft 365 and others once, so tools act as that user.
+→ [Data Connectors](docs/architecture/Data%20Connectors.md) ·
+[Connected Accounts](docs/architecture/Connected%20Accounts.md)
+
+**Ask.** The intelligence layer puts LLM providers and models behind one gateway with
+aliases, budgets and policy, with an offline mock model as the default so it works with
+no keys. **Ask SAJHA** is the chat page that shows the tools it uses as it uses them, with
+pluggable planners, per-user conversation memory and search over the guides and your own
+documents. The **Python Playground** runs Python in your browser and calls tools with
+your own permissions; the `sajha` command line and the Python client SDK work from outside.
 → [Intelligence Layer](docs/architecture/Intelligence%20Layer.md) ·
 [Python Playground](docs/getting-started/Python%20Playground.md) ·
 [Command Line](docs/clients/Command%20Line.md) ·
 [Client SDK Guide](docs/clients/Client%20SDK%20Guide.md)
 
+**Automate and keep tools honest.** Workflows run DAGs of tools, composites and Ask SAJHA
+steps on schedules, signed webhooks, file arrivals or events, durably, as their owner.
+Tool test cases replay recorded HTTP offline in CI, a linter checks every schema, health
+probes watch live services, evals score Ask SAJHA, and tool versions roll out by canary
+with automatic rollback.
+→ [Workflows](docs/architecture/Workflows.md) · [Tool Quality](docs/architecture/Tool%20Quality.md)
+
 **Operate.** Several workers or hosts over a shared state store (Redis or the database);
 Prometheus metrics, OpenTelemetry traces, a usage and cost dashboard and alert rules;
 per-tool caching and per-provider circuit breakers; local, S3, Azure Blob or GCS storage
-with hot reload; SQLite or PostgreSQL; a Helm chart and Kustomize manifests for
-Kubernetes, and recipes for AWS, Hetzner and bare metal.
+with hot reload; SQLite or PostgreSQL from one schema file an operator applies; a console
+that works on phones; a Helm chart and Kustomize manifests for Kubernetes, and recipes
+for AWS, Hetzner and bare metal.
 → [Scaling and State](docs/architecture/Scaling%20and%20State.md) ·
 [Observability](docs/architecture/Observability.md) ·
+[Database Setup](docs/getting-started/Database%20Setup.md) ·
 [Kubernetes Deployment](docs/getting-started/Kubernetes%20Deployment.md) ·
 [deployment recipes](deployment/README.md)
 

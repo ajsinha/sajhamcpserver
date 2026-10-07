@@ -38,7 +38,7 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **CLI profile** | A named server URL and its stored credentials for the `sajha` command (`sajha profile add`, `use`, `list`, `remove`), kept in the CLI's `config.json`; chosen by `--profile` or `SAJHA_PROFILE`. |
 | **Plugin** | An extension package in `config/plugins/` (setting `plugins.dir`) with a `plugin.json` manifest, containing tool configs and optionally Python classes. Flow: `discover()`, `validate()` (checksum), `load_plugin()` (install dependencies, register tools). |
 | **Plugin manifest** | A plugin's `plugin.json`: its name, version, the tools it provides, an optional `sha256:` checksum over its files (a mismatch fails loading) and informational fields; read by `discover()`, checked by `validate()`. |
-| **Tenant** | An isolated customer or team in multi-tenant mode (`sajha/core/tenancy.py`): tenant-scoped tool configs, its own API key pool, usage quotas (tool calls per day/month, sessions, LLM tokens) and allowed providers. |
+| **Tenant** | A tenant record (`sajha/core/tenancy.py`, managed through `/api/tenants`): tool patterns, blocked tools, usage quotas and allowed providers for a customer or team. The records are stored and served, but no request path consults them yet, so they neither isolate nor limit anything. |
 | **A2A** (*Agent-to-Agent*) | A protocol for inter-agent communication. SAJHA publishes an agent card at `/.well-known/agent.json` and serves the task lifecycle (`tasks/send`, `tasks/get`, `tasks/cancel`) as JSON-RPC on `POST /a2a`. These A2A tasks are unrelated to MCP tasks. |
 | **Agent card** | The A2A discovery document at `/.well-known/agent.json` describing the agent's name, skills and endpoint. |
 
@@ -231,8 +231,8 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Tool configuration** | A JSON file in `config/tools/` defining a tool's name, implementation class, description, schemas and metadata (`annotations`, `cache_ttl`, `execution.taskSupport`, `_meta.ui`, literature). |
 | **JSON Configuration** | The underlying JSON document that defines a tool or prompt, editable in the console. |
 | **JSON Schema** | A vocabulary for describing and validating the structure of JSON documents; SAJHA uses the 2020-12 dialect for tool schemas. |
-| **Input Schema** | The JSON Schema of the parameters a tool accepts (MCP `inputSchema`). |
-| **Output Schema** | The JSON Schema of a tool's result (MCP `outputSchema`). |
+| **Input Schema** | The console's label for a tool's **inputSchema**. |
+| **Output Schema** | The console's label for a tool's **outputSchema**. |
 | **Properties** | The named fields defined in a JSON Schema object. |
 | **Required** | The fields that must be supplied when calling a tool. |
 | **Type** | A schema field's data type: `string`, `number`, `integer`, `boolean`, `object`, `array`. |
@@ -271,7 +271,7 @@ Written for someone who does *not* already know the field. Where a term has a ge
 
 | Term | Meaning |
 |---|---|
-| **MCP Studio** | The visual tool-creation console at `/studio` (signed-in users; the seeded `developer` role is meant for it). Generates a tool's Python class and JSON config without hand-coding. |
+| **MCP Studio** | The visual tool-creation console at `/studio`, open to administrators and to roles with the `studio` permission (the seeded `developer` role). Generates a tool's Python class and JSON config without hand-coding. |
 | **Creator** | One of Studio's tool builders: Python Code, REST Service, DB Query, Script, Power BI Report, Power BI DAX, LiveLink, SharePoint and OLAP. |
 | **@sajhamcptool decorator** | A Python decorator that marks a function for conversion into an MCP tool by the Python Code creator. |
 | **AST** (*Abstract Syntax Tree*) | The parsed structure of code. Studio analyses a function's AST to find its name, parameters, type hints and docstring. |
@@ -286,14 +286,14 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Content-Type** | The HTTP header naming the request or response body format, e.g. `application/json`. |
 | **Basic authentication** | HTTP authentication with a username and password in the `Authorization` header. |
 | **API key** (*REST creator*) | A token for the external API being wrapped, passed in a header the creator configures. Not a SAJHA `sja_` key. |
-| **API Import** | The Studio page (`/studio/api-import`, admins) that turns an OpenAPI 3.x or Swagger 2.0 description, or a GraphQL schema read by introspection, into one tool per selected operation. Every imported tool runs on one generic executor configured by its JSON config; no code is generated. |
+| **API Import** | The Studio page (`/studio/api-import`, Studio access) that turns an OpenAPI 3.x or Swagger 2.0 description, or a GraphQL schema read by introspection, into one tool per selected operation. Every imported tool runs on one generic executor configured by its JSON config; no code is generated. |
 | **OpenAPI** | A machine-readable description of an HTTP API (servers, paths, operations, parameters, schemas, security schemes), version 3.x. API Import reads it. |
 | **Swagger 2.0** | The predecessor of OpenAPI 3; API Import converts a Swagger 2.0 document to the 3.0 shape before reading it. |
 | **GraphQL introspection** | The standard query a GraphQL server answers with its own schema (types, queries, mutations); API Import builds one tool per query and mutation from it. |
 | **$ref** | A JSON reference from one part of an API description to another, or into another document. API Import inlines every one (remote documents through the SSRF guard) so each tool schema stands alone. |
 | **Import record** | The JSON document `config/api_imports/<api_id>.json` that remembers an import's source, server, credential references and a fingerprint per deployed operation, so importing again shows what was added, changed or removed. |
 | **Secret reference** | A pointer to a secret instead of the secret: `env:NAME`, `file:/path` or `db:llm_providers/<type>`. Resolved when used, never written to a config or logged. Used by LLM providers, federation upstreams, API Import credentials and data connectors. |
-| **Describe a tool** | The Studio page (`/studio/describe`, admins) and the `sajha studio describe` command: a plain-language description goes to the model behind the `toolsmith` alias, which proposes a tool; an administrator reads the generated files, runs the tests and approves the deploy. |
+| **Describe a tool** | The Studio page (`/studio/describe`, Studio access) and the `sajha studio describe` command: a plain-language description goes to the model behind the `toolsmith` alias, which proposes a tool; the requester reads the generated files, runs the tests and approves the deploy. |
 | **Tool proposal** | What Describe a tool's model returns: a kind (`python`, `rest`, `dbquery`, `composite` or `openapi`), name, description, input and output schemas, implementation and test cases. SAJHA checks every field as untrusted input. |
 | **Draft** (*Describe a tool*) | A tool proposal kept in the state store with its generated files, policy preview and test results, until `studio.describe.draft_ttl_seconds` passes or it is deployed. |
 | **Proposal hash** | The SHA-256 of a checked tool proposal. A deploy names the hash the administrator reviewed; it must be the draft's current hash, and the tests must have run on it. |

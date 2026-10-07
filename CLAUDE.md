@@ -37,6 +37,8 @@ the same thing, merge them and leave a link.
 | Topic | Owner |
 |---|---|
 | Database schema (SQLite and PostgreSQL schema files, manual setup) | `docs/getting-started/Database Setup.md` |
+| Policy engine, approvals, tamper-evident audit, SIEM export | `docs/architecture/Policy and Audit.md` |
+| Web console (pages, navigation, page help, small screens) | `docs/architecture/Architecture.md` §10 |
 | Describe a tool (generated tools, review and deploy gate) | `docs/architecture/Tool Generation.md` |
 | Data connectors (governed read access to databases and vector stores) | `docs/architecture/Data Connectors.md` |
 | Tool testing, lint, probes, evals, tool versions and canary | `docs/architecture/Tool Quality.md` |
@@ -68,17 +70,19 @@ the same thing, merge them and leave a link.
 
 ```
 README.md            first contact: what, why, quick start, links. Short.
-CHANGELOG.md         newest first; one section per version; "## Unreleased" on top
+CHANGELOG.md         newest first; one section per version; the unreleased section on top ("## Unreleased …")
 GLOSSARY.md          the only glossary
 CLAUDE.md            this file
 docs/README.md       the index and reading order
-docs/getting-started/  map, quick start, configuration, storage
+docs/getting-started/  map, quick start, configuration, storage, database setup, Kubernetes, playground
 docs/protocol/       MCP guide, compliance reports, API, OAuth, Apps/headers
-docs/architecture/   architecture, composition framework
+docs/architecture/   architecture and one design/as-built guide per subsystem (composition, intelligence,
+                     federation, sandbox, scaling, observability, accounts, API import, policy and
+                     audit, workflows, tool quality, tool generation, data connectors)
 docs/studio/         MCP Studio guide + one guide per creator
 docs/tools/<category>/  one "<Provider> Tool Reference Guide.md" per provider; prompts/
 docs/tutorials/      TUTORIAL_NN_<slug>.md, numbered in reading order
-docs/clients/        Client SDK Guide
+docs/clients/        Client SDK Guide, Command Line
 docs/security/       Security Model
 docs/archive/        point-in-time reports, not maintained
 docs/requirements/   original requirements (binary, unchanged)
@@ -146,7 +150,8 @@ the disagreement.
 - Configuration: `sajha/core/config.py::_get` resolves `SAJHA_<DOTTED_KEY>` env →
   YAML (with `${ENV:default}`) → code default, but not every subsystem reads through
   `_get` (storage and `${...}` in tool configs use `PropertiesConfigurator`; `ai.*`
-  reads the raw YAML). The Configuration Reference records which keys behave how.
+  resolves `SAJHA_AI_<SECTION>_<FIELD>` env → vendor variable → YAML → database →
+  default). The Configuration Reference records which keys behave how.
 - No database migrations. `db/scripts/<dialect>/schema.sql` (+ `seed.sql`) is the schema.
   SAJHA never runs DDL on PostgreSQL (an operator runs the files with psql); only SQLite
   creates tables itself. Change a model and both schema files together;
@@ -154,7 +159,8 @@ the disagreement.
 - Secrets never go in `config/application.yml`; it is tracked. Use environment
   variables. The OAuth signing key lives in `data/oauth/` (git-ignored).
 - Shared protocol state (MCP sessions, tasks, listen events, OAuth codes and refresh
-  tokens, rate-limit and budget counters) goes through the state store
+  tokens, rate-limit, budget and policy quota counters, approvals, workflow cron and probe
+  claims, tool-version rollbacks, Describe drafts) goes through the state store
   (`sajha/core/state/`, `state.backend: memory|redis|database`). `memory` is per
   process and fine for one worker; several workers need `redis` or `database`. Caches,
   circuit breakers and metrics stay per process on purpose (see

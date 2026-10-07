@@ -8,7 +8,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 * ``actions`` (``/admin/studio``) serves the JSON endpoints those pages post to:
   analyze / preview / deploy for each creator, and delete.
 
-Every route is admin only. A deploy writes the generated files (Python module
+Every route needs MCP Studio access: an admin, or a role with the ``studio`` permission
+(``require_studio``; the seeded ``developer`` role has it). One thing stays admin only:
+deploying a Python code or script tool while ``sandbox.enforce_for_generated_tools`` is
+off, because that code would run inside the server (``_unsandboxed_refusal``). A deploy writes the generated files (Python module
 first, JSON config last) and then loads the new tool into the live registry, so
 it is callable over MCP at once; if it fails to load, the files are removed and
 the load error is returned. Delete removes only tools Studio generated.
@@ -27,7 +30,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from sajha.app import render
-from sajha.auth import AuthContext, require_admin
+from sajha.auth import AuthContext, require_studio
 
 logger = logging.getLogger(__name__)
 
@@ -299,6 +302,22 @@ def format_data(
 ]
 
 
+def _unsandboxed_refusal(auth: AuthContext) -> Optional[JSONResponse]:
+    """A 403 for a non-admin deploying code that would run in-process (sandbox not enforced)."""
+    if auth.is_admin:
+        return None
+    try:
+        from sajha.sandbox.settings import load_settings
+        enforced = load_settings().enforce_for_generated_tools
+    except Exception as e:
+        logger.warning(f'Sandbox settings unavailable: {e}')
+        enforced = False
+    if enforced:
+        return None
+    return _fail('The sandbox is off for generated tools (sandbox.enforce_for_generated_tools: false), '
+                 'so this code would run inside the server; only an administrator may deploy it.', 403)
+
+
 def _studio_ctx(auth: AuthContext) -> dict:
     return {
         'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
@@ -322,52 +341,52 @@ def _sandbox_policy() -> Optional[Dict[str, Any]]:
 
 @pages.get('')
 @pages.get('/')
-async def studio_home(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_home(request: Request, auth: AuthContext = Depends(require_studio)):
     return render(request, 'admin/studio/studio_home.html', _studio_ctx(auth))
 
 
 @pages.get('/rest')
-async def studio_rest(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_rest(request: Request, auth: AuthContext = Depends(require_studio)):
     return render(request, 'admin/studio/studio_rest.html', _studio_ctx(auth))
 
 
 @pages.get('/dbquery')
-async def studio_dbquery(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_dbquery(request: Request, auth: AuthContext = Depends(require_studio)):
     return render(request, 'admin/studio/studio_dbquery.html', _studio_ctx(auth))
 
 
 @pages.get('/script')
-async def studio_script(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_script(request: Request, auth: AuthContext = Depends(require_studio)):
     return render(request, 'admin/studio/studio_script.html', _studio_ctx(auth))
 
 
 @pages.get('/livelink')
-async def studio_livelink(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_livelink(request: Request, auth: AuthContext = Depends(require_studio)):
     return render(request, 'admin/studio/studio_livelink.html', _studio_ctx(auth))
 
 
 @pages.get('/olap')
-async def studio_olap(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_olap(request: Request, auth: AuthContext = Depends(require_studio)):
     return render(request, 'admin/studio/studio_olap.html', _studio_ctx(auth))
 
 
 @pages.get('/powerbi')
-async def studio_powerbi(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_powerbi(request: Request, auth: AuthContext = Depends(require_studio)):
     return render(request, 'admin/studio/studio_powerbi.html', _studio_ctx(auth))
 
 
 @pages.get('/powerbidax')
-async def studio_powerbidax(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_powerbidax(request: Request, auth: AuthContext = Depends(require_studio)):
     return render(request, 'admin/studio/studio_powerbidax.html', _studio_ctx(auth))
 
 
 @pages.get('/sharepoint')
-async def studio_sharepoint(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_sharepoint(request: Request, auth: AuthContext = Depends(require_studio)):
     return render(request, 'admin/studio/studio_sharepoint.html', _studio_ctx(auth))
 
 
 @pages.get('/examples')
-async def studio_examples(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_examples(request: Request, auth: AuthContext = Depends(require_studio)):
     return render(request, 'admin/studio/studio_examples.html', _studio_ctx(auth))
 
 
@@ -400,7 +419,7 @@ def _code_generator():
 
 
 @actions.post('/analyze')
-async def studio_analyze(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_analyze(request: Request, auth: AuthContext = Depends(require_studio)):
     res = _analyze_code(await _body(request))
     if isinstance(res, JSONResponse):
         return res
@@ -430,7 +449,10 @@ async def studio_analyze(request: Request, auth: AuthContext = Depends(require_a
 
 
 @actions.post('/deploy')
-async def studio_deploy(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
+    refused = _unsandboxed_refusal(auth)
+    if refused:
+        return refused
     res = _analyze_code(await _body(request))
     if isinstance(res, JSONResponse):
         return res
@@ -443,14 +465,14 @@ async def studio_deploy(request: Request, auth: AuthContext = Depends(require_ad
 
 
 @actions.post('/validate-name')
-async def studio_validate_name(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_validate_name(request: Request, auth: AuthContext = Depends(require_studio)):
     name = ((await _body(request)).get('tool_name') or '').strip().lower()
     err = _check_new_name(name)
     return JSONResponse({'valid': err is None, 'error': err})
 
 
 @actions.post('/delete')
-async def studio_delete(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_delete(request: Request, auth: AuthContext = Depends(require_studio)):
     """Delete a Studio-generated tool: unload it and remove its generated files."""
     tool_name = ((await _body(request)).get('tool_name') or '').strip().lower()
     if not TOOL_NAME_RE.match(tool_name):
@@ -542,7 +564,7 @@ def _rest_generator():
 
 
 @actions.post('/rest/preview')
-async def studio_rest_preview(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_rest_preview(request: Request, auth: AuthContext = Depends(require_studio)):
     try:
         definition = _rest_definition(await _body(request))
         err = _check_new_name(definition.name)
@@ -558,7 +580,7 @@ async def studio_rest_preview(request: Request, auth: AuthContext = Depends(requ
 
 
 @actions.post('/rest/deploy')
-async def studio_rest_deploy(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_rest_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
     try:
         definition = _rest_definition(await _body(request))
         err = _check_new_name(definition.name)
@@ -611,7 +633,7 @@ def _dbquery_generator():
 
 
 @actions.post('/dbquery/preview')
-async def studio_dbquery_preview(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_dbquery_preview(request: Request, auth: AuthContext = Depends(require_studio)):
     try:
         definition = _dbquery_definition(await _body(request))
         err = _check_new_name(definition.name)
@@ -628,7 +650,7 @@ async def studio_dbquery_preview(request: Request, auth: AuthContext = Depends(r
 
 
 @actions.post('/dbquery/deploy')
-async def studio_dbquery_deploy(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_dbquery_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
     try:
         definition = _dbquery_definition(await _body(request))
         err = _check_new_name(definition.name)
@@ -674,7 +696,7 @@ def _script_generator():
 
 
 @actions.post('/script/preview')
-async def studio_script_preview(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_script_preview(request: Request, auth: AuthContext = Depends(require_studio)):
     try:
         config = _script_config(await _body(request))
         err = _check_new_name(config.tool_name)
@@ -693,7 +715,10 @@ async def studio_script_preview(request: Request, auth: AuthContext = Depends(re
 
 
 @actions.post('/script/deploy')
-async def studio_script_deploy(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_script_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
+    refused = _unsandboxed_refusal(auth)
+    if refused:
+        return refused
     try:
         config = _script_config(await _body(request))
         err = _check_new_name(config.tool_name)
@@ -817,32 +842,32 @@ async def _config_creator_deploy(kind: str, request: Request) -> JSONResponse:
 
 
 @actions.post('/powerbi/preview')
-async def studio_powerbi_preview(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_powerbi_preview(request: Request, auth: AuthContext = Depends(require_studio)):
     return await _config_creator_preview('powerbi', request)
 
 
 @actions.post('/powerbi/deploy')
-async def studio_powerbi_deploy(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_powerbi_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
     return await _config_creator_deploy('powerbi', request)
 
 
 @actions.post('/powerbidax/preview')
-async def studio_powerbidax_preview(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_powerbidax_preview(request: Request, auth: AuthContext = Depends(require_studio)):
     return await _config_creator_preview('powerbidax', request)
 
 
 @actions.post('/powerbidax/deploy')
-async def studio_powerbidax_deploy(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_powerbidax_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
     return await _config_creator_deploy('powerbidax', request)
 
 
 @actions.post('/livelink/preview')
-async def studio_livelink_preview(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_livelink_preview(request: Request, auth: AuthContext = Depends(require_studio)):
     return await _config_creator_preview('livelink', request)
 
 
 @actions.post('/livelink/deploy')
-async def studio_livelink_deploy(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_livelink_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
     return await _config_creator_deploy('livelink', request)
 
 
@@ -883,7 +908,7 @@ def _sharepoint(data):
 
 
 @actions.post('/sharepoint/preview')
-async def studio_sharepoint_preview(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_sharepoint_preview(request: Request, auth: AuthContext = Depends(require_studio)):
     try:
         config, gen = _sharepoint(await _body(request))
         err = _check_new_name(config.name)
@@ -900,7 +925,7 @@ async def studio_sharepoint_preview(request: Request, auth: AuthContext = Depend
 
 
 @actions.post('/sharepoint/deploy')
-async def deploy_sharepoint_tool(request: Request, auth: AuthContext = Depends(require_admin)):
+async def deploy_sharepoint_tool(request: Request, auth: AuthContext = Depends(require_studio)):
     try:
         config, gen = _sharepoint(await _body(request))
         err = _check_new_name(config.name)
@@ -978,7 +1003,7 @@ def _remove_olap_definitions(added: Dict[str, List[str]], still_used: Dict[str, 
 
 
 @actions.post('/olap/deploy')
-async def studio_olap_deploy(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_olap_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
     data = await _body(request)
     name = (data.get('name') or '').strip()
     if not name:
@@ -1025,7 +1050,7 @@ async def studio_olap_deploy(request: Request, auth: AuthContext = Depends(requi
 
 
 @actions.post('/olap/delete')
-async def studio_olap_delete(request: Request, auth: AuthContext = Depends(require_admin)):
+async def studio_olap_delete(request: Request, auth: AuthContext = Depends(require_studio)):
     name = ((await _body(request)).get('name') or '').strip()
     path = _olap_datasets_file()
     try:

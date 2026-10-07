@@ -1,0 +1,9 @@
+# SAJHA MCP Server — development-only dependencies (not needed to run the server)
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha
+#
+# Install: pip install -r requirements-dev.txt   (after requirements.txt)
+
+# ── The deck (tools/deck/; see tools/deck/GUIDE.md) ─────────
+# Builds docs/publications/SAJHA-*.pptx and lets tests/test_deck_geometry.py audit it
+# (the test is skipped without it).
+python-pptx>=1.0.2,<2.0.0

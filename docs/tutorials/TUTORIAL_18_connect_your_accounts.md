@@ -1,4 +1,4 @@
-# Tutorial 18: Connect your accounts
+# Tutorial 18: Connect Your Accounts
 
 Link your GitHub account to SAJHA once, then let a tool, an MCP client and Ask SAJHA act as
 you on GitHub. You will register a GitHub OAuth app, enable the `github` provider, link the
@@ -6,8 +6,11 @@ account, call `github_list_my_repos` three ways, and disconnect.
 
 Design and every option: [Connected Accounts](../architecture/Connected%20Accounts.md).
 
-**You need:** SAJHA running locally on port 3002 (see
-[Quick Start](../getting-started/Quick%20Start.md)), a GitHub account.
+## Prerequisites
+
+- SAJHA running locally on port 3002 ([Quick Start](../getting-started/Quick%20Start.md)),
+  with an admin sign-in ([Tutorial 1](TUTORIAL_01_getting_started.md))
+- A GitHub account
 
 ## 1. Register a GitHub OAuth app
 
@@ -112,3 +115,4 @@ the same for any user on `/admin/connections` (for example when someone leaves).
 * Put an MCP server that takes GitHub tokens behind SAJHA with
   `auth: {type: connected_account, provider: github}`: each user's calls carry their own
   token ([Connected Accounts §7](../architecture/Connected%20Accounts.md#7-federation-token-passthrough)).
+* Next tutorial: [Import an OpenAPI Spec](TUTORIAL_19_import_an_openapi_spec.md)

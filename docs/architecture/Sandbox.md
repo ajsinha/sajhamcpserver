@@ -25,8 +25,9 @@ directory. A deployed tool therefore ran with every privilege the server has.
 
 ## 2. Threat model
 
-**Who is the attacker.** Whoever writes the code: a Studio user (an admin, but not
-necessarily the operator of the host), a compromised admin account, or a tool imported
+**Who is the attacker.** Whoever writes the code: a Studio user (an admin or a developer
+with the `studio` permission, not necessarily the operator of the host), a compromised
+account with Studio access, or a tool imported
 from someone else. Also an LLM or MCP client that controls a tool's *arguments* and uses
 them to steer a careless tool (a path, a URL, a command fragment).
 

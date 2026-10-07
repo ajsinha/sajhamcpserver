@@ -906,7 +906,7 @@ def _policy_gate(p: Dict[str, Any], user) -> Optional[Dict[str, Any]]:
             return grant
         rec = approvals.request(tool=DEPLOY_ACTION, arguments=args, caller=caller, source='rest',
                                 rule=d.rule, reason=d.reason, ttl=getattr(d.approval_rule, 'approval_ttl', None))
-        raise DescribeError(f'policy rule {d.rule} requires a second approval: another administrator must approve '
+        raise DescribeError(f'policy rule {d.rule} requires a second approval: an administrator other than you must approve '
                             f'request {rec["id"]} on the Approvals page, then deploy again.', 409,
                             approval_id=rec['id'], rule=d.rule)
     return None
@@ -925,6 +925,10 @@ def get_draft(draft_id: str, user=None) -> Dict[str, Any]:
     d = _store().get(DRAFT_PREFIX + draft_id)
     if not d:
         raise DescribeError('no such draft (drafts expire after studio.describe.draft_ttl_seconds)', 404)
+    # Studio is open to developers too: a non-admin sees and deploys only their own drafts
+    if user is not None and not getattr(user, 'is_admin', False) \
+            and str(d.get('created_by') or '') != str(getattr(user, 'user_id', '') or ''):
+        raise DescribeError('no such draft', 404)
     return d
 
 

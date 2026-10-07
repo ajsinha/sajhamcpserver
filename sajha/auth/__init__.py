@@ -293,7 +293,12 @@ def get_current_user(
     Does NOT raise — returns unauthenticated context if no creds.
     Use `require_auth` or `require_admin` for protected routes.
     """
-    return AuthManager.authenticate_request(request, db)
+    auth = AuthManager.authenticate_request(request, db)
+    try:
+        request.state.auth = auth      # render() reads it for the navigation (can_use_studio)
+    except Exception:
+        pass
+    return auth
 
 
 def require_auth(
@@ -317,5 +322,35 @@ def require_admin(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Admin privileges required',
+        )
+    return auth
+
+
+#: The permission that opens MCP Studio to a non-admin (the seeded ``developer`` role has it):
+#: a row with resource_type ``studio`` whose actions include ``*`` or ``use``.
+STUDIO_PERMISSION = 'studio'
+
+
+def can_use_studio(auth: Optional[AuthContext]) -> bool:
+    """MCP Studio access: an admin, or a signed-in user whose role grants the ``studio`` permission."""
+    if auth is None or not auth.authenticated:
+        return False
+    if auth.is_admin:
+        return True
+    try:
+        return auth.has_permission(STUDIO_PERMISSION, '*', 'use')
+    except Exception as e:
+        logger.warning(f'studio permission check failed: {e}')
+        return False
+
+
+def require_studio(
+    auth: AuthContext = Depends(require_auth),
+) -> AuthContext:
+    """FastAPI dependency: MCP Studio pages and endpoints (admin, or the ``studio`` permission)."""
+    if not can_use_studio(auth):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='MCP Studio requires the admin role or a role with the studio permission',
         )
     return auth

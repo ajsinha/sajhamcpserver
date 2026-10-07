@@ -71,7 +71,8 @@ pip install './clientsdk[mcp]'
 ```python
 from sajhaclient import SajhaMCPSyncClient
 
-with SajhaMCPSyncClient("http://localhost:3002") as mcp:
+# an API key from Admin → API Keys (anonymous callers see no tools by default)
+with SajhaMCPSyncClient("http://localhost:3002", api_key="sja_your_key") as mcp:
     print(mcp.negotiated_protocol_version)          # 2026-07-28
     print(len(mcp.list_tools().tools), "tools")
     print(mcp.call_tool("calc_percentage_change", {"old_value": 80, "new_value": 100}))

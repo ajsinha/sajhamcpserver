@@ -376,18 +376,3 @@ class TenantRecord(Base):
     quota_json    = Column(Text)
     data_prefix   = Column(String(255))
     created_at    = Column(DateTime, default=datetime.utcnow)
-
-
-# ── Tool Version (v4.5.0 — versioning) ──────────────────────
-
-class ToolVersionRecord(Base):
-    __tablename__ = 'tool_versions'
-    id            = Column(String(36), primary_key=True)
-    tool_name     = Column(String(255), nullable=False)
-    version       = Column(String(50), nullable=False)
-    lifecycle     = Column(String(20), default='active')
-    deprecated_at = Column(DateTime)
-    sunset_date   = Column(String(20))
-    successor     = Column(String(255))
-    changelog     = Column(Text)
-    created_at    = Column(DateTime, default=datetime.utcnow)

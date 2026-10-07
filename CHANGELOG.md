@@ -2,237 +2,434 @@
 
 Newest first. The current version is `app.version` in `config/application.yml`.
 
-## Unreleased
+## Unreleased (planned 7.0.0)
 
-MCP authorization (OAuth 2.1), MCP Apps and `x-mcp-header`: the items 6.0.0 deferred. Details: [OAuth Guide](docs/protocol/OAuth%20Guide.md), [MCP Apps and Headers Guide](docs/protocol/MCP%20Apps%20and%20Headers%20Guide.md), [MCP 2026-07-28 Compliance §4](docs/protocol/MCP%202026-07-28%20Compliance.md).
+Everything since 6.0.0, drafted as one release. It finishes the items 6.0.0 deferred (MCP
+authorization with OAuth 2.1, MCP Apps, `x-mcp-header`), closes the security gaps a full audit
+found, and adds what running a shared tool catalog for real needs: governance (policy engine,
+tamper-evident audit, connected accounts), new ways to build tools (API import, Describe a tool,
+data connectors, federation, workflows), tool quality, an intelligence layer with planners,
+memory and document search, horizontal scale, observability, Kubernetes, and a console that
+works on phones. The map of what owns what is
+[How SAJHA Fits Together](docs/getting-started/How%20SAJHA%20Fits%20Together.md).
 
-### Data connectors: enterprise databases, warehouses and vector stores as governed tools
-Details: [Data Connectors](docs/architecture/Data%20Connectors.md), [Data Connectors Reference Guide](docs/tools/enterprise/Data%20Connectors%20Reference%20Guide.md), [Tutorial 25](docs/tutorials/TUTORIAL_25_connect_a_database.md), [Configuration Reference](docs/getting-started/Configuration%20Reference.md#data-connectors).
-- **Connections** (`sajha/connectors/`): one record per connection at `config/connectors/<id>.json` through the storage backend, written by the new **Data Connectors** page (`/admin/connectors`: add, test, browse the catalog, describe a table, curated-view builder, sync, remove; every change audited) or by hand. Credentials only as secret references (`env:`, `file:`, `db:`); a credential-looking option is refused.
-- **Kinds:** PostgreSQL, Redshift, MySQL and MariaDB, SQL Server (pyodbc), Oracle (python-oracledb thin), Snowflake, BigQuery, Databricks SQL, SQLite and DuckDB files; pgvector, Qdrant and Elasticsearch / OpenSearch for search. Drivers are optional and imported on first use; a missing one names the package to install.
-- **Generated tools:** `<id>__list_tables`, `<id>__describe_table` (columns, types, comments, primary key, masked sample rows) and `<id>__query` (one read-only SELECT with `:name` parameters bound by the driver), curated views as typed tools (`<id>__<view>`: chosen columns, filter arguments per operator, every value bound, SQL built from catalog-checked identifiers), and `<id>__search` / `__list_collections` / `__describe_collection` for vector and search kinds. Read-only annotations, output schemas and planner-friendly descriptions; RBAC, the policy engine, connected-account binding, the cache and the metrics apply as to every tool.
-- **Read-only, three walls:** the statement guard (one statement; SELECT only; no DML or DDL anywhere, no `SELECT INTO`, data-modifying CTEs or locking clauses; denied file, network, dynamic-SQL and server-state functions; only allowlisted tables; masked-column rules; sqlglot when installed, else a conservative scanner; DuckDB's own parser too), a read-only session where the database has one (PostgreSQL, Redshift, MySQL/MariaDB, Oracle, SQLite `mode=ro`, DuckDB `read_only` with external access off), and the login's privileges (the reference guide lists the grants per kind).
-- **Limits:** rows (also appended as `LIMIT`), result bytes and statement time (database timeouts plus a watchdog that cancels and discards the connection); `connectors.*` defaults and ceilings.
-- **Masking:** `hide`, `null`, `redact`, `hash`, `partial` and `pii` (the policy engine's PII redaction) per column glob; applied to results, samples, views and search hits; the guard refuses queries that would rename or probe a masked column.
-- **Per-user credentials** for Snowflake, BigQuery and Databricks through connected accounts (feature-detected); never pooled or cached.
-- **Governance:** `connector.query` and `connector.rejected` audit records (SQL as a SHA-256 unless `connectors.audit_sql`), `sajha_connector_queries_total`, `sajha_connector_rows_total`, `sajha_connector_query_duration_seconds`; a per-process schema catalog cache and idle-connection pool.
-- **Default unchanged:** no connection ships. **Schema:** no database change.
-- Tests: `tests/test_connectors.py` (guard both ways, SQLite and DuckDB end to end, views and injection, mocked drivers, vector adapters, the page and API), `tests/test_connectors_live.py` (PostgreSQL 16 and MySQL 8 when `SAJHA_TEST_CONNECTORS_POSTGRES_URL` / `SAJHA_TEST_CONNECTORS_MYSQL_URL` are set).
+### Breaking changes and operator actions
 
-### Tool quality: test harness, linter, health probes, evals, versions and canary
-Details: [Tool Quality](docs/architecture/Tool%20Quality.md), [Tutorial 23](docs/tutorials/TUTORIAL_23_test_and_canary_your_tools.md), [Configuration Reference](docs/getting-started/Configuration%20Reference.md#quality).
-- **Test harness** (`sajha/quality/`, `python -m sajha.quality test`): per-tool test cases in `config/tool_tests/*.yaml` (or `tests` in a tool config) with assertions: JSON Schema match against the tool's `outputSchema` or an inline schema, JSONPath `equals` (numeric `tolerance`), `not_equals`, `contains`, `regex`, `type`, `min`/`max`, `length`, `exists`, and a `latency_ms` budget; expected failures (`error:`); version pins. Text, JSON and JUnit XML output; `--save` keeps the run for the Tool Health page. Shipped cases for three calculators and `wiki_search`.
-- **HTTP cassettes:** a small VCR records a case's HTTP exchanges once (`--record`) and replays them offline (`--replay`, strict: an unrecorded request is an error, never a network call); intercepts `urllib.request`, `requests` and `httpx` (sync and async); no request headers stored, secret query parameters redacted, `Set-Cookie` dropped.
-- **Schema linter** (`python -m sajha.quality lint`): MCP tool-name rule, description length, input and output schemas valid JSON Schema 2020-12 of `type: object`, property descriptions, `examples` and `default` that validate, boolean and coherent annotations, destructive-sounding names without `destructiveHint`, test-case arguments against the input schema; report and JUnit.
-- **Health probes** (opt-in, `quality.probes.enabled`): a `probe:` block runs one case live on an interval or a cron schedule (the workflows cron parser), one worker per slot through a state-store claim; latest result and history in the state store; `sajha_tool_probe_runs_total`, `sajha_tool_probe_up`, `sajha_tool_probe_duration_seconds`. New **Tool Health** page (`/admin/tool-health`): probes with Run now, test runs, the linter.
-- **Evals for Ask SAJHA** (`config/evals/*.yaml`, `python -m sajha.quality eval|compare|runs`): golden questions with expected and forbidden tools, answer checks (`contains`, `regex`, `number` with tolerance, ...) and limits (steps, tokens, cost, latency), run per model and planner; tool-selection accuracy, answer accuracy, pass rate, steps, tokens, cost, mean and p95 latency; comparison of two runs (metric deltas, regressed and improved questions). The shipped `calculators` set runs offline on the mock provider. New **Evals** page (`/admin/evals`): runs in the background, run detail, compare.
-- **Tool versions and canary** (`config/tool_versions/<tool>.yaml`, `sajha/quality/versions.py`): several versions behind one MCP tool name (overrides of the registered config, or a whole config), routed per call at the top of `execute_with_tracking` by API-key pin, user, role, sticky canary percentage, then stable; `_meta["io.sajha/tool-version"]` on MCP results and `_meta` on `POST /api/tools/execute`. Automatic rollback when a canary's error rate or slow-call rate over a sliding window passes its thresholds, shared by every worker through the state store, audited and counted (`sajha_tool_version_rollbacks_total`, `sajha_tool_version_calls_total`). Deprecation with sunset dates: `_meta["io.sajha/deprecation"]` until the date; after it a version is never routed and a tool is hidden from `tools/list` and refuses calls. New **Tool Versions** page (`/admin/tool-versions`): edit (validated), canary, promote, clear a rollback. `GET /api/tool-versions` and `POST /api/tool-versions/{tool}/deprecate`, placeholders until now, now read and write the versions files.
-- **Default unchanged:** probes are off and no tool has a versions file. **Schema:** one new table, `quality_runs`, in both schema files; on PostgreSQL run `db/scripts/postgresql/schema.sql` again before starting this version.
-- Tests: `tests/test_quality_harness.py`, `tests/test_quality_lint.py`, `tests/test_quality_probes.py`, `tests/test_quality_evals.py`, `tests/test_quality_versions.py`, `tests/test_quality_pages.py`.
+Read this list before upgrading from 6.0.0.
 
-### Workflows: schedules, triggers and run history
-Details: [Workflows](docs/architecture/Workflows.md), [Tutorial 22](docs/tutorials/TUTORIAL_22_schedule_a_workflow.md), [Configuration Reference](docs/getting-started/Configuration%20Reference.md#workflows).
-- **A workflow is a DAG of steps** (`sajha/workflows/`): `tool`, `composite`, `ask` (Ask SAJHA), `condition` with `then`/`else` branches, `foreach` over a list (capped, optionally parallel), `wait` and `approval` (the policy engine's approval store). Parameter mapping extends the composite syntax with `$steps.<id>.<path>`, `$item`, `$index` and `{{...}}` interpolation; dependencies are implied by what a step reads; `join` (`all_success`, `any_success`, `all_done`), `when`, `on_error`; per-step retries with exponential backoff and timeouts; a run timeout. Definitions in JSON or YAML, validated on save (cycles, unknown steps, bad cron or timezone).
-- **Triggers:** timezone-aware cron (one fire per slot across workers: an atomic claim in the state store plus a unique run idempotency key), HMAC-SHA256-signed webhooks (`POST /api/workflows/{name}/hooks/{trigger}`, timestamp tolerance, replay refusal), file arrival on the storage backend (local, S3, Azure Blob, GCS listing polls), change-bus events, and manual runs from the page, the CLI and the API (`Idempotency-Key`).
-- **Durable runs:** every run and every step (status, attempts, truncated input and output, timing, error) is stored; a worker's heartbeat lets another worker take over a run whose worker died (a conditional UPDATE, so one winner), reusing finished steps and re-running an interrupted step only when it is idempotent (else it is marked failed); long waits and approvals park the run and free the worker; cancel; re-run from a failed step reusing the steps before it; a concurrency limit per workflow across workers; outputs delivered through the async delivery router (webhook allow-list, file directory, Kafka).
-- **Run as the owner:** steps run with the owner's current roles or API-key lists (re-read each run), as the caller the policy engine, usage ledger and audit see, with the new policy source `workflow`. Saves, runs, cancels, re-runs, resumes and finishes are audited.
-- **Published as a tool** (administrators): `publish.enabled` registers the workflow as an ordinary registry tool, listed and callable on both MCP eras and federatable; a workflow cannot call itself through it.
-- **Workflows page** (`/workflows`): list, form editor with a DAG view, JSON and YAML views, triggers and delivery, run with an input, run history and a per-step timeline. **CLI:** `sajha workflows list|run|runs|show`. New keys `workflows.*`.
-- **Schema:** three new tables, `workflows`, `workflow_runs` and `workflow_run_steps`, in both schema files. SQLite creates them at start-up; on PostgreSQL run `db/scripts/postgresql/schema.sql` again (it only creates what is missing) before starting this version.
-- Tests: `tests/test_workflows.py`.
+**Database**
+- **PostgreSQL: SAJHA never creates or alters tables.** Before starting this release, run
+  `db/scripts/postgresql/schema.sql`, then `db/scripts/postgresql/seed.sql`, with `psql`
+  (`python -m sajha.db sql --dialect postgresql` prints them). At start-up SAJHA checks every
+  table and column it uses and refuses to start, naming what is missing and the command
+  (`db.schema_check: strict`; `warn` starts anyway). 6.0.0's PostgreSQL scripts never worked, so
+  there is nothing to migrate. Re-running `schema.sql` is safe (`CREATE ... IF NOT EXISTS`) and is
+  how the tables this release adds are created ([Database Setup](docs/getting-started/Database%20Setup.md)).
+- **SQLite database from 6.0.0:** new tables are created at start-up, but one column is new on an
+  existing table and must be added by hand, or start-up stops at the schema check:
+  `ALTER TABLE users ADD COLUMN must_change_password BOOLEAN NOT NULL DEFAULT 0;`
+  (`python -m sajha.db check` lists anything else missing).
+- New tables in both schema files: `sajha_state`, `sajha_state_events`, `obs_usage_events`,
+  `connected_accounts`, `audit_chain`, `audit_anchors`, `ai_conversations`,
+  `ai_conversation_turns`, `workflows`, `workflow_runs`, `workflow_run_steps`, `quality_runs`;
+  the optional pgvector `rag_chunks` table is a commented section at the end of the PostgreSQL
+  file. `db/scripts/*/001_schema.sql` and `002_seed.sql` are gone. The never-used tables
+  `tenant_users`, `rate_limit_log`, `llm_usage` and `user_ai_preferences` are no longer created
+  (existing ones are left alone).
+- **`tool_versions` table removed** from both schema files and the ORM models: nothing ever read
+  or wrote it (tool versions live in `config/tool_versions/*.yaml`). Existing databases may keep
+  it; it is unused and can be dropped by hand (`DROP TABLE tool_versions;`). SAJHA never drops it.
 
-### Describe a tool: a sentence to a reviewed, tested tool
-Details: [Tool Generation](docs/architecture/Tool%20Generation.md), [Tutorial 24](docs/tutorials/TUTORIAL_24_describe_a_tool.md), [MCP Studio User Guide](docs/studio/MCP%20Studio%20User%20Guide.md#describe-a-tool).
-- **Studio → Describe a tool** (`/studio/describe`, admins) and `sajha studio describe "<text>"`: the model behind the new `toolsmith` gateway alias proposes a tool (kind `python`, `rest`, `dbquery`, `composite` or `openapi`; name, description, schemas, implementation, test cases). The proposal is checked as untrusted input (SQL read-only and on listed tables only, SSRF host checks, no generated credentials or sandbox secrets, risky imports flagged, hosts the description does not mention flagged), rendered into the exact files Studio's generators write, and kept as a draft bound to a SHA-256 of its content.
-- **Tests before deploy:** Python cases run in the sandbox (offline cases with no network), REST cases against canned fixtures, DB queries on the listed database; live cases only on request. A deploy needs `approve: true`, the reviewed hash, tests run on that hash (failures only with `accept_failures`), and the policy engine's consent to the pseudo call `studio.deploy` (`require_approval` holds it for a second administrator). An OpenAPI proposal hands off to Import an API, prefilled. Generated Python tools always carry `sandbox.enabled: true`. A tool test harness, when installed, receives the cases (feature-detected).
-- **Prompt-injection hygiene:** the description is length-capped, screened with federation's injection markers and passed as a nonce-fenced data block.
-- **`mock-toolsmith`**: a deterministic, offline designer in the mock provider (`sajha/ai/llm/mock_toolsmith.py`) so the feature works with no keys; `ai.aliases.toolsmith` maps to it. New keys `studio.describe.*`.
-- Tests: `tests/test_describe_tool.py`.
+**Secrets and sign-in**
+- `config/application.yml` ships no JWT or session secret. Empty secrets are generated once into
+  `data/secrets/server_secrets.json` (`auth.secrets_file`, mode 0600, git-ignored); JWTs signed
+  with the old placeholder stop working, so users sign in again. A secret (or
+  `mcp.mrtr.state_secret`) equal to any placeholder SAJHA ever shipped stops start-up; the MRTR
+  secret derives from the persisted session secret, so `requestState` survives restarts. Several
+  hosts must share the secrets file or set the variables, and share the OAuth signing key
+  (`mcp.auth.builtin.signing_key_pem` for hosts without a shared data directory).
+- The seed `admin`/`admin123`, admin-set passwords and default passwords are flagged
+  `must_change_password` and show a banner until changed. `POST /api/admin/users/create` now
+  requires a password that passes the policy (8+ characters, no well-known defaults).
+- Sign-in: account lockout (423) and a per-IP failure limit (429) on the web form,
+  `POST /api/auth/login` and the OAuth sign-in replace the old 5-per-minute limit on the JSON login.
 
-### Planners, conversation memory and document search (RAG)
-Details: [Intelligence Layer](docs/architecture/Intelligence%20Layer.md#planners), [Extending the Intelligence Layer §4.5](docs/architecture/Extending%20the%20Intelligence%20Layer.md#45-a-planner-extension-point), [Tutorial 21](docs/tutorials/TUTORIAL_21_planners_memory_and_rag.md).
-- **Planner extension point** (the design §4.5 proposed, now built): `ai.ask.planner` chooses the strategy that decides each step of an ask; the service keeps RBAC, refusal of tools not offered, confirmation, limits, synthesis, confidence, audit and the event schema. Built in: `react` (the previous loop, the default; `model` is an alias), `plan_execute` (one structured-output planning call returns a step plan with dependencies; independent steps run in parallel; one re-plan after a failure), `recipes` (regex or keyword recipes from `ai.ask.planner_config.recipes`, with optional answer templates, falling back to another planner) and `router` (rules, recipes, then `plan_execute` or `react` by question shape). Register more with `@register_planner`, a class path or a `sajha.planners` entry point; worked example `sajha/examples/intelligence/docs_first_planner.py`. New optional `plan` event; Ask SAJHA shows the plan as a collapsible list. `AskResult` gains `planner`, `plan`, `conversation_id`, `turn`, `standalone_question`. `GET /api/ai/planners`; admins may pass `planner` on one ask.
-- **Conversation memory:** an ask with `conversation_id` (`"new"`, then the returned id) gets the recent turns as context, a gateway-written summary of older ones, and its question rewritten as a standalone question; the mock answers both calls deterministically. Per user, never shared; `ai.memory.retention_days` (30) and a per-user cap; `GET`/`DELETE /api/ai/conversations[/{id}]` (delete-my-history). Ask SAJHA now keeps a conversation (New chat starts a new one). **Schema:** two new tables, `ai_conversations` and `ai_conversation_turns`, in both schema files; on PostgreSQL run `db/scripts/postgresql/schema.sql` again before starting this version.
-- **Document search:** the `sajha_search_docs` tool and the help page's **Ask the docs** box search an index of SAJHA's own guides, `ai.rag.sources` folders in the storage backend, and admin uploads (`/api/ai/docs/*`), with citations (document, section, link). Passages are embedded through the `embedding` alias (`mock-embed` by default) and ranked by fusing vector and BM25 rankings; the in-process store (pure Python, persisted through storage, re-embeds only changed documents) is the default, pgvector is used when PostgreSQL has the extension and the optional `rag_chunks` table (a commented section at the end of `db/scripts/postgresql/schema.sql`).
-- **Fix:** tools added by Studio creators, composites, federation sync, API import or the file watcher are now searchable by Ask SAJHA at once. `ToolsRegistry.add_change_listener` fires on every register, unregister, enable and disable (once per `bulk()`), and the tool resolver listens: the lexical index rebuilds on the next search, the vector index re-syncs in the background with BM25 answering meanwhile. Previously only a full reload (or the API-import path) refreshed it.
-- Tests: `tests/ai/test_planners.py`, `tests/ai/test_memory.py`, `tests/ai/test_rag.py`, `tests/ai/test_tool_index_sync.py`.
+**Who can see and run what**
+- **Anonymous MCP and A2A callers see and run no registry tools, prompts or data resources by
+  default.** List what they may use in `mcp.anonymous.tools`, `mcp.anonymous.prompts` and
+  `mcp.anonymous.resources` (fnmatch), grant a role with `mcp.anonymous.role`, or refuse them with
+  `mcp.anonymous.enabled: false`. The anonymous agent card has no skills.
+- **Credentials that are sent but do not authenticate are rejected** (401 on `/mcp` and
+  `POST /a2a`, close code 1008 on `/mcp/ws`) instead of running as anonymous, in every
+  `mcp.auth.mode`. A stale web cookie alone still counts as no credentials.
+- **The REST catalog and the REST mirrors of MCP methods need credentials:** `GET /api/tools/list`,
+  `/api/tools/{tool}/schema`, `/api/tool-groups/*`, `GET /api/prompts/list`,
+  `GET /api/prompts/{name}`, `POST /api/resources/list|read` and `POST /api/completion/complete`
+  answer 401 where `/mcp` would, and list only what the caller may see.
+- One tool-access policy (`sajha/auth/access.py`) for REST, MCP (both eras, SSE, WebSocket, stdio),
+  A2A and async: API-key allowlist, denylist and regex modes are now enforced; external OAuth
+  identities without an account get the role named `api_consumer` (none exists by default).
+- Unauthenticated API/JSON requests (`/api`, `/mcp`, `/a2a`, `/admin/studio`, `/oauth`, any
+  non-GET, or `Accept: application/json`) get a JSON 401 instead of a redirect; 403s there are JSON.
+- Admin only now: `POST /api/logging/setLevel`, `GET /api/ws/sessions`, `GET /api/replay/recent`,
+  `GET /api/replay/tool/{tool}`, `GET /api/reports/users/activity`, the tool configuration page and
+  a tool schema page's resolved configuration; the shell endpoints need admin or `shell:execute`;
+  MCP `logging/setLevel` changes the server log level only for admins.
+- Async execution needs admin or `async:execute` plus tool access; file delivery only inside
+  `async.delivery.file.base_dir`; webhooks only to `async.delivery.webhook.allowed_urls` (empty,
+  the default, refuses every webhook).
+- **MCP Studio is open to the `developer` role.** Every Studio page and endpoint (`/studio/*`,
+  `/admin/studio/*` including Describe a tool and Import an API, `/api/studio/*`) and creating a
+  composite now need the admin role or the `studio` permission (`require_studio`); the seeded
+  `developer` role's `studio` row, never checked before, now grants it, and the navigation shows
+  Studio to those users. Developers can deploy and delete Studio tools and deploy Describe a tool
+  proposals through the same policy-engine gate (add a `studio.deploy` rule to narrow it); they see
+  only their own Describe drafts and change or delete only composites they created. Admin only
+  still: deploying Python code or script tools while `sandbox.enforce_for_generated_tools` is
+  `false`, sandbox configuration, federation, connectors, policies, approvals, audit and users.
+  Remove the `studio` row from `developer` (or the role from users) to keep Studio admin-only.
 
-### Policy engine, tamper-evident audit and SIEM export
-Details: [Policy and Audit](docs/architecture/Policy%20and%20Audit.md), [Tutorial 20](docs/tutorials/TUTORIAL_20_policies_approvals_and_audit.md), [Configuration Reference](docs/getting-started/Configuration%20Reference.md#policy-and-audit).
-- **Rules on every tool call:** `sajha/policy/` evaluates declarative rules (YAML or JSON in `config/policies/`, read through the storage backend, hot-reloaded) in `BaseMCPTool.execute_with_tracking`, the one place MCP (both eras, stdio, WebSocket), REST, the playground bridge, A2A, Ask SAJHA, async tasks and federated tools run a tool; composite steps are governed too. A rule matches on tool globs, groups, annotations (`destructiveHint`), caller (anonymous, user, role, API key, auth type), source and time window, and on argument values.
-- **Effects and obligations:** `allow`, `deny` with a reason, `require_approval`; argument constraints (`enum`, `min`/`max`, `pattern`, `not_pattern`, length, type); rate limits and calendar quotas per tool, user or API key in the state store (shared by workers on `redis`/`database`); output redaction of emails, phone numbers, Luhn-valid card numbers, national IDs (US SSN, UK NINO, Aadhaar, PAN, Canadian SIN) and custom regexes, redacted or masked; prompt-injection screening of results (federation's markers) with `flag`, `strip` or `block`. Deny-overrides; `policy.default_effect: deny` is an allowlist mode.
-- **Approvals:** `approver: caller` asks the user (an MRTR form on 2026-07-28 clients with elicitation; the Confirm button in Ask SAJHA); `approver: admin` (and every other client) queues the call on the new **Approvals** page (`/admin/approvals`) and returns its id; once approved, the same caller's identical call runs once. No self-approval by default; optional webhook or Slack notification through the alert webhook's SSRF guard. REST answers 403 (denied), 202 (approval pending), 429 with `Retry-After` (rate limit or quota); MCP a tool error with `_meta["io.sajha/policy"]`.
-- **Default unchanged:** the shipped `config/policies/00-default.yaml` has no rules and the two example policies are disabled. Decisions are counted (`sajha_policy_decisions_total`, `sajha_policy_redactions_total`, `sajha_policy_output_flags_total`) and every non-allow decision is audited. **Policies** page (`/admin/policies`) with a test bench that evaluates a described call without running it.
-- **Tamper-evident audit:** every audit record (every `AuditLogger` event and every policy decision) is hash-chained (`sha256` of canonical JSON that carries the previous hash), one chain per process so workers never contend, and anchored every `audit.chain.anchor_every` records, every `anchor_interval_seconds` and at shutdown with an RS256 signature from the server's OAuth key (public half at `/oauth/jwks`). `python -m sajha.audit verify` (and the new **Audit** page, `/admin/audit`) detects edited, deleted, inserted or reordered records, edited query columns, rewritten tails and truncation. `audit_log` is still written for the existing audit API.
-- **SIEM export** (`audit.export.sinks`, or `SAJHA_AUDIT_EXPORT_SINKS`): syslog (RFC 5424, octet-counted, TCP or TLS), HTTP (Splunk HEC, Datadog, generic; SSRF-guarded, pinned address) and rotated JSON Lines files, as JSON, CEF or OCSF-style JSON; batched, retried with backoff, bounded queues with counted drops (`sajha_audit_export_total`).
-- **Schema:** two new tables, `audit_chain` and `audit_anchors`, in both schema files. SQLite creates them at start-up; on PostgreSQL run `db/scripts/postgresql/schema.sql` again (it only creates what is missing) before starting this version.
-- Tests: `tests/test_policy.py`, `tests/test_audit_chain.py`.
+**Tools behave differently**
+- **Tool arguments are validated against the tool's JSON Schema** before it runs: a mismatch is
+  `-32602` on 2026-07-28, an `isError` result on 2025-11-25, 400 on `POST /api/tools/execute`.
+- **Studio Python code tools and script tools run in the sandbox**, not in the server: no server
+  environment, no network unless the tool's `sandbox` block allowlists hosts, a script's
+  `working_directory` is ignored. `sandbox.enforce_for_generated_tools: false` restores in-process
+  loading.
+- **OLAP tools** accept only dimensions and measures declared on the dataset in
+  `config/olap/datasets.json` (raw column names are refused); each OLAP tool runs only its own
+  operation (`_tool_name` is refused).
+- **`duckdb_*` tools** run one parser-checked `SELECT`/`EXPLAIN` on in-memory copies of the data
+  files with external access off; table and column names must exist; `having` is
+  `<name> <op> <value>` conditions; `duckdb_analytics.db` is no longer written.
+- **FBI tools** call the current Crime Data Explorer API with new input and output schemas
+  (`fbi_search_agencies` needs `state`). **FRED** tools return the newest observations first.
 
-### Connected accounts: tools that act as the user at GitHub, Slack, Google, Microsoft 365, ...
-Details: [Connected Accounts](docs/architecture/Connected%20Accounts.md), [Connected Account Tools Reference Guide](docs/tools/enterprise/Connected%20Account%20Tools%20Reference%20Guide.md), [Tutorial 18](docs/tutorials/TUTORIAL_18_connect_your_accounts.md).
-- **Link once:** `/account/connections` (user menu → Connected accounts) links a user's own account at a third-party service with OAuth 2.0 authorization code, PKCE S256 where the service supports it, an exact redirect URI, and a single-use `state` bound to the SAJHA user and the browser; Connect and Disconnect are CSRF-protected forms; Disconnect revokes at the provider where it can.
-- **Providers are configuration:** templates for `github`, `slack` (user tokens), `google`, `microsoft` (tenant), `atlassian` and `notion`, enabled by a client id and a `client_secret_ref` under `accounts.providers`, or `SAJHA_ACCOUNTS_PROVIDERS_<ID>_<FIELD>`; any OAuth 2.0 service as a custom provider. Each provider lists the only hosts its tokens may be sent to (`api_hosts`).
-- **Token vault:** the `connected_accounts` table (added to both schema files) holds tokens as AES-256-GCM ciphertext bound to their user and provider; the key is `SAJHA_ACCOUNTS_VAULT_KEY` or generated into the secrets file, with `accounts.vault.previous_keys` for rotation and a `key_provider` hook for KMS. Refresh before expiry, one worker at a time (a state-store lock, safe for rotating refresh tokens); a refused refresh marks the link "reconnect".
-- **Tool binding:** a tool config's `"auth": {"connected_account": "<provider>", "scopes": [...]}` makes every call run with the caller's token (MCP both eras, REST, Ask SAJHA); per-user results are never cached. New tools: `github_list_my_repos`, `github_create_issue`, `slack_post_message`, `google_drive_search`, `ms365_list_my_events`, and `connected_http_request` (an administrator binding of a provider's API by base URL, methods and path patterns). They are listed only while their provider is configured.
-- **"Connect your account":** MCP 2026-07-28 clients with URL-mode elicitation get an MRTR URL elicitation and retry; 2025-11-25 clients get `-32042` URLElicitationRequiredError; others a tool error with the connect URL; REST answers 428 with `connect_url`; Ask SAJHA shows a **Connect &lt;service&gt;** card (`needs_connection` event, `stopped_by: needs_connection`).
-- **Federation token passthrough:** an upstream with `auth: {type: connected_account, provider: ...}` receives each caller's own token on a connection opened for that call (discovery uses `auth.discovery`); the item 6.x deferred.
-- **Administration:** `/admin/connections` shows who linked what (never a token), unlinks a user's account and re-encrypts the vault after a key change. Audit events `connected_account_*`.
+**Configuration and removals**
+- Storage environment variables (`SAJHA_STORAGE_BACKEND`, `SAJHA_S3_BUCKET`,
+  `AZURE_STORAGE_CONNECTION_STRING`, ...) now override `application.yml`. `.env` names that are
+  not settings no longer stop start-up. `async.*` and `shell.*` keys now take effect.
+- Several workers on `state.backend: memory` get a start-up warning: shared state needs `redis`
+  or `database` ([Scaling and State](docs/architecture/Scaling%20and%20State.md)).
+- Removed: the top-level `oauth:` block in `config/application.yml` (never read; MCP authorization
+  is `mcp.auth`), `sajha/core/auth_manager.py` and `sajha/core/apikey_manager.py`, the legacy SSE
+  `Last-Event-ID` replay, a second unreachable `GET /health`.
 
-### API Import: OpenAPI, Swagger and GraphQL to tools
-Details: [API Import](docs/architecture/API%20Import.md), [Tutorial 19](docs/tutorials/TUTORIAL_19_import_an_openapi_spec.md).
-- **Studio → Import an API** (`/studio/api-import`, admins): an OpenAPI 3.x or Swagger 2.0 spec (URL, upload or paste) or a GraphQL endpoint (introspection) becomes a preview of every operation: proposed tool name (`<prefix>_<operationId>`), JSON Schema 2020-12 input and output (every `$ref` inlined, local, relative and remote; cycles cut), `readOnlyHint` / `destructiveHint` / `idempotentHint`, flags for unsupported multipart bodies and name collisions. Filter by tag, method or path; choose the server and its variables; set credentials (API key in header, query or cookie; bearer; basic; OAuth 2.0 client credentials; the caller's connected account) as secret references; test-call one operation; deploy the selection, live at once.
-- **No generated code:** every imported tool is a JSON config run by one executor (`sajha.api_import.executor.ImportedAPITool`), so no sandbox is involved; 2xx answers come back as `{status, body, next_page?}`, other statuses, timeouts and refused addresses as tool errors.
-- **SSRF guard** on the spec URL, remote `$ref` documents, GraphQL endpoints, token URLs and every call (pinned vetted address, redirects re-checked, GET only); `api_import.allow_localhost`, `allow_private_networks`, `allowed_hosts`.
-- **Re-import diff:** an import record per API (`config/api_imports/<api_id>.json`, storage backend; no database table) shows operations as new, changed, unchanged or removed, and a deploy updates tools in place. Caps: `api_import.max_tools` per API, spec, response and `$ref` limits; an optional calls-per-minute limit per API.
-- **CLI:** `sajha studio import-openapi <url|file> [--dry-run] [--select 'GET /path'] [--auth JSON] [--graphql]`. Endpoints under `/admin/studio/api-import/`; Studio's delete removes an imported tool too.
-- **Ask SAJHA shortlists tools imported this way at once:** a deploy refreshes the tool-search index (a hot-load alone did not).
+### Protocol and clients
 
-### The web UI on phones and tablets
-Details: [Architecture §10](docs/architecture/Architecture.md) ("Small screens").
-- **No sideways page scroll** at 375, 390 or 768px wide: wide tables scroll inside their own box (`main.js` wraps them), the user and API key lists become one card per row on phones, Studio action bars and hero buttons wrap, and the "Full reference" link wraps.
-- **Navigation:** the hamburger and every menu entry are at least 44px tall; the mega-menu panels open as a scrollable accordion with a chevron. **Touch:** controls at least 40px, inputs at 16px (no iOS zoom on focus), small print at least 12px, iOS safe-area insets, and a `title` is shown on tap.
-- **Guides:** the contents list is a closed "Contents" disclosure on phones. **Charts** on Tool metrics, User activity and Reports keep a readable height.
-- **Fixed:** a table with both `data-enhance` and the automatic table controls got two search bars and two pagers; table-enhance's controls landed inside the scroll box. The user and API key tables had broken `class` attributes.
-- **Check:** `scripts/check_mobile.py` (Playwright) checks every page for page scroll, off-screen elements and a working phone menu, and reports small tap targets and small text; `tests/test_mobile_layout.py` keeps its route list live.
+- **OAuth 2.1 for `/mcp`** (`mcp.auth.mode`: `off`, the default, `optional` or `required`).
+  Resource server: RFC 9728 protected-resource metadata, `WWW-Authenticate` with
+  `resource_metadata` and `scope`, audience-bound RS256 access tokens, scopes `mcp:read` /
+  `mcp:tools`. Authorization server built in (SAJHA users; authorization code + PKCE S256, RFC 9207
+  `iss`, Client ID Metadata Documents with SSRF guards, rotating refresh tokens with reuse
+  detection, CSRF-protected consent) or an external issuer through its JWKS. API keys and SAJHA
+  JWTs keep working in every mode; the signing key is generated under `data/oauth/`. Conformance
+  `authorization` suite 3/3 for both spec versions; the server suites unchanged (43/43, 152/152);
+  the official SDK completes the flow end to end. [OAuth Guide](docs/protocol/OAuth%20Guide.md).
+- **MCP Apps** (`io.modelcontextprotocol/ui`): tools bind `ui://` views served by `resources/read`
+  as `text/html;profile=mcp-app` (`mcp.apps.enabled`, default on); example view for
+  `calc_loan_amortization`. **`x-mcp-header`** is validated when a schema loads (invalid
+  annotations dropped with a warning); `Mcp-Param-Symbol` on the quote tools.
+  [MCP Apps and Headers Guide](docs/protocol/MCP%20Apps%20and%20Headers%20Guide.md),
+  [MCP 2026-07-28 Compliance §4](docs/protocol/MCP%202026-07-28%20Compliance.md).
+- **MCP over stdio** (`sajha/cli/stdio.py`; `python run_server.py --stdio`, `sajha serve --stdio`)
+  for Claude Desktop, Claude Code and IDEs: both eras on one connection, nothing but protocol on
+  stdout, `notifications/cancelled` honoured, `list_changed` pushed; one caller per process
+  (`--user` / `SAJHA_STDIO_USER`, `--api-key` / `SAJHA_API_KEY`, else anonymous); the LLM gateway
+  only with `--with-ai`. Tested with the official SDK client in `legacy` and `auto` modes.
+- **The `sajha` command line** (`pip install './clientsdk[cli]'`): `login` (token stored 0600 in
+  `~/.config/sajha`), profiles, `tools list|show|call`, `prompts list|get`, a streamed `ask`,
+  `studio deploy|delete|import-openapi|describe`, `federation list|add|refresh|remove`,
+  `workflows list|run|runs|show`, `db check|sql`, `health`, `config show`, `completion`, `serve`;
+  exit codes 0-6. [Command Line](docs/clients/Command%20Line.md),
+  [Tutorial 15](docs/tutorials/TUTORIAL_15_sajha_cli_and_claude_desktop.md).
+- **Per-era argument validation** is stated in the MCP Protocol Guide ("Argument validation").
 
-### Security: the duckdb_* tools are sandboxed; data resources follow the anonymous policy (behaviour change)
-Details: [Security Model](docs/security/Security%20Model.md) ("Fixes", "Tool access"), [DuckDB Tool Reference Guide](docs/tools/analytics/DuckDB%20Tool%20Reference%20Guide.md), [OLAP Analytics Tool Reference Guide](docs/tools/analytics/OLAP%20Analytics%20Tool%20Reference%20Guide.md#datasets-datasetsjson), [Configuration Reference](docs/getting-started/Configuration%20Reference.md#anonymous-access-mcpanonymous).
-- **`duckdb_query`, `duckdb_describe_table`, `duckdb_get_stats`, `duckdb_aggregate`, `duckdb_refresh_views`, `duckdb_list_tables`, `duckdb_list_files`:** table and column names were pasted into SQL (`DESCRIBE {table_name}`), `having` was raw SQL, `duckdb_query` blocked writes by keyword substring, and every query could read any file or URL (`read_text`, `read_csv`, `read_parquet`). Now the data files are copied into one in-memory sandbox per data directory, after which `enable_external_access` is off and the configuration locked; names must exist in the catalog and are quoted; `having` is `<name> <op> <value>` conditions joined by `AND` with bound values; `duckdb_query` runs one parser-checked `SELECT`/`EXPLAIN` statement (the `duckdb_sql` rule). Tables replace the old views, and `duckdb_analytics.db` is no longer written. Tests: `tests/test_duckdb_tools_sandbox.py`.
-- **`sajha://data/*` resources** were listed and readable by anonymous callers. Anonymous callers now see only URIs matching the new `mcp.anonymous.resources` (default none; `SAJHA_MCP_ANONYMOUS_RESOURCES`) in `resources/list` and `resources/read`, both eras; signed-in callers read every data file. `POST /api/resources/read` now serves data files as well, with the same reader, path-traversal guard and policy.
-- **The `customer_olap` dataset failed on every query:** its joins referenced a `customers` alias its `source_table` never set, its qualified columns (`customers.region`) could not resolve outside the joined subquery, filters on a column two joined files share (`product_category`) were ambiguous, and the shared `measures.json` entries (`total_revenue` = `SUM(amount)`) overrode its own. The source table is now `... AS customers`, its columns are unqualified, filters on a joined dataset apply over the joined row, and a dataset's inline dimension or measure wins over the shared definition of the same name.
+### Security fixes
 
-### Database schema: one schema file per database; no DDL on PostgreSQL (behaviour change)
-Details: [Database Setup](docs/getting-started/Database%20Setup.md).
-- **PostgreSQL was unusable.** Every statement of the old `db/scripts/postgresql/001_schema.sql` failed (`CURRENT_TIMESTAMPTZ`, `DEFAULT FALSE` on integer columns, two primary keys on `prompt_tags`, integer seed values for booleans), and the start-up runner executed all statements in one transaction and counted failures as skips, so every pod logged "0 statements executed" and sign-in answered 500. SQLite's `prompt_tags` (same double primary key) was never created either.
-- **One schema file per database, no migrations.** `db/scripts/postgresql/schema.sql` and `db/scripts/sqlite/schema.sql` hold every table, column, key and index SAJHA uses, including the tables features used to create on first use (the database state store `sajha_state`/`sajha_state_events`, the usage ledger `obs_usage_events`, the connected-accounts vault `connected_accounts`); `seed.sql` beside each holds the default roles, permissions and the `admin` user (flagged `must_change_password`). Every statement is `CREATE ... IF NOT EXISTS`, each file is one transaction. `001_schema.sql` and `002_seed.sql` are gone. The never-used tables `tenant_users`, `rate_limit_log`, `llm_usage` and `user_ai_preferences` are no longer created (existing ones are left alone). `tests/test_db_schema.py` keeps both files in step with each other and with every SQLAlchemy model and `Table` in the code, and applies the PostgreSQL file to a real server when `SAJHA_TEST_CONNECTORS_POSTGRES_URL` is set.
-- **PostgreSQL: SAJHA never creates or alters tables.** An operator runs `schema.sql` (then `seed.sql`) once with `psql`. At start-up SAJHA checks that every table and column its code uses exists and, if not, refuses to start, naming what is missing and the `psql` command (`db.schema_check: strict`, the default; `warn` starts anyway). The state store, the usage ledger and the token vault only check for their tables there. PostgreSQL sessions run in UTC (`TIMESTAMPTZ` columns). **SQLite** (development) runs its `schema.sql` at start-up, and `seed.sql` only when the database is new.
-- **Upgrades:** a release that changes the schema lists, in its entry here, the SQL to run for each database. This one needs nothing beyond `schema.sql` (PostgreSQL could not have been set up before; an existing SQLite database gets the new tables at start-up).
-- **Helper** `python -m sajha.db` (`sajha db ...` from the client CLI): `check` (tables and columns the configured database lacks; exit 3 when any) and `sql --dialect postgresql|sqlite [--seed]` (prints a file for `psql -f`). It never changes the database.
-- **Deployments.** Helm: `database.postgresql.schemaCheck`; the install notes print the two `psql` commands. Hetzner `deploy.sh` and cloud-init start only PostgreSQL and print the schema step; bare-metal `install.sh` prints the `psql` commands and starts SAJHA only after them; AWS: `psql` from a host that reaches RDS.
-### Security: OLAP SQL injection, the rest of the public catalog (behaviour changes)
-Details: [Security Model](docs/security/Security%20Model.md) ("Tool access", "Fixes"), [OLAP Analytics Tool Reference Guide](docs/tools/analytics/OLAP%20Analytics%20Tool%20Reference%20Guide.md#what-callers-can-and-cannot-put-into-sql), [DuckDB Tool Reference Guide](docs/tools/analytics/DuckDB%20Tool%20Reference%20Guide.md#duckdb_sql), [FRED Tool Reference Guide](docs/tools/market-data/FRED%20Tool%20Reference%20Guide.md), [MCP Protocol Guide](docs/protocol/MCP%20Protocol%20Guide.md) ("Argument validation").
-- **OLAP SQL injection.** Every OLAP engine (pivot, rollup, window, time series, statistics, cohort), `olap_top_n` / `olap_contribution`, `customer_olap_pivot` and `OLAPQueryBuilder` pasted filter values, dimension and measure names, operators, aggregations, sort directions and numbers into SQL (`{"value": "x' OR '1'='1"}` returned every row). Now (`sajha/olap/sql_safety.py`): filter values and `date_range` dates are DuckDB named parameters; dimension and measure names must be declared on the dataset in `config/olap/datasets.json` and resolve to their configured expressions (`Unknown dimension ...` otherwise; raw columns are no longer accepted); operators, aggregations, directions, time grains and comparison types are allowlisted; `n`, `bins`, `periods`, `limit` and window sizes must be integers. `sales_analysis` declares `date`, `quarter`, `order_year`, `order_month`, `payment_method` and `customer_id`, and `financial_metrics` `date` and `quarter`, which the shipped examples and cohort analysis use.
-- **`duckdb_sql` is read-only for real.** `SELECT 1; DROP TABLE orders` ran both statements, and `read_text('/etc/passwd')` or a URL could be read. It now runs exactly one statement that DuckDB's parser classes as `SELECT` or `EXPLAIN`; the CSV files are loaded into tables, then external access is disabled and the configuration locked.
-- **Prompts, catalog resources, completion and the agent card follow the tool-access policy.** `prompts/list`, `prompts/get`, `GET /api/prompts/list`, `GET /api/prompts/{name}`, the `sajha://tools/catalog` and `sajha://prompts/catalog` resources (MCP and `POST /api/resources/*`), `completion/complete`, the MCP `tool/schema`-style methods and `GET /.well-known/agent.json` described every tool and prompt to anyone. Signed-in callers now see the tools their access allows and every prompt; anonymous callers see `mcp.anonymous.tools` and the new `mcp.anonymous.prompts` (both empty by default), so the anonymous agent card has no skills. `tool/description` no longer fails with an internal error.
-- **FRED:** every `fred_*` tool returned the *oldest* `limit` observations (FRED sorts ascending); they now request `sort_order=desc` and return the latest observations, newest first.
-- **Plugins:** `min_sajha_version` was compared as a string (`"5.9.0" > "5.10.0"`); it is compared as a version.
-- **OLAP semantic layer:** saving `datasets.json` wrote the resolved data directory (this machine's absolute path) over `${data.duckdb.dir}`; the original text is kept.
-- **Docs:** the MCP Protocol Guide states the per-era answer to arguments that fail the `inputSchema` (unchanged: `-32602` on 2026-07-28, an `isError` result on 2025-11-25 per SEP-1303).
+Each is described with its code location in [Security Model §4](docs/security/Security%20Model.md#4-fixes-since-600).
+- **SQL injection in the OLAP tools** (pivot, rollup, window, time series, statistics, cohort,
+  `olap_top_n`, `olap_contribution`, `customer_olap_pivot`, `OLAPQueryBuilder`): filter values and
+  dates are bound parameters, names resolve only through the dataset's declarations, operators,
+  aggregations, directions, time grains and numbers are allowlisted or coerced
+  (`sajha/olap/sql_safety.py`). `sales_analysis` and `financial_metrics` declare the columns the
+  shipped examples use.
+- **`duckdb_sql`** ran every statement after a `SELECT` and could read any file or URL; the other
+  `duckdb_*` tools pasted table and column names (and `having`) into SQL. All now run on locked,
+  in-memory sandboxes (see Breaking changes).
+- **Catalog visibility:** prompts, the `sajha://tools/catalog` and `sajha://prompts/catalog`
+  resources, `completion/complete`, the MCP `tool/schema`-style methods, the A2A agent card, the
+  REST catalog, the console's tool pages and the tool names on public pages follow the caller's
+  access; `sajha://data/*` resources follow `mcp.anonymous.resources`; `tool/description` no longer
+  fails with an internal error.
+- **Invalid credentials** ran as anonymous on MCP and A2A; **A2A** ran tools anonymously and showed
+  every task (tasks are now visible only to their creator).
+- **Async execution** wrote to any path and posted to any URL (now the CIMD SSRF guard and the
+  allow-lists).
+- Enabling or disabling a tool wrote its resolved configuration, API keys included, back to its
+  config file (now only `enabled` changes); a tool's schema page showed that configuration to every
+  signed-in user.
+- `/login?next=` open redirect; path traversal in `sajha://data` resources; WebSocket
+  authentication called a method that did not exist (an invalid token now closes the connection
+  with 1008); security headers overwrote stricter per-route values.
+- `sajha/auth/password.py` raised `NameError` on an invalid hash; an API key with an expiry date
+  failed on SQLite (naive and aware datetimes compared).
+- nginx (`deployment/baremetal/nginx.conf`) proxies `/mcp`, `/api/mcp` and `POST /api/ai/ask`
+  unbuffered; compose files no longer pass placeholder secrets.
 
-### Fixes from the documentation audit (some behaviour changes)
-Details: [Security Model](docs/security/Security%20Model.md), [API Reference](docs/protocol/API%20Reference.md), [MCP Protocol Guide](docs/protocol/MCP%20Protocol%20Guide.md) ("Argument validation"), [SharePoint Tool Reference Guide](docs/tools/enterprise/SharePoint%20Tool%20Reference%20Guide.md).
-- **Security: OLAP operations.** An OLAP tool took the operation to run from a caller-supplied `_tool_name`, so any advertised OLAP tool could run every OLAP operation, including the unadvertised `olap_generate_sample_data` (which writes files). Each tool now runs only the operation it is registered as; `_tool_name` is refused.
-- **Security: REST catalog.** `GET /api/tools/list`, `/api/tools/{tool}/schema` and `/api/tool-groups/*` needed no credentials and listed every tool. They now apply the MCP `tools/list` policy (anonymous callers: `mcp.anonymous`, no tools by default) and answer 401 where `/mcp` would. The console's `/tools` pages, `/help/tools`, `/about`, Ask SAJHA and the public landing page name only tools the viewer may see (counts stay whole-catalog). A tool's schema page shows its resolved configuration to administrators only.
-- **Security: enable/disable** wrote a tool's resolved configuration, API keys included, back into its config file; now only `enabled` changes.
-- **Tool arguments are validated against the tool's JSON Schema** (`pattern`, `enum`, `minimum`/`maximum`, types, `additionalProperties`, ...) in `BaseMCPTool.execute_with_tracking`, before the tool runs. A mismatch is `-32602` on 2026-07-28, an `isError` result on 2025-11-25 (input validation is a tool execution error there), 400 on `POST /api/tools/execute`. Schema fixes so valid calls pass: Yahoo `symbol` accepts `BRK-A`, `BTC-USD`, `7203.T`, `EURUSD=X`, `^GSPC` (and lower case); World Bank country codes and Wikipedia language codes accept what the tools accept; the SharePoint schemas' `required` moved to a top-level list.
-- **FRED:** `fed_get_latest` and `fed_get_common_indicators` returned the *oldest* observation (limit 1, ascending); they ask for the newest first and skip missing (`.`) values.
-- **Federation:** every upstream shared one rate-limit window; each now has its own.
-- **Plugins:** `.py` tools in a plugin never registered (`register_tool` was called with two arguments); they register, and only classes the file defines count.
-- **SharePoint tools** use Microsoft Graph throughout (the token was for Graph but calls went to the SharePoint REST API); the token expiry no longer raises (`timedelta`), values are URL-encoded and OData strings escaped, and `config/application.yml` gains empty `sharepoint.*` and `azure.tenant.id` keys read from `SHAREPOINT_SITE_URL`, `SHAREPOINT_CLIENT_ID`, `SHAREPOINT_CLIENT_SECRET`, `AZURE_TENANT_ID`. Unconfigured tools answer "SharePoint is not configured". The Studio SharePoint creator writes a valid schema.
-- **`${key:default}`** is honoured by `PropertiesConfigurator` too, and the DuckDB/SQL-select tools and the OLAP datasets resolve their data directory instead of using the literal text (which created directories named `${data.duckdb.dir:.` in the working directory; removed).
-- **Change events:** loading N tools published 3·N change events (about 1,500 rows in the database state store at start-up). Bulk registration (start-up, reloads, composites, federation sync, the config poller) now publishes at most once and not at all when the catalog did not change; repeats of an event relayed to other workers within 0.5 s are coalesced.
-- **Landing page** counts (LLM provider types, database tables, HTTP endpoints) come from the running server instead of fixed numbers.
-- **Removed dead code:** the top-level `oauth:` block in `config/application.yml` and its `Settings` fields (never read; MCP authorization is `mcp.auth`), `sajha/core/auth_manager.py` and `sajha/core/apikey_manager.py` (unused), the legacy SSE `Last-Event-ID` replay (each stream is per connection), and a second, unreachable `GET /health`.
-- **Console:** the MCP Studio menu lists the SharePoint creator.
-- **Deployment:** bare-metal `sajha.service` makes `logs/`, `temp/` and `sajha/tools/impl/` writable, and `nginx.conf` streams `POST /api/ai/ask` unbuffered; the Hetzner compose file passes the session secret (`SESSION_SECRET`); the AWS stack passes the `sajha/<env>/app` secret to the tasks (`SAJHA_SECRETS_ARN`, exported by `bootstrap.sh`); stale version headers removed.
+### Governance
 
-### Security hardening (behaviour changes)
-Details: [Security Model](docs/security/Security%20Model.md), [Configuration Reference](docs/getting-started/Configuration%20Reference.md).
-- **Secrets.** `config/application.yml` no longer ships JWT or session secrets. Empty secrets are generated once into `data/secrets/server_secrets.json` (mode 0600, git-ignored; `auth.secrets_file`), so existing JWTs signed with the old placeholder stop working and users sign in again. A secret (or `mcp.mrtr.state_secret`) set to any placeholder SAJHA ever shipped stops start-up. The MRTR secret derives from the persisted session secret, so `requestState` survives restarts.
-- **Tool access everywhere.** One policy (`sajha/auth/access.py`) for REST, MCP (both eras, SSE, WebSocket), A2A and async: users by role permissions (`read` lists, `execute` runs), API keys by their tool access mode (allowlist, denylist and regex are now enforced, and keys no longer get 403 on `POST /api/tools/execute`), external OAuth identities without an account by a role named `api_consumer` (none by default). **Anonymous MCP and A2A callers see and run no registry tools by default**: list them in `mcp.anonymous.tools`, grant a role with `mcp.anonymous.role`, or refuse anonymous callers with `mcp.anonymous.enabled: false`. MCP `logging/setLevel` changes the server log level only for admins.
-- **A2A.** Tool runs need execute access; tasks are visible only to their creator.
-- **Async execution.** Needs admin or `async:execute` plus tool access; file delivery only inside `async.delivery.file.base_dir`; webhooks only to `async.delivery.webhook.allowed_urls` (empty = none) with the CIMD SSRF guard; tasks scoped to their owner. `async.*` and `shell.*` keys now take effect (they were dead code in `config.py`).
-- **Admin-only endpoints.** `POST /api/logging/setLevel`, `GET /api/ws/sessions`, `GET /api/replay/recent`, `GET /api/replay/tool/{tool}`, `GET /api/reports/users/activity`, the tool configuration page; the shell endpoints need admin or `shell:execute`.
-- **Sign-in.** Account lockout (`auth.login.max_failed_attempts`, `lockout_minutes`; 423) and a failed-sign-in limit per IP (`auth.login.ip_max_failures`, `ip_window_seconds`; 429) on the web form, `POST /api/auth/login` and the OAuth sign-in. The old 5-per-minute limit on the JSON login (which counted successful logins) is gone.
-- **Passwords.** Change-password page `/account/password` and `POST /api/auth/change-password`; admin reset `POST /api/admin/users/{uid}/password`; password policy (8+ characters, no well-known defaults); `users.must_change_password` with a banner for the seed `admin`/`admin123`, admin-set passwords and default passwords. `POST /api/admin/users/create` now requires a password.
-- **Errors.** Unauthenticated API/JSON requests (`/api`, `/mcp`, `/a2a`, `/admin/studio`, `/oauth`, any non-GET, or `Accept: application/json`) get a JSON 401 instead of a redirect; 403s on those are JSON too.
-- **WebSocket.** An invalid `token`/`api_key` closes the connection (1008) instead of falling back to anonymous.
-- **Config.** `.env` names that are not settings no longer stop start-up (`extra='ignore'`; unknown `SAJHA_*` names are logged). Storage env vars (`SAJHA_STORAGE_BACKEND`, `SAJHA_S3_BUCKET`, `AZURE_STORAGE_CONNECTION_STRING`, ...) now override `application.yml`. `ai.tool_search.enabled`/`persist` are parsed as booleans. New `alpha_vantage.api.key` (`ALPHA_VANTAGE_API_KEY`). `sajha/auth/password.py` no longer raises `NameError` on an invalid hash.
-- **nginx** (`deployment/baremetal/nginx.conf`): `/mcp` and `/api/mcp` are proxied unbuffered (SSE responses to POST). Compose files no longer pass placeholder secrets.
+- **Policy engine** (`sajha/policy/`): declarative rules (YAML or JSON in `config/policies/`,
+  through the storage backend, hot-reloaded) evaluated in `BaseMCPTool.execute_with_tracking`, the
+  one place MCP (both eras, stdio, WebSocket), REST, the playground bridge, A2A, Ask SAJHA, async
+  tasks, workflows and federated tools run a tool; composite steps too. Matches on tool globs,
+  groups, annotations, caller, source, time window and argument values. Effects `allow`, `deny`,
+  `require_approval`; argument constraints; rate limits and calendar quotas in the state store;
+  output redaction (emails, phone numbers, Luhn-valid cards, US SSN, UK NINO, Aadhaar, PAN,
+  Canadian SIN, custom regexes); prompt-injection screening of results (`flag`, `strip`, `block`).
+  Deny-overrides; `policy.default_effect: deny` is an allowlist mode. REST answers 403, 202
+  (approval pending) or 429 with `Retry-After`; MCP a tool error with `_meta["io.sajha/policy"]`.
+  Default unchanged: the shipped `00-default.yaml` has no rules and the two examples are disabled.
+- **Approvals:** `approver: caller` asks the user (an MRTR form on 2026-07-28 clients with
+  elicitation; Confirm in Ask SAJHA); `approver: admin` queues the call on the **Approvals** page
+  (`/admin/approvals`); an approved call runs once for the same caller; no self-approval by
+  default; optional webhook or Slack notification. **Policies** page (`/admin/policies`) with a test
+  bench. Metrics `sajha_policy_decisions_total`, `sajha_policy_redactions_total`,
+  `sajha_policy_output_flags_total`; every non-allow decision is audited.
+- **Tamper-evident audit** (`sajha/audit/`): every audit record and policy decision is hash-chained
+  (one chain per process), anchored every `audit.chain.anchor_every` records, every
+  `anchor_interval_seconds` and at shutdown with an RS256 signature from the OAuth key (public
+  half at `/oauth/jwks`). `python -m sajha.audit verify` and the **Audit** page (`/admin/audit`)
+  detect edited, deleted, inserted or reordered records, rewritten tails and truncation.
+  `audit_log` is still written for the existing audit API.
+- **SIEM export** (`audit.export.sinks`): syslog (RFC 5424, TCP or TLS), HTTP (Splunk HEC, Datadog,
+  generic; SSRF-guarded) and rotated JSON Lines files, as JSON, CEF or OCSF-style JSON; batched,
+  retried, bounded queues with counted drops (`sajha_audit_export_total`).
+  [Policy and Audit](docs/architecture/Policy%20and%20Audit.md),
+  [Tutorial 20](docs/tutorials/TUTORIAL_20_policies_approvals_and_audit.md).
+- **Connected accounts** (`sajha/accounts/`): users link their own account at a third-party service
+  once on `/account/connections` (OAuth 2.0 authorization code, PKCE S256 where supported, exact
+  redirect URI, single-use `state` bound to the user and browser, CSRF-protected Connect and
+  Disconnect; Disconnect revokes where the provider can). Provider templates `github`, `slack`,
+  `google`, `microsoft`, `atlassian`, `notion` (or any OAuth 2.0 service) under
+  `accounts.providers`, each limited to its `api_hosts`. Token vault: AES-256-GCM in
+  `connected_accounts`, key from `SAJHA_ACCOUNTS_VAULT_KEY` or the secrets file, rotation with
+  `accounts.vault.previous_keys`, a KMS hook; refresh one worker at a time. A tool config's
+  `"auth": {"connected_account": ...}` runs every call with the caller's token, never cached; new
+  tools `github_list_my_repos`, `github_create_issue`, `slack_post_message`, `google_drive_search`,
+  `ms365_list_my_events`, `connected_http_request`, listed only while their provider is configured.
+  "Connect your account": an MRTR URL elicitation (2026-07-28), `-32042` (2025-11-25), a tool error
+  with the URL, 428 on REST, a **Connect** card in Ask SAJHA. Federated upstreams can receive each
+  caller's own token. `/admin/connections` shows who linked what (never a token).
+  [Connected Accounts](docs/architecture/Connected%20Accounts.md),
+  [Tutorial 18](docs/tutorials/TUTORIAL_18_connect_your_accounts.md).
 
-### Observability: Prometheus, OpenTelemetry, usage and cost, alerts
-Details: [Observability](docs/architecture/Observability.md), [Tutorial 16](docs/tutorials/TUTORIAL_16_metrics_costs_and_alerts.md), [Configuration Reference](docs/getting-started/Configuration%20Reference.md#observability).
-- **`GET /metrics`** in the Prometheus text format, written by SAJHA (no `prometheus_client`): HTTP requests by route template/status with a latency histogram; MCP requests by era, method and outcome; tool calls by tool, group and outcome with latency, cache hits and breaker state; LLM calls, tokens and cost by provider and model; ask runs by `stopped_by`; auth failures and lockouts; sandbox runs; federated upstream health (when federation runs); process and Python metrics. Protected by `observability.metrics.auth` (`admin` default, `token` with `SAJHA_OBSERVABILITY_METRICS_TOKEN`, `none`); optional separate listener (`observability.metrics.port`); label cardinality controls (`tool_label`, `max_series`). With several workers and a shared `state.backend`, every scrape merges all workers under a `worker` label.
-- **OpenTelemetry** (opt-in, `observability.otel.*`, standard `OTEL_*` honoured): OTLP traces and metrics; spans HTTP → MCP → tool → LLM, continuing `traceparent` from the HTTP header and from MCP `params._meta`. The SDK no longer installs a tracer provider with no exporter when tracing is off.
-- **Usage & cost page** (`/monitoring/usage`, Tools → Monitor): tokens and cost by user, API key, role, provider, model and day; tool calls, error rates and p50/p95/p99 latency by tool; budgets against today's usage; date range, filters, CSV export. Administrators see everyone, others their own calls. Backed by a new usage ledger table `obs_usage_events` (a schema migration; `observability.usage.*`), written in batches off the request path. API: `/api/observability/usage`, `/api/observability/usage.csv`, `/api/observability/alerts`, `/api/observability/status`.
-- **Alerts.** `observability.alerts[]` rules (metric, threshold, window, cooldown; log, webhook or email) evaluated in the process; webhooks only to `observability.alerts_webhook.allowed_urls` through the shared SSRF guard. `deployment/observability/` ships a Prometheus scrape job, alerting rules and a Grafana dashboard.
-- **Fixed:** `/api/metrics` and `/api/metrics/tools` were always empty (nothing fed the collector); `execute_with_tracking` now does. The collector's two built-in log-only alert rules are replaced by the configurable rules.
+### Building and composing tools
 
-### Sandboxed user code (behaviour change)
-Details: [Sandbox](docs/architecture/Sandbox.md), [Tutorial 14](docs/tutorials/TUTORIAL_14_sandboxed_studio_tools.md).
-- **Studio Python code tools and script tools no longer run in the server.** The registry loads them as sandboxed stand-ins (`sajha/sandbox/tools.py`): a Python tool's module is parsed for its schemas but never imported, a script runs per call in a fresh sandbox. No server environment (secrets only by name through `sandbox.secrets_allowlist`, never `SAJHA_*`), a temp work dir, CPU/memory/file/process/output/time limits, no network unless the tool's `sandbox` block allowlists hosts. Callers (MCP, REST, A2A, Ask SAJHA) see the same contract; a sandboxed Python tool cannot import `sajha`, read files outside its work dir or use the network by default, and a script's `working_directory` is ignored. `sandbox.enforce_for_generated_tools: false` restores in-process loading. Built-in tools and Studio's template creators (REST, DB query, Power BI, LiveLink, SharePoint, OLAP) stay in-process.
-- **Backends** (`sandbox.default_backend`): `subprocess` (default; on Linux the runner adds user/PID/network namespaces, rlimits, Landlock and seccomp, each reported), `bwrap`, `nsjail`, `docker` (`--network none`, read-only root, limits, `runtime: runsc` for gVisor), or `auto`. The JSON runner protocol is `sajha/sandbox/runner.py`.
-- **The admin shell** (`/api/shell/python`, `/api/shell/bash`) runs through the same sandbox after its filters; `shell.python.memory_limit_mb` is now applied and `tier` reads `sandbox:<backend>`.
-- **Status:** `GET /api/sandbox/status` (admin, live probe of what is enforced), `sandbox` in `GET /health`, the backend in `/api/shell/capabilities`; the Python and script creator pages show the policy a new tool gets. Studio writes a `sandbox` block into the configs it generates.
-- New `sandbox.*` keys ([Configuration Reference](docs/getting-started/Configuration%20Reference.md#sandbox)); escape tests per installed backend in `tests/test_sandbox.py`.
+- **Sandboxed user code** (`sajha/sandbox/`): Studio Python code tools, script tools and the admin
+  shell run per call in a sandbox with no server environment (secrets only by name through
+  `sandbox.secrets_allowlist`), a temp work dir, CPU/memory/file/process/output/time limits and no
+  network unless allowlisted. Backends (`sandbox.default_backend`): `subprocess` (default; on Linux
+  user/PID/network namespaces, rlimits, Landlock and seccomp, each reported), `bwrap`, `nsjail`,
+  `docker` (`runtime: runsc` for gVisor), `auto`. `GET /api/sandbox/status`, `sandbox` in
+  `GET /health`; the creator pages show the policy a new tool gets. Built-in tools and Studio's
+  template creators stay in-process. [Sandbox](docs/architecture/Sandbox.md),
+  [Tutorial 14](docs/tutorials/TUTORIAL_14_sandboxed_studio_tools.md).
+- **Federation** (off by default; `sajha/federation/`): other MCP servers' tools (and optionally
+  prompts and resources) as registry tools named `<prefix>__<tool>`, under the same access policy,
+  cache, one circuit breaker and rate-limit window per upstream, metrics and usage events.
+  Upstreams over Streamable HTTP (either era), legacy SSE or stdio (`federation.allow_stdio`, off);
+  credentials by secret reference. Discovery at start-up, periodically, on change notifications
+  and on demand; results, progress, cancellation and MRTR pass through. Approval before exposure
+  and on change, injection screening, SSRF guard, admin page `/admin/federation`.
+  [Federation](docs/architecture/Federation.md), [Tutorial 11](docs/tutorials/TUTORIAL_11_federate_an_mcp_server.md).
+- **API Import** (`sajha/api_import/`, Studio → Import an API, `/studio/api-import`): an OpenAPI
+  3.x or Swagger 2.0 spec (URL, upload or paste) or a GraphQL endpoint becomes a preview of every
+  operation with generated names, JSON Schema 2020-12 input and output (`$ref` inlined, cycles
+  cut), annotations and flags; credentials as secret references (API key, bearer, basic, OAuth 2.0
+  client credentials, the caller's connected account); test-call; deploy the selection, live at
+  once. One generic executor, no generated code; SSRF guard on every fetch and call; a re-import
+  shows a diff (`config/api_imports/<api_id>.json`). CLI `sajha studio import-openapi`.
+  [API Import](docs/architecture/API%20Import.md), [Tutorial 19](docs/tutorials/TUTORIAL_19_import_an_openapi_spec.md).
+- **Describe a tool** (`/studio/describe`, `sajha studio describe "<text>"`): the model behind the
+  new `toolsmith` alias proposes a tool (`python`, `rest`, `dbquery`, `composite` or `openapi`)
+  with schemas, implementation and test cases. The proposal is checked as untrusted input (SQL
+  read-only and on listed tables, SSRF host checks, no generated credentials, risky imports and
+  unmentioned hosts flagged), rendered into the files Studio's generators write, and bound to a
+  SHA-256. Tests run before deploy (Python in the sandbox, REST against fixtures, DB queries on
+  the listed database); a deploy needs `approve: true`, the reviewed hash, tests on that hash and
+  the policy engine's consent to `studio.deploy`. Generated Python tools are always sandboxed; the
+  cases become the tool's `tests`. Works offline with `mock-toolsmith`. New keys `studio.describe.*`.
+  [Tool Generation](docs/architecture/Tool%20Generation.md), [Tutorial 24](docs/tutorials/TUTORIAL_24_describe_a_tool.md).
+- **Data connectors** (`sajha/connectors/`, the **Data Connectors** page `/admin/connectors`):
+  PostgreSQL, Redshift, MySQL/MariaDB, SQL Server, Oracle, Snowflake, BigQuery, Databricks SQL,
+  SQLite and DuckDB files; pgvector, Qdrant, Elasticsearch/OpenSearch. One record per connection at
+  `config/connectors/<id>.json` with secret references only. Generated tools
+  `<id>__list_tables`, `__describe_table`, `__query` (one read-only SELECT with bound `:name`
+  parameters), curated views as typed tools, and `__search` / `__list_collections` /
+  `__describe_collection` for vector and search kinds. Read-only behind three walls (the statement
+  guard, a read-only session where the database has one, the login's privileges); row, byte and
+  time limits; column masking (`hide`, `null`, `redact`, `hash`, `partial`, `pii`); per-user
+  credentials for Snowflake, BigQuery and Databricks through connected accounts; audit records
+  `connector.query` / `connector.rejected` and metrics. No connection ships.
+  [Data Connectors](docs/architecture/Data%20Connectors.md),
+  [Data Connectors Reference Guide](docs/tools/enterprise/Data%20Connectors%20Reference%20Guide.md),
+  [Tutorial 25](docs/tutorials/TUTORIAL_25_connect_a_database.md).
+- **Workflows** (`sajha/workflows/`, the **Workflows** page `/workflows`): DAGs of `tool`,
+  `composite`, `ask`, `condition`, `foreach`, `wait` and `approval` steps with `$steps.<id>`
+  mapping, joins, retries, timeouts. Triggers: timezone-aware cron (one fire per slot across
+  workers), HMAC-signed webhooks (`POST /api/workflows/{name}/hooks/{trigger}`), file arrival on
+  the storage backend, change-bus events, manual runs with `Idempotency-Key`. Durable runs: every
+  step stored, another worker resumes a run whose worker died, waits and approvals park the run,
+  cancel, re-run from a failed step, concurrency limits, delivery through the async router. Steps
+  run as the owner, under policy (source `workflow`), audited. Administrators can publish a
+  workflow as a tool. New keys `workflows.*`.
+  [Workflows](docs/architecture/Workflows.md), [Tutorial 22](docs/tutorials/TUTORIAL_22_schedule_a_workflow.md).
+- **Tool quality** (`sajha/quality/`): a test harness (`python -m sajha.quality test`; cases in
+  `config/tool_tests/*.yaml` or a tool's `tests`; JSON Schema and JSONPath assertions, latency
+  budgets; text, JSON and JUnit output) with HTTP cassettes that record once and replay offline;
+  a schema linter (`lint`); opt-in health probes on intervals or cron (`quality.probes.enabled`),
+  **Tool Health** page; evals for Ask SAJHA (`config/evals/*.yaml`, `eval|compare|runs`;
+  tool-selection and answer accuracy, steps, tokens, cost, latency), **Evals** page; tool versions
+  (`config/tool_versions/<tool>.yaml`) routed per call by API-key pin, user, role, sticky canary
+  percentage, then stable, with automatic rollback shared through the state store and sunset
+  dates, **Tool Versions** page. `GET /api/tool-versions` and
+  `POST /api/tool-versions/{tool}/deprecate`, placeholders until now, read and write the versions
+  files. Probes are off and no tool has a versions file by default.
+  [Tool Quality](docs/architecture/Tool%20Quality.md), [Tutorial 23](docs/tutorials/TUTORIAL_23_test_and_canary_your_tools.md).
 
-### Several workers and hosts: shared state (`state.backend`)
-Details: [Scaling and State](docs/architecture/Scaling%20and%20State.md), [Tutorial 13](docs/tutorials/TUTORIAL_13_run_sajha_on_several_workers.md), [Configuration Reference](docs/getting-started/Configuration%20Reference.md#state).
-- **State store** (`sajha/core/state/`): one interface with three backends. `memory` is the default, and with it a single process behaves as before. `redis` uses the optional `redis` package and Redis pub/sub. `database` uses SAJHA's database or `state.database.url`, in the tables `sajha_state` and `sajha_state_events`, with polled pub/sub. New keys: `state.backend`, `state.key_prefix`, `state.redis.url` (`SAJHA_STATE_REDIS_URL`), `state.database.url`, `state.database.poll_interval_ms`, `state.tasks.durable`.
-- **Moved into it:** OAuth pending consents, authorization codes (redemption is atomic and fixes the refresh family), refresh tokens and revoked families, DCR clients; 2025-11-25 sessions (a client's answer to a server request is relayed to the worker holding the stream); legacy HTTP+SSE queues (relayed); 2026-07-28 task records; rate limits and the sign-in IP throttle; LLM token usage and daily budgets; async-executor task records. Change-bus events reach `subscriptions/listen`, legacy SSE and WebSocket subscribers on every worker. Caches, circuit breakers, metrics and WebSocket sessions stay per worker on purpose: the inventory and the reasons are in the design document.
-- **Durable tasks.** With a shared backend (`state.tasks.durable: auto`), MCP task records are kept in the database. They survive a restart and any worker reads, cancels or answers them. `tasks/update` on another worker rebuilds the runner from the stored call spec. A `working` task whose worker stopped heart-beating is reported `failed` and never re-run.
-- **Operations.** `GET /health` has a `state` object (backend, reachable, tasks, worker ID). Start-up stops when a shared backend does not answer, and warns when several workers (`WEB_CONCURRENCY`, `UVICORN_WORKERS`, `SAJHA_WORKERS`, `--workers`) run on `memory`. `run_server.py --workers N` now starts N uvicorn workers through the `sajha.app:create_app` factory. New `mcp.auth.builtin.signing_key_pem` (env `SAJHA_MCP_AUTH_BUILTIN_SIGNING_KEY_PEM`) gives hosts that do not share a data directory the same OAuth signing key.
-- **Deployment.** The Hetzner and local AWS compose files have an optional `scale` profile with Redis. The AWS CDK stack sets `SAJHA_STATE_BACKEND=database` for its several Fargate tasks, and the image installs `redis`.
-- **Tests.** `tests/test_state_store.py` runs the store contract and the migrated components against memory, fakeredis, a real Redis (`SAJHA_TEST_REDIS_URL`) and SQLite. `tests/test_state_multiworker.py` starts two server processes that share a backend: an OAuth code issued on A is redeemed on B, a task created on A is read and cancelled on B, sign-in failures are counted across both, and a change on A reaches a listen stream on B. It also starts `--workers 2`. The conformance server suites are unchanged (43/43 for 2025-11-25 with 0.1.16, 152/152 for 2026-07-28 with 0.2.0-alpha.12) on the memory, redis and database backends.
+### Intelligence layer
 
-### Kubernetes: production image, Helm chart, Kustomize manifests
-Details: [Kubernetes Deployment](docs/getting-started/Kubernetes%20Deployment.md), [Tutorial 17](docs/tutorials/TUTORIAL_17_deploy_sajha_on_kubernetes.md).
-- **`Dockerfile`** (repository root) and `.dockerignore`: multi-stage, venv copied into a slim runtime, UID 10001 under `tini`, `HEALTHCHECK` on `/health`, read-only-root ready (writes only `data`, `logs`, `temp`, `config`, `sajha/tools/impl`, `/tmp`). Build args `EXTRAS` (`redis` by default; `s3`, `azure`, `gcs`, `otel`), `WITH_OPENBB` (off), `PLAYGROUND_ASSETS` (vendors Pyodide). Secrets, `data/`, tests and the SDK are kept out of the image.
-- **Helm chart `charts/sajha`** with `values.schema.json`: Deployment with a seed init container (seeds writable config volumes, deep-merges `config.overrides` into `application.yml`, waits for Redis and PostgreSQL), Service, two Ingress objects (streaming paths `/mcp`, `/api/mcp`, `/api/ai/ask` unbuffered with one-hour timeouts), HPA, PodDisruptionBudget, optional single-node Redis, NetworkPolicies with an egress allowlist hook, ServiceMonitor with bearer-token auth, `helm test`. One Secret (generated once and kept, or `secrets.existingSecret`) gives every pod the same JWT secret, session secret, OAuth signing key and metrics token. The chart refuses multi-pod settings that would split state (SQLite, `state.backend: memory`, `ReadWriteOnce` volumes).
-- **Kustomize** `deployment/k8s/` (base, dev and prod overlays) rendered from the chart by `deployment/k8s/render.py`; `tests/test_k8s_deployment.py` checks the chart version against `app.version`, the values against the schema, the seed step, and (with Helm installed) that the manifests are up to date.
-- **Verified** on kind (Kubernetes 1.33, ingress-nginx, kindnet NetworkPolicy): `helm lint`, kubeconform on default and full-feature renders and both overlays; three pods on Redis and PostgreSQL behind the streams Ingress without session affinity passed the 2025-11-25 suite (`@modelcontextprotocol/conformance` 0.1.16, 43 passed, 0 failed), the 2026-07-28 suite (0.2.0-alpha.12, 152 passed, 0 failed) and the ten tasks-extension scenarios (44 passed, 0 failed); all pods served one OAuth key id.
-- **AWS:** the CDK stack now creates generated `sajha/<env>/jwt` and `sajha/<env>/session` secrets and passes them to every Fargate task (`SAJHA_JWT_SECRET`, `SAJHA_SECRET_KEY`; it previously referenced a `jwt_secret` key nobody created and passed no session secret), and `-c oauth_signing_key_secret=<name>` passes a stored PEM as `SAJHA_MCP_AUTH_BUILTIN_SIGNING_KEY_PEM`. The stack synthesizes again (an output reused the `LogGroup` construct id). `deployment/aws/Dockerfile` and the AWS compose file build from the repository root (the old paths did not resolve).
+- **Ask SAJHA** (`/ask`): a chat over `POST /api/ai/ask` that streams each step (shortlist, tool
+  calls and results, answer, confidence), shows the tool chain as expandable chips, asks before a
+  destructive call and draws the chain on the tool sky; model picker, a *Mock model active* pill,
+  Stop. [Tutorial 10](docs/tutorials/TUTORIAL_10_ask_sajha.md).
+- **Planners** (`ai.ask.planner`): `react` (the previous loop, default), `plan_execute` (one
+  planning call, independent steps in parallel, one re-plan), `recipes` and `router`; register more
+  with `@register_planner`, a class path or a `sajha.planners` entry point. The service keeps RBAC,
+  confirmation, limits, synthesis, confidence, audit and the event schema. New `plan` event;
+  `GET /api/ai/planners`.
+- **Conversation memory:** an ask with `conversation_id` gets recent turns, a summary of older
+  ones and a standalone rewrite of its question; per user, `ai.memory.retention_days` and a
+  per-user cap; `GET`/`DELETE /api/ai/conversations[/{id}]`. Ask SAJHA keeps a conversation.
+- **Document search (RAG):** the `sajha_search_docs` tool and the help page's **Ask the docs** box
+  search SAJHA's own guides, `ai.rag.sources` folders and admin uploads (`/api/ai/docs/*`), with
+  citations; vector and BM25 rankings fused; an in-process store by default, pgvector when
+  available.
+- **Tools reach Ask SAJHA at once:** `ToolsRegistry.add_change_listener` fires on every register,
+  unregister, enable and disable, so tools from Studio, composites, federation, API import,
+  connectors or the file watcher are searchable without a reload.
+- [Extending the Intelligence Layer](docs/architecture/Extending%20the%20Intelligence%20Layer.md):
+  a provider, a model and a planner, with tested examples in `sajha/examples/intelligence/`.
+  [Intelligence Layer](docs/architecture/Intelligence%20Layer.md),
+  [Tutorial 21](docs/tutorials/TUTORIAL_21_planners_memory_and_rag.md).
 
-### OAuth 2.1 for `/mcp` (off by default)
-- `mcp.auth.mode`: `off` (default) | `optional` | `required`.
-- Resource server: RFC 9728 protected-resource metadata, `WWW-Authenticate` with `resource_metadata` and `scope`, audience-bound RS256 access tokens, scopes `mcp:read` / `mcp:tools`.
-- Authorization server: built in (backed by SAJHA users; authorization code + PKCE S256, RFC 9207 `iss`, Client ID Metadata Documents with SSRF guards, rotating refresh tokens with reuse detection, CSRF-protected consent), or an external issuer validated through its JWKS (`mcp.auth.authorization_server`).
-- API keys and SAJHA JWTs keep working in every mode. The signing key is generated under `data/oauth/` (git-ignored).
-- Conformance `authorization` suite 3/3 for both spec versions; the server suites are unchanged (43/43 and 152/152); the official SDK completes the OAuth flow end to end.
+### Operations
 
-### MCP Apps (`io.modelcontextprotocol/ui`)
-- Tools bind `ui://` views, served by `resources/read` as `text/html;profile=mcp-app` (`mcp.apps.enabled`, default on). Example view for `calc_loan_amortization`.
+- **Several workers and hosts** (`state.backend`: `memory`, the default, `redis` or `database`;
+  `sajha/core/state/`): OAuth consents, codes, refresh tokens and DCR clients, 2025-11-25 sessions
+  (relayed to the worker holding the stream), legacy SSE queues, 2026-07-28 task records, rate
+  limits, the sign-in throttle, LLM budgets and async task records are shared; change-bus events
+  reach subscribers on every worker. Durable MCP tasks (`state.tasks.durable: auto`) survive a
+  restart. `GET /health` has a `state` object; `run_server.py --workers N`. Conformance unchanged
+  (43/43 for 2025-11-25 with 0.1.16, 152/152 for 2026-07-28 with 0.2.0-alpha.12) on the memory,
+  redis and database backends. [Scaling and State](docs/architecture/Scaling%20and%20State.md),
+  [Tutorial 13](docs/tutorials/TUTORIAL_13_run_sajha_on_several_workers.md).
+- **Observability:** `GET /metrics` in the Prometheus text format (HTTP, MCP, tool, LLM, ask, auth,
+  sandbox, federation, process metrics; `observability.metrics.auth`, admin by default; optional
+  separate listener; cardinality caps; merged across workers); OpenTelemetry traces and metrics
+  over OTLP (opt-in) with `traceparent` continued from HTTP and MCP `_meta`; the **Usage & cost**
+  page (`/monitoring/usage`) on a usage ledger; alert rules to a log, an allow-listed webhook or
+  email; Prometheus rules and a Grafana dashboard in `deployment/observability/`. `/api/metrics`
+  and `/api/metrics/tools`, always empty before, are fed.
+  [Observability](docs/architecture/Observability.md), [Tutorial 16](docs/tutorials/TUTORIAL_16_metrics_costs_and_alerts.md).
+- **Database:** one schema file per database (`db/scripts/<dialect>/schema.sql` + `seed.sql`),
+  no migrations, `tests/test_db_schema.py` keeps both in step with every model; the start-up
+  check; the helper `python -m sajha.db check|sql`. 6.0.0's PostgreSQL scripts failed on every
+  statement and its runner hid it; SQLite's `prompt_tags` was never created.
+  [Database Setup](docs/getting-started/Database%20Setup.md).
+- **Kubernetes:** a root `Dockerfile` (multi-stage, UID 10001 under `tini`, read-only-root ready;
+  build args `EXTRAS`, `WITH_OPENBB`, `PLAYGROUND_ASSETS`), the Helm chart `charts/sajha` (seed
+  init container, streaming Ingress, HPA, PDB, optional Redis, NetworkPolicies, ServiceMonitor,
+  one shared Secret, refusal of settings that would split state) and Kustomize overlays rendered
+  from it. Verified on kind: three pods on Redis and PostgreSQL passed 43/43 (2025-11-25, 0.1.16),
+  152/152 (2026-07-28, 0.2.0-alpha.12) and the tasks-extension scenarios (44/44).
+  [Kubernetes Deployment](docs/getting-started/Kubernetes%20Deployment.md),
+  [Tutorial 17](docs/tutorials/TUTORIAL_17_deploy_sajha_on_kubernetes.md).
+- **Deployment recipes:** the AWS CDK stack creates and passes the JWT and session secrets (and
+  optionally the OAuth signing key), sets `SAJHA_STATE_BACKEND=database` and synthesizes again;
+  its Dockerfile and compose file build from the repository root. The Hetzner and local AWS
+  compose files have a `scale` profile with Redis, and the Hetzner one passes the session secret
+  (`SESSION_SECRET`). Bare metal: `sajha.service`
+  makes `logs/`, `temp/` and `sajha/tools/impl/` writable. Each recipe prints the PostgreSQL schema
+  step.
+- Start-up is faster; loading N tools publishes at most one change event instead of 3·N.
 
-### `x-mcp-header`
-- Validated when a tool schema is loaded (invalid annotations are dropped with a warning); `Mcp-Param-Symbol` on the quote tools.
+### Web console
 
-### The `sajha` command line and MCP over stdio
-- **stdio transport** (`sajha/cli/stdio.py`; `sajha serve --stdio`, `python run_server.py --stdio`): desktop clients (Claude Desktop, Claude Code, IDEs) launch SAJHA as a subprocess. Both eras on one connection (a client in auto mode probes `server/discover` and falls back to `initialize`), newline-delimited JSON-RPC, nothing but protocol on stdout (fd 1 is pointed at stderr), `notifications/cancelled` honoured on both paths, `list_changed` pushed after `initialize`. One caller per process: `--user` / `SAJHA_STDIO_USER`, `--api-key` / `SAJHA_API_KEY`, else anonymous; mapped through the usual tool access. Loads only what MCP needs (no web UI; the LLM gateway with `--with-ai`). Tested with the official SDK client (`StdioServerParameters`) in `legacy` and `auto` modes; the conformance suite's server runner takes only `--url`, so it does not run over stdio.
-- **`sajha` CLI** (`clientsdk/sajhaclient/cli/`, console script from `pip install 'sajhaclient[cli]'`): `login` (token stored 0600 in `~/.config/sajha`), profiles, `tools list|show|call` (schema-typed `--arg`, `--json`), `prompts list|get`, a streamed `ask`, `studio deploy|delete`, `federation list|add|refresh|remove`, `health`, `config show`, `completion bash|zsh|fish`, `serve`; `--server`/`--api-key`, `SAJHA_URL`/`SAJHA_API_KEY`; exit codes 0-6. Details: [Command Line](docs/clients/Command%20Line.md), [Tutorial 15](docs/tutorials/TUTORIAL_15_sajha_cli_and_claude_desktop.md).
+- **Phones and tablets:** no sideways page scroll at 375, 390 or 768px (wide tables scroll in their
+  own box, user and API-key lists become cards), a hamburger menu with an accordion, 40px touch
+  targets, 16px inputs, 12px minimum text, a "Contents" disclosure on guides, readable charts.
+  `scripts/check_mobile.py` checks every page; `tests/test_mobile_layout.py` keeps its routes live.
+  [Architecture §10](docs/architecture/Architecture.md).
+- **Python Playground** (`/playground`): Python in the browser with Pyodide (cells, CodeMirror,
+  pandas tables, matplotlib inline, `.py`/`.ipynb` upload), `import sajha` to call tools and ask
+  with the user's session, vendored assets checked against published hashes
+  (`scripts/fetch_pyodide.py`) or the CDN; COOP/COEP and a `'wasm-unsafe-eval'` CSP on that route
+  only. [Python Playground](docs/getting-started/Python%20Playground.md),
+  [Tutorial 12](docs/tutorials/TUTORIAL_12_python_playground.md).
+- **How SAJHA compares** (`/comparison`): SAJHA next to MCP frameworks, gateways and hosted
+  platforms, each cell a verdict with a note, a source and a date; one data module,
+  `sajha/web/competitive.py`, checked by `tests/test_competitive.py`.
+- New admin pages: Approvals, Policies, Audit, Connections, Data Connectors, Federation, Tool
+  Health, Tool Versions, Evals; new user pages: Connected accounts, Workflows, change password.
+- Fixed: a table with both `data-enhance` and automatic controls got two search bars and pagers;
+  the user and API-key tables had broken `class` attributes; landing-page counts come from the
+  running server; star tooltips and a regex filter on the tool sky; guide pages render without the
+  `markdown` package.
 
-### Python Playground
-- **`/playground`** (signed-in users; **Tools → Python Playground**, a dashboard quick action): a small notebook running Python in the browser with Pyodide (WebAssembly) in a Web Worker. Cells with a vendored CodeMirror 6 editor (Python highlighting, line numbers, Ctrl/Cmd+Enter), Run / Run all / Stop / Reset, stdout, stderr in red, REPL-style last-expression display, pandas DataFrames as tables, matplotlib figures inline, `display()`, examples (numpy, pandas, matplotlib, SciPy, scikit-learn, SAJHA tools, Ask SAJHA), save/load in browser storage, `.py` download, `.py`/`.ipynb` upload. Packages load on first import (`loadPackagesFromImports`); micropip installs pure-Python wheels from PyPI (`playground.allow_pypi`).
-- **`import sajha`** in the playground: `sajha.tools()`, `sajha.schema()`, `sajha.call(name, **args)` (through `POST /api/tools/execute`) and `sajha.ask()` (through `POST /api/ai/ask`), with the user's session, so access control and limits are the server's usual ones. New `GET /api/playground/tools`. MCP Studio's Python code creator has **Open in playground**.
-- **Assets.** `scripts/fetch_pyodide.py` vendors a pinned Pyodide release (core archive checked against GitHub's published SHA-256, every wheel against `pyodide-lock.json`) into `sajha/web/static/vendor/pyodide/` (git-ignored); `playground.assets: cdn` loads it from cdn.jsdelivr.net instead. Missing assets show an administrator hint. New keys `playground.enabled`, `playground.assets`, `playground.pyodide_version`, `playground.allow_pypi`.
-- **Headers, playground only.** `/playground` sends COOP `same-origin` and COEP `require-corp` (cross-origin isolation, so Stop interrupts Python through a `SharedArrayBuffer`); its worker's CSP alone allows `'wasm-unsafe-eval'` (and the CDN or PyPI origins when configured). Every other route keeps the self-only policy. Code runs only in the browser. Details: [Python Playground](docs/getting-started/Python%20Playground.md), [Tutorial 12](docs/tutorials/TUTORIAL_12_python_playground.md).
+### Tools
 
-### Ask SAJHA
-- **Ask SAJHA** (`/ask`, AI menu and dashboard): a chat over `POST /api/ai/ask` that streams each step (shortlist, tool calls and results, answer, confidence), shows the tool chain as expandable chips with sources and caveats, asks before a destructive call, and draws the chain live on the tool sky. Model picker, a *Mock model active* pill, Stop, per-tab history. Details: [Intelligence Layer](docs/architecture/Intelligence%20Layer.md#using-ask-sajha), [Tutorial 10](docs/tutorials/TUTORIAL_10_ask_sajha.md).
-- The landing page's constellation drawing moved to `sajha/web/static/js/constellation.js`, shared by both pages; the landing page is unchanged.
+- **FBI tools rewritten** for the current Crime Data Explorer API (every call returned 404): all
+  nine `fbi_` tools keep their names (config `version` 3.0.0); key and rate-limit errors name
+  `FBI_API_KEY`; per-tool `timeout`. [FBI Tool Reference Guide](docs/tools/public-data/FBI%20Tool%20Reference%20Guide.md).
+- **FRED:** every `fred_*` tool, `fed_get_latest` and `fed_get_common_indicators` returned the
+  oldest observations; they ask for the newest first and skip missing values.
+- **OLAP datasets:** `customer_olap` failed on every query, `customer_analytics` and
+  `inventory_analysis` lacked their data (`customer_data`, `inventory_data` added); a dataset's own
+  dimension or measure wins over the shared definition; filters on a joined dataset apply over the
+  joined row; weighted pivot totals; saving `datasets.json` keeps `${data.duckdb.dir}`.
+  [OLAP Analytics Tool Reference Guide](docs/tools/analytics/OLAP%20Analytics%20Tool%20Reference%20Guide.md).
+- **SharePoint tools** use Microsoft Graph throughout; new `sharepoint.*` and `azure.tenant.id`
+  keys from the environment; unconfigured tools say so; the Studio creator writes a valid schema
+  and appears in the menu.
+- Schema fixes so valid calls pass validation: Yahoo symbols (`BRK-A`, `BTC-USD`, `7203.T`,
+  `EURUSD=X`, `^GSPC`), World Bank country and Wikipedia language codes.
+- `${key:default}` is honoured by `PropertiesConfigurator`, so the DuckDB, SQL-select and OLAP tools
+  resolve their data directory (no more directories named `${data.duckdb.dir:.`).
+- New key `alpha_vantage.api.key` (`ALPHA_VANTAGE_API_KEY`); `ai.tool_search.enabled`/`persist`
+  parsed as booleans.
+- **Plugins:** `.py` tools in a plugin now register; `min_sajha_version` is compared as a version.
 
-### Federation (off by default)
-SAJHA can front other MCP servers ("upstreams") and re-expose their tools, and optionally prompts and resources, as its own. Details: [Federation](docs/architecture/Federation.md), [Tutorial 11](docs/tutorials/TUTORIAL_11_federate_an_mcp_server.md).
-- A federated tool is a registry tool named `<prefix>__<tool>` (`sajha/federation/`, `FederatedTool`): listed by `tools/list` on both eras, on the Tools page, in Ask SAJHA's tool search, composites and A2A; calls pass through the same access policy, cache, circuit breaker (one per upstream), metrics and usage events as native tools, plus an optional per-upstream rate limit.
-- Upstreams over Streamable HTTP (2026-07-28 or 2025-11-25, through the official `mcp` SDK v2 client), legacy SSE, or stdio (`federation.allow_stdio`, off). Credentials by secret reference: bearer, API-key header, OAuth client credentials.
-- Discovery at start-up (bounded wait), periodically, on the upstream's `subscriptions/listen` or `list_changed` notifications, and on demand. Results, schemas, progress and cancellation pass through; an upstream's MRTR `InputRequiredResult` reaches 2026-07-28 callers.
-- Security: approval before exposure (`federation.require_approval`, on), re-approval when an approved definition changes, screening of upstream text for injection markers, the SSRF guard on upstream and token URLs (`federation.allow_localhost`, `allow_private_networks`, `allowed_hosts`), no secrets in config or logs, admin-only routes with audit.
-- Admin page **Admin → Federation** (`/admin/federation`) and its API under `/api/federation/`; admin-added upstreams and approvals persist through the storage backend (`federation.state_path`). Example upstream: `sajha/examples/federation/units_server.py`. Tests: `tests/test_federation.py`.
+### Other fixes
 
-### How SAJHA compares
-- **`/comparison`** (Help menu, help catalog under Reference, linked from About): SAJHA next to FastMCP, IBM ContextForge, Docker MCP Gateway, Microsoft MCP Gateway, Kong AI Gateway, Cloudflare, Composio, Zapier MCP and Smithery on protocol, security, tools, operations and deployment. Every competitor cell is a verdict (Yes, Partial, No or Unknown) with a note, a source and an as-of date; SAJHA's column follows its code, with its numbers read from the running registries. The data has one home, `sajha/web/competitive.py`, and `tests/test_competitive.py` checks it.
-
-### Fixes
-- `/login?next=` open redirect.
-- Path traversal in `sajha://data` resources.
-- WebSocket authentication called a method that did not exist.
-- Security headers no longer overwrite stricter per-route values.
-- **FBI tools rewritten for the current Crime Data Explorer API** (every call returned 404). All nine `fbi_` tools keep their names and now call the documented `api.usa.gov/crime/fbi/cde` paths (`/summarized/...`, `/agency/byStateAbbr/{state}`, `/pe/{state}/{ori}`, `/nibrs/...`); input and output schemas changed to match (config `version` 3.0.0). `fbi_search_agencies` now needs `state` (the API lists agencies per state; there is no free-text search); `fbi_get_offense_data` returns NIBRS victim/offender/weapon/location breakdowns and accepts only offenses with a NIBRS code; `fbi_get_participation_rate` reports population coverage (agency counts are no longer published); `fbi_get_crime_trend` makes one request for the whole range. Key errors (403) and rate limits (429, including the shared `DEMO_KEY`) name `FBI_API_KEY` / `fbi.api.key`; timeouts are configurable per tool (`timeout`, default 30 s). Details: [FBI Tool Reference Guide](docs/tools/public-data/FBI%20Tool%20Reference%20Guide.md).
-- **OLAP `customer_analytics` and `inventory_analysis` datasets now work.** The sample data adds the `customer_data` view (one row per customer and order; customers gain `city`, `state` and `tier`) and the `inventory_data` table (stock snapshot per product and distribution centre), created with the rest of the sample schema and, when `sales_data` already exists, added only if missing. `customer_analytics` no longer declares a join to `sales_data` (its `ON` clause referenced a table it had aliased away). Details: [OLAP Analytics Tool Reference Guide](docs/tools/analytics/OLAP%20Analytics%20Tool%20Reference%20Guide.md).
+- `/api/reports/audit` answered 500.
+- Federation upstreams shared one rate-limit window; each has its own.
+- Change events relayed to other workers are coalesced within 0.5 s.
+- The SDK no longer installs an OpenTelemetry tracer provider with no exporter when tracing is off.
+- The test suite is independent of test order (engine and registry state restored; a SQLite WAL
+  start-up race between workers fixed) and no longer touches tracked data.
 
 ### Documentation
-- Documentation reorganised under `docs/` by topic, with one owning document per topic, a root `GLOSSARY.md` and `CLAUDE.md` documentation conventions. Internal point-in-time reports moved to `docs/archive/`.
-- [Extending the Intelligence Layer](docs/architecture/Extending%20the%20Intelligence%20Layer.md): writing a provider, a model and a real planner, with tested examples in `sajha/examples/intelligence/` (`tests/ai/test_extension_examples.py`) and a proposed `Planner` extension point.
 
+- Reorganised under `docs/` by topic with one owning document per topic (the map:
+  [How SAJHA Fits Together](docs/getting-started/How%20SAJHA%20Fits%20Together.md)), a root
+  `GLOSSARY.md` that the console's glossary and "About this page" panels read, `CLAUDE.md`
+  conventions, and point-in-time reports moved to `docs/archive/`. The numbered tutorials in
+  `docs/tutorials/` are new.
+- The in-app help is one catalog (`sajha/web/help_catalog.py`) rendering the guides at
+  `/help/guides/<name>`; `tests/test_documentation_rot.py` checks links, cited paths, app URLs and
+  that every registered route is in the [API Reference](docs/protocol/API%20Reference.md).
 
 ## v6.0.0 (October 2026) — MCP 2026-07-28, dual-era
 

@@ -128,7 +128,8 @@ CATALOG: List[dict] = [
             _g('MCP Apps and Headers Guide', 'MCP Apps and Headers Guide.md', 'bi-window-stack',
                'Interactive tool views (ui:// resources) and x-mcp-header argument mirroring.'),
             _g('API Reference', 'API Reference.md', 'bi-signpost-split',
-               'Every HTTP endpoint: REST, MCP, OAuth and A2A routes.'),
+               'Every HTTP endpoint the server registers: REST, MCP, OAuth, A2A, AI, Studio, '
+               'workflows, policy, quality and connector routes.'),
             _b('Interactive API docs', 'swagger_ui_html', 'bi-braces',
                'The OpenAPI description of the REST API, explorable and callable (Swagger UI).'),
             _b('ReDoc API reference', 'redoc_html', 'bi-book',
@@ -137,7 +138,8 @@ CATALOG: List[dict] = [
     },
     {
         'id': 'architecture', 'name': 'Architecture', 'icon': 'bi-boxes',
-        'blurb': 'How the server is built inside, and the theory behind composite tools.',
+        'blurb': 'How the server is built inside, and the design of each subsystem: composition, the '
+                 'intelligence layer, federation, governance, data access, workflows, quality, scale.',
         'topics': [
             _g('Architecture', 'Architecture.md', 'bi-boxes',
                'The process, the registries, the request path, and how each subsystem fits in, '
@@ -354,8 +356,8 @@ CATALOG: List[dict] = [
                'The sajha CLI (tools, prompts, ask, Studio, federation) and MCP over stdio for '
                'Claude Desktop, Claude Code and IDEs.'),
             _g('Security Model', 'Security Model.md', 'bi-shield-check',
-               'Credentials, roles, OAuth, Origin checks, headers, rate limits and the '
-               'deployment checklist.'),
+               'Credentials, roles, tool access, OAuth, Origin checks, headers, rate limits, the '
+               'security fixes, known limitations and the deployment checklist.'),
         ],
     },
     {

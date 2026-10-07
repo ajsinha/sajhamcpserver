@@ -15,8 +15,11 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 2. [Quick Start](getting-started/Quick%20Start.md)
 3. The [tutorials](#tutorials)
 4. [MCP Protocol Guide](protocol/MCP%20Protocol%20Guide.md)
-5. [Configuration Reference](getting-started/Configuration%20Reference.md) and
-   [Security Model](security/Security%20Model.md) before you deploy
+5. Before you deploy: [Configuration Reference](getting-started/Configuration%20Reference.md),
+   [Database Setup](getting-started/Database%20Setup.md),
+   [Security Model](security/Security%20Model.md) and
+   [Policy and Audit](architecture/Policy%20and%20Audit.md)
+6. The [architecture](#architecture) guide for each subsystem you use
 
 ## How this folder is organised
 
@@ -24,7 +27,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 |---|---|
 | `getting-started/` | The map, quick start, configuration reference, database setup, storage, Kubernetes |
 | `protocol/` | MCP protocol guide, the two compliance reports, API reference, OAuth, MCP Apps and headers |
-| `architecture/` | How the server is built; the composition framework; the intelligence layer and how to extend it |
+| `architecture/` | How the server is built, and one design guide per subsystem: composition, the intelligence layer, federation, connected accounts, API import, tool generation, data connectors, policy and audit, sandbox, scaling, observability, workflows, tool quality |
 | `studio/` | MCP Studio and its creators |
 | `tools/` | One reference guide per tool provider, by category; prompts |
 | `tutorials/` | Step-by-step walkthroughs, numbered |
@@ -72,7 +75,18 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 
 ## MCP Studio
 
-- [MCP Studio User Guide](studio/MCP%20Studio%20User%20Guide.md), which links each creator guide
+- [MCP Studio User Guide](studio/MCP%20Studio%20User%20Guide.md), which links each creator guide:
+  [Python code](studio/MCP%20Studio%20Python%20Code%20Tool%20Creator%20Guide.md) ·
+  [REST](studio/MCP%20Studio%20REST%20Tool%20Creator%20Guide.md) ·
+  [DB query](studio/MCP%20Studio%20DBQuery%20Tool%20Creator%20Guide.md) ·
+  [Script](studio/MCP%20Studio%20Script%20Tool%20Creator%20Guide.md) ·
+  [Power BI](studio/MCP%20Studio%20PowerBI%20Tool%20Creator%20Guide.md) ·
+  [Power BI DAX](studio/MCP%20Studio%20PowerBI%20DAX%20Tool%20Creator%20Guide.md) ·
+  [LiveLink](studio/MCP%20Studio%20LiveLink%20Tool%20Creator%20Guide.md) ·
+  [SharePoint](studio/MCP%20Studio%20SharePoint%20Tool%20Creator%20Guide.md) ·
+  [OLAP](studio/MCP%20Studio%20OLAP%20Tool%20Creator%20Guide.md);
+  Import an API is [API Import](architecture/API%20Import.md) and Describe a tool is
+  [Tool Generation](architecture/Tool%20Generation.md)
 
 ## Tools
 
@@ -129,9 +143,9 @@ These guides document each provider's tools, parameters and API keys.
 15. [Tutorial 15: The sajha CLI and Claude Desktop](tutorials/TUTORIAL_15_sajha_cli_and_claude_desktop.md)
 16. [Tutorial 16: Metrics, Costs and Alerts](tutorials/TUTORIAL_16_metrics_costs_and_alerts.md)
 17. [Tutorial 17: Deploy SAJHA on Kubernetes](tutorials/TUTORIAL_17_deploy_sajha_on_kubernetes.md)
-18. [Tutorial 18: Connect your accounts](tutorials/TUTORIAL_18_connect_your_accounts.md)
+18. [Tutorial 18: Connect Your Accounts](tutorials/TUTORIAL_18_connect_your_accounts.md)
 19. [Tutorial 19: Import an OpenAPI Spec](tutorials/TUTORIAL_19_import_an_openapi_spec.md)
-20. [Tutorial 20: Policies, approvals and a tamper-evident audit](tutorials/TUTORIAL_20_policies_approvals_and_audit.md)
+20. [Tutorial 20: Policies, Approvals and a Tamper-Evident Audit](tutorials/TUTORIAL_20_policies_approvals_and_audit.md)
 21. [Tutorial 21: Planners, Conversation Memory and Document Search](tutorials/TUTORIAL_21_planners_memory_and_rag.md)
 22. [Tutorial 22: Schedule a Workflow](tutorials/TUTORIAL_22_schedule_a_workflow.md)
 23. [Tutorial 23: Test and Canary Your Tools](tutorials/TUTORIAL_23_test_and_canary_your_tools.md)
@@ -149,3 +163,4 @@ These guides document each provider's tools, parameters and API keys.
 - [Deployment recipes](../deployment/README.md): AWS CDK, Hetzner, bare metal, Kubernetes
 - [Archive](archive/README.md): old audits and notes, not maintained
 - How SAJHA compares with other MCP products: the server's `/comparison` page (data in `sajha/web/competitive.py`)
+- [The deck](../tools/deck/GUIDE.md): `docs/publications/SAJHA-One-Governed-Catalog-of-Tools.pptx`, rebuilt from source with every number derived at build time

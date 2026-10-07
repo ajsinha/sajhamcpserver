@@ -512,7 +512,7 @@ tool's own `sandbox` block is described there too.
 | Key | Default | Purpose |
 |-----|---------|---------|
 | `sandbox.default_backend` | `subprocess` | `subprocess`, `bwrap`, `nsjail`, `docker`, or `auto` (the first available of bwrap, nsjail, subprocess). An unavailable backend falls back to `subprocess` with a warning. |
-| `sandbox.enforce_for_generated_tools` | `true` | Studio Python code and script tools always run in the sandbox. `false`: they load in-process unless their config says `"sandbox": {"enabled": true}`. |
+| `sandbox.enforce_for_generated_tools` | `true` | Studio Python code and script tools always run in the sandbox. `false`: they load in-process unless their config says `"sandbox": {"enabled": true}`, and only an administrator may deploy them (a developer with Studio access gets 403). |
 | `sandbox.strict` | `false` | `true`: refuse to run when the chosen backend, or a confinement step the runner tries (namespaces, Landlock, seccomp), is unavailable, instead of falling back. |
 | `sandbox.work_dir` | `''` | Parent of the per-call temp directories (`''` = the system temp directory). |
 | `sandbox.python` | `''` | Interpreter for the subprocess, bwrap and nsjail backends (`''` = the server's own). |

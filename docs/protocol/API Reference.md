@@ -1,10 +1,10 @@
 # SAJHA MCP Server: API Reference
 
-This page lists every HTTP and WebSocket route the server registers, grouped by the module in `sajha/routes/` that defines it. All modules are included in `sajha/app.py` without an extra prefix, so the paths below are the full paths. Four modules set a router prefix: `admin_routes.py` (`/admin`), `apikeys_routes.py` (`/admin/apikeys`), `studio_routes.py` (`/studio` for pages, `/admin/studio` for actions) and `api_import_routes.py` (`/studio`, `/admin/studio/api-import`, `/api/studio/api-import`); their paths are shown with the prefix applied.
+This page lists every HTTP and WebSocket route the server registers, grouped by the module in `sajha/routes/` that defines it. All modules are included in `sajha/app.py` without an extra prefix, so the paths below are the full paths. These modules set a router prefix: `admin_routes.py` (`/admin`), `apikeys_routes.py` (`/admin/apikeys`), `studio_routes.py` (`/studio` for pages, `/admin/studio` for actions), `api_import_routes.py` (`/studio`, `/admin/studio/api-import`, `/api/studio/api-import`) and `describe_routes.py` (`/studio`, `/admin/studio/describe`, `/api/studio/describe`); their paths are shown with the prefix applied. `tests/test_documentation_rot.py` fails when a registered route is missing from this page.
 
 The examples assume the default address `http://localhost:3002` (`server.port`, env `SERVER_PORT`).
 
-FastAPI also serves its generated docs: `GET /api/docs` (Swagger UI), `GET /api/redoc` and `GET /openapi.json`, all without authentication. Static assets are mounted at `/static`.
+FastAPI also serves its generated docs: `GET /api/docs` (Swagger UI, with its OAuth helper page `GET /docs/oauth2-redirect`), `GET /api/redoc` and `GET /openapi.json`, all without authentication. Static assets are mounted at `/static`.
 
 **Auth column legend** used throughout:
 
@@ -14,6 +14,7 @@ FastAPI also serves its generated docs: `GET /api/docs` (Swagger UI), `GET /api/
 | optional | Credentials are read if present (they change what is shown) but not required. |
 | user | Any valid credential (`require_auth`): SAJHA JWT, `sja_` API key or the `sajha_token` cookie. |
 | admin | A user with the admin role (`require_admin`). API keys never qualify: they authenticate with the `api_consumer` role and `is_admin = false`. |
+| studio | MCP Studio access (`require_studio`): a user with the admin role, or whose role has the `studio` permission (resource type `studio`, actions `*` or `use`; the seeded `developer` role has it). API keys never qualify. |
 | MCP | MCP transport rules: see [MCP endpoints](#2-mcp-endpoints). |
 
 ---
@@ -303,9 +304,9 @@ curl -X POST http://localhost:3002/admin/apikeys/create \
 |---|---|---|---|
 | GET | `/api/composite-tools` | user | List composite definitions. |
 | GET | `/api/composite-tools/{name}` | user | One definition, with live input/output schemas when registered. |
-| POST | `/api/composite-tools` | admin | Create and register. Required: `name`, `master_tool`. Optional: `arrangement` (default `sibling`), `description`, `master_output_key`, `record_path`, `steps`. 409 if the name exists. |
-| PUT | `/api/composite-tools/{name}` | admin | Update and rebuild. |
-| DELETE | `/api/composite-tools/{name}` | admin | Delete and unregister. |
+| POST | `/api/composite-tools` | studio | Create and register. Required: `name`, `master_tool`. Optional: `arrangement` (default `sibling`), `description`, `master_output_key`, `record_path`, `steps`. 409 if the name exists. |
+| PUT | `/api/composite-tools/{name}` | studio | Update and rebuild. A non-admin may change only composites they created (403 otherwise). |
+| DELETE | `/api/composite-tools/{name}` | studio | Delete and unregister. A non-admin may delete only composites they created (403 otherwise). |
 | GET | `/api/composite-tools/{name}/preview-schema` | user | Generated input/output schemas. |
 
 ```bash
@@ -397,7 +398,7 @@ curl -X POST http://localhost:3002/api/ai/complete \
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | `/api/tenants` | admin | List tenants. |
+| GET | `/api/tenants` | admin | List tenants. Tenant records are stored and served here, but no request path consults them: they do not yet restrict tools or enforce quotas. |
 | POST | `/api/tenants` | admin | Create: `id`, `name` (required), `tool_patterns` (default `["*"]`), `blocked_tools`, `quota`. |
 | GET | `/api/tenants/{tenant_id}` | admin | One tenant. |
 | PUT | `/api/tenants/{tenant_id}` | admin | Update a tenant. |
@@ -494,20 +495,20 @@ curl -X POST http://localhost:3002/api/tools/calc_loan_amortization/execute-asyn
 ### 4.11 Studio (`studio_routes.py`, prefixes `/studio` and `/admin/studio`)
 
 The pages under `/studio` are in section 4.14. The creators post to these JSON actions;
-every one is admin only and answers JSON (a 401 or 403 too). Errors are
+every one needs Studio access (`studio`) and answers JSON (a 401 or 403 too). A non-admin gets 403 from `/admin/studio/deploy` and `/admin/studio/script/deploy` while `sandbox.enforce_for_generated_tools` is `false`. Errors are
 `{"success": false, "error": "..."}`.
 What each creator's fields mean is in the [MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md).
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/admin/studio/analyze` | admin | Python code creator: parse `{"code", "tool_name"}` and return the generated JSON config and Python module without writing anything. |
-| POST | `/admin/studio/deploy` | admin | Python code creator: write the files and load the tool into the running server; if it fails to load, the files are removed (500). |
-| POST | `/admin/studio/validate-name` | admin | `{"tool_name"}` → `{"valid", "error"}`. |
-| POST | `/admin/studio/delete` | admin | `{"tool_name"}`: unload a Studio-generated tool and remove its files. |
-| POST | `/admin/studio/rest/preview`, `/admin/studio/dbquery/preview`, `/admin/studio/script/preview`, `/admin/studio/powerbi/preview`, `/admin/studio/powerbidax/preview`, `/admin/studio/livelink/preview`, `/admin/studio/sharepoint/preview` | admin | One per creator: the generated config and code, without writing anything. |
-| POST | `/admin/studio/rest/deploy`, `/admin/studio/dbquery/deploy`, `/admin/studio/script/deploy`, `/admin/studio/powerbi/deploy`, `/admin/studio/powerbidax/deploy`, `/admin/studio/livelink/deploy`, `/admin/studio/sharepoint/deploy` | admin | One per creator: write the files and load the tool, as above. |
-| POST | `/admin/studio/olap/deploy` | admin | Add an OLAP dataset (`name`, `dimensions`, `measures`, ...) and reload the OLAP tools. |
-| POST | `/admin/studio/olap/delete` | admin | `{"name"}`: remove a dataset that Studio created (403 for any other). |
+| POST | `/admin/studio/analyze` | studio | Python code creator: parse `{"code", "tool_name"}` and return the generated JSON config and Python module without writing anything. |
+| POST | `/admin/studio/deploy` | studio | Python code creator: write the files and load the tool into the running server; if it fails to load, the files are removed (500). |
+| POST | `/admin/studio/validate-name` | studio | `{"tool_name"}` → `{"valid", "error"}`. |
+| POST | `/admin/studio/delete` | studio | `{"tool_name"}`: unload a Studio-generated tool and remove its files. |
+| POST | `/admin/studio/rest/preview`, `/admin/studio/dbquery/preview`, `/admin/studio/script/preview`, `/admin/studio/powerbi/preview`, `/admin/studio/powerbidax/preview`, `/admin/studio/livelink/preview`, `/admin/studio/sharepoint/preview` | studio | One per creator: the generated config and code, without writing anything. |
+| POST | `/admin/studio/rest/deploy`, `/admin/studio/dbquery/deploy`, `/admin/studio/script/deploy`, `/admin/studio/powerbi/deploy`, `/admin/studio/powerbidax/deploy`, `/admin/studio/livelink/deploy`, `/admin/studio/sharepoint/deploy` | studio | One per creator: write the files and load the tool, as above. |
+| POST | `/admin/studio/olap/deploy` | studio | Add an OLAP dataset (`name`, `dimensions`, `measures`, ...) and reload the OLAP tools. |
+| POST | `/admin/studio/olap/delete` | studio | `{"name"}`: remove a dataset that Studio created (403 for any other). |
 
 API Import (`api_import_routes.py`, prefixes `/studio`, `/admin/studio/api-import` and `/api/studio/api-import`; design
 in [API Import](../architecture/API%20Import.md)). Every body is the import request
@@ -517,12 +518,12 @@ in [API Import](../architecture/API%20Import.md)). Every body is the import requ
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/admin/studio/api-import/parse` | admin | The preview: API facts, one entry per operation (proposed name, schemas, annotations, flags, `new`/`changed`/`unchanged`), operations gone from the spec. Writes nothing. |
-| POST | `/admin/studio/api-import/test` | admin | Plus `operation` and `arguments`: call one operation once without deploying it. |
-| POST | `/admin/studio/api-import/deploy` | admin | Plus `selected` (operation keys) and `remove`: write and hot-load the tools, delete the removed ones, save the import record. |
-| GET | `/api/studio/api-import/apis` | admin | Every import: id, kind, title, server, tools, how many are loaded. |
-| GET | `/api/studio/api-import/apis/{api_id}` | admin | An import's saved request, to re-import it. |
-| POST | `/admin/studio/api-import/delete` | admin | `{"api_id"}`: remove the import's tools and its record. |
+| POST | `/admin/studio/api-import/parse` | studio | The preview: API facts, one entry per operation (proposed name, schemas, annotations, flags, `new`/`changed`/`unchanged`), operations gone from the spec. Writes nothing. |
+| POST | `/admin/studio/api-import/test` | studio | Plus `operation` and `arguments`: call one operation once without deploying it. |
+| POST | `/admin/studio/api-import/deploy` | studio | Plus `selected` (operation keys) and `remove`: write and hot-load the tools, delete the removed ones, save the import record. |
+| GET | `/api/studio/api-import/apis` | studio | Every import: id, kind, title, server, tools, how many are loaded. |
+| GET | `/api/studio/api-import/apis/{api_id}` | studio | An import's saved request, to re-import it. |
+| POST | `/admin/studio/api-import/delete` | studio | `{"api_id"}`: remove the import's tools and its record. |
 
 Describe a tool (`describe_routes.py`, served through `studio_routes.py`'s router; prefixes
 `/studio`, `/admin/studio/describe` and `/api/studio/describe`; design in
@@ -533,11 +534,11 @@ with `"success": true`; a refusal is `{"success": false, "error"}` with 400, 403
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/admin/studio/describe/propose` | admin | `{"description", "kind"?}`: the model's proposal, checked, with the files a deploy would write and the policy preview. Writes no tool. |
-| POST | `/admin/studio/describe/revise` | admin | `{"draft_id", "proposal"}`: an edited proposal, checked again (new hash, tests cleared). |
-| POST | `/admin/studio/describe/test` | admin | `{"draft_id", "live"?}`: run the test cases (Python in the sandbox, REST against fixtures). |
-| POST | `/admin/studio/describe/deploy` | admin | `{"draft_id", "hash", "approve": true, "accept_failures"?}`: deploy the reviewed version. |
-| GET | `/api/studio/describe/drafts/{draft_id}` | admin | A draft. |
+| POST | `/admin/studio/describe/propose` | studio | `{"description", "kind"?}`: the model's proposal, checked, with the files a deploy would write and the policy preview. Writes no tool. |
+| POST | `/admin/studio/describe/revise` | studio | `{"draft_id", "proposal"}`: an edited proposal, checked again (new hash, tests cleared). |
+| POST | `/admin/studio/describe/test` | studio | `{"draft_id", "live"?}`: run the test cases (Python in the sandbox, REST against fixtures). |
+| POST | `/admin/studio/describe/deploy` | studio | `{"draft_id", "hash", "approve": true, "accept_failures"?}`: deploy the reviewed version. |
+| GET | `/api/studio/describe/drafts/{draft_id}` | studio | A draft (a non-admin sees only their own; 404 otherwise). |
 
 ### 4.12 Misc, help and docs (`misc_routes.py`, `help_routes.py`)
 
@@ -549,13 +550,14 @@ Only the HTML page `GET /dashboard` (user).
 
 ### 4.14 HTML pages
 
-These render templates; they are not JSON APIs. Unauthenticated requests to `user`/`admin` pages are redirected to `/`.
+These render templates; they are not JSON APIs. Unauthenticated requests to `user`/`studio`/`admin` pages are redirected to `/`.
 
 | Auth | Paths |
 |---|---|
 | none / optional | `/`, `/login`, `/help`, `/help/c/{cid}`, `/help/guides`, `/help/guides/{name}`, `/glossary`, `/help/tools`, `/about`, `/comparison`, `/oauth/authorize`; and the 301 redirects `/help/ai`, `/help/enterprise`, `/help/tutorials`, `/help/glossary`, `/help/storage`, `/docs`, `/docs/view/{doc_path}` |
 | user | `/dashboard`, `/account/password`, `/tools`, `/tools/{tool_name}/execute`, `/tools/{tool_name}/schema`, `/prompts`, `/prompts/{prompt_name}`, `/prompts/{prompt_name}/test`, `/prompts/category/{category}`, `/prompts/tag/{tag}`, `/reports`, `/composite/builder`, `/ai/settings`, `/ask`, `/playground`, `/monitoring/usage` |
-| admin | `/admin/users`, `/admin/users/create`, `/admin/tools`, `/admin/system-monitor`, `/admin/prompts`, `/admin/async-tasks`, `/admin/apikeys`, `/admin/apikeys/create`, `/admin/apikeys/{key_id}/view`, `/admin/federation`, `/admin/connectors`, `/prompts/create`, `/tools/{tool_name}/config`, `/monitoring/tools`, `/monitoring/users`, `/studio`, `/studio/rest`, `/studio/dbquery`, `/studio/script`, `/studio/livelink`, `/studio/olap`, `/studio/powerbi`, `/studio/powerbidax`, `/studio/sharepoint`, `/studio/examples`, `/studio/api-import`, `/studio/describe` |
+| admin | `/admin/users`, `/admin/users/create`, `/admin/tools`, `/admin/system-monitor`, `/admin/prompts`, `/admin/async-tasks`, `/admin/apikeys`, `/admin/apikeys/create`, `/admin/apikeys/{key_id}/view`, `/admin/federation`, `/admin/connectors`, `/prompts/create`, `/tools/{tool_name}/config`, `/monitoring/tools`, `/monitoring/users` |
+| studio | `/studio`, `/studio/rest`, `/studio/dbquery`, `/studio/script`, `/studio/livelink`, `/studio/olap`, `/studio/powerbi`, `/studio/powerbidax`, `/studio/sharepoint`, `/studio/examples`, `/studio/api-import`, `/studio/describe` |
 
 ### 4.15 Python Playground (`playground_routes.py`)
 
@@ -633,31 +635,6 @@ answers a policy outcome (403, 202 with `approval_id`, 429 with `Retry-After` on
 | POST | `/api/audit/anchor` | admin (CSRF) | Sign this worker's chain head now. |
 | GET | `/api/audit/sinks` | admin | This worker's chain writer and SIEM sink status. |
 
-
-### 4.20 Workflows (`workflow_routes.py`)
-
-Workflow definitions, runs and inbound webhooks. Signed-in users manage their own
-workflows; administrators see and manage all; only administrators may publish one as a
-tool. Behaviour, the definition format and the webhook signature:
-[Workflows](../architecture/Workflows.md).
-
-| Method | Path | Auth | Purpose |
-|---|---|---|---|
-| GET | `/workflows` | user | The Workflows page. |
-| GET | `/api/workflows` | user | `{workflows: [...], status}`. |
-| POST | `/api/workflows` | user | Create or update: a JSON definition, a YAML body (`Content-Type: application/yaml`), or `{"text": "..."}`. 400 with the reason when invalid, 403 when not yours. |
-| POST | `/api/workflows/validate` | user | `{valid, definition, yaml, order}`; nothing is saved. |
-| GET | `/api/workflows/{name}` | owner, admin | One workflow (`?format=yaml`; `?reveal=1` shows webhook secrets). |
-| PUT | `/api/workflows/{name}` | owner, admin | Update (version + 1). |
-| DELETE | `/api/workflows/{name}` | owner, admin | Delete it and its run history (active runs are cancelled). |
-| POST | `/api/workflows/{name}/enable`, `/api/workflows/{name}/disable` | owner, admin | Switch its triggers and published tool on or off. |
-| POST | `/api/workflows/{name}/runs` | owner, admin | `{"input", "wait"?, "idempotency_key"?}` (or an `Idempotency-Key` header) → `{run}`; 200 when finished within `wait`, else 202. |
-| GET | `/api/workflows/{name}/runs` | owner, admin | `{runs}` (`?status`, `?limit`). |
-| GET | `/api/workflows/runs/{id}` | owner, admin | `{run}` with its `steps`. |
-| POST | `/api/workflows/runs/{id}/cancel` | owner, admin | Cancel. |
-| POST | `/api/workflows/runs/{id}/rerun` | owner, admin | `{"from_step"?, "latest_definition"?}` → 202 `{run}`. |
-| POST | `/api/workflows/{name}/hooks/{trigger}` | HMAC signature | Inbound webhook: `X-Sajha-Timestamp`, `X-Sajha-Signature`, optional `X-Sajha-Delivery`; 202 `{run_id}`, 401 bad signature or stale timestamp, 409 replay, 404 unknown trigger. |
-
 ### 4.19 Tool quality (`quality_routes.py`)
 
 Probes, saved test runs, the linter, evals and tool versions. Every route is admin only; a
@@ -687,6 +664,30 @@ state changes. Behaviour: [Tool Quality](../architecture/Tool%20Quality.md).
 | POST | `/api/quality/versions/{tool}/canary` | admin (CSRF) | `{"version", "percent"}`. |
 | POST | `/api/quality/versions/{tool}/promote` | admin (CSRF) | `{"version"}`: make it stable and clear its rollback. |
 | DELETE | `/api/quality/versions/{tool}/rollback/{version}` | admin (CSRF) | Clear an automatic rollback. |
+
+### 4.20 Workflows (`workflow_routes.py`)
+
+Workflow definitions, runs and inbound webhooks. Signed-in users manage their own
+workflows; administrators see and manage all; only administrators may publish one as a
+tool. Behaviour, the definition format and the webhook signature:
+[Workflows](../architecture/Workflows.md).
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/workflows` | user | The Workflows page. |
+| GET | `/api/workflows` | user | `{workflows: [...], status}`. |
+| POST | `/api/workflows` | user | Create or update: a JSON definition, a YAML body (`Content-Type: application/yaml`), or `{"text": "..."}`. 400 with the reason when invalid, 403 when not yours. |
+| POST | `/api/workflows/validate` | user | `{valid, definition, yaml, order}`; nothing is saved. |
+| GET | `/api/workflows/{name}` | owner, admin | One workflow (`?format=yaml`; `?reveal=1` shows webhook secrets). |
+| PUT | `/api/workflows/{name}` | owner, admin | Update (version + 1). |
+| DELETE | `/api/workflows/{name}` | owner, admin | Delete it and its run history (active runs are cancelled). |
+| POST | `/api/workflows/{name}/enable`, `/api/workflows/{name}/disable` | owner, admin | Switch its triggers and published tool on or off. |
+| POST | `/api/workflows/{name}/runs` | owner, admin | `{"input", "wait"?, "idempotency_key"?}` (or an `Idempotency-Key` header) → `{run}`; 200 when finished within `wait`, else 202. |
+| GET | `/api/workflows/{name}/runs` | owner, admin | `{runs}` (`?status`, `?limit`). |
+| GET | `/api/workflows/runs/{id}` | owner, admin | `{run}` with its `steps`. |
+| POST | `/api/workflows/runs/{id}/cancel` | owner, admin | Cancel. |
+| POST | `/api/workflows/runs/{id}/rerun` | owner, admin | `{"from_step"?, "latest_definition"?}` → 202 `{run}`. |
+| POST | `/api/workflows/{name}/hooks/{trigger}` | HMAC signature | Inbound webhook: `X-Sajha-Timestamp`, `X-Sajha-Signature`, optional `X-Sajha-Delivery`; 202 `{run_id}`, 401 bad signature or stale timestamp, 409 replay, 404 unknown trigger. |
 
 ### 4.21 Data connectors (`connectors_routes.py`)
 
@@ -719,9 +720,9 @@ Framework-level responses (`sajha/app.py`, `sajha/security.py`):
 
 | Status | When | Body |
 |---|---|---|
-| 401 | `user`/`admin` route without a valid credential, from an API caller: a path starting with `/api/`, `/mcp`, `/a2a`, `/admin/studio/` or `/oauth/`, any method other than GET/HEAD, or an `Accept` that asks for JSON and not HTML (`_wants_json` in `sajha/app.py`) | `{"error": "Authentication required"}` with `WWW-Authenticate` |
+| 401 | `user`/`studio`/`admin` route without a valid credential, from an API caller: a path starting with `/api/`, `/mcp`, `/a2a`, `/admin/studio/` or `/oauth/`, any method other than GET/HEAD, or an `Accept` that asks for JSON and not HTML (`_wants_json` in `sajha/app.py`) | `{"error": "Authentication required"}` with `WWW-Authenticate` |
 | 302 | Same, from a browser page navigation (any other GET) | Redirect to `/` |
-| 403 | `admin` route called by a non-admin | `{"error": "..."}` for an API caller (as above); otherwise an HTML error page |
+| 403 | `admin` route called by a non-admin, or `studio` route called by someone without Studio access | `{"error": "..."}` for an API caller (as above); otherwise an HTML error page |
 | 404 | No such route | HTML error page. Route handlers' own 404s (unknown tool, user, prompt...) are JSON. |
 | 413 | `Content-Length` over 10 MB | `{"error": "Request body too large. Maximum: 10485760 bytes"}` |
 | 422 | Query/path parameter of the wrong type (e.g. `days=abc`) | FastAPI's `{"detail": [...]}` |

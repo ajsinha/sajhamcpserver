@@ -88,7 +88,7 @@ How these rows are used:
 
 - **Matching.** `PermissionDAO.check_access` (`sajha/db/dao/__init__.py`) matches `resource_name` with fnmatch wildcards.
 - **Admin check.** `User.is_admin` is true when the user has the `admin` role. Admin-only routes use `require_admin`.
-- **Other resource types.** Async execution needs the admin role or a permission row (`async`, `*`, `execute`); the shell endpoints need the admin role or (`shell`, `*`, `execute`).
+- **Other resource types.** Async execution needs the admin role or a permission row (`async`, `*`, `execute`); the shell endpoints need the admin role or (`shell`, `*`, `execute`); MCP Studio needs the admin role or (`studio`, `*`, `*` or `use`), which the seeded `developer` role has (`require_studio`).
 
 ### Tool access
 
@@ -126,7 +126,7 @@ The MCP endpoints (`POST/GET/DELETE /mcp`, `POST/DELETE /api/mcp`, `GET /mcp/sse
 
 | Mode | Behaviour |
 |---|---|
-| `off` (default) | SAJHA credentials are recognised. Anonymous calls are allowed when `mcp.anonymous.enabled` is true (else 401). OAuth endpoints and discovery documents answer 404. |
+| `off` (default) | SAJHA credentials are recognised. Credentials that are sent (`Authorization` or `X-API-Key`) but do not authenticate get 401 `invalid_token`; they are never downgraded to anonymous (a stale web cookie alone is). Anonymous calls are allowed when `mcp.anonymous.enabled` is true (else 401). OAuth endpoints and discovery documents answer 404. |
 | `optional` | SAJHA credentials, or an OAuth bearer token that is validated (an invalid token gets 401 `invalid_token`). Anonymous calls are allowed when `mcp.anonymous.enabled` is true (else the 401 challenge). |
 | `required` | A credential is mandatory. Without one, the response is 401 with `WWW-Authenticate: Bearer resource_metadata="...", scope="..."`. |
 
@@ -279,6 +279,9 @@ Each fix below is present in the code:
 | SQL injection in the OLAP tools: filter values, dimension and measure names, operators, aggregations, sort directions and limits were pasted into SQL | Filter values (and date ranges) are DuckDB named parameters; dimension and measure names must be declared by the dataset in `config/olap/datasets.json` and resolve to their configured expressions; operators, aggregations, directions, time grains and numbers are allowlisted or coerced. | `sajha/olap/sql_safety.py`, `sajha/olap/*_engine.py`, `sajha/tools/impl/duckdb_olap_advanced.py` |
 | `duckdb_sql` accepted any statement after a `SELECT` (`SELECT 1; DROP TABLE orders`) and could read any local file or URL (`read_text('/etc/passwd')`) | Exactly one statement of type `SELECT` or `EXPLAIN`, checked by DuckDB's parser on the exact text that runs; the CSV files are loaded into tables at start-up, then `enable_external_access` is switched off and the configuration locked. | `sajha/tools/impl/duckdb_olap_advanced.py` (`DuckDBSQLTool`) |
 | The other `duckdb_*` tools put caller table and column names (and `duckdb_aggregate`'s `having`) straight into SQL (`DESCRIBE {table_name}`), `duckdb_query` blocked writes only by keyword substring, and every one could read any file or URL through DuckDB's table functions | Table and column names are looked up in the catalog (`information_schema`) and double-quoted; `having` is parsed into `<name> <op> <value>` conditions with bound values; `order_by` and directions are allowlisted; `duckdb_query` runs one parser-checked `SELECT`/`EXPLAIN` statement; the data files are copied into an in-memory sandbox whose external access is disabled and configuration locked. | `sajha/tools/impl/duckdb_olap_tools_refactored.py`, `sajha/olap/sql_safety.py` |
+| Invalid credentials on `/mcp`, `/mcp/ws` and `POST /a2a` were treated as no credentials, so a mistyped or expired key ran with the anonymous policy | Credentials that are sent but do not authenticate get 401 (`invalid_token`; on A2A a JSON-RPC `-32001` error; on WebSocket close code 1008), in every `mcp.auth.mode`. | `sajha/auth/oauth/resource_server.py` (`presented_credentials`), `sajha/routes/a2a_routes.py`, `sajha/routes/ws_routes.py` |
+| The REST mirrors of MCP methods (`POST /api/resources/list`, `/api/resources/read`, `/api/completion/complete`) needed no credentials | They require sign-in and apply the caller's tool and resource access. | `sajha/routes/mcp_routes.py` |
+| An API key with an expiry date failed on SQLite (naive and aware datetimes compared) | Naive expiry times are read as UTC. | `sajha/db/dao/__init__.py` |
 | `sajha://data/*` resources (the server's data files) were listed and readable by anonymous callers | Anonymous callers see and read only URIs matching `mcp.anonymous.resources` (default none) in `resources/list` and `resources/read` (both eras); a hidden file is "Resource not found". `/api/resources/*` use the same reader and policy. | `sajha/auth/access.py` (`can_read_resource`), `sajha/core/data_resources.py` |
 
 ---
@@ -300,7 +303,7 @@ How strong the boundary is depends on the backend and the host: on Linux the def
 
 ### MCP Studio
 
-The Studio pages (`/studio/*`) and the actions they post to (`/admin/studio/*`: analyze, preview, deploy, delete) are admin-only (`sajha/routes/studio_routes.py`). A deploy writes the generated files and loads the tool into the live registry.
+The Studio pages (`/studio/*`), the actions they post to (`/admin/studio/*`: analyze, preview, deploy, delete, Describe a tool, Import an API), the `/api/studio/*` reads and creating composites need Studio access: the admin role or a role with the `studio` permission, such as the seeded `developer` (`require_studio` in `sajha/auth/__init__.py`). API keys never have it. A deploy writes the generated files and loads the tool into the live registry. A developer can deploy and delete Studio tools (Describe a tool proposals included, through the same policy-engine gate as an administrator, so a `studio.deploy` rule can deny or `require_approval`), sees only their own Describe drafts, and changes or deletes only the composites they created. Admin only: deploying a Python code or script tool while `sandbox.enforce_for_generated_tools` is `false` (the code would run in-process), sandbox configuration, and everything outside Studio (federation, connectors, policies, approvals, audit, users, API keys). Delete refuses tools Studio did not create, for everyone.
 
 Code a user supplies runs in the [sandbox](../architecture/Sandbox.md), not in the server: a Python code tool's module is never imported into the server, and a script tool's script runs in a fresh sandbox per call, with no server environment, no view of the server's files, and no network unless its `sandbox` policy allowlists hosts (`sandbox.enforce_for_generated_tools`, default `true`). Secrets reach a sandbox only by name through `sandbox.secrets_allowlist`, never a `SAJHA_*` variable. Studio's template creators (REST, DB query, Power BI, LiveLink, SharePoint, OLAP) take configuration, not code, and run in-process.
 
@@ -407,13 +410,15 @@ The convenience methods in `sajha/core/audit.py` for `login_failed`, `logout`, `
 
 ## 8. Known limitations
 
-These describe the code as it stands. They are listed so you can compensate for them in deployment.
+These describe the code as it stands. They are listed so you can compensate for them in deployment. Limits that belong to one feature are in its owner's limits section: [Policy and Audit](../architecture/Policy%20and%20Audit.md#11-limits), [Sandbox](../architecture/Sandbox.md#9-limits-and-future-work), [Data Connectors](../architecture/Data%20Connectors.md#14-limits-of-this-design), [Federation](../architecture/Federation.md#12-limits), [Connected Accounts](../architecture/Connected%20Accounts.md#10-security), [Tool Generation](../architecture/Tool%20Generation.md#8-limits).
 
 **Authorization gaps**
 
 - **Prompts have no per-user permissions.** Every signed-in caller sees every prompt; only anonymous callers are filtered (`mcp.anonymous.prompts`).
 - **Data file resources have no per-user permissions.** `sajha://data/{file}` is readable by every signed-in caller, whatever their tool access (an API key limited to `calc_*` can still read the CSVs); only anonymous callers are filtered (`mcp.anonymous.resources`). Resources of federated upstream servers are not filtered by this policy.
 - **OAuth scopes** (`mcp:read` / `mcp:tools`) gate methods, not individual tools; tool access then applies on top.
+- **Tenant records are not enforced.** `/api/tenants` stores tool patterns, blocked tools and quotas per tenant, but no request path consults them; use roles, API-key tool access and [policy rules](../architecture/Policy%20and%20Audit.md) instead.
+- **Studio access is all-or-nothing.** The `studio` permission opens every creator (code, script, REST, DB query, enterprise sources, Describe a tool, Import an API); it cannot be narrowed to some of them, and a developer can delete any Studio-generated tool, not only their own. Generated Python code and scripts are sandboxed; the template creators run in-process with the server's configured credentials.
 
 **Brute force and sessions**
 

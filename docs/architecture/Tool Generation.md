@@ -1,14 +1,15 @@
 # SAJHA MCP Server — Tool Generation ("Describe a tool")
 
-An administrator describes a tool in plain words ("get the 10-year US treasury yield and
+Someone with MCP Studio access (an administrator, or a developer: a role with the `studio`
+permission) describes a tool in plain words ("get the 10-year US treasury yield and
 its change over 30 days", "wrap this REST endpoint …", "query table orders by region").
 SAJHA asks a model to design it, checks the design as untrusted input, renders the exact
 files a deploy would write, runs the design's test cases (Python code in the sandbox, REST
-against canned replies), and deploys only when the administrator approves that exact
+against canned replies), and deploys only when that person approves that exact
 version and the policy engine agrees.
 
 This document owns the topic. The page is **Studio → Describe a tool**
-(`/studio/describe`, admins only); the command is `sajha studio describe` (see
+(`/studio/describe`, Studio access: admin or the `studio` permission); the command is `sajha studio describe` (see
 [Command Line](../clients/Command%20Line.md#3-commands)); the walkthrough is
 [Tutorial 24](../tutorials/TUTORIAL_24_describe_a_tool.md); the keys are in the
 [Configuration Reference](../getting-started/Configuration%20Reference.md#studio-describe-a-tool);
@@ -112,7 +113,7 @@ preview, and the last test run.
 The **proposal hash** is the SHA-256 of the checked proposal's canonical JSON. Editing the
 proposal (the page's edit box, or `POST /admin/studio/describe/revise`) checks it again and
 gives it a new hash, which clears the test results. A deploy names the hash the
-administrator reviewed; if the draft has moved on, the deploy is refused.
+reviewer saw; if the draft has moved on, the deploy is refused.
 
 The files are produced by Studio's own generators, so a deploy writes exactly what the
 creators would: `ToolCodeGenerator` for Python (`sajha/tools/impl/studio_<name>.py`),
@@ -142,31 +143,41 @@ A REST or DB query module is SAJHA's own template filled with checked values, so
 in-process for its tests; only Python code tools contain model-written code, and that runs
 only in the sandbox.
 
-When the tool test harness is installed (`sajha.quality`, feature-detected; see
-[Tool Quality](Tool%20Quality.md)), the generated config of a Python, REST or DB query tool
-carries the proposal's non-fixture cases as its `tests` list, in the harness's format
-(`keys` become `exists` assertions, `equals` become `equals`, an expected error becomes
-`error`; live cases are tagged `live`), so you review them with the files and the harness
-keeps running them after the deploy. Without the harness the cases stay with the draft.
+The generated config of a Python, REST or DB query tool carries the proposal's
+non-fixture cases as its `tests` list, in the format of the tool test harness
+([Tool Quality](Tool%20Quality.md)): `keys` become `exists` assertions, `equals` become
+`equals`, an expected error becomes `error`, and live cases are tagged `live`. You review
+them with the files, and `python -m sajha.quality test` keeps running them after the deploy.
+(The import is still guarded in `sajha/studio/describe.py`, so a build without
+`sajha/quality/` keeps the cases with the draft.)
 
 ## 6. Deploy
 
 `POST /admin/studio/describe/deploy` with `draft_id`, `hash`, `approve: true` and optionally
 `accept_failures`. It is refused unless every one of these holds, checked on the server:
 
-1. the caller is an administrator (every route is admin only) and sent `approve: true`;
+1. the caller has Studio access (every route needs the admin role or the `studio` permission;
+   a non-admin works only on drafts they created, any other draft id answers 404) and sent
+   `approve: true`;
 2. the draft has no errors and is not deployed already; an `openapi` proposal is never
    deployed here: the page links to Import an API with the URL and prefix filled in, where
-   the administrator chooses the operations;
+   the operations are chosen;
 3. `hash` is the draft's current hash;
 4. the tests ran on that hash, none failed and at least one passed, or `accept_failures`
    is set (the audit record says so);
 5. the name is still free;
 6. the [policy engine](Policy%20and%20Audit.md) allows the pseudo tool call
    `studio.deploy` with arguments `{"tool": <name>, "kind": <kind>}` from source `rest`. A
-   `deny` refuses; `require_approval` creates an approval request that another
-   administrator decides on the Approvals page (self-approval follows
+   `deny` refuses; `require_approval` creates an approval request that an
+   administrator other than the requester decides on the Approvals page (self-approval follows
    `policy.approvals.allow_self_approval`); deploying again then consumes the grant.
+
+Developers may deploy Describe a tool proposals: the deploy is gated by the same checks for
+them as for an administrator, and the policy engine is where an operator narrows it, for
+example a `studio.deploy` rule matching the `developer` role with `require_approval`, so an
+administrator approves every tool a developer generates. A generated Python tool always
+carries `"sandbox": {"enabled": true}`, so it runs in the sandbox whatever
+`sandbox.enforce_for_generated_tools` says.
 
 Files are written module first, then the config through the storage backend, then the tool
 is hot-loaded; if it does not load, the files are removed and the error returned. A

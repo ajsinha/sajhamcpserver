@@ -225,3 +225,5 @@ can follow step by step, re-run from a failure, and call as a tool. Next: add an
 ([Tutorial 20](TUTORIAL_20_policies_approvals_and_audit.md)); deliver each run's output to a
 file or an allow-listed webhook with `delivery`; or chain a composite tool
 ([Tutorial 3](TUTORIAL_03_build_a_composite_tool.md)) as a `composite` step.
+
+Next tutorial: [Test and Canary Your Tools](TUTORIAL_23_test_and_canary_your_tools.md).

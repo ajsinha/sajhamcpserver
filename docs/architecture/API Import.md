@@ -2,7 +2,7 @@
 
 API Import turns an API description into a reviewed set of tools in one pass: an
 OpenAPI 3.x or Swagger 2.0 document (a URL, an uploaded file or pasted text), or a
-GraphQL endpoint read by introspection. An administrator previews every operation the
+GraphQL endpoint read by introspection. Someone with Studio access previews every operation the
 document describes, chooses which become tools, sets the credentials and the base URL,
 test-calls one, and deploys the selection. The tools are live at once and behave like
 every other registry tool: listed by `tools/list` on both protocol eras, shown on the
@@ -10,10 +10,10 @@ Tools page, offered to Ask SAJHA and usable in composites, with the same access 
 argument validation, cache, circuit breaker, metrics and audit.
 
 This document owns the topic: the design, what was built and its limits. The page is
-**Studio → Import an API** (`/studio/api-import`, admins only); the hands-on walkthrough is
+**Studio → Import an API** (`/studio/api-import`, Studio access: admin or the `studio` permission); the hands-on walkthrough is
 [Tutorial 19](../tutorials/TUTORIAL_19_import_an_openapi_spec.md); the configuration keys
 and their defaults are in the
-[Configuration Reference](../getting-started/Configuration%20Reference.md#api-import); the
+[Configuration Reference](../getting-started/Configuration%20Reference.md#api_import); the
 terms are in the [Glossary](../../GLOSSARY.md). The code is `sajha/api_import/`.
 
 ---

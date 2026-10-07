@@ -204,7 +204,7 @@ kind delete cluster --name sajha
 - Lock the network down with `networkPolicy.enabled=true` (section 8 of the guide)
 - Read [Scaling and State](../architecture/Scaling%20and%20State.md) for what is shared
   between pods, and what stays in each one
-- This is the last tutorial; the [documentation index](../README.md) lists every guide
+- Next tutorial: [Connect Your Accounts](TUTORIAL_18_connect_your_accounts.md)
 
 ---
 

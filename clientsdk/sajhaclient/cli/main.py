@@ -1152,7 +1152,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--events", action="store_true", help="with --json: every step event as NDJSON")
     p.add_argument("--verbose", "-v", action="store_true", help="full arguments and summaries")
 
-    p = add(sub, "studio", None, "describe, deploy, import or delete MCP Studio tools (admin)")
+    p = add(sub, "studio", None, "describe, deploy, import or delete MCP Studio tools (admin or the studio permission)")
     ss = p.add_subparsers(dest="studio_cmd", metavar="ACTION")
     sd = add(ss, "deploy", cmd_studio_deploy, "deploy a Python file with a @sajhamcptool function")
     json_flag(sd)

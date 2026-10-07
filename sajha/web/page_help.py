@@ -52,7 +52,7 @@ PAGE_HELP: dict = {
     'reports_dashboard': {
         'what': 'Usage and performance reports: calls, errors and latency over time, by tool and by user.',
         'terms': ['Execution count', 'Error rate', 'Latency', 'User activity', 'Audit log'],
-        'guide': 'Architecture.md'},
+        'guide': 'Observability.md'},
     # ── Prompts ──────────────────────────────────────────────────────────────
     'prompts_list': {
         'what': 'The prompt library: reusable templates that MCP clients list and fill in.',
@@ -107,7 +107,7 @@ PAGE_HELP: dict = {
         'what': 'Calls, latency and errors per tool, refreshed while the page is open.',
         'terms': ['Monitoring', 'Execution count', 'Average execution time', 'Error rate',
                   'Latency', 'Real-time updates'],
-        'guide': 'Architecture.md'},
+        'guide': 'Observability.md'},
     'monitoring_users': {
         'what': 'Who is signed in, and who called what, and when.',
         'terms': ['User activity', 'Session (web)', 'Active users', 'Request count',

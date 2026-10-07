@@ -35,7 +35,8 @@ section 11). Everything a client can reach over HTTP comes through one of four d
    │ (sajha/core/mcp_*.py)         │   + composites (DB), federated tools,     │
    │ sessions · MRTR · tasks ·     │   Studio tools (sandboxed stand-ins)      │
    │ apps · change bus             │ PromptsRegistry ◄── prompt configs        │
-   │                               │ plugins · tool versioning · tenancy       │
+   │                               │ connectors · workflows · plugins ·        │
+   │                               │ tool versions · policy engine             │
    │ IntelligenceService → LLMGateway → LLM providers (sajha/ai/)              │
    └───────────────┬───────────────┴───────────────┬───────────────────────────┘
                    │ execution: cache → circuit breaker → tool.execute() → metrics, usage
@@ -70,7 +71,9 @@ order:
    ([Scaling and State](Scaling%20and%20State.md)).
 3. **Configuration and storage.** `PropertiesConfigurator` loads
    `config/application.yml` (so tool configs can use `${...}` placeholders), and
-   `init_storage()` selects the storage backend.
+   `init_storage()` selects the storage backend. The policy files are then loaded and
+   this process's audit hash chain and SIEM sinks opened
+   ([Policy and Audit](Policy%20and%20Audit.md)).
 4. **Registries.** `ToolsRegistry` loads every tool config; `PromptsRegistry` loads
    prompts. On a cloud backend an `S3SyncManager` polls the bucket and reloads them;
    locally the registries' own pollers do.
@@ -79,10 +82,12 @@ order:
    starts.
 6. **Optional subsystems**, in this order, each failing soft (logged, server still
    starts): federation (upstream tools registered before anything indexes the catalog;
-   waits at most `federation.startup_wait_seconds`), composite tools from the database,
-   observability (metrics, OpenTelemetry, the usage ledger, alert rules, health probes),
-   tenancy, plugins, the LLM gateway, the tool-search index, and the intelligence service
-   (with the optional `sajha_ask` MCP tool).
+   waits at most `federation.startup_wait_seconds`), data connectors' generated tools (no
+   database is opened), composite tools from the database, workflows (scheduler,
+   triggers, run recovery), observability (metrics, OpenTelemetry, the usage ledger,
+   alert rules), tenant records, plugins, the LLM gateway, the tool-search index, the
+   intelligence service (with the optional `sajha_ask` MCP tool), the document index
+   behind `sajha_search_docs`, and the tool-quality health probes.
 7. **Template globals** (version, theme, navigation, help) are registered.
 
 On shutdown, in order: observability flushes the usage ledger and stops its threads,
@@ -134,7 +139,8 @@ WebSocket sessions. While an event is queued for a subscriber, identical events 
 dropped, so a bulk reload is one notification.
 
 **Authorization.** `authorize_mcp` runs before era detection on every MCP endpoint.
-In mode `off` it only resolves SAJHA credentials (API key, JWT, cookie) if present; in
+In mode `off` it only resolves SAJHA credentials (API key, JWT, cookie) if present, and
+answers 401 when a sent `Authorization` or `X-API-Key` does not authenticate; in
 `optional` / `required` it also validates OAuth bearer tokens and produces the 401/403
 challenges. The resolved caller travels in the MCP session dict, and `MCPHandler`'s
 `SessionToolAccess` (`sajha/auth/access.py`) filters `tools/list` and checks `tools/call`
@@ -162,7 +168,7 @@ on every transport. See the [OAuth Guide](../protocol/OAuth%20Guide.md) and the
   recent-execution history ([Observability](Observability.md)).
 - **Around it:** tool versions with canary routing and rollback (`sajha/quality/versions.py`, called first
   in `execute_with_tracking`; [Tool Quality](Tool%20Quality.md)), plugins (`plugins.py`),
-  tenancy (`tenancy.py`), provider health (`tool_health.py`), webhooks
+  tenant records (`tenancy.py`; stored and served by `/api/tenants`, not consulted on calls), provider health (`tool_health.py`), webhooks
   (`webhooks.py`), async background execution with webhook/Kafka/file delivery
   (`async_executor.py`), and the sandboxed shell tools (`shell_executor.py`, disabled
   by default).
@@ -193,14 +199,30 @@ parameters between steps; `EntropyGuard` tracks cumulative confidence
   REST call, SQL query, script, Power BI, DAX, LiveLink, SharePoint, OLAP) into a tool
   config, written through the storage backend, and an implementation module, written
   locally; the registry then hot-loads the config. `sajha/routes/studio_routes.py` serves
-  the pages (`/studio/*`) and the admin-only actions their forms post to
-  (`/admin/studio/*`: analyze, preview, deploy, delete). Guide:
-  [MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md).
+  the pages (`/studio/*`) and the actions their forms post to
+  (`/admin/studio/*`: analyze, preview, deploy, delete), all behind `require_studio`
+  (an admin, or a role with the `studio` permission such as `developer`). Guide:
+  [MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md). Two Studio pages
+  build tools differently: Import an API (`sajha/api_import/`) turns an OpenAPI, Swagger
+  or GraphQL description into configs run by one generic executor
+  ([API Import](API%20Import.md)), and Describe a tool (`sajha/studio/describe.py`) has a
+  model propose a tool that is checked, tested and deployed only on approval
+  ([Tool Generation](Tool%20Generation.md)).
+- **Governed data access.** Data connectors (`sajha/connectors/`) generate read-only tools
+  over databases, warehouses and vector stores ([Data Connectors](Data%20Connectors.md));
+  connected accounts (`sajha/accounts/`) let a tool act as its caller at another service
+  ([Connected Accounts](Connected%20Accounts.md)).
+- **Workflows and quality.** `sajha/workflows/` runs DAGs of tool, composite and ask steps
+  on schedules and triggers ([Workflows](Workflows.md)); `sajha/quality/` holds the test
+  harness, linter, probes, evals and tool versions ([Tool Quality](Tool%20Quality.md)).
 - **AI.** `sajha/ai/llm/` holds the provider-neutral types, the provider and model
   abstractions and the native providers; `sajha/ai/gateway.py` (`LLMGateway`) resolves
   aliases to models with policy, budgets, retries, fallback and caching;
   `sajha/ai/intelligence.py` (`IntelligenceService`) is the ask loop behind
-  `POST /api/ai/ask`, the Ask SAJHA page (`/ask`) and the optional `sajha_ask` MCP tool.
+  `POST /api/ai/ask`, the Ask SAJHA page (`/ask`) and the optional `sajha_ask` MCP tool,
+  with pluggable planners (`sajha/ai/planners.py`), per-user conversation memory
+  (`sajha/ai/memory.py`) and the document index behind `sajha_search_docs`
+  (`sajha/ai/rag/`).
   `sajha/ai/tool_resolver.py` answers natural-language tool searches: a lexical BM25 index
   by default (`sajha/ai/lexical.py`), optionally an embedding index
   (`sajha/ai/embedders.py`), re-synced in the background whenever tools reload. Design:
@@ -215,7 +237,7 @@ parameters between steps; `EntropyGuard` tracks cumulative confidence
 
 | Store | What lives there | Code |
 |---|---|---|
-| Database (SQLite default, PostgreSQL) | Users, roles, permissions, API keys, audit log, tenants, prompts metadata, composite tools, tool versions and usage, LLM providers, models and usage, the observability usage ledger (`obs_usage_events`) | `sajha/db/`, `db/scripts/<type>/`, `sajha/observability/usage.py` |
+| Database (SQLite default, PostgreSQL) | Users, roles, permissions, API keys, audit log and its hash chain and anchors, tenants, prompts metadata, composite tools, tool usage, LLM providers, models and usage, the observability usage ledger (`obs_usage_events`), connected-account tokens, workflows and their runs, quality runs, conversations; every table is in the schema files | `sajha/db/`, `db/scripts/<type>/`, `sajha/observability/usage.py` |
 | Storage backend (local, S3, Azure Blob, GCS) | Tool and prompt configs, Studio output, the federation store (upstreams and approvals), guides served at `/help/guides` | `sajha/core/storage.py`; [Storage Guide](../getting-started/Storage%20Guide.md) |
 | Local disk (`data/`) | Tool output cache, async results, shell scratch, DuckDB/SQL data files, the OAuth signing key | config keys under `cache`, `async`, `shell`, `data`, `mcp.auth.builtin` |
 | State store (`state.backend`: memory, Redis or the database) | MCP sessions, MCP task records, OAuth pending consents, codes, refresh tokens and DCR clients, rate-limit windows, LLM budgets, change-bus relay | `sajha/core/state/`; [Scaling and State](Scaling%20and%20State.md) |
@@ -229,8 +251,10 @@ keep it on a real filesystem or a managed database.
 Credential checks (`sajha/auth/`: `AuthManager`, `AuthContext`, the JWT handler and
 password policy), per-caller tool access (`sajha/auth/access.py`, shared by REST, MCP, A2A and async), generated server secrets (`sajha/core/server_secrets.py`), OAuth on MCP endpoints, the
 Origin allow-list on `/mcp`, security headers and CSP (`sajha/security.py`), request
-size limits, rate limiting, the sandbox for user code (`sajha/sandbox/`) and the audit
-log (`sajha/core/audit.py`). The model, the defaults and the deployment checklist are in
+size limits, rate limiting, the sandbox for user code (`sajha/sandbox/`), the policy
+engine on every tool call (`sajha/policy/`) and the audit log (`sajha/core/audit.py`)
+with its tamper-evident hash chain (`sajha/audit/`;
+[Policy and Audit](Policy%20and%20Audit.md)). The model, the defaults and the deployment checklist are in
 the [Security Model](../security/Security%20Model.md).
 
 **Scaling out.** Several workers or hosts need a shared `state.backend` and shared

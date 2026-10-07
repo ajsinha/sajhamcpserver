@@ -24,7 +24,8 @@
       (url_for('ai_settings'), 'cloud', 'LLM', 'Providers, models and the default'),
       (url_for('prompts_list'), 'chat-square-text', 'Prompts', 'The prompt library, tested and versioned')])])] %}
 {% endif %}
-{% if session.token and is_admin %}
+{% set show_studio = is_admin or (can_studio is defined and can_studio) %}
+{% if session.token and show_studio %}
 {% set MENU = MENU + [
   ('MCP Studio', 'magic', [
     ('Code & services', [
@@ -43,7 +44,10 @@
       (url_for('studio_olap'), 'graph-up-arrow', 'OLAP dataset', 'Slice a cube as a tool')]),
     ('Compose', [
       (url_for('composite_builder'), 'boxes', 'Composite builder', 'Chain tools into one'),
-      (url_for('workflows_page'), 'diagram-3', 'Workflows', 'Steps, branches and loops on a schedule or trigger')])]),
+      (url_for('workflows_page'), 'diagram-3', 'Workflows', 'Steps, branches and loops on a schedule or trigger')])])] %}
+{% endif %}
+{% if session.token and is_admin %}
+{% set MENU = MENU + [
   ('Admin', 'shield-lock', [
     ('Manage', [
       (url_for('admin_tools'), 'tools', 'Tools', 'Enable, disable and configure tools'),
