@@ -182,7 +182,7 @@ CATALOG: List[dict] = [
             _g('LLM tools (design)', 'LLM Tools.md', 'bi-chat-square-text',
                'Design for tools whose work is done by a model: modes, config, running as the caller, '
                'config-driven planners (ReAct, Reflect, loops), memory tiers with disk spill, safety, build plan.'),
-            _g('SAJHA fleet (design)', 'Fleet.md', 'bi-diagram-3',
+            _g('SAJHA Net (design)', 'SAJHA Net.md', 'bi-diagram-3',
                'Design for SAJHA servers sharing tools across domains: gossip membership, automatic proxy tools, '
                'API-key identity with a synced key directory, two-sided authorization, residency, snapshots.'),
             _g('Roadmap', 'Roadmap.md', 'bi-signpost-2',

@@ -73,7 +73,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Tool Quality](architecture/Tool%20Quality.md): test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, rollback and sunset dates
 - [Policy and Audit](architecture/Policy%20and%20Audit.md): declarative rules on every tool call (deny, approval, argument constraints, rate limits, quotas, redaction, injection screening); the hash-chained, signed audit and SIEM export
 - [LLM Tools](architecture/LLM%20Tools.md): design (not built) for tools whose work is done by a model, configured like any tool and governed the same way
-- [SAJHA Fleet](architecture/Fleet.md): design (not built) for several SAJHA servers sharing tools while each keeps its own data, policy, AI and memory
+- [SAJHA Net](architecture/SAJHA%20Net.md): design (not built) for several SAJHA servers sharing tools while each keeps its own data, policy, AI and memory
 - [Roadmap](architecture/Roadmap.md): what is not built yet and what should come next, by horizon (now, next, later), each item linked to the guide that records the gap
 
 ## MCP Studio
