@@ -1745,6 +1745,8 @@ pre.pg-repr { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--sajha-indigo) 5
 .lp2-visuals .lp2-sky-wrap { max-width: none; margin: 0; }
 @media (min-width: 1200px) {
   .lp2-visuals { max-width: 1560px; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); align-items: start; }
+  /* side by side, the ring box is exactly as tall as the constellation canvas; the ring scales to fit */
+  .lp2-visuals .lp2-net svg { height: clamp(440px, 44vw, 580px); }
 }
 .lp2-net-wrap { position: relative; margin: 0; text-align: left; min-width: 0; }
 @media (max-width: 1199.98px) { .lp2-net-wrap { max-width: 640px; width: 100%; margin: 0 auto; } }
