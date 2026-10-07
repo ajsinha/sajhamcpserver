@@ -245,6 +245,29 @@ server is needed.
   and unique in the net. The instance name is what gossip, the console, audit records, user
   identities (`alice@risk-eu`) and qualified tool names (`risk-eu__var_calc`) use. An instance
   also has a base URL, a region and labels (`domain: risk`, `jurisdiction: EU`).
+- **When no name is configured, the address is the name.** An instance without
+  `sajhanet.instance_name` is named after the address other instances reach it on, as
+  `<ip>:<port>` (for example `10.20.4.17:3002`; IPv6 as `[2001:db8::7]:3002`). The address must be
+  real and reachable:
+  - it is `sajhanet.advertise_address` if set (needed behind NAT or a container network, where the
+    address the server sees is not the one peers use);
+  - otherwise the server's bind address, if that is a specific address;
+  - otherwise, when bound to all interfaces, the address of the interface that carries the
+    default route.
+
+  Never `0.0.0.0`, `::`, a loopback address (`127.0.0.0/8`, `::1`), `localhost`, or a link-local
+  address (`169.254.0.0/16`, `fe80::/10`). If no acceptable address is found, the instance does not
+  join and says why at start-up and on its SAJHA Net settings page; local tools keep working.
+- **Where an address name cannot be used as is.** Tool names allow only letters, digits, `_` and
+  `-` for every LLM provider, so the prefix of qualified tool names uses a safe form of the
+  address: dots and colons become `-`, brackets are dropped, and `ip-` is put in front
+  (`10.20.4.17:3002` gives `ip-10-20-4-17-3002__var_calc`). Everywhere else (the console, gossip,
+  audit, `alice@10.20.4.17:3002`) the address is shown as written.
+- **Prefer a configured name in production.** An address name changes when the address does
+  (DHCP, a restart that moves a container or Kubernetes pod), and with it every qualified tool
+  name, user link, block and pinned alias that refers to the instance. The console warns when an
+  instance runs under an address name, and the Helm chart sets `sajhanet.instance_name` from a
+  value so pods keep their name.
 - **Admission is by certificate.** The net has its own certificate authority. Each instance
   holds a key pair and a certificate signed by the SAJHA Net CA whose subject names the net and
   the instance name, so an instance cannot claim a name it was not issued. Every request between instances is mutual TLS, and an instance accepts a peer only
@@ -800,6 +823,7 @@ the `sajha` command line.
 
 | Page | What it shows | What an administrator can do |
 |---|---|---|
+| **Instances** (every signed-in user) | Every participant in the net as a card or table row: name (configured or address), kind (SAJHA, agent, sponsored), region, labels, state with last seen, and how many of its tools **this user** may use. Search and filter by name, region, label, kind and state. Clicking an instance opens its tools: each tool's name, alias, description, inputs and outputs, health and latency, with the same **Try it** form as the local Tools page (subject to the user's access). Read-only: no management actions | None here; administrators manage from the pages below |
 | **Net overview** | A live topology map: one node per instance (this one centred), coloured by state (`alive`, `suspect`, `dead`, `left`, blocked), edges showing traffic in the last hour with thickness by calls and colour by error rate; beside it, cards with each instance's name, region, labels, latency, tools shared, last seen, certificate expiry. Net totals: instances, remote tools in use, calls and refusals in the last hour. | Open an instance; filter by region or label; pause the live view |
 | **Instance detail** | Header with state, incarnation, certificate and expiry, versions; tabs for **Tools** (what it exports to us, what we export to it), **Traffic** (calls each way, latency percentiles, errors and refusals by reason), **Users** (its users we link, match, map or refuse), **Keys** (its key-directory records: count, revoked, last sync), **Blocks** (ours toward it and, from gossip, its toward us), **History** (catalog changes with diffs, state changes, blocks) | Block or unblock (entirely, inbound, outbound), change trust level, edit role map, link users, force a catalog and key refresh |
 | **Remote tools** | Every proxy tool in one searchable table: qualified name, alias, hosting instance, health, latency, trust, data classes, version, last change; local tools can be included for comparison | Hide or block a tool, pin or unpin an alias, review a held change (diff of description and schema), open its audit trail |
@@ -820,8 +844,11 @@ the `sajha` command line.
 - **Dashboard:** a SAJHA Net tile (instances alive, remote calls, refusals) linking to the overview.
 - **Audit and usage pages:** filters by remote instance and remote user; a cross-instance call
   links to its counterpart record on the other side.
-- **Navigation:** a SAJHA Net menu for administrators; non-administrators see remote tools in the
-  catalog but none of the SAJHA Net pages.
+- **Navigation:** a SAJHA Net menu. Every signed-in user sees **Instances** (section 17.1);
+  administrators also see the management pages.
+- **Navbar:** the SAJHA wordmark stays as it is (owner decision). An instance that belongs to a net
+  shows a small badge beside it, **Net · `<instance name>`** with a health dot for its connection
+  to the net, linking to Instances. It tells a user at a glance which instance they are on.
 
 ### 17.3 Quality bar
 
@@ -868,7 +895,8 @@ the `sajha` command line.
 sajhanet:
   enabled: false
   name: acme-net
-  instance_name: risk-eu
+  instance_name: risk-eu            # if unset: <ip>:<port> from a real, reachable address (section 6.1)
+  advertise_address: ""             # ip:port peers should use, behind NAT or container networks
   base_url: https://sajha-risk-eu.example.internal
   region: eu-west
   labels: { domain: risk, jurisdiction: EU, entity: acme-eu }
@@ -1006,6 +1034,10 @@ at any point in the retained window, and an instance can be rebuilt after losing
   like SAJHA instances (proxies, identity, blocks, audit); capability negotiation; every
   interface's contract suite against each shipped implementation; the extension's conformance
   suite against SAJHA, the agent and the library.
+- **Instance names:** a configured name is used as is; without one, the advertised address, a
+  specific bind address or the default-route interface gives `<ip>:<port>`; `0.0.0.0`, `::`,
+  loopback, `localhost` and link-local addresses are never used, and with nothing acceptable the
+  instance stays out of the net with a clear message; the safe tool-name prefix for IPv4 and IPv6.
 - **Membership:** joins through a seed, clean leaves, crashes detected through indirect probes,
   false suspicion refuted, rejoin with a higher incarnation, revocation spreading, a server
   without a net certificate refused; a network split heals through anti-entropy.
@@ -1120,6 +1152,11 @@ What this design would add, in combination, is aimed at regulated, multi-domain 
 - **Administrators from other instances** call tools as the host's administrator
   (`sajhanet.users.remote_admin: admin`); net settings on an instance still change only through an
   administrator signed in to it (section 11.3).
+
+- **Navbar:** keep the SAJHA wordmark; show a Net badge with the instance name when in a net.
+- **Default instance name:** `<ip>:<port>` of a real, reachable address when none is configured.
+- **Instances page for everyone:** every signed-in user can browse participants and the tools
+  each offers them.
 
 No decisions are open.
 
