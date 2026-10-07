@@ -46,16 +46,21 @@
 
 ---
 
+**How a wave runs.** Each wave is split into **phases** that run one after another; within a phase,
+independent **streams** run in parallel (at most four at a time, usually two, to keep cost down).
+Every wave ends with a phase that runs the combined gate (section 9), releases, and drills (commit,
+merge to `main`, tag). The next wave starts right after. Each wave's phase table below shows its
+streams, what each phase waits for, and its status.
+
 ## 2. Wave overview
 
-| Wave | Release | Theme | Main content | Depends on |
-|---|---|---|---|---|
-| 1 | 7.1.0 | Foundations | Caller identity in tools, API keys owned by users with a default key each, tool calls audited, renewing lease, system notices, release hygiene, CI | none |
-| 2 | 7.2.0 | Model interface and LLM tools | OpenAI-style canonical interface and providers, the LLM tool type and its modes, conversation memory and resource safety, `sajha_ask` moved onto the type | 1 |
-| 3 | 7.3.0 | Planners and authoring | Configurable planners and every shipped strategy, `auto`, Studio LLM tool creator and planner editor, sampling, the OpenAI-compatible endpoint | 2 |
-| 4 | 8.0.0 | SAJHA Net core | Named nets (several per server), membership with required seeds, CA, signed requests on one port, catalogs and proxy tools, resolution order and preferences, offline removal, one name one contract, waterfall fallback, identity across instances, blocks, the Instances page | 1 (3 for remote LLM tools) |
-| 5 | 8.1.0 | Sovereignty, console, other MCP servers | Residency, locality-aware planners, re-export, the full SAJHA Net console, sponsored servers, the agent and library, the extension's conformance suite | 4 |
-
+| Wave | Release | Theme | Main content | Depends on | Status |
+|---|---|---|---|---|---|
+| 1 | 7.1.0 | Foundations | Caller identity in tools, API keys owned by users with a default key each, tool calls audited, renewing lease, system notices, release hygiene, CI | none | done (7.1.0) |
+| 2 | 7.2.0 | Model interface and LLM tools | OpenAI-style canonical interface and providers, the LLM tool type and its modes, conversation memory and resource safety, `sajha_ask` moved onto the type | 1 | done (7.2.0) |
+| 3 | 7.3.0 | Planners and authoring | Configurable planners and every shipped strategy, `auto`, Studio LLM tool creator and planner editor, sampling, the OpenAI-compatible endpoint | 2 | in progress, phase 3.1 |
+| 4 | 8.0.0 | SAJHA Net core | Named nets (several per server), membership with required seeds, CA, signed requests on one port, catalogs and proxy tools, resolution order and preferences, offline removal, one name one contract, waterfall fallback, identity across instances, blocks, the Instances page | 1 (3 for remote LLM tools) | pending |
+| 5 | 8.1.0 | Sovereignty, console, other MCP servers | Residency, locality-aware planners, re-export, the full SAJHA Net console, sponsored servers, the agent and library, the extension's conformance suite | 4 | pending |
 Wave 4 is a major version because it adds a new table (`sajhanet_api_keys`), new columns on
 `api_keys` and a new signed protocol surface; operators must apply schema changes on PostgreSQL by
 hand, as for every schema change.
@@ -83,6 +88,13 @@ hand, as for every schema change.
 | Revocable sign-in | Roadmap X4 | Needed before keys and sessions become net identities |
 | Upgrade helper for schema changes (prints, never runs, DDL) | Roadmap X17 | Makes waves 2 and 4's schema changes easy for operators |
 
+**Phases** (done; released as 7.1.0)
+
+| Phase | Streams, in parallel | Depends on | Status |
+|---|---|---|---|
+| 1.1 | A identity and API keys ‖ B audit, tracing, cache, lease ‖ C system notices ‖ D hygiene and snapshots | none | done |
+| 1.2 | Combined gate (suite, conformance, mobile), release 7.1.0, drill | 1.1 | done |
+
 **Exit:** gates of section 9; a user can create, rotate and revoke their own keys; every tool call
 is in the audit chain; CI runs the full suite on every push.
 
@@ -104,6 +116,14 @@ that governed LLM tools work end to end with the existing four planners.
 | Documents (PDF, Word) as RAG sources | Roadmap X8 | Makes `grounded` useful beyond text files |
 | `sajha_ask` moved onto the type; shipped example tools (off); eval sets | LLM Tools step 9; closes Roadmap X7 | |
 
+**Phases** (done; released as 7.2.0)
+
+| Phase | Streams, in parallel | Depends on | Status |
+|---|---|---|---|
+| 2.1 | A OpenAI-style model interface and providers ‖ B conversation memory and document sources | wave 1 | done |
+| 2.2 | C LLM tool type, modes, resource safety, `sajha_ask` ‖ D pluggable sqlite-vec document store (owner addition); Ask page "Servers and tools" log (owner addition) | 2.1 | done |
+| 2.3 | Combined gate, release 7.2.0, drill | 2.2 | done |
+
 **Exit:** gates of section 9; the soak test drives the process to its soft and hard memory limits
 without a crash; every provider passes the portability suite; eval sets pass on the mock.
 
@@ -120,11 +140,19 @@ SAJHA becomes usable from any OpenAI-style client.
 | Shipped strategies and `auto` (selection and escalation); planner resolution and `planner_choices`; dry run; per-stage events and metrics | LLM Tools step 5, §9.12–9.13 | |
 | Studio LLM tool creator; planner editor with validation and dry run; Describe-a-tool proposals; conversations page | LLM Tools step 10 | |
 | Studio permissions per creator, and ownership | Roadmap X2 | Lands with the new creators |
-| Sampling (`prefer`, `require`) on both eras | LLM Tools step 11 | |
-| SAJHA as an OpenAI-compatible endpoint; LLM tools listed as models | LLM Tools step 12 | |
+| Sampling (`prefer`, `require`) on both eras | LLM Tools step 11 | Built for `complete`, `extract`, `classify`, `judge` |
+| SAJHA as an OpenAI-compatible endpoint; LLM tools listed as models | LLM Tools step 12 | Built (`tests/ai/test_openai_api.py`, with the `openai` SDK) |
 | One LLM package boundary: everything LLM in `sajha/ai/llm/` (gateway moved in, the legacy `sajha/ai/providers/` layer retired), application code using only the OpenAI-style public API and the abstract provider and model classes, old message types removed from callers; an `LLMFactory` (from configuration and the registry) as the only way to obtain providers and models, returning a `GovernedModel` proxy that applies policy, budgets, cache, retries, breakers, fallback, audit and usage before delegating to the provider model, with vendor specifics delegated to per-provider functions; and an architecture test that fails on any vendor SDK, provider module, direct construction or old type used outside the package | Owner decision; LLM Tools §13 |
 | Console end-to-end and accessibility checks | Roadmap X15 | The new editor pages are their first users |
 | LLM Tools, Planner Reference and Intelligence Layer docs become as-built; tutorials | LLM Tools step 13 | |
+
+**Phases**
+
+| Phase | Streams, in parallel | Depends on | Status |
+|---|---|---|---|
+| 3.1 | A planner engine and shipped strategies ‖ B OpenAI-compatible endpoint and MCP sampling | wave 2 | B done, A finishing |
+| 3.2 | C authoring: Studio LLM tool creator, planner editor with dry run, Describe-a-tool proposals, conversations page, Studio permissions per creator (X2), console end-to-end and accessibility checks (X15) ‖ D LLM package boundary: factory, governed model proxy, old types retired from callers, architecture test | 3.1 | pending |
+| 3.3 | Comparison page update, docs as-built and tutorials, combined gate (suite, conformance, mobile, evals), release 7.3.0, drill | 3.2 | pending |
 
 **Exit:** gates of section 9; every shipped strategy has path and bound tests; an OpenAI SDK
 client completes a chat and calls an LLM tool as a model.
@@ -156,6 +184,14 @@ place from the first release.
 | The Instances page for every signed-in user and the navbar badge; minimal admin pages for membership, blocks, certificates and the conflicts queue | SAJHA Net §17 (subset) | The full console is wave 5 |
 | Helm value for the nets list (each net's instance name, advertise address and seeds) | New-code item 9 | |
 
+**Phases**
+
+| Phase | Streams, in parallel | Depends on | Status |
+|---|---|---|---|
+| 4.1 | A protocol core and plug-in interfaces, membership (names and collisions, CA, signed requests on one port, gossip, restarts, peer cache, admin peer injection) ‖ B changes to existing code (federation names and annotations, SSRF network allowlist, extension on both eras, cancellation to the host, imported schema validation, Helm values) | wave 3 | pending |
+| 4.2 | C catalogs and routing (catalog exchange, host and tool table, proxies, named nets and preferences, one name one contract with quarantine, offline removal, waterfall fallback) ‖ D identity and authorization (API-key resolver, key directory, users across instances, blocks, export and import rules, role maps, linked audit, notice sources) | 4.1 | pending |
+| 4.3 | Instances page and navbar badge, minimal admin pages; three-instance test net (in process and as containers); SAJHA's conformance cases; combined gate, release 8.0.0, drill | 4.2 | pending |
+
 **Exit:** gates of section 9; a three-instance test net (in one process and as three containers)
 joins through its seeds, survives restarts (seeds down: through the saved peer list) and a crash,
 refuses a name collision, exchanges catalogs, removes a crashed host's tools when it is dead,
@@ -180,6 +216,15 @@ to servers that are not SAJHA.
 | Single sign-on for the console | Roadmap X5 | Console users of several instances |
 | Browser and transport hardening | Roadmap X6 | More pages, more cross-instance traffic |
 | SAJHA Net docs as-built; tutorial "two domains, one question" | SAJHA Net phase 9 | |
+
+**Phases**
+
+| Phase | Streams, in parallel | Depends on | Status |
+|---|---|---|---|
+| 5.1 | A residency (data classes, policy conditions, field redaction, shortlists, memory handling) ‖ B locality-aware planners, remote LLM tools, combined hop and depth limits | wave 4 | pending |
+| 5.2 | C re-export and the assertion and token-exchange resolvers ‖ D the full SAJHA Net console | 5.1 | pending |
+| 5.3 | E sponsored servers, the agent and library, the extension's full conformance suite ‖ F console single sign-on (X5), browser and transport hardening (X6) | 5.2 | pending |
+| 5.4 | Comparison page update, full documentation pass and deck, combined gate, release 8.1.0, drill | 5.3 | pending |
 
 **Exit:** gates of section 9; a mixed net (SAJHA instances, an agent-fronted server, a sponsored
 server) passes the conformance suite and the end-to-end residency tests.
