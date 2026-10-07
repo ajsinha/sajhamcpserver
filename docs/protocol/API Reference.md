@@ -288,6 +288,22 @@ Your own keys:
 | POST | `/api/account/apikeys/{key_id}/rotate` | user | New value for your key (the old one stops working); returned once. |
 | POST | `/api/account/apikeys/{key_id}/revoke` | user | Revoke your key for good (not the default key: 400). |
 
+The administrators' credential files (`credential_files_routes.py`; admin, console session with CSRF or a SAJHA JWT; entries win over the database; owner guide: [Security Model](../security/Security%20Model.md)):
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/admin/apikeys/file` | admin | The API keys file page (`config/apikeys.json`). |
+| GET | `/api/admin/apikeys/file` | admin | `{"path", "keys": [...]}`; keys masked. |
+| POST | `/api/admin/apikeys/file` | admin | Add a key (`key` given or generated); the raw key is returned once. |
+| PUT | `/api/admin/apikeys/file/{kid}` | admin | Change a record (name, owner, roles, enabled, expiry, tool access, `test_admin`, `key`). |
+| DELETE | `/api/admin/apikeys/file/{kid}` | admin | Remove a record. |
+| GET | `/api/admin/apikeys/file/{kid}/reveal` | admin | The raw key of a record (audited). |
+| GET | `/admin/users/file` | admin | The users file page (`config/users.json`). |
+| GET | `/api/admin/users/file` | admin | `{"path", "roles", "users": [...]}`; passwords never returned. |
+| POST | `/api/admin/users/file` | admin | Add a user; applied to the database at once. |
+| PUT | `/api/admin/users/file/{uid}` | admin | Change a user (name, email, roles, enabled, `test_admin`, a new `password`). |
+| DELETE | `/api/admin/users/file/{uid}` | admin | Remove a user from the file (the database user stops being managed by it). |
+
 Every key (administrators):
 
 | Method | Path | Auth | Purpose |
@@ -830,7 +846,7 @@ normal port: the paths, bodies, signatures and refusals are specified, not repea
 is not in, for a browser navigation (`Sec-Fetch-Mode: navigate`), and on the paths of features it
 does not offer; its responses never carry CORS headers. Requests are signed by participants, not
 authenticated by session or API key. Served today: gossip ping and ping-req, membership sync and
-leave, the revocation list, and on the CA instance enrollment and renewal.
+leave, the revocation list, the catalog and conflicts endpoints, and on the CA instance enrollment and renewal.
 
 **Admin API.** Admin only; every change is written to the audit log. Errors are
 `{"error": "message", ...}`: 400 a bad request or an address the network rules refuse, 404 a net
@@ -840,7 +856,7 @@ not answer (with `reason`), 503 SAJHA Net is off.
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | `/admin/sajhanet` | admin | The SAJHA Net page: each net, this server's name and certificate there, joined or not, the members and their states; add a peer by address. |
+| GET | `/admin/sajhanet` | admin | The SAJHA Net page: each net, this server's name and certificate there, joined or not, the members and their states; add a peer by address; identity and access (blocks here and published by others, add and remove a block, remote users, the key directory and a re-sync). |
 | GET | `/api/sajhanet/status` | admin | `{enabled, protocol_versions, nets: [...]}`: per net the instance name, URL, founder, seeds and runtime seeds, error, joined, refused (a `name_conflict` with the holder), features, incarnation, certificate, revocation-list version, the gossip agent's holder and the members (name, state, URL, incarnation, last seen). |
 | POST | `/api/sajhanet/nets/{net}/peers` | admin | `{"address": "ip:port" \| "host:port" \| URL, "keep_as_seed"?}`: contact that address now with an ordinary signed join. Refused before any contact when the address fails the SSRF rules (`sajhanet.allowed_networks`). On success `{ok, peer, url, kept_as_seed}`; on failure nothing is stored. |
 | DELETE | `/api/sajhanet/nets/{net}/seeds` | admin | `{"url"}`: remove a runtime seed. 404 when it is not one. |
@@ -852,6 +868,33 @@ not answer (with `reason`), 503 SAJHA Net is off.
 | POST | `/api/sajhanet/nets/{net}/renew` | admin | Renew this server's certificate now with a new key (it also renews by itself when a third of its validity remains). |
 | POST | `/api/sajhanet/nets/{net}/pins` | admin | Manual mode: `{"thumbprint"}` pins a peer's self-signed certificate for the net. |
 | DELETE | `/api/sajhanet/nets/{net}/pins` | admin | Manual mode: `{"thumbprint"}` removes a pin (the revocation in manual mode). |
+| GET | `/api/sajhanet/nets/{net}/blocks` | admin | This server's blocks in the net (`id`, `level`, `target_instance`, `tool` and `direction` or `user`, `reason`, `set_at`, `set_by`, `expires_at`, `active`), its blocks-document `version`, and the blocks other members publish (`published`, by member). |
+| POST | `/api/sajhanet/nets/{net}/blocks` | admin | `{"level": "instance"\|"inbound"\|"outbound"\|"tool"\|"user", "target_instance", "reason", "tool"?, "direction"? ("inbound": refuse calls to a host tool; "outbound": hide a remote tool by qualified name, glob allowed), "user"? (`alice@risk-eu`), "expires_in_minutes"?, "withhold_reason"?}`. A reason is required. Takes effect on the next request, is audited and published (§12 of the protocol); answers the block with `effect`, a sentence naming what changes. |
+| DELETE | `/api/sajhanet/nets/{net}/blocks/{id}` | admin | `{"reason"?}`: remove a block. 404 when there is none. |
+| GET | `/api/sajhanet/nets/{net}/users` | admin | Remote users: explicit `links`, the merged `role_maps` (configuration and runtime), instances whose users are not matched by name, the `unknown` and `remote_admin` settings, and `seen`: each remote user who called recently and how they resolved (`link`, `name`, `role_map`, `admin`, `refused`, `blocked`). |
+| POST | `/api/sajhanet/nets/{net}/users/links` | admin | `{"remote_user": "alice@risk-eu", "local_user"}`: calls by that remote user run as the local account. 404 when the local account does not exist. |
+| DELETE | `/api/sajhanet/nets/{net}/users/links` | admin | `{"remote_user"}`: remove a link. |
+| PUT | `/api/sajhanet/nets/{net}/role-maps/{instance}` | admin | `{"map": {"analyst": ["risk_analyst"]}}`: the roles users of `instance` (or `*`) get here when `sajhanet.users.unknown` is `map_roles`; an empty map removes it. |
+| PUT | `/api/sajhanet/nets/{net}/name-matching/{instance}` | admin | `{"on": false}`: never match users of `instance` to local accounts by name (`true` matches them again). |
+| GET | `/api/sajhanet/nets/{net}/keys` | admin | The net key directory, read-only: per home its record count, revoked and disabled records, highest version, unusable mark (`left`, `revoked`) and last received; with `?home=<instance>` that home's records (key id, prefix, name, owner, state, expiry, access mode, version; never a hash). |
+| POST | `/api/sajhanet/nets/{net}/keys/resync` | admin | Re-pull every member's key records from version 0 and compare digests at the next gossip round. |
+| GET | `/api/sajhanet/tools` | admin | The host and tool table (`?net=` for one net): `rows` (qualified name, net, host instance, host tool, tool part, `version`, `contract_hash`, `description_hash`, `trust`, `state`: `active`, `unavailable`, `held`, `hidden`, `invalid`, `blocked`, `quarantined`; `alias`; `resolution`: the row's place in its plain name's order and why, or why it is not eligible), `resolution` per plain name (`kind` `local`, `plain` or `unknown`, `order`, `skipped`), the `aliases` offered, `preferences`, `max_fallbacks` and `bare_aliases`. |
+| GET | `/api/sajhanet/conflicts` | admin | Per net (`?net=`): the `quarantined` tool names with their reports (every offer and contract hash, `agreeing`, `differing`, the first differing JSON Pointer or annotation, `reported_by`, `since`, the text logged), this server's signed conflicts `document`, and description-only differences as `warnings`. |
+| GET | `/api/sajhanet/catalogs` | admin | Per net: this server's catalog digest and exported tool count, each peer's live catalog (tools, hash, flags such as `contract_hash_mismatch` or `too_many_tools`, state, pulled at), the conflicts-document version, the quarantined names and pull counters. |
+| POST | `/api/sajhanet/nets/{net}/peers/{peer}/trust` | admin | `{"trust": "auto"\|"review"\|"pinned", "pinned"?: [tool, ...]}`: the peer's trust level for its tools ([SAJHA Net](../architecture/SAJHA%20Net.md) §7.3); the peer's catalog is pulled again at once. |
+| POST | `/api/sajhanet/nets/{net}/peers/{peer}/tools/{tool}/approve` | admin | Under `review` trust: approve the peer's tool at the contract it offers now (a later change is held at this version until approved again). 404 when the peer does not offer it. |
+| DELETE | `/api/sajhanet/nets/{net}/peers/{peer}/tools/{tool}/approve` | admin | Withdraw that approval. |
+
+The block, link, role-map and name-matching changes refuse (403) a caller that arrived through the
+net (`auth_type` `sajhanet`): net settings are changed only by an administrator signed in to this
+server ([SAJHA Net](../architecture/SAJHA%20Net.md) §11.3).
+
+**Forwarded calls on the MCP endpoint.** A `POST /mcp` that carries any `Sajha-Net-*` header is a
+signed request from a participant ([SAJHA Net Protocol](SAJHA%20Net%20Protocol.md#15-tool-call-forwarding)
+§15): it is verified and served by the net (`tools/call` in the order of §15.4, `tools/list` equal to
+the catalog endpoint, `server/discover` and `initialize` with only that net's extension object), or
+answered with a bare `404` when SAJHA Net is off or the net is not one of this server's. It is never
+served as an anonymous or ordinarily authenticated request.
 
 The command line wraps these as `sajha net ...` ([Command Line](../clients/Command%20Line.md)).
 

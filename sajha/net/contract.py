@@ -104,6 +104,18 @@ def _keys(make):
     assert p.version('acme-net', 'risk-eu') == 2
     assert [r['version'] for r in p.since('acme-net', 'risk-eu', 0)] == [2]
     assert p.since('acme-net', 'risk-eu', 2) == []
+    assert p.put(dict(rec, version=2, name='re-signed'), force=True) is True, 'force replaces an equal version'
+    assert p.put(dict(rec, home_instance='cust-na', version=9), force=True) is False, 'never another home'
+    assert [r['key_id'] for r in p.find('acme-net', 'a' * 64)] == ['k1']
+    p.mark('acme-net', 'risk-eu', 'left')
+    assert p.marked('acme-net', 'risk-eu') == 'left'
+    p.mark('acme-net', 'risk-eu', None)
+    assert p.marked('acme-net', 'risk-eu') is None
+    signed = dict(rec, key_id='k2', key_hash='b' * 64, version=3, signature={'alg': 'ed25519', 'keyid': 'T' * 43,
+                                                                             'sig': 'x'})
+    assert p.put(signed) is True
+    assert p.discard_signed('acme-net', 'T' * 43) == ['risk-eu']
+    assert p.by_hash('acme-net', 'b' * 64) is None, 'records of a revoked certificate are discarded'
 
 
 def _rules(make):

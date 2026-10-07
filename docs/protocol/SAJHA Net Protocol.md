@@ -1268,8 +1268,6 @@ when hosts disagree: the name is quarantined until they agree.
   usual gossip and pull delay, so they quarantine and re-activate the same names; until then a member
   acts on what it sees.
 
-## 11. Net key directory
-
 **Reporting a conflict.** A member reporting a `contract_conflict` (log, notice, conflicts document,
 audit) MUST group the offering hosts by contract hash and, when one group is strictly larger than every
 other, name the hosts outside it as `differing` and those in it as `agreeing`; on a tie it lists every
@@ -1278,6 +1276,7 @@ differing location: `inputSchema` or `outputSchema` with a JSON Pointer, or the 
 both values. Re-activation is reported the same way, naming the change that ended the conflict
 (`fixed`, `withdrawn`, `left`, `dead`).
 
+## 11. Net key directory
 
 ### 11.1 Key record
 
@@ -1315,7 +1314,7 @@ net. A user's key therefore identifies them in every net their home belongs to, 
     "enabled":       { "type": "boolean" },
     "expires_at":    { "anyOf": [ { "$ref": "urn:sajha:net:v1#/$defs/timestamp" }, { "type": "null" } ] },
     "revoked_at":    { "anyOf": [ { "$ref": "urn:sajha:net:v1#/$defs/timestamp" }, { "type": "null" } ] },
-    "tool_access_mode": { "enum": ["all", "allowlist", "denylist"] },
+    "tool_access_mode": { "enum": ["all", "allowlist", "denylist", "regex"] },
     "tool_access_list": { "type": "array", "items": { "type": "string" } },
     "persistent":    { "type": "boolean" },
     "version":       { "$ref": "urn:sajha:net:v1#/$defs/version" },
@@ -1325,6 +1324,9 @@ net. A user's key therefore identifies them in every net their home belongs to, 
 }
 ```
 
+- `owner.user_name` is the owner's login name at the home (the name a net user is written with,
+  `alice@risk-eu`, and the name a host matches against its own accounts); `owner.user_id` is the
+  home's internal id for the account and `owner.display_name` its display name.
 - `key_hash` is the lowercase hex SHA-256 of the raw key's UTF-8 bytes (what SAJHA already stores,
   `sajha/security.py`). Because it is unsalted, keys MUST carry at least 128 bits of randomness.
 - `version` comes from **one counter per home** that increases on every change to any of its records;
@@ -1332,7 +1334,8 @@ net. A user's key therefore identifies them in every net their home belongs to, 
 - A deleted key is never removed from the directory: its record gets `revoked_at` and a new
   `version`.
 - `tool_access_mode` and `tool_access_list` are a ceiling on what the key may call anywhere; they
-  name tools by their names **at the home** (plain names for the home's own tools, qualified names
+  name tools by their names **at the home** (`allowlist` and `denylist` hold glob patterns, `regex`
+  regular expressions matched against the whole name) (plain names for the home's own tools, qualified names
   `<net>__<prefix>__<tool part>` for proxies).
 
 ### 11.2 Acceptance
@@ -2045,7 +2048,7 @@ vectors for SIG-01, SIG-12 and REC-01.
 | CALL-12 | S A | On 2025-11-25, a session created by one participant cannot be used by another's signed requests. |
 | CALL-13 | S A (`reexport`) | A re-exported call carries an assertion with `aud` = origin and `net` = the request's net, no raw key, hop 2 and the visited list; an expired or replayed assertion, or one whose `net` is another net → `-32013 assertion_invalid`. |
 | FB-01 | S A | Every refusal of a forwarded `tools/call` before execution (each step 1 to 10 of §15.4, and `-32019` `draining`, `overloaded`, `rate_limited`) carries `executed: false`; `residency_result` carries `executed: true`; a host never sends `-32019` after the tool has started. |
-| FB-02 | S | A call by plain name whose first host refuses the connection, has its breaker open, is `suspect`, or answers `-32019` with `executed: false` is sent to the next host offering the same tool part and version, in resolution order, across nets (where the `contract_hash` must also match); a host offering another version, or a tool refused for `contract_conflict`, is never tried. |
+| FB-02 | S | A call by plain name whose first host refuses the connection, has its breaker open, is `suspect`, or answers `-32019` with `executed: false` is sent to the next host offering the same tool part, in resolution order, across nets (where the `contract_hash` must also match); `version` plays no part (§10.2); a host whose copy has another contract in another net, or a tool refused for `contract_conflict`, is never tried. |
 | FB-03 | S | After a timeout following the send, an unsigned proxy `502`/`503`/`504`, or a response that fails verification, the home falls back only for tools that are read-only, or idempotent with `destructiveHint: false`; a destructive tool is not tried again. |
 | FB-04 | S | A call by qualified name is never sent to another host; a non-availability refusal by the first host (`-32011`, `-32013`, `-32015`, `-32016`, `-32012`) is returned without fallback. |
 | FB-05 | S | During a fallback, a host that refuses for any reason is skipped and the next one tried; at most `max_fallbacks` hosts are tried after the first; no attempt starts after the shared deadline; when none answers, the caller gets the first attempt's refusal with `attempts` listed. |

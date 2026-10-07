@@ -1,23 +1,51 @@
 {
   "format": "sajha-persistent-apikeys/1",
-  "note": "SAJHA persistent API keys: SHA-256 hashes only, never keys. Copy to config/apikeys.json (git-ignored, mode 0600) or let the server write it: Admin > API keys > Persistent. docs/security/Security Model.md",
+  "note": "SAJHA API keys file, maintained by administrators (Admin > API keys > Keys file). Keys here win over the database. Copy to config/apikeys.json (git-ignored, mode 0600). docs/security/Security Model.md",
   "keys": [
+    {
+      "id": "test-admin",
+      "name": "Test admin key (development only)",
+      "key": "sja_test_admin_dev_key_0001",
+      "owner": "testadmin",
+      "owner_name": "Test administrator",
+      "roles": [
+        "admin"
+      ],
+      "enabled": true,
+      "expires_at": null,
+      "tool_access_mode": "all",
+      "tool_access_list": [],
+      "test_admin": true
+    },
     {
       "id": "6f1c2d4e-0000-4000-8000-000000000001",
       "prefix": "sja_3f9a",
       "name": "ci-deploy",
-      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "key": "sja_replace_with_your_own_key",
       "owner": "alice",
-      "owner_name": "Alice Example",
-      "roles": ["developer"],
+      "roles": [
+        "developer"
+      ],
       "enabled": true,
       "expires_at": null,
       "tool_access_mode": "allowlist",
-      "tool_access_list": ["wiki_*", "calc_*"],
-      "created_at": "2026-10-01T09:00:00Z",
-      "created_by": "admin",
-      "revoked_at": null,
-      "revoked_by": null
+      "tool_access_list": [
+        "wiki_*",
+        "calc_*"
+      ]
+    },
+    {
+      "id": "peer-key-from-home",
+      "name": "Key used by another member (copy this record onto the member that accepts it)",
+      "key": "sja_peer_b_sample_key_0001",
+      "owner": "testadmin",
+      "roles": [
+        "admin"
+      ],
+      "enabled": true,
+      "expires_at": null,
+      "tool_access_mode": "all",
+      "tool_access_list": []
     }
   ]
 }

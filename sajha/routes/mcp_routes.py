@@ -135,6 +135,13 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
         return err
 
     raw = await request.body()
+
+    # SAJHA Net (docs/protocol/SAJHA Net Protocol.md §15): a request carrying Sajha-Net-* headers is a
+    # signed request from a participant; it is verified and served by the net, or refused, never
+    # served as an anonymous or ordinarily authenticated request
+    if any(k.lower().startswith('sajha-net-') for k in request.headers.keys()):
+        return await _serve_net(request, raw)
+
     try:
         body = json.loads(raw)
         parsed = True
@@ -253,6 +260,24 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
 
 
 _modern_servers: dict = {}
+
+
+async def _serve_net(request: Request, raw: bytes) -> Response:
+    """A signed participant request to the MCP endpoint (SAJHA Net §15.4); an unsigned 404 when SAJHA Net
+    is off or the net is not one of this server's (§7.7)."""
+    from sajha.net.integration import get_service
+    svc = get_service()
+    if svc is None or not svc.participant.enabled:
+        return Response(status_code=404)
+    proto = request.headers.get('x-forwarded-proto', '').split(',')[0].strip().lower()
+    secure = request.url.scheme == 'https' or proto == 'https'
+    source = request.client.host if request.client else ''
+    r = await run_in_threadpool(svc.participant.handle_mcp, request.method, request.url.path, request.url.query,
+                                dict(request.headers), raw, secure, source)
+    if r is None:
+        return Response(status_code=404)
+    headers = {k: v for k, v in r.headers.items() if k.lower() != 'content-length'}
+    return Response(content=r.body, status_code=r.status, headers=headers)
 
 
 def _modern_server(handler):

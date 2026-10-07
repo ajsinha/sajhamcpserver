@@ -135,6 +135,11 @@ Reader: Settings.
 | `auth.session.secret_key` | YAML `${SESSION_SECRET:}` / code `""`: empty means generated and persisted, like `auth.jwt.secret` | `SESSION_SECRET`, `SAJHA_SECRET_KEY`, `SAJHA_AUTH_SESSION_SECRET_KEY` | Keys the OAuth consent-form CSRF tokens (`sajha/auth/oauth/authorization_server.py`). It is also the seed for the MRTR state secret when `mcp.mrtr.state_secret` is empty (`sajha/core/mcp_mrtr.py` uses the resolved Settings value). Placeholder values stop start-up. |
 | `auth.session.timeout_minutes` | `60` | — | **Not used.** Nothing reads this key. |
 | `auth.secrets_file` | `""` → `<data.dir>/secrets/server_secrets.json` | `SAJHA_AUTH_SECRETS_FILE` | Where generated secrets are kept: JSON, mode 0600 in a 0700 directory, created on first start (`sajha/core/server_secrets.py`). `data/secrets/` is git-ignored. Workers that share it share the secrets. Deleting it signs everyone out. |
+| `auth.credential_storage` | `plain` | `SAJHA_AUTH_CREDENTIAL_STORAGE` | `plain` (passwords and API keys stored as given; owner decision for intranet use) or `hashed` (bcrypt / SHA-256). Run `python -m sajha.auth rehash` after switching to `hashed`. Security Model, "Credential storage and files". |
+| `auth.credential_files.reload_check_seconds` | `300` (min 1) | `SAJHA_AUTH_CREDENTIAL_FILES_RELOAD_CHECK_SECONDS` | `config/users.json` and `config/apikeys.json` are held in memory by one object each; lookups never read the file. A hand edit is noticed at the next check, at most this many seconds later; changes made on the admin pages apply at once. |
+| `auth.users_file.path` | `config/users.json` | `SAJHA_AUTH_USERS_FILE_PATH` | The administrators' users file; wins over the database (`sajha/auth/users_file.py`). |
+| `auth.api_keys.db_dump_path` | `config/apikeys_db.json` | `SAJHA_AUTH_API_KEYS_DB_DUMP_PATH` | Where the database's keys are dumped (last fallback for key lookup). |
+| `auth.api_keys.db_dump_interval_minutes` | `10` (min 1) | `SAJHA_AUTH_API_KEYS_DB_DUMP_INTERVAL_MINUTES` | How often the dump is written (one worker per interval). |
 | `auth.login.max_failed_attempts` | `5` (min 1) | `SAJHA_AUTH_LOGIN_MAX_FAILED_ATTEMPTS` | Consecutive failed sign-ins that lock an account (`sajha/auth/__init__.py`, `AuthManager.sign_in`). |
 | `auth.login.lockout_minutes` | `15` (min 1) | `SAJHA_AUTH_LOGIN_LOCKOUT_MINUTES` | How long a locked account stays locked. |
 | `auth.login.ip_max_failures` | `20` (min 1) | `SAJHA_AUTH_LOGIN_IP_MAX_FAILURES` | Failed sign-ins per client IP within the window before 429 (`sajha/security.py`). |
@@ -626,7 +631,8 @@ not in this file. Design, the upstream fields and operation:
 Reader: live `_get` for the scalar keys, so `SAJHA_SAJHANET_*` environment variables
 override the YAML; `sajhanet.nets` is read from the YAML as nested data, or from
 `SAJHA_SAJHANET_NETS` (a JSON list), which replaces it. SAJHA Net is being built; the keys
-below are the ones the code reads today (membership, names, the CA and signed requests). The
+below are the ones the code reads today (membership, names, the CA, signed requests, identity, the
+key directory, users across instances, rules and blocks). The
 whole design, with every planned key, is
 [SAJHA Net](../architecture/SAJHA%20Net.md#19-configuration). On Kubernetes the chart's
 `sajhanet` values write these keys
@@ -635,6 +641,8 @@ whole design, with every planned key, is
 | Key | Default | Purpose |
 |-----|---------|---------|
 | `sajhanet.enabled` | `false` | Master switch, read at start-up. On: the configured nets are joined, `/sajhanet/` serves the protocol (off: a bare 404), and the `io.sajha/net` extension is advertised on both MCP eras (`capabilities.extensions` in `server/discover`, `capabilities.experimental` in `initialize`; [MCP Protocol Guide](../protocol/MCP%20Protocol%20Guide.md)). |
+| `sajhanet.test_admin_key.enabled` | `true` (for now) | `SAJHA_SAJHANET_TEST_ADMIN_KEY_ENABLED` | Honour `"test_admin": true` records in `config/apikeys.json` and `config/users.json` (administrator), and carry the test admin key on SAJHA Net calls. Development and testing only; critical notice while active. |
+| `sajhanet.peer_keys` | sample entry | `SAJHA_SAJHANET_PEER_KEYS` (JSON) | Keys this server uses toward particular members: `"<net>/<instance>"` or `"<instance>"` → key (or `${ENV}`); local only, never shared. |
 | `sajhanet.nets` | `[]` | The nets this server is in, in order of preference; an entry without `name` is the net `default` (an info notice suggests naming it). The fields of an entry are in the table below. |
 | `sajhanet.allowed_networks` | `[]` | CIDRs (`10.20.0.0/16`, `fd00:1::/32`) a SAJHA Net peer's URL may resolve into. Public addresses are always allowed; private, carrier-grade NAT and unique-local addresses only inside a listed network; loopback, link-local, unspecified and multicast never, whatever the list says. Separate from `federation.allow_private_networks`. A CIDR that does not parse is skipped with a warning. |
 | `sajhanet.base_url` | `""` | The base URL peers reach this server on (its member record's `url`; the host must be in its certificate). Required with a configured `instance_name`; with an address name it defaults to `https://<ip>:<port>`. A net entry may set its own. |
@@ -657,6 +665,28 @@ whole design, with every planned key, is
 | `sajhanet.gossip.full_sync_interval_seconds` | `30` | Anti-entropy: a full membership exchange with one random member. |
 | `sajhanet.gossip.dead_retention_minutes` | `60` | Dead and left members are kept (and dead ones probed) this long, then dropped. |
 | `sajhanet.gossip.dead_probe_interval_seconds` | `30` | How often a dead member's last address is probed, so a restarted server is found. |
+| `sajhanet.user_identity` | `api_key` | How users travel with a forwarded call: `api_key` (the user's own API key, verified by the host against the net key directory), or `none` (service identity only). Advertised in the member record and the `io.sajha/net` extension. |
+| `sajhanet.plugins.key_directory_store` | `database` | Where synced key records live: `database` (the `sajhanet_api_keys` table, [Database Setup](Database%20Setup.md)), `memory`, or `package.module:Class`. |
+| `sajhanet.key_directory.sync` | `true` | Pull other members' key records when their `digests.keys` passes the version held. Off: this server verifies only keys it already holds. |
+| `sajhanet.key_directory.full_sync_interval_seconds` | `300` | Every this many seconds each member's key digest is compared with the records held, and a difference re-pulled from version 0 (minimum 5). |
+| `sajhanet.users.match_by_name` | `true` | A remote user with no explicit link runs as the local account with the same login name (`users.user_id`), with that account's local roles. A net entry's `users` overrides each of these keys for its net. |
+| `sajhanet.users.unknown` | `refuse` | A remote user with no local account: `refuse` ("you have no account here") or `map_roles` (a guest identity `alice@risk-eu` with the roles of the role map for the user's instance; with no mapped role, refused). |
+| `sajhanet.users.remote_admin` | `admin` | A remote user with the `admin` role at their home: `admin` (calls tools as an administrator here), `user` (like any linked or matched user; a name match gives no `admin` role), `refuse`. Net settings are changed only by an administrator signed in to this server, whatever this says. |
+| `sajhanet.users.exclude_names`, `sajhanet.users.no_name_match` | `[]` | Login names never matched by name, and instances whose users are never matched by name (more can be added at runtime on the SAJHA Net page). |
+| `sajhanet.role_maps` | `{}` | `{instance: {remote role: [local roles]}}` used by `users.unknown: map_roles` (`*` for every instance); a net entry's `role_maps` adds to it, and maps set on the SAJHA Net page add to both. |
+| `sajhanet.service_calls` | `false` | Accept forwarded calls that carry no user (service identity). |
+| `sajhanet.anonymous_may_call_remote` | `false` | Let anonymous callers use remote tools (no key travels; most hosts refuse such calls). |
+| `sajhanet.preferences` | `{}` | Per-tool resolution preferences, server-wide: `{tool: ["<net>/<instance>", "<net>", ...]}`. A call by plain name tries the local tool, then these entries in order (a bare net: its hosts by the routing strategy), then the nets in `sajhanet.nets` order. Entries naming a net, host or tool that is not there are skipped. Server-wide only. |
+| `sajhanet.max_fallbacks` | `3` | Hosts tried after the first for a call by plain name, only after a failure that was certainly not executed, or one that may have been for read-only or idempotent non-destructive tools. `0` turns fallback off. Server-wide only. |
+| `sajhanet.bare_aliases` | `on` | Plain names for remote tools: `on` (every remote tool whose name no local tool has), `preferences_only` (only names with a preference list), `off` (qualified names only). |
+| `sajhanet.default_trust` | `auto` | Trust in peers' tools: `auto` (imported at once after screening), `review` (each tool waits for an administrator's approval; a changed one is held at its approved version), `pinned` (only tools an administrator listed). Per peer it is set on the SAJHA Net page or with the admin API (kept in `<data_dir>/<net>/trust.json`). |
+| `sajhanet.refresh_interval_seconds` | `300` | A peer's catalog is pulled when its digest or incarnation changes and at least this often (minimum 5). |
+| `sajhanet.default_timeout_seconds` | `30` | A forwarded call's timeout, and the shared deadline of all its fallback attempts. |
+| `sajhanet.max_hops` | `1` | Forwarded calls are refused (`hop_limit`) past this many hops from their home (at most 8). |
+| `sajhanet.plugins.routing` | `local_first` | Order of the hosts of one tool within a net: `local_first` (by instance name), `lowest_latency` (measured median first), `pinned` (only hosts named in the preferences), or `package.module:Class`. |
+| `sajhanet.limits.max_tools_per_peer`, `limits.max_catalog_bytes`, `limits.max_description_chars` | `2000`, `5242880`, `1024` | Caps on what is imported from one peer; a peer that exceeds them is flagged (a warning notice) and the excess ignored. |
+| `sajhanet.peer.breaker_threshold`, `peer.breaker_reset_seconds` | `5`, `30` | Per-peer circuit breaker at the home: after this many consecutive availability failures calls to the peer pause for this long (a call by plain name moves to the next host). |
+| `sajhanet.peer.calls_per_minute`, `peer.inbound_calls_per_minute` | `600`, `600` | Per-peer rate limits: this home's calls to one peer, and forwarded calls accepted from one peer (`-32019 rate_limited` beyond). |
 
 Fields of a `sajhanet.nets` entry (YAML or `SAJHA_SAJHANET_NETS`). An entry may also set `base_url`,
 `region`, `labels`, `signature_max_age_seconds`, `require_https`, `min_protocol_version`, `gossip`
@@ -678,6 +708,15 @@ Fields of a `sajhanet.nets` entry (YAML or `SAJHA_SAJHANET_NETS`). An entry may 
 | `ca.enrollments_per_minute` | `10` | Enrollment requests accepted per source address and minute (429 beyond). |
 | `peer_cache.path` | `<data_dir>/<net>/peers.json` | The saved peer list (local disk, written atomically, owner-only). |
 | `static_peers` | `[]` | With `plugins.membership: static`: the peers to sync with. |
+| `export` | `[]` | What this server offers in the net: a list of `{tools, to_instances, for_roles, require_approval}`. `tools` and `to_instances` are globs; `for_roles` are the caller's local roles after mapping. Nothing is exported unless a rule allows it; a rule with `to_instances: []` never exports its tools, whatever other rules say. |
+| `import` | `[]` | What this server's users may use from the net: a list of `{instances, tools, for_roles}` (`for_roles`: the local caller's roles). Nothing is imported unless a rule allows it; `instances: []` never imports the tools. |
+| `users`, `role_maps`, `service_calls`, `anonymous_may_call_remote` | shared defaults | Per-net overrides of the shared keys above. |
+| `default_trust`, `max_hops`, `refresh_interval_seconds`, `reexport` | shared defaults | Per-net overrides of the catalog and routing keys. `reexport` is read but not built: an instance exports only its own tools. |
+
+Blocks, user links, runtime role maps and name-matching exceptions are not configuration: an
+administrator sets them on the SAJHA Net page or through the admin API
+([API Reference](../protocol/API%20Reference.md#424-sajha-net-sajhanet_routespy)); they are kept per net in the
+storage backend (`<data_dir>/<net>/blocks.json`, `users.json`).
 
 ## api_import
 

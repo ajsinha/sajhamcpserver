@@ -152,6 +152,14 @@ PAGE_HELP: dict = {
         'what': 'Create an account and give it a role.',
         'terms': ['User ID', 'RBAC', 'Password hash', 'Role', 'Tool access', 'Account status'],
         'guide': 'Security Model.md'},
+    'apikeys_file_page': {
+        'what': 'The administrators\' API keys file (config/apikeys.json): keys here are checked first and win over the database; test admin keys sign in as an administrator while enabled.',
+        'terms': ['API key', 'Persistent API key'],
+        'guide': 'Security Model.md'},
+    'users_file_page': {
+        'what': 'The administrators\' users file (config/users.json): users here are written to the database at start-up and on every change, and win over it.',
+        'terms': ['API key'],
+        'guide': 'Security Model.md'},
     'apikeys_list': {
         'what': 'Every API key, its owner and state: assign owners to older keys, rotate, disable, revoke.',
         'terms': ['API key', 'Key owner', 'Default API key', 'Persistent API key', 'Tool access mode',
@@ -183,9 +191,11 @@ PAGE_HELP: dict = {
         'guide': 'Federation.md'},
     'admin_sajhanet_page': {
         'what': 'The SAJHA Nets this server belongs to: its name and certificate in each, whether it has joined, the '
-                'members it knows and their states; add a peer by address.',
+                'members it knows and their states; add a peer by address; blocks, remote users and the net key '
+                'directory of each net.',
         'terms': ['SAJHA Net', 'Net name', 'Instance name', 'Seed', 'Member state', 'Name conflict',
-                  'SAJHA Net CA', 'Saved peer list'],
+                  'SAJHA Net CA', 'Saved peer list', 'Net block', 'Net user', 'User link', 'Role map',
+                  'Net key directory'],
         'guide': 'SAJHA Net.md'},
     'admin_connections_page': {
         'what': 'Which services each user has linked, with what access and when last used; unlink an account, '

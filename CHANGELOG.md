@@ -4,6 +4,22 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+### Credentials: files, plain storage, test admin, per-member keys (owner decisions)
+
+- **Upgrading:** `auth.credential_storage` defaults to `plain` — new and changed passwords and API keys
+  are stored as given (existing bcrypt / hashed values keep working). Set `hashed` and run
+  `python -m sajha.auth rehash` to harden. New column `api_keys.key_value` (PostgreSQL: run what
+  `python -m sajha.db upgrade-sql` prints; SQLite development: recreate the database).
+- **Upgrading:** precedence changed — keys in `config/apikeys.json` now win over the database (it
+  was the other way round), and `config/users.json` (administrators' users) is back: it wins over the
+  database and is applied to it at start-up and on every change.
+- Added: `config/apikeys_db.json`, the database's keys dumped every 10 minutes, used when the database
+  does not know a key or is down; admin pages `/admin/apikeys/file` and `/admin/users/file`.
+- Added: test admin records (`"test_admin": true`) in both files, honoured while
+  `sajhanet.test_admin_key.enabled` (on for now; critical notice while active); SAJHA Net calls carry
+  the test admin key while it is on. Disable before production.
+- Added: `sajhanet.peer_keys`, keys this server uses toward particular members (local only).
+
 Wave 4 of the [Implementation Plan](docs/architecture/Implementation%20Plan.md), phase 4.1: stream A,
 SAJHA Net membership ([SAJHA Net](docs/architecture/SAJHA%20Net.md) §5.5 says what is built), and
 stream B, changes to existing code that SAJHA Net builds on (§21.1 items 2, 5, 6, 9, 12 and 13).
@@ -17,12 +33,49 @@ stream B, changes to existing code that SAJHA Net builds on (§21.1 items 2, 5, 
 - **Federated annotations** are corrected rather than copied: `openWorldHint` is always
   `true`, non-boolean hints and unknown keys are dropped, and `destructiveHint` is dropped for
   a read-only tool.
+- **New table `sajhanet_api_keys`** (the SAJHA Net key directory) with two indexes. PostgreSQL: run
+  what `python -m sajha.db upgrade-sql` prints before starting (`db.schema_check: strict` refuses to
+  start without it). SQLite for development: SAJHA creates it.
+- **Policy source `sajhanet`:** forwarded calls a host runs for a remote user carry the policy source
+  `sajhanet`, so policy rules can match them (`sources: [sajhanet]`).
 - **Federated schemas** must be valid JSON Schema (2020-12) object schemas: a tool whose
   `inputSchema` or `outputSchema` is not is listed as `invalid`, with the reason, and is not
   exposed.
 
 ### Added
 
+- **SAJHA Net identity and authorization** (phase 4.2, stream D; [SAJHA Net](docs/architecture/SAJHA%20Net.md)
+  §5.5 says what is built): the `api_key` identity resolver (the caller's own key, or a console user's
+  default key from the vault, travels to the host, which verifies it against the net key directory and
+  checks it came from its home); the net key directory (`sajhanet_api_keys`, signed records synced by
+  `digests.keys` and digest comparison, tombstones, revoked certificates' records discarded, records of
+  departed homes unusable); users across instances (links, name matching, `sajhanet.users.unknown`
+  `refuse`/`map_roles` with role maps, `sajhanet.users.remote_admin`); export and import rules and the
+  key's tool access as a ceiling (rule evaluator `policy_engine`); blocks at four levels with expiry,
+  audit and a signed blocks document published through `digests.blocks`; linked audit records; notices
+  for key-directory sync failing and blocks against this server; an identity and access section on
+  `/admin/sajhanet` and its admin API (`/api/sajhanet/nets/{net}/blocks`, `/users`, `/role-maps`,
+  `/name-matching`, `/keys`). Net settings refuse callers that arrived through the net.
+- **SAJHA Net Protocol fix:** a key record's `tool_access_mode` may also be `regex` (SAJHA keys support
+  it); the meaning of `owner.user_name` (the login name) is stated.
+- **SAJHA Net catalogs and routing** (phase 4.2, stream C; [SAJHA Net](docs/architecture/SAJHA%20Net.md)
+  §5.5): participants exchange catalogs (`POST /sajhanet/v1/catalog`, pulled on a new digest,
+  incarnation or run, with `if_none_match`), every tool complete with a contract hash; a hash that
+  does not match is not imported and the peer flagged; schemas checked, text screened and capped;
+  trust levels `auto`, `review` (approvals) and `pinned`. Remote tools become proxy tools in the
+  registry under qualified names (`<net>__<instance>__<tool>`) and bare aliases, with
+  `_meta["io.sajha/net"]`; a plain name resolves local first, then `sajhanet.preferences`, then the
+  nets in order. A host's tools disappear the moment it is `left` or `dead`, are `unavailable` while
+  it is `suspect`, and after a restart nothing remote is listed until the peer answers. One name, one
+  contract: a tool whose hosts disagree is quarantined everywhere, the local copy included, with an
+  error notice naming the differing host and the first differing JSON Pointer, a signed conflicts
+  document (`POST /sajhanet/v1/conflicts`), the `sajha_net_contract_conflicts` metric and audit
+  records; it re-activates by itself. Calls are forwarded as signed `tools/call` requests on the
+  MCP endpoint (hop and loop checks, `executed: false` on every refusal before execution) with
+  waterfall fallback (`sajhanet.max_fallbacks`) and per-peer breakers, rate limits, timeouts and
+  connection pools. Admin API: `/api/sajhanet/tools`, `/conflicts`, `/catalogs`, trust and
+  approvals. The Tools page shows net badges and local, remote, net and instance filters; the Ask
+  page's "Servers and tools" log names the host of a remote tool.
 - **SAJHA Net membership** (off by default, `sajhanet.enabled`): servers join named nets, several
   per server, kept apart on the normal port by the signed `Sajha-Net-Name` header. The protocol
   core is `sajha/net/` (it imports nothing else from SAJHA): names and qualified names, RFC 9421

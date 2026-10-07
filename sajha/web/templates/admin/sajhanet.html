@@ -77,6 +77,42 @@
         <div class="col-12 small" role="status" aria-live="polite"></div>
       </form>
       {% endif %}
+      {% if n.authz is defined %}
+      <div class="sn-authz mt-3" data-net="{{ n.net }}">
+        <h3 class="h6 mb-1">Identity and access</h3>
+        <p class="sn-meta mb-2">User identity <code>{{ n.authz.user_identity }}</code> ·
+          key directory version {{ n.authz.key_directory_version }} ·
+          unknown users: <code>{{ n.authz.users.unknown }}</code> · name matching {{ 'on' if n.authz.users.match_by_name else 'off' }} ·
+          remote administrators: <code>{{ n.authz.users.remote_admin }}</code> ·
+          {{ n.authz.blocks_active }} active block{{ '' if n.authz.blocks_active == 1 else 's' }}</p>
+        <div class="table-responsive">
+        <table class="sn-table" aria-label="Blocks in {{ n.net }}">
+          <thead><tr><th scope="col">Level</th><th scope="col">Target</th><th scope="col">Detail</th><th scope="col">Reason, expiry</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+          <tbody class="sn-blocks"><tr><td colspan="5" class="sn-meta">Loading blocks…</td></tr></tbody>
+        </table>
+        </div>
+        <form class="row g-2 mt-2 align-items-end" onsubmit="return addBlock(event, '{{ n.net }}', this)">
+          <div class="col-6 col-md-2"><label class="form-label small" for="lv-{{ loop.index }}">Block</label>
+            <select class="form-select form-select-sm" id="lv-{{ loop.index }}" name="level">
+              <option value="instance">instance, entirely</option><option value="inbound">inbound</option>
+              <option value="outbound">outbound</option><option value="tool">a tool</option><option value="user">a remote user</option></select></div>
+          <div class="col-6 col-md-2"><label class="form-label small" for="tg-{{ loop.index }}">Instance</label>
+            <input class="form-control form-control-sm" id="tg-{{ loop.index }}" name="target" placeholder="risk-eu or *" autocomplete="off"></div>
+          <div class="col-6 col-md-2"><label class="form-label small" for="dt-{{ loop.index }}">Tool or user@instance</label>
+            <input class="form-control form-control-sm" id="dt-{{ loop.index }}" name="detail" autocomplete="off"></div>
+          <div class="col-6 col-md-3"><label class="form-label small" for="rs-{{ loop.index }}">Reason (required)</label>
+            <input class="form-control form-control-sm" id="rs-{{ loop.index }}" name="reason" required autocomplete="off"></div>
+          <div class="col-6 col-md-1"><label class="form-label small" for="ex-{{ loop.index }}">Minutes</label>
+            <input class="form-control form-control-sm" id="ex-{{ loop.index }}" name="minutes" type="number" min="1" placeholder="∞"></div>
+          <div class="col-auto"><label class="small"><input type="checkbox" name="outbound"> tool: hide remote</label></div>
+          <div class="col-auto"><button class="btn btn-sm btn-danger" type="submit">Block</button></div>
+          <div class="col-12 small" role="status" aria-live="polite"></div>
+        </form>
+        <p class="sn-meta mt-2 mb-1">Remote users: <span class="sn-users">loading…</span></p>
+        <p class="sn-meta mb-0">Key directory: <span class="sn-keys">loading…</span>
+          <button class="btn btn-link btn-sm p-0 ms-1" type="button" onclick="resyncKeys('{{ n.net }}', this)">re-sync</button></p>
+      </div>
+      {% endif %}
     </div>
   </section>
   {% else %}
@@ -97,5 +133,62 @@ function addPeer(ev, net, form){
   .catch(e => { out.textContent = 'Not added: ' + e; });
   return false;
 }
+
+function esc(t){ const d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
+function api(method, url, body){
+  return fetch(url, {method: method, credentials:'same-origin', headers:{'Content-Type':'application/json'},
+                     body: body ? JSON.stringify(body) : undefined}).then(r => r.json().then(d => ({ok: r.ok, d: d})));
+}
+function loadAuthz(box){
+  const net = encodeURIComponent(box.dataset.net), base = '/api/sajhanet/nets/' + net;
+  api('GET', base + '/blocks').then(x => {
+    const tb = box.querySelector('.sn-blocks');
+    if (!x.ok) { tb.innerHTML = '<tr><td colspan="5" class="sn-err">' + esc(x.d.error) + '</td></tr>'; return; }
+    const rows = x.d.blocks.map(b => '<tr><td>' + esc(b.level) + (b.active ? '' : ' (expired)') + '</td><td><code>' + esc(b.target_instance) +
+      '</code></td><td>' + esc(b.tool ? (b.direction + ' ' + b.tool) : (b.user || '')) + '</td><td>' + esc(b.reason) +
+      (b.expires_at ? ' · until ' + esc(b.expires_at) : '') + ' · ' + esc(b.set_by) + '</td><td><button class="btn btn-sm btn-outline-secondary" type="button" ' +
+      'onclick="removeBlock(\'' + net + '\', \'' + esc(b.id) + '\')">Remove</button></td></tr>');
+    Object.entries(x.d.published || {}).forEach(([peer, bl]) => bl.forEach(b => rows.push('<tr><td>' + esc(b.level) +
+      '</td><td><code>' + esc(b.target_instance) + '</code></td><td>published by ' + esc(peer) + (b.tool ? ' · ' + esc(b.tool) : '') +
+      (b.user ? ' · ' + esc(b.user) : '') + '</td><td>' + esc(b.reason || '') + '</td><td></td></tr>')));
+    tb.innerHTML = rows.join('') || '<tr><td colspan="5" class="sn-meta">No blocks, here or published by others.</td></tr>';
+  });
+  api('GET', base + '/users').then(x => {
+    const el = box.querySelector('.sn-users');
+    if (!x.ok) { el.textContent = x.d.error; return; }
+    const seen = x.d.seen.map(u => u.user + ' → ' + (u.local || u.mapping)).join(', ');
+    el.textContent = (Object.keys(x.d.links).length + ' linked; ') + (seen || 'none seen yet');
+  });
+  api('GET', base + '/keys').then(x => {
+    const el = box.querySelector('.sn-keys');
+    if (!x.ok) { el.textContent = x.d.error; return; }
+    el.textContent = (x.d.homes || []).map(h => h.home + ': ' + h.records + ' records (' + h.revoked + ' revoked' +
+      (h.unusable ? ', ' + h.unusable : '') + ')').join('; ') || 'no records yet';
+  });
+}
+function addBlock(ev, net, f){
+  ev.preventDefault();
+  const out = f.querySelector('[role=status]'), lv = f.level.value, detail = f.detail.value.trim();
+  const body = {level: lv, target_instance: f.target.value.trim(), reason: f.reason.value,
+                expires_in_minutes: f.minutes.value || null, direction: f.outbound.checked ? 'outbound' : 'inbound'};
+  if (lv === 'tool') body.tool = detail;
+  if (lv === 'user') body.user = detail;
+  if (!confirm('Block (' + lv + ') ' + (body.target_instance || detail) + ' in ' + net + '? It takes effect on the next request.')) return false;
+  api('POST', '/api/sajhanet/nets/' + encodeURIComponent(net) + '/blocks', body).then(x => {
+    out.textContent = x.ok ? x.d.effect : ('Not blocked: ' + (x.d.error || 'error'));
+    if (x.ok) loadAuthz(f.closest('.sn-authz'));
+  });
+  return false;
+}
+function removeBlock(net, id){
+  const reason = prompt('Why remove this block?');
+  if (reason === null) return;
+  api('DELETE', '/api/sajhanet/nets/' + net + '/blocks/' + encodeURIComponent(id), {reason: reason})
+    .then(() => document.querySelectorAll('.sn-authz').forEach(loadAuthz));
+}
+function resyncKeys(net, btn){
+  api('POST', '/api/sajhanet/nets/' + encodeURIComponent(net) + '/keys/resync').then(x => { btn.textContent = x.ok ? 'scheduled' : 'failed'; });
+}
+document.querySelectorAll('.sn-authz').forEach(loadAuthz);
 </script>
 {% endblock %}

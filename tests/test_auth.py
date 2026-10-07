@@ -13,7 +13,11 @@ os.chdir(str(Path(__file__).parent.parent))
 
 
 class TestPassword:
-    """bcrypt hashing and verification."""
+    """bcrypt hashing and verification (auth.credential_storage: hashed)."""
+
+    @pytest.fixture(autouse=True)
+    def _hashed(self, monkeypatch):
+        monkeypatch.setenv('SAJHA_AUTH_CREDENTIAL_STORAGE', 'hashed')
 
     def test_hash_returns_string(self):
         from sajha.auth.password import hash_password
@@ -42,6 +46,22 @@ class TestPassword:
         h = hash_password('')
         assert verify_password('', h) is True
         assert verify_password('x', h) is False
+
+
+class TestPlainPasswords:
+    """auth.credential_storage: plain (the default; owner decision for intranet use)."""
+
+    def test_stored_as_given_and_verified(self, monkeypatch):
+        from sajha.auth.password import hash_password, verify_password
+        monkeypatch.setenv('SAJHA_AUTH_CREDENTIAL_STORAGE', 'plain')
+        assert hash_password('secret') == 'secret'
+        assert verify_password('secret', 'secret') and not verify_password('wrong', 'secret')
+
+    def test_bcrypt_values_from_before_still_verify(self, monkeypatch):
+        from sajha.auth.password import bcrypt_hash, verify_password
+        monkeypatch.setenv('SAJHA_AUTH_CREDENTIAL_STORAGE', 'plain')
+        h = bcrypt_hash('old-secret')
+        assert verify_password('old-secret', h) and not verify_password('nope', h)
 
     def test_unicode_password(self):
         from sajha.auth.password import hash_password, verify_password

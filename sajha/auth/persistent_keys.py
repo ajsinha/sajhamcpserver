@@ -62,18 +62,68 @@ def _parse(s: Any) -> Optional[datetime]:
     return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
 
 
+def reload_check_seconds() -> float:
+    """``auth.credential_files.reload_check_seconds`` (default 300): how often a credential file is
+    checked for hand edits. Lookups always use the copy in memory; writes through SAJHA's pages
+    reload at once."""
+    from sajha.core.config import _get
+    try:
+        return max(1.0, float(_get('auth.credential_files.reload_check_seconds', 300)))
+    except (TypeError, ValueError):
+        return 300.0
+
+
+def record_hash(rec: Dict[str, Any]) -> str:
+    """The SHA-256 a record is looked up by: of its raw ``key`` when it has one (the admin's
+    file, plain storage), else its stored ``sha256``."""
+    import hashlib
+    raw = rec.get('key')
+    if isinstance(raw, str) and raw:
+        return hashlib.sha256(raw.encode('utf-8')).hexdigest()
+    return str(rec.get('sha256') or '').lower()
+
+
+def test_admin_enabled() -> bool:
+    """``sajhanet.test_admin_key.enabled``: records marked ``test_admin`` count only while on."""
+    from sajha.core.config import _get
+    v = _get('sajhanet.test_admin_key.enabled', True)
+    return v if isinstance(v, bool) else str(v).strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def test_admin_key() -> Optional[Dict[str, Any]]:
+    """The usable ``test_admin`` record with a raw key in the administrators' keys file, while
+    ``sajhanet.test_admin_key.enabled`` is on; else None."""
+    if not test_admin_enabled():
+        return None
+    try:
+        recs = get_persistent_keys().records()
+    except Exception:
+        return None
+    return next((r for r in recs if r.get('test_admin') and r.get('key') and record_usable(r)), None)
+
+
 def record_usable(rec: Dict[str, Any]) -> bool:
     """Enabled, not revoked, not expired."""
     if not rec.get('enabled', False) or rec.get('revoked_at'):
+        return False
+    if rec.get('test_admin') and not test_admin_enabled():
         return False
     exp = _parse(rec.get('expires_at'))
     return exp is None or exp > datetime.now(timezone.utc)
 
 
+_store_lock = threading.Lock()
+
+
 class PersistentKeyStore:
     """The records in one file, indexed by SHA-256; re-read when the file changes."""
 
-    CHECK_EVERY = 1.0
+    @property
+    def CHECK_EVERY(self) -> float:      # noqa: N802 — seconds between change checks (hand edits)
+        return reload_check_seconds()
+    NOTE = ('SAJHA API keys file, maintained by administrators (Admin > API keys > Keys file). Keys here win '
+            'over the database. Records hold the raw key ("key") or, for older records, its SHA-256 '
+            '("sha256"). Keep this file private: git-ignored, owner-only. docs/security/Security Model.md')
 
     def __init__(self, path):
         self.config_path = Path(path)
@@ -112,10 +162,11 @@ class PersistentKeyStore:
                                        'See config/apikeys.json.example.')
                         self._warned_legacy = True
                 elif isinstance(data, dict):
-                    records = [r for r in (data.get('keys') or []) if isinstance(r, dict) and r.get('sha256')]
+                    records = [r for r in (data.get('keys') or [])
+                               if isinstance(r, dict) and (r.get('key') or r.get('sha256'))]
                 self._warn_permissions()
             self._records = records
-            self._by_hash = {str(r['sha256']).lower(): r for r in records}
+            self._by_hash = {record_hash(r): r for r in records}
             self._sig, self._checked = sig, time.time()
             return len(records)
 
@@ -156,8 +207,7 @@ class PersistentKeyStore:
     # ── writing ──────────────────────────────────────────────────
     def _write(self, records: List[Dict[str, Any]]) -> None:
         doc = {'format': FORMAT,
-               'note': 'SAJHA persistent API keys: SHA-256 hashes only, never keys. Managed by the server '
-                       '(Admin > API keys); edits are picked up automatically. docs/security/Security Model.md',
+               'note': self.NOTE,
                'keys': records}
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
         fd, tmp = tempfile.mkstemp(prefix='.apikeys-', suffix='.json', dir=str(self.config_path.parent))
@@ -201,11 +251,10 @@ def record_for(key, owner=None) -> Dict[str, Any]:
         tools = json.loads(key.tool_access_list or '[]')
     except ValueError:
         tools = []
-    return {
+    rec = {
         'id': key.id,
         'prefix': key.key_prefix,
         'name': key.name,
-        'sha256': key.key_hash,
         'owner': owner.user_id if owner is not None else None,
         'owner_name': owner.user_name if owner is not None else None,
         'roles': list(owner.role_names) if owner is not None else ['api_consumer'],
@@ -218,12 +267,53 @@ def record_for(key, owner=None) -> Dict[str, Any]:
         'revoked_at': _iso(key.revoked_at),
         'revoked_by': key.revoked_by,
     }
+    if getattr(key, 'key_value', None):
+        rec['key'] = key.key_value
+    else:
+        rec['sha256'] = key.key_hash
+    return rec
+
+
+class DumpKeyStore(PersistentKeyStore):
+    """``config/apikeys_db.json``: the database's keys, written every few minutes; read only when
+    the database does not know a key or cannot be reached."""
+    NOTE = ('SAJHA API keys dumped from the database every auth.api_keys.db_dump_interval_minutes. Written by '
+            'the server; do not edit (edit config/apikeys.json instead). Used only when the database does not '
+            'know a key or is unavailable.')
+
+
+_dump: Optional[DumpKeyStore] = None
+
+
+def dump_path() -> Path:
+    from sajha.core.config import _get
+    p = Path(str(_get('auth.api_keys.db_dump_path', 'config/apikeys_db.json') or 'config/apikeys_db.json'))
+    return p if p.is_absolute() else Path.cwd() / p
+
+
+def get_dump_keys() -> DumpKeyStore:
+    global _dump
+    with _store_lock:
+        if _dump is None:
+            _dump = DumpKeyStore(dump_path())
+        return _dump
+
+
+def set_dump_keys(store: Optional[DumpKeyStore]) -> None:
+    global _dump
+    with _store_lock:
+        _dump = store
+
+
+def write_dump(db) -> int:
+    """Write every database key to the dump file (raw when stored plainly, else its hash)."""
+    from sajha.db.models import ApiKey
+    recs = [record_for(k, k.owner if k.owner_id else None) for k in db.query(ApiKey).all()]
+    get_dump_keys()._write(recs)
+    return len(recs)
 
 
 _store: Optional[PersistentKeyStore] = None
-_store_lock = threading.Lock()
-
-
 def configured_path() -> Path:
     from sajha.core.config import get_settings
     p = Path(get_settings().config_apikeys_path or 'config/apikeys.json')

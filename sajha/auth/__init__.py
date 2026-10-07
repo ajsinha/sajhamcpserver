@@ -9,7 +9,7 @@ All methods produce the same AuthContext for downstream code.
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHeader
@@ -26,6 +26,17 @@ logger = logging.getLogger(__name__)
 # FastAPI security schemes (optional — won't fail if absent)
 _bearer_scheme = HTTPBearer(auto_error=False)
 _apikey_header = APIKeyHeader(name='X-API-Key', auto_error=False)
+
+
+def _owned_key(ctx: 'AuthContext', raw_key: str) -> 'AuthContext':
+    """An owned key authenticated: remember it for this request only, so SAJHA Net can forward it
+    to the instance hosting a remote tool (sajha/auth/presented_key.py). Never logged or stored."""
+    try:
+        from sajha.auth.presented_key import remember
+        remember(raw_key, ctx.api_key_id or '', ctx.user_id or '')
+    except Exception:
+        pass
+    return ctx
 
 
 @dataclass
@@ -227,6 +238,18 @@ class AuthManager:
         database does not answer, is looked up in the persistent key file
         (sajha/auth/persistent_keys.py).
         """
+        # 1. the administrators' keys file wins over everything (config/apikeys.json)
+        from sajha.auth.persistent_keys import get_persistent_keys, get_dump_keys, test_admin_enabled
+        key_hash = ApiKeyDAO.hash_key(None, raw_key)
+        try:
+            rec = get_persistent_keys().lookup(key_hash)
+        except Exception as e:
+            logger.warning(f'API keys file lookup failed: {e}')
+            rec = None
+        if rec is not None and not (rec.get('test_admin') and not test_admin_enabled()):
+            return AuthManager._authenticate_persistent(db, raw_key, True, rec=rec, source='file')
+
+        # 2. the database
         apikey_dao = ApiKeyDAO(db)
         db_ok = True
         try:
@@ -253,13 +276,13 @@ class AuthManager:
                 logger.debug(f'API key usage not recorded: {e}')
                 db.rollback()
             if owner is not None:
-                return AuthContext(
+                return _owned_key(AuthContext(
                     authenticated=True, user_id=owner.user_id, user_name=owner.user_name,
                     roles=owner.role_names, auth_type='apikey', is_admin=owner.is_admin,
                     api_key_name=api_key.name, api_key_mode=api_key.tool_access_mode,
                     api_key_tools=api_key.tool_access_list, api_key_id=api_key.id, api_key_owned=True,
                     _user=owner, _db=db,
-                )
+                ), raw_key)
             return AuthContext(
                 authenticated=True,
                 user_id=f'apikey:{api_key.name}',
@@ -273,20 +296,36 @@ class AuthManager:
                 api_key_id=api_key.id,
                 _db=db,
             )
-        return AuthManager._authenticate_persistent(db, raw_key, db_ok)
+        # 3. the database dump (config/apikeys_db.json): the database does not know the key, or is down
+        try:
+            rec = get_dump_keys().lookup(key_hash)
+        except Exception as e:
+            logger.warning(f'API keys dump lookup failed: {e}')
+            return None
+        if rec is None:
+            return None
+        return AuthManager._authenticate_persistent(db, raw_key, db_ok, rec=rec, source='dump')
 
     @staticmethod
-    def _authenticate_persistent(db: Session, raw_key: str, db_ok: bool) -> Optional[AuthContext]:
-        """A key from the persistent key file (the database does not know it, or is down)."""
+    def _authenticate_persistent(db: Session, raw_key: str, db_ok: bool, *, rec: Dict[str, Any],
+                                 source: str) -> Optional[AuthContext]:
+        """A key from the administrators' keys file (``source='file'``: wins over the database) or
+        the database dump (``source='dump'``). A record marked ``test_admin`` signs in as an
+        administrator while ``sajhanet.test_admin_key.enabled`` is on."""
         import json as _json
-        from sajha.auth.persistent_keys import get_persistent_keys, record_usable
-        try:
-            rec = get_persistent_keys().lookup(ApiKeyDAO.hash_key(None, raw_key))
-        except Exception as e:
-            logger.warning(f'persistent API key lookup failed: {e}')
+        from sajha.auth.persistent_keys import record_usable
+        if not record_usable(rec):
             return None
-        if rec is None or not record_usable(rec):
-            return None
+        if rec.get('test_admin'):
+            logger.warning(f'test admin API key used ({rec.get("name") or rec.get("id")}); '
+                           'sajhanet.test_admin_key.enabled is on — disable it in production')
+            return _owned_key(AuthContext(authenticated=True, user_id=str(rec.get('owner') or 'test-admin'),
+                                          user_name=str(rec.get('owner_name') or 'Test administrator'),
+                                          roles=['admin'], auth_type='apikey', is_admin=True,
+                                          api_key_name=str(rec.get('name') or 'test admin key'),
+                                          api_key_mode='all', api_key_tools=None,
+                                          api_key_id=str(rec.get('id') or 'test-admin'), api_key_owned=True,
+                                          _db=db if db_ok else None), raw_key)
         tools = rec.get('tool_access_list')
         tools = _json.dumps(tools) if isinstance(tools, list) else None
         name = str(rec.get('name') or rec.get('prefix') or 'persistent key')
@@ -302,22 +341,25 @@ class AuthManager:
                         db.rollback()
                     except Exception:
                         pass
-            if db_ok and (user is None or not user.enabled):
-                logger.info(f'persistent API key {rec.get("prefix")} refused: its owner {owner_id!r} '
+            rec_roles = [str(r) for r in (rec.get('roles') or [])]
+            if source == 'dump' and db_ok and (user is None or not user.enabled):
+                logger.info(f'API key {rec.get("prefix")} from the database dump refused: its owner {owner_id!r} '
                             'is not an enabled user in the database')
                 return None
-            if user is not None:
-                return AuthContext(authenticated=True, user_id=user.user_id, user_name=user.user_name,
-                                   roles=user.role_names, auth_type='apikey', is_admin=user.is_admin,
-                                   api_key_name=name, api_key_mode=rec.get('tool_access_mode') or 'all',
-                                   api_key_tools=tools, api_key_id=rec.get('id'), api_key_owned=True,
-                                   _user=user, _db=db)
+            if user is not None and (user.enabled or source == 'file'):
+                roles = rec_roles if (source == 'file' and rec_roles) else user.role_names
+                return _owned_key(AuthContext(authenticated=True, user_id=user.user_id, user_name=user.user_name,
+                                              roles=roles, auth_type='apikey', is_admin='admin' in roles,
+                                              api_key_name=name, api_key_mode=rec.get('tool_access_mode') or 'all',
+                                              api_key_tools=tools, api_key_id=rec.get('id'), api_key_owned=True,
+                                              _user=user, _db=db), raw_key)
             roles = [str(r) for r in (rec.get('roles') or [])]
-            return AuthContext(authenticated=True, user_id=str(owner_id),
-                               user_name=str(rec.get('owner_name') or owner_id), roles=roles,
-                               auth_type='apikey', is_admin='admin' in roles, api_key_name=name,
-                               api_key_mode=rec.get('tool_access_mode') or 'all', api_key_tools=tools,
-                               api_key_id=rec.get('id'), api_key_owned=True, _db=db if db_ok else None)
+            return _owned_key(AuthContext(authenticated=True, user_id=str(owner_id),
+                                          user_name=str(rec.get('owner_name') or owner_id), roles=roles,
+                                          auth_type='apikey', is_admin='admin' in roles, api_key_name=name,
+                                          api_key_mode=rec.get('tool_access_mode') or 'all', api_key_tools=tools,
+                                          api_key_id=rec.get('id'), api_key_owned=True,
+                                          _db=db if db_ok else None), raw_key)
         return AuthContext(authenticated=True, user_id=f'apikey:{name}', user_name=name, roles=['api_consumer'],
                            auth_type='apikey', is_admin=False, api_key_name=name,
                            api_key_mode=rec.get('tool_access_mode') or 'all', api_key_tools=tools,

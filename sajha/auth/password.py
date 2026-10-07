@@ -9,23 +9,42 @@ import bcrypt as _bcrypt
 logger = logging.getLogger(__name__)
 
 
+def credential_storage() -> str:
+    """``auth.credential_storage``: ``plain`` (the owner's intranet setting: passwords and API
+    keys stored as given) or ``hashed`` (bcrypt passwords, SHA-256 key hashes only)."""
+    from sajha.core.config import _get
+    v = str(_get('auth.credential_storage', 'plain') or 'plain').strip().lower()
+    return v if v in ('plain', 'hashed') else 'plain'
+
+
+def is_bcrypt(value: str) -> bool:
+    return isinstance(value, str) and value.startswith(('$2a$', '$2b$', '$2y$')) and len(value) == 60
+
+
+def bcrypt_hash(password: str) -> str:
+    """Always bcrypt, whatever the storage setting (used by ``python -m sajha.auth rehash``)."""
+    return _bcrypt.hashpw(password.encode('utf-8'), _bcrypt.gensalt(rounds=12)).decode('utf-8')
+
+
 def hash_password(password: str) -> str:
-    """Hash a plain-text password with bcrypt."""
-    pwd_bytes = password.encode('utf-8')
-    salt = _bcrypt.gensalt(rounds=12)
-    return _bcrypt.hashpw(pwd_bytes, salt).decode('utf-8')
+    """The value to store for a new password: the password itself under
+    ``auth.credential_storage: plain``, a bcrypt hash under ``hashed``."""
+    return password if credential_storage() == 'plain' else bcrypt_hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain-text password against a bcrypt hash."""
-    try:
-        return _bcrypt.checkpw(
-            plain_password.encode('utf-8'),
-            hashed_password.encode('utf-8'),
-        )
-    except Exception as e:
-        logger.warning(f"Error handled: {e}", exc_info=True)
+    """Check a password against a stored value, bcrypt or plain, whatever the current setting:
+    values stored before a switch keep working."""
+    if not isinstance(plain_password, str) or not isinstance(hashed_password, str) or not hashed_password:
         return False
+    if is_bcrypt(hashed_password):
+        try:
+            return _bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
+            return False
+    import hmac
+    return hmac.compare_digest(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 
 # ── Password policy ──────────────────────────────────────────────────

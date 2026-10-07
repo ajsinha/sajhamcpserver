@@ -32,18 +32,17 @@ def test_default_policy_ships_a_commented_rate_limit_that_parses():
     assert {r.id: r.rate_limit.per for r in rules} == {'per-user-rate': ('user',), 'per-key-rate': ('api_key',)}
 
 
-def test_users_json_is_retired():
+def test_users_json_is_the_administrators_file_not_the_old_demo():
+    """The old demo users file and its legacy loader are gone; config/users.json is now the
+    administrators' file (sajha/auth/users_file.py, owner decision): git-ignored, with an example."""
     from sajha.core import config
     assert not hasattr(config.Settings, 'config_users_path') and 'config_users_path' not in config.Settings.model_fields
-    assert 'users.json' not in (ROOT / 'sajha/core/hot_reload_manager.py').read_text().replace(
-        'config/users.json is retired', '')
     assert not (ROOT / 'sajha/db/seed.py').exists()   # legacy JSON imports removed with the module
     yml = yaml.safe_load((ROOT / 'config/application.yml').read_text(encoding='utf-8'))
     assert 'users' not in (yml.get('config') or {})
+    assert yml['auth']['users_file']['path'] == 'config/users.json'
     assert 'config/users.json' in (ROOT / '.gitignore').read_text().splitlines()
-    for p in (ROOT / 'sajha').rglob('*.py'):
-        text = p.read_text(encoding='utf-8')
-        assert not re.search(r"['\"]config/users\.json['\"]", text), p
+    assert (ROOT / 'config/users.json.example').exists()
 
 
 def test_ci_runs_the_full_suite():

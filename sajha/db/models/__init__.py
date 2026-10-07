@@ -162,6 +162,7 @@ class ApiKey(Base):
     revoked_by = Column(String(100), nullable=True)
     secret_ciphertext = Column(Text, nullable=True)   # default keys: the raw key, AES-256-GCM (accounts vault key)
     secret_key_id = Column(String(64), nullable=True)
+    key_value = Column(String(255), nullable=True)    # the raw key under auth.credential_storage: plain
 
     # Relationships
     owner = relationship('User', back_populates='api_keys')

@@ -1,0 +1,17 @@
+{
+  "format": "sajha-users/1",
+  "note": "SAJHA users file, maintained by administrators (Admin > Users > Users file). Users here win over the database. Copy to config/users.json (git-ignored, mode 0600). docs/security/Security Model.md",
+  "users": [
+    {
+      "user_id": "testadmin",
+      "user_name": "Test administrator",
+      "email": null,
+      "password": "testadmin-dev-1",
+      "roles": [
+        "admin"
+      ],
+      "enabled": true,
+      "test_admin": true
+    }
+  ]
+}

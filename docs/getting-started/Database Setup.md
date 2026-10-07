@@ -1,8 +1,10 @@
 # Database Setup
 
 SAJHA keeps users, roles, API keys, sign-in sessions, the audit log, prompts, composite
-tools, LLM settings, the database state store, the usage ledger and the connected-accounts
-token vault in one SQL database (`db.*` in `config/application.yml`). This guide owns how
+tools, LLM settings, the database state store, the usage ledger, the connected-accounts
+token vault and the SAJHA Net key directory (`sajhanet_api_keys`: the signed API key records of
+every instance in the nets this server is in, hashes only, never a raw key;
+[SAJHA Net](../architecture/SAJHA%20Net.md) §10.3) in one SQL database (`db.*` in `config/application.yml`). This guide owns how
 that database gets its tables: the first install, upgrades, and the helper for both. The
 `db.*` keys themselves are in the [Configuration Reference](Configuration%20Reference.md).
 
@@ -134,6 +136,11 @@ indexes, but it never changes a table that already exists, so new columns come f
 `upgrade-sql` (or the CHANGELOG's SQL). Schema changes are additive (new tables, nullable columns or columns
 with defaults, new indexes), so pods of the old release keep working during a rolling
 update; a release that cannot keep to that says so.
+
+Example: the release that adds SAJHA Net identity adds the table `sajhanet_api_keys` and its two
+indexes. On PostgreSQL run what `python -m sajha.db upgrade-sql` prints before the new release
+starts (SAJHA refuses to start without the table under `db.schema_check: strict`); on SQLite SAJHA
+creates it. The table is written only when SAJHA Net is on.
 
 ## 5. Deployments
 

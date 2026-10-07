@@ -80,7 +80,13 @@ class PeerResponse:
 
 
 class PeerUnreachable(Exception):
-    """The peer could not be reached (connection refused, timeout, TLS)."""
+    """The peer could not be reached (connection refused, timeout, TLS). ``sent`` is True when the
+    request may have reached the peer (a timeout or a dropped connection after sending), False when
+    it certainly did not (connection refused, connect timeout, TLS handshake): protocol §15.8."""
+
+    def __init__(self, message: str = '', sent: bool = False):
+        super().__init__(message)
+        self.sent = sent
 
 
 class PeerConnector(Plugin):
@@ -116,8 +122,10 @@ class KeyDirectoryStore(Plugin):
     """Where synced key records live (protocol §11)."""
     kind = 'key_directory_store'
 
-    def put(self, record: Dict[str, Any]) -> bool:
-        """Store a record if it is newer than the held one; True when stored."""
+    def put(self, record: Dict[str, Any], force: bool = False) -> bool:
+        """Store a record if it is newer than the held one (``force``: also at an equal or lower
+        version, for the home's own re-signed records); a record held for another home is never
+        replaced. True when stored."""
         raise NotImplementedError
 
     def by_hash(self, net: str, key_hash: str) -> Optional[Dict[str, Any]]:
@@ -128,6 +136,24 @@ class KeyDirectoryStore(Plugin):
 
     def version(self, net: str, home: str) -> int:
         raise NotImplementedError
+
+    # optional: the shipped stores implement these; the defaults keep older third-party stores working
+
+    def find(self, net: str, key_hash: str) -> List[Dict[str, Any]]:
+        """Every record of ``net`` with this hash (several homes could publish one hash)."""
+        r = self.by_hash(net, key_hash)
+        return [r] if r else []
+
+    def discard_signed(self, net: str, keyid: str) -> List[str]:
+        """Drop the records whose signature ``keyid`` is this certificate thumbprint (§11.2, a
+        revoked certificate); returns the homes concerned."""
+        return []
+
+    def mark(self, net: str, home: str, reason: Optional[str]) -> None:
+        """Mark a home's records unusable (``left``, ``revoked``) or usable again (None)."""
+
+    def marked(self, net: str, home: str) -> Optional[str]:
+        return None
 
 
 @dataclass
@@ -277,19 +303,39 @@ class StaticMembership(MembershipProvider):
 
 @register('connector')
 class HttpConnector(PeerConnector):
-    """Signed requests over HTTP(S) on the peer's normal port (httpx)."""
+    """Signed requests over HTTP(S) on the peer's normal port (httpx), one connection pool per peer
+    base URL (design §15: per-peer isolation)."""
     name = 'sajha_native'
 
-    def __init__(self, verify_tls: bool = True):
+    def __init__(self, verify_tls: bool = True, max_connections_per_peer: int = 10):
         self.verify_tls = verify_tls
+        self.max_connections = max_connections_per_peer
+        self._clients: Dict[str, Any] = {}
+        self._lock = __import__('threading').Lock()
+
+    def _client(self, url: str):
+        import httpx
+        from urllib.parse import urlsplit
+        p = urlsplit(url)
+        base = f'{p.scheme}://{p.netloc}'
+        with self._lock:
+            c = self._clients.get(base)
+            if c is None:
+                c = httpx.Client(verify=self.verify_tls, follow_redirects=False,
+                                 limits=httpx.Limits(max_connections=self.max_connections,
+                                                     max_keepalive_connections=self.max_connections))
+                self._clients[base] = c
+            return c
 
     def send(self, method, url, headers, body, timeout):
         import httpx
         try:
-            r = httpx.request(method, url, headers=headers, content=body if method.upper() != 'GET' else None,
-                              timeout=timeout, follow_redirects=False, verify=self.verify_tls)
+            r = self._client(url).request(method, url, headers=headers,
+                                          content=body if method.upper() != 'GET' else None, timeout=timeout)
+        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout, httpx.UnsupportedProtocol) as e:
+            raise PeerUnreachable(f'{e.__class__.__name__}: {e}', sent=False) from e
         except httpx.HTTPError as e:
-            raise PeerUnreachable(f'{e.__class__.__name__}: {e}') from e
+            raise PeerUnreachable(f'{e.__class__.__name__}: {e}', sent=True) from e
         return PeerResponse(r.status_code, {k.lower(): v for k, v in r.headers.items()}, r.content)
 
 
@@ -303,6 +349,7 @@ class InProcessConnector(PeerConnector):
     def __init__(self, routes: Optional[Dict[str, Callable[..., PeerResponse]]] = None):
         self.routes = routes if routes is not None else {}
         self.down: set = set()
+        self.hang: set = set()          # base URLs that accept a request and never answer (tests)
 
     def send(self, method, url, headers, body, timeout):
         from urllib.parse import urlsplit
@@ -311,6 +358,8 @@ class InProcessConnector(PeerConnector):
         h = self.routes.get(base)
         if h is None or base in self.down:
             raise PeerUnreachable(f'connection refused: {base}')
+        if base in self.hang:
+            raise PeerUnreachable(f'read timeout: {base}', sent=True)
         return h(method, p.path, p.query, dict(headers), body or b'', p.scheme == 'https')
 
 
@@ -343,26 +392,51 @@ class MemoryKeyDirectory(KeyDirectoryStore):
 
     def __init__(self):
         self._by: Dict[tuple, Dict[str, Any]] = {}
+        self._marks: Dict[tuple, str] = {}
 
-    def put(self, record):
+    def put(self, record, force=False):
         k = (record['net'], record['key_id'])
         held = self._by.get(k)
         if held is not None and (held['home_instance'] != record['home_instance']
-                                 or int(held['version']) >= int(record['version'])):
+                                 or (not force and int(held['version']) >= int(record['version']))):
             return False
         self._by[k] = dict(record)
         return True
 
+    def _out(self, r):
+        out = dict(r)
+        m = self._marks.get((r['net'], r['home_instance']))
+        if m:
+            out['unusable'] = m
+        return out
+
     def by_hash(self, net, key_hash):
-        for (n, _), r in self._by.items():
-            if n == net and r.get('key_hash') == key_hash:
-                return dict(r)
-        return None
+        found = self.find(net, key_hash)
+        return found[0] if found else None
+
+    def find(self, net, key_hash):
+        return [self._out(r) for (n, _), r in sorted(self._by.items()) if n == net and r.get('key_hash') == key_hash]
+
+    def discard_signed(self, net, keyid):
+        gone = [k for k, r in self._by.items() if k[0] == net and (r.get('signature') or {}).get('keyid') == keyid]
+        homes = sorted({self._by[k]['home_instance'] for k in gone})
+        for k in gone:
+            del self._by[k]
+        return homes
+
+    def mark(self, net, home, reason):
+        if reason:
+            self._marks[(net, home)] = reason
+        else:
+            self._marks.pop((net, home), None)
+
+    def marked(self, net, home):
+        return self._marks.get((net, home))
 
     def since(self, net, home, version, limit=1000):
         rs = [r for (n, _), r in self._by.items()
               if n == net and r['home_instance'] == home and int(r['version']) > int(version)]
-        return [dict(r) for r in sorted(rs, key=lambda r: int(r['version']))[:limit]]
+        return [self._out(r) for r in sorted(rs, key=lambda r: int(r['version']))[:limit]]
 
     def version(self, net, home):
         vs = [int(r['version']) for (n, _), r in self._by.items() if n == net and r['home_instance'] == home]

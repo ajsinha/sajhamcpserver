@@ -137,12 +137,25 @@ class NetNode:
         self._last_cache_save = 0.0
         self._seq = 0
         self.started = False
+        # extension points for the parts built on membership (catalogs, key directory, blocks):
+        self.extra_features: List[str] = []                  # features listed besides cfg.features()
+        self.digest_sources: Dict[str, Callable[[], Any]] = {}   # digests.<name> of the own record
+        self.handlers: Dict[str, Callable[[Any, httpsig.Verified], Dict[str, Any]]] = {}   # endpoint -> handler
+        self.observers: List[Callable[[str, Dict[str, Any]], None]] = []   # see every event
+        self.mcp_server: Optional[Callable[..., PeerResponse]] = None      # signed requests to the MCP endpoint
+        self.catalog: Any = None                                            # the CatalogBook, once attached
+        self.tick_hooks: List[Callable[[], None]] = []        # run at the end of every joined tick (key directory, blocks)
 
     # ── events, status ──────────────────────────────────────────────
 
     def event(self, kind: str, **data) -> None:
         data.setdefault('net', self.net)
         data.setdefault('instance', self.name)
+        for obs in list(self.observers):
+            try:
+                obs(kind, data)
+            except Exception as e:                       # an observer never breaks the protocol
+                logger.warning(f'SAJHA Net {self.net}: observer of {kind} failed: {e}', exc_info=True)
         if self._events is not None:
             try:
                 self._events(kind, data)
@@ -157,7 +170,8 @@ class NetNode:
 
     @property
     def features(self) -> List[str]:
-        return self.cfg.features()
+        out = self.cfg.features()
+        return out + [f for f in self.extra_features if f not in out]
 
     @property
     def gossiping(self) -> bool:
@@ -183,11 +197,22 @@ class NetNode:
             seq = 0 if inc != cur.get('incarnation') else int(cur.get('seq', -1)) + 1
             rec = member_record(self.cfg, self.name, inc, seq, revocations=self._held_revocation_version(),
                                 leaving=leaving, now=self.clock())
+            rec['features'] = self.features
+            for k, fn in self.digest_sources.items():
+                try:
+                    rec['digests'][k] = fn()
+                except Exception as e:
+                    logger.warning(f'SAJHA Net {self.net}: digest {k}: {e}')
             sig = crypto.sign_record('member', rec, self.signer.key, self.signer.keyid)
             return {'incarnation': inc, 'seq': seq, 'record': rec, 'signature': sig, 'leaving': leaving}
         out = self.kv.update('self', fn)
         self._enqueue(self.name, self.own_entry('left' if leaving else 'alive'), priority=False)
         return out
+
+    def refresh_record(self) -> None:
+        """Re-sign the own record (a digest or feature changed); gossip carries it (§9.1 ``seq``)."""
+        if self.started:
+            self._resign()
 
     def incarnation(self) -> int:
         return int((self.kv.get('self') or {}).get('incarnation') or 0)
@@ -708,6 +733,11 @@ class NetNode:
         self._check_revocations()
         self._check_certificate()
         self.save_peers()
+        for hook in list(self.tick_hooks):
+            try:
+                hook()
+            except Exception as e:                       # one part failing never stops the gossip agent
+                logger.warning(f'SAJHA Net {self.net}: tick hook failed: {e}', exc_info=True)
 
     # ── revocation list (§13) ───────────────────────────────────────
 
@@ -962,6 +992,9 @@ class NetNode:
                 raise NetError('unavailable', 'the CA key is not loaded', retry_after=300)
             resp, _cert = self.ca.renew(v.certificate, data)
             return resp
+        handler = self.handlers.get(path)
+        if handler is not None:
+            return handler(data, v)
         raise NetError('unavailable', 'this endpoint is not served yet', retry_after=3600)
 
     def _enroll(self, h: Dict[str, str], body: bytes, secure: bool, source: str) -> PeerResponse:
@@ -1010,6 +1043,20 @@ class Participant:
         if node is None or not node.started:
             return empty_404()
         return node.handle(method, path, query, h, body, secure=secure, source=source)
+
+    def handle_mcp(self, method: str, path: str, query: str, headers: Dict[str, str], body: bytes,
+                   secure: bool = True, source: str = '') -> Optional[PeerResponse]:
+        """A request to the MCP endpoint carrying ``Sajha-Net-*`` headers (protocol §15): the node of
+        its net serves it; None when SAJHA Net is off or the net is not one of this participant's,
+        in which case the caller answers an unsigned 404 (§7.7)."""
+        h = httpsig.lower_headers(headers)
+        if not self.enabled:
+            return None
+        net = h.get('sajha-net-name', '').strip()
+        node = self.nodes.get(net) if names.is_net_name(net) else None
+        if node is None or not node.started or node.mcp_server is None:
+            return None
+        return node.mcp_server(method, path, query, h, body, secure=secure, source=source)
 
     def extension(self, net: Optional[str] = None) -> Dict[str, Any]:
         """The ``io.sajha/net`` capability object (§6.1): reduced unless ``net`` names a net of this

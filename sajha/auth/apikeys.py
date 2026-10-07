@@ -209,6 +209,12 @@ def _expiry(days: Any) -> Optional[datetime]:
     return _now() + timedelta(days=n)
 
 
+def _plain_value(raw: str) -> Optional[str]:
+    """The raw key to store under ``auth.credential_storage: plain`` (None under ``hashed``)."""
+    from sajha.auth.password import credential_storage
+    return raw if credential_storage() == 'plain' else None
+
+
 def create_key(db, *, name: str, created_by: str, owner=None, description: str = '',
                mode: str = 'all', tool_list: Optional[Iterable[str]] = None, expires_in_days: Any = None,
                persistent: bool = False, is_default: bool = False) -> Tuple[Any, str]:
@@ -220,7 +226,7 @@ def create_key(db, *, name: str, created_by: str, owner=None, description: str =
         raise KeyError_(f'{owner.user_id} already has the most keys allowed (auth.api_keys.max_per_user: '
                         f'{max_per_user()}); revoke one first')
     raw = generate_raw()
-    key = ApiKey(key_hash=_hash(raw), key_prefix=raw[:8], name=name, description=(description or '')[:500] or None,
+    key = ApiKey(key_hash=_hash(raw), key_value=_plain_value(raw), key_prefix=raw[:8], name=name, description=(description or '')[:500] or None,
                  owner_id=owner.id if owner is not None else None, tool_access_mode=mode, tool_access_list=tools,
                  expires_at=_expiry(expires_in_days), persistent=bool(persistent), is_default=bool(is_default),
                  created_by=created_by, enabled=True, usage_count=0)
@@ -247,6 +253,7 @@ def rotate_key(db, key, by: str) -> str:
         raise KeyError_('a revoked key cannot be rotated')
     raw = generate_raw()
     key.key_hash, key.key_prefix, key.rotated_at = _hash(raw), raw[:8], _now()
+    key.key_value = _plain_value(raw)
     if key.is_default and key.owner is not None:
         _store_secret(key, key.owner, raw)
     db.commit()

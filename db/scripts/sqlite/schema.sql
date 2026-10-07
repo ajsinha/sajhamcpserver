@@ -86,7 +86,8 @@ CREATE TABLE IF NOT EXISTS api_keys (
     revoked_at           TIMESTAMP,
     revoked_by           VARCHAR(100),
     secret_ciphertext    TEXT,
-    secret_key_id        VARCHAR(64)
+    secret_key_id        VARCHAR(64),
+    key_value            VARCHAR(255)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ix_api_keys_key_hash ON api_keys (key_hash);
 
@@ -441,5 +442,27 @@ CREATE TABLE IF NOT EXISTS quality_runs (
     detail_json          TEXT
 );
 CREATE INDEX IF NOT EXISTS ix_quality_runs_kind_started ON quality_runs (kind, started_at);
+
+-- ── SAJHA Net: the net key directory (sajha/net/integration/keystore.py): one row per key record
+--    of every home in every net this server is in, the signed record in record_json; never a raw
+--    key. Design: docs/architecture/SAJHA Net.md section 10.3 ──
+CREATE TABLE IF NOT EXISTS sajhanet_api_keys (
+    net                  VARCHAR(16)      NOT NULL,
+    key_id               VARCHAR(64)      NOT NULL,
+    home_instance        VARCHAR(255)     NOT NULL,
+    key_hash             VARCHAR(64)      NOT NULL,
+    version              INTEGER          NOT NULL,
+    owner_user           VARCHAR(255),
+    enabled              BOOLEAN          NOT NULL,
+    expires_at           VARCHAR(40),
+    revoked_at           VARCHAR(40),
+    signer_keyid         VARCHAR(64)      NOT NULL,
+    unusable             VARCHAR(20),
+    record_json          TEXT             NOT NULL,
+    received_at          REAL             NOT NULL,
+    PRIMARY KEY (net, key_id)
+);
+CREATE INDEX IF NOT EXISTS ix_sajhanet_api_keys_hash ON sajhanet_api_keys (net, key_hash);
+CREATE INDEX IF NOT EXISTS ix_sajhanet_api_keys_home ON sajhanet_api_keys (net, home_instance, version);
 
 COMMIT;

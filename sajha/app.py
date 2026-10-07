@@ -203,6 +203,7 @@ class SajhaMCPServerWebApp:
         from sajha.routes.prompts_routes import router as prompts_router
         from sajha.routes.studio_routes import router as studio_router
         from sajha.routes.apikeys_routes import router as apikeys_router
+        from sajha.routes.credential_files_routes import router as credential_files_router
         from sajha.routes.misc_routes import router as misc_router
         from sajha.routes.a2a_routes import router as a2a_router
         from sajha.routes.ai_routes import router as ai_router
@@ -227,6 +228,7 @@ class SajhaMCPServerWebApp:
         from sajha.routes.sajhanet_routes import router as sajhanet_router
 
         routers = [
+            credential_files_router,   # before apikeys/admin: /admin/apikeys/file, /admin/users/file
             auth_router, dashboard_router, api_router, tools_router,
             admin_router, reporting_router, mcp_router, health_router,
             prompts_router, studio_router, apikeys_router, misc_router,
@@ -726,6 +728,14 @@ class SajhaMCPServerWebApp:
         except Exception as e:
             logger.warning(f'  System notices: unavailable ({e})', exc_info=True)
 
+        # 4f2. Credential files: config/users.json applied, config/apikeys_db.json dumped, standing notices
+        try:
+            from sajha.auth import credential_jobs
+            credential_jobs.start()
+            logger.info('  Credential files: users file applied; API keys dump scheduled')
+        except Exception as e:
+            logger.warning(f'  Credential files: unavailable ({e})', exc_info=True)
+
         # 4g. Snapshots of users, API keys and tools (snapshots.enabled; docs/architecture/Policy and Audit.md)
         try:
             from sajha.snapshots import start_snapshots
@@ -787,6 +797,11 @@ class SajhaMCPServerWebApp:
             shutdown_sajhanet()
         except Exception as e:
             logger.debug(f'SAJHA Net shutdown: {e}')
+        try:
+            from sajha.auth import credential_jobs
+            credential_jobs.stop()
+        except Exception as e:
+            logger.debug(f'credential files shutdown: {e}')
         try:
             from sajha.snapshots import shutdown_snapshots
             shutdown_snapshots()

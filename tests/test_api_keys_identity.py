@@ -403,13 +403,13 @@ def test_admin_assigns_an_owner_to_an_unowned_key(app):
 
 # ── 3. persistent keys in a hashed file ─────────────────────────────
 
-def test_persistent_key_file_holds_hashes_and_survives_a_lost_row(app):
-    from sajha.auth import apikeys as svc
+def test_persistent_key_file_holds_the_raw_key_and_survives_a_lost_row(app):
+    """auth.credential_storage: plain (the default, owner decision): the file holds the raw key."""
     from sajha.db.models import ApiKey
     _, users, keyfile = app
     kid, raw = _new_key(users['user'], persistent=True, name='break-glass')
     text = keyfile.read_text()
-    assert raw not in text and svc._hash(raw) in text
+    assert json.loads(text)['keys'][0]['key'] == raw
     if os.name == 'posix':
         assert stat.S_IMODE(keyfile.stat().st_mode) == 0o600
     rec = json.loads(text)['keys'][0]
@@ -459,7 +459,18 @@ def test_database_wins_over_the_file_and_edits_on_disk_reload(app):
     assert _auth_key(raw2) is None
 
 
-def test_file_key_of_a_deleted_user_is_refused(app, tmp_path):
+def test_persistent_key_file_holds_only_hashes_when_storage_is_hashed(app, monkeypatch):
+    from sajha.auth import apikeys as svc
+    monkeypatch.setenv('SAJHA_AUTH_CREDENTIAL_STORAGE', 'hashed')
+    _, users, keyfile = app
+    kid, raw = _new_key(users['user'], persistent=True, name='hashed-one')
+    text = keyfile.read_text()
+    assert raw not in text and svc._hash(raw) in text
+    assert _auth_key(raw) is not None
+
+
+def test_file_key_of_a_user_missing_from_the_database_signs_in_with_the_file_roles(app, tmp_path):
+    """The administrators' file wins (owner decision): its record's roles apply."""
     from sajha.auth import persistent_keys as pk
     from sajha.auth.apikeys import _hash
     store = pk.PersistentKeyStore(tmp_path / 'k.json')
@@ -468,7 +479,8 @@ def test_file_key_of_a_deleted_user_is_refused(app, tmp_path):
     saved = pk.get_persistent_keys()
     pk.set_persistent_keys(store)
     try:
-        assert _auth_key('sja_ghost') is None
+        auth = _auth_key('sja_ghost')
+        assert auth is not None and auth.user_id == 'no_such_user_zz' and auth.roles == ['admin']
     finally:
         pk.set_persistent_keys(saved)
 
@@ -488,8 +500,12 @@ def test_old_plaintext_file_is_never_read(tmp_path):
 def test_example_file_is_the_format_and_the_real_one_is_ignored():
     example = json.loads((ROOT / 'config' / 'apikeys.json.example').read_text())
     assert example['format'] == 'sajha-persistent-apikeys/1'
-    assert all('key' not in r for r in example['keys'])
-    assert 'config/apikeys.json' in (ROOT / '.gitignore').read_text().splitlines()
+    # owner decision: the administrators' file holds raw keys; the example ships the test admin key
+    assert any(r.get('test_admin') and r.get('key') for r in example['keys'])
+    ignored = (ROOT / '.gitignore').read_text().splitlines()
+    assert {'config/apikeys.json', 'config/apikeys_db.json', 'config/users.json'} <= set(ignored)
+    users = json.loads((ROOT / 'config' / 'users.json.example').read_text())
+    assert users['format'] == 'sajha-users/1' and any(u.get('test_admin') for u in users['users'])
 
 
 # ── 4. revocable sign-in ────────────────────────────────────────────

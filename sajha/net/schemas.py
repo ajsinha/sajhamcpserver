@@ -97,7 +97,7 @@ DEFS: Dict[str, Any] = {
             'enabled': {'type': 'boolean'},
             'expires_at': {'anyOf': [{'$ref': '#/$defs/timestamp'}, {'type': 'null'}]},
             'revoked_at': {'anyOf': [{'$ref': '#/$defs/timestamp'}, {'type': 'null'}]},
-            'tool_access_mode': {'enum': ['all', 'allowlist', 'denylist']},
+            'tool_access_mode': {'enum': ['all', 'allowlist', 'denylist', 'regex']},
             'tool_access_list': {'type': 'array', 'items': {'type': 'string'}},
             'persistent': {'type': 'boolean'}, 'version': {'$ref': '#/$defs/version'},
             'updated_at': {'$ref': '#/$defs/timestamp'}, 'signature': {'$ref': '#/$defs/signature'}}},

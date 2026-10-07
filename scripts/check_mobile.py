@@ -77,6 +77,8 @@ ROUTES: List[Tuple[str, bool]] = [
     ('/admin/tools', True),
     ('/admin/prompts', True),
     ('/admin/apikeys', True),
+    ('/admin/apikeys/file', True),
+    ('/admin/users/file', True),
     ('/admin/apikeys/create', True),
     ('/admin/federation', True),
     ('/admin/connectors', True),

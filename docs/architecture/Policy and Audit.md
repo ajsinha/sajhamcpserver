@@ -80,7 +80,7 @@ The engine needs three facts the tool does not have:
 | Fact | Where it comes from |
 |---|---|
 | the caller (user, API key, roles, auth type) | `sajha.observability.caller.current()`, set by each entry point (A2A and async tasks now set it too) |
-| the source | `sajha.policy.context`: `mcp`, `stdio`, `websocket`, `rest`, `playground`, `a2a`, `ask`, `async`, `workflow` (a workflow step, run as the workflow owner; docs/architecture/Workflows.md), `openai_api` (the OpenAI-compatible endpoint, its pseudo-tools `openai_api.chat_completions` and `openai_api.embeddings` and the LLM tools it runs as models; [LLM Tools](LLM%20Tools.md#134-sajha-as-an-openai-compatible-endpoint) section 13.4), else `other`. The first entry point to set it wins, so a stdio call stays `stdio` when it reaches the MCP handler; Ask SAJHA and workflows override it, because its tool calls are chosen by a model |
+| the source | `sajha.policy.context`: `mcp`, `stdio`, `websocket`, `rest`, `playground`, `a2a`, `ask`, `async`, `workflow` (a workflow step, run as the workflow owner; docs/architecture/Workflows.md), `openai_api` (the OpenAI-compatible endpoint, its pseudo-tools `openai_api.chat_completions` and `openai_api.embeddings` and the LLM tools it runs as models; [LLM Tools](LLM%20Tools.md#134-sajha-as-an-openai-compatible-endpoint) section 13.4), `sajhanet` (a call forwarded from another instance of a SAJHA Net, run as the user it was mapped to; [SAJHA Net](SAJHA%20Net.md) section 11), else `other`. The first entry point to set it wins, so a stdio call stays `stdio` when it reaches the MCP handler; Ask SAJHA and workflows override it, because its tool calls are chosen by a model |
 | whether the caller confirmed | the MRTR answer on the 2026-07-28 path, or the Ask SAJHA confirm button (section 5) |
 
 ---
@@ -532,7 +532,7 @@ steps and other inner calls are calls too, each with its own record.
 | `outcome` | record | `ok`, `cache_hit`, `error`, `circuit_open`, `policy_denied`, `approval_required`, `rate_limited`, `input_required` (the same values as `sajha_tool_calls_total`) |
 | `duration_ms` | details | wall time of the call, policy included |
 | `trace_id` | details | the W3C trace id of the call ([Observability](Observability.md#33-outbound-trace-context)); present even with OpenTelemetry off |
-| `source` | details | the surface: `mcp`, `stdio`, `websocket`, `rest`, `playground`, `a2a`, `ask`, `async`, `workflow`, `openai_api`, `other` (section 2) |
+| `source` | details | the surface: `mcp`, `stdio`, `websocket`, `rest`, `playground`, `a2a`, `ask`, `async`, `workflow`, `openai_api`, `sajhanet`, `other` (section 2) |
 | `era` | details | `2026-07-28` or `2025-11-25` for an MCP call; absent otherwise |
 | `arguments_sha256` | details | SHA-256 of the arguments' canonical JSON (section 7.1's canonical form), when `arguments: hash` |
 | `arguments` | details | the arguments with secret-named keys (`password`, `token`, `api_key`, `secret`, `auth...`, `cookie`, ...) replaced by `[REDACTED:secret]` and personal data redacted with section 4's patterns, cut at `max_argument_bytes`, when `arguments: redacted` |

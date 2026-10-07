@@ -624,7 +624,7 @@ Written for someone who does *not* already know the field. Where a term has a ge
 
 | Term | Meaning |
 |---|---|
-| **SAJHA Net** | SAJHA servers (and other MCP servers) joined into a net: they find each other by gossip, prove who they are with net certificates and sign every request between them. Off by default (`sajhanet.enabled`). Membership, names, the CA and signed requests are built; catalogs, proxies and identity follow. |
+| **SAJHA Net** | SAJHA servers (and other MCP servers) joined into a net: they find each other by gossip, prove who they are with net certificates and sign every request between them. Off by default (`sajhanet.enabled`). Membership, names, the CA, signed requests, catalogs, proxies and routing are built. |
 | **Net** | One SAJHA Net: its own CA, certificates, members and revocation list. A server may be in several nets at once; nothing learned in one is used in another. |
 | **Net name** | The name of a net (`acme-net`): lowercase letters, digits, `-` and `_`, starting with a letter, at most 16 characters, never `__` and not ending in `_`. A net entry without a name is the net `default`. |
 | **Participant** | Anything that holds a net certificate and speaks the SAJHA Net protocol: a SAJHA instance, an agent in front of an MCP server, or a server built on the reference library. |
@@ -646,3 +646,26 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Name conflict** | A participant claiming a name held by a different, unrevoked key: refused with `409 name_conflict` naming the holder; the refused server does not join and raises an error notice until its configuration or certificate changes. |
 | **Manual mode** | A net without a CA: self-signed certificates whose thumbprints each administrator pins. |
 | **Gossip agent** | The worker that runs a net's membership protocol for an instance: the holder of the renewing state-store lease `sajhanet:agent:<net>`. |
+| **Catalog exchange** | How a participant learns another's tools: when the peer's catalog digest or incarnation changes (and every refresh interval) it pulls the peer's signed catalog, answered with `unchanged` when its hash matches. A peer's tools are listed only after it answered in the current run. |
+| **Contract hash** | The SHA-256 of a tool's input schema, output schema and annotations in canonical JSON; two hosts offer the same tool in a net only when their contract hashes are equal. Descriptions and versions are not part of it. |
+| **Contract conflict** | Two hosts in one net offering a tool name with different contract hashes. The name is quarantined on every member, the local copy included, until every host offers one contract again; the report names the differing host and the first differing JSON Pointer. |
+| **Quarantine** | The state of a tool name with a contract conflict: no copy is listed, resolvable, callable or a fallback target in that net. It lifts by itself when the conflict ends. |
+| **Conflicts document** | A participant's signed list of the contract conflicts it observes itself, versioned by `digests.conflicts`, so that members that cannot see every offer still quarantine the name. |
+| **Proxy tool** | A remote tool in this server's registry: called like a local tool, run by its host through a signed forwarded call. Listed under its qualified name and, while a bare alias is offered, under its plain name. |
+| **Bare alias** | The plain name (`var_calc`) of a remote tool, resolved in the resolution order; offered when no local tool has the name (`sajhanet.bare_aliases`). |
+| **Resolution order** | Where a call by plain name goes: the local tool, else the tool's preference list (`sajhanet.preferences`), else the nets in configured order, each ordered by the routing strategy; hosts that are suspect, blocked, quarantined, refused by import rules or of another contract are skipped, with the reason recorded. |
+| **Host and tool table** | Every instance's live record of which host in which net offers which tool, with state, hashes, trust and each row's place in the resolution order; the source of proxies, aliases and the Remote tools view. |
+| **Trust level** | How a peer's tools are imported: `auto` (at once after screening), `review` (after an administrator approves each one) or `pinned` (only tools an administrator named). |
+| **Waterfall fallback** | A call by plain name moving to the next host offering the same tool, at most `sajhanet.max_fallbacks` times, only when the first host certainly did not run it, or when the tool is read-only or idempotent and not destructive. |
+| **Not executed** | A forwarded call the host certainly did not run: never sent, or refused with `executed: false` in a signed answer. Only such a failure lets a destructive tool fall back. |
+| **Home instance** | The instance that issued a user's API key and the only one through which that key enters a net; in a forwarded call, the instance the caller used. |
+| **Host instance** | The instance that runs a forwarded call to one of its tools, after verifying the user and applying its own rules. |
+| **Net user** | A user at an instance, in a net, written `alice@risk-eu`: the owner of a forwarded key as the host sees them, before it maps them to a local identity. |
+| **Net key directory** | Each net's synced copy of every instance's signed API key records (hashes, owner, state, tool access; never a key), kept in the `sajhanet_api_keys` table and used by a host to verify forwarded keys. |
+| **Key record** | One API key's entry in the net key directory, signed by its home and versioned by the home's single counter; a deleted key stays as a tombstone with `revoked_at`. |
+| **User link** | An administrator's mapping of a net user (`alice@risk-eu`) to a local account, tried before name matching. |
+| **Name matching** | Running a net user as the local account with the same login name (`users.user_id`), with that account's local roles; on by default, and can be turned off per instance. |
+| **Role map** | The local roles a host gives users of another instance who have no local account, by their roles at home, when `sajhanet.users.unknown` is `map_roles`. |
+| **Export rule** | A rule in a net entry naming which tools this instance offers to which instances and roles; nothing is exported unless a rule allows it. |
+| **Import rule** | A rule in a net entry naming which instances' tools this instance's users may use, and for which roles; nothing is imported unless a rule allows it. |
+| **Net block** | A local decision of one instance in one net to stop traffic: an instance entirely, inbound, outbound, a tool or a remote user; audited, may expire, enforced only by the instance that set it and published in its signed blocks document. |

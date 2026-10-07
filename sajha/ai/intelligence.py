@@ -26,7 +26,7 @@ the AskResult. Event schema (stable; every event has ``type`` and ``seq``):
     {"type": "plan",        "planner", "revision", "steps": [{"id", "tool", "arguments", "depends_on",
                              "why", "status", "call_id"}]}     # optional: planners that plan ahead
     {"type": "tool_call",   "id", "name", "arguments", "step"}
-    {"type": "tool_result", "id", "name", "ok", "summary", "latency_ms"}
+    {"type": "tool_result", "id", "name", "ok", "summary", "latency_ms", "net"?}   # net: SAJHA Net host
     {"type": "needs_confirmation", "id", "name", "arguments", "fingerprint", "reason"}
     {"type": "needs_connection", "id", "name", "provider", "provider_title", "connect_url", "reason"}
     {"type": "answer_delta","text"}            # display chunks of the final answer
@@ -90,6 +90,15 @@ STOP_REASONS = ("answer", "step_limit", "tool_limit", "budget", "timeout", "need
 # no_sources, refused, invalid_output, busy, memory_pressure, cancelled
 
 
+def _net_of(out: Any) -> Optional[Dict[str, str]]:
+    """The net and host that answered a SAJHA Net remote tool (its result's ``_meta["io.sajha/net"]``)."""
+    meta = ((out.get("_meta") or {}).get("io.sajha/net") if isinstance(out, dict) and
+            isinstance(out.get("_meta"), dict) else None)
+    if not isinstance(meta, dict) or not meta.get("instance") or not meta.get("net"):
+        return None
+    return {k: str(meta[k]) for k in ("net", "instance", "qualified_name") if meta.get(k)}
+
+
 @dataclass
 class AskStep:
     id: str
@@ -101,6 +110,7 @@ class AskStep:
     latency_ms: int = 0
     confidence: float = 0.0
     fingerprint: str = ""
+    net: Optional[Dict[str, str]] = None   # a SAJHA Net remote tool: the net and host that answered
 
     def to_dict(self):
         return dict(self.__dict__)
@@ -665,8 +675,9 @@ class IntelligenceService:
         step_rec, _part, extra = outcome
         if step_rec.status in ("needs_confirmation", "needs_connection"):
             yield ev(step_rec.status, **extra)
+        extra = {"net": step_rec.net} if step_rec.net else {}
         yield ev("tool_result", id=call.id, name=call.function.name, ok=step_rec.ok, summary=step_rec.summary,
-                 latency_ms=step_rec.latency_ms)
+                 latency_ms=step_rec.latency_ms, **extra)
 
     def _run_parallel(self, calls: List[ToolCall], offered: Dict[str, Any], confirmed: Set[str]):
         """Run independent calls together (each in a copy of this context: caller, policy source)."""
@@ -701,7 +712,7 @@ class IntelligenceService:
             # source "ask": a model chose this call (scoped to the call, never leaked to the caller)
             with _pctx.interactive(confirmed_=fp in confirmed), _pctx.using_source('ask', override=True):
                 out = tool.execute_with_tracking(dict(args))
-            ok = not (isinstance(out, dict) and set(out) == {"error"})
+            ok = not (isinstance(out, dict) and (set(out) == {"error"} or out.get("isError") is True))
         except ApprovalRequired as e:
             if e.interactive:            # approver: caller -> the same Confirm button as destructive tools
                 return refused("needs_confirmation", f"not run: {e.reason}; needs the user's confirmation",
@@ -723,7 +734,7 @@ class IntelligenceService:
         out = observe_result(name, call.id, out)
         content = _cap(out, s.max_result_chars)
         step = AskStep(call.id, name, args, ok, "ok" if ok else "error", _summary(content), latency,
-                       get_tool_confidence(name) if ok else 0.0, fp)
+                       get_tool_confidence(name) if ok else 0.0, fp, _net_of(out))
         return step, ChatMessage.tool(call.id, content, is_error=not ok, tool_name=name), None
 
     def _synthesize(self, messages: List[ChatMessage], final_text: str, ok_ids: List[str], ctx, model, res):

@@ -20,6 +20,12 @@ os.environ.setdefault('SAJHA_AI_RAG_BUILD_ON_START', 'false')
 os.environ.setdefault('SAJHA_AI_RAG_PERSIST', 'false')
 # Periodic snapshots (snapshots.*) write under data/; tests that need them build their own.
 os.environ.setdefault('SAJHA_SNAPSHOTS_ENABLED', 'false')
+# The administrators' credential files: tests never read the developer's real config/users.json,
+# config/apikeys.json or write config/apikeys_db.json; the test admin switch is off unless a test turns it on.
+os.environ.setdefault('SAJHA_AUTH_USERS_FILE_PATH', str(_DUCKDB_TMP / 'users.json'))
+os.environ.setdefault('SAJHA_AUTH_API_KEYS_DB_DUMP_PATH', str(_DUCKDB_TMP / 'apikeys_db.json'))
+os.environ.setdefault('SAJHA_CONFIG_APIKEYS_PATH', str(_DUCKDB_TMP / 'apikeys.json'))
+os.environ.setdefault('SAJHA_SAJHANET_TEST_ADMIN_KEY_ENABLED', 'false')
 
 
 import pytest

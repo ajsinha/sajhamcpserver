@@ -60,7 +60,7 @@ def test_third_party_registration_and_entry_points(monkeypatch):
 
 
 CORE = ['__init__', 'names', 'jcs', 'sfv', 'crypto', 'httpsig', 'errors', 'schemas', 'models', 'plugins', 'trust',
-        'membership', 'ca', 'node', 'contract']
+        'membership', 'ca', 'node', 'contract', 'keydir', 'blocks']
 
 
 @pytest.mark.parametrize('module', CORE)

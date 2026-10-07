@@ -484,6 +484,9 @@ class MCPHandler:
         # tools past their sunset (config/tool_versions; docs/architecture/Tool Quality.md §6.5)
         from sajha.quality import versions as _versions
         all_tools = _versions.listed(all_tools)
+        # SAJHA Net: a local tool quarantined for a contract conflict is not listed (SAJHA Net.md §8.7)
+        from sajha.net.integration.catalogs import listed as _net_listed
+        all_tools = _net_listed(all_tools)
         all_tools = sorted(all_tools, key=lambda t: str(t.get('name', '')))
         if era == 'modern':
             all_tools = [self._with_task_support(t) for t in all_tools]

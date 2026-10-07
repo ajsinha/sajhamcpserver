@@ -109,6 +109,18 @@ auth:
     secret_key: ${SESSION_SECRET:}
     timeout_minutes: 60
   secrets_file: ""                        # default: <data.dir>/secrets/server_secrets.json
+  # How passwords and API keys are stored: plain (as given; the owner's intranet setting) or hashed
+  # (bcrypt / SHA-256). Values stored either way keep working after a switch; to hash everything run
+  # `python -m sajha.auth rehash`. docs/security/Security Model.md "Credential storage and files"
+  credential_storage: ${SAJHA_AUTH_CREDENTIAL_STORAGE:plain}
+  users_file:
+    path: config/users.json             # administrators' users; always win over the database
+  credential_files:
+    reload_check_seconds: 300           # config/users.json and config/apikeys.json: held in memory; checked
+                                        # for hand edits at most this often (page edits apply at once)
+  api_keys:
+    db_dump_path: config/apikeys_db.json  # the database's keys, written every interval (fallback)
+    db_dump_interval_minutes: 10
   # Sign-in protection: the web form, POST /api/auth/login and the OAuth consent sign-in
   login:
     max_failed_attempts: 5                # consecutive failures that lock the account
@@ -836,6 +848,18 @@ quality:
 # references), never values here.
 sajhanet:
   enabled: false
+  # Test admin: records marked "test_admin" in config/apikeys.json and config/users.json sign in as an
+  # administrator, and SAJHA Net calls between servers carry the test admin key, while this is on.
+  # Development and testing only: a critical notice shows on every page while it is active.
+  test_admin_key:
+    enabled: true
+  # API keys this server uses toward particular members (local to this server; never shared):
+  # "<net>/<instance>" or "<instance>" -> the key that member issued; a ${ENV_NAME} reference works.
+  # When a member has one, calls to it carry that key instead of the caller's (or the test admin) key.
+  peer_keys:
+    # Sample (testing): calls to the member "peer-b" in the net "default" carry this key. It works only if
+    # peer-b's own config/apikeys.json has a record with the same "key" (see config/apikeys.json.example).
+    default/peer-b: sja_peer_b_sample_key_0001
   nets: []                         # one entry per net, in preference order; an entry looks like:
   #  - name: acme-net               # omitted: the net is called `default`
   #    instance_name: risk-eu       # unset: this server's address, <ip>:<port>
@@ -857,6 +881,38 @@ sajhanet:
     membership: gossip             # gossip | static (static_peers in a net entry) | package.module:Class
     admission: builtin_ca          # builtin_ca | manual (pinned self-signed certificates)
     connector: sajha_native
+    key_directory_store: database  # database (sajhanet_api_keys) | memory | package.module:Class
+    routing: local_first           # order of the hosts of one tool within a net: local_first | lowest_latency | pinned
+  # catalogs and routing (docs/architecture/SAJHA Net.md §7-§9)
+  preferences: {}                  # per tool: ["<net>/<instance>", "<net>", ...] tried before the nets in order
+  max_fallbacks: 3                 # other hosts tried after the first, for a call by plain name (§9.1)
+  bare_aliases: "on"               # on | preferences_only | off: plain names for remote tools
+  default_trust: auto              # auto | review | pinned for peers' tools (a net entry may override)
+  refresh_interval_seconds: 300    # re-pull a peer's catalog at least this often, even with no new digest
+  default_timeout_seconds: 30      # one forwarded call, and the shared deadline of its fallbacks
+  max_hops: 1                      # forwarded calls accepted at most this many hops from their home (at most 8)
+  limits:
+    max_tools_per_peer: 2000
+    max_catalog_bytes: 5242880
+    max_description_chars: 1024
+  peer:                            # per-peer isolation at the home
+    breaker_threshold: 5           # consecutive availability failures before calls to the peer pause
+    breaker_reset_seconds: 30
+    calls_per_minute: 600          # this home's calls to one peer
+    inbound_calls_per_minute: 600  # forwarded calls accepted from one peer
+  # identity and authorization (docs/architecture/SAJHA Net.md §10-§11)
+  user_identity: api_key           # api_key (the user's own key travels, verified by the host) | none
+  key_directory:
+    sync: true                     # pull other members' key records (sajhanet_api_keys)
+    full_sync_interval_seconds: 300   # compare key digests and repair differences
+  users:
+    match_by_name: true            # a remote user runs as the local account with the same login name
+    unknown: refuse                # refuse | map_roles (guest identity with role_maps)
+    remote_admin: admin            # admin | user | refuse: remote administrators calling tools here
+  role_maps: {}                    # {instance: {remote role: [local roles]}}, for unknown: map_roles
+  service_calls: false             # accept forwarded calls that carry no user
+  anonymous_may_call_remote: false
+  # a net entry may also set export: and import: rules (see the Configuration Reference)
   peer_cache:
     interval_minutes: 10           # the saved peer list is written on change and at least this often
     max_age_days: 7                # saved peers not seen for longer are skipped on restart

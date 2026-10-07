@@ -68,9 +68,14 @@
         rows[id] = li; total += 1; add(li);
         count.textContent = total + (total === 1 ? ' call' : ' calls');
       },
-      end: function (id, ok, ms) {
+      end: function (id, ok, ms, net) {
         var li = rows[id]; if (!li) return;
         li.classList.remove('is-running');
+        if (net && net.net && net.instance) {           // a plain name answered by a SAJHA Net host
+          var sv = li.querySelector('.ask-call-server');
+          if (sv) sv.textContent = net.net + ' / ' + net.instance;
+          li.classList.remove('is-local'); li.classList.add('is-net');
+        }
         var st = li.querySelector('.ask-call-state');
         if (ok === null) { li.classList.add('is-waiting'); st.textContent = 'waiting for you'; return; }
         li.classList.add(ok ? 'is-ok' : 'is-error');
@@ -651,7 +656,7 @@
         paint(t, ['chain', 'plan']);
         var waiting = t.steps.some(function (st) { return st.id === ev.id && (st.status === 'needs_confirmation' || st.status === 'needs_connection'); });
         skyResult(ev.id, waiting ? null : !!ev.ok, waiting ? 'waiting for you' : ev.summary, now);
-        callLog.end(ev.id, waiting ? null : !!ev.ok, ev.latency_ms);
+        callLog.end(ev.id, waiting ? null : !!ev.ok, ev.latency_ms, ev.net);
         if (!waiting) setStatus(ev.name + (ev.ok ? ' answered' : ' failed'), ev.ok ? 'busy' : 'bad');
         break;
       case 'needs_confirmation':

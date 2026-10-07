@@ -379,6 +379,16 @@ class SajhaNetService:
                 node.accept_revocations(json.loads(rl.decode('utf-8')))
             except Exception as e:
                 logger.warning(f'SAJHA Net {net}: the configured revocation list is unreadable: {e}')
+        try:                                             # identity, key directory, blocks (design §10, §11)
+            from sajha.net.integration.authz import get_authz
+            get_authz(self).attach(cfg, node)
+        except Exception as e:
+            logger.warning(f'SAJHA Net {net}: identity and authorization not installed: {e}', exc_info=True)
+        try:                                             # catalogs, proxies, routing (design §7-§9)
+            from sajha.net.integration.catalogs import get_net_catalogs
+            get_net_catalogs(self).attach(cfg, node)
+        except Exception as e:
+            logger.warning(f'SAJHA Net {net}: catalogs not installed: {e}', exc_info=True)
         node.start()
         if not node.refused():
             _clear(f'sajhanet.name_conflict:{net}')
@@ -412,7 +422,8 @@ class SajhaNetService:
         try:
             from sajha.core import net_extension
             feats = sorted({f for rt in self.runtimes.values() if rt.node for f in rt.node.features})
-            net_extension.advertise(features=feats, user_identity=['none'],
+            net_extension.advertise(features=feats, user_identity=sorted(
+                {u for rt in self.runtimes.values() if rt.node for u in rt.cfg.user_identity}) or ['none'],
                                     signature_algorithms=[crypto.ED25519, crypto.P256])
         except Exception as e:
             logger.debug(f'SAJHA Net advertisement: {e}')
@@ -428,6 +439,12 @@ class SajhaNetService:
                 node = rt.node
                 if node is None:
                     return
+                cat = getattr(self, 'catalogs', None)
+                if cat is not None:                      # every worker keeps its registry's proxies current
+                    try:
+                        cat.maybe_sync()
+                    except Exception as e:
+                        logger.warning(f'SAJHA Net {rt.cfg.name}: proxy sync failed: {e}', exc_info=True)
                 if not rt.lease.held and not rt.lease.try_acquire():
                     continue
                 try:
@@ -455,6 +472,8 @@ class SajhaNetService:
         rt = self._rt(net)
         self._stop_agent(rt, leave=False)
         self.participant.nodes.pop(net, None)
+        if getattr(self, 'catalogs', None) is not None:
+            self.catalogs.detach(net)
         self._build(rt)
         if rt.node is not None and run_agent and self.shared.enabled:
             self._start_agent(rt)
@@ -463,6 +482,8 @@ class SajhaNetService:
     def stop(self) -> None:
         for rt in self.runtimes.values():
             self._stop_agent(rt, leave=True)
+        if getattr(self, 'catalogs', None) is not None:
+            self.catalogs.clear_registry()
 
     # ── views ──────────────────────────────────────────────────────
 
@@ -500,6 +521,12 @@ class SajhaNetService:
                                       'features': m['record'].get('features'),
                                       'last_seen': crypto.rfc3339(m['last_seen']) if m.get('last_seen') else None}
                                      for m in node.members()])
+            authz = getattr(self, 'authz', None)
+            if authz is not None and net in authz.nets:
+                try:
+                    item['authz'] = authz.status(net)
+                except Exception as e:
+                    logger.debug(f'SAJHA Net {net}: authorization status: {e}')
             nets.append(item)
         return {'enabled': self.shared.enabled, 'protocol_versions': [1], 'nets': nets}
 

@@ -290,7 +290,8 @@ Python entry-point group (`sajha.net.plugins`), as planners already can.
 
 ### 5.5 What is built
 
-Wave 4, phase 4.1 built membership; everything else in this note is still design.
+Wave 4, phase 4.1 built membership; phase 4.2 built catalogs and routing (sections 7 to 9, 14 and 15)
+alongside identity and authorization; what is not listed here is still design.
 
 - **The protocol core** is `sajha/net/` and imports nothing from the rest of SAJHA
   (`tests/net/test_net_plugins.py` checks it): names (`names.py`), RFC 8785 canonical JSON
@@ -304,10 +305,9 @@ Wave 4, phase 4.1 built membership; everything else in this note is still design
   `package.module:Class` selection and the entry-point group `sajha.net.plugins`; each has a
   contract check in `sajha/net/contract.py` that every implementation passes. Shipped: membership
   `gossip` and `static`; admission `builtin_ca` and `manual`; connectors `sajha_native` and
-  `in_process`; identity `none`; catalog source `static`; key directory store `memory`; rules
-  `allow_all` and `deny_all`; snapshot sink `local_files`; routing `local_first`,
-  `lowest_latency` and `pinned`. The SAJHA-backed ones (the `api_key` resolver, the `native`
-  catalog, the `database` key store, the policy-engine rules) come with phase 4.2.
+  `in_process`; identity `none` and `api_key`; catalog source `static` (and `native`, SAJHA's registry);
+  key directory store `memory` and `database`; rules `allow_all`, `deny_all` and `policy_engine`;
+  snapshot sink `local_files`; routing `local_first`, `lowest_latency` and `pinned`.
 - **SAJHA's integration** is `sajha/net/integration/` (configuration, state store, notices,
   metrics, audit, the gossip agent's lease) and `sajha/routes/sajhanet_routes.py` (the protocol
   endpoints, the admin API and the `/admin/sajhanet` page); the command line is `sajha net ...`.
@@ -323,9 +323,51 @@ Wave 4, phase 4.1 built membership; everything else in this note is still design
   an optional runtime seed; one gossip agent per net through the renewing lease; and these notice
   sources of section 17.4: not joined (including no seeds), `name_conflict` (own and seen), member
   suspect, dead or left, certificate expiring or expired, renewal failing, revocation list stale, a
-  peer added by hand, plain HTTP allowed, and a net still named `default`. The extension is
-  advertised with `user_identity: ["none"]` until the `api_key` resolver exists.
-- **Not yet:** catalogs and everything after section 7, the Instances page and the rest of the
+  peer added by hand, plain HTTP allowed, and a net still named `default`.
+- **Built of sections 7 to 9, 14 and 15** (`sajha/net/catalog.py`, `sajha/net/routing.py`, and in SAJHA
+  `sajha/net/integration/catalogs.py`): the catalog endpoint and its pull, driven by `digests.catalog`,
+  a changed incarnation, a new run and `refresh_interval_seconds`, with `if_none_match`; complete tool
+  definitions with net metadata and contract and description hashes, MCP Apps links stripped; a
+  recomputed contract hash that does not match is not imported and flags the peer; schemas checked
+  with federation's `schema_problem`, text screened with its markers, sizes capped; the three trust
+  levels with approvals under `review`; the host and tool table (live rows only; the stored copy
+  serves `if_none_match`, never listing); proxies in the registry under qualified names and bare
+  aliases, with `_meta["io.sajha/net"]`; resolution (local, preferences, nets in order by the routing
+  strategy) with a reason for every place and every host skipped; offline removal on `left`, `dead`
+  and revocation, `unavailable` while `suspect`, nothing remote after a restart until a peer answers;
+  one name, one contract with the signed conflicts document, quarantine of every copy (the local one
+  included) and automatic re-activation, reported with the differing host and the first differing
+  JSON Pointer; forwarded `tools/call` on the MCP endpoint in the order of the protocol's §15.4, with
+  hop and loop checks and `executed` on every refusal; waterfall fallback; per-peer breakers, rate
+  limits, timeouts and connection pools; the notices "tool quarantined", "active again" and "catalog
+  flagged"; the metrics `sajha_net_contract_conflicts`, `sajha_net_remote_tools`,
+  `sajha_net_catalog_pulls_total`, `sajha_net_remote_calls_total` and `sajha_net_fallbacks_total`; net
+  badges and local, remote, net and instance filters on the Tools page; the net and host of a remote
+  tool in the Ask page's "Servers and tools" log. Forwarded calls use the 2026-07-28 era only;
+  progress, cancellation, input requests and tasks are not relayed yet, and re-export (bridges) is
+  not built (`reexport` is read but an instance exports only its own tools).
+- **Built of sections 10, 11, 16 and 17.4** (`sajha/net/keydir.py` and `sajha/net/blocks.py` in the
+  core; in SAJHA `sajha/net/integration/authz.py` and `keystore.py`, and `sajha/auth/presented_key.py`):
+  the `api_key` identity resolver (the home forwards the key the caller presented, or a console user's
+  default key from the vault; the host verifies it against the net key directory, refuses it with the
+  protocol's reasons, and checks it came from its home); the net key directory in the
+  `sajhanet_api_keys` table (owned keys and persistent-file keys published as signed records with one
+  version counter per home, tombstones for deleted keys, re-signing after a renewal, delta pulls by
+  `digests.keys`, the digest comparison every `key_directory.full_sync_interval_seconds`, records of a
+  revoked certificate discarded and re-pulled, records of a home that left or was revoked kept and
+  unusable); users across instances (explicit links, name matching on `users.user_id`, `unknown`
+  `refuse` or `map_roles` with role maps, `remote_admin`, net settings only by a locally signed-in
+  administrator); export and import rules and the key's tool access as a ceiling, through the
+  `policy_engine` rule evaluator (the host's own access rules and policy engine run on execution, policy
+  source `sajhanet`); blocks at the four levels with expiry, reasons and audit, published in a signed
+  blocks document driven by `digests.blocks`; an instance blocked entirely has its key updates ignored;
+  `linked_audit` for the records both sides write under one trace id and key id; the notice sources
+  "key-directory sync failing for a peer" and "a block added against this server"; the identity and
+  access section of the `/admin/sajhanet` page and its admin API. The extension advertises
+  `user_identity: ["api_key"]` and the features `key_directory`, `key_verification` and `blocks`. Not
+  built: the `assertion` identity (re-export), the "Users across the net" and "Access and blocks" pages
+  of section 17.1 beyond the admin page's section.
+- **Not yet:** the Instances page and the rest of the
   console of section 17 (the admin page is a minimal one), mutual TLS (`mtls` stays off), the
   SAJHA Net agent and the reference library.
 
@@ -1043,7 +1085,7 @@ one net means nothing in another.
 | `key_id`, `key_prefix`, `name` | the key's identity, as in the issuing instance's `api_keys` table (`id`, `key_prefix`, `name`) |
 | `key_hash` | the SHA-256 hash SAJHA already stores; **the raw key is never synced** |
 | `home_instance` | the instance that issued it and is its only authority |
-| `owner` | the owner's user id (`users.user_id`, the login name), display name (`users.user_name`) and role names at the home instance |
+| `owner` | the owner's login name (`users.user_id`, carried in the record's `owner.user_name`), internal id (`users.id`, in `owner.user_id`), display name (`users.user_name`, in `owner.display_name`) and role names at the home instance; the protocol names the fields after what they are in the net, not after SAJHA's columns |
 | `enabled`, `expires_at`, `revoked_at` | its current state; `revoked_at` is new (the `api_keys` table has none): it is set when the home instance deletes the key, and the directory keeps the record as a tombstone |
 | `tool_access_mode`, `tool_access_list` | its tool access: `all`, `allowlist`, `denylist` or `regex`, and the patterns |
 | `version`, `updated_at` | a counter the home instance increments on every change |
@@ -1151,7 +1193,9 @@ things:
 
 - **Tool calls.** An administrator from another instance calls tools as the host's administrator
   only if `sajhanet.users.remote_admin` is `admin` (the default, given the net is trusted); `user`
-  treats them like any linked or matched user; `refuse` blocks them.
+  treats them like any linked or matched user; `refuse` blocks them. As built, under `user` a name
+  match gives a remote administrator no `admin` role (the seed `admin` exists everywhere); only an
+  explicit link to a local administrator does.
 - **Net administration.** Blocking, trust levels, user links, role maps and every other net
   setting on an instance can only be changed by an administrator **signed in to that instance**,
   never through a remote call. Each instance governs itself.

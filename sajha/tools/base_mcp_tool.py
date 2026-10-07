@@ -218,6 +218,10 @@ class BaseMCPTool(ABC):
         """
         # Tool versions (docs/architecture/Tool Quality.md §6): a versioned tool's call runs on
         # the version routing chooses; every other tool gets NOT_ROUTED (a dict miss)
+        # SAJHA Net one name, one contract: a local tool exported into a net where its name is
+        # quarantined does not run (docs/architecture/SAJHA Net.md §8.7); a no-op when the net is off
+        from sajha.net.integration.catalogs import check_local_call as _net_check
+        _net_check(self.name)
         from sajha.quality import versions as _versions
         routed = _versions.route_call(self, arguments)
         if routed is not _versions.NOT_ROUTED:

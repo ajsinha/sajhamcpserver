@@ -24,7 +24,8 @@ import contextlib
 import contextvars
 from typing import Iterator, Optional
 
-SOURCES = ('mcp', 'stdio', 'websocket', 'rest', 'playground', 'a2a', 'ask', 'async', 'workflow', 'openai_api', 'other')
+SOURCES = ('mcp', 'stdio', 'websocket', 'rest', 'playground', 'a2a', 'ask', 'async', 'workflow', 'openai_api', 'sajhanet',
+           'other')
 
 _source: contextvars.ContextVar[str] = contextvars.ContextVar('sajha_policy_source', default='')
 _confirmed: contextvars.ContextVar[bool] = contextvars.ContextVar('sajha_policy_confirmed', default=False)

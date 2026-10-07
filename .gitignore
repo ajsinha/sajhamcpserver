@@ -78,3 +78,4 @@ config/users.json
 
 # ── Persistent API keys: hashed records written by the server (config/apikeys.json.example is the format) ──
 config/apikeys.json
+config/apikeys_db.json
