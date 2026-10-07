@@ -60,6 +60,14 @@ OK = _T["ok"]
 WARN = _T["warn"]
 BAD = _T["bad"]
 
+
+def _tint(c: RGBColor, k: float) -> RGBColor:
+    """c moved a fraction k of the way to white."""
+    return RGBColor(*(round(v + (255 - v) * k) for v in c))
+
+
+WATERMARK = _tint(CRIMSON, 0.15)  # a chapter numeral one tone lighter than a divider
+
 ML = 0.85
 CW = SW - 2 * ML
 BODY_BOTTOM = FOOTER_Y - 0.12
@@ -300,7 +308,7 @@ SECTION_SHAPE = "Section numeral"
 
 
 def divider(num: str, title: str, sub: str, points: list[str]) -> Any:
-    """A numbered section divider: a large numeral in a circle, the section's title, one
+    """A numbered section divider: the chapter number as a large watermark, the section's title, one
     sentence on what it answers, and its contents in a line."""
     _state["chapter"] = f"{num} · {title}"
     _state["n"] += 1
@@ -310,14 +318,14 @@ def divider(num: str, title: str, sub: str, points: list[str]) -> Any:
     mark(sl, ML, 0.42, 0.42, PINK, 1.4)
     tf = txt(sl, ML + 0.55, 0.47, 3.0, 0.32)
     para(tf, "SAJHA", size=14, color=PINK, bold=True, font=SERIF, first=True, space_after=0)
-    d = 1.55
-    circle = rect(sl, (SW - d) / 2, 0.85, d, d, fill=CRIMSON_D, line=PINK, lw=2.5, shape=MSO_SHAPE.OVAL)
-    circle.name = SECTION_SHAPE
-    tf = circle.text_frame
-    tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
-    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-    tf.paragraphs[0].alignment = PP_ALIGN.CENTER
-    para(tf, num, size=48, color=WHITE, font=SERIF, bold=True, first=True, space_after=0, line=1.0)
+    # The chapter number as a watermark: two digits, very large, one tone lighter than the
+    # background, behind everything else on the slide (drawn before the title).
+    wm = txt(sl, SW - ML - 4.6, 0.05, 4.6 + ML - 0.25, 2.75, align=PP_ALIGN.RIGHT)
+    wm.margin_left = wm.margin_right = wm.margin_top = wm.margin_bottom = 0
+    wm.vertical_anchor = MSO_ANCHOR.TOP
+    para(wm, f"{int(num):02d}" if num.isdigit() else num, size=170, color=WATERMARK, font=SANS,
+         bold=True, first=True, space_after=0, line=1.0)
+    sl.shapes[-1].name = SECTION_SHAPE
     tw = CW * 0.86
     size = 40.0
     while size > 26 and est_lines(title, tw * SAFETY, size, False, SERIF) > 1:
