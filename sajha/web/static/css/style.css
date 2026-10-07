@@ -1739,3 +1739,58 @@ pre.pg-repr { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--sajha-indigo) 5
   .sajha-xscroll:has(> table.sajha-stack), .table-responsive:has(> table.sajha-stack) { overflow-x: visible; }
 }
 /* ==== end of Mobile ======================================================================== */
+
+/* ── Landing: the SAJHA Net ring beside the constellation (static/js/netring.js) ── */
+.lp2-visuals { max-width: 1180px; margin: 2.2rem auto 0; display: grid; gap: 22px; }
+.lp2-visuals .lp2-sky-wrap { max-width: none; margin: 0; }
+@media (min-width: 1200px) {
+  .lp2-visuals { max-width: 1560px; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); align-items: start; }
+}
+.lp2-net-wrap { position: relative; margin: 0; text-align: left; min-width: 0; }
+@media (max-width: 1199.98px) { .lp2-net-wrap { max-width: 640px; width: 100%; margin: 0 auto; } }
+.lp2-net { position: relative; border-radius: 20px; overflow: hidden; border: 1px solid var(--sajha-border);
+  background: radial-gradient(700px 420px at 50% 45%, var(--sajha-surface), var(--sajha-canvas));
+  box-shadow: 0 24px 50px -30px color-mix(in srgb, var(--sajha-nav-to) 55%, transparent); }
+.lp2-net svg { display: block; width: 100%; height: auto; }
+.lp2-net-head { position: absolute; z-index: 2; top: 14px; left: 18px; right: 18px; pointer-events: none; }
+.lp2-net-kicker { margin: 0; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--t-accent-text); }
+.lp2-net-slogan { margin: .15rem 0 0; font-size: clamp(1rem, 1.6vw, 1.2rem); font-weight: 800; letter-spacing: -.01em; color: var(--sajha-ink); }
+.lp2-net-center { position: absolute; left: 50%; top: 54%; transform: translate(-50%, -50%); width: 46%; text-align: center; pointer-events: none; }
+.lp2-net-bubble { display: inline-block; font-size: 13px; line-height: 1.45; background: var(--sajha-surface); color: var(--sajha-ink);
+  border: 1px solid var(--sajha-border); border-radius: 10px; padding: .5rem .65rem; opacity: 0; transition: opacity .35s;
+  box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--sajha-ink) 30%, transparent); }
+.lp2-net-bubble.is-on { opacity: 1; }
+.lp2-net-bubble.is-bad { border-color: var(--sajha-bad); color: var(--sajha-bad); background: var(--sajha-crimson-tint); }
+.lp2-net-bubble.is-good { border-color: var(--sajha-ok); }
+.lp2-net-bubble code { font-size: .92em; color: inherit; }
+.lp2-net-who { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--t-muted); margin-bottom: .15rem; }
+.lp2-net-ring { fill: none; stroke: var(--sajha-border); stroke-width: 1.5; stroke-dasharray: 3 5; }
+.lp2-net-chord { stroke: var(--sajha-border); stroke-width: 1; opacity: .7; }
+.lp2-net-core { fill: var(--sajha-surface); stroke: var(--t-muted); stroke-width: 2; transition: stroke .3s, fill .3s; }
+.lp2-net-node.is-alive .lp2-net-core { stroke: var(--sajha-crimson); }
+.lp2-net-node.is-home .lp2-net-core { fill: var(--sajha-crimson-tint); stroke: var(--sajha-crimson); stroke-width: 3; }
+.lp2-net-node.is-target .lp2-net-core { stroke: var(--sajha-warn); stroke-width: 3; }
+.lp2-net-node.is-conflict .lp2-net-core { stroke: var(--sajha-bad); stroke-width: 3; }
+.lp2-net-node.is-down .lp2-net-core { stroke: var(--t-muted); fill: var(--sajha-canvas); stroke-dasharray: 4 3; }
+.lp2-net-tool { fill: var(--sajha-glow); stroke: var(--sajha-crimson); stroke-width: 1; transition: opacity .5s, fill .3s, stroke .3s; }
+.lp2-net-node.is-down .lp2-net-tool { opacity: .12; }
+.lp2-net-tool.is-quarantined { fill: var(--sajha-crimson-tint); stroke: var(--sajha-bad); stroke-width: 2; }
+.lp2-net-tool.is-restored { fill: var(--sajha-ok); stroke: var(--sajha-ok); }
+.lp2-net-name { font: 600 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: var(--sajha-ink); }
+.lp2-net-node.is-down .lp2-net-name { fill: var(--t-muted); }
+.lp2-net-tag { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; fill: var(--t-muted); }
+.lp2-net-arrow { fill: none; stroke: var(--sajha-crimson); stroke-width: 2; }
+.lp2-net-arrow.is-fail { stroke: var(--sajha-bad); stroke-dasharray: 3 4; }
+.lp2-net-arrow.is-gossip { stroke-width: 1.2; opacity: .35; }
+.lp2-net-head-mark { fill: var(--sajha-crimson); }
+.lp2-net-packet { fill: var(--sajha-crimson); }
+.lp2-net-packet.is-back { fill: var(--sajha-ok); }
+.lp2-net-label { font: 600 10.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: var(--sajha-ink);
+  paint-order: stroke; stroke: var(--sajha-surface); stroke-width: 4px; }
+.lp2-net-note { font-size: 9.5px; font-weight: 700; letter-spacing: .04em; fill: var(--t-muted); text-anchor: middle;
+  paint-order: stroke; stroke: var(--sajha-surface); stroke-width: 3px; }
+@media (max-width: 575.98px) {
+  .lp2-net-center { position: static; transform: none; width: auto; margin: 0 12px 12px; }
+  .lp2-net-bubble { display: block; font-size: 12.5px; }
+}
+@media (prefers-reduced-motion: reduce) { .lp2-net-bubble, .lp2-net-core, .lp2-net-tool { transition: none; } }

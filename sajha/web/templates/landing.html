@@ -5,7 +5,8 @@ SAJHA MCP Server — Landing Page
 The front door, in MAYA's landing language (lp2-*): a centred hero over the constellation (a star
 for every tool in the live registry), a strip of numbers, capability cards, the transports,
 the 2026-07-28 wire typed live, a closing call. Colour comes only from the tokens, so it is the
-same page in all four themes. The animations live in static/js/landing.js (the sky is drawn by static/js/constellation.js).
+same page in all four themes. The animations live in static/js/landing.js (the sky is drawn by static/js/constellation.js;
+the SAJHA Net ring beside it by static/js/netring.js).
 -->
 <html lang="en" data-bs-theme="light">
 <head>
@@ -73,26 +74,49 @@ same page in all four themes. The animations live in static/js/landing.js (the s
             <a href="/docs" class="lp2-btn lp2-btn-outline"><i class="bi bi-book" aria-hidden="true"></i> Documentation</a>
         </div>
     </div>
+    <div class="lp2-visuals">
     <figure class="lp2-sky-wrap">
-        <div class="lp2-sky" id="lpSky">
-            <canvas id="lpSkyCanvas" aria-hidden="true"></canvas>
-            <div class="lp2-sky-prompt" aria-hidden="true"><span class="lp2-sky-who">Agent</span><span class="lp2-sky-q" id="lpSkyQ"></span></div>
-            <div class="lp2-sky-ans is-off" id="lpSkyAns" aria-hidden="true">
-                <div class="lp2-sky-ans-head"><span>Answer</span><span class="lp2-sky-conf" id="lpSkyConf">confidence 0.00</span></div>
-                <p id="lpSkyAnsText"></p>
-                <div class="lp2-sky-chain" id="lpSkyChain"></div>
+            <div class="lp2-sky" id="lpSky">
+                <canvas id="lpSkyCanvas" aria-hidden="true"></canvas>
+                <div class="lp2-sky-prompt" aria-hidden="true"><span class="lp2-sky-who">Agent</span><span class="lp2-sky-q" id="lpSkyQ"></span></div>
+                <div class="lp2-sky-ans is-off" id="lpSkyAns" aria-hidden="true">
+                    <div class="lp2-sky-ans-head"><span>Answer</span><span class="lp2-sky-conf" id="lpSkyConf">confidence 0.00</span></div>
+                    <p id="lpSkyAnsText"></p>
+                    <div class="lp2-sky-chain" id="lpSkyChain"></div>
+                </div>
+                <div class="lp2-sky-stats" id="lpSkyStats" aria-hidden="true"></div>
             </div>
-            <div class="lp2-sky-stats" id="lpSkyStats" aria-hidden="true"></div>
-        </div>
-        <figcaption class="lp2-sky-cap">
-            <span class="visually-hidden">Every star is one of SAJHA's tools, clustered by provider group. </span>
-            <span class="visually-hidden" id="lpSkyDesc"></span>
-            <button type="button" class="lp2-sky-btn" id="lpSkyPause" aria-pressed="false"><i class="bi bi-pause-fill" aria-hidden="true"></i> Pause</button>
-            <button type="button" class="lp2-sky-btn" id="lpSkyNext"><i class="bi bi-skip-forward-fill" aria-hidden="true"></i> Next question</button>
-            <span id="lpSkyScene"></span>
-            <span class="lp2-sky-note">Every star is a live tool, grouped by provider; point at one (or tap it) to see its name. The questions, step results and confidence are illustrative; the tool names are real.</span>
-        </figcaption>
-    </figure>
+            <figcaption class="lp2-sky-cap">
+                <span class="visually-hidden">Every star is one of SAJHA's tools, clustered by provider group. </span>
+                <span class="visually-hidden" id="lpSkyDesc"></span>
+                <button type="button" class="lp2-sky-btn" id="lpSkyPause" aria-pressed="false"><i class="bi bi-pause-fill" aria-hidden="true"></i> Pause</button>
+                <button type="button" class="lp2-sky-btn" id="lpSkyNext"><i class="bi bi-skip-forward-fill" aria-hidden="true"></i> Next question</button>
+                <span id="lpSkyScene"></span>
+                <span class="lp2-sky-note">Every star is a live tool, grouped by provider; point at one (or tap it) to see its name. The questions, step results and confidence are illustrative; the tool names are real.</span>
+            </figcaption>
+        </figure>
+    <figure class="lp2-net-wrap">
+            <div class="lp2-net-head">
+                <p class="lp2-net-kicker">SAJHA Net</p>
+                <p class="lp2-net-slogan">साझा: shared tools, sovereign data.</p>
+            </div>
+            <div class="lp2-net" id="lpNet">
+                <svg viewBox="0 0 560 580" role="img" aria-labelledby="lpNetTitle lpNetDesc">
+                    <title id="lpNetTitle">SAJHA servers sharing tools</title>
+                    <desc id="lpNetDesc">Eight SAJHA servers on a ring. They find each other, call each other's tools for one question, fall back when a server goes down, and quarantine a tool whose contract differs.</desc>
+                    <defs><marker id="lpNetHead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="lp2-net-head-mark"/></marker></defs>
+                    <g data-layer="chords"></g><g data-layer="arrows"></g><g data-layer="nodes"></g><g data-layer="fx"></g>
+                </svg>
+                <div class="lp2-net-center" aria-live="polite"><div class="lp2-net-bubble" id="lpNetBubble"></div></div>
+            </div>
+            <figcaption class="lp2-sky-cap">
+                <button type="button" class="lp2-sky-btn" id="lpNetPause" aria-pressed="false"><i class="bi bi-pause-fill" aria-hidden="true"></i> Pause</button>
+                <button type="button" class="lp2-sky-btn" id="lpNetNext"><i class="bi bi-skip-forward-fill" aria-hidden="true"></i> Next scene</button>
+                <span id="lpNetScene"></span>
+                <span class="lp2-sky-note">Each SAJHA keeps its own data, rules and AI; questions use tools across servers as the person who asked. Server and tool names are examples.</span>
+            </figcaption>
+        </figure>
+    </div>
 </section>
 
 <!-- Stats -->
@@ -238,5 +262,6 @@ document.querySelectorAll('a[href^="#"]').forEach(function (a) {
 <script type="application/json" id="lpData">{{ {'groups': tool_groups, 'total': tool_count, 'server': {'name': app_name, 'version': app_version}}|tojson }}</script>
 <script src="{{ url_for('static', filename='js/constellation.js') }}?v={{ app_version }}"></script>
 <script src="{{ url_for('static', filename='js/landing.js') }}?v={{ app_version }}"></script>
+<script src="{{ url_for('static', filename='js/netring.js') }}?v={{ app_version }}"></script>
 </body>
 </html>
