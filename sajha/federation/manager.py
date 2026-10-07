@@ -479,6 +479,8 @@ class FederationManager:
                 extra = {'_federation_hash': item['hash']}
                 if up.config.cache_ttl:
                     extra['cache_ttl'] = up.config.cache_ttl
+                if up.config.cache_per_user is not None:
+                    extra['cache_per_user'] = up.config.cache_per_user
                 tool = FederatedTool(self, up.config.id, upstream_name, item['definition'], extra)
                 tool.manager_config = up.config
                 self._tools[name] = tool
@@ -564,6 +566,8 @@ class FederationManager:
         started = time.time()
         up.calls += 1
         up.last_call = started
+        from sajha.observability.tracing import inject as _inject_trace
+        trace_meta = _inject_trace({}) or None      # W3C context, sent as params._meta.traceparent
         try:
             # Per-user token passthrough (auth.type connected_account): the caller's own token,
             # on a connection of its own; ConnectedAccountRequired when the caller has none.
@@ -572,10 +576,11 @@ class FederationManager:
                 try:
                     if user_token is not None:
                         result = self._call_as_user(up, tool, user_token, arguments, timeout, progress,
-                                                    responses, request_state, ctx)
+                                                    responses, request_state, ctx, trace_meta)
                     else:
                         result = self._wait(up.conn.call_tool(tool.upstream_name, arguments, timeout, progress,
-                                                              responses, request_state), timeout + 5.0, ctx)
+                                                              responses, request_state, trace_meta),
+                                            timeout + 5.0, ctx)
                     break
                 except UpstreamUnavailable:
                     if attempt + 1 >= attempts:
@@ -621,14 +626,15 @@ class FederationManager:
                                      tool=tool.name)
 
     def _call_as_user(self, up: _Upstream, tool: FederatedTool, token, arguments, timeout, progress,
-                      responses, request_state, ctx):
+                      responses, request_state, ctx, trace_meta=None):
         """tools/call with the user's bearer token; on HTTP 401 refresh once, then ask to reconnect."""
         from sajha.accounts.service import get_service
         from sajha.federation.connection import UpstreamUnauthorized
         for attempt in range(2):
             try:
                 return self._wait(up.conn.call_tool_as(token.access_token, tool.upstream_name, arguments, timeout,
-                                                       progress, responses, request_state), timeout + 5.0, ctx)
+                                                       progress, responses, request_state, trace_meta),
+                                  timeout + 5.0, ctx)
             except UpstreamUnauthorized:
                 svc = get_service()
                 if attempt == 0:

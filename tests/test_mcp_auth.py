@@ -548,5 +548,5 @@ class TestHardening:
 
     def test_data_resource_traversal(self, client):
         r = client.post('/mcp', json={'jsonrpc': '2.0', 'id': 1, 'method': 'resources/read',
-                                      'params': {'uri': 'sajha://data/../../config/users.json'}})
+                                      'params': {'uri': 'sajha://data/../../config/application.yml'}})
         assert 'error' in r.json() and 'admin123' not in r.text

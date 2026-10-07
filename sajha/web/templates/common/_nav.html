@@ -85,6 +85,7 @@
     <a class="navbar-brand sajha-brand" href="{{ url_for('dashboard') if session.token else '/' }}">
       <svg class="sajha-mark" aria-hidden="true"><use href="#icon-sajha"/></svg>
       <span><span class="name">SAJHA</span><small>MCP Server</small></span></a>
+    {% include "common/_notices_badge.html" %}
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sajha-menu"
             aria-controls="sajha-menu" aria-expanded="false" aria-label="Toggle navigation">
       <i class="bi bi-list" aria-hidden="true"></i></button>
@@ -122,6 +123,7 @@
             <div class="dropdown-divider"></div>
             <a class="dropdown-item" href="{{ url_for('change_password_page') }}"><i class="bi bi-key" aria-hidden="true"></i> Change password</a>
             <a class="dropdown-item" href="{{ url_for('account_connections_page') }}"><i class="bi bi-link-45deg" aria-hidden="true"></i> Connected accounts</a>
+            <a class="dropdown-item" href="{{ url_for('account_apikeys_page') }}"><i class="bi bi-key-fill" aria-hidden="true"></i> My API keys</a>
             <a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Log out</a>
           </div>
         </div>

@@ -18,6 +18,7 @@ TTLs are seconds (``None`` = no expiry).
 from __future__ import annotations
 
 import json
+import time
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Iterator, Optional, Tuple
 
@@ -35,6 +36,19 @@ def loads(raw: Any) -> Any:
     if isinstance(raw, bytes):
         raw = raw.decode("utf-8")
     return json.loads(raw)
+
+
+class _NotHolder(Exception):
+    """Aborts a lease update (``update`` writes nothing when ``fn`` raises)."""
+
+
+def _holder_of(value: Any) -> Optional[str]:
+    if isinstance(value, dict):
+        h = value.get("holder")
+        return str(h) if h not in (None, "") else None
+    if isinstance(value, str) and value:
+        return value                      # a one-slot claim stores the worker id itself
+    return None
 
 
 class StateStore(ABC):
@@ -100,6 +114,61 @@ class StateStore(ABC):
     def count(self, prefix: str) -> Optional[int]:
         """Number of keys under ``prefix`` when that is cheap to know, else None (no cap enforced)."""
         return None
+
+    # -- leases (one holder at a time, renewed while held) ----------------
+    #
+    # A lease is a key whose value names its holder: ``{"holder", "claimed", "renewed", "ttl"}``.
+    # Built on ``add`` (atomic add with TTL) and ``update`` (atomic read-modify-write), which
+    # every backend implements atomically, so the semantics are the same on memory, redis and
+    # database. The one-slot claims of workflow cron and quality probes (``add`` of the worker
+    # id, never renewed) are unchanged; :meth:`lease_holder` reads those too.
+
+    def lease_claim(self, key: str, holder: str, ttl: float) -> bool:
+        """Take the lease for ``ttl`` seconds; True when ``holder`` now holds it (a holder that
+        already holds it renews). False when someone else holds a live lease."""
+        def fresh():
+            now = time.time()
+            return {"holder": holder, "claimed": now, "renewed": now, "ttl": float(ttl)}
+        if self.add(key, fresh(), ttl=ttl):
+            return True
+        # held by us (renew), or it expired between the two calls (add again)
+        return self.lease_renew(key, holder, ttl) or self.add(key, fresh(), ttl=ttl)
+
+    def lease_renew(self, key: str, holder: str, ttl: Optional[float] = None) -> bool:
+        """Extend the lease by ``ttl`` (default: its own) only while ``holder`` holds it; False
+        when it expired or someone else holds it (the holder has lost it and must stop)."""
+        if ttl is None:                   # the lease's own TTL (the write needs it up front)
+            cur = self.get(key)
+            ttl = float(cur.get("ttl") or 0) if isinstance(cur, dict) and _holder_of(cur) == holder else 0
+        t = float(ttl)
+        if t <= 0:
+            return False
+
+        def fn(cur):
+            if not isinstance(cur, dict) or _holder_of(cur) != holder:
+                raise _NotHolder()
+            return dict(cur, renewed=time.time(), ttl=t)
+        try:
+            self.update(key, fn, ttl=t)
+            return True
+        except _NotHolder:
+            return False
+
+    def lease_release(self, key: str, holder: str) -> bool:
+        """Give the lease up; True when ``holder`` held it (a lease held by another is untouched)."""
+        def fn(cur):
+            if _holder_of(cur) != holder:
+                raise _NotHolder()
+            return None
+        try:
+            self.update(key, fn)
+            return True
+        except _NotHolder:
+            return False
+
+    def lease_holder(self, key: str) -> Optional[str]:
+        """Who holds the lease (or the one-slot claim) at ``key`` now; None when nobody."""
+        return _holder_of(self.get(key))
 
     # -- sliding windows (rate limits, sign-in throttles) ----------------
 

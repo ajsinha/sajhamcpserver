@@ -222,8 +222,13 @@ class {class_name}(BaseMCPTool):
             # Build request URL (supports path parameters)
             url = self._build_url(arguments)
             
-            # Build headers
+            # Build headers (plus the W3C traceparent of the current call)
             headers = self._build_headers()
+            try:
+                from sajha.observability.tracing import inject as _inject_trace
+                _inject_trace(headers)
+            except Exception:
+                pass
             
             # Build request body for POST/PUT/PATCH
 {self._indent(body_code, 12)}

@@ -38,7 +38,7 @@ hash-chained.
    │ 3. decision.apply_output(result)          redaction · injection screening
    ▼
  result to the caller
-                         │ non-allow decisions, approvals, admin changes, sign-ins ...
+                         │ every tool call (13), non-allow decisions, approvals, admin changes, sign-ins ...
                          ▼
  sajha.audit.record(event)  →  ChainWriter (one chain per process)  →  audit_chain / audit_anchors
                                          └──────────────────────────→  SIEM sinks (syslog · HTTP · file)
@@ -54,6 +54,7 @@ hash-chained.
 | `sajha/policy/approvals.py` | pending approvals in the state store, grants, notification |
 | `sajha/policy/errors.py` | `PolicyDenied`, `ApprovalRequired`, `RateLimited` |
 | `sajha/audit/chain.py` | canonical JSON, the hash chain, the per-process `ChainWriter`, anchors, the tables |
+| `sajha/audit/tool_calls.py` | the `tool.call` record of every tool call and its volume rules (section 13) |
 | `sajha/audit/verify.py` | chain verification (used by the CLI and the Audit page) |
 | `sajha/audit/formats.py` | JSON, CEF and OCSF-style renderings of a record |
 | `sajha/audit/sinks.py` | the SIEM exporters: syslog (RFC 5424 over TCP/TLS), HTTP, JSONL file |
@@ -268,13 +269,15 @@ How each path shows a policy outcome:
 | `sajha_policy_redactions_total` | `kind` |
 | `sajha_policy_output_flags_total` | `mode` |
 | `sajha_audit_records_total` | — |
+| `sajha_audit_tool_calls_skipped_total` | `reason` (`excluded`, `sampled`; section 13) |
 | `sajha_audit_export_total` | `sink`, `outcome` (`sent`, `failed`, `dropped`) |
 
 Every non-allow decision, every redaction or screening action and every approval state
 change is an audit record (`policy.deny`, `policy.approval_required`, `policy.approved`,
 `policy.rate_limited`, `policy.redacted`, `policy.output_flagged`, `approval.approve`,
 `approval.deny`). Plain allows are counted but not audited unless `policy.audit_allow` is
-true: a busy server would otherwise write one row per call.
+true; the call itself is recorded anyway as a `tool.call` record, subject to the volume
+rules of section 13.
 
 ---
 
@@ -364,6 +367,70 @@ are signed with a key the database does not hold and why the SIEM export exists:
 outside the database is the witness. Keep the signing key off the database host's backups
 and point at least one sink at a store the SAJHA operators cannot edit.
 
+### 7.5 Snapshots of users, API keys and tools
+
+Every `snapshots.interval_minutes` (default 10) SAJHA writes a **snapshot**: one JSON file
+recording who and what existed at that moment, so an auditor can answer "who could call what
+at 14:20" and an administrator can re-create users after losing the database. Snapshots work
+with or without SAJHA Net ([SAJHA Net §20.4](SAJHA%20Net.md#204-periodic-snapshots) adds the
+net view once a net exists). Code: `sajha/snapshots/`.
+
+**Contents.** Users (id, user name, roles, enabled; never a password hash); roles with their
+permissions; every API key record (id, prefix, name, owner and the owner's roles, enabled,
+expiry, tool access, persistent flag, revocation) with the key hash **only for persistent
+keys**, so a snapshot alone cannot verify an ordinary key; every local tool (name, version,
+enabled and the SHA-256 of its input and output schemas); and the host, version and worker
+that wrote it. Federated tools are left out; they rebuild from their upstream.
+
+**Files.** `snapshots.dir` (default `data/snapshots/`, git-ignored), named
+`snapshot-<UTC time>-<sequence>.json` (`.json.gz` with `snapshots.compress: true`), the
+directory mode 0700 and each file 0600, written to a temporary file and renamed. After each
+write the oldest beyond `snapshots.keep` (default 20) are deleted; twenty at ten minutes
+cover a little over three hours, so for longer history keep the audit records (below) in
+the SIEM.
+
+**Chained and signed.** Each file is `{"snapshot": {...}, "sha256": ..., "signature": ...}`:
+`sha256` is the SHA-256 of the snapshot's canonical JSON, the snapshot records the previous
+one's `sha256` and sequence number, and the signature is RS256 with the server key in
+`data/oauth/` (the one that signs the audit anchors, section 7.3). An edited, deleted,
+reordered or renamed snapshot is detected, as for the audit chain; the retained window
+starts at the oldest kept snapshot, whose predecessor rotation removed.
+
+**One writer.** The worker holding the `snapshots:writer` lease in the state store writes;
+a per-interval claim keeps it to one snapshot per interval even when the lease moves.
+With `state.backend: memory` every worker is its own writer: run one worker or use `redis`
+or `database` ([Scaling and State](Scaling%20and%20State.md)). The first snapshot is
+written one interval after start-up.
+
+**Audited.** `snapshot.written` (sequence, SHA-256, previous SHA-256, counts),
+`snapshot.rotated` (each deleted file's name and SHA-256), `snapshot.failed` and
+`snapshot.restored` are audit records, so they join the chain and the SIEM export.
+
+**The command line** (reads `snapshots.dir` unless `--dir` is given):
+
+```
+python -m sajha.snapshots list
+python -m sajha.snapshots verify [--public-key FILE] [--json]     # exit 0 intact, 1 a problem, 2 cannot check
+python -m sajha.snapshots diff previous latest [--json]           # names, paths, latest, previous
+python -m sajha.snapshots show NAME
+python -m sajha.snapshots restore NAME [--db-url URL] [--dry-run] [--no-keys] [--yes]
+```
+
+`--public-key` takes a PEM or JWKS file for snapshots signed by an earlier key. `restore`
+verifies the snapshot first (refusing one that fails unless `--allow-unverified`), prints
+what it would create, and asks for the snapshot's name as confirmation unless `--yes` is
+given. It creates only what the database lacks (roles with their permissions, users, and the
+records of persistent API keys) and changes nothing that exists. Restored users get an
+unusable random password and must change it: an administrator sets one
+(`POST /api/admin/users/{uid}/password`).
+Each restored user also gets a new default API key, as every account does. Ordinary API keys
+cannot be restored (the snapshot has no hash); their owners issue new ones.
+
+**Limits.** Snapshots are local files: with several hosts, put `snapshots.dir` on shared
+storage or the chain restarts on whichever host holds the lease (verification reports the
+break). The storage backend (`storage.*`) and sending whole snapshots to the SIEM are not
+used yet.
+
 ---
 
 ## 8. SIEM export
@@ -428,6 +495,7 @@ token (`X-CSRF-Token`).
 * Per-process chains: whole-chain deletion and unanchored tails are detectable only against
   an external copy (section 7.4).
 * Syslog over UDP is not offered (no delivery guarantee).
+* Snapshots are local files on the lease holder's host (section 7.5).
 
 ## 12. Tests
 
@@ -435,4 +503,106 @@ token (`X-CSRF-Token`).
 approvals across a shared store, redaction, quotas across two stores sharing a database,
 injection screening, the admin pages) and `tests/test_audit_chain.py` (chain integrity,
 tamper detection for each row of 7.4, anchors and key mismatch, the CLI, each SIEM sink
-against a local fake receiver, CEF/OCSF rendering).
+against a local fake receiver, CEF/OCSF rendering). `tests/test_snapshots.py` covers 7.5:
+contents, chain, signature, tamper detection, rotation, one writer, the CLI and restore.
+`tests/test_tool_call_audit.py` covers section 13: the record's fields, each argument mode,
+the volume rules, deferred storage with a verified chain, SIEM export, the overhead bound,
+trace continuation and the per-user cache key.
+
+---
+
+## 13. Tool calls in the audit chain
+
+Until this section, the chain held policy decisions, approvals, administration, sign-ins and
+workflow events, but not ordinary tool calls: "who ran what, when, with what outcome" was
+only in metrics and the usage ledger, which are not tamper-evident. Now every tool call is
+a `tool.call` record in the chain.
+
+### 13.1 Design: what is recorded
+
+`BaseMCPTool.execute_with_tracking` (section 2's choke point, so every surface) calls
+`sajha.audit.tool_calls.record_call` once per call, after the outcome is known. Composite
+steps and other inner calls are calls too, each with its own record.
+
+| Field | Where | Content |
+|---|---|---|
+| `event` | record | `tool.call` |
+| `actor` | record | `user`, `api_key` (the key's name), `roles`, `auth` (`session`, `apikey`, `jwt`, `oauth`, ...), from `sajha.observability.caller` |
+| `resource` | record | `{"type": "tool", "id": <tool name>}` |
+| `outcome` | record | `ok`, `cache_hit`, `error`, `circuit_open`, `policy_denied`, `approval_required`, `rate_limited`, `input_required` (the same values as `sajha_tool_calls_total`) |
+| `duration_ms` | details | wall time of the call, policy included |
+| `trace_id` | details | the W3C trace id of the call ([Observability](Observability.md#33-outbound-trace-context)); present even with OpenTelemetry off |
+| `source` | details | the surface: `mcp`, `stdio`, `websocket`, `rest`, `playground`, `a2a`, `ask`, `async`, `workflow`, `other` (section 2) |
+| `era` | details | `2026-07-28` or `2025-11-25` for an MCP call; absent otherwise |
+| `arguments_sha256` | details | SHA-256 of the arguments' canonical JSON (section 7.1's canonical form), when `arguments: hash` |
+| `arguments` | details | the arguments with secret-named keys (`password`, `token`, `api_key`, `secret`, `auth...`, `cookie`, ...) replaced by `[REDACTED:secret]` and personal data redacted with section 4's patterns, cut at `max_argument_bytes`, when `arguments: redacted` |
+| `error` | details | the first 300 characters of the error, for a call that did not succeed |
+| `destructive` | details | `true` for a tool annotated `destructiveHint: true` |
+| `sample_rate` | details | the rate that let a sampled success through (absent when every call is kept), so a SIEM can scale counts back up |
+
+**Arguments are hashed, not stored, by default.** A hash proves which arguments a call had
+(an investigator who holds the arguments can check them) without putting customer data in
+the chain, which cannot be edited or partly deleted later. Arguments with few possible
+values can be confirmed by guessing, so the hash is not a secret either. `redacted` is an
+opt-in for deployments that need the values and accept that a pattern-based redaction may
+miss something (section 10); `none` stores neither.
+
+### 13.2 Design: volume control
+
+One record per call can be a lot. The rules, in order:
+
+1. `audit.tool_calls.enabled: false`: no `tool.call` records at all (everything else in the
+   chain is unchanged).
+2. **Always recorded**, whatever the filters and sampling say: failures (`error`,
+   `circuit_open`), policy outcomes (`policy_denied`, `approval_required`, `rate_limited`)
+   and every call to a tool annotated `destructiveHint: true`.
+3. Successful calls (`ok`, `cache_hit`, `input_required`) are then filtered:
+   `include_tools` (globs; when set, only these), then `exclude_tools` (globs).
+4. What is left is sampled: the first matching `sample_rates` entry (`"glob=rate"`) or
+   `success_sample_rate` (default `1.0`, every call). `0` drops them all.
+
+Skipped calls are counted in `sajha_audit_tool_calls_skipped_total{reason}` (`excluded`,
+`sampled`), so the volume that was not written is visible. The settings are reread every
+five seconds, so a change through the environment takes effect without a restart.
+
+**Routing to the SIEM.** `tool.call` records are ordinary chain records: every sink of
+section 8 receives them (CEF severity 3, OCSF API Activity). To keep the SIEM's volume
+down, filter on the `event` field in the SIEM or a forwarder; the chain itself stays
+complete, which is what makes it the witness. A sink's queue drops (and counts) rather than
+block a tool call when the SIEM cannot keep up, so size `queue_size` for the call rate.
+
+### 13.3 As built: keeping the database off the call path
+
+A record is hashed into the chain on the calling thread, under the writer's lock, so its
+`seq`, `prev` and hash are final at once and the chain's order is the order of calls in
+that process. Storing it is deferred: `ChainWriter.append(..., defer=True)` queues the row,
+and a background flusher inserts the queued rows in one transaction every
+`audit.chain.flush_interval_ms` (default 200 ms) or as soon as `audit.chain.flush_batch`
+(default 200) are waiting. Anchors triggered by a deferred record are deferred the same
+way. Every other record (policy, approvals, administration) is still stored before
+`record` returns. The SIEM export was already asynchronous (section 8).
+
+The chain stays correct across workers because nothing about section 7.2 changes: each
+process remains the only writer of its own chain. Measured on one core (SQLite on local
+disk, anchors every 100 records, a tool doing no work): **about 38 µs per call** for the
+`tool.call` record (31 µs → 69 µs per call), against about 120 µs when the same record is
+stored synchronously. The `tests/test_tool_call_audit.py` overhead test asserts it stays
+under 2 ms.
+
+**The cost of deferring.** Rows not yet flushed when a process is killed are lost (at most
+one flush interval's worth); verification then reports that chain as not closed, as for
+any crash (section 7.2). A clean shutdown flushes everything. If the database is down,
+rows wait in memory (bounded, `dropped` in the writer status counts overflow) and are
+retried on the next flush.
+
+### 13.4 Retention and growth
+
+A `tool.call` row is about 0.9 KB on SQLite (record JSON about 550 bytes plus the query
+columns and indexes), so a server handling a million calls a day adds about 1 GB a day to
+`audit_chain`. SAJHA never deletes chain rows. To keep the table bounded, sample or
+exclude high-volume read-only tools (13.2), and remove old data by **whole chain**: a chain
+whose `chain.close` (or last record) is older than your retention period can be deleted
+from both `audit_chain` and `audit_anchors` once its records are safe in the SIEM. Deleting
+part of a chain breaks its verification (section 7.4: `seq` must be contiguous from 0);
+deleting a whole chain is not detectable from what remains, which is why the SIEM copy is
+the witness. On PostgreSQL, partitioning `audit_chain` by `ts` makes this a partition drop.

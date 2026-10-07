@@ -6,6 +6,212 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 Nothing yet.
 
+## v7.1.0 (October 2026) — foundations
+
+Wave 1 of the [Implementation Plan](docs/architecture/Implementation%20Plan.md): the groundwork
+LLM tools and SAJHA Net build on, and the release hygiene the Roadmap listed as "Now". API keys
+belong to users and every user has one; tools called from inside other tools run as the caller;
+every tool call is in the tamper-evident audit chain; the console shows what needs attention;
+sign-ins can be revoked; snapshots record users, keys and tools; the test suite runs in CI.
+
+### Upgrading from 7.0.0
+
+- **Database:** new columns `users.token_version` and, on `api_keys`, `is_default`, `persistent`,
+  `created_by`, `rotated_at`, `revoked_at`, `revoked_by`, `secret_ciphertext`, `secret_key_id`.
+  PostgreSQL: run the statements `python -m sajha.db upgrade-sql` prints (SAJHA never runs DDL
+  there). SQLite for development: recreate the database; the start-up check prints the statements
+  if you prefer to add the columns.
+- **API keys:** existing keys keep working exactly as before until an administrator assigns them
+  an owner; an owned key then signs in as its owner with the owner's roles, its own tool list as a
+  ceiling. Every user gets a default key at start-up.
+- **Files:** `config/users.json` is removed (users live only in the database).
+  `config/apikeys.json` is now hashed persistent keys only and git-ignored; a plaintext file in
+  the old format is ignored with a warning; see `config/apikeys.json.example`.
+- **Audit volume:** every tool call is now an audit record (about 0.9 KB each); review
+  `audit.tool_calls.*` sampling and your SIEM routing and retention.
+- **Snapshots** are on by default (`snapshots.*`, every 10 minutes, last 20 kept, in
+  `data/snapshots`).
+- **Rate limiting:** the unused per-user and per-key limiters are removed; use policy
+  `rate_limit` rules.
+- **Federation cache:** federated tools cache per user by default
+  (`cache.per_user_federated`).
+
+### System notices
+
+- **System notices**: one service (`sajha/notices/`) every subsystem reports conditions into,
+  each under a stable id with a severity, an audience (`admin` or `everyone`) and a ttl. Notices
+  live in the state store, so every worker sees the same set; every transition (raised,
+  escalated, acknowledged, cleared) is an audit event; `notices.max_active` bounds them.
+- **In the console**: a banner on every page (the most severe unacknowledged error or critical
+  notice the viewer may see), a **System status** panel on the dashboard (grouped by severity,
+  acknowledge for administrators, recently cleared on demand) and a navbar badge that also shows
+  on phones; kept live by server-sent events.
+- **API**: `GET /api/notices`, `GET /api/notices/stream`, `GET /api/admin/notices`,
+  `POST /api/admin/notices/{id}/acknowledge` and `/clear`.
+- **First sources**: the database schema check, open circuit breakers (tool providers, federated
+  upstreams, LLM providers), workflows whose scheduled runs keep failing, LLM model aliases with
+  no available model and failing providers, federated servers down and tools held for approval,
+  and alert rules through the new `notice` channel. `notices.forward` also sends notices through
+  the alert channels (log, webhook, email).
+- Configuration: `notices.*` (enabled by default; nothing to do on upgrade). Guide:
+  [System Notices](docs/architecture/System%20Notices.md).
+
+### Audit, tracing, cache and leases
+
+- **Every tool call is in the tamper-evident audit chain** as a `tool.call` record: caller, API
+  key, roles and auth type, tool, outcome, duration, trace id, source surface (and MCP era), and
+  a SHA-256 of the arguments, not their values (`audit.tool_calls.arguments: redacted` stores
+  them with secrets and personal data masked; `none` stores neither). SIEM sinks receive the
+  records like any other. Volume control: failures, policy outcomes and destructive tools are
+  always recorded; successful calls can be filtered (`include_tools`, `exclude_tools`) and
+  sampled (`success_sample_rate`, per-tool `sample_rates`); skipped calls are counted in
+  `sajha_audit_tool_calls_skipped_total`. Design and as-built:
+  [Policy and Audit §13](docs/architecture/Policy%20and%20Audit.md#13-tool-calls-in-the-audit-chain).
+  The record is hashed on the calling thread and stored by a background flusher
+  (`audit.chain.flush_interval_ms`, `flush_batch`), so the call does not wait for the database:
+  about 38 µs per call measured on SQLite (about 120 µs if stored synchronously). Chain
+  verification is unchanged and passes.
+- **Outbound W3C `traceparent`** on the HTTP calls SAJHA makes: federated `tools/call`
+  (`params._meta.traceparent`), API-import tools, REST-creator tools (newly generated), LLM
+  providers, connected-account requests, HTTP vector-store connectors and webhooks. It works
+  without the OpenTelemetry SDK: SAJHA continues an inbound context or starts one per request
+  ([Observability §3.3](docs/architecture/Observability.md#33-outbound-trace-context)).
+- **Per-user tool cache keys:** `"cache_per_user": true` in a tool's config adds the caller to
+  the cache key. Federated tools default to it (`cache.per_user_federated: true`; an upstream's
+  `cache_per_user` overrides it).
+- **Renewing state-store lease:** `lease_claim`, `lease_renew`, `lease_release` and
+  `lease_holder` on every state backend, and `sajha.core.state.lease.Lease`, which renews in the
+  background and reports loss
+  ([Scaling and State §4.7](docs/architecture/Scaling%20and%20State.md#47-leases)). The one-slot
+  claims of workflow cron and quality probes are unchanged.
+
+**Operator notes**
+- **Audit volume grows.** Each tool call adds one `audit_chain` row (about 0.9 KB on SQLite),
+  so a million calls a day is about 1 GB a day, and the same number of records goes to each SIEM
+  sink. Before upgrading a busy server, decide on sampling or exclusions for high-volume
+  read-only tools (`audit.tool_calls.*`), size SIEM sink `queue_size` for the call rate, and plan
+  retention: SAJHA never deletes chain rows; remove whole old chains once they are safe in the
+  SIEM (Policy and Audit §13.4). `audit.tool_calls.enabled: false` restores the old volume.
+- Tool-call records not yet flushed when a process is killed are lost (at most one flush
+  interval); verification then reports that chain as not closed, as for any crash.
+- **Federated tools with `cache_ttl` now cache per calling user** (a lower hit rate when many
+  users ask the same thing). Set `cache_per_user: false` on an upstream whose answers do not
+  depend on the caller to share results as before.
+- No schema change.
+
+### Release hygiene and snapshots
+
+- **The schema check prints the SQL to run.** When tables, columns or indexes are missing, the
+  start-up message lists the statements taken from the dialect's `schema.sql`: `CREATE TABLE`
+  (with its indexes), `ALTER TABLE ... ADD COLUMN` (PostgreSQL: `... IF NOT EXISTS`) and
+  `CREATE INDEX`. Missing indexes alone only warn. With `db.schema_check: warn` the same SQL is
+  in the `db.schema` system notice. SAJHA prints the statements; it never runs them. An older
+  SQLite file whose tables break `schema.sql` as a whole still gets its missing tables (the
+  statements are retried one by one). For a development SQLite database the advice stays:
+  recreate it.
+- **`python -m sajha.db upgrade-sql`** (also `sql --missing`) compares the configured database
+  with its `schema.sql` and prints the DDL an operator reviews and runs; exit 3 when there is
+  something to run ([Database Setup §4](docs/getting-started/Database%20Setup.md#4-upgrades)).
+- **The test suite runs in CI** (`.github/workflows/tests.yml`): `tests` and `clientsdk/tests`
+  on every push and pull request to develop and main, with a PostgreSQL service so the schema
+  tests apply the real PostgreSQL file. `requirements-dev.txt` lists the test-only packages.
+- **Snapshots of users, API keys and tools.** Every `snapshots.interval_minutes` (default 10)
+  one worker writes a signed, chained JSON snapshot to `snapshots.dir` (default
+  `data/snapshots`, owner-only, git-ignored) and keeps the last `snapshots.keep` (default 20):
+  users without password hashes, roles, API key records (hashes only for persistent keys) and
+  local tools with a hash of their schemas. Writes, rotations, failures and restores are audit
+  records. `python -m sajha.snapshots list|verify|diff|show|restore`; `restore` re-creates
+  missing roles, users (each with a new default key) and persistent key records after confirmation
+  ([Policy and Audit §7.5](docs/architecture/Policy%20and%20Audit.md#75-snapshots-of-users-api-keys-and-tools)).
+
+**Operator notes**
+- **`config/users.json` is retired.** Nothing read it (users live in the database), but it was
+  hot-reload watched and held a plaintext `admin123`. The watch, the `config.users.path` key and
+  the unused users importer are gone; delete any copy you made from it.
+- **One rate limiter.** The unused per-user and per-key limiters in `sajha/security.py`
+  (`check_user_rate_limit`, `check_key_rate_limit`) were removed: they were never called, so no
+  limit changes. Tool calls are limited only by policy `rate_limit` rules;
+  `config/policies/00-default.yaml` now carries a commented per-user and per-API-key example
+  ([Security Model](docs/security/Security%20Model.md#rate-limiting-and-lockout)).
+- **Snapshots are on by default** and write a file every 10 minutes under `data/snapshots/`;
+  `snapshots.enabled: false` turns them off. With several workers on `state.backend: memory`
+  every worker writes its own; use `redis` or `database`.
+- No schema change from this section.
+
+### Identity and API keys
+
+- **Tools called from tools run as the caller.** `sajha_ask` and composite steps now run their
+  inner tool calls as the original caller, with no more than the caller's tool access: a step or
+  inner call the caller may not execute is refused. The caller context
+  (`sajha/observability/caller.py`) now carries the caller's tool access; a call chain
+  (`sajha/core/inner_calls.py`) refuses cycles and chains deeper than `tools.max_call_depth`
+  (default 8). `sajha_ask` no longer runs as the fixed identity `mcp:sajha_ask`.
+- **API keys belong to users.** A key with an owner signs in as that user, with the user's
+  roles (an administrator's key is an administrator); its tool access mode and list are an extra
+  ceiling. Keys are created with an owner. Users manage their own keys on the new **My API keys**
+  page (`/account/apikeys`, user menu): create, rotate, revoke, and **sign out everywhere**.
+  Administrators manage every key on a rebuilt **API keys** page (`/admin/apikeys`, new key and
+  key detail pages): owner, rotate, disable, revoke, persistent, delete; new JSON routes under
+  `/api/account/apikeys` and `/api/admin/apikeys`. Key management needs a signed-in user, never
+  an API key; browser requests carry a CSRF token.
+- **Revocation record:** revoking a key sets `revoked_at` and `revoked_by`; the key never works
+  again and the row stays.
+- **A default key for every user**, created with the account and, at start-up, for every
+  account without one. It can be rotated (by the user or an administrator) or disabled (by an
+  administrator), never revoked or deleted. Its value is kept encrypted with the connected-accounts
+  vault key (AES-256-GCM), so the server can act for the user with it later; the user sees it
+  once after each rotation.
+- **Persistent API keys:** keys an administrator marks persistent are also kept, as SHA-256
+  records, in `config.apikeys.path` (default `config/apikeys.json`), which is checked after the
+  database (the database wins for a key it knows), rewritten atomically with mode 0600 and
+  re-read when it changes on disk. The format is in `config/apikeys.json.example`.
+- **Revocable sign-in:** signing out (`GET /logout`, new `POST /api/auth/logout`) revokes that
+  token (its `jti`, in the state store); every SAJHA JWT and built-in OAuth access token carries
+  the user's token version (`tv`), so "sign out everywhere" (`POST /api/auth/sessions/revoke`), a
+  password change (other sessions), an administrator's password reset and the new
+  `POST /api/admin/users/{uid}/sessions/revoke` (Users page) end every session, and the user's
+  OAuth refresh tokens stop refreshing.
+- Configuration: `auth.api_keys.max_per_user` (default 25), `tools.max_call_depth` (default 8);
+  `config.apikeys.path` is now the persistent key file. Guide:
+  [Security Model](docs/security/Security%20Model.md#api-keys).
+
+**Operator notes**
+- **Database (both dialects): new columns.** PostgreSQL: run before starting this release
+  (`python -m sajha.db upgrade-sql` prints the same):
+  ```sql
+  ALTER TABLE users ADD COLUMN token_version INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE api_keys ADD COLUMN is_default BOOLEAN NOT NULL DEFAULT FALSE;
+  ALTER TABLE api_keys ADD COLUMN persistent BOOLEAN NOT NULL DEFAULT FALSE;
+  ALTER TABLE api_keys ADD COLUMN created_by VARCHAR(100);
+  ALTER TABLE api_keys ADD COLUMN rotated_at TIMESTAMPTZ;
+  ALTER TABLE api_keys ADD COLUMN revoked_at TIMESTAMPTZ;
+  ALTER TABLE api_keys ADD COLUMN revoked_by VARCHAR(100);
+  ALTER TABLE api_keys ADD COLUMN secret_ciphertext TEXT;
+  ALTER TABLE api_keys ADD COLUMN secret_key_id VARCHAR(64);
+  ```
+  An existing SQLite database needs the same columns (`BOOLEAN NOT NULL DEFAULT 0`, `TIMESTAMP`);
+  start-up stops and prints the statements until they are added.
+- **How existing API keys behave.** Every key that exists today has no owner, so it keeps
+  exactly its current behaviour (identity `apikey:<name>`, role `api_consumer`, its own tool
+  access mode) until an administrator assigns an owner on the API keys page, which lists and
+  counts the keys without one. From then on the key signs in as that user, with the user's
+  roles, its mode as a ceiling: check the owner's roles before assigning. Workflows owned by
+  `apikey:<name>` keep running as that key; once the key is revoked they stop, as for a disabled one.
+- **Default keys appear** for every existing account at the first start-up (they need the vault
+  key: `accounts.vault.key`, `SAJHA_ACCOUNTS_VAULT_KEY`, a `key_provider`, or the key SAJHA
+  generates into the server secrets file; several hosts must share it). Nobody has seen their
+  values; users rotate a default key to get one.
+- **`config/apikeys.json` is no longer tracked.** Its four plaintext demo keys were never read
+  (and are not carried over); it is now git-ignored and holds only hashed records. An old
+  plaintext file left in place is ignored with a warning and replaced on the first persistent-key
+  change.
+- **`ai.ask.mcp_allowed_tools` now narrows instead of widening** what `sajha_ask` may run for a
+  caller: it can no longer give an anonymous MCP caller tools the anonymous policy does not.
+- **Signing out now revokes the token.** With `state.backend: memory`, only the process that
+  handled the sign-out knows; run `redis` or `database` with several workers. Tokens issued
+  before the upgrade carry no token version and count as version 0, so nobody is signed out by
+  the upgrade.
+
 ## v7.0.0 (October 2026) — governance, intelligence and operations
 
 Everything since 6.0.0. It finishes the items 6.0.0 deferred (MCP

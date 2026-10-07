@@ -89,7 +89,8 @@ class _HTTP:
         try:
             with httpx.Client(timeout=float(self.conn.timeout_seconds), transport=_transport, verify=bool(verify),
                               follow_redirects=False) as c:
-                r = c.request(method, self.base + path, headers=self.headers, auth=self.auth,
+                from sajha.observability.tracing import inject as _inject_trace
+                r = c.request(method, self.base + path, headers=_inject_trace(dict(self.headers)), auth=self.auth,
                               content=None if body is None else json.dumps(body).encode())
         except httpx.TimeoutException:
             from sajha.connectors.drivers import QueryTimeout

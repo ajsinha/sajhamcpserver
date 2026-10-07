@@ -32,7 +32,7 @@ class RunIdentity:
 
     def caller(self):
         from sajha.observability.caller import Caller
-        return Caller(self.user_id, self.api_key, tuple(self.roles), self.auth_type)
+        return Caller(self.user_id, self.api_key, tuple(self.roles), self.auth_type, self.can_execute, self.is_admin)
 
 
 #: tests and embedders may replace the resolver: owner -> RunIdentity
@@ -70,7 +70,7 @@ def _from_db(owner: str) -> RunIdentity:
         if owner.startswith('apikey:'):
             from sajha.db.models import ApiKey
             key = db.query(ApiKey).filter(ApiKey.name == owner[len('apikey:'):]).first()
-            if key is None or not getattr(key, 'enabled', True):
+            if key is None or not getattr(key, 'enabled', True) or getattr(key, 'revoked_at', None) is not None:
                 raise OwnerUnavailable(f'the workflow owner {owner!r} (an API key) no longer exists or is disabled')
             policy = apikey_policy(key.tool_access_mode, key.tool_access_list)
             return RunIdentity(owner, ['api_consumer'], False, 'workflow', key.name, policy.can_execute)

@@ -39,8 +39,10 @@ def build_client(config, *, base_url: str = "", headers: Optional[Dict[str, str]
     hdrs = {"user-agent": "sajha-intelligence/1"}
     hdrs.update(headers or {})
     hdrs.update(config.extra_headers or {})
+    from sajha.observability.tracing import httpx_hooks
     kwargs: Dict[str, Any] = dict(base_url=base_url, headers=hdrs, timeout=timeout,
-                                  verify=verify, follow_redirects=True)
+                                  verify=verify, follow_redirects=True,
+                                  event_hooks=httpx_hooks())     # W3C traceparent on every request
     if transport is not None:
         kwargs["transport"] = transport
     elif config.proxy:

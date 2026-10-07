@@ -69,6 +69,11 @@ class Upstream:
             await ctx.notify_tools_changed()
             return 'grown'
 
+        @srv.tool(description='Returns the traceparent the call arrived with.')
+        def traced(ctx: Context) -> str:
+            meta = ctx.request_context.meta or {}
+            return str(meta.get('traceparent') or '')
+
         self.server = srv
         self.port = port or _free_port()
         self.url = f'http://127.0.0.1:{self.port}/mcp'
@@ -249,6 +254,16 @@ def test_rate_limit(upstream, make):
     tool.execute({'celsius': 2})
     with pytest.raises(RuntimeError, match='rate limit'):
         tool.execute({'celsius': 3})
+
+
+def test_traceparent_is_sent_upstream(upstream, make):
+    from sajha.observability import tracing
+    m, reg = make([up(upstream.url, id='trc', prefix='trc')])
+    tp = '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01'
+    with tracing.span('mcp tools/call', traceparent=tp):
+        out = reg.tools['trc__traced'].execute_with_tracking({})
+    text = ' '.join(b.get('text', '') for b in out.get('content') or [])
+    assert '0af7651916cd43dd8448eb211c80319c' in text and 'b7ad6b7169203331' not in text   # our span is the parent
 
 
 def test_cache_ttl(upstream, make):

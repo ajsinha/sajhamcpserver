@@ -254,24 +254,5 @@ def get_lockout_time() -> float:
     return time.time() + LOCKOUT_DURATION_SECONDS
 
 
-# ═══════════════════════════════════════════════════════════════════
-# PER-USER / PER-KEY API RATE LIMITING
-# ═══════════════════════════════════════════════════════════════════
-
-_user_limiter = RateLimiter(max_requests=100, window_seconds=60, name='user')  # 100 API calls/min per user
-_key_limiter = RateLimiter(max_requests=200, window_seconds=60, name='key')    # 200 API calls/min per key
-
-
-def check_user_rate_limit(user_id: str) -> bool:
-    """Check if a user is within their API rate limit."""
-    return _user_limiter.is_allowed(f"user:{user_id}")
-
-
-def check_key_rate_limit(key_name: str) -> bool:
-    """Check if an API key is within its rate limit."""
-    return _key_limiter.is_allowed(f"key:{key_name}")
-
-
-def get_user_rate_remaining(user_id: str) -> int:
-    """Get remaining API calls for a user in the current window."""
-    return _user_limiter.remaining(f"user:{user_id}")
+# Per-user and per-key limits on tool calls are policy rate_limit rules (one mechanism;
+# config/policies/00-default.yaml carries a commented example). docs/security/Security Model.md

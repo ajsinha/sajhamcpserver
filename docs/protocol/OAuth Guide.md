@@ -143,7 +143,7 @@ in the state store. With the default `state.backend: memory` they are per proces
 restart signs OAuth clients out (access tokens stay valid until they expire, because the
 key persists). With `redis` or `database`, every worker shares them, so a code issued by one
 worker is redeemed at another, and they survive a restart. See
-[Scaling and State](../architecture/Scaling%20and%20State.md). Access tokens cannot be revoked before they expire.
+[Scaling and State](../architecture/Scaling%20and%20State.md). One access token cannot be revoked on its own before it expires, but every token of a user can: each carries the user's token version (claim `tv`), and "sign out everywhere", a password change or reset, or an administrator's revoke raises it, which also stops the user's refresh tokens ([Revocable sign-in](../security/Security%20Model.md#revocable-sign-in)).
 
 ---
 

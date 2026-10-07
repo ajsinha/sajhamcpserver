@@ -62,6 +62,10 @@ class User(Base):
     # Password must be changed at next sign-in (seed admin, admin-set passwords)
     must_change_password = Column(Boolean, default=False, nullable=False)
 
+    # Revocable sign-in: every SAJHA JWT and built-in OAuth token carries this as ``tv``;
+    # bumping it ends every session (sign out everywhere, password change, admin revoke)
+    token_version = Column(Integer, default=0, nullable=False)
+
     # Relationships
     roles = relationship('Role', secondary=user_roles, back_populates='users', lazy='joined')
     api_keys = relationship('ApiKey', back_populates='owner', cascade='all, delete-orphan')
@@ -148,6 +152,16 @@ class ApiKey(Base):
     # Tool access control
     tool_access_mode = Column(String(20), default='all', nullable=False)  # all, allowlist, denylist
     tool_access_list = Column(Text, nullable=True)  # JSON array of tool names/patterns
+
+    # Ownership and lifecycle (docs/security/Security Model.md, API keys)
+    is_default = Column(Boolean, default=False, nullable=False)   # the owner's default key: rotate/disable only
+    persistent = Column(Boolean, default=False, nullable=False)   # also kept, hashed, in config.apikeys.path
+    created_by = Column(String(100), nullable=True)
+    rotated_at = Column(DateTime, nullable=True)
+    revoked_at = Column(DateTime, nullable=True)                  # a revoked key never works again
+    revoked_by = Column(String(100), nullable=True)
+    secret_ciphertext = Column(Text, nullable=True)   # default keys: the raw key, AES-256-GCM (accounts vault key)
+    secret_key_id = Column(String(64), nullable=True)
 
     # Relationships
     owner = relationship('User', back_populates='api_keys')

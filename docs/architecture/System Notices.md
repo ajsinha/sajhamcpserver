@@ -1,15 +1,15 @@
 # System Notices
 
-> **Status: design, not built.** Planned for wave 1 of the
-> [Implementation Plan](Implementation%20Plan.md); later waves add their own sources.
-
-A **system notice** is SAJHA telling the people who run it that something needs attention: a
-tool was quarantined, a peer in a SAJHA Net is unreachable, the database schema is out of date,
-the memory guard is refusing work, a certificate is about to expire. Today such conditions are
+A **system notice** is SAJHA telling the people who run it that something needs attention: the
+database schema is out of date, a circuit breaker is open, a scheduled workflow keeps failing, a
+model alias has nothing to run on, a federated server is unreachable. Such conditions are also
 written to the log, counted in metrics or sent by alert rules ([Observability](Observability.md)
-section 5), but nothing in the console shows them to an operator who is looking at it. Notices
-are that missing piece: one service every subsystem reports into, and one place in the console
-that shows what is wrong right now.
+section 5); notices are the place in the console that shows what is wrong right now. One service
+(`sajha/notices/`) takes reports from every subsystem; the console shows them as a banner, a
+dashboard panel and a navbar badge; administrators acknowledge and clear them.
+
+Later waves of the [Implementation Plan](Implementation%20Plan.md) add their own sources (LLM
+tools in wave 2, SAJHA Net in wave 4); section 4 lists the ones built so far.
 
 ---
 
@@ -17,80 +17,147 @@ that shows what is wrong right now.
 
 | Field | Meaning |
 |---|---|
-| `id` | Stable identity of the condition, chosen by the source (for example `sajhanet.contract_conflict:risk-net:var_calc`). Raising the same id again updates the notice instead of adding a second one. |
+| `id` | Stable identity of the condition, chosen by the source: `<source>.<condition>[:<subject>]`, for example `federation.upstream_down:github`. Raising the same id again refreshes that notice instead of adding a second one. |
 | `severity` | `info`, `warning`, `error` or `critical` |
-| `source` | The subsystem that raised it (`sajhanet`, `llm_tools`, `db`, `federation`, `alerts`, ...) |
-| `title` | One line, written for an operator ("Tool `var_calc` quarantined in risk-net") |
+| `source` | The subsystem that raised it (`db`, `resilience`, `workflows`, `llm`, `federation`, `alerts`, ...) |
+| `title` | One line, written for an operator |
 | `detail` | What happened, what it affects, and what to do, in a few sentences |
 | `link` | The console page that shows or fixes it |
-| `since`, `last_seen` | When the condition started and was last confirmed |
-| `audience` | `admin` (default) or `everyone` for conditions every signed-in user should know about (for example a remote instance being down that hosts tools they use) |
+| `since`, `last_seen` | When the condition started and was last confirmed (epoch seconds) |
+| `audience` | `admin` (default) or `everyone`, for conditions every signed-in user should know about (a federated server that hosts tools they use being down) |
 | `state` | `active`, `acknowledged` or `cleared` |
 | `acknowledged_by`, `acknowledged_at` | Who acknowledged it, if anyone |
+| `cleared_at`, `cleared_reason` | When and why it cleared: `source` (the condition ended), `ttl`, `admin`, `evicted`, or the source's own reason |
+
+Administrators also see `ttl_minutes` and `workers` (how many workers currently hold the
+condition; see section 2).
 
 ## 2. Lifecycle
 
 - **Raised** by a source when its condition starts, with a stable id.
-- **Refreshed** while the condition holds (`last_seen` moves; severity may change).
-- **Cleared automatically** when the source reports the condition has ended, or when it has not
-  been refreshed for its `ttl` (a source that dies cannot leave a stale notice forever).
-- **Acknowledged** by an administrator: the banner stops shouting, the notice stays on the
+- **Refreshed** while the condition holds: `last_seen` moves; the title, detail or severity may
+  change. A refresh is not an audit event; a change of severity is. A notice that becomes **more
+  severe** than when it was acknowledged becomes `active` again.
+- **Cleared** when the source reports the condition has ended, or when nobody has refreshed it
+  for its ttl (`notices.default_ttl_minutes`, or the source's own; `0` = never), so a source that
+  dies cannot leave a stale notice forever. Raising a cleared id starts a new occurrence.
+- **Acknowledged** by an administrator: it leaves the banner and the badge and stays on the
   status panel until it clears. Acknowledgement never hides a `critical` notice from the banner.
-- **Every transition is an audit event**, so the history of what went wrong and who saw it is
-  kept under the audit log's retention.
+- **Cleared by an administrator** (API or script): useful for a notice whose source is gone; a
+  source whose condition still holds raises it again at its next check.
+- **Every transition is an audit event** (`notice.raised`, `notice.escalated`, `notice.changed`,
+  `notice.updated`, `notice.acknowledged`, `notice.cleared`, through `sajha/core/audit.py`, so
+  also in the [hash chain](Policy%20and%20Audit.md)), kept under the audit log's retention.
 
-Notices live in the state store, so every worker of an instance sees the same set, and are
-bounded: at most `notices.max_active` active notices (oldest `info` first to go) and one entry
-per id.
+**Shared by every worker.** Notices live in the state store (`notice:<id>`, one entry per id;
+`state.backend`, see [Scaling and State](Scaling%20and%20State.md)), so every worker sees the same
+set; each change is an atomic update, so exactly one worker records (and forwards) a transition.
+Some conditions are judged per process (circuit breakers, provider health, upstream
+connections): their sources raise with `holder=<worker id>`, and the notice clears only when no
+worker still holds it, so one worker's healthy breaker does not clear another's open one. With
+`state.backend: memory` each worker has its own notices, as for everything else in that store.
+
+**Bounded.** At most `notices.max_active` notices are open. A new one beyond that clears the
+oldest open notice of the lowest severity (reason `evicted`), or is dropped when every open
+notice is more severe. Cleared notices are kept for `notices.cleared_retention_minutes`.
 
 ## 3. Where they appear
 
 | Place | Shows |
 |---|---|
-| **Banner** on every console page | The most severe active, unacknowledged `error` or `critical` notice for the viewer's audience, with a count of the others and a link to the status panel |
-| **System status panel** on the dashboard | Every active notice, grouped by severity, with source, since, detail, link, and an acknowledge action for administrators; a toggle to show recently cleared ones |
-| **Navbar badge** | The number of active notices at `warning` or above for the viewer |
-| **API** | Admin endpoints to list, acknowledge and clear notices, for scripts and other consoles |
-| **Alert channels** | A notice of a chosen severity can also be sent through an alert channel (log, webhook, email); and an alert rule can raise a notice through a new `notice` channel, so existing rules appear in the console too |
+| **Banner** on every console page | The most severe open notice the viewer may see that is unacknowledged (or `critical`) and at least `notices.banner_min_severity` (`error` by default), with a count of the viewer's other open notices and a link to the status panel. `role="alert"`. |
+| **System status panel** on the dashboard (`/dashboard#system-status`) | Every open notice the viewer may see, grouped by severity, with source, since, last seen, detail and link; an Acknowledge button for administrators on active ones; a toggle to show recently cleared ones. |
+| **Navbar badge** | The number of the viewer's open notices at `warning` or above that are unacknowledged (or `critical`). It sits outside the collapsed menu, so it shows on phones; hidden at zero. |
+| **API** | Section 5. |
+| **Alert channels** | A notice of a chosen severity is also sent through an alert channel (`notices.forward`); and an alert rule can raise a notice through the `notice` channel, so existing rules appear in the console too (section 4). |
 
-The banner and panel follow the console's conventions: severity in words and colour (never colour
-alone), all four themes, phone-width layouts, and updates by server-sent events so a notice appears
-without a page reload.
+Who sees what: administrators see every notice; other signed-in users see only notices with
+audience `everyone`; signed-out pages show nothing.
+
+The banner and panel follow the console's conventions: severity in words as well as colour (the
+word is always printed, `critical` is a filled label), colours only from the theme tokens so all
+four themes work, phone-width layouts, and keyboard-reachable actions whose names say which notice
+they act on. The page is kept current by server-sent events from `/api/notices/stream` (the
+stream sends the viewer's view whenever any notice changes; the browser falls back to polling
+`/api/notices` every minute if the stream fails), so a notice appears and disappears without a
+reload. Files: `sajha/web/templates/common/_notices_banner.html`, `_notices_badge.html`,
+`sajha/web/templates/dashboard/_system_status.html`, `static/css/notices.css`,
+`static/js/notices.js`.
 
 ## 4. Sources
 
-Each source owns the ids it raises and is responsible for clearing them.
+Each source owns the ids under its prefix and clears them when its condition ends. Polled
+sources are re-checked by a watcher thread every `notices.check_interval_seconds` (and once at
+start-up), which also clears notices whose ttl has passed.
 
-| Source | Notices | Wave |
+| Source | Id | Severity | Raised when | Cleared when |
+|---|---|---|---|---|
+| Database (`sajha/db/schema.py`) | `db.schema` | `warning` | The start-up schema check (with `db.schema_check: warn`) finds missing tables, columns or indexes; the detail carries the SQL to run | A later start-up finds nothing missing |
+| Resilience (`sajha/core/circuit_breaker.py`) | `resilience.breaker_open:<breaker>` | `warning` | A breaker opens: tool providers, federated upstreams, LLM providers (`llm:<provider>`); raised at the transition and confirmed by the watcher; per worker | The breaker closes |
+| Workflows (`sajha/workflows/service.py`) | `workflows.scheduled_failing:<workflow>` | `error` | Scheduled (cron) runs of the workflow failed `notices.workflow_failures` times in a row (no ttl) | A scheduled run succeeds, or the workflow is disabled or deleted |
+| Intelligence layer | `llm.alias_unavailable:<alias>` | `error` for `default`, else `warning` | The alias resolves to no available candidate; per worker | It resolves again |
+| Intelligence layer | `llm.provider_down:<provider>` | `warning` | An active provider's health check says it is down; per worker | It is healthy again |
+| Federation | `federation.upstream_down:<upstream>` | `error`; audience `everyone` when the upstream has approved items | An enabled upstream is in error (or still connecting after an error); per worker | It connects, or is disabled |
+| Federation | `federation.approvals:<upstream>` | `warning` | Tools from the upstream are new or changed and wait for an administrator's approval | None is waiting |
+| Alert rules (`sajha/observability/alerts.py`) | `alerts.rule:<rule>` | the channel's `severity` (default `warning`) | A rule with `channel: {type: notice}` holds at an evaluation; per worker | It stops holding |
+| LLM tools | the memory guard at its soft or hard limit; runs refused as `busy`; spool full | | wave 2 | |
+| SAJHA Net | contract conflicts, instance-name conflicts, members suspect or dead, seeds unreachable, certificates, revocation list, key-directory sync, CA reachability, blocks; details in [SAJHA Net](SAJHA%20Net.md) | | wave 4 | |
+
+The alert channel's optional fields are in [Observability](Observability.md) section 5.
+
+**Adding a source.** Call the module API; it never raises:
+
+```python
+from sajha import notices
+notices.raise_notice('mysubsystem.condition:subject', severity='error', source='mysubsystem',
+                     title='One line for an operator', detail='What, what it affects, what to do.',
+                     link='/console/page', audience='admin',
+                     ttl_minutes=None,       # None: notices.default_ttl_minutes; 0: never expires
+                     holder=None)            # a worker id for a condition each worker judges itself
+notices.clear_notice('mysubsystem.condition:subject')
+```
+
+A polled condition can use `sajha.notices.sources.reconcile(prefix, desired, holder)`, which
+raises every desired notice and clears the open ones under the prefix that are no longer
+desired. Add the source's row to the table above and a test to `tests/test_notices.py`.
+
+## 5. API
+
+Every route is in the [API Reference](../protocol/API%20Reference.md) (section 4.22).
+
+| Route | Who | What |
 |---|---|---|
-| Database | schema check found missing tables or columns (with the SQL to run); upgrade helper findings | 1 |
-| Resilience | circuit breakers open for tools, providers or upstreams | 1 |
-| Workflows | scheduled runs failing repeatedly | 1 |
-| Intelligence layer | a model alias with no available candidate; a provider failing | 1 |
-| Alert rules | any rule using the `notice` channel | 1 |
-| Federation | an upstream down; tools held for approval | 1 |
-| LLM tools | the memory guard at its soft or hard limit; runs refused as `busy`; spool full | 2 |
-| SAJHA Net | a tool quarantined by a contract conflict; an instance-name conflict (its own or one it saw); a member suspect, dead or left (an error when it hosts tools this instance uses); seeds unreachable or the net not joined; a certificate expiring or expired; the revocation list stale; key-directory sync failing; the CA instance unreachable for renewal; a block added against this instance. Details in [SAJHA Net](SAJHA%20Net.md) | 4 |
+| `GET /api/notices` | signed in | The caller's view: `{enabled, notices, banner, others, badge, is_admin}`; `?cleared=1` adds `cleared`; an administrator signed in by cookie also gets `csrf` for the actions |
+| `GET /api/notices/stream` | signed in | The same view as server-sent events (`event: notices`), sent at once and after every change |
+| `GET /api/admin/notices` | admin | Every notice: `?state=open` (default), `cleared` or `all`; `?source=` |
+| `POST /api/admin/notices/{id}/acknowledge` | admin | Acknowledge an active notice (cookie callers send `X-CSRF-Token`) |
+| `POST /api/admin/notices/{id}/clear` | admin | Clear it now (reason `admin`) |
 
-## 5. Configuration
+## 6. Configuration
+
+Every `notices.*` key, its default and how it is read: [Configuration
+Reference](../getting-started/Configuration%20Reference.md#system-notices). Forwarding to alert
+channels, for example:
 
 ```yaml
 notices:
-  enabled: true
-  max_active: 500
-  default_ttl_minutes: 30        # a notice not refreshed for this long is cleared
-  banner_min_severity: error     # error | critical
-  forward:                       # optionally also send notices through alert channels
+  forward:
     - { min_severity: critical, channel: { type: webhook, url: "https://hooks.example.com/sajha" } }
+    - { min_severity: error, channel: { type: email, to: ["ops@example.com"] } }
 ```
 
-## 6. Tests
+A forwarded message is `{type: "sajha.notice", transition, notice, at}`; it is sent when a notice
+is raised or escalated, by the worker that made the transition. Webhooks go through the same
+allow-list and SSRF guard as alert webhooks (`observability.alerts_webhook.*`); email through
+`observability.alerts_email`.
 
-- A source raising, refreshing and clearing a notice; the same id never duplicated; ttl clearing.
-- Acknowledgement by an administrator; non-administrators cannot acknowledge; `critical` stays on
-  the banner.
-- Audience: `admin` notices invisible to other users; `everyone` notices shown to all.
-- Several workers see the same notices (state store backends).
-- Banner, panel and badge in all four themes at phone and desktop widths; live update without
-  reload.
-- Each wave adds tests for the notices its sources raise.
+## 7. Tests
+
+`tests/test_notices.py`: raising, refreshing and clearing, one entry per id, ttl clearing,
+escalation, worker holders, the `max_active` bound, switching off; acknowledgement by an
+administrator, refusal for other users and without the CSRF token, `critical` staying on the
+banner; audience (`admin` notices invisible to other users, `everyone` shown to all); two
+services on one database state store seeing and changing the same notices; forwarding; each
+source above; the API, the stream and the banner, badge and panel in rendered pages.
+`scripts/check_mobile.py` (`--notices`) checks the banner, panel and badge at phone and desktop
+widths in each theme.

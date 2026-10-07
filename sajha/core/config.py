@@ -208,7 +208,7 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = Field(default_factory=lambda: _get('app.name', 'SAJHA MCP Server'))
-    app_version: str = Field(default_factory=lambda: _get('app.version', '7.0.0'))
+    app_version: str = Field(default_factory=lambda: _get('app.version', '7.1.0'))
     app_description: str = Field(default_factory=lambda: _get('app.description', 'Model Context Protocol Server'))
     app_author: str = Field(default_factory=lambda: _get('app.author', 'Ashutosh Sinha'))
     app_email: str = Field(default_factory=lambda: _get('app.email', 'ajsinha@gmail.com'))
@@ -246,7 +246,6 @@ class Settings(BaseSettings):
     # Config paths
     config_tools_dir: str = Field(default_factory=lambda: _get('config.tools.dir', 'config/tools'))
     config_prompts_dir: str = Field(default_factory=lambda: _get('config.prompts.dir', 'config/prompts'))
-    config_users_path: str = Field(default_factory=lambda: _get('config.users.path', 'config/users.json'))
     config_apikeys_path: str = Field(default_factory=lambda: _get('config.apikeys.path', 'config/apikeys.json'))
     config_ir_dir: str = Field(default_factory=lambda: _get('config.ir.dir', 'config/ir'))
 

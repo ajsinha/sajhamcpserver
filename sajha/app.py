@@ -88,6 +88,14 @@ def _playground_enabled() -> bool:
         return False
 
 
+def _notices_view(request) -> dict:
+    from sajha.notices import template_view
+    try:
+        return template_view(request)
+    except Exception:
+        return {'enabled': False, 'notices': [], 'banner': None, 'others': 0, 'badge': 0}
+
+
 def _password_change_required(token: str) -> bool:
     """True when the session JWT says the user must change their password (claim ``pwc``)."""
     if not token:
@@ -207,6 +215,7 @@ class SajhaMCPServerWebApp:
         from sajha.routes.quality_routes import router as quality_router
         from sajha.routes.workflow_routes import router as workflow_router
         from sajha.routes.connectors_routes import router as connectors_router
+        from sajha.routes.notices_routes import router as notices_router
 
         routers = [
             auth_router, dashboard_router, api_router, tools_router,
@@ -229,6 +238,7 @@ class SajhaMCPServerWebApp:
             quality_router,
             workflow_router,
             connectors_router,
+            notices_router,
         ]
 
         for router in routers:
@@ -359,6 +369,8 @@ class SajhaMCPServerWebApp:
             'password_change_required': _password_change_required,
             # Python Playground menu entry and dashboard action (playground.enabled)
             'playground_enabled': _playground_enabled,
+            # System notices: banner and navbar badge (sajha/notices; docs/architecture/System Notices.md)
+            'notices_view': _notices_view,
         })
 
         # Template filters
@@ -462,9 +474,16 @@ class SajhaMCPServerWebApp:
         )
         logger.info('MCP handler initialized')
 
+        # Persistent API keys (config.apikeys.path): the hot-reload watch re-reads the file
+        try:
+            from sajha.auth.persistent_keys import get_persistent_keys
+            _persistent_keys = get_persistent_keys()
+        except Exception as e:
+            logger.warning(f'Persistent API keys: unavailable ({e})')
+            _persistent_keys = None
         config_reloader = get_config_reloader(
             auth_manager=None,
-            apikey_manager=None,
+            apikey_manager=_persistent_keys,
             tools_registry=tools_registry,
             prompts_registry=prompts_registry,
             reload_interval=s.hot_reload_interval,
@@ -497,6 +516,19 @@ class SajhaMCPServerWebApp:
         #     docs/architecture/Scaling and State.md.  A shared store that does not answer stops start-up.
         from sajha.core.state import startup_check as _state_startup_check
         _state_startup_check()
+
+        # 1c. API keys: a default key for every account that has none (sajha/auth/apikeys.py)
+        try:
+            from sajha.auth.apikeys import ensure_default_keys
+            _db = get_db_session()
+            try:
+                _made = ensure_default_keys(_db)
+            finally:
+                _db.close()
+            if _made:
+                logger.info(f'  API keys: created a default key for {_made} account(s)')
+        except Exception as e:
+            logger.warning(f'  API keys: default keys not ensured ({e})')
 
         # 2. Initialize storage backend (local or S3)
         from sajha.core.storage import init_storage, get_storage
@@ -671,6 +703,20 @@ class SajhaMCPServerWebApp:
         except Exception as e:
             logger.warning(f'  Tool health probes: unavailable ({e})', exc_info=True)
 
+        # 4f. System notices: the watcher over breakers, LLM, federation and workflows (notices.enabled)
+        try:
+            from sajha.notices import sources as _notice_sources
+            logger.info(f'  System notices: {"on" if _notice_sources.start() else "off (notices.enabled: false)"}')
+        except Exception as e:
+            logger.warning(f'  System notices: unavailable ({e})', exc_info=True)
+
+        # 4g. Snapshots of users, API keys and tools (snapshots.enabled; docs/architecture/Policy and Audit.md)
+        try:
+            from sajha.snapshots import start_snapshots
+            logger.info(f'  Snapshots: {"on" if start_snapshots(tools_registry) else "off (snapshots.enabled: false)"}')
+        except Exception as e:
+            logger.warning(f'  Snapshots: unavailable ({e})', exc_info=True)
+
         # 5. Template globals
         self._register_template_globals()
 
@@ -698,6 +744,11 @@ class SajhaMCPServerWebApp:
         # Shutdown
         logger.info('Shutting down SAJHA MCP Server...')
         try:
+            from sajha.snapshots import shutdown_snapshots
+            shutdown_snapshots()
+        except Exception as e:
+            logger.debug(f'snapshots shutdown: {e}')
+        try:
             from sajha.workflows import shutdown_workflows
             shutdown_workflows()
         except Exception as e:
@@ -712,6 +763,11 @@ class SajhaMCPServerWebApp:
             _probes.stop()
         except Exception as e:
             logger.debug(f'probes shutdown: {e}')
+        try:
+            from sajha.notices import sources as _notice_sources
+            _notice_sources.stop()
+        except Exception as e:
+            logger.debug(f'notices shutdown: {e}')
         try:   # flush the usage ledger, stop alerts, the metrics publisher/listener and OTel
             from sajha.observability import shutdown_observability
             shutdown_observability()

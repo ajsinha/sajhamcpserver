@@ -34,9 +34,12 @@ def client(timeout: Optional[float] = None) -> httpx.Client:
     t = timeout or get_accounts_settings().http_timeout_seconds
     from sajha.core.config import get_settings
     headers = {'User-Agent': f'sajha-connected-accounts/{get_settings().app_version}'}
+    from sajha.observability.tracing import httpx_hooks
     if _transport is not None:
-        return httpx.Client(transport=_transport, timeout=t, follow_redirects=False, headers=headers)
-    return httpx.Client(timeout=t, follow_redirects=False, headers=headers, trust_env=False)
+        return httpx.Client(transport=_transport, timeout=t, follow_redirects=False, headers=headers,
+                            event_hooks=httpx_hooks())
+    return httpx.Client(timeout=t, follow_redirects=False, headers=headers, trust_env=False,
+                        event_hooks=httpx_hooks())
 
 
 class TokenHostError(PermissionError):

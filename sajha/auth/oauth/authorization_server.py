@@ -120,6 +120,7 @@ class RefreshRecord:
     issuer: str
     expires: float
     used: bool = False
+    tv: int = 0                       # the user's token version when issued (revocable sign-in)
 
 
 _PENDING = 'oauth:pending:'
@@ -213,11 +214,11 @@ class AuthorizationStore:
 
     # ── refresh tokens (rotation + reuse detection) ──
     def issue_refresh(self, family: str, client_id: str, user_id: str, scopes: List[str], resource: str,
-                      issuer: str, expires: Optional[float] = None) -> str:
+                      issuer: str, expires: Optional[float] = None, tv: int = 0) -> str:
         token = secrets.token_urlsafe(48)
         rec = RefreshRecord(family=family, client_id=client_id, user_id=user_id, scopes=list(scopes),
                             resource=resource, issuer=issuer,
-                            expires=expires or time.time() + settings.refresh_token_ttl())
+                            expires=expires or time.time() + settings.refresh_token_ttl(), tv=int(tv or 0))
         if self._revoked(family):
             raise OAuthError('invalid_grant', 'grant revoked')
         self.store.set(_REFRESH + _h(token), asdict(rec), ttl=max(1.0, rec.expires - time.time()))
@@ -257,6 +258,10 @@ class AuthorizationStore:
             self._revoke_family(outcome['family'])
             raise OAuthError('invalid_grant', 'refresh token reuse detected; grant revoked')
         return RefreshRecord(**outcome['record'])
+
+    def revoke_family(self, family: Optional[str]) -> None:
+        if family:
+            self._revoke_family(family)
 
     def _revoked(self, family: Optional[str]) -> bool:
         return bool(family) and self.store.get(_REVOKED + family) is not None
@@ -300,7 +305,8 @@ def browser_hash(browser_token: str) -> str:
 
 # ── access tokens ──────────────────────────────────────────────────
 
-def mint_access_token(issuer: str, user_id: str, client_id: str, scopes: List[str], resource: str) -> Dict:
+def mint_access_token(issuer: str, user_id: str, client_id: str, scopes: List[str], resource: str,
+                      token_version: int = 0) -> Dict:
     from jose import jwt
     from sajha.auth.oauth.keys import get_signing_key, ALGORITHM
     key = get_signing_key()
@@ -317,6 +323,7 @@ def mint_access_token(issuer: str, user_id: str, client_id: str, scopes: List[st
         'jti': uuid.uuid4().hex,
         'client_id': client_id,
         'scope': ' '.join(access_scopes),
+        'tv': int(token_version or 0),    # the user's token version (sajha/auth/revocation.py)
     }
     token = jwt.encode(claims, key.private_pem.decode(), algorithm=ALGORITHM,
                        headers={'kid': key.kid, 'typ': 'at+jwt'})

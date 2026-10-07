@@ -28,8 +28,9 @@ _PROMPT_LIST_TERMS = ['Prompt', 'Prompt template / Template', 'Variable substitu
 PAGE_HELP: dict = {
     # ── Use ──────────────────────────────────────────────────────────────────
     'dashboard': {
-        'what': 'Server status at a glance: what is loaded, operational metrics, and where to start.',
-        'terms': ['Tool', 'Prompt', 'Circuit breaker', 'Tool cache / cache_ttl'],
+        'what': 'Server status at a glance: system notices that need attention, what is loaded, '
+                'operational metrics, and where to start.',
+        'terms': ['System notice', 'Tool', 'Prompt', 'Circuit breaker', 'Tool cache / cache_ttl'],
         'guide': 'Quick Start.md'},
     'tools_list': {
         'what': 'Every tool the server has loaded; open one to inspect its schema, run it or see its configuration.',
@@ -147,19 +148,24 @@ PAGE_HELP: dict = {
         'terms': ['User ID', 'RBAC', 'Password hash', 'Role', 'Tool access', 'Account status'],
         'guide': 'Security Model.md'},
     'apikeys_list': {
-        'what': 'API keys: credentials for programs, each limited to the tools it may call.',
-        'terms': ['API key', 'Bearer token', 'X-API-Key header', 'Tool access', 'Rate limiting',
-                  'Key rotation'],
+        'what': 'Every API key, its owner and state: assign owners to older keys, rotate, disable, revoke.',
+        'terms': ['API key', 'Key owner', 'Default API key', 'Persistent API key', 'Tool access mode',
+                  'Key rotation', 'Key revocation'],
         'guide': 'Security Model.md'},
     'apikey_create_page': {
-        'what': 'Create an API key and choose the tools it may call. The key is shown once.',
-        'terms': ['API key', 'Tool access mode', 'Allowlist', 'Denylist', 'Regex pattern',
-                  'Expiration'],
+        'what': 'Create an API key for a user (or without an owner) and choose the tools it may call. The key is shown once.',
+        'terms': ['API key', 'Key owner', 'Tool access mode', 'Allowlist', 'Denylist', 'Regex pattern',
+                  'Expiration', 'Persistent API key'],
         'guide': 'Security Model.md'},
     'apikey_view': {
-        'what': 'One API key: its access, its use, and how to call SAJHA with it.',
-        'terms': ['API key', 'X-API-Key header', 'Tool access', 'curl', 'Key revocation',
-                  'Created at'],
+        'what': 'One API key: its owner, access, state and use, and every action on it.',
+        'terms': ['API key', 'Key owner', 'X-API-Key header', 'Tool access', 'Key rotation', 'Key revocation',
+                  'Persistent API key'],
+        'guide': 'Security Model.md'},
+    'account_apikeys_page': {
+        'what': 'Your API keys: they sign in as you. Create, rotate and revoke them; sign out everywhere.',
+        'terms': ['API key', 'Default API key', 'Tool access mode', 'Key rotation', 'Key revocation',
+                  'Sign out everywhere', 'Token version'],
         'guide': 'Security Model.md'},
     'admin_system_monitor_page': {
         'what': 'The process: CPU, memory, connections, provider health and the tool cache.',

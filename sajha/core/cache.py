@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v5.3.0 — File-Based Tool Output Cache
+SAJHA MCP Server — File-Based Tool Output Cache
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 File-based cache with configurable TTL per tool. Each cache entry is a
@@ -8,6 +8,8 @@ memory bloat regardless of how many tools or results are cached.
 
 Default: NO caching. Each tool opts in via "cache_ttl" in its JSON config.
 Example: {"name": "fred_gdp", "cache_ttl": 3600, ...}
+"cache_per_user": true adds the caller to the key, so one user's result is never served to
+another (federated tools default to it: cache.per_user_federated).
 
 Suggested TTLs (for reference):
   Calculators/OLAP: 0 (deterministic, no external call)
@@ -37,10 +39,39 @@ from typing import Any, Dict, Optional
 logger = logging.getLogger(__name__)
 
 
-def _cache_key(tool_name: str, arguments: Dict) -> str:
-    """Generate a deterministic hash from arguments."""
+def _cache_key(tool_name: str, arguments: Dict, scope: str = '') -> str:
+    """Generate a deterministic hash from arguments (and the caller, for a per-user tool)."""
     args_str = json.dumps(arguments, sort_keys=True, default=str)
+    if scope:
+        args_str += '\x00' + scope
     return hashlib.md5(args_str.encode()).hexdigest()
+
+
+def is_per_user(tool_config: dict = None) -> bool:
+    """Is this tool's cached result keyed by the caller as well as the arguments?
+
+    ``cache_per_user`` in the tool's config decides; without it, federated tools (results may
+    depend on who asks upstream) follow ``cache.per_user_federated`` (default true) and every
+    other tool is shared. Connected-account tools are never cached at all (get_tool_ttl)."""
+    if not isinstance(tool_config, dict):
+        return False
+    v = tool_config.get('cache_per_user')
+    if v is not None:
+        from sajha.core.config import parse_bool
+        return parse_bool(v) if isinstance(v, str) else bool(v)
+    if (tool_config.get('metadata') or {}).get('category') == 'federated':
+        from sajha.core.config import _bool
+        return _bool('cache.per_user_federated', True)
+    return False
+
+
+def cache_scope(tool_config: dict = None) -> str:
+    """The cache scope of a call: '' (shared) or ``user:<id>`` for a per-user tool (the
+    caller from sajha.observability.caller; all anonymous callers share ``user:anonymous``)."""
+    if not is_per_user(tool_config):
+        return ''
+    from sajha.observability.caller import current
+    return f'user:{current().user_id or "anonymous"}'
 
 
 def get_tool_ttl(tool_name: str, tool_config: dict = None) -> int:
@@ -96,11 +127,11 @@ class ToolCache:
         tool_dir = self._cache_dir / tool_name.replace('/', '_')
         return tool_dir / f"{args_hash}.json"
 
-    def get(self, tool_name: str, arguments: Dict) -> Optional[Any]:
-        """Get cached result from disk. Returns None on miss or expiry."""
+    def get(self, tool_name: str, arguments: Dict, scope: str = '') -> Optional[Any]:
+        """Get cached result from disk. Returns None on miss or expiry. ``scope``: cache_scope()."""
         if not self._enabled:
             return None
-        args_hash = _cache_key(tool_name, arguments)
+        args_hash = _cache_key(tool_name, arguments, scope)
         path = self._file_path(tool_name, args_hash)
 
         if not path.exists():
@@ -122,7 +153,7 @@ class ToolCache:
             self._misses += 1
             return None
 
-    def put(self, tool_name: str, arguments: Dict, value: Any, ttl: int = None):
+    def put(self, tool_name: str, arguments: Dict, value: Any, ttl: int = None, scope: str = ''):
         """Write a result to disk cache. If ttl=0 or cache disabled, skip."""
         if not self._enabled:
             return
@@ -141,7 +172,7 @@ class ToolCache:
         except Exception:
             return
 
-        args_hash = _cache_key(tool_name, arguments)
+        args_hash = _cache_key(tool_name, arguments, scope)
         path = self._file_path(tool_name, args_hash)
 
         try:

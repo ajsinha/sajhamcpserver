@@ -1,0 +1,8 @@
+{# System notices navbar badge: open notices at warning or above for this viewer (sajha/notices).
+   Outside the collapsed menu so it shows on phones; static/js/notices.js keeps the count live. #}
+{% if _nv and _nv.enabled %}{% set n = _nv.badge %}
+<a class="sajha-notice-badge{% if not n %} d-none{% endif %}" id="sajha-notice-badge" href="/dashboard#system-status"
+   aria-label="{{ n }} system notice{{ '' if n == 1 else 's' }} need attention" title="{{ n }} system notice{{ '' if n == 1 else 's' }} need attention">
+  <i class="bi bi-bell-fill" aria-hidden="true"></i><span class="cnt" aria-hidden="true">{{ n if n < 100 else '99+' }}</span></a>
+<span class="visually-hidden" id="sajha-notice-live" role="status" aria-live="polite" data-n="{{ n }}"></span>
+{% endif %}

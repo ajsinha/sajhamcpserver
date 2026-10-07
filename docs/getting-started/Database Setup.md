@@ -34,8 +34,16 @@ Nothing to do. At start-up SAJHA runs `db/scripts/sqlite/schema.sql` (every stat
 is never re-seeded, so a deleted `admin` stays deleted.
 
 SAJHA never alters an existing table. A development database older than a column the code
-now uses makes start-up stop with the table and column named; delete the file (`db.path`,
-default `data/sajha.db`) to have it recreated, or add the column by hand.
+now uses makes start-up stop with the table and column named. For development, recreate
+it: delete the file (`db.path`, default `data/sajha.db`) and SAJHA rebuilds and seeds it at
+the next start. That is the policy for the development database: drop and recreate on a
+schema change, never alter it. The message also prints the `ALTER TABLE ... ADD COLUMN ...`
+statement for each missing column, taken from `db/scripts/sqlite/schema.sql`, for a SQLite
+database whose data must be kept; SAJHA prints them and never runs them. SQLite cannot add some columns to an existing table (a primary key or unique column, a
+non-constant default such as `CURRENT_TIMESTAMP`, `NOT NULL` without a default); such a
+statement is printed with a comment saying so, and recreating the file is the way out. When
+an old table makes `schema.sql` fail as a whole (an index on a column the table lacks), SAJHA
+runs its statements one by one so that missing tables are still created.
 
 ## 2. PostgreSQL: first install
 
@@ -89,8 +97,11 @@ writes.
 
 | `db.schema_check` | Something missing at start-up |
 |---|---|
-| `strict` (default) | Logs `Refusing to start: database schema is not ready`, the missing tables and columns and the `psql` command, and exits. Nothing is created. |
-| `warn` | Logs the same message as a warning and starts. Features whose tables are missing fail when used. |
+| `strict` (default) | Logs `Refusing to start: database schema is not ready`, the missing tables and columns, and the SQL to run, and exits. Nothing is created. On an empty database the SQL is the two `psql` commands of section 2; otherwise it is the statements for what is missing (section 6, `upgrade-sql`). |
+| `warn` | Logs the same message as a warning and starts. Features whose tables are missing fail when used. The `db.schema` system notice shows the same SQL in the console until the schema is complete. |
+
+Missing indexes never stop start-up: SAJHA logs a warning with the `CREATE INDEX` statements
+(and raises the `db.schema` notice as a warning) and starts.
 
 When everything is present but the `roles` table is empty, SAJHA starts and warns that
 nobody can sign in until `seed.sql` has run.
@@ -105,14 +116,22 @@ if you want them gone, for example `DROP TABLE tool_versions;`.
 ## 4. Upgrades
 
 Most releases do not change the schema. One that does says so in its
-[CHANGELOG](../../CHANGELOG.md) entry, with the SQL to run for each database type, for
-example `CREATE TABLE ...` for a new table or `ALTER TABLE ... ADD COLUMN ...` for a new
-column. Run that SQL before the new release serves traffic, then roll it out; its pods start
-once `python -m sajha.db check` is clean.
+[CHANGELOG](../../CHANGELOG.md) entry. With the new release's checkout (or image), print the
+statements your database needs and run them before the new release serves traffic:
 
+```
+python -m sajha.db upgrade-sql > upgrade.sql      # compares the database with schema.sql
+less upgrade.sql                                  # review
+psql -v ON_ERROR_STOP=1 -h HOST -U USER -d DBNAME -f upgrade.sql
+python -m sajha.db check                          # exit 0: the pods will start
+```
+
+`upgrade-sql` prints a `CREATE TABLE` (with its indexes) for each missing table,
+`ALTER TABLE ... ADD COLUMN IF NOT EXISTS ...` for each missing column and `CREATE INDEX`
+for each missing index, each taken from the release's `schema.sql`. SAJHA never runs them.
 Re-running the new release's `schema.sql` is also safe and creates any new tables and
-indexes, but it never changes a table that already exists, so new columns always come from
-the CHANGELOG's SQL. Schema changes are additive (new tables, nullable columns or columns
+indexes, but it never changes a table that already exists, so new columns come from
+`upgrade-sql` (or the CHANGELOG's SQL). Schema changes are additive (new tables, nullable columns or columns
 with defaults, new indexes), so pods of the old release keep working during a rolling
 update; a release that cannot keep to that says so.
 
@@ -140,8 +159,9 @@ checkout).
 |---|---|---|
 | `check [--url URL]` | Lists the tables and columns SAJHA uses that the database lacks; exit 3 when any | read |
 | `sql [--dialect postgresql\|sqlite] [--seed]` | Prints `schema.sql` (or `seed.sql`) for review and `psql -f` | none |
+| `upgrade-sql [--url URL]` (also `sql --missing`) | Compares the database with its dialect's `schema.sql` and prints the DDL that brings it up to date: missing tables, columns and indexes (section 4); exit 3 when there is something to run, 0 when nothing | read |
 
-Both take `--scripts-dir` (default `db.scripts_dir`, `db/scripts`).
+All take `--scripts-dir` (default `db.scripts_dir`, `db/scripts`).
 
 ## 7. Changing the schema
 
@@ -171,9 +191,10 @@ reflects.
 
 | Symptom | Cause and fix |
 |---|---|
-| `Refusing to start: database schema is not ready` | Tables or columns are missing. New database: section 2. Upgrade: the CHANGELOG's SQL (section 4). |
+| `Refusing to start: database schema is not ready` | Tables or columns are missing. New database: section 2. Upgrade: run the statements the message prints (`python -m sajha.db upgrade-sql`, section 4). |
 | `No roles in the database: nobody can sign in` | `seed.sql` has not run. Run it once. |
 | `state.backend database: table(s) sajha_state ... missing` | The state store's database (`state.database.url`) has no schema. Run `schema.sql` there. |
 | `Usage ledger off: table obs_usage_events is missing` | The table is missing (`db.schema_check: warn` let SAJHA start). Run `schema.sql`. |
 | `table connected_accounts is missing` | Same, for the connected-accounts vault. |
-| SQLite start-up names a missing column | The development database is older than the code. Delete it or add the column (section 1). |
+| SQLite start-up names a missing column | The development database is older than the code. Recreate it (delete the file; section 1); to keep its data, run the printed `ALTER TABLE` instead. |
+| `indexes of the schema file are missing` | Start-up continues; run the printed `CREATE INDEX` statements. |

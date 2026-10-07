@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS users (
     oauth_subject        VARCHAR(255),
     failed_attempts      INTEGER          NOT NULL DEFAULT 0,
     locked_until         TIMESTAMP,
-    must_change_password BOOLEAN          NOT NULL DEFAULT 0
+    must_change_password BOOLEAN          NOT NULL DEFAULT 0,
+    token_version        INTEGER          NOT NULL DEFAULT 0
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ix_users_user_id ON users (user_id);
 
@@ -77,7 +78,15 @@ CREATE TABLE IF NOT EXISTS api_keys (
     last_used            TIMESTAMP,
     usage_count          INTEGER          NOT NULL DEFAULT 0,
     tool_access_mode     VARCHAR(20)      NOT NULL DEFAULT 'all',
-    tool_access_list     TEXT
+    tool_access_list     TEXT,
+    is_default           BOOLEAN          NOT NULL DEFAULT 0,
+    persistent           BOOLEAN          NOT NULL DEFAULT 0,
+    created_by           VARCHAR(100),
+    rotated_at           TIMESTAMP,
+    revoked_at           TIMESTAMP,
+    revoked_by           VARCHAR(100),
+    secret_ciphertext    TEXT,
+    secret_key_id        VARCHAR(64)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ix_api_keys_key_hash ON api_keys (key_hash);
 

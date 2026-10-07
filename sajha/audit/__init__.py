@@ -6,7 +6,9 @@ verification and SIEM export.
 do the policy engine and approvals). The process's :class:`~sajha.audit.chain.ChainWriter`
 hashes it into this process's chain and stores it; the :class:`~sajha.audit.sinks.ExportManager`
 streams it to the configured SIEM sinks. ``python -m sajha.audit verify`` checks the
-chains. Design: docs/architecture/Policy and Audit.md, sections 7 and 8.
+chains. Every tool call adds a ``tool.call`` record (:mod:`sajha.audit.tool_calls`), stored by
+the writer's background flusher. Design: docs/architecture/Policy and Audit.md, sections 7, 8
+and 13.
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
@@ -58,10 +60,14 @@ def set_writer(writer, exporter=None) -> None:
 
 
 def record(event: str, actor: Optional[Dict[str, Any]] = None, resource: Optional[Dict[str, Any]] = None,
-           outcome: Optional[str] = None, details: Any = None) -> Optional[Dict[str, Any]]:
-    """Append one audit record; never raises (audit must not break the call it records)."""
+           outcome: Optional[str] = None, details: Any = None, defer: bool = False) -> Optional[Dict[str, Any]]:
+    """Append one audit record; never raises (audit must not break the call it records).
+    ``defer``: hashed now, stored by the background flusher (tool calls; ChainWriter.append)."""
     try:
-        return get_writer().append(event, actor=actor, resource=resource, outcome=outcome, details=details)
+        w = get_writer()
+        if defer:
+            return w.append(event, actor=actor, resource=resource, outcome=outcome, details=details, defer=True)
+        return w.append(event, actor=actor, resource=resource, outcome=outcome, details=details)
     except Exception as e:
         logger.error(f'audit record {event} failed: {e}', exc_info=True)
         return None

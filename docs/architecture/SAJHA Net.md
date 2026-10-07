@@ -920,9 +920,12 @@ change anywhere else.
    instance, mapped to local roles (section 11.3), and the key's tool access list as an extra
    ceiling. Authorization then proceeds as in section 11.
 
-**What API keys are today, and what must change.** This resolver assumes a key acts as the user
-who owns it. Today it does not (`AuthManager.authenticate_apikey`, `sajha/auth/__init__.py`): a
-key authenticates as a service identity `apikey:<key name>` with the single role `api_consumer`,
+**What API keys were, and what changed.** *Built in wave 1: owned keys, self-service, revocation
+records, default keys and persistent keys are as-built in the
+[Security Model](../security/Security%20Model.md#api-keys); the rest of this paragraph records
+the starting point.* This resolver assumes a key acts as the user
+who owns it. Before wave 1 it did not (`AuthManager.authenticate_apikey`, `sajha/auth/__init__.py`): a
+key authenticated as a service identity `apikey:<key name>` with the single role `api_consumer`,
 and what it may call is decided only by the key's own `tool_access_mode` (`all`, `allowlist`,
 `denylist` or `regex`) and `tool_access_list` (`sajha/auth/access.py`), not by any user's roles.
 The `api_keys` table has an `owner_id` column, but keys are created by administrators only
@@ -1467,8 +1470,8 @@ once (section 8.5).
 
 `persistent_keys` and `snapshots` apply even when `enabled` is false (they also serve a SAJHA that
 is not in a net, section 22). The persistent key file's path duplicates the existing
-`config.apikeys.path` (default `config/apikeys.json`), which today only feeds an unused legacy
-importer; the build should read that key rather than add a second one. The shared keys resolve as
+`config.apikeys.path` (default `config/apikeys.json`), which wave 1 made the persistent key file;
+the build reads that key rather than adding a second one. The shared keys resolve as
 every `_get` key does: `SAJHA_SAJHANET_<KEY>` in the environment, then this YAML, then the code
 default. The `nets` list cannot be addressed element by element through environment variables; it
 is set in YAML or, on Kubernetes, through the chart's `config.overrides`.
@@ -1535,10 +1538,10 @@ to the database.
   reversed, but the file still names users and their access, so it is treated as sensitive.
 - **In the net.** Persistent keys are part of the instance's key directory like any other key, so
   every instance can verify them too.
-- **Today's file.** `config/apikeys.json` currently holds four plaintext demo keys in an older
-  format (Roadmap item N5). Nothing reads it: `import_legacy_apikeys` in `sajha/db/seed.py` is
-  never called, and the hot-reload watch does nothing. This design replaces it with the hashed
-  format above; the demo keys are not carried over.
+- **The old file (built in wave 1).** `config/apikeys.json` used to hold four plaintext demo keys
+  in an older format that nothing read. Wave 1 replaced it with the hashed format above
+  (`sajha/auth/persistent_keys.py`, `config/apikeys.json.example`); the demo keys were not carried
+  over, and the old format is never read.
 
 ### 20.4 Periodic snapshots
 

@@ -2,9 +2,10 @@
 SAJHA MCP Server — in-process alert rules (``observability.alerts``).
 
 Each rule names a metric, a comparison, a threshold, a window and a channel (log,
-webhook or email). The instrumentation points feed a bounded in-memory window of recent
-events; a daemon thread evaluates every rule each ``observability.alerts_interval_seconds``
-and sends one message when a rule's condition holds and its cooldown has passed.
+webhook, email, or notice: a system notice in the console while the rule holds). The
+instrumentation points feed a bounded in-memory window of recent events; a daemon thread
+evaluates every rule each ``observability.alerts_interval_seconds`` and sends one message
+when a rule's condition holds and its cooldown has passed.
 Webhooks go only to ``observability.alerts_webhook.allowed_urls`` and through the same
 SSRF guard as async webhooks and OAuth CIMD fetches (``address_allowed``): resolved once,
 connected by pinned IP, no redirects, no proxy. Design: docs/architecture/Observability.md,
@@ -36,7 +37,7 @@ METRICS = ('http_error_rate', 'http_latency_p95_ms', 'tool_error_rate', 'tool_la
 OPS: Dict[str, Callable[[float, float], bool]] = {
     '>': operator.gt, '>=': operator.ge, '<': operator.lt, '<=': operator.le,
     'gt': operator.gt, 'gte': operator.ge, 'lt': operator.lt, 'lte': operator.le}
-CHANNELS = ('log', 'webhook', 'email')
+CHANNELS = ('log', 'webhook', 'email', 'notice')   # notice: a system notice (sajha/notices)
 
 
 def parse_duration(v: Any, default: float) -> float:
@@ -97,11 +98,17 @@ def parse_rule(raw: Dict[str, Any], index: int = 0) -> Rule:
             raise ValueError(f'unknown op {op!r} (> >= < <=)')
         ctype = str(rule.channel.get('type') or 'log')
         if ctype not in CHANNELS:
-            raise ValueError(f'unknown channel {ctype!r} (log, webhook, email)')
+            raise ValueError(f'unknown channel {ctype!r} (log, webhook, email, notice)')
         if ctype == 'webhook':
             check_webhook_url(str(rule.channel.get('url') or ''))
         if ctype == 'email' and not rule.channel.get('to'):
             raise ValueError('an email channel needs "to"')
+        if ctype == 'notice':
+            from sajha.notices import SEVERITIES, AUDIENCES
+            if str(rule.channel.get('severity') or 'warning') not in SEVERITIES:
+                raise ValueError(f'a notice channel\'s severity must be one of {", ".join(SEVERITIES)}')
+            if str(rule.channel.get('audience') or 'admin') not in AUDIENCES:
+                raise ValueError('a notice channel\'s audience must be admin or everyone')
     except (TypeError, ValueError) as e:
         rule.error = str(e) if str(e) else 'threshold must be a number'
     return rule
@@ -209,9 +216,11 @@ class AlertManager:
             rule.last_eval, rule.last_value = now, value
             if value is None or n < rule.min_events:
                 rule.firing = False
+                self._notice(rule, False)
                 continue
             holds = OPS[rule.op](value, rule.threshold)
             rule.firing = holds
+            self._notice(rule, holds)
             if not holds or (rule.last_fired is not None and now - rule.last_fired < rule.cooldown_s):
                 continue
             rule.last_fired = now
@@ -223,6 +232,13 @@ class AlertManager:
         if longest:
             self.window.prune(now - longest)
         return out
+
+    @staticmethod
+    def _notice(rule: Rule, holds: bool) -> None:
+        """The notice channel: a system notice while the rule holds, cleared when it stops."""
+        if (rule.channel.get('type') or 'log') == 'notice':
+            from sajha.notices.sources import alert_rule
+            alert_rule(rule, holds)
 
     def _send(self, rule: Rule, msg: Dict[str, Any]) -> None:
         from sajha.observability.metrics import record_alert
@@ -317,6 +333,7 @@ def _resolve_pinned(host: str, port: int) -> str:
 
 def send_webhook(url: str, payload: Dict[str, Any], timeout: float = 10.0) -> bool:
     import httpx
+    from sajha.observability.tracing import inject as tracing_inject
     from urllib.parse import urlunsplit
     try:
         p = check_webhook_url(url)
@@ -330,8 +347,8 @@ def send_webhook(url: str, payload: Dict[str, Any], timeout: float = 10.0) -> bo
     try:
         with httpx.Client(timeout=timeout, follow_redirects=False, trust_env=False) as client:
             r = client.post(pinned, content=json.dumps(payload, default=str).encode(),
-                            headers={'Content-Type': 'application/json', 'User-Agent': 'sajha-alerts',
-                                     'Host': p.netloc}, extensions={'sni_hostname': p.hostname})
+                            headers=tracing_inject({'Content-Type': 'application/json', 'User-Agent': 'sajha-alerts',
+                                                    'Host': p.netloc}), extensions={'sni_hostname': p.hostname})
         if 200 <= r.status_code < 300:
             return True
         logger.warning(f'alert webhook {p.hostname} answered HTTP {r.status_code}')

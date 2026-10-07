@@ -424,6 +424,9 @@ class WorkflowService:
                 fn(run['workflow'], status)
         except Exception:
             pass
+        # System notice when scheduled runs keep failing (docs/architecture/System Notices.md)
+        from sajha.notices.sources import workflow_run_finished
+        workflow_run_finished(run['workflow'], run.get('trigger_type') or '', status, error)
         delivery = (run.get('definition') or {}).get('delivery')
         if not delivery or status not in delivery.get('on', ['succeeded', 'failed']):
             return

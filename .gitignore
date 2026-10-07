@@ -63,3 +63,12 @@ data/oauth/
 
 # ── Server secrets: JWT + session secret (generated on first run, mode 0600) ──
 data/secrets/
+
+# ── Snapshots of users, API keys and tools (snapshots.dir; owner-only, may name users) ──
+data/snapshots/
+
+# ── Retired demo credentials: users live in the database only (Roadmap N5) ──
+config/users.json
+
+# ── Persistent API keys: hashed records written by the server (config/apikeys.json.example is the format) ──
+config/apikeys.json

@@ -8,7 +8,8 @@ The standard ``OTEL_*`` variables win over the YAML keys. When off, :func:`span`
 ``None`` and costs one check, so instrumented code needs no guards.
 
 Spans: HTTP (middleware) → MCP (parent: ``_meta.traceparent`` when the client sent one)
-→ tool (``execute_with_tracking``) → LLM (the gateway's ``llm.chat``).
+→ tool (``execute_with_tracking``) → LLM (the gateway's ``llm.chat``). Outbound calls carry
+the context on (:func:`inject`, :func:`httpx_hooks`), with or without the SDK.
 Design: docs/architecture/Observability.md, section 3.
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
@@ -16,11 +17,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import os
+import re
+import secrets
 import threading
 from contextlib import contextmanager
-from typing import Any, Dict, Iterator, Mapping, Optional
+from typing import Any, Dict, Iterator, Mapping, Optional, Tuple
 
 from sajha.observability import settings as S
 
@@ -191,14 +195,141 @@ def _parent_context(traceparent: Optional[str], tracestate: Optional[str] = None
     return None
 
 
+# ── W3C trace context without the SDK ───────────────────────────────
+#
+# With OpenTelemetry off, SAJHA still continues an inbound ``traceparent`` (HTTP header or
+# MCP ``_meta.traceparent``), starts one for a request that has none, and sends it on its
+# own outbound calls (:func:`inject`), so a trace id reaches the audit record and the
+# services SAJHA calls either way. With OpenTelemetry on, the live span's context wins.
+
+_TP = re.compile(r'^([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$')
+# (trace id, our span id, flags, tracestate) of the current request, when OTel is off
+_w3c: contextvars.ContextVar[Optional[Tuple[str, str, str, str]]] = contextvars.ContextVar('sajha_w3c', default=None)
+
+
+def parse_traceparent(value: Any) -> Optional[Tuple[str, str, str]]:
+    """(trace id, parent id, flags) of a valid version-00 ``traceparent``, else None."""
+    if not isinstance(value, str):
+        return None
+    m = _TP.match(value.strip().lower())
+    if not m or m.group(1) == 'ff' or m.group(2) == '0' * 32 or m.group(3) == '0' * 16:
+        return None
+    return m.group(2), m.group(3), m.group(4)
+
+
+def _new_id(n: int) -> str:
+    return secrets.token_hex(n)
+
+
+def _carrier_get(carrier: Optional[Mapping[str, str]], name: str) -> Optional[str]:
+    if not carrier:
+        return None
+    for k, v in carrier.items():
+        if str(k).lower() == name:
+            return v
+    return None
+
+
+def current_traceparent() -> Optional[str]:
+    """The ``traceparent`` to send on an outbound call made now; None outside any request."""
+    try:
+        if _state['tracer'] is not None:
+            from opentelemetry import trace
+            sc = trace.get_current_span().get_span_context()
+            if sc is not None and sc.is_valid:
+                return f'00-{sc.trace_id:032x}-{sc.span_id:016x}-{int(sc.trace_flags):02x}'
+    except Exception:
+        pass
+    ctx = _w3c.get()
+    return f'00-{ctx[0]}-{ctx[1]}-{ctx[2]}' if ctx else None
+
+
+def current_trace_id() -> str:
+    """The current trace id (32 hex), or '' outside any request."""
+    tp = current_traceparent()
+    return tp[3:35] if tp else ''
+
+
+def current_tracestate() -> Optional[str]:
+    try:
+        if _state['tracer'] is not None:
+            from opentelemetry import trace
+            sc = trace.get_current_span().get_span_context()
+            if sc is not None and sc.is_valid:
+                ts = sc.trace_state.to_header() if sc.trace_state else ''
+                return ts or None
+    except Exception:
+        pass
+    ctx = _w3c.get()
+    return (ctx[3] or None) if ctx else None
+
+
+def inject(headers: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+    """Add the current ``traceparent`` (and ``tracestate``) to ``headers`` (created when None)
+    unless the caller already set one; returns the dict. A no-op outside any request."""
+    h = headers if headers is not None else {}
+    if any(str(k).lower() == 'traceparent' for k in h):
+        return h
+    tp = current_traceparent()
+    if tp:
+        h['traceparent'] = tp
+        ts = current_tracestate()
+        if ts:
+            h['tracestate'] = ts
+    return h
+
+
+def httpx_hooks(asynchronous: bool = False) -> Dict[str, list]:
+    """``event_hooks`` for an httpx client that adds the trace context to every request it
+    sends. The context is read when the request is sent, so a long-lived client is fine."""
+    def _on_request(request):
+        if 'traceparent' not in request.headers:
+            for k, v in inject({}).items():
+                request.headers[k] = v
+    if not asynchronous:
+        return {'request': [_on_request]}
+
+    async def _on_request_async(request):
+        _on_request(request)
+    return {'request': [_on_request_async]}
+
+
+@contextmanager
+def _w3c_scope(traceparent: Optional[str], tracestate: Optional[str], carrier: Optional[Mapping[str, str]],
+               start: bool) -> Iterator[None]:
+    """OTel off: continue an inbound context (or start one for a server span), as our own span."""
+    parsed = parse_traceparent(traceparent if traceparent else _carrier_get(carrier, 'traceparent'))
+    token = None
+    if parsed is not None:
+        ts = tracestate if traceparent else _carrier_get(carrier, 'tracestate')
+        token = _w3c.set((parsed[0], _new_id(8), parsed[2], (ts or '')[:512]))
+    elif start and _w3c.get() is None:
+        token = _w3c.set((_new_id(16), _new_id(8), '01', ''))
+    try:
+        yield
+    finally:
+        if token is not None:
+            try:
+                _w3c.reset(token)
+            except (ValueError, RuntimeError):
+                pass
+
+
 @contextmanager
 def span(name: str, attributes: Optional[Dict[str, Any]] = None, *, traceparent: Optional[str] = None,
          tracestate: Optional[str] = None, carrier: Optional[Mapping[str, str]] = None,
-         kind: str = 'internal') -> Iterator[Any]:
-    """A span when tracing is live, else None. ``traceparent``/``carrier`` set the parent."""
+         kind: str = 'internal', ensure_trace: bool = False) -> Iterator[Any]:
+    """A span when tracing is live, else None. ``traceparent``/``carrier`` set the parent.
+    With tracing off, the W3C context still follows the request (:func:`current_traceparent`);
+    a server span, or one with ``ensure_trace``, starts a trace when there is none yet."""
     t = _state['tracer']
     if t is None:
-        yield None
+        start = kind == 'server' or ensure_trace
+        if traceparent is None and carrier is None and not (start and _w3c.get() is None):
+            yield None
+            return
+        with _w3c_scope(traceparent, tracestate, carrier, start):
+            yield None
         return
     from opentelemetry.trace import SpanKind
     ctx = _parent_context(traceparent, tracestate, carrier)

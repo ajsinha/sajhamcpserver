@@ -90,7 +90,7 @@ def to_ocsf(rec: Dict[str, Any]) -> Dict[str, Any]:
     cls, cls_name, cat, cat_name, act = _ocsf_class(event)
     outcome = (rec.get('outcome') or '').lower()
     failed = outcome in ('deny', 'denied', 'constraint', 'default_deny', 'rate', 'quota', 'block', 'error',
-                         'failed', 'not_confirmed') or event in ('login_failed', 'policy.deny', 'policy.rate_limited')
+                         'failed', 'not_confirmed', 'circuit_open', 'policy_denied', 'rate_limited') or event in ('login_failed', 'policy.deny', 'policy.rate_limited')
     sev = severity(event)
     return {
         'class_uid': cls, 'class_name': cls_name, 'category_uid': cat, 'category_name': cat_name,

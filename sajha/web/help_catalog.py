@@ -192,9 +192,10 @@ CATALOG: List[dict] = [
             _g('SAJHA Net (design)', 'SAJHA Net.md', 'bi-diagram-3',
                'Design for SAJHA servers sharing tools across domains: gossip membership, automatic proxy tools, '
                'API-key identity with a synced key directory, two-sided authorization, residency, snapshots.'),
-            _g('System notices (design)', 'System Notices.md', 'bi-exclamation-triangle',
-               'Design for one place where SAJHA shows what needs attention: notices from every subsystem, '
-               'a console banner, a dashboard status panel and a navbar badge.'),
+            _g('System notices', 'System Notices.md', 'bi-exclamation-triangle',
+               'One place where SAJHA shows what needs attention: notices from the schema check, circuit '
+               'breakers, workflows, LLM providers, federation and alert rules; the console banner, the '
+               'dashboard System status panel, the navbar badge, acknowledgement and the admin API.'),
             _g('Implementation plan', 'Implementation Plan.md', 'bi-list-ol',
                'The build order for LLM tools, SAJHA Net and the open roadmap items, in five waves, '
                'each a release with its contents, dependencies, exit gates and risks.'),

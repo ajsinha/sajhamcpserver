@@ -140,6 +140,7 @@ Reader: Settings.
 | `auth.login.ip_max_failures` | `20` (min 1) | `SAJHA_AUTH_LOGIN_IP_MAX_FAILURES` | Failed sign-ins per client IP within the window before 429 (`sajha/security.py`). |
 | `auth.login.ip_window_seconds` | `300` (min 1) | `SAJHA_AUTH_LOGIN_IP_WINDOW_SECONDS` | The window for `ip_max_failures`. |
 | `auth.password.min_length` | not in YAML / `8` (never below 8) | `SAJHA_AUTH_PASSWORD_MIN_LENGTH` | Minimum length of a new password (`sajha/auth/password.py`). |
+| `auth.api_keys.max_per_user` | not in YAML / `25` (min 1) | `SAJHA_AUTH_API_KEYS_MAX_PER_USER` | API keys a user may hold besides their default key (live `_get`, `sajha/auth/apikeys.py`). |
 
 ## mcp
 
@@ -158,6 +159,7 @@ otherwise. Clamps are applied in code. Protocol behaviour is covered in the
 | `mcp.allowed_origins` | `[]` | The browser `Origin` values allowed on `/mcp`. Other origins get 403. Localhost and requests without an `Origin` header are always allowed, and `"*"` disables the check. The env form is a comma-separated list. | `sajha/core/mcp_2025_11_25.py` |
 | `mcp.tools.advertise_output_schema` | `true` | Sends `outputSchema` in tools/list and `structuredContent` from tools/call. | `sajha/core/mcp_handler.py` |
 | `mcp.conformance_fixtures` | `false` | Exposes the official conformance-suite test tools, prompts and resources. Use it for protocol testing only. | `sajha/core/mcp_conformance_fixtures.py` |
+| `tools.max_call_depth` | not in YAML / `8` (min 1) | How deep tools may call tools (a composite step, `sajha_ask`'s inner calls); a deeper call, or a tool already running in the chain, is refused ([Inner calls](../security/Security%20Model.md#inner-calls)). | `sajha/core/inner_calls.py` |
 | `mcp.confirm_destructive_tools` | `false` | Asks the user to confirm, through MRTR elicitation, before running a tool annotated `destructiveHint: true`. This happens only when the client supports elicitation. Applies to 2026-07-28 requests. | `sajha/core/mcp_modern.py` |
 
 ### Anonymous access (`mcp.anonymous`)
@@ -241,8 +243,7 @@ Reader: Settings.
 | `config.tools.dir` | `config/tools` | `SAJHA_CONFIG_TOOLS_DIR` | Tool JSON configs (`sajha/app.py` → tools registry). |
 | `config.prompts.dir` | `config/prompts` | `SAJHA_CONFIG_PROMPTS_DIR` | Prompt configs (`sajha/app.py` → prompts registry). |
 | `config.plugins.dir` | `config/plugins` | `SAJHA_CONFIG_PLUGINS_DIR` | Plugins (`sajha/core/plugins.py`). |
-| `config.users.path` | `config/users.json` | `SAJHA_CONFIG_USERS_PATH` | Legacy users imported at seed time (`sajha/db/seed.py`). |
-| `config.apikeys.path` | `config/apikeys.json` | `SAJHA_CONFIG_APIKEYS_PATH` | Legacy API keys imported at seed time (`sajha/db/seed.py`). |
+| `config.apikeys.path` | `config/apikeys.json` | `SAJHA_CONFIG_APIKEYS_PATH` | The persistent API key file: hashed records of the keys an administrator marks persistent, read after the database and re-read when it changes; written atomically, mode 0600, git-ignored; format in `config/apikeys.json.example` (`sajha/auth/persistent_keys.py`; [API keys](../security/Security%20Model.md#api-keys)). The older plaintext format is not read. |
 | `config.ir.dir` | `config/ir` | `SAJHA_CONFIG_IR_DIR` | **Not used.** It is loaded into Settings, but nothing reads it. |
 
 ## hot_reload
@@ -416,7 +417,7 @@ fields below. Built-in providers not listed still exist, disabled.
 | `ai.ask.synthesize` | `true` | Final structured-output call. |
 | `ai.ask.audit` | `true` | Write an `ai_ask` audit entry per ask. |
 | `ai.ask.mcp_tool_enabled` | `false` | Register the `sajha_ask` MCP tool. |
-| `ai.ask.mcp_allowed_tools` | `[]` | Extra fnmatch patterns `sajha_ask` may run beyond the anonymous MCP policy. |
+| `ai.ask.mcp_allowed_tools` | `[]` | fnmatch patterns that narrow what `sajha_ask` may run; its inner calls run as the MCP caller, so it never runs a tool the caller may not. Empty: the caller's access alone. Only where no caller was recorded (code calling the tool directly) are they added to the anonymous MCP policy. |
 | `ai.ask.planner` | `react` | The planning strategy (`sajha/ai/planners.py`): `react`, `plan_execute`, `recipes`, `router` (`model` is an alias of `react`), another registered name, or `package.module:Class`. Unknown names fail at startup. |
 | `ai.ask.planner_config.<planner>` | `{}` | Each planner's settings, validated by its own model. `react`: none. `plan_execute`: `max_replans` (`1`), `max_parallel` (`4`), `max_plan_steps` (`8`), `fallback` (`react`), `model` (alias of the planning call; default the ask's). `recipes`: `recipes: [{name, tool, match (regex, named groups), keywords, arguments, answer}]`, `fallback` (`react`). `router`: `rules: [{match, planner}]`, `use_recipes` (`true`), `multi_step` (`plan_execute`), `default` (`react`), `multi_step_pattern`. Env: `SAJHA_AI_ASK_PLANNER_CONFIG` as JSON. |
 | `ai.memory.enabled` | `true` | Conversation memory for asks that send a `conversation_id` (`sajha/ai/memory.py`). |
@@ -464,6 +465,12 @@ tool is set by `cache_ttl` in each tool's JSON config.
 | `cache.max_files` | `50000` (YAML `${CACHE_MAX_FILES:50000}`) | `CACHE_MAX_FILES`, `SAJHA_CACHE_MAX_FILES` | Number of files before eviction. |
 | `cache.max_file_size_kb` | `512` (YAML `${CACHE_MAX_FILE_KB:512}`) | `CACHE_MAX_FILE_KB`, `SAJHA_CACHE_MAX_FILE_SIZE_KB` | Results larger than this are not cached. |
 | `cache.cleanup_interval_seconds` | `300` | `SAJHA_CACHE_CLEANUP_INTERVAL_SECONDS` | **Not used.** It is loaded into Settings, but nothing reads it. |
+| `cache.per_user_federated` | `true` | `SAJHA_CACHE_PER_USER_FEDERATED` | Read live (`_bool`) on each cached call. Federated tools without their own `cache_per_user` keep a cached result per caller. |
+
+A tool's JSON config may also set `"cache_per_user": true` (or `false`): the caller's user id
+becomes part of the cache key, so one user's cached result is never served to another (all
+anonymous callers share one key). Tools bound to a connected account are never cached.
+Design: [Scaling and State](../architecture/Scaling%20and%20State.md#48-per-user-cache-keys).
 
 ## async and shell
 
@@ -703,6 +710,26 @@ rule fields: [Observability](../architecture/Observability.md).
 | `observability.alerts_email.starttls` | `true` | Use STARTTLS. |
 | `observability.alerts_email.username` | `''` | SMTP user; the password is `SAJHA_OBSERVABILITY_ALERTS_EMAIL_PASSWORD`. |
 
+## System notices
+
+Reader: live `_get` (`sajha/notices/__init__.py`), read when used, so `SAJHA_NOTICES_*`
+environment variables override the YAML without a restart, except `check_interval_seconds`
+(read when the watcher starts). The list `notices.forward` is read from the YAML as nested
+data once per process, or from `SAJHA_NOTICES_FORWARD` (a JSON list), which replaces it.
+Notices are kept in the state store (`state.backend`). Design and behaviour:
+[System Notices](../architecture/System%20Notices.md).
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `notices.enabled` | `true` | Master switch: off, sources raise nothing and the banner, badge and panel are not shown. |
+| `notices.max_active` | `500` | Open notices kept at most; a new one beyond it clears the oldest open notice of the lowest severity (or is dropped when every open notice is more severe). |
+| `notices.default_ttl_minutes` | `30` | A notice whose source has not refreshed it for this long is cleared; a source may set its own ttl (`0` = never). |
+| `notices.banner_min_severity` | `error` | `error` or `critical`: the lowest severity that takes the banner. |
+| `notices.cleared_retention_minutes` | `1440` | How long a cleared notice stays listed under "Show recently cleared" and `state=cleared`. |
+| `notices.check_interval_seconds` | `30` | How often the watcher re-checks the polled sources (circuit breakers, LLM providers and aliases, federation) and clears expired notices. |
+| `notices.workflow_failures` | `3` | Scheduled runs of one workflow that must fail in a row before it raises a notice. |
+| `notices.forward` | `[]` | Also send each newly raised or escalated notice through an alert channel: entries `{min_severity, channel}`, where `channel` is `{type: log}`, `{type: webhook, url}` (the URL must be in `observability.alerts_webhook.allowed_urls`) or `{type: email, to}`. An invalid entry is logged and ignored. |
+
 ## workflows
 
 Reader: live `_get` (`sajha/workflows/service.py`, `WorkflowService`), read once when the
@@ -757,8 +784,32 @@ The rule language, the sink fields and the design:
 | `audit.chain.enabled` | `true` | Store the hash chain in `audit_chain` and `audit_anchors` (records are hashed and exported either way). |
 | `audit.chain.anchor_every` | `100` | Sign the chain head after this many records. |
 | `audit.chain.anchor_interval_seconds` | `300` | Also sign it at least this often while records arrive; `0` turns the timer off. |
+| `audit.chain.flush_interval_ms` | `200` | Deferred records (tool calls) are stored by a background flusher this often; read when the chain opens. |
+| `audit.chain.flush_batch` | `200` | ... or as soon as this many deferred records are waiting; read when the chain opens. |
+| `audit.tool_calls.enabled` | `true` | Write a `tool.call` record for every tool call (settings reread every 5 seconds). |
+| `audit.tool_calls.success_sample_rate` | `1.0` | Share (0 to 1) of successful calls recorded; failures, policy outcomes and destructive tools are always recorded. |
+| `audit.tool_calls.sample_rates` | `[]` | Per-tool rates, `"glob=rate"`, first match wins (`["fred_*=0.1", "calc_*=0"]`); overrides `success_sample_rate`. |
+| `audit.tool_calls.include_tools` | `[]` | Globs; when set, successful calls to other tools are not recorded. |
+| `audit.tool_calls.exclude_tools` | `[]` | Globs whose successful calls are not recorded. |
+| `audit.tool_calls.arguments` | `hash` | `hash` (SHA-256 of the canonical arguments, no values), `redacted` (values, secret-named keys and personal data masked) or `none`. |
+| `audit.tool_calls.max_argument_bytes` | `4096` | Redacted arguments longer than this (canonical JSON) are cut. |
 | `audit.export.allowed_urls` | `[]` | URL prefixes HTTP sinks may post to; empty allows any public host. |
 | `audit.export.sinks` | `[]` | The SIEM sinks: `type` `syslog`, `http` or `file`, `format` `json`, `cef` or `ocsf` (fields in [Policy and Audit](../architecture/Policy%20and%20Audit.md#8-siem-export)). Tokens are secret references (`env:NAME`, `file:/path`). |
+
+### snapshots
+
+Reader: `_get` when the server starts (`sajha/snapshots/`), so `SAJHA_SNAPSHOTS_*` environment
+variables override the YAML; `python -m sajha.snapshots` reads `snapshots.dir` the same way.
+What a snapshot holds, the chain and the command line:
+[Policy and Audit](../architecture/Policy%20and%20Audit.md#75-snapshots-of-users-api-keys-and-tools).
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `snapshots.enabled` | `true` | Write a signed, chained snapshot of users, API keys and tools every interval. |
+| `snapshots.interval_minutes` | `10` | Minutes between snapshots (at least 1); one worker writes per interval. |
+| `snapshots.keep` | `20` | Snapshots kept; the oldest beyond this are deleted after each write (audited). |
+| `snapshots.dir` | `data/snapshots` | Where the files go (mode 0700, files 0600); local disk. |
+| `snapshots.compress` | `false` | Write gzip files (`.json.gz`). |
 
 ## Quality
 

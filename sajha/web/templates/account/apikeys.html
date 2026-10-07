@@ -1,0 +1,117 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Your API keys: create, rotate and revoke the keys that sign in as you; sign out everywhere.
+Guide: docs/security/Security Model.md (API keys, Revocable sign-in)
+-->
+{% block title %}My API keys - SAJHA MCP Server{% endblock %}
+
+{% block content %}
+<div class="container-fluid acct-page" data-apikeys data-csrf="{{ csrf }}">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-key me-2" aria-hidden="true"></i>My API keys</h1>
+      <small class="text-muted">A key signs in as you, with your access; a key's own tool list can only narrow it. SAJHA keeps a hash, so a key is shown once: when it is created or rotated.</small>
+    </div>
+    {% if is_admin %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('apikeys_list') }}"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>All keys</a>{% endif %}
+  </div>
+
+  <div id="keyStatus" class="alert" role="status" tabindex="-1" hidden></div>
+  {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+
+  <section id="keyOnce" class="alert alert-warning keys-once" role="region" aria-labelledby="keyOnceH" hidden>
+    <h2 class="h6" id="keyOnceH"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>Copy your key now (<span id="keyOnceName"></span>)</h2>
+    <p class="small mb-2">This is the only time it is shown. Send it as <code>X-API-Key</code>.</p>
+    <code id="keyOnceValue" class="keys-secret"></code>
+    <div class="acct-actions mt-2">
+      <button type="button" class="btn btn-sm btn-primary" id="keyOnceCopy"><i class="bi bi-clipboard me-1" aria-hidden="true"></i>Copy</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="keyOnceDone">I have copied it</button>
+    </div>
+  </section>
+
+  {% if not is_user %}
+  <div class="alert alert-info" role="status">API keys belong to signed-in users. This credential (for example an API key) cannot manage keys; sign in to the console.</div>
+  {% else %}
+
+  <div class="acct-grid mb-4">
+    {% for k in apikeys %}
+    <section class="acct-card{% if k.status != 'active' %} acct-attn{% endif %}" aria-labelledby="k-{{ k.id }}">
+      <div class="acct-head">
+        <span class="acct-icon" aria-hidden="true"><i class="bi bi-{{ 'star' if k.is_default else 'key' }}"></i></span>
+        <div class="acct-title">
+          <h2 class="h6 mb-0" id="k-{{ k.id }}">{{ k.name }}{% if k.is_default %} <span class="text-muted small">(default)</span>{% endif %}</h2>
+          <small class="text-muted"><code>{{ k.prefix }}…</code>{% if k.description %} · {{ k.description }}{% endif %}</small>
+        </div>
+        <span class="acct-badge{% if k.status == 'active' %} acct-ok{% elif k.status in ('revoked', 'expired') %} acct-bad{% endif %}">{{ k.status }}</span>
+      </div>
+      <dl class="acct-facts">
+        <dt>Tools</dt><dd>{% if k.tool_access_mode == 'all' %}everything you may use{% else %}{{ k.tool_access_mode }}: {% for t in k.tool_access_list %}<code class="acct-scope">{{ t }}</code>{% endfor %}{% endif %}</dd>
+        <dt>Created</dt><dd>{{ k.created_at or '—' }}{% if k.rotated_at %}; rotated {{ k.rotated_at }}{% endif %}</dd>
+        <dt>Expires</dt><dd>{{ k.expires_at or 'never' }}</dd>
+        <dt>Last used</dt><dd>{{ k.last_used or 'not yet' }} ({{ k.usage_count }} calls)</dd>
+        {% if k.revoked_at %}<dt>Revoked</dt><dd>{{ k.revoked_at }} by {{ k.revoked_by }}</dd>{% endif %}
+      </dl>
+      {% if k.status != 'revoked' %}
+      <div class="acct-actions">
+        <button type="button" class="btn btn-sm btn-outline-primary" data-key-action="post" data-url="/api/account/apikeys/{{ k.id }}/rotate"
+                data-confirm="Rotate {{ k.name }}? The current key stops working now; the new one is shown once.">
+          <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{% if k.is_default and not k.rotated_at %}Get this key{% else %}Rotate{% endif %}</button>
+        {% if not k.is_default %}
+        <button type="button" class="btn btn-sm btn-outline-danger" data-key-action="post" data-url="/api/account/apikeys/{{ k.id }}/revoke"
+                data-confirm="Revoke {{ k.name }}? It stops working now and cannot be enabled again.">
+          <i class="bi bi-x-circle me-1" aria-hidden="true"></i>Revoke</button>
+        {% endif %}
+      </div>
+      {% if k.is_default %}<p class="acct-foot small text-muted mb-0">Your default key cannot be revoked or deleted; rotate it to replace it.{% if k.status == 'disabled' %} An administrator disabled it.{% endif %}</p>{% endif %}
+      {% endif %}
+    </section>
+    {% endfor %}
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card">
+        <div class="card-header"><h2 class="h6 mb-0"><i class="bi bi-plus-circle me-1" aria-hidden="true"></i>New key</h2></div>
+        <div class="card-body">
+          <form data-key-create data-url="/api/account/apikeys" class="row g-2">
+            <div class="col-sm-6"><label class="form-label small" for="nkName">Name</label>
+              <input class="form-control form-control-sm" id="nkName" name="name" required maxlength="255" placeholder="e.g. laptop-cli"></div>
+            <div class="col-sm-6"><label class="form-label small" for="nkExp">Expires after (days)</label>
+              <input class="form-control form-control-sm" id="nkExp" name="expires_in_days" type="number" min="1" max="3650" placeholder="never"></div>
+            <div class="col-12"><label class="form-label small" for="nkDesc">Description</label>
+              <input class="form-control form-control-sm" id="nkDesc" name="description" maxlength="500"></div>
+            <div class="col-sm-6"><label class="form-label small" for="nkMode">Tools this key may use</label>
+              <select class="form-select form-select-sm" id="nkMode" name="tool_access_mode">
+                <option value="all">Everything I may use</option>
+                <option value="allowlist">Only these (fnmatch patterns)</option>
+                <option value="denylist">All except these</option>
+                <option value="regex">Names matching these regular expressions</option>
+              </select></div>
+            <div class="col-sm-6" data-patterns><label class="form-label small" for="nkTools">Patterns (one per line)</label>
+              <textarea class="form-control form-control-sm font-monospace" id="nkTools" name="tool_list" rows="2" placeholder="wiki_*"></textarea></div>
+            <div class="col-12"><button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-key me-1" aria-hidden="true"></i>Create key</button>
+              <small class="text-muted ms-2">Up to {{ max_per_user }} keys besides your default key.</small></div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card">
+        <div class="card-header"><h2 class="h6 mb-0"><i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i>Sign out everywhere</h2></div>
+        <div class="card-body">
+          <p class="small">Ends every console session and every OAuth token SAJHA issued to you, on every device, including this one. Your API keys keep working: rotate or revoke them above.</p>
+          <form method="post" action="/account/sessions/revoke" onsubmit="return confirm('Sign out everywhere, including here?');">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i>Sign out everywhere</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/apikeys.js') }}"></script>
+{% endblock %}

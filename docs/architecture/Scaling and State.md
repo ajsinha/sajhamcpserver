@@ -41,6 +41,7 @@ implementations. Each process builds one store from `state.*` at start-up
 | `update(key, fn)`: atomic read-modify-write | under a lock | `WATCH`/`MULTI`, retried | optimistic `ver` column, retried |
 | `incr`: atomic counter | under a lock | `INCRBYFLOAT` plus a TTL set in Lua | `update` |
 | sliding windows (rate limits) | list of timestamps | one sorted set per key, trimmed in Lua | JSON list of timestamps |
+| leases: `lease_claim` / `lease_renew` / `lease_release` / `lease_holder` (§4.7) | `add` and `update` | `SET NX PX` and `WATCH`/`MULTI` | `add` and `update` |
 | publish / subscribe | direct call in-process | Redis pub/sub on `<prefix>chan:*`, one listener thread per process, reconnects | `sajha_state_events` table polled every `state.database.poll_interval_ms` |
 | shared between processes | no | yes | yes (same database) |
 
@@ -107,7 +108,7 @@ Every piece of per-process state found in the code, with its classification:
 | LLM response cache, provider health, provider circuit breakers | `sajha/ai/gateway.py` | Local | Caches and health probes. Each worker learning them on its own costs some duplicate calls, not correctness. |
 | Async executor queue | `sajha/core/async_executor.py` | Local | The work runs where it was submitted. |
 | Async executor task records | same | Shared | Written through to `async:task:<id>` with a shared backend, so any worker can read, list, cancel (while queued) and retry a job. Delivery headers stay in the submitting process, so a retry on another worker sends no custom headers. A queued or running job of a dead worker is reported failed. |
-| Tool output cache | `sajha/core/cache.py` | Already shared (files) | Files under `data/cache/`, shared by the workers of one host. Each host keeps its own. A miss only costs a call. |
+| Tool output cache | `sajha/core/cache.py` | Already shared (files) | Files under `data/cache/`, shared by the workers of one host. Each host keeps its own. A miss only costs a call. A per-user tool keys its entries by caller (§4.8). |
 | Tool circuit breakers | `sajha/core/circuit_breaker.py` | Local | Each worker opens its breaker after its own failures. A shared breaker would let one worker's network fault block every worker. |
 | Metrics | `sajha/observability/metrics.py` | Local, published | Each worker keeps its own families. With a shared backend each worker also publishes a snapshot (`obs:metrics:<worker id>`), and `/metrics` merges every live worker's snapshot with a `worker` label ([Observability](Observability.md#24-several-workers)). The JSON `/api/metrics*` views show the worker that answered. |
 | Usage ledger | `sajha/observability/usage.py` | Already shared (database) | One table in SAJHA's database, so the Usage & cost page sees every worker. |
@@ -180,6 +181,43 @@ Rate limits, the sign-in throttle and LLM budgets are sliding windows or counter
 store. They are atomic on every backend, so two workers cannot both let the last allowed
 request through.
 
+### 4.7 Leases
+
+Some work must run on exactly one worker at a time for as long as it runs: a gossip agent,
+a purge job, a long scheduler loop. A one-slot claim (`add` of the worker id with a TTL,
+never renewed, as workflow cron and quality probes use to fire each slot once) cannot
+express that. A **lease** can: its holder renews it while it works, and a holder that
+stops (crash, hang) loses it after one TTL, so another worker takes over.
+
+| Call | Semantics |
+|---|---|
+| `store.lease_claim(key, holder, ttl)` | atomic add of `{"holder", "claimed", "renewed", "ttl"}` with the TTL; True when `holder` now holds it (a holder that already holds it renews) |
+| `store.lease_renew(key, holder, ttl=None)` | conditional update: extends the TTL (default the lease's own) only while `holder` holds it; False when it expired or someone else holds it |
+| `store.lease_release(key, holder)` | deletes it only when `holder` holds it |
+| `store.lease_holder(key)` | the holder now, or None; also reads one-slot claims (their value is the worker id) |
+
+They are built on `add` and `update`, which each backend already makes atomic, so they mean
+the same on memory, redis and database. `sajha/core/state/lease.py::Lease` keeps one held:
+`try_acquire()` claims and starts a renewer thread (every `ttl / 3` by default), `release()`
+gives it up, and when a renewal finds the lease gone, `held` turns False and `on_lost` is
+called: the holder must stop the guarded work, because another worker may already be doing
+it. A renewal that fails because the store is unreachable is retried until the TTL runs out.
+Pick a TTL several renewal intervals long; the guarantee is "at most one holder whose lease
+has not expired", so work that cannot tolerate an overlap after a long pause (a GC stop
+beyond the TTL) must also check `held` before each step. The one-slot claims of cron and
+probes are unchanged.
+
+### 4.8 Per-user cache keys
+
+The tool output cache keys a result by tool name and arguments, so by default every caller
+shares it. A tool whose result depends on who asks sets `"cache_per_user": true` in its
+config: `sajha/core/cache.py::cache_scope` then adds `user:<user id>` (from
+`sajha.observability.caller`) to the key, so one user's cached result is never served to
+another; all anonymous callers share one key. Federated tools default to per-user keys
+(`cache.per_user_federated: true`; an upstream's `cache_per_user` overrides it), because
+the upstream may answer differently per caller. Tools bound to a connected account are
+never cached at all. Invalidating a tool removes every user's entries.
+
 ## 5. Secrets every worker must share
 
 The state store moves data. These secrets must also be identical everywhere:
@@ -246,3 +284,7 @@ The AWS CDK stack runs several Fargate tasks with `SAJHA_STATE_BACKEND=database`
   failures add up across workers, and an event on A reaches a `subscriptions/listen` stream
   on B. It also starts `run_server.py --workers 2` and checks that both workers report the
   shared backend.
+- `tests/test_state_lease.py` runs the lease contract (exclusive and re-entrant claim,
+  renewal only by the holder, expiry and takeover, release, one-slot claims, a race of
+  six claimants, the `Lease` keeper's renewal and loss) on the same backends; the real
+  Redis case is skipped when no server answers at `SAJHA_TEST_REDIS_URL`.

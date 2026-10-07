@@ -644,6 +644,7 @@ class ModernMCPServer:
         token = _caller.set_caller(_caller.from_session(session))
         from sajha.policy import context as _pctx
         src_token = _pctx.ensure_source("mcp")      # stdio sets "stdio" first
+        era_token = _pctx.ensure_era("2026-07-28")  # for the tool-call audit record
         t0 = _time.perf_counter()
         outcome = "error"
         try:
@@ -671,6 +672,7 @@ class ModernMCPServer:
             if outcome != "stream":          # a stream's tool runs later, as this caller
                 _caller.reset(token)
                 _pctx.reset_source(src_token)
+                _pctx.reset_era(era_token)
 
     async def _handle(self, body: Any, headers: Mapping[str, str], raw_headers: List[Tuple[str, str]],
                       session: Optional[Dict], receive: Optional[Callable[[], Awaitable[Dict[str, Any]]]] = None

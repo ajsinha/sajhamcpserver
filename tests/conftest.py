@@ -18,6 +18,8 @@ atexit.register(shutil.rmtree, _DUCKDB_TMP, True)
 # The document index (ai.rag) builds on first search and is not persisted under data/.
 os.environ.setdefault('SAJHA_AI_RAG_BUILD_ON_START', 'false')
 os.environ.setdefault('SAJHA_AI_RAG_PERSIST', 'false')
+# Periodic snapshots (snapshots.*) write under data/; tests that need them build their own.
+os.environ.setdefault('SAJHA_SNAPSHOTS_ENABLED', 'false')
 
 
 import pytest

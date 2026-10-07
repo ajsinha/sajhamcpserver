@@ -1,3 +1,3 @@
 """Single source of the client SDK version (keep in step with setup.py)."""
 
-__version__ = "7.0.0"
+__version__ = "7.1.0"

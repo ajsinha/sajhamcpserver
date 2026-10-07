@@ -138,7 +138,7 @@ def init_db(settings) -> None:
     root = schema.scripts_root(settings.db_scripts_dir)
     if _engine.dialect.name == 'sqlite':
         schema.create_sqlite(_engine, root)
-    schema.check(_engine, getattr(settings, 'db_schema_check', 'strict'), root)
+    schema.check(_engine, getattr(settings, 'db_schema_check', 'strict'), root, notify=True)
 
     logger.info('Database initialization complete')
 

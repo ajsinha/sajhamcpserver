@@ -76,7 +76,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [LLM Tools](architecture/LLM%20Tools.md): design (not built) for tools whose work is done by a model, configured like any tool and governed the same way
 - [Planner Reference](architecture/Planner%20Reference.md): design (not built) reference for planner files: keys, the stage library, transitions and bounded loops, the `when` expression language, verify checks, validation messages, a JSON Schema and every shipped strategy in full
 - [SAJHA Net](architecture/SAJHA%20Net.md): design (not built) for several SAJHA servers sharing tools while each keeps its own data, policy, AI and memory
-- [System Notices](architecture/System%20Notices.md): design (not built) for the console banner, dashboard status panel and notices every subsystem raises
+- [System Notices](architecture/System%20Notices.md): what needs attention, from every subsystem: the console banner, the dashboard System status panel, the navbar badge, acknowledgement and the admin API
 - [Implementation Plan](architecture/Implementation%20Plan.md): the build order for LLM tools, SAJHA Net and open roadmap items, in five waves
 - [Roadmap](architecture/Roadmap.md): what is not built yet and what should come next, by horizon (now, next, later), each item linked to the guide that records the gap
 

@@ -1,6 +1,6 @@
 # SAJHA MCP Server: API Reference
 
-This page lists every HTTP and WebSocket route the server registers, grouped by the module in `sajha/routes/` that defines it. All modules are included in `sajha/app.py` without an extra prefix, so the paths below are the full paths. These modules set a router prefix: `admin_routes.py` (`/admin`), `apikeys_routes.py` (`/admin/apikeys`), `studio_routes.py` (`/studio` for pages, `/admin/studio` for actions), `api_import_routes.py` (`/studio`, `/admin/studio/api-import`, `/api/studio/api-import`) and `describe_routes.py` (`/studio`, `/admin/studio/describe`, `/api/studio/describe`); their paths are shown with the prefix applied. `tests/test_documentation_rot.py` fails when a registered route is missing from this page.
+This page lists every HTTP and WebSocket route the server registers, grouped by the module in `sajha/routes/` that defines it. All modules are included in `sajha/app.py` without an extra prefix, so the paths below are the full paths. These modules set a router prefix: `admin_routes.py` (`/admin`), `studio_routes.py` (`/studio` for pages, `/admin/studio` for actions), `api_import_routes.py` (`/studio`, `/admin/studio/api-import`, `/api/studio/api-import`) and `describe_routes.py` (`/studio`, `/admin/studio/describe`, `/api/studio/describe`); their paths are shown with the prefix applied. `tests/test_documentation_rot.py` fails when a registered route is missing from this page.
 
 The examples assume the default address `http://localhost:3002` (`server.port`, env `SERVER_PORT`).
 
@@ -26,11 +26,11 @@ FastAPI also serves its generated docs: `GET /api/docs` (Swagger UI, with its OA
 `AuthManager.authenticate_request` (`sajha/auth/__init__.py`) tries these in order and uses the first that validates:
 
 1. `Authorization: Bearer <jwt>`: a SAJHA login JWT (HS256, from `POST /api/auth/login`).
-2. `X-API-Key: sja_...`: an API key created under `/admin/apikeys`.
+2. `X-API-Key: sja_...`: an API key (from `/account/apikeys` or `/admin/apikeys`).
 3. `Authorization: sja_...`: the same API key sent bare in the `Authorization` header.
 4. Cookie `sajha_token`: the JWT the web UI stores at login (`POST /login`).
 
-API keys authenticate as `apikey:<key name>` with the single role `api_consumer`; the key's `tool_access_mode` and tool list decide which tools it may see and run, on REST, MCP and A2A alike ([Tool access](../security/Security%20Model.md#tool-access)). SAJHA JWTs carry the user's roles. JWT lifetime is `auth.jwt.expiry_minutes` (env `JWT_EXPIRY`, default 60); the web cookie has a one-hour `max_age`.
+An API key with an owner authenticates as that user, with the user's roles, and its `tool_access_mode` and tool list narrow what it may see and run; a key without an owner authenticates as `apikey:<key name>` with the single role `api_consumer`, and its mode and list alone decide, on REST, MCP and A2A alike ([API keys](../security/Security%20Model.md#api-keys)). SAJHA JWTs carry the user's roles and can be revoked ([Revocable sign-in](../security/Security%20Model.md#revocable-sign-in)). JWT lifetime is `auth.jwt.expiry_minutes` (env `JWT_EXPIRY`, default 60); the web cookie has a one-hour `max_age`.
 
 **OAuth access tokens are not accepted on the REST API.** They are minted for the MCP resource and are validated only on the MCP endpoints (`sajha/auth/oauth/resource_server.py`); see [OAuth Guide](OAuth%20Guide.md).
 
@@ -45,7 +45,7 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:3002/api/metrics
 curl -H "X-API-Key: sja_your_key_here" http://localhost:3002/api/metrics
 ```
 
-(`admin`/`admin123` is the seeded account from `config/users.json`; change it.)
+(`admin`/`admin123` is the seeded account from `db/scripts/<dialect>/seed.sql`; change it.)
 
 ### 1.2 Auth routes (`auth_routes.py`)
 
@@ -54,11 +54,15 @@ curl -H "X-API-Key: sja_your_key_here" http://localhost:3002/api/metrics
 | POST | `/api/auth/login` | none | JSON login; returns a JWT and `password_change_required`. Too many failed sign-ins from one IP: 429; a locked account: 423 ([Security Model](../security/Security%20Model.md#web-login-and-passwords)). |
 | GET | `/account/password` | user | Change-password page (also in the user menu). |
 | POST | `/account/password` | user | Change-password form (`current_password`, `new_password`, `confirm_password`); sets a fresh cookie. |
-| POST | `/api/auth/change-password` | user | `{"current_password", "new_password"}`; returns `{"success": true, "token": <new JWT>}`. Not for API keys. |
-| POST | `/api/admin/users/{uid}/password` | admin | Reset a password: `{"password", "must_change_password": true}`; also unlocks the account. |
+| POST | `/api/auth/change-password` | user | `{"current_password", "new_password"}`; returns `{"success": true, "token": <new JWT>}`. Every other session of the user ends. Not for API keys. |
+| POST | `/api/admin/users/{uid}/password` | admin | Reset a password: `{"password", "must_change_password": true}`; also unlocks the account and ends the user's sessions. |
+| POST | `/api/auth/logout` | none | Revoke the presented SAJHA JWT (`Authorization: Bearer` or the cookie) until it expires; clears the cookie. `{"success": true, "revoked": true}`. |
+| POST | `/api/auth/sessions/revoke` | user (not an API key; cookie callers send `X-CSRF-Token`) | Sign out everywhere: every SAJHA JWT and built-in OAuth token of the caller stops working, this one included. |
+| POST | `/account/sessions/revoke` | user (form, CSRF) | The "Sign out everywhere" button on `/account/apikeys`; then redirects to `/login`. |
+| POST | `/api/admin/users/{uid}/sessions/revoke` | admin (not an API key) | End every session of a user; returns the new `token_version`. |
 | GET | `/login` | none | Login page (HTML). |
 | POST | `/login` | none | Login form (`user_id`, `password`); sets the `sajha_token` cookie and redirects to `?next=` (local paths only) or `/dashboard`. Same throttle (429) and lockout (423) as the JSON login. |
-| GET | `/logout` | none | Clears the cookie, redirects to `/`. |
+| GET | `/logout` | none | Revokes the session token, clears the cookie, redirects to `/`. |
 | GET | `/` | optional | Landing page, or redirect to `/dashboard` when signed in. |
 
 `POST /api/auth/login` accepts the user id as `user_id`, `username` or `uid`:
@@ -268,23 +272,45 @@ curl -X POST http://localhost:3002/api/admin/users/create \
   -d '{"user_id": "analyst1", "user_name": "Analyst One", "password": "s3cret!", "roles": ["user"]}'
 ```
 
-### 4.4 API keys (`apikeys_routes.py`, prefix `/admin/apikeys`)
+### 4.4 API keys (`apikeys_routes.py`)
 
-Keys are managed under `/admin/apikeys`, not `/api/...`. An unauthenticated POST or DELETE here gets a JSON 401; an unauthenticated GET from a browser is redirected to `/` (see [section 5](#5-error-format)).
+Every route here needs a signed-in user (a console session or a SAJHA JWT); an API key gets 403, so a key cannot mint more. Requests that change something from the browser (cookie) send the page's CSRF token in `X-CSRF-Token`. Bodies are JSON. A response that carries `key` is the only time that raw key is shown. Key objects never contain the key, its hash or its ciphertext ([API keys](../security/Security%20Model.md#api-keys)).
+
+Your own keys:
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/admin/apikeys/create` | admin | Create a key: `name`, `description`, `tool_access_mode` (default `all`), `tool_list`. The raw `sja_` key is returned once. |
-| POST | `/admin/apikeys/{key_id}/toggle` | admin | Enable/disable a key. |
-| DELETE | `/admin/apikeys/{key_id}/delete` | admin | Delete a key. |
+| GET | `/account/apikeys` | user | The My API keys page (user menu): your keys, a new-key form, "Sign out everywhere". |
+| GET | `/api/account/apikeys` | user | `{"apikeys": [...]}`: your keys, the default key included. |
+| POST | `/api/account/apikeys` | user | Create a key that signs in as you: `name`, `description`, `tool_access_mode` (`all`, `allowlist`, `denylist`, `regex`), `tool_list`, `expires_in_days`. At most `auth.api_keys.max_per_user` besides the default key. |
+| POST | `/api/account/apikeys/{key_id}/rotate` | user | New value for your key (the old one stops working); returned once. |
+| POST | `/api/account/apikeys/{key_id}/revoke` | user | Revoke your key for good (not the default key: 400). |
 
-The GET routes under this prefix are HTML pages (section 4.14).
+Every key (administrators):
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/admin/apikeys` | admin | The API keys page (`?owner=<user ID>`, `?owner=-` for keys without an owner, `?status=`). |
+| GET | `/admin/apikeys/create` | admin | The new-key page. |
+| GET | `/admin/apikeys/{key_id}/view` | admin | One key, with its actions. |
+| GET | `/api/admin/apikeys` | admin | `{"apikeys": [...]}`; `?owner=<user ID>` or `?owner=-` (no owner). |
+| POST | `/api/admin/apikeys` | admin | Create a key: `name`, `description`, `owner` (a user ID; empty for a key without an owner), `tool_access_mode`, `tool_list`, `expires_in_days`, `persistent`. |
+| POST | `/admin/apikeys/create` | admin | The older path of `POST /api/admin/apikeys`. |
+| POST | `/api/admin/apikeys/{key_id}/rotate` | admin | New value for any key; returned once. |
+| POST | `/api/admin/apikeys/{key_id}/revoke` | admin | Revoke for good (`revoked_at`, `revoked_by`); not a default key. |
+| POST | `/api/admin/apikeys/{key_id}/enabled` | admin | `{"enabled": true}` or `false`; a revoked key cannot be enabled. |
+| POST | `/admin/apikeys/{key_id}/toggle` | admin | The older enable/disable switch (flips `enabled`). |
+| POST | `/api/admin/apikeys/{key_id}/owner` | admin | `{"owner": "<user ID>"}`: give a key without an owner one; it then signs in as that user. |
+| POST | `/api/admin/apikeys/{key_id}/persistent` | admin | `{"persistent": true}` or `false`: keep (or stop keeping) the key's hashed record in `config.apikeys.path`. |
+| POST | `/api/admin/apikeys/{key_id}/access` | admin | `{"tool_access_mode", "tool_list"}`: the key's own tool access. |
+| DELETE | `/api/admin/apikeys/{key_id}` | admin | Delete a key and its record (not a default key; prefer revoke). |
+| DELETE | `/admin/apikeys/{key_id}/delete` | admin | The older path of the delete. |
 
 ```bash
-curl -X POST http://localhost:3002/admin/apikeys/create \
+curl -X POST http://localhost:3002/api/account/apikeys \
   -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
-  -d '{"name": "reporting-bot", "tool_access_mode": "all"}'
-# {"success": true, "key": "sja_...", "name": "reporting-bot"}
+  -d '{"name": "reporting-bot", "tool_access_mode": "allowlist", "tool_list": ["wiki_*"]}'
+# {"success": true, "key": "sja_...", "apikey": {"id": "...", "owner": "admin", "status": "active", ...}, "note": "..."}
 ```
 
 ### 4.5 Prompts (`prompts_routes.py`)
@@ -544,7 +570,7 @@ These render templates; they are not JSON APIs. Unauthenticated requests to `use
 | Auth | Paths |
 |---|---|
 | none / optional | `/`, `/login`, `/help`, `/help/c/{cid}`, `/help/guides`, `/help/guides/{name}`, `/glossary`, `/help/tools`, `/about`, `/comparison`, `/oauth/authorize`; and the 301 redirects `/help/ai`, `/help/enterprise`, `/help/tutorials`, `/help/glossary`, `/help/storage`, `/docs`, `/docs/view/{doc_path}` |
-| user | `/dashboard`, `/account/password`, `/tools`, `/tools/{tool_name}/execute`, `/tools/{tool_name}/schema`, `/prompts`, `/prompts/{prompt_name}`, `/prompts/{prompt_name}/test`, `/prompts/category/{category}`, `/prompts/tag/{tag}`, `/reports`, `/composite/builder`, `/ai/settings`, `/ask`, `/playground`, `/monitoring/usage` |
+| user | `/dashboard`, `/account/password`, `/account/apikeys`, `/tools`, `/tools/{tool_name}/execute`, `/tools/{tool_name}/schema`, `/prompts`, `/prompts/{prompt_name}`, `/prompts/{prompt_name}/test`, `/prompts/category/{category}`, `/prompts/tag/{tag}`, `/reports`, `/composite/builder`, `/ai/settings`, `/ask`, `/playground`, `/monitoring/usage` |
 | admin | `/admin/users`, `/admin/users/create`, `/admin/tools`, `/admin/system-monitor`, `/admin/prompts`, `/admin/async-tasks`, `/admin/apikeys`, `/admin/apikeys/create`, `/admin/apikeys/{key_id}/view`, `/admin/federation`, `/admin/connectors`, `/prompts/create`, `/tools/{tool_name}/config`, `/monitoring/tools`, `/monitoring/users` |
 | studio | `/studio`, `/studio/rest`, `/studio/dbquery`, `/studio/script`, `/studio/livelink`, `/studio/olap`, `/studio/powerbi`, `/studio/powerbidax`, `/studio/sharepoint`, `/studio/examples`, `/studio/api-import`, `/studio/describe` |
 
@@ -698,6 +724,20 @@ for them. Every route is admin only; changes are audited. Behaviour:
 | POST | `/api/connectors/{cid}/refresh` | admin | Re-read the catalog: `{tables, truncated}`. |
 | GET | `/api/connectors/{cid}/tables` | admin | The allowed tables (or collections). |
 | GET | `/api/connectors/{cid}/describe` | admin | `?table=`: what `<id>__describe_table` (or `__describe_collection`) returns. |
+
+### 4.22 System notices (`notices_routes.py`)
+
+What needs attention, as the console's banner, navbar badge and dashboard panel show it. A
+signed-in user sees notices with audience `everyone`; an administrator sees all. Fields,
+lifecycle and sources: [System Notices](../architecture/System%20Notices.md).
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/api/notices` | user | The caller's view: `{enabled, notices, banner, others, badge, is_admin, version}`; `?cleared=1` adds `cleared` (recently cleared); an administrator signed in by cookie also gets `csrf`. |
+| GET | `/api/notices/stream` | user | Server-sent events: `event: notices` with the same view, at once and after every change (`?cleared=1` as above). |
+| GET | `/api/admin/notices` | admin | `{enabled, notices}`: `?state=open` (default), `cleared` or `all`; `?source=`. 400 for another state. |
+| POST | `/api/admin/notices/{id}/acknowledge` | admin (CSRF) | Acknowledge an active notice → `{notice}`; 404 unknown id. |
+| POST | `/api/admin/notices/{id}/clear` | admin (CSRF) | Clear it now (reason `admin`) → `{notice}`; a source whose condition still holds raises it again. 404 unknown id. |
 
 ---
 

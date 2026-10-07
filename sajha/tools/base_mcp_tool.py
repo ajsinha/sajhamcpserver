@@ -232,7 +232,8 @@ class BaseMCPTool(ABC):
         t0 = _time.perf_counter()
         with _tracing.span(f'tool {self.name}', {'sajha.tool.name': self.name,
                                                  'sajha.tool.group': _metrics.tool_group(self.name),
-                                                 'enduser.id': _caller().user_id}) as span:
+                                                 'enduser.id': _caller().user_id},
+                            ensure_trace=True) as span:
             try:
                 # Connected accounts: a tool whose config declares auth.connected_account runs with
                 # the caller's token bound (sajha/accounts/injection.py); a no-op for every other tool
@@ -261,7 +262,11 @@ class BaseMCPTool(ABC):
                 raise
             finally:
                 _tracing.set_attrs(span, **{'sajha.tool.outcome': outcome['v']})
-                _metrics.record_tool(self.name, outcome['v'], _time.perf_counter() - t0, error)
+                _elapsed = _time.perf_counter() - t0
+                _metrics.record_tool(self.name, outcome['v'], _elapsed, error)
+                # every call is a tool.call record in the audit chain (sajha/audit/tool_calls.py)
+                from sajha.audit.tool_calls import record_call as _audit_call
+                _audit_call(self, arguments, outcome['v'], _elapsed, error)
 
     def _execute_tracked(self, arguments: Dict[str, Any], outcome: Dict[str, str]) -> Any:
         """The body of :meth:`execute_with_tracking`; sets ``outcome['v']`` for a cache hit
@@ -276,8 +281,12 @@ class BaseMCPTool(ABC):
         from sajha.core.cache import get_tool_cache, get_tool_ttl
         cache = get_tool_cache()
         tool_ttl = get_tool_ttl(self.name, self.config if hasattr(self, 'config') else None)
+        cache_scope = ''
         if tool_ttl > 0:
-            cached = cache.get(self.name, arguments)
+            # cache_per_user: the caller is part of the key (sajha/core/cache.py::cache_scope)
+            from sajha.core.cache import cache_scope as _cache_scope
+            cache_scope = _cache_scope(self.config if hasattr(self, 'config') else None)
+            cached = cache.get(self.name, arguments, scope=cache_scope)
             if cached is not None:
                 self.logger.debug(f"Cache hit: {self.name}")
                 outcome['v'] = 'cache_hit'
@@ -311,7 +320,7 @@ class BaseMCPTool(ABC):
             from sajha.core.cache import get_tool_ttl
             tool_ttl = get_tool_ttl(self.name, self.config if hasattr(self, 'config') else None)
             if tool_ttl > 0:
-                cache.put(self.name, arguments, result, ttl=tool_ttl)
+                cache.put(self.name, arguments, result, ttl=tool_ttl, scope=cache_scope)
 
             # Record for replay
             from sajha.core.tool_health import get_replay_store

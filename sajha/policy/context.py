@@ -29,6 +29,7 @@ SOURCES = ('mcp', 'stdio', 'websocket', 'rest', 'playground', 'a2a', 'ask', 'asy
 _source: contextvars.ContextVar[str] = contextvars.ContextVar('sajha_policy_source', default='')
 _confirmed: contextvars.ContextVar[bool] = contextvars.ContextVar('sajha_policy_confirmed', default=False)
 _confirmable: contextvars.ContextVar[bool] = contextvars.ContextVar('sajha_policy_confirmable', default=False)
+_era: contextvars.ContextVar[str] = contextvars.ContextVar('sajha_mcp_era', default='')
 
 
 def source() -> str:
@@ -63,6 +64,27 @@ def using_source(name: str, override: bool = False) -> Iterator[None]:
         yield
     finally:
         reset_source(token)
+
+
+def era() -> str:
+    """The MCP era of the current call (``2026-07-28`` or ``2025-11-25``); '' when not MCP."""
+    return _era.get()
+
+
+def ensure_era(name: str) -> Optional[contextvars.Token]:
+    """Set the MCP era unless already set (as :func:`ensure_source`); a token or None."""
+    if _era.get():
+        return None
+    return _era.set(str(name)[:20])
+
+
+def reset_era(token) -> None:
+    if token is None:
+        return
+    try:
+        _era.reset(token)
+    except (ValueError, RuntimeError):
+        pass
 
 
 def confirmed() -> bool:

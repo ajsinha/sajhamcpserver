@@ -257,6 +257,11 @@ def context_for_token(info: TokenInfo, db):
     from sajha.auth import AuthContext
     from sajha.db.dao import UserDAO
     user = UserDAO(db).get_by_user_id(info.subject)
+    if user is not None and user.enabled and settings.external_issuer() is None:
+        # SAJHA's own tokens carry the user's token version (revocable sign-in)
+        from sajha.auth.revocation import version_matches
+        if not version_matches(info.claims, user):
+            return None
     if user is not None and user.enabled:
         return AuthContext(authenticated=True, user_id=user.user_id, user_name=user.user_name,
                            roles=user.role_names, auth_type='oauth', is_admin=user.is_admin,

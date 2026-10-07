@@ -202,15 +202,17 @@ class ApiKeyDAO(BaseDAO[ApiKey]):
 
         if not api_key:
             return False, None, 'Invalid API key'
+        if getattr(api_key, 'revoked_at', None) is not None:
+            return False, api_key, 'API key is revoked'
         if not api_key.enabled:
-            return False, None, 'API key is disabled'
+            return False, api_key, 'API key is disabled'
         if api_key.expires_at:
             # SQLite returns naive datetimes (stored as UTC); PostgreSQL TIMESTAMPTZ aware ones
             expires = api_key.expires_at
             if expires.tzinfo is None:
                 expires = expires.replace(tzinfo=timezone.utc)
             if expires < datetime.now(timezone.utc):
-                return False, None, 'API key has expired'
+                return False, api_key, 'API key has expired'
 
         return True, api_key, 'Valid'
 

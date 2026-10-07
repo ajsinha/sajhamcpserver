@@ -1,0 +1,12 @@
+{# System notices banner (sajha/notices; docs/architecture/System Notices.md): the most severe open,
+   unacknowledged error or critical notice this viewer may see; static/js/notices.js keeps it live.
+   Rendered only for a signed-in viewer with notices on (the script starts when it finds this element). #}
+{% if _nv and _nv.enabled %}{% set b = _nv.banner %}
+<div id="sajha-notice-banner" class="sajha-notice-banner sev-{{ b.severity if b else 'error' }}" role="alert"{% if not b %} hidden{% endif %}>
+  <i class="bi bi-{{ {'critical': 'exclamation-octagon-fill', 'error': 'x-octagon'}.get(b.severity if b else 'error', 'x-octagon') }}" aria-hidden="true"></i>
+  <div class="snb-text"><strong class="sev-word">{{ (b.severity|capitalize if b else 'Error') }}:</strong>
+    <span class="snb-title">{{ b.title if b else '' }}</span>
+    <span class="snb-more">{% if b and _nv.others %}and {{ _nv.others }} more{% endif %}</span></div>
+  <a class="snb-link" href="/dashboard#system-status">System status</a>
+</div>
+{% endif %}

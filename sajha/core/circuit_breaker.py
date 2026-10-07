@@ -12,9 +12,30 @@ import logging
 import threading
 import time
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+#: callback(breaker, old_state, new_state) on every state change (system notices listen here)
+_listeners: List[Callable[[Any, str, str], None]] = []
+
+
+def add_listener(fn: Callable[[Any, str, str], None]) -> None:
+    if fn not in _listeners:
+        _listeners.append(fn)
+
+
+def remove_listener(fn: Callable[[Any, str, str], None]) -> None:
+    if fn in _listeners:
+        _listeners.remove(fn)
+
+
+def _notify(breaker, old: str, new: str) -> None:
+    for fn in list(_listeners):
+        try:
+            fn(breaker, old, new)
+        except Exception as e:
+            logger.debug(f'circuit breaker listener failed: {e}')
 
 
 class CircuitState(str, Enum):
@@ -41,6 +62,14 @@ class CircuitBreaker:
 
     def can_execute(self) -> bool:
         """Check if a request should be allowed through."""
+        old = self.state
+        try:
+            return self._can_execute()
+        finally:
+            if self.state != old:
+                _notify(self, old.value, self.state.value)
+
+    def _can_execute(self) -> bool:
         with self._lock:
             if self.state == CircuitState.CLOSED:
                 return True
@@ -57,6 +86,12 @@ class CircuitBreaker:
 
     def record_success(self):
         """Record a successful execution."""
+        old = self.state
+        self._record_success()
+        if self.state != old:
+            _notify(self, old.value, self.state.value)
+
+    def _record_success(self):
         with self._lock:
             if self.state == CircuitState.HALF_OPEN:
                 self.success_count += 1
@@ -71,6 +106,12 @@ class CircuitBreaker:
 
     def record_failure(self):
         """Record a failed execution."""
+        old = self.state
+        self._record_failure()
+        if self.state != old:
+            _notify(self, old.value, self.state.value)
+
+    def _record_failure(self):
         with self._lock:
             self.failure_count += 1
             self.last_failure_time = time.time()

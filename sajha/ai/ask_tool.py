@@ -2,11 +2,14 @@
 SAJHA MCP Server — the ``sajha_ask`` MCP tool (off by default: ai.ask.mcp_tool_enabled).
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
-Lets a thin MCP client delegate a whole question to SAJHA's intelligence layer. A tool's
-execute() does not see the MCP caller, so the inner calls are limited to what an anonymous MCP
-caller may run (``mcp.anonymous.*``, via sajha.auth.access) plus ``ai.ask.mcp_allowed_tools``
-patterns; destructive tools still need confirmation (``stopped_by: needs_confirmation`` with
-fingerprints to pass back in ``confirm``).
+Lets a thin MCP client delegate a whole question to SAJHA's intelligence layer. The ask runs
+as the MCP caller (the caller context, sajha/observability/caller.py): its inner tool calls are
+limited to what that caller may execute, narrowed further by ``ai.ask.mcp_allowed_tools`` when
+that list is set, so the tool never gives a caller more than the caller already has
+(sajha/core/inner_calls.py). Only where no entry point recorded the caller (code that runs the
+tool directly) does the older rule apply: the anonymous MCP policy plus ``ai.ask.mcp_allowed_tools``.
+``sajha_ask`` never calls itself. Destructive tools still need confirmation
+(``stopped_by: needs_confirmation`` with fingerprints to pass back in ``confirm``).
 """
 
 from typing import Any, Dict
@@ -64,29 +67,56 @@ class SajhaAskTool(BaseMCPTool):
         question = str(arguments.get("question") or "").strip()
         if not question:
             raise ValueError("question is required")
-        ctx = RequestContext(user_id="mcp:sajha_ask", roles=["mcp"], can_use_tool=inner_access(svc.settings))
-        result = svc.ask(question, ctx, model=arguments.get("model") or None,
-                         confirm=list(arguments.get("confirm") or []))
+        from sajha.core import inner_calls
+        from sajha.observability.caller import current
+        who = current()
+        ctx = RequestContext(user_id=who.user_id if who.access is not None else "mcp:sajha_ask",
+                             roles=list(who.roles) if who.access is not None else ["mcp"],
+                             is_admin=bool(who.is_admin and who.access is not None),
+                             can_use_tool=inner_access(svc.settings, who))
+        with inner_calls.entered(TOOL_NAME):
+            result = svc.ask(question, ctx, model=arguments.get("model") or None,
+                             confirm=list(arguments.get("confirm") or []))
         return result.to_dict()
 
 
-def inner_access(settings):
-    """name -> bool for the tools sajha_ask may run on behalf of an unidentified MCP caller."""
+def inner_access(settings, caller=None):
+    """name -> bool for the tools sajha_ask may run for ``caller`` (default: the current caller).
+
+    A caller whose access an entry point recorded: that access, narrowed to
+    ``ai.ask.mcp_allowed_tools`` when the list is set. A caller with no recorded access (code
+    running the tool directly): the anonymous MCP policy plus ``ai.ask.mcp_allowed_tools``."""
     import fnmatch
+    if caller is None:
+        from sajha.observability.caller import current
+        caller = current()
     patterns = list(getattr(settings, "mcp_allowed_tools", []) or [])
+
+    def listed(name: str) -> bool:
+        return any(p == "*" or fnmatch.fnmatchcase(name, p) for p in patterns)
+
+    if caller.access is not None:
+        def can_use(name: str) -> bool:
+            if name == TOOL_NAME:
+                return False
+            if patterns and not listed(name):
+                return False
+            return bool(caller.can_execute(name))
+        return can_use
+
     try:
         from sajha.auth.access import anonymous_policy
         anon = anonymous_policy()
     except Exception:
         anon = None
 
-    def can_use(name: str) -> bool:
+    def can_use_unrecorded(name: str) -> bool:
         if name == TOOL_NAME:
             return False
-        if any(p == "*" or fnmatch.fnmatchcase(name, p) for p in patterns):
+        if listed(name):
             return True
         return bool(anon is not None and anon.can_execute(name))
-    return can_use
+    return can_use_unrecorded
 
 
 def register_if_enabled(tools_registry, settings) -> bool:

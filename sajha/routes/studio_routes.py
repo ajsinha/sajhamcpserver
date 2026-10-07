@@ -55,7 +55,7 @@ def _version() -> str:
         from sajha.core.config import get_settings
         return get_settings().app_version
     except Exception:
-        return '7.0.0'
+        return '7.1.0'
 
 
 def _registry():

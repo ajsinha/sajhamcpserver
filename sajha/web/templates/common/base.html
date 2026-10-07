@@ -21,6 +21,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Design tokens (the four themes) and the stylesheet built on them -->
     <link href="{{ url_for('static', filename='css/tokens.css') }}?v={{ app_version }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}?v={{ app_version }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/notices.css') }}?v={{ app_version }}" rel="stylesheet">
     
     {% block extra_css %}{% endblock %}
 </head>
@@ -28,6 +29,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- #6 Skip-to-content link (A11y) -->
     <a href="#main-content" class="visually-hidden-focusable sajha-skip">Skip to content</a>
     {% include "common/_icons.html" ignore missing %}
+    {# System notices for this viewer: navbar badge, banner, dashboard panel (sajha/notices) #}
+    {% set _nv = notices_view(request) if (notices_view is defined and request is defined
+                                           and session is defined and session.token) else none %}
     <!-- Navigation -->
     {% include "common/_nav.html" %}
 
@@ -41,6 +45,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <a class="alert-link" href="/account/password">Change it now</a>.</div>
         </div>
         {% endif %}
+        {% include "common/_notices_banner.html" %}
         {% block content %}{% endblock %}
         {# About this page: sajha/web/page_help.py, definitions from GLOSSARY.md #}
         {% block page_help %}{% include "common/_page_help.html" %}{% endblock %}
@@ -62,6 +67,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <script src="{{ url_for('static', filename='vendor/socket.io/socket.io.min.js') }}"></script>
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/notices.js') }}?v={{ app_version }}"></script>
     
     {% include "common/_theme_script.html" %}
 

@@ -1,0 +1,55 @@
+# Runs the whole test suite (tests/ and clientsdk/tests/) on every push and pull request to
+# develop and main, beside the conformance workflow (mcp-conformance.yml). A PostgreSQL service
+# lets tests/test_db_schema.py and tests/test_db_upgrade_sql.py apply the real PostgreSQL schema
+# file. Tests that need a live SAJHA server, a browser or an outside service skip themselves
+# when their variables are not set; none are set here. Roadmap N3.
+name: Tests
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: sajha
+          POSTGRES_PASSWORD: sajha
+          POSTGRES_DB: sajha_schema_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U sajha -d sajha_schema_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      SAJHA_TEST_POSTGRES_URL: postgresql+psycopg2://sajha:sajha@127.0.0.1:5432/sajha_schema_test
+      SAJHA_TEST_WAIT: '0'          # the live-server client tests skip at once (no server here)
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'     # the Dockerfile's PYTHON_VERSION
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - name: Install the server and test dependencies
+        # requirements.txt without the data-provider and LLM vendor SDKs, which the tests never
+        # import (they are optional at run time); requirements-dev.txt adds the test-only packages.
+        run: |
+          grep -vE '^(openbb|yfinance|anthropic|openai|together|ollama)\b' requirements.txt > ci-requirements.txt
+          python -m pip install --upgrade pip
+          pip install -r ci-requirements.txt -r requirements-dev.txt
+      - name: Test suite
+        run: python -m pytest -q -p no:randomly tests clientsdk/tests

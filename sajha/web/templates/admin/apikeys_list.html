@@ -1,191 +1,116 @@
 {% extends "common/base.html" %}
-
-{% block title %}API Keys Management - SAJHA MCP Server{% endblock %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+API keys (administration): every key, its owner and state; assign owners to older keys;
+rotate, disable, revoke, mark persistent. Guide: docs/security/Security Model.md (API keys)
+-->
+{% block title %}API keys - SAJHA MCP Server{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2><i class="bi bi-key me-2"></i>API Keys Management</h2>
-            <p class="text-muted mb-0">Manage API keys for programmatic access to SAJHA MCP Server</p>
-        </div>
-        <a href="{{ url_for('admin_apikeys_create') }}" class="btn btn-success">
-            <i class="bi bi-plus-circle me-1"></i> Create New API Key
-        </a>
+<div class="container-fluid acct-page" data-apikeys data-csrf="{{ csrf }}">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-key me-2" aria-hidden="true"></i>API keys</h1>
+      <small class="text-muted">A key with an owner signs in as that user, with the user's roles; the key's tool access narrows it further. A key without an owner keeps the older service identity (role <code>api_consumer</code>) until you assign one.</small>
     </div>
-
-    <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card border-primary">
-                <div class="card-body text-center">
-                    <h3 class="text-primary mb-0">{{ stats.total_keys }}</h3>
-                    <small class="text-muted">Total Keys</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-success">
-                <div class="card-body text-center">
-                    <h3 class="text-success mb-0">{{ stats.enabled_keys }}</h3>
-                    <small class="text-muted">Enabled</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-secondary">
-                <div class="card-body text-center">
-                    <h3 class="text-secondary mb-0">{{ stats.disabled_keys }}</h3>
-                    <small class="text-muted">Disabled</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-info">
-                <div class="card-body text-center">
-                    <h3 class="text-info mb-0">{{ stats.total_requests }}</h3>
-                    <small class="text-muted">Total Requests</small>
-                </div>
-            </div>
-        </div>
+    <div class="acct-actions">
+      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('account_apikeys_page') }}"><i class="bi bi-person me-1" aria-hidden="true"></i>My keys</a>
+      <a class="btn btn-sm btn-primary" href="{{ url_for('apikey_create_page') }}"><i class="bi bi-plus-circle me-1" aria-hidden="true"></i>New key</a>
     </div>
+  </div>
 
-    <!-- API Keys Table -->
-    <div class="card">
-        <div class="card-header card-header-primary">
-            <i class="bi bi-list me-2"></i>API Keys
-        </div>
-        <div class="card-body">
-            {% if apikeys %}
-            <div class="table-responsive">
-                <table class="table table-hover sajha-stack" data-enhance="true">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Key</th>
-                            <th>Access Mode</th>
-                            <th>Status</th>
-                            <th>Requests</th>
-                            <th>Last Used</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for key in apikeys %}
-                        <tr>
-                            <td>
-                                <strong>{{ key.name }}</strong>
-                                {% if key.description %}
-                                <br><small class="text-muted">{{ key.description[:50] }}{% if key.description|length > 50 %}...{% endif %}</small>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <code class="bg-light px-2 py-1 rounded">{{ key.key }}</code>
-                            </td>
-                            <td>
-                                {% if key.tool_access.mode == 'all' %}
-                                <span class="badge bg-success">All Tools</span>
-                                {% elif key.tool_access.mode == 'allowlist' %}
-                                <span class="badge bg-info">Allowlist ({{ key.tool_access.tools|length }})</span>
-                                {% elif key.tool_access.mode == 'denylist' %}
-                                <span class="badge bg-warning text-dark">Denylist ({{ key.tool_access.tools|length }})</span>
-                                {% elif key.tool_access.mode == 'regex' %}
-                                <span class="badge bg-secondary">Regex ({{ key.tool_access.regex_patterns|length }})</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if key.enabled %}
-                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Enabled</span>
-                                {% else %}
-                                <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Disabled</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ key.usage_stats.total_requests }}</td>
-                            <td>
-                                {% if key.usage_stats.last_used %}
-                                <small>{{ key.usage_stats.last_used[:10] }}</small>
-                                {% else %}
-                                <small class="text-muted">Never</small>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{{ url_for('admin_apikeys_view', key=key.key) }}" class="btn btn-outline-primary" title="View Details">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a href="{{ url_for('admin_apikeys_edit', key=key.key) }}" class="btn btn-outline-secondary" title="Edit">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <form action="{{ url_for('admin_apikeys_toggle', key=key.key) }}" method="POST" style="display: inline;">
-                                        {% if key.enabled %}
-                                        <button type="submit" class="btn btn-outline-warning" title="Disable">
-                                            <i class="bi bi-pause-circle"></i>
-                                        </button>
-                                        {% else %}
-                                        <button type="submit" class="btn btn-outline-success" title="Enable">
-                                            <i class="bi bi-play-circle"></i>
-                                        </button>
-                                        {% endif %}
-                                    </form>
-                                    <a href="{{ url_for('admin_apikeys_delete', key=key.key) }}" class="btn btn-outline-danger" title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-5 text-muted">
-                <i class="bi bi-key" style="font-size: 4rem;"></i>
-                <h4 class="mt-3">No API Keys</h4>
-                <p>Create your first API key to enable programmatic access.</p>
-                <a href="{{ url_for('admin_apikeys_create') }}" class="btn btn-success">
-                    <i class="bi bi-plus-circle me-1"></i> Create API Key
-                </a>
-            </div>
-            {% endif %}
-        </div>
+  <div id="keyStatus" class="alert" role="status" tabindex="-1" hidden></div>
+  {% if not can_manage %}<div class="alert alert-info" role="status">You are signed in with an API key: keys are managed from a console session or with a SAJHA JWT.</div>{% endif %}
+
+  <section id="keyOnce" class="alert alert-warning keys-once" role="region" aria-labelledby="keyOnceH" hidden>
+    <h2 class="h6" id="keyOnceH">Copy the new key now (<span id="keyOnceName"></span>)</h2>
+    <p class="small mb-2">This is the only time it is shown.</p>
+    <code id="keyOnceValue" class="keys-secret"></code>
+    <div class="acct-actions mt-2">
+      <button type="button" class="btn btn-sm btn-primary" id="keyOnceCopy"><i class="bi bi-clipboard me-1" aria-hidden="true"></i>Copy</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="keyOnceDone">Done</button>
     </div>
+  </section>
 
-    <!-- Usage Instructions -->
-    <div class="card mt-4">
-        <div class="card-header">
-            <i class="bi bi-info-circle me-2"></i>How to Use API Keys
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <h6><i class="bi bi-1-circle me-2"></i>Option A: Basic Auth → Bearer Token</h6>
-                    <pre class="bg-dark text-light p-3 rounded"><code>POST /api/auth/token
-Content-Type: application/json
+  <div class="acct-tiles keys-tiles mb-3">
+    <div class="obs-tile obs-tile-accent"><div class="obs-label">Keys</div><div class="obs-value">{{ stats.total }}</div><div class="obs-sub">{{ stats.active }} active</div></div>
+    <div class="obs-tile"><div class="obs-label">Without an owner</div><div class="obs-value">{{ stats.unowned }}</div><div class="obs-sub">sign in as <code>apikey:&lt;name&gt;</code></div></div>
+    <div class="obs-tile"><div class="obs-label">Persistent</div><div class="obs-value">{{ stats.persistent }}</div><div class="obs-sub">also in the key file</div></div>
+    <div class="obs-tile"><div class="obs-label">Revoked</div><div class="obs-value">{{ stats.revoked }}</div><div class="obs-sub">kept as records</div></div>
+  </div>
 
-{"uid": "username", "password": "password"}
+  {% if stats.unowned %}
+  <div class="alert alert-warning" role="status"><i class="bi bi-person-exclamation me-1" aria-hidden="true"></i>{{ stats.unowned }} key(s) have no owner. Assign each to the user it acts for: it then signs in as that user, with the user's roles.
+    <a href="?owner=-">Show them</a>.</div>
+  {% endif %}
 
-Response:
-{"token": "abc...", "token_type": "Bearer"}
+  <form class="row g-2 align-items-end mb-3" method="get" action="/admin/apikeys">
+    <div class="col-sm-4 col-md-3"><label class="form-label small" for="fOwner">Owner</label>
+      <select class="form-select form-select-sm" id="fOwner" name="owner">
+        <option value="">any</option>
+        <option value="-"{% if filter_owner == '-' %} selected{% endif %}>no owner</option>
+        {% for u in users %}<option value="{{ u }}"{% if u == filter_owner %} selected{% endif %}>{{ u }}</option>{% endfor %}
+      </select></div>
+    <div class="col-sm-4 col-md-3"><label class="form-label small" for="fStatus">Status</label>
+      <select class="form-select form-select-sm" id="fStatus" name="status">
+        <option value="">any</option>
+        {% for s in ('active', 'disabled', 'expired', 'revoked') %}<option value="{{ s }}"{% if s == filter_status %} selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select></div>
+    <div class="col-auto"><button class="btn btn-sm btn-primary" type="submit">Filter</button></div>
+  </form>
 
-# Then use in subsequent requests:
-Authorization: Bearer &lt;token&gt;</code></pre>
-                </div>
-                <div class="col-md-6">
-                    <h6><i class="bi bi-2-circle me-2"></i>Option B: Direct API Key</h6>
-                    <pre class="bg-dark text-light p-3 rounded"><code># Header method (recommended):
-X-API-Key: sja_your_key_here
-
-# Or Authorization header:
-Authorization: sja_your_key_here
-
-# Example curl:
-curl -H "X-API-Key: sja_xxx" \
-     http://localhost:3002/api/tools</code></pre>
-                </div>
-            </div>
-        </div>
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table sajha-stack">
+        <thead><tr><th scope="col">Key</th><th scope="col">Owner</th><th scope="col">Tools</th><th scope="col">Status</th>
+          <th scope="col">Last used</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+        {% for k in apikeys %}
+          <tr>
+            <td data-label="Key"><a href="{{ url_for('apikey_view', key_id=k.id) }}"><strong>{{ k.name }}</strong></a>
+              <br><code>{{ k.prefix }}…</code>{% if k.is_default %} <span class="acct-badge">default</span>{% endif %}{% if k.persistent %} <span class="acct-badge">persistent</span>{% endif %}</td>
+            <td data-label="Owner">{% if k.owner %}{{ k.owner }}{% else %}
+              <div class="d-flex flex-wrap gap-1 align-items-center">
+                <label class="visually-hidden" for="own-{{ k.id }}">Owner for {{ k.name }}</label>
+                <select class="form-select form-select-sm keys-owner" id="own-{{ k.id }}" name="owner"{% if k.status == 'revoked' or not can_manage %} disabled{% endif %}>
+                  <option value="">— none —</option>{% for u in users %}<option value="{{ u }}">{{ u }}</option>{% endfor %}
+                </select>
+                {% if k.status != 'revoked' and can_manage %}<button type="button" class="btn btn-sm btn-outline-primary" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/owner" data-body-from="own-{{ k.id }}"
+                  data-confirm="Assign this key to the chosen user? It will sign in as that user, with the user's roles.">Assign</button>{% endif %}
+              </div>{% endif %}</td>
+            <td data-label="Tools">{% if k.tool_access_mode == 'all' %}{{ 'owner\'s access' if k.owner else 'all' }}{% else %}{{ k.tool_access_mode }} ({{ k.tool_access_list|length }}){% endif %}</td>
+            <td data-label="Status">{% if k.status == 'active' %}<span class="obs-pill obs-ok">active</span>{% elif k.status == 'revoked' %}<span class="obs-pill obs-bad" title="{{ k.revoked_at }} by {{ k.revoked_by }}">revoked</span>{% else %}<span class="acct-badge">{{ k.status }}</span>{% endif %}</td>
+            <td data-label="Last used">{{ k.last_used or '—' }}</td>
+            <td class="text-end">
+              {% if can_manage and k.status != 'revoked' %}
+              <div class="btn-group btn-group-sm" role="group" aria-label="Actions for {{ k.name }}">
+                <button type="button" class="btn btn-outline-secondary" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/enabled"
+                        data-body='{"enabled": {{ 'false' if k.enabled else 'true' }}}' title="{{ 'Disable' if k.enabled else 'Enable' }}" aria-label="{{ 'Disable' if k.enabled else 'Enable' }} {{ k.name }}">
+                  <i class="bi bi-{{ 'pause-circle' if k.enabled else 'play-circle' }}" aria-hidden="true"></i></button>
+                <button type="button" class="btn btn-outline-primary" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/rotate"
+                        data-confirm="Rotate {{ k.name }}? The current key stops working now." title="Rotate" aria-label="Rotate {{ k.name }}">
+                  <i class="bi bi-arrow-repeat" aria-hidden="true"></i></button>
+                {% if not k.is_default %}
+                <button type="button" class="btn btn-outline-danger" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/revoke"
+                        data-confirm="Revoke {{ k.name }}? It stops working now and cannot be enabled again." title="Revoke" aria-label="Revoke {{ k.name }}">
+                  <i class="bi bi-x-circle" aria-hidden="true"></i></button>
+                {% endif %}
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="text-muted text-center py-3">No API keys{% if filter_owner or filter_status %} match the filter{% endif %}.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
     </div>
+  </div>
+
+  <p class="small text-muted mt-3 mb-0">Send a key as <code>X-API-Key: sja_…</code> (or <code>Authorization: sja_…</code>). Every change is in the audit log.</p>
 </div>
 {% endblock %}
 
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/apikeys.js') }}"></script>
+{% endblock %}

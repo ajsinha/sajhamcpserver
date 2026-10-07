@@ -30,8 +30,7 @@ echo "  ✓ sajha/tools/impl/"
 aws s3 cp config/application.yml "s3://$BUCKET/${PREFIX}config/application.yml"
 echo "  ✓ application.yml"
 
-# Legacy user/apikey JSON
-aws s3 cp config/users.json "s3://$BUCKET/${PREFIX}config/users.json" 2>/dev/null || true
+# API key JSON (users live in the database only; config/users.json is retired)
 aws s3 cp config/apikeys.json "s3://$BUCKET/${PREFIX}config/apikeys.json" 2>/dev/null || true
 
 echo ""

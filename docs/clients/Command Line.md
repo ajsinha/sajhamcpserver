@@ -88,7 +88,7 @@ nothing and says so.
 | `sajha workflows show NAME [--yaml]` / `show RUN_ID` | A definition (JSON, or YAML), or a run with its steps (status, attempts, time, error) | `GET /api/workflows/{name}`, `/api/workflows/runs/{id}` |
 | `sajha config show [--remote]` | Effective CLI settings; `--remote`: the server's effective `ai.*` configuration (admin) | local / `GET /api/ai/config` |
 | `sajha serve [--stdio]` | Run the server from a checkout (see §5) | |
-| `sajha db check\|sql ...` | Database schema helper (no migrations; it changes nothing): runs `python -m sajha.db` in the server checkout (`--root` or `SAJHA_HOME` before the subcommand; the Python running `sajha` needs the server's requirements) | the database, not HTTP ([Database Setup](../getting-started/Database%20Setup.md)) |
+| `sajha db check\|sql\|upgrade-sql ...` | Database schema helper (no migrations; it changes nothing): runs `python -m sajha.db` in the server checkout (`--root` or `SAJHA_HOME` before the subcommand; the Python running `sajha` needs the server's requirements) | the database, not HTTP ([Database Setup](../getting-started/Database%20Setup.md)) |
 | `sajha completion bash\|zsh\|fish` | Print a shell completion script | |
 | `sajha version` (or `--version`) | Print the CLI version | |
 

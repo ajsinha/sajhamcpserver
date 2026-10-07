@@ -38,6 +38,7 @@ the same thing, merge them and leave a link.
 |---|---|
 | Not built yet and what comes next (roadmap) | `docs/architecture/Roadmap.md` |
 | Database schema (SQLite and PostgreSQL schema files, manual setup) | `docs/getting-started/Database Setup.md` |
+| System notices (banner, status panel, badge, sources and ids, notices API) | `docs/architecture/System Notices.md` |
 | Policy engine, approvals, tamper-evident audit, SIEM export | `docs/architecture/Policy and Audit.md` |
 | Web console (pages, navigation, page help, small screens) | `docs/architecture/Architecture.md` §10 |
 | Describe a tool (generated tools, review and deploy gate) | `docs/architecture/Tool Generation.md` |

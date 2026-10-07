@@ -4,6 +4,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 """
 
 import logging
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -19,6 +20,7 @@ def create_access_token(
     roles: list[str],
     expires_minutes: Optional[int] = None,
     extra_claims: Optional[dict] = None,
+    token_version: Optional[int] = None,
 ) -> str:
     """
     Create a signed JWT access token.
@@ -28,6 +30,10 @@ def create_access_token(
         roles: List of role names
         expires_minutes: Override expiry (defaults to settings)
         extra_claims: Additional claims to embed
+        token_version: the user's ``users.token_version`` (claim ``tv``); a token whose
+            ``tv`` differs from the user's current value is refused (sajha/auth/revocation.py)
+
+    Every token carries a ``jti`` so that signing out can revoke that one token.
     """
     settings = get_settings()
     exp_minutes = expires_minutes or settings.jwt_expiry_minutes
@@ -39,7 +45,10 @@ def create_access_token(
         'iat': now,
         'exp': now + timedelta(minutes=exp_minutes),
         'iss': 'sajha-mcp-server',
+        'jti': uuid.uuid4().hex,
     }
+    if token_version is not None:
+        payload['tv'] = int(token_version)
     if extra_claims:
         payload.update(extra_claims)
 
@@ -67,6 +76,6 @@ def decode_access_token(token: str) -> Optional[dict]:
         return None
 
 
-def create_session_token(user_id: str, roles: list[str]) -> str:
+def create_session_token(user_id: str, roles: list[str], token_version: Optional[int] = None) -> str:
     """Convenience: create a standard session JWT."""
-    return create_access_token(user_id, roles)
+    return create_access_token(user_id, roles, token_version=token_version)

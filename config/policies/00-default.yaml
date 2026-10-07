@@ -3,6 +3,16 @@
 # Add rules here or in another file in this directory (*.yaml, *.yml, *.json, loaded in
 # name order, reloaded on change). The rule language and examples:
 # docs/architecture/Policy and Audit.md, and the disabled example-*.yaml files beside this one.
+#
+# Rate limits: a policy rate_limit rule is SAJHA's one limiter for tool calls (per user, per
+# API key, per tool, ...); there is no other. To limit every caller, replace "rules: []" with:
+#
+# rules:
+#   - id: per-user-rate
+#     rate_limit: {limit: 100, window: 1m, per: [user]}
+#   - id: per-key-rate
+#     match: {callers: {auth_types: [apikey]}}
+#     rate_limit: {limit: 200, window: 1m, per: [api_key]}
 name: default
 description: The shipped policy. No rules; calls are allowed (policy.default_effect).
 enabled: true

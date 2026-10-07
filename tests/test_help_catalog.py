@@ -285,8 +285,7 @@ def test_help_menu_points_at_the_help(web):
 #: legacy aliases (app.py _URL_MAP) for edit/delete/toggle/view pages, but the routes are
 #: /admin/apikeys/{key_id}/view, POST .../toggle and DELETE .../delete, and there is no
 #: edit page. Recorded so the test catches any NEW dead name; fix and remove.
-KNOWN_DEAD_URL_FOR = {'admin_apikeys_view', 'admin_apikeys_edit', 'admin_apikeys_delete',
-                      'admin_apikeys_toggle'}
+KNOWN_DEAD_URL_FOR: set = set()
 
 
 def test_every_url_for_in_a_template_resolves(web):

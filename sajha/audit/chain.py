@@ -224,6 +224,12 @@ class ChainWriter:
         self._table_ready_for = None
         self._timer: Optional[threading.Thread] = None
         self._stop = threading.Event()
+        # deferred appends (tool calls): hashed now, stored by a background flusher every
+        # flush_interval seconds or as soon as flush_batch rows are pending
+        self.flush_interval = max(0.01, _cfg_int('audit.chain.flush_interval_ms', 200) / 1000.0)
+        self.flush_batch = max(1, _cfg_int('audit.chain.flush_batch', 200))
+        self._flusher: Optional[threading.Thread] = None
+        self._wake = threading.Event()
 
     # -- state ------------------------------------------------------
 
@@ -275,14 +281,19 @@ class ChainWriter:
             version = ''
         return {'host': socket.gethostname(), 'pid': os.getpid(), 'version': version}
 
-    def _after(self, outs: List[Dict[str, Any]]) -> None:
-        """Outside ``_lock``: count, store, export."""
+    def _after(self, outs: List[Dict[str, Any]], defer: bool = False) -> None:
+        """Outside ``_lock``: count, store (now, or by the flusher when ``defer``), export."""
         try:
             _metrics().inc((), len(outs))
         except Exception:
             pass
         if self.store:
-            self.flush()
+            if defer:
+                self._ensure_flusher()
+                if len(self._pending) >= self.flush_batch:
+                    self._wake.set()
+            else:
+                self.flush()
         if self.on_record is not None:
             for out in outs:
                 try:
@@ -291,16 +302,20 @@ class ChainWriter:
                     logger.debug(f'audit export: {e}')
 
     def append(self, event: str, actor: Optional[Dict[str, Any]] = None, resource: Optional[Dict[str, Any]] = None,
-               outcome: Optional[str] = None, details: Any = None) -> Dict[str, Any]:
-        """Hash and store one record; returns it with its ``hash`` (the exported form)."""
+               outcome: Optional[str] = None, details: Any = None, defer: bool = False) -> Dict[str, Any]:
+        """Hash and store one record; returns it with its ``hash`` (the exported form).
+
+        ``defer``: the record is hashed into the chain now (its place and hash are final) but
+        stored by the background flusher, so the caller does not wait for the database
+        (tool-call records, docs/architecture/Policy and Audit.md section 13)."""
         outs = []
         with self._lock:
             if self._seq < 0:
                 outs.append(self._build('chain.open', actor={'user': 'system'}, details=self._open_details()))
             outs.append(self._build(event, actor, resource, outcome, details))
-        self._after(outs)
+        self._after(outs, defer)
         if self._seq - max(self.last_anchor_seq, 0) >= self.anchor_every:
-            self.anchor()
+            self.anchor(defer=defer)
         self._ensure_timer()
         return outs[-1]
 
@@ -367,7 +382,7 @@ class ChainWriter:
             self._signer = Signer()
         return self._signer
 
-    def anchor(self) -> Optional[Dict[str, Any]]:
+    def anchor(self, defer: bool = False) -> Optional[Dict[str, Any]]:
         """Sign the current head; None when nothing but anchors was appended since the last anchor."""
         with self._lock:
             if self._seq < 0 or self._last_news_seq <= self.last_anchor_seq:
@@ -391,7 +406,7 @@ class ChainWriter:
             out = self._build('audit.anchor', actor={'user': 'system'},
                               details={'anchored_seq': payload['seq'], 'anchored_hash': payload['hash'],
                                        'payload': text, 'signature': sig, 'kid': signer.kid, 'alg': signer.alg})
-        self._after([out])
+        self._after([out], defer)
         return {'payload': payload, 'signature': sig}
 
     def _ensure_timer(self) -> None:
@@ -413,11 +428,31 @@ class ChainWriter:
             self._timer = threading.Thread(target=loop, name='sajha-audit-anchor', daemon=True)
             self._timer.start()
 
+    def _ensure_flusher(self) -> None:
+        if self.closed or (self._flusher is not None and self._flusher.is_alive()):
+            return
+        with self._lock:
+            if self._flusher is not None and self._flusher.is_alive():
+                return
+
+            def loop():
+                while not self._stop.is_set():
+                    self._wake.wait(self.flush_interval)
+                    self._wake.clear()
+                    try:
+                        self.flush()
+                    except Exception as e:
+                        logger.debug(f'audit flusher: {e}')
+
+            self._flusher = threading.Thread(target=loop, name='sajha-audit-flush', daemon=True)
+            self._flusher.start()
+
     def close(self) -> None:
         """Append ``chain.close``, anchor it and flush (a clean shutdown)."""
         if self.closed:
             return
         self._stop.set()
+        self._wake.set()
         if self._seq >= 0:
             with self._lock:
                 out = self._build('chain.close', actor={'user': 'system'}, details={'records': self._seq + 1})

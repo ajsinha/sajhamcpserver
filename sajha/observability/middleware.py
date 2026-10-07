@@ -4,7 +4,8 @@ SAJHA MCP Server — the HTTP observability middleware.
 A plain ASGI middleware (not BaseHTTPMiddleware), so streamed and SSE responses pass
 through untouched. It counts every HTTP request by route template, method and status,
 observes the latency to the response headers (a long SSE stream does not skew the
-histogram), and opens the server span, continuing a ``traceparent`` request header.
+histogram), and opens the server span, continuing a ``traceparent`` request header (or
+starting a trace, so outbound calls and audit records carry a trace id even without the SDK).
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
@@ -40,9 +41,11 @@ class ObservabilityMiddleware:
                 state['ttfb'] = time.perf_counter() - start
             await send(message)
 
-        carrier = None
         if tracing.tracer() is not None:
             carrier = {k.decode('latin-1'): v.decode('latin-1') for k, v in scope.get('headers') or []}
+        else:       # no SDK: only the W3C headers (tracing.span continues them, or starts a trace)
+            carrier = {k.decode('latin-1'): v.decode('latin-1') for k, v in scope.get('headers') or []
+                       if k in (b'traceparent', b'tracestate')}
         with tracing.span(f'HTTP {method}', {'http.request.method': method, 'url.path': scope.get('path')},
                           carrier=carrier, kind='server') as sp:
             try:

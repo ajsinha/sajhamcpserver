@@ -5,6 +5,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     python -m sajha.db check                          tables/columns SAJHA uses that the configured
                                                       database lacks (exit 3 when something is missing)
     python -m sajha.db sql [--dialect D] [--seed]     print the schema file (or the seed file) for psql -f
+    python -m sajha.db upgrade-sql [--url URL]        compare the configured database with the schema file
+                                                      and print the DDL that would bring it up to date
+                                                      (CREATE TABLE, ALTER TABLE ... ADD COLUMN, CREATE
+                                                      INDEX); exit 3 when there is something to run.
+                                                      ``sql --missing`` is the same command.
 
 There are no migrations, and this tool changes nothing: the operator runs
 db/scripts/postgresql/schema.sql (then seed.sql) with psql.  It reads the database from
@@ -47,8 +52,33 @@ def cmd_check(args) -> int:
     return EXIT_MISSING
 
 
+def cmd_upgrade_sql(args) -> int:
+    """Print (never run) the statements that bring the database up to the schema file."""
+    from sajha.db import schema
+    from sajha.db.engine import create_db_engine
+    engine = create_db_engine(_settings(), url=args.url or None)
+    root = _root(args)
+    stmts = schema.upgrade_statements(engine, root, miss=schema.missing(engine))
+    where = engine.url.render_as_string(hide_password=True)
+    if not stmts:
+        print(f'-- {where}: nothing to do; the database matches {schema.SCHEMA_FILE}.')
+        return EXIT_OK
+    dialect = 'postgresql' if engine.dialect.name == 'postgresql' else 'sqlite'
+    run = (schema.psql_command(engine, 'upgrade.sql') if dialect == 'postgresql'
+           else f'sqlite3 {engine.url.database or "DATABASE"} < upgrade.sql')
+    sys.stdout.write(
+        f'-- SAJHA schema upgrade for {where}\n'
+        f'-- Taken from db/scripts/{dialect}/{schema.SCHEMA_FILE}. SAJHA never runs these statements:\n'
+        f'-- review them, then run them as the schema owner, for example:\n--   {run}\n'
+        '-- Guide: docs/getting-started/Database Setup.md\n\n'
+        + '\n'.join(stmts) + '\n')
+    return EXIT_MISSING
+
+
 def cmd_sql(args) -> int:
     from sajha.db import schema
+    if getattr(args, 'missing', False):
+        return cmd_upgrade_sql(args)
     dialect = args.dialect or ('postgresql' if _settings().db_type == 'postgresql' else 'sqlite')
     f = (schema.seed_file if args.seed else schema.schema_file)(dialect, _root(args))
     sys.stdout.write(f.read_text(encoding='utf-8'))
@@ -71,7 +101,16 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser('sql', parents=[common], help='print the schema file for review and psql -f (no database access)')
     s.add_argument('--dialect', choices=('postgresql', 'sqlite'), help='default: db.type')
     s.add_argument('--seed', action='store_true', help='print seed.sql (default roles and admin) instead')
+    s.add_argument('--missing', action='store_true',
+                   help='print only the statements the configured database lacks (same as upgrade-sql)')
+    s.add_argument('--url', help='with --missing: SQLAlchemy database URL (default: db.* from the configuration)')
     s.set_defaults(func=cmd_sql)
+
+    s = sub.add_parser('upgrade-sql', parents=[common],
+                       help='print the DDL that brings the configured database up to the schema file '
+                            '(never runs it; exit 3 when there is something to run)')
+    s.add_argument('--url', help='SQLAlchemy database URL (default: db.* from the configuration)')
+    s.set_defaults(func=cmd_upgrade_sql)
     return p
 
 

@@ -24,6 +24,7 @@ Usage:
     python scripts/check_mobile.py --only /dashboard /ask --viewports 375x812
     python scripts/check_mobile.py --shots /tmp/sajha-mobile        # one PNG per page/viewport
     python scripts/check_mobile.py --theme dark                       # light|dark|blue|green
+    python scripts/check_mobile.py --notices --only /dashboard /tools # with system notices shown
 
 The password can also come from SAJHA_CHECK_PASSWORD. Needs ``pip install playwright`` and
 ``playwright install chromium``.
@@ -83,6 +84,7 @@ ROUTES: List[Tuple[str, bool]] = [
     ('/admin/audit', True),
     ('/admin/connections', True),
     ('/account/connections', True),
+    ('/account/apikeys', True),
     ('/studio', True),
     ('/studio/rest', True),
     ('/studio/api-import', True),
@@ -104,6 +106,41 @@ ROUTES: List[Tuple[str, bool]] = [
 ]
 
 VIEWPORTS = ['375x812', '390x844', '768x1024']
+
+# --notices: render a sample of system notices (banner, navbar badge, dashboard panel) on every
+# signed-in page before measuring, through static/js/notices.js (window.SajhaNotices).
+_LONG = 'Federated server analytics-warehouse-eu-west-1.internal.example.com is unreachable'
+NOTICES_SAMPLE = {
+    'enabled': True, 'is_admin': True, 'badge': 3, 'others': 3,
+    'banner': {'id': 'federation.upstream_down:analytics', 'severity': 'critical', 'title': _LONG},
+    'notices': [
+        {'id': 'federation.upstream_down:analytics', 'severity': 'critical', 'source': 'federation',
+         'title': _LONG, 'detail': 'Connection refused. Its tools fail until it reconnects.',
+         'link': '/admin/federation', 'since': 1, 'last_seen': 2, 'state': 'acknowledged',
+         'acknowledged_by': 'admin', 'acknowledged_at': 2},
+        {'id': 'db.schema', 'severity': 'error', 'source': 'db', 'title': 'Database schema is out of date',
+         'detail': 'SQL to run:\nALTER TABLE api_keys ADD COLUMN secret_ciphertext_with_a_long_name TEXT;',
+         'link': '/help/guides/Database%20Setup.md', 'since': 1, 'last_seen': 2, 'state': 'active'},
+        {'id': 'resilience.breaker_open:FMP', 'severity': 'warning', 'source': 'resilience',
+         'title': 'Circuit breaker open: FMP (financialmodelingprep.com) (tool provider)', 'detail': '5 failures.',
+         'link': '/admin/system-monitor', 'since': 1, 'last_seen': 2, 'state': 'active'},
+        {'id': 'federation.approvals:x', 'severity': 'info', 'source': 'federation', 'title': '2 tools held',
+         'detail': '', 'link': '/admin/federation', 'since': 1, 'last_seen': 2, 'state': 'active'}]}
+_NOTICES_JS = r"""
+(view) => {
+  if (!window.SajhaNotices || !document.getElementById('sajha-notice-banner')) return {skipped: true};
+  const now = Date.now() / 1000;
+  view.notices.forEach((n, i) => { n.since = now - 3600 * (i + 1); n.last_seen = now - 60;
+                                   if (n.acknowledged_at) n.acknowledged_at = now - 600; });
+  window.SajhaNotices.stop(); window.SajhaNotices.apply(view);
+  const vis = (id) => { const el = document.getElementById(id); if (!el) return null;
+    const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+    return {shown: !el.hidden && cs.display !== 'none' && r.width > 0 && r.height > 0,
+            text: el.textContent.replace(/\s+/g, ' ').trim()}; };
+  return {banner: vis('sajha-notice-banner'), badge: vis('sajha-notice-badge'), panel: vis('system-status'),
+          items: document.querySelectorAll('#ssp-body .ssp-item').length};
+}
+"""
 PHONE_MAX = 991  # below Bootstrap's lg breakpoint the nav collapses behind the hamburger
 
 # One pass over the page in the browser. Returns the measurements; Python decides.
@@ -256,7 +293,8 @@ def _slug(path: str) -> str:
 
 
 def run(base: str, user: str, password: str, routes: List[Tuple[str, bool]], viewports: List[str],
-        shots: Optional[str] = None, theme: Optional[str] = None, verbose: bool = False) -> Dict:
+        shots: Optional[str] = None, theme: Optional[str] = None, verbose: bool = False,
+        notices: bool = False) -> Dict:
     """Run the check; returns {'failures': [...], 'warnings': [...], 'pages': n}."""
     from playwright.sync_api import sync_playwright
     report = {'failures': [], 'warnings': [], 'pages': 0}
@@ -285,14 +323,15 @@ def run(base: str, user: str, password: str, routes: List[Tuple[str, bool]], vie
                         continue
                 page = ctx.new_page()
                 for path in todo:
-                    _check_page(page, base, path, spec, w, report, shots, theme, verbose)
+                    _check_page(page, base, path, spec, w, report, shots, theme, verbose,
+                                notices=notices and signed)
                 ctx.close()
         browser.close()
     return report
 
 
 def _check_page(page, base: str, path: str, spec: str, w: int, report: Dict,
-                shots: Optional[str], theme: Optional[str], verbose: bool) -> None:
+                shots: Optional[str], theme: Optional[str], verbose: bool, notices: bool = False) -> None:
     where = f'{spec} {path}'
     try:
         resp = page.goto(base + path, wait_until='load', timeout=30000)
@@ -300,6 +339,16 @@ def _check_page(page, base: str, path: str, spec: str, w: int, report: Dict,
         report['failures'].append(f'{where}: did not load ({exc.__class__.__name__})')
         return
     page.wait_for_timeout(600)
+    if notices:
+        shown = page.evaluate(_NOTICES_JS, NOTICES_SAMPLE)
+        if not shown.get('skipped'):
+            page.wait_for_timeout(150)
+            if not (shown['banner'] or {}).get('shown') or 'Critical' not in shown['banner']['text']:
+                report['failures'].append(f'{spec} {path}: notices: the banner is not shown with its severity word')
+            if not (shown['badge'] or {}).get('shown'):
+                report['failures'].append(f'{spec} {path}: notices: the navbar badge is not shown')
+            if shown['panel'] is not None and shown['items'] != len(NOTICES_SAMPLE['notices']):
+                report['failures'].append(f"{spec} {path}: notices: the panel shows {shown['items']} notices")
     report['pages'] += 1
     status = resp.status if resp else 0
     if status >= 400:
@@ -345,6 +394,8 @@ def main(argv=None) -> int:
     ap.add_argument('--extra', nargs='+', default=[], help='extra signed-in paths to check')
     ap.add_argument('--shots', help='folder for full-page screenshots')
     ap.add_argument('--theme', help='theme to set before each page loads (light, dark, blue, green)')
+    ap.add_argument('--notices', action='store_true',
+                    help='show sample system notices (banner, badge, dashboard panel) on signed-in pages')
     ap.add_argument('--warnings', action='store_true', help='print the warnings too')
     ap.add_argument('-v', '--verbose', action='store_true')
     a = ap.parse_args(argv)
@@ -352,7 +403,8 @@ def main(argv=None) -> int:
     if a.only:
         known = dict(routes)
         routes = [(p, known.get(p, True)) for p in a.only]
-    rep = run(a.base.rstrip('/'), a.user, a.password, routes, a.viewports, a.shots, a.theme, a.verbose)
+    rep = run(a.base.rstrip('/'), a.user, a.password, routes, a.viewports, a.shots, a.theme, a.verbose,
+              notices=a.notices)
     print(f"Mobile check: {rep['pages']} page views, {len(rep['failures'])} failures, {len(rep['warnings'])} warnings")
     for f in rep['failures']:
         print('  FAIL ' + f)

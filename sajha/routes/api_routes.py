@@ -274,6 +274,12 @@ async def api_create_user(
     user_dao.create(user)
 
     AuditDAO(db).log('user.create', auth.user_id, 'user', user_id)
+    # every account has a default API key (sajha/auth/apikeys.py); the user rotates it to see it
+    try:
+        from sajha.auth.apikeys import ensure_default_key
+        ensure_default_key(db, user, by=auth.user_id)
+    except Exception as e:
+        logger.warning(f'default API key for {user_id} not created: {e}')
     return JSONResponse({'success': True, 'user_id': user_id})
 
 
@@ -311,6 +317,8 @@ async def api_delete_user(uid: str, auth: AuthContext = Depends(require_admin), 
     user = user_dao.get_by_user_id(uid)
     if not user:
         return JSONResponse({'error': 'User not found'}, status_code=404)
+    from sajha.auth.apikeys import forget_user
+    forget_user(db, user)      # persistent key records of this user's keys (the rows go with the user)
     user_dao.delete(user)
     AuditDAO(db).log('user.delete', auth.user_id, 'user', uid)
     return JSONResponse({'success': True})

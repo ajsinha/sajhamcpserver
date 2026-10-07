@@ -12,9 +12,13 @@ Who gets what:
 * **Users** (SAJHA login JWT, session cookie, OAuth token for a SAJHA user): the tool
   permissions of their roles (``permissions`` rows with resource_type ``tool`` or ``*``).
   ``execute`` (or ``*``) lets them call a tool; ``read`` alone lets them see it listed.
-* **API keys**: the key's ``tool_access_mode``: ``all``, ``allowlist`` (only the listed
-  fnmatch patterns), ``denylist`` (everything except them) or ``regex`` (tool names that
-  fully match one of the listed regular expressions).
+* **API keys with an owner**: the owner's access (as for a user above, everything for an
+  admin), with the key's ``tool_access_mode`` and list as an extra ceiling: a tool must pass
+  both (``ToolPolicy.ceiling``).
+* **API keys without an owner** (older keys, until an administrator assigns one): the key's
+  ``tool_access_mode``: ``all``, ``allowlist`` (only the listed fnmatch patterns),
+  ``denylist`` (everything except them) or ``regex`` (tool names that fully match one of
+  the listed regular expressions).
 * **Other identities** without a SAJHA account (external OAuth users mapped to the
   ``api_consumer`` role): the permissions of a SAJHA role of that name, if an operator
   created one; otherwise none.
@@ -134,14 +138,16 @@ def _roles_by_name(db, names: Iterable[str]) -> list:
 # ── the policy object ───────────────────────────────────────────────
 
 class ToolPolicy:
-    """Execute / visible allow-patterns and deny-patterns for one caller."""
+    """Execute / visible allow-patterns and deny-patterns for one caller, optionally capped by
+    a ``ceiling`` policy (an owned API key's own tool access): a tool must pass both."""
 
-    __slots__ = ('execute', 'visible', 'deny')
+    __slots__ = ('execute', 'visible', 'deny', 'ceiling')
 
-    def __init__(self, execute=(), visible=(), deny=()):
+    def __init__(self, execute=(), visible=(), deny=(), ceiling: Optional['ToolPolicy'] = None):
         self.execute = list(execute)
         self.visible = list(dict.fromkeys(list(visible) + list(execute)))
         self.deny = list(deny)
+        self.ceiling = ceiling if ceiling is not None and not ceiling.unrestricted() else None
 
     # Patterns are fnmatch globs; an entry 're:<regex>' is a full-match regular expression
     # (API keys in tool access mode 'regex').
@@ -151,24 +157,40 @@ class ToolPolicy:
         return cls(['*'], ['*'])
 
     def can_execute(self, tool_name: str) -> bool:
-        return matches(tool_name, self.execute) and not matches(tool_name, self.deny)
+        return (matches(tool_name, self.execute) and not matches(tool_name, self.deny)
+                and (self.ceiling is None or self.ceiling.can_execute(tool_name)))
 
     def can_see(self, tool_name: str) -> bool:
-        return matches(tool_name, self.visible) and not matches(tool_name, self.deny)
+        return (matches(tool_name, self.visible) and not matches(tool_name, self.deny)
+                and (self.ceiling is None or self.ceiling.can_see(tool_name)))
 
     def unrestricted(self) -> bool:
-        return '*' in self.visible and '*' in self.execute and not self.deny
+        return ('*' in self.visible and '*' in self.execute and not self.deny
+                and (self.ceiling is None or self.ceiling.unrestricted()))
+
+    def capped_by(self, ceiling: Optional['ToolPolicy']) -> 'ToolPolicy':
+        """This policy with ``ceiling`` as an extra limit (a ceiling already set stays)."""
+        if ceiling is None or ceiling.unrestricted():
+            return self
+        if self.ceiling is not None:
+            ceiling = self.ceiling.capped_by(ceiling)
+        return ToolPolicy(self.execute, self.visible, self.deny, ceiling)
 
     def to_session(self) -> Dict[str, list]:
-        return {'tools': list(self.execute), 'visible_tools': list(self.visible),
-                'denied_tools': list(self.deny)}
+        out = {'tools': list(self.execute), 'visible_tools': list(self.visible),
+               'denied_tools': list(self.deny)}
+        if self.ceiling is not None:
+            out['tool_ceiling'] = self.ceiling.to_session()
+        return out
 
     @classmethod
     def from_session(cls, session: Optional[Dict]) -> 'ToolPolicy':
         if not isinstance(session, dict):
             return anonymous_policy()
+        ceiling = session.get('tool_ceiling')
         return cls(session.get('tools') or [], session.get('visible_tools') or [],
-                   session.get('denied_tools') or [])
+                   session.get('denied_tools') or [],
+                   cls.from_session(ceiling) if isinstance(ceiling, dict) else None)
 
 
 def apikey_policy(mode: Optional[str], access_list) -> ToolPolicy:
@@ -221,14 +243,17 @@ def policy_for(auth) -> ToolPolicy:
     """The ToolPolicy of an AuthContext (unauthenticated -> the anonymous policy)."""
     if auth is None or not getattr(auth, 'authenticated', False):
         return anonymous_policy(getattr(auth, '_db', None))
+    is_key = auth.auth_type == 'apikey'
+    key_policy = (apikey_policy(getattr(auth, 'api_key_mode', None), getattr(auth, 'api_key_tools', None))
+                  if is_key else None)
+    if is_key and not getattr(auth, 'api_key_owned', False):
+        return key_policy           # an unowned key: its own lists only (the older behaviour)
     if auth.is_admin:
-        return ToolPolicy.everything()
-    if auth.auth_type == 'apikey':
-        return apikey_policy(getattr(auth, 'api_key_mode', None), getattr(auth, 'api_key_tools', None))
+        return ToolPolicy.everything().capped_by(key_policy)
     user = getattr(auth, '_user', None)
     roles = user.roles if user is not None else _roles_by_name(getattr(auth, '_db', None), auth.roles)
     execute, visible = _patterns_from_permissions(_role_permissions(roles))
-    return ToolPolicy(execute, visible)
+    return ToolPolicy(execute, visible).capped_by(key_policy)
 
 
 def mcp_session_for(auth) -> Dict:

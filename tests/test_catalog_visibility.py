@@ -161,7 +161,7 @@ def test_data_resources_follow_the_anonymous_policy(client, admin, rpc, monkeypa
     r = rpc(client, 'resources/read', {'uri': 'sajha://data/orders.csv'})
     assert r['error']['code'] in NOT_FOUND
     monkeypatch.setenv('SAJHA_MCP_ANONYMOUS_RESOURCES', 'sajha://data/*')
-    for uri in ('sajha://data/../../config/users.json', 'sajha://data/..', 'sajha://data/'):
+    for uri in ('sajha://data/../../config/application.yml', 'sajha://data/..', 'sajha://data/'):
         r = rpc(client, 'resources/read', {'uri': uri})
         assert r['error']['code'] in NOT_FOUND and 'admin123' not in json.dumps(r), uri
     monkeypatch.setenv('SAJHA_MCP_ANONYMOUS_ENABLED', 'false')
@@ -177,7 +177,7 @@ def test_rest_data_resources(client, admin):
     r = client.post('/api/resources/read', json={'params': {'uri': DATA_URI}}, headers=admin).json()
     assert 'customer_id' in r['result']['contents'][0]['text']
     r = client.post('/api/resources/read', headers=admin,
-                    json={'params': {'uri': 'sajha://data/../../config/users.json'}}).json()
+                    json={'params': {'uri': 'sajha://data/../../config/application.yml'}}).json()
     assert r['error']['code'] == -32002 and 'admin123' not in json.dumps(r)
 
 

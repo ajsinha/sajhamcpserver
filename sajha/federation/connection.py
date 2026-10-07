@@ -399,19 +399,22 @@ class UpstreamConnection:
 
     async def call_tool(self, name: str, arguments: Dict[str, Any], timeout: float,
                         progress: Optional[Callable] = None, input_responses: Optional[Dict] = None,
-                        request_state: Optional[str] = None):
+                        request_state: Optional[str] = None, meta: Optional[Dict[str, Any]] = None):
+        """``meta``: request ``_meta`` (the caller's W3C ``traceparent``, captured on the calling
+        thread because this coroutine runs on the federation loop)."""
         client = await self.ready_client(min(timeout, 5.0))
         responses = _input_responses(input_responses) if input_responses else None
 
         async def call():
             return await client.session.call_tool(
                 name, arguments, read_timeout_seconds=timeout, progress_callback=progress,
-                input_responses=responses, request_state=request_state, allow_input_required=True)
+                input_responses=responses, request_state=request_state, allow_input_required=True,
+                meta=meta or None)
         return await self._guarded(call, timeout, f'tools/call {name}')
 
     async def call_tool_as(self, bearer: str, name: str, arguments: Dict[str, Any], timeout: float,
                            progress: Optional[Callable] = None, input_responses: Optional[Dict] = None,
-                           request_state: Optional[str] = None):
+                           request_state: Optional[str] = None, meta: Optional[Dict[str, Any]] = None):
         """One tools/call presenting ``bearer`` (the calling user's connected-account token) on a
         connection opened for this call and closed after it, so no user's token is ever on the
         shared connection or reused for another user. Raises UpstreamUnauthorized on HTTP 401."""
@@ -429,7 +432,8 @@ class UpstreamConnection:
                     client = await eph._open(stack)
                     return await client.session.call_tool(
                         name, arguments, read_timeout_seconds=timeout, progress_callback=progress,
-                        input_responses=responses, request_state=request_state, allow_input_required=True)
+                        input_responses=responses, request_state=request_state, allow_input_required=True,
+                        meta=meta or None)
             except Exception as e:
                 if is_unauthorized(e):
                     raise UpstreamUnauthorized(f'upstream {self.config.id} refused the user token (HTTP 401)') \

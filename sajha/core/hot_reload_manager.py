@@ -1,8 +1,7 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Hot Reload Manager for SAJHA MCP Server v2.3.0
+Hot Reload Manager for SAJHA MCP Server
 Handles automatic reloading of:
-- users.json (user configuration)
 - apikeys.json (API key configuration)
 - Tool JSON configs (config/tools/*.json)
 - Tool Python modules (sajha/tools/impl/*.py)
@@ -51,7 +50,6 @@ class HotReloadManager:
         
         # Callback handlers
         self._reload_callbacks: Dict[str, List[Callable]] = {
-            'users': [],
             'apikeys': [],
             'tools_config': [],
             'tools_module': [],
@@ -71,7 +69,6 @@ class HotReloadManager:
         self._stats = {
             'last_check': None,
             'total_reloads': 0,
-            'users_reloads': 0,
             'apikeys_reloads': 0,
             'tools_config_reloads': 0,
             'tools_module_reloads': 0,
@@ -86,7 +83,7 @@ class HotReloadManager:
         Register a callback to be called when a category is reloaded.
         
         Args:
-            category: One of 'users', 'apikeys', 'tools_config', 'tools_module', 'prompts'
+            category: One of 'apikeys', 'tools_config', 'tools_module', 'prompts'
             callback: Function to call on reload
         """
         if category in self._reload_callbacks:
@@ -251,9 +248,7 @@ class HotReloadManager:
     
     def _get_category_from_name(self, name: str) -> str:
         """Determine category from file name."""
-        if 'users' in name.lower():
-            return 'users'
-        elif 'apikey' in name.lower():
+        if 'apikey' in name.lower():
             return 'apikeys'
         elif 'prompt' in name.lower():
             return 'prompts'
@@ -341,16 +336,8 @@ class ConfigReloader:
         # Use project root (cwd) as base
         base_path = Path.cwd()
         
-        # Watch users.json (get path from auth_manager if available)
-        if self.auth_manager and hasattr(self.auth_manager, 'users_config_path'):
-            users_path = self.auth_manager.users_config_path
-        else:
-            users_path = base_path / 'config' / 'users.json'
-        
-        if users_path.exists():
-            self.hot_reload.add_file_watch('users.json', users_path, 'users')
-            logger.info(f"Watching users config: {users_path}")
-        
+        # Users live in the database only; config/users.json is retired (Roadmap N5).
+
         # Watch apikeys.json (get path from apikey_manager if available)
         if self.apikey_manager and hasattr(self.apikey_manager, 'config_path'):
             apikeys_path = self.apikey_manager.config_path
@@ -404,14 +391,6 @@ class ConfigReloader:
     
     def _setup_callbacks(self):
         """Set up reload callbacks for each component."""
-        
-        # Users callback
-        def on_users_change(action, name, path):
-            if self.auth_manager:
-                logger.info(f"Reloading users configuration ({action})")
-                self.auth_manager.load_users()
-        
-        self.hot_reload.register_callback('users', on_users_change)
         
         # API Keys callback
         def on_apikeys_change(action, name, path):

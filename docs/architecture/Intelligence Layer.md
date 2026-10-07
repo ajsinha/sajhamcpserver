@@ -421,9 +421,13 @@ A walkthrough is [Tutorial 10: Ask SAJHA](../tutorials/TUTORIAL_10_ask_sajha.md)
 ### `sajha_ask` (MCP)
 
 With `ai.ask.mcp_tool_enabled: true` the service is also registered as the MCP tool
-`sajha_ask` (`question`, optional `model` and `confirm`). A tool's `execute` does not see
-the MCP caller, so its inner calls are limited to what an anonymous MCP caller may run
-(`mcp.anonymous.*`) plus the `ai.ask.mcp_allowed_tools` patterns.
+`sajha_ask` (`question`, optional `model` and `confirm`). The ask runs as the MCP caller
+(the caller context of `sajha/observability/caller.py`): its user ID and roles, and only the
+tools that caller may execute, narrowed further to the `ai.ask.mcp_allowed_tools` patterns
+when they are set. `sajha_ask` never calls itself. Only when no entry point recorded a caller
+(code that runs the tool directly) do its inner calls fall back to the anonymous MCP policy
+(`mcp.anonymous.*`) plus `ai.ask.mcp_allowed_tools`
+([Inner calls](../security/Security%20Model.md#inner-calls)).
 
 ## 7. The mock provider
 

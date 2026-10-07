@@ -79,6 +79,7 @@ places, merged at start-up:
 | `retries` | `1` | extra attempts after a transport failure, only for tools annotated `readOnlyHint` or `idempotentHint` |
 | `max_calls_per_minute` | `0` (no limit) | SAJHA's own rate limit on calls to this upstream, across all callers |
 | `cache_ttl` | `0` | seconds a successful result may be served from SAJHA's tool cache |
+| `cache_per_user` | `cache.per_user_federated` (`true`) | keep a cached result per calling user, so one user's result is never served to another; `false` shares it |
 | `breaker` | `{failure_threshold: 5, recovery_timeout: 60}` | the upstream's circuit breaker |
 | `refresh_interval_seconds` | `federation.refresh_interval_seconds` | periodic re-discovery |
 | `include_tools`, `exclude_tools` | all, none | fnmatch patterns on the upstream's own tool names |
@@ -194,12 +195,15 @@ method every SAJHA tool runs, so before anything leaves SAJHA:
 1. the caller's tool access was checked by the surface that received the call (MCP on
    both eras, REST, A2A, Ask SAJHA), by name, through `sajha/auth/access.py`;
 2. the tool is enabled and the arguments satisfy its `inputSchema` (JSON Schema, checked locally before the upstream sees them);
-3. the tool cache answers if `cache_ttl` is set and a fresh result exists;
+3. the tool cache answers if `cache_ttl` is set and a fresh result exists (per calling user
+   unless `cache_per_user: false`);
 4. the upstream's circuit breaker is consulted (open: fail fast);
 5. the upstream's rate limit is consulted.
 
 Then the manager routes the call on the upstream's connection, under the upstream's
-timeout. A transport failure (connection refused, reset, closed stream) reconnects and, for
+timeout, with the caller's W3C trace context in the request's `_meta.traceparent`
+([Observability](Observability.md#33-outbound-trace-context)), so the upstream can continue the
+trace. A transport failure (connection refused, reset, closed stream) reconnects and, for
 a tool annotated `readOnlyHint` or `idempotentHint`, is retried up to `retries` times; a
 tool that may have side effects is never retried. The outcome is recorded in the
 breaker, the tool's metrics, the replay store and the caller surface's usage events,

@@ -1249,9 +1249,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("rest", nargs=argparse.REMAINDER, help="passed to the server (e.g. --log-level INFO, --with-ai)")
 
     p = add(sub, "db", cmd_db, "database schema helper in a SAJHA checkout (runs python -m sajha.db there): "
-                               "check | sql [--dialect D] [--seed]")
+                               "check | sql [--dialect D] [--seed] | upgrade-sql")
     p.add_argument("--root", help="the SAJHA checkout (env SAJHA_HOME)")
-    p.add_argument("rest", nargs=argparse.REMAINDER, help="check | sql ... (see python -m sajha.db -h)")
+    p.add_argument("rest", nargs=argparse.REMAINDER, help="check | sql | upgrade-sql ... (see python -m sajha.db -h)")
 
     p = add(sub, "completion", cmd_completion, "print a shell completion script")
     p.add_argument("shell", choices=("bash", "zsh", "fish"))

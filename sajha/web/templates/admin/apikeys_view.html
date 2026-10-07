@@ -1,229 +1,91 @@
 {% extends "common/base.html" %}
-
-{% block title %}View API Key: {{ apikey.name }} - SAJHA MCP Server{% endblock %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+One API key (administration): owner, access, state, use; every action on it.
+Guide: docs/security/Security Model.md (API keys)
+-->
+{% block title %}API key {{ apikey.name }} - SAJHA MCP Server{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2><i class="bi bi-key me-2"></i>{{ apikey.name }}</h2>
-            <p class="text-muted mb-0">API Key Details</p>
-        </div>
-        <div>
-            <a href="{{ url_for('admin_apikeys_edit', key=apikey.key) }}" class="btn btn-primary me-2">
-                <i class="bi bi-pencil me-1"></i> Edit
-            </a>
-            <a href="{{ url_for('admin_apikeys') }}" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left me-1"></i> Back to List
-            </a>
-        </div>
+{% set k = apikey %}
+<div class="container-fluid acct-page" data-apikeys data-csrf="{{ csrf }}">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-key me-2" aria-hidden="true"></i>{{ k.name }}</h1>
+      <small class="text-muted"><code>{{ k.prefix }}…</code> · {{ k.status }}{% if k.is_default %} · default key{% endif %}{% if k.persistent %} · persistent{% endif %}</small>
     </div>
+    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('apikeys_list') }}"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>All keys</a>
+  </div>
 
-    <div class="row">
-        <!-- Main Content -->
-        <div class="col-md-8">
-            <!-- Basic Information -->
-            <div class="card mb-4">
-                <div class="card-header card-header-primary">
-                    <i class="bi bi-info-circle me-2"></i>Basic Information
-                </div>
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-3">Name</dt>
-                        <dd class="col-sm-9">{{ apikey.name }}</dd>
-                        
-                        <dt class="col-sm-3">Key</dt>
-                        <dd class="col-sm-9"><code class="bg-light px-2 py-1 rounded">{{ apikey.key }}</code></dd>
-                        
-                        <dt class="col-sm-3">Description</dt>
-                        <dd class="col-sm-9">{{ apikey.description or '-' }}</dd>
-                        
-                        <dt class="col-sm-3">Status</dt>
-                        <dd class="col-sm-9">
-                            {% if apikey.enabled %}
-                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Enabled</span>
-                            {% else %}
-                            <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Disabled</span>
-                            {% endif %}
-                        </dd>
-                        
-                        <dt class="col-sm-3">Created By</dt>
-                        <dd class="col-sm-9">{{ apikey.created_by }}</dd>
-                        
-                        <dt class="col-sm-3">Created At</dt>
-                        <dd class="col-sm-9">{{ apikey.created_at[:19] if apikey.created_at else '-' }}</dd>
-                        
-                        <dt class="col-sm-3">Expires At</dt>
-                        <dd class="col-sm-9">
-                            {% if apikey.expires_at %}
-                            {{ apikey.expires_at[:10] }}
-                            {% else %}
-                            <span class="text-muted">Never</span>
-                            {% endif %}
-                        </dd>
-                    </dl>
-                </div>
-            </div>
+  <div id="keyStatus" class="alert" role="status" tabindex="-1" hidden></div>
 
-            <!-- Tool Access -->
-            <div class="card mb-4">
-                <div class="card-header card-header-warning text-dark">
-                    <i class="bi bi-shield-lock me-2"></i>Tool Access Control
-                </div>
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-3">Access Mode</dt>
-                        <dd class="col-sm-9">
-                            {% if apikey.tool_access.mode == 'all' %}
-                            <span class="badge bg-success">All Tools</span>
-                            <p class="small text-muted mt-1 mb-0">This key has access to all available tools.</p>
-                            {% elif apikey.tool_access.mode == 'allowlist' %}
-                            <span class="badge bg-info">Allowlist</span>
-                            <p class="small text-muted mt-1 mb-0">Only the specified tools are accessible.</p>
-                            {% elif apikey.tool_access.mode == 'denylist' %}
-                            <span class="badge bg-warning text-dark">Denylist</span>
-                            <p class="small text-muted mt-1 mb-0">All tools except the specified ones.</p>
-                            {% elif apikey.tool_access.mode == 'regex' %}
-                            <span class="badge bg-secondary">Regex Patterns</span>
-                            <p class="small text-muted mt-1 mb-0">Access determined by regex pattern matching.</p>
-                            {% endif %}
-                        </dd>
-                        
-                        {% if apikey.tool_access.mode in ['allowlist', 'denylist'] and apikey.tool_access.tools %}
-                        <dt class="col-sm-3">Tools ({{ apikey.tool_access.tools|length }})</dt>
-                        <dd class="col-sm-9">
-                            {% for tool in apikey.tool_access.tools %}
-                            <span class="badge bg-light text-dark me-1 mb-1">{{ tool }}</span>
-                            {% endfor %}
-                        </dd>
-                        {% endif %}
-                        
-                        {% if apikey.tool_access.mode == 'regex' and apikey.tool_access.regex_patterns %}
-                        <dt class="col-sm-3">Regex Patterns</dt>
-                        <dd class="col-sm-9">
-                            <ul class="list-unstyled mb-0">
-                            {% for pattern in apikey.tool_access.regex_patterns %}
-                            <li><code>{{ pattern }}</code></li>
-                            {% endfor %}
-                            </ul>
-                        </dd>
-                        {% endif %}
-                    </dl>
-                </div>
-            </div>
-
-            <!-- Rate Limits -->
-            <div class="card mb-4">
-                <div class="card-header card-header-info">
-                    <i class="bi bi-speedometer me-2"></i>Rate Limits
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="text-center">
-                                <h3 class="mb-0">{{ apikey.rate_limit.requests_per_minute }}</h3>
-                                <small class="text-muted">Requests per Minute</small>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="text-center">
-                                <h3 class="mb-0">{{ apikey.rate_limit.requests_per_hour }}</h3>
-                                <small class="text-muted">Requests per Hour</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Metadata -->
-            {% if apikey.metadata %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="bi bi-person me-2"></i>Metadata
-                </div>
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-3">Owner</dt>
-                        <dd class="col-sm-9">{{ apikey.metadata.owner or '-' }}</dd>
-                        
-                        <dt class="col-sm-3">Contact</dt>
-                        <dd class="col-sm-9">{{ apikey.metadata.contact or '-' }}</dd>
-                        
-                        <dt class="col-sm-3">Purpose</dt>
-                        <dd class="col-sm-9">{{ apikey.metadata.purpose or '-' }}</dd>
-                    </dl>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Sidebar -->
-        <div class="col-md-4">
-            <!-- Usage Statistics -->
-            <div class="card mb-4">
-                <div class="card-header card-header-success">
-                    <i class="bi bi-bar-chart me-2"></i>Usage Statistics
-                </div>
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-6">Total Requests</dt>
-                        <dd class="col-sm-6 text-end">
-                            <span class="badge bg-primary fs-6">{{ apikey.usage_stats.total_requests }}</span>
-                        </dd>
-                        
-                        <dt class="col-sm-6">Last Used</dt>
-                        <dd class="col-sm-6 text-end">
-                            {% if apikey.usage_stats.last_used %}
-                            {{ apikey.usage_stats.last_used[:10] }}
-                            {% else %}
-                            <span class="text-muted">Never</span>
-                            {% endif %}
-                        </dd>
-                    </dl>
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="bi bi-lightning me-2"></i>Quick Actions
-                </div>
-                <div class="card-body">
-                    <a href="{{ url_for('admin_apikeys_edit', key=apikey.key) }}" class="btn btn-primary w-100 mb-2">
-                        <i class="bi bi-pencil me-1"></i> Edit Key
-                    </a>
-                    
-                    <form action="{{ url_for('admin_apikeys_toggle', key=apikey.key) }}" method="POST" class="mb-2">
-                        {% if apikey.enabled %}
-                        <button type="submit" class="btn btn-warning w-100">
-                            <i class="bi bi-pause-circle me-1"></i> Disable Key
-                        </button>
-                        {% else %}
-                        <button type="submit" class="btn btn-success w-100">
-                            <i class="bi bi-play-circle me-1"></i> Enable Key
-                        </button>
-                        {% endif %}
-                    </form>
-                    
-                    <a href="{{ url_for('admin_apikeys_delete', key=apikey.key) }}" class="btn btn-outline-danger w-100">
-                        <i class="bi bi-trash me-1"></i> Delete Key
-                    </a>
-                </div>
-            </div>
-
-            <!-- Usage Example -->
-            <div class="card">
-                <div class="card-header card-header-secondary">
-                    <i class="bi bi-code me-2"></i>Quick Test
-                </div>
-                <div class="card-body">
-                    <pre class="bg-dark text-light p-2 rounded small mb-0" style="font-size: 0.75rem;"><code>curl -H "X-API-Key: {{ apikey.key }}" \
-  http://localhost:3002/api/tools</code></pre>
-                </div>
-            </div>
-        </div>
+  <section id="keyOnce" class="alert alert-warning keys-once" role="region" aria-labelledby="keyOnceH" hidden>
+    <h2 class="h6" id="keyOnceH">Copy the new key now (<span id="keyOnceName"></span>)</h2>
+    <p class="small mb-2">This is the only time it is shown.</p>
+    <code id="keyOnceValue" class="keys-secret"></code>
+    <div class="acct-actions mt-2">
+      <button type="button" class="btn btn-sm btn-primary" id="keyOnceCopy"><i class="bi bi-clipboard me-1" aria-hidden="true"></i>Copy</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="keyOnceDone">Done</button>
     </div>
+  </section>
+
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card"><div class="card-body">
+        <dl class="acct-facts">
+          <dt>Owner</dt><dd>{% if k.owner %}{{ k.owner }} ({{ k.owner_name }}): signs in as this user{% else %}none: signs in as <code>apikey:{{ k.name }}</code> with role <code>api_consumer</code>{% endif %}</dd>
+          <dt>Description</dt><dd>{{ k.description or '—' }}</dd>
+          <dt>Tools</dt><dd>{{ k.tool_access_mode }}{% for t in k.tool_access_list %} <code class="acct-scope">{{ t }}</code>{% endfor %}{% if k.owner and k.tool_access_mode != 'all' %} (a ceiling on the owner's access){% endif %}</dd>
+          <dt>Created</dt><dd>{{ k.created_at or '—' }}{% if k.created_by %} by {{ k.created_by }}{% endif %}</dd>
+          <dt>Rotated</dt><dd>{{ k.rotated_at or 'never' }}</dd>
+          <dt>Expires</dt><dd>{{ k.expires_at or 'never' }}</dd>
+          <dt>Used</dt><dd>{{ k.usage_count }} calls; last {{ k.last_used or 'never' }}</dd>
+          {% if k.revoked_at %}<dt>Revoked</dt><dd>{{ k.revoked_at }} by {{ k.revoked_by }}</dd>{% endif %}
+        </dl>
+      </div></div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card"><div class="card-body">
+        {% if not can_manage %}
+        <p class="small mb-0">Sign in to the console to change keys (an API key cannot).</p>
+        {% elif k.status == 'revoked' %}
+        <p class="small mb-0">This key is revoked: it never works again. The record stays for the audit trail.</p>
+        {% else %}
+        <div class="acct-actions mb-3">
+          <button type="button" class="btn btn-sm btn-outline-primary" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/rotate"
+                  data-confirm="Rotate {{ k.name }}? The current key stops working now."><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Rotate</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/enabled"
+                  data-body='{"enabled": {{ 'false' if k.enabled else 'true' }}}'><i class="bi bi-{{ 'pause-circle' if k.enabled else 'play-circle' }} me-1" aria-hidden="true"></i>{{ 'Disable' if k.enabled else 'Enable' }}</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/persistent"
+                  data-body='{"persistent": {{ 'false' if k.persistent else 'true' }}}'><i class="bi bi-hdd me-1" aria-hidden="true"></i>{{ 'Stop keeping in the key file' if k.persistent else 'Make persistent' }}</button>
+          {% if not k.is_default %}
+          <button type="button" class="btn btn-sm btn-outline-danger" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/revoke"
+                  data-confirm="Revoke {{ k.name }}? It stops working now and cannot be enabled again."><i class="bi bi-x-circle me-1" aria-hidden="true"></i>Revoke</button>
+          <button type="button" class="btn btn-sm btn-danger" data-key-action="delete" data-url="/api/admin/apikeys/{{ k.id }}"
+                  data-confirm="Delete {{ k.name }} and its record? Revoking keeps the record; prefer it."><i class="bi bi-trash me-1" aria-hidden="true"></i>Delete</button>
+          {% endif %}
+        </div>
+        {% if not k.owner %}
+        <div class="d-flex flex-wrap gap-2 align-items-end">
+          <div><label class="form-label small" for="vOwner">Assign an owner</label>
+            <select class="form-select form-select-sm" id="vOwner" name="owner">{% for u in users %}<option value="{{ u }}">{{ u }}</option>{% endfor %}</select></div>
+          <button type="button" class="btn btn-sm btn-primary" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/owner" data-body-from="vOwner"
+                  data-confirm="Assign this key? It will sign in as that user, with the user's roles.">Assign</button>
+        </div>
+        {% endif %}
+        {% if k.is_default %}<p class="small text-muted mt-2 mb-0">A default key cannot be revoked or deleted: rotate or disable it.</p>{% endif %}
+        {% endif %}
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card mt-3"><div class="card-body">
+    <h2 class="h6">Calling SAJHA with a key</h2>
+<pre class="mb-0"><code>curl -H "X-API-Key: sja_…" http://localhost:3002/api/tools/list</code></pre>
+  </div></div>
 </div>
 {% endblock %}
 
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/apikeys.js') }}"></script>
+{% endblock %}

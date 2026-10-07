@@ -158,7 +158,16 @@ class CompositeTool(BaseMCPTool):
         """
         Execute the composite tool with Kleisli composition semantics.
         Returns result dict with _composition metadata (confidence, entropy, trace).
+
+        Every step runs as the caller (sajha/core/inner_calls.py): a step tool the caller may
+        not execute fails that step, and a composite already running in this call chain (or a
+        chain deeper than tools.max_call_depth) is refused.
         """
+        from sajha.core import inner_calls
+        with inner_calls.entered(self._definition['name']):
+            return self._execute(arguments)
+
+    def _execute(self, arguments: Dict) -> Dict:
         from sajha.core.composition import (
             StepResult, PipelineResult, ParamLens, EntropyGuard,
             execute_step, get_tool_confidence,
@@ -175,7 +184,7 @@ class CompositeTool(BaseMCPTool):
         if not master_tool:
             return PipelineResult(error=f'Master tool not found: {master_name}').to_dict()
 
-        master_result = execute_step(master_tool, arguments, master_name)
+        master_result = _inner_step(master_tool, arguments, master_name)
         guard.record_step(master_name, master_result.confidence)
 
         if not master_result.is_success:
@@ -256,10 +265,11 @@ class CompositeTool(BaseMCPTool):
             record = master_output if isinstance(master_output, (dict, list)) else {}
             params = lens.view(master_input, master_input=master_input, record=record)
             merged = {**master_input, **params}
-            return step['output_key'], execute_step(tool, merged, step['tool_name'])
+            return step['output_key'], _inner_step(tool, merged, step['tool_name'])
 
+        from sajha.core.inner_calls import in_context
         with ThreadPoolExecutor(max_workers=min(len(steps), 8)) as pool:
-            futures = {pool.submit(_run_step, s): s for s in steps}
+            futures = {pool.submit(in_context(_run_step, s)): s for s in steps}
             for future in as_completed(futures):
                 key, sr = future.result()
                 result[key] = sr.value if sr.is_success else {'error': sr.error}
@@ -288,13 +298,14 @@ class CompositeTool(BaseMCPTool):
                     f'Tool not found: {step["tool_name"]}', step['tool_name'])
             lens = ParamLens.from_step_definition(step)
             params = lens.view({}, master_input=master_input, record=record)
-            return step['output_key'], execute_step(tool, params, step['tool_name'])
+            return step['output_key'], _inner_step(tool, params, step['tool_name'])
 
-        with ThreadPoolExecutor(max_workers=min(len(records) * len(steps), 16)) as pool:
+        from sajha.core.inner_calls import in_context
+        with ThreadPoolExecutor(max_workers=max(1, min(len(records) * len(steps), 16))) as pool:
             for record in records:
                 entry = {'_record': record}
                 guard.begin_parallel()
-                futures = {pool.submit(_run_child, record, s): s for s in steps}
+                futures = {pool.submit(in_context(_run_child, record, s)): s for s in steps}
                 for future in as_completed(futures):
                     key, sr = future.result()
                     entry[key] = sr.value if sr.is_success else {'error': sr.error}
@@ -303,6 +314,16 @@ class CompositeTool(BaseMCPTool):
                 children.append(entry)
 
         return {'children': children}
+
+
+def _inner_step(tool, arguments: Dict, step_name: str):
+    """One step as the caller: refused (a failed step) when the caller may not execute it."""
+    from sajha.core.composition import StepResult, execute_step
+    from sajha.core import inner_calls
+    if not inner_calls.caller_may_run(step_name):
+        from sajha.observability.caller import current
+        return StepResult.fail(f'access denied: {current().user_id!r} may not execute {step_name}', step_name)
+    return execute_step(tool, arguments, step_name)
 
 
 class CompositeToolEngine:

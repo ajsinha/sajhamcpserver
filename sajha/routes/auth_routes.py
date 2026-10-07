@@ -134,8 +134,11 @@ def _change_password(db: Session, auth: AuthContext, current: str, new: str, con
     user.locked_until = None
     db.commit()
     AuditDAO(db).log('user.password_change', user.user_id, 'user', user.user_id)
+    # every other session ends; this one continues with a fresh token (revocable sign-in)
+    from sajha.auth.revocation import end_all_sessions
+    tv = end_all_sessions(db, user, user.user_id, 'password_change')
     from sajha.auth.jwt_handler import create_access_token
-    return None, create_access_token(user.user_id, user.role_names)
+    return None, create_access_token(user.user_id, user.role_names, token_version=tv)
 
 
 @router.get('/account/password', name='change_password_page')
@@ -224,16 +227,95 @@ async def api_admin_reset_password(uid: str, request: Request, auth: AuthContext
     user.locked_until = None
     db.commit()
     AuditDAO(db).log('user.password_reset', auth.user_id, 'user', uid)
+    from sajha.auth.revocation import end_all_sessions
+    end_all_sessions(db, user, auth.user_id, 'password_reset')
     return JSONResponse({'success': True, 'user_id': uid,
                          'must_change_password': user.must_change_password})
 
 
+def _revoke_presented_token(request: Request) -> bool:
+    """Sign-out: the cookie's (or bearer) SAJHA JWT stops working everywhere until it expires."""
+    from sajha.auth.jwt_handler import decode_access_token
+    from sajha.auth.revocation import revoke_token
+    header = request.headers.get('Authorization', '')
+    token = header[7:] if header.startswith('Bearer ') else request.cookies.get('sajha_token', '')
+    payload = decode_access_token(token) if token else None
+    return revoke_token(payload) if payload else False
+
+
 @router.get('/logout')
 async def logout(request: Request):
-    """Logout — clear session cookie."""
+    """Logout — the session token is revoked (not only the cookie cleared)."""
+    _revoke_presented_token(request)
     response = RedirectResponse(url='/', status_code=302)
     response.delete_cookie('sajha_token')
     return response
+
+
+@router.post('/api/auth/logout')
+async def api_logout(request: Request):
+    """Revoke the presented SAJHA JWT (``Authorization: Bearer`` or the cookie)."""
+    revoked = _revoke_presented_token(request)
+    response = JSONResponse({'success': True, 'revoked': revoked})
+    response.delete_cookie('sajha_token')
+    return response
+
+
+def _session_user(auth: AuthContext, db: Session):
+    from sajha.db.dao import UserDAO
+    if auth.auth_type not in ('jwt', 'session') or auth._user is None:
+        return None
+    return UserDAO(db).get_by_user_id(auth.user_id)
+
+
+@router.post('/api/auth/sessions/revoke')
+async def api_sign_out_everywhere(request: Request, auth: AuthContext = Depends(require_auth),
+                                  db: Session = Depends(get_db)):
+    """Sign out everywhere: every SAJHA JWT and built-in OAuth token of this user stops working,
+    including the one making this request. Signed-in users only (not API keys)."""
+    user = _session_user(auth, db)
+    if user is None:
+        return JSONResponse({'error': 'Only a signed-in user can end their sessions (not an API key).'},
+                            status_code=403)
+    if auth.auth_type == 'session':
+        from sajha.routes.apikeys_routes import csrf_ok
+        if not csrf_ok(request, auth, request.headers.get('X-CSRF-Token')):
+            return JSONResponse({'error': 'missing or wrong X-CSRF-Token'}, status_code=403)
+    from sajha.auth.revocation import end_all_sessions
+    end_all_sessions(db, user, user.user_id, 'sign_out_everywhere')
+    response = JSONResponse({'success': True})
+    response.delete_cookie('sajha_token')
+    return response
+
+
+@router.post('/account/sessions/revoke')
+async def account_sign_out_everywhere(request: Request, auth: AuthContext = Depends(require_auth),
+                                      db: Session = Depends(get_db), csrf: str = Form('')):
+    """The "Sign out everywhere" button (account API keys page): ends every session, then the login page."""
+    from sajha.routes.apikeys_routes import csrf_ok
+    user = _session_user(auth, db)
+    if user is None or not csrf_ok(request, auth, csrf):
+        return RedirectResponse(url='/account/apikeys?error=signout', status_code=303)
+    from sajha.auth.revocation import end_all_sessions
+    end_all_sessions(db, user, user.user_id, 'sign_out_everywhere')
+    response = RedirectResponse(url='/login', status_code=303)
+    response.delete_cookie('sajha_token')
+    return response
+
+
+@router.post('/api/admin/users/{uid}/sessions/revoke')
+async def api_admin_revoke_sessions(uid: str, auth: AuthContext = Depends(require_admin),
+                                    db: Session = Depends(get_db)):
+    """Administrators: end every session (SAJHA JWTs, built-in OAuth tokens) of a user."""
+    from sajha.db.dao import UserDAO
+    from sajha.auth.revocation import end_all_sessions
+    if auth.auth_type == 'apikey':
+        return JSONResponse({'error': 'Sign in to manage sessions; API keys cannot.'}, status_code=403)
+    user = UserDAO(db).get_by_user_id(uid)
+    if user is None:
+        return JSONResponse({'error': 'User not found'}, status_code=404)
+    tv = end_all_sessions(db, user, auth.user_id, 'admin_revoke')
+    return JSONResponse({'success': True, 'user_id': uid, 'token_version': tv})
 
 
 # ── Landing page or dashboard ────────────────────────────────────

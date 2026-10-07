@@ -390,12 +390,15 @@ def _grant_code(request: Request, form, client: OAuthClient, db: Session) -> Dic
         raise asrv.OAuthError('invalid_target', 'resource differs from the authorization request')
     if rec.issuer != settings.public_base_url(request):
         raise asrv.OAuthError('invalid_grant', 'code was issued by a different issuer')
-    _enabled_user(db, rec.user_id)
-    body = asrv.mint_access_token(rec.issuer, rec.user_id, client.client_id, rec.scopes, rec.resource)
+    user = _enabled_user(db, rec.user_id)
+    from sajha.auth.revocation import token_version_of
+    tv = token_version_of(user)
+    body = asrv.mint_access_token(rec.issuer, rec.user_id, client.client_id, rec.scopes, rec.resource,
+                                  token_version=tv)
     if asrv.wants_refresh(rec.scopes):
         rec.family = rec.family or uuid.uuid4().hex   # fixed atomically by redeem_code
         body['refresh_token'] = store.issue_refresh(rec.family, client.client_id, rec.user_id, rec.scopes,
-                                                    rec.resource, rec.issuer)
+                                                    rec.resource, rec.issuer, tv=tv)
     return body
 
 
@@ -413,10 +416,17 @@ def _grant_refresh(request: Request, form, client: OAuthClient, db: Session) -> 
         raise asrv.OAuthError('invalid_target', 'resource differs from the original grant')
     if rec.issuer != settings.public_base_url(request):
         raise asrv.OAuthError('invalid_grant', 'refresh token was issued by a different issuer')
-    _enabled_user(db, rec.user_id)
-    body = asrv.mint_access_token(rec.issuer, rec.user_id, client.client_id, scopes, rec.resource)
+    user = _enabled_user(db, rec.user_id)
+    from sajha.auth.revocation import token_version_of
+    tv = token_version_of(user)
+    if int(rec.tv or 0) != tv:
+        # the user signed out everywhere (or a password changed) since this grant: it ends here
+        store.revoke_family(rec.family)
+        raise asrv.OAuthError('invalid_grant', 'the user ended all sessions; sign in again')
+    body = asrv.mint_access_token(rec.issuer, rec.user_id, client.client_id, scopes, rec.resource,
+                                  token_version=tv)
     body['refresh_token'] = store.issue_refresh(rec.family, client.client_id, rec.user_id, scopes,
-                                                rec.resource, rec.issuer, expires=rec.expires)
+                                                rec.resource, rec.issuer, expires=rec.expires, tv=tv)
     return body
 
 

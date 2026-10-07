@@ -72,6 +72,7 @@ filesystem (local disk, EBS, EFS) or a managed service, and never on S3, Azure B
 | Database (SQLite `data/sajha.db`, from `db.path`) | file on disk, via SQLAlchemy | real filesystem or EFS, or set `db.type: postgresql` (e.g. RDS). SQLite on an object store will corrupt. |
 | Audit log | `audit_log` table in the same database | follows the database |
 | Tool output cache | `cache.dir` (default `data/cache`) | local or ephemeral disk |
+| Snapshots of users, keys and tools | `snapshots.dir` (default `data/snapshots`), owner-only files renamed into place | real filesystem; shared (EFS) when several hosts should continue one chain ([Policy and Audit](../architecture/Policy%20and%20Audit.md#75-snapshots-of-users-api-keys-and-tools)) |
 | OAuth signing key | `mcp.auth.builtin.signing_key_path`, default `<data.dir>/oauth/signing_key.pem` | real filesystem, and shared (EFS) when several instances must sign with the same key |
 | MCP sessions, MCP tasks, OAuth codes, rate limits | the state store (`state.backend`, [Scaling and State](../architecture/Scaling%20and%20State.md)) | `memory` (default): lost on restart, not shared between workers. `redis` or `database`: shared; task records durable in the database |
 
@@ -244,7 +245,7 @@ Only one tool-reload mechanism is active per deployment.
 | Mechanism | Backend | What it watches | Interval |
 |-----------|---------|-----------------|----------|
 | Tools registry poller | `local` only (skipped on cloud) | `config/tools/*.json` on disk (new, modified, deleted) plus `sajha/tools/impl/*.py` | 5 s (fixed) |
-| `ConfigReloader` / `HotReloadManager` | any (local files only) | local tool JSON, tool modules, prompt JSON, and `config/users.json` / `config/apikeys.json` if present | `hot_reload.interval_seconds` |
+| `ConfigReloader` / `HotReloadManager` | any (local files only) | local tool JSON, tool modules, prompt JSON, and the persistent API key file (`config.apikeys.path`) if present, which is also re-read on change when a key is looked up | `hot_reload.interval_seconds` |
 | `S3SyncManager` | `s3`, `azure`, `gcs` | `config/tools` → `reload_all_tools`; `config/prompts` → prompts `reload` | `storage.s3.sync_interval` (default 60 s), used for **all** cloud backends |
 | Prompts auto-refresh | any | full reload of prompts through storage | 600 s |
 

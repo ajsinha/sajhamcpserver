@@ -1,0 +1,65 @@
+/*
+ * System notices: the console banner, the navbar badge and the dashboard's System status panel
+ * (docs/architecture/System Notices.md). Colours come only from the theme tokens (tokens.css),
+ * so all four themes work; severity is always written as a word as well as coloured.
+ * Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+ */
+.sev-info     { --sev: var(--sajha-indigo); }
+.sev-warning  { --sev: var(--sajha-warn); }
+.sev-error    { --sev: var(--sajha-bad); }
+.sev-critical { --sev: var(--sajha-bad); }
+
+/* the severity word: outlined; critical is filled (surface-coloured text on the bad colour) */
+.sev-pill { display: inline-flex; align-items: center; gap: .3rem; padding: .1rem .5rem; border-radius: 999px;
+  font-size: 12px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; white-space: nowrap;
+  color: var(--sev); border: 1px solid var(--sev); background: color-mix(in srgb, var(--sev) 10%, transparent); }
+.sev-critical .sev-pill, .sev-pill.sev-critical { color: var(--sajha-surface); background: var(--sev); }
+
+/* ── banner ─────────────────────────────────────────────────────────────── */
+.sajha-notice-banner { display: flex; align-items: flex-start; gap: .65rem; flex-wrap: wrap; margin-top: 1rem;
+  padding: .7rem 1rem; border-radius: var(--radius, 10px); color: var(--sajha-ink);
+  background: color-mix(in srgb, var(--sev) 12%, var(--sajha-surface));
+  border: 1px solid color-mix(in srgb, var(--sev) 55%, var(--sajha-border)); border-left: 5px solid var(--sev); }
+.sajha-notice-banner[hidden] { display: none; }
+.sajha-notice-banner > .bi { color: var(--sev); font-size: 1.15rem; line-height: 1.4; }
+.sajha-notice-banner .snb-text { flex: 1 1 14rem; min-width: 0; overflow-wrap: anywhere; }
+.sajha-notice-banner .snb-title { font-weight: 600; }
+.sajha-notice-banner .snb-more { color: var(--t-muted); white-space: nowrap; }
+.sajha-notice-banner .snb-link { font-weight: 600; color: var(--sajha-ink); text-decoration: underline;
+  white-space: nowrap; align-self: center; padding: .25rem 0; }
+
+/* ── navbar badge (outside the collapsed menu, so phones see it too) ───────── */
+.sajha-nav .navbar-brand { order: 0; }
+.sajha-notice-badge { order: 1; margin-left: auto; margin-right: .35rem; position: relative; display: inline-flex;
+  align-items: center; justify-content: center; min-width: 40px; min-height: 40px; padding: .35rem .5rem;
+  border-radius: 10px; color: var(--sajha-on-nav); text-decoration: none; }
+.sajha-notice-badge:hover, .sajha-notice-badge:focus-visible { background: rgba(255,255,255,.14); color: var(--sajha-on-nav); }
+.sajha-notice-badge .bi { font-size: 1.15rem; }
+.sajha-notice-badge .cnt { position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; padding: 0 4px;
+  border-radius: 999px; font-size: 12px; line-height: 18px; text-align: center; font-weight: 800;
+  background: var(--sajha-on-nav); color: var(--sajha-crimson-deep); }
+.sajha-notice-badge.sev-error .cnt, .sajha-notice-badge.sev-critical .cnt { box-shadow: 0 0 0 2px var(--sajha-bad); }
+.sajha-nav .navbar-toggler { order: 2; }
+.sajha-nav .navbar-collapse { order: 3; }
+@media (min-width: 992px) {
+  .sajha-nav .navbar-collapse { order: 1; }
+  .sajha-notice-badge { order: 2; margin-left: .35rem; margin-right: 0; }
+}
+
+/* ── dashboard: System status panel ───────────────────────────────────────── */
+.ssp-group { display: flex; align-items: center; gap: .5rem; font-size: .95rem; font-weight: 700; margin: 1rem 0 .5rem; }
+.ssp-group:first-child { margin-top: 0; }
+.ssp-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .6rem; }
+.ssp-item { border: 1px solid var(--sajha-border); border-left: 4px solid var(--sev); border-radius: 10px;
+  padding: .65rem .85rem; background: var(--sajha-surface); min-width: 0; }
+.ssp-item.is-cleared { border-left-color: var(--sajha-border); opacity: .9; }
+.ssp-head { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; }
+.ssp-title { font-weight: 600; flex: 1 1 15rem; min-width: 0; overflow-wrap: anywhere; }
+.ssp-meta { font-size: 13px; color: var(--t-muted); margin-top: .25rem; overflow-wrap: anywhere; }
+.ssp-detail { margin: .35rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+.ssp-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
+.ssp-actions .btn { min-height: 40px; }
+.ssp-state { font-size: 13px; color: var(--t-muted); }
+.ssp-empty { display: flex; align-items: center; gap: .6rem; color: var(--t-muted); padding: .5rem 0; }
+.ssp-empty .bi { color: var(--sajha-ok); font-size: 1.4rem; }
+#ssp-cleared-toggle { min-height: 40px; }

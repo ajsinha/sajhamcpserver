@@ -25,7 +25,7 @@ Users, roles, permissions, API keys and the audit log are stored in the SAJHA da
 - **Password policy.** New passwords (`password_problem` in `sajha/auth/password.py`) need at least 8 characters (`auth.password.min_length`, never below 8), at most 72 bytes (the bcrypt limit), must not be a well-known default (`admin123`, `changeme`, ...) and must not equal the user ID.
 - **Changing a password.** A signed-in user changes their own password at `/account/password` (page, also in the user menu) or `POST /api/auth/change-password` (`{"current_password", "new_password"}`, returns a fresh JWT). Both need the current password; API keys have no password to change. An admin resets anyone's password with `POST /api/admin/users/{uid}/password` (`{"password", "must_change_password": true}`), which also unlocks the account. Changes are audited as `user.password_change` and `user.password_reset`.
 - **Must change password.** `users.must_change_password` (in `db/scripts/<type>/schema.sql`) is set for the seed admin while its seed hash is unchanged, for passwords an admin sets (create or reset), and whenever someone signs in with a well-known default password. While it is set, the session JWT carries `pwc: true`, `POST /api/auth/login` returns `"password_change_required": true`, and every console page shows a banner linking to `/account/password`.
-- **No server-side sessions.** A successful login returns a SAJHA JWT (see below). The web form puts it in a cookie. Logging out (`GET /logout`) only deletes the cookie, so the token stays valid until it expires.
+- **No server-side sessions, but revocable sign-in.** A successful login returns a SAJHA JWT (see below). The web form puts it in a cookie. Logging out revokes that token and deletes the cookie; a user (or an administrator) can also end every session at once. See [Revocable sign-in](#revocable-sign-in).
 
 ### Session cookie `sajha_token`
 
@@ -45,22 +45,37 @@ SameSite=Lax is the only CSRF defence for cookie-authenticated web and admin req
 Tokens are created and verified in `sajha/auth/jwt_handler.py` and configured under `auth.jwt.*` in `config/application.yml`.
 
 - **Algorithm and secret.** The algorithm is `auth.jwt.algorithm` (default `HS256`), signed with the shared secret `auth.jwt.secret`. When no secret is configured, SAJHA generates one and persists it (see [Secrets](#6-secrets-and-deployment-checklist)); a publicly known placeholder value stops start-up.
-- **Claims.** `sub` (user ID), `roles`, `iat`, `exp`, `iss: sajha-mcp-server`, and `pwc: true` while the password must be changed.
+- **Claims.** `sub` (user ID), `roles`, `iat`, `exp`, `iss: sajha-mcp-server`, `jti` (a random token id), `tv` (the user's token version), and `pwc: true` while the password must be changed.
 - **Expiry.** `auth.jwt.expiry_minutes`, default 60.
-- **Verification.** Decoding checks the signature, the allowed algorithm and `exp`. The user is then reloaded from the database on every request, so disabling a user takes effect immediately.
+- **Verification.** Decoding checks the signature, the allowed algorithm and `exp`. The user is then reloaded from the database on every request, so disabling a user takes effect immediately; a token whose `tv` is not the user's current token version, or whose `jti` was signed out, is refused ([Revocable sign-in](#revocable-sign-in)).
 
 Callers send the token as `Authorization: Bearer <jwt>`.
 
 ### API keys
 
-API keys are created by an admin at `POST /admin/apikeys/create` (`sajha/routes/apikeys_routes.py`).
+API keys are managed by administrators at `/admin/apikeys` and by every signed-in user, for their own keys, at `/account/apikeys` (user menu, "My API keys"); the routes are in `sajha/routes/apikeys_routes.py` and the rules in `sajha/auth/apikeys.py`.
 
-- **Format.** `sja_` followed by `secrets.token_hex(24)`. The raw key is shown once.
-- **Storage.** Only the SHA-256 hash (`ApiKeyDAO.hash_key` in `sajha/db/dao/__init__.py`) and the first 8 characters, used as a display prefix, are stored.
-- **Validation.** `ApiKeyDAO.validate_key` rejects unknown, disabled and expired keys and records usage.
+- **Format.** `sja_` followed by `secrets.token_hex(24)`. The raw key is shown once: when it is created and after each rotation.
+- **Storage.** Only the SHA-256 hash (`ApiKeyDAO.hash_key` in `sajha/db/dao/__init__.py`) and the first 8 characters, used as a display prefix, are stored. The one exception is each user's default key (below), whose value is also kept encrypted.
+- **Validation.** `ApiKeyDAO.validate_key` rejects unknown, revoked, disabled and expired keys; usage is recorded. The key row is read on every request, so disabling or revoking a key takes effect on the next request.
 - **How to send a key.** `X-API-Key: sja_...`, or a bare `Authorization: sja_...` header. On the WebSocket transport only, use `?api_key=`.
-- **Resulting identity.** An authenticated key becomes the identity `apikey:<name>` with the role `api_consumer`. It is never an admin.
-- **Tool access.** The key's `tool_access_mode` decides which tools it may list and run, everywhere tools run (REST, MCP, A2A): `all`, `allowlist` (the fnmatch patterns in `tool_access_list`), `denylist` (everything except them) or `regex` (tool names that fully match one of the listed regular expressions). An unknown mode grants nothing. See [Tool access](#tool-access).
+- **Owner and resulting identity.** A key belongs to a user (`api_keys.owner_id`, set when it is created). An owned key signs in **as its owner**, with the owner's roles: it can reach what the owner can (an administrator's key is an administrator), and it stops working when the owner is disabled or deleted. Keys without an owner (keys created before owners existed, or by an administrator choosing "no owner") keep the older service identity `apikey:<name>` with the role `api_consumer`, and are never an admin, until an administrator assigns an owner on the API keys page (`POST /api/admin/apikeys/{key_id}/owner`); the page counts and filters them.
+- **Tool access.** The key's `tool_access_mode` is `all`, `allowlist` (the fnmatch patterns in `tool_access_list`), `denylist` (everything except them) or `regex` (tool names that fully match one of the listed regular expressions); an unknown mode grants nothing. For an owned key it is a **ceiling** on the owner's tool access: a tool must be allowed by both. For a key without an owner it is the whole of the key's access. It applies everywhere tools run (REST, MCP, A2A). See [Tool access](#tool-access).
+- **Who manages keys.** Users create keys for themselves (`POST /api/account/apikeys`), rotate and revoke them; administrators do the same for any key, create keys for any user or without an owner, disable and re-enable keys, assign owners, mark keys persistent and delete keys. Key management needs a signed-in user (console session or SAJHA JWT), never an API key, so a stolen key cannot mint more; browser requests carry the page's CSRF token. A user may hold `auth.api_keys.max_per_user` keys (default 25) besides the default key.
+- **Revocation.** Revoking sets `revoked_at` and `revoked_by` and disables the key for good: it cannot be enabled again, and the row stays as a record. Deleting (administrators only) removes the row; prefer revoking.
+- **Default key.** Every user has exactly one default key, created with the account (and, at start-up, for every account that has none). It cannot be revoked or deleted, only rotated (by its owner or an administrator) or disabled (by an administrator). Its raw value is kept encrypted in `api_keys.secret_ciphertext` with the connected-accounts vault's AES-256-GCM data key (`accounts.vault.key`, `SAJHA_ACCOUNTS_VAULT_KEY`, a `key_provider`, or the key generated into the server secrets file; [Connected Accounts](../architecture/Connected%20Accounts.md)), bound to the owner and the key id, so the server can later act for the user with it. A default key created at start-up has never been shown: its owner rotates it to get a value.
+- **Persistent keys.** An administrator can mark a key persistent (when creating it, or later). Its record (id, prefix, name, SHA-256 hash, owner's user ID, name and roles, enabled, expiry, tool access, created, revoked) is then also kept in the file at `config.apikeys.path` (default `config/apikeys.json`; `sajha/auth/persistent_keys.py`), so the key keeps working when the database does not know it or does not answer. The database is checked first and decides for every key it knows (disabled or revoked there wins); a file key whose owner is not an enabled user in a database that answers is refused. SAJHA rewrites the file atomically (temporary file, then rename) on every change and re-reads it when it changes on disk, so an operator can revoke a key by editing it during an outage. The file is written with mode 0600 and is git-ignored; `config/apikeys.json.example` documents the format. It holds no keys, but it names users and their access, so treat it as sensitive. The older plaintext format (a top-level `apikeys` list) is never read and is replaced on the first write.
+- **Audit.** Every change is audited (`apikey.*` events below), with the key's id and prefix, never the key.
+
+### Revocable sign-in
+
+Signing in issues tokens that are checked on every request, so they can be withdrawn before they expire (`sajha/auth/revocation.py`):
+
+- **One session: sign out.** Every SAJHA JWT carries a `jti`. `GET /logout` and `POST /api/auth/logout` record the presented token's `jti` in the [state store](../architecture/Scaling%20and%20State.md) (`auth:revoked:<jti>`) until the token would have expired; the token is then refused everywhere. With `state.backend: memory` only the process that handled the sign-out knows; several workers need `redis` or `database`. If the state store does not answer, the check is skipped (logged) rather than signing everyone out.
+- **Every session of a user: the token version.** Each user has `users.token_version`, copied into every SAJHA JWT and every access token of SAJHA's own OAuth authorization server as the claim `tv` (a token without `tv`, issued before this existed, counts as 0). The user row is reloaded on every request anyway, so a token whose `tv` differs is refused. The version is raised by "Sign out everywhere" (`POST /api/auth/sessions/revoke`, or the button on My API keys), by a password change (the session that changed it gets a fresh token; every other session ends), by an administrator's password reset and by an administrator's `POST /api/admin/users/{uid}/sessions/revoke` (the Users page). Each raise is audited as `user.sessions_revoked` with the reason.
+- **OAuth refresh tokens.** Refresh tokens of SAJHA's authorization server remember the token version they were issued under; once it changes, refreshing fails with `invalid_grant` and the grant's refresh-token family is revoked.
+- **API keys are not sessions.** Ending sessions does not touch API keys; revoke or rotate those ([API keys](#api-keys)). Key revocation takes effect on the next request.
+- **Not covered.** Access tokens from an external issuer are that issuer's to revoke; SAJHA only stops accepting them when the user is disabled. An MCP session ID is not a credential on its own: each request on it is authenticated again.
 
 ### Order of authentication
 
@@ -98,7 +113,8 @@ How these rows are used:
 |---|---|---|
 | `admin` role | all | all |
 | User (SAJHA JWT, session cookie, OAuth token for a SAJHA user) | patterns of its roles' `tool` (or `*`) permission rows with action `execute` or `*` | the same, plus rows with `read` |
-| API key | its tool access mode (see [API keys](#api-keys)) | the same |
+| API key with an owner | the owner's access (as a user above; everything for an admin), capped by the key's tool access mode | the same |
+| API key without an owner | its tool access mode (see [API keys](#api-keys)) | the same |
 | External OAuth identity with no SAJHA account (`api_consumer`) | the tool permissions of a SAJHA role named `api_consumer`, if an operator creates one; otherwise none | the same |
 | Anonymous (no credentials) | `mcp.anonymous.tools` (fnmatch allowlist, default empty) plus the tool permissions of the role in `mcp.anonymous.role` | the same |
 
@@ -111,13 +127,24 @@ How these rows are used:
 - **Prompts.** There are no per-prompt permissions for signed-in callers: they see every prompt. Anonymous callers see only prompts matching `mcp.anonymous.prompts` (fnmatch allowlist, default empty) in `prompts/list`, `prompts/get`, `completion/complete` for a `ref/prompt`, the `sajha://prompts/catalog` resource and `GET /api/prompts/list` / `GET /api/prompts/{name}` (which also answer 401 where `/mcp` would). A hidden prompt is reported as unknown (`-32602`, or 404 on REST). `sajha/auth/access.py` (`can_see_prompt`). With `mcp.cache.scope: auto`, `prompts/list`, `resources/list` and `resources/read` are `private` for an authenticated caller and `public` for anonymous ones, as for `tools/list`.
 - MCP `logging/setLevel` is accepted from anyone but changes the server's root log level only for an admin.
 
+### Inner calls
+
+A tool that calls other tools runs each of them **as the original caller** (`sajha/core/inner_calls.py`). Every entry point that sets the caller (both MCP eras on every transport, `POST /api/tools/execute`, async execution, A2A, Ask SAJHA, workflow runs) records the caller's tool access with it (`sajha/observability/caller.py`), and the context follows the call into worker threads:
+
+- **Composite steps.** Each step (master and children) is checked against the caller's access; a step the caller may not execute fails with "access denied" instead of running. Policy rules, the usage ledger and connected accounts see the caller.
+- **`sajha_ask`.** The ask runs with the caller's user ID and roles; it may run only tools the caller may execute, narrowed further to `ai.ask.mcp_allowed_tools` when that list is set (it no longer widens what an anonymous caller may run). Only when no entry point recorded a caller (code that runs the tool directly) does the older rule apply: the anonymous policy plus `ai.ask.mcp_allowed_tools`.
+- **Workflows** keep their own rule: steps run as the workflow's owner (the run-as identity, [Workflows](../architecture/Workflows.md)), which is why only administrators publish a workflow as a tool.
+- **Cycles and depth.** The tools currently running one inside another form a call chain (a context variable). A tool already in the chain is not called again, and a chain deeper than `tools.max_call_depth` (default 8) is refused.
+
 ### Default admin account
 
 The seed script creates the user `admin` with the role `admin`. Its bcrypt hash corresponds to the well-known password `admin123`, which is also used by `sajha/apiclient/demo.py`. The account is flagged [must change password](#web-login-and-passwords) until that seed hash is replaced, so every page shows a banner until you change it at `/account/password` (or `POST /api/auth/change-password`). Change it before you expose the server.
 
 `POST /api/admin/users/create` requires a `password` that passes the password policy, and flags the new account to change it at first sign-in (unless the body says `"must_change_password": false`).
 
-`config/users.json` and `config/apikeys.json` (tracked in git) contain demo credentials. The importer for them, `sajha/db/seed.py` (`run_legacy_import`), is not called at startup, so they do not create accounts or keys.
+Users live only in the database. The old demo users file (config/users.json, with a plaintext `admin123`) is removed: nothing reads or watches that path, and it is git-ignored so a local copy is not committed again. `config/apikeys.json` is no longer a demo file: it is the git-ignored [persistent key file](#api-keys), holding SHA-256 hashes only; the four plaintext demo keys it used to ship were never imported and are gone.
+
+Users, roles and API key records are also kept in signed, chained [snapshots](../architecture/Policy%20and%20Audit.md#75-snapshots-of-users-api-keys-and-tools) (no password hashes; key hashes only for persistent keys), from which an administrator can re-create missing users after losing the database (`python -m sajha.snapshots restore`, with confirmation). Restored users get an unusable password and must change it. The snapshot files name users and their access: they are written owner-only (directory 0700, files 0600) and git-ignored.
 
 ---
 
@@ -234,9 +261,9 @@ All limiters are sliding windows in `sajha/security.py`, keyed by client IP and 
 | Every password sign-in (same three) | account lockout: `auth.login.max_failed_attempts` consecutive failures (default 5) lock the account for `auth.login.lockout_minutes` (default 15), then 423 |
 | OAuth consent sign-in (`POST /oauth/authorize`) and `POST /oauth/register` | also 5 attempts per minute per IP (`check_auth_rate_limit`) |
 | `GET /oauth/authorize` | 100 per minute per IP |
-| `/mcp`, REST tool execution, WebSocket | **none built in**; a policy `rate_limit` rule (per `tool`, `user`, `api_key`, `caller` or `global`) limits tool calls on every path ([Policy and Audit](../architecture/Policy%20and%20Audit.md)); the shipped default policy has no rules |
+| `/mcp`, REST tool execution, WebSocket | a policy `rate_limit` rule (per `tool`, `user`, `api_key`, `caller` or `global`), the one limiter for tool calls, applied on every path ([Policy and Audit](../architecture/Policy%20and%20Audit.md)); the shipped default policy has no rules, and `config/policies/00-default.yaml` carries a commented per-user and per-API-key example to enable |
 
-Limits that are defined but not applied: the per-user and per-key limits `check_user_rate_limit` (100/min) and `check_key_rate_limit` (200/min) exist but are not called anywhere.
+There is no other per-user or per-key limiter: the unused `check_user_rate_limit` and `check_key_rate_limit` were removed, so a policy rule is the only place such a limit can come from.
 
 Behind a reverse proxy the per-IP limits need the real client address: uvicorn takes it from `X-Forwarded-For` only when the proxy is in `FORWARDED_ALLOW_IPS` (default `127.0.0.1`).
 
@@ -348,7 +375,7 @@ Threat table and audit events: [Connected Accounts §10](../architecture/Connect
   - Non-admins list, read, cancel and retry only their own tasks.
 - **A2A.** `POST /a2a` (`sajha/routes/a2a_routes.py`) authenticates like the REST API; without credentials it applies the anonymous policy, or answers 401 when `mcp.anonymous.enabled` is false. It runs the first tool whose name appears in the message text, with empty arguments, only if the caller may execute it; otherwise the task fails with "Access denied". `tasks/get` and `tasks/cancel` see only the caller's own tasks (admins see all).
 - **Federation.** Upstream MCP servers' tools are registry tools under the same tool access. Upstream URLs pass an SSRF guard, upstream descriptions are screened for prompt injection, new and changed tools wait for an admin's approval by default, stdio upstreams are off unless `federation.allow_stdio` is on, and every federation route is admin-only and audited. Details: [Federation](../architecture/Federation.md#9-security).
-- **Intelligence layer.** Ask SAJHA (`POST /api/ai/ask`) runs tools only from a shortlist the caller may run, through the same tool-access check as `POST /api/tools/execute`; destructive tools need confirmation; tool output is passed to the model as data. Role policy and daily token budgets limit model use (`ai.policy.*`, `ai.budgets.*`). Provider keys are referenced (`env:`, `file:`, `db:`), never stored in `config/application.yml`, and redacted from the effective configuration. The `sajha_ask` MCP tool (off by default) runs inner calls with the anonymous policy plus `ai.ask.mcp_allowed_tools`. Details: [Intelligence Layer](../architecture/Intelligence%20Layer.md).
+- **Intelligence layer.** Ask SAJHA (`POST /api/ai/ask`) runs tools only from a shortlist the caller may run, through the same tool-access check as `POST /api/tools/execute`; destructive tools need confirmation; tool output is passed to the model as data. Role policy and daily token budgets limit model use (`ai.policy.*`, `ai.budgets.*`). Provider keys are referenced (`env:`, `file:`, `db:`), never stored in `config/application.yml`, and redacted from the effective configuration. The `sajha_ask` MCP tool (off by default) runs its inner calls as the MCP caller, limited to the caller's tool access and, when set, to `ai.ask.mcp_allowed_tools`; composite steps likewise run as the caller, so a tool never gives a caller more than the caller has ([Inner calls](#inner-calls)). Details: [Intelligence Layer](../architecture/Intelligence%20Layer.md).
 - **Metrics.** `GET /metrics` is admin-only by default (`observability.metrics.auth`: `admin`, `token` or `none`), and user IDs and key names are never metric labels. Alert webhooks pass the same SSRF guard as async webhooks. Details: [Observability](../architecture/Observability.md).
 - **DuckDB SQL.** `duckdb_sql` (`DuckDBSQLTool` in `sajha/tools/impl/duckdb_olap_advanced.py`) runs exactly one statement, which DuckDB's parser must classify as `SELECT` (including `WITH`, `FROM`-first, `DESCRIBE`, `SHOW`, `SUMMARIZE` and `PRAGMA` queries) or `EXPLAIN`. Its connection is in-memory, holds copies of the three CSV files, and has external access disabled and its configuration locked, so a query cannot read or write files or URLs, `ATTACH`, `COPY` or `INSTALL`. The other `duckdb_*` tools (`duckdb_olap_tools_refactored.py`) share one sandbox of the same kind per data directory (`DuckDbSandbox`: every data file copied in, then external access disabled and locked; a reload builds a new one). `duckdb_query` applies the same one-statement check (`read_only_sql` in `sajha/olap/sql_safety.py`); `duckdb_describe_table`, `duckdb_get_stats`, `duckdb_aggregate` and `duckdb_refresh_views` accept only table and column names found in the catalog, which they quote, and bind values.
 - **OLAP tools.** The semantic-layer tools (`olap_*`, `customer_olap_pivot`) never put caller text into SQL: values are bound parameters and names must be declared in `config/olap/` (`sajha/olap/sql_safety.py`). The dataset, dimension and measure expressions in `config/olap/*.json` are SQL and are trusted as configuration.
@@ -395,10 +422,12 @@ These events are written today:
 | `user.password_change`, `user.password_reset` | `sajha/routes/auth_routes.py` |
 | `user.create`, `user.enable`, `user.disable`, `user.delete` | `sajha/routes/api_routes.py` |
 | `tool.enable`, `tool.disable`, `tool.config_update` | `sajha/routes/api_routes.py` |
-| `apikey.create`, `apikey.toggle`, `apikey.delete` | `sajha/routes/apikeys_routes.py` |
+| `apikey.create`, `apikey.rotate`, `apikey.revoke`, `apikey.enable`, `apikey.disable`, `apikey.access`, `apikey.persistent`, `apikey.assign_owner`, `apikey.delete` | `sajha/auth/apikeys.py` |
+| `user.sessions_revoked` (with the reason) | `sajha/auth/revocation.py` |
 | `shell_execute_python`, `shell_execute_bash` (with outcome and a code preview) | `sajha/core/shell_executor.py` |
 | `config_change` with resource `federation.<change>` (add, edit, remove, approve, ...) | `sajha/routes/federation_routes.py` |
 | `ai_ask` (question, tools, models, tokens, outcome, confidence; off with `ai.ask.audit: false`) | `sajha/ai/intelligence.py` |
+| `snapshot.written`, `snapshot.rotated`, `snapshot.failed`, `snapshot.restored` | `sajha/snapshots/` |
 
 These go elsewhere:
 
@@ -423,7 +452,7 @@ These describe the code as it stands. They are listed so you can compensate for 
 **Brute force and sessions**
 
 - **Account lockout can be triggered by anyone who knows a user ID** (a deliberate trade-off against password guessing); the lock expires after `auth.login.lockout_minutes`, and an admin password reset clears it.
-- **JWTs cannot be revoked.** Logout only clears the cookie, and a stolen token is valid until it expires. Changing a password does not invalidate tokens already issued.
+- **Sign-out reaches other workers only through a shared state store.** With `state.backend: memory`, a signed-out token is refused only by the process that handled the sign-out until it expires; sign out everywhere (the token version) works on every worker. A state-store outage skips the signed-out check.
 
 **Missing account features**
 
@@ -443,10 +472,6 @@ These describe the code as it stands. They are listed so you can compensate for 
 - **CSP allows `'unsafe-inline'`** for scripts and styles.
 - **The request size limit** relies on `Content-Length`.
 - **The WebSocket transport** does not check `Origin`.
-
-**Hygiene**
-
-- **Demo credentials are tracked in git.** `config/users.json` (plaintext `admin123`) and `config/apikeys.json` (demo `sja_` keys) are not imported, but should not be reused anywhere.
 
 ---
 

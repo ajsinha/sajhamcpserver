@@ -175,6 +175,36 @@ Spans cross into worker threads because both Starlette's thread pool and anyio c
 context variables. OTel metrics, when `observability.otel.metrics` is on, export the
 same instruments as section 2 through a periodic reader (`OTEL_METRIC_EXPORT_INTERVAL`).
 
+### 3.3 Outbound trace context
+
+SAJHA sends the W3C trace context of the current call on the HTTP calls it makes, so the
+services it calls can continue the trace, and every `tool.call` audit record carries the
+trace id ([Policy and Audit](Policy%20and%20Audit.md#13-tool-calls-in-the-audit-chain)).
+This works **with or without the OpenTelemetry SDK**:
+
+* With OTel on, the context is the live span's (`trace_id`, `span_id`, flags, `tracestate`).
+* With OTel off, `sajha/observability/tracing.py` keeps a small W3C context in a context
+  variable: the HTTP middleware continues an inbound `traceparent` header or starts a new
+  trace; an MCP request's `params._meta.traceparent` replaces it for that request; a tool
+  call outside any request (stdio, a schedule) starts one. SAJHA is a participant, so the
+  parent id it sends is its own (a new span id), never the caller's. An invalid
+  `traceparent` (wrong version `ff`, all-zero ids, bad length) is ignored.
+
+| Outbound call | How the context is sent |
+|---|---|
+| Federated tools (`sajha/federation/`) | `params._meta.traceparent` of the upstream `tools/call` (captured on the calling thread, since the call runs on the federation event loop) |
+| API-import tools and their token requests (`sajha/api_import/fetch.py`) | `traceparent` / `tracestate` headers |
+| Tools made by the REST creator (`sajha/studio/rest_tool_generator.py`) | headers, in the generated module (tools generated before this change do not send it until regenerated) |
+| LLM providers (`sajha/ai/llm/http.py::build_client`) | an httpx request hook, so the long-lived provider client reads the context per request |
+| Connected accounts (`sajha/accounts/http.py`) | the same httpx hook |
+| HTTP vector-store connectors (`sajha/connectors/vector.py`) | headers |
+| Webhooks: event notifications (`sajha/core/webhooks.py`), async task delivery (`sajha/core/async_executor.py`), alert webhooks (`sajha/observability/alerts.py`) | headers; the notification and async paths capture the context when the event fires or the task is submitted, because delivery runs on another thread |
+
+A header the caller set itself (a tool config's own `traceparent`) is never overwritten.
+Built-in tools that call `urllib` or `requests` directly (the data-provider tools under
+`sajha/tools/impl/`) and SIEM sink posts do not send it. `tracing.inject(headers)` and
+`tracing.httpx_hooks()` are the two helpers for new code.
+
 ---
 
 ## 4. Cost and usage
@@ -289,6 +319,10 @@ holds and its cooldown has passed, and sends one message to its channel:
 * `email`: through `observability.alerts_email` (`smtp_host`, `smtp_port`, `from`,
   `starttls`; the password from `SAJHA_OBSERVABILITY_ALERTS_EMAIL_PASSWORD`) to the rule's
   `to`.
+* `notice`: a [system notice](System%20Notices.md) with id `alerts.rule:<name>` while the
+  rule holds (checked at every evaluation, not only when it fires), cleared when it stops
+  holding. Optional channel fields: `severity` (default `warning`), `audience` (`admin`, the
+  default, or `everyone`), `title` and `link`.
 
 Each worker evaluates its own traffic. With several workers, prefer Prometheus rules.
 

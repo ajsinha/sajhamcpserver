@@ -7,3 +7,11 @@
 # Builds docs/publications/SAJHA-*.pptx and lets tests/test_deck_geometry.py audit it
 # (the test is skipped without it).
 python-pptx>=1.0.2,<2.0.0
+
+# ── Tests (python -m pytest -q -p no:randomly tests clientsdk/tests; CI: .github/workflows/tests.yml) ──
+# pytest itself is in requirements.txt. Without these the matching tests skip or take the
+# fallback path; CI installs them so every path runs.
+fakeredis[lua]>=2.20,<3.0          # the redis state backend, without a server
+redis>=5.0.0,<9.0.0                # imported by the redis backend under test
+mcp>=2.3,<3                        # the official MCP SDK: clientsdk tests and SDK interop tests
+sqlglot>=25,<31                    # the connector statement guard's syntax-tree parser

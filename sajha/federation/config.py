@@ -135,6 +135,7 @@ class UpstreamConfig:
     retries: int = 1
     max_calls_per_minute: int = 0
     cache_ttl: int = 0
+    cache_per_user: Optional[bool] = None    # None: cache.per_user_federated (default true)
     breaker: Dict[str, Any] = field(default_factory=dict)
     refresh_interval_seconds: Optional[int] = None
     include_tools: List[str] = field(default_factory=list)
@@ -150,7 +151,7 @@ class UpstreamConfig:
     source: str = 'config'          # 'config' (application.yml / env) or 'store' (admin page)
 
     FIELDS = ('id', 'url', 'title', 'enabled', 'transport', 'protocol', 'prefix', 'auth', 'headers',
-              'timeout_seconds', 'retries', 'max_calls_per_minute', 'cache_ttl', 'breaker',
+              'timeout_seconds', 'retries', 'max_calls_per_minute', 'cache_ttl', 'cache_per_user', 'breaker',
               'refresh_interval_seconds', 'include_tools', 'exclude_tools', 'expose_prompts',
               'expose_resources', 'auto_approve', 'command', 'args', 'env', 'env_refs', 'cwd')
 
@@ -210,6 +211,8 @@ class UpstreamConfig:
             retries=max(0, min(5, _i('retries', 1))),
             max_calls_per_minute=max(0, _i('max_calls_per_minute', 0)),
             cache_ttl=max(0, _i('cache_ttl', 0)),
+            cache_per_user=(None if data.get('cache_per_user') in (None, '')
+                            else parse_bool(data.get('cache_per_user'), True)),
             breaker=_d('breaker'),
             refresh_interval_seconds=(None if data.get('refresh_interval_seconds') in (None, '')
                                       else max(0, _i('refresh_interval_seconds', 0))),

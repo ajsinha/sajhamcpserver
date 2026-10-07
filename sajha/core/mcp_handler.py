@@ -122,6 +122,7 @@ class MCPHandler:
         token = _caller.set_caller(_caller.from_session(session))
         from sajha.policy import context as _pctx
         src_token = _pctx.ensure_source('mcp')      # stdio and WebSocket set theirs first
+        era_token = _pctx.ensure_era('2025-11-25')  # for the tool-call audit record
         t0 = _time.perf_counter()
         outcome = 'error'
         try:
@@ -150,6 +151,7 @@ class MCPHandler:
             _metrics.record_mcp('legacy', name, outcome, _time.perf_counter() - t0)
             _caller.reset(token)
             _pctx.reset_source(src_token)
+            _pctx.reset_era(era_token)
 
     def _handle_request(self, request_data: Dict, session: Optional[Dict] = None) -> Dict:
         """

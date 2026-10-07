@@ -51,12 +51,14 @@ class WebhookManager:
             urls = list(self._subscriptions.get(event_type, []))
         if not urls:
             return
+        from sajha.observability.tracing import inject
+        trace_headers = inject({})          # W3C trace context of the notifying request
         # Fire-and-forget in background threads
         for url in urls:
-            t = threading.Thread(target=self._deliver, args=(event_type, url, payload), daemon=True)
+            t = threading.Thread(target=self._deliver, args=(event_type, url, payload, trace_headers), daemon=True)
             t.start()
 
-    def _deliver(self, event_type: str, url: str, payload: Dict):
+    def _deliver(self, event_type: str, url: str, payload: Dict, trace_headers: Optional[Dict] = None):
         """Deliver webhook with retries."""
         body = json.dumps({
             'event': event_type,
@@ -67,6 +69,7 @@ class WebhookManager:
             'Content-Type': 'application/json',
             'User-Agent': 'sajha-webhook/5.3.0',
             'X-Sajha-Event': event_type,
+            **(trace_headers or {}),
         }
         for attempt in range(1, self._max_retries + 1):
             try:

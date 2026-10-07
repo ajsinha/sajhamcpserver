@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 7.0.0
+  version: 7.1.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   email: ajsinha@gmail.com
@@ -256,8 +256,6 @@ config:
     dir: config/prompts
   plugins:
     dir: config/plugins
-  users:
-    path: config/users.json
   apikeys:
     path: config/apikeys.json
   ir:
@@ -461,6 +459,8 @@ cache:
   cleanup_interval_seconds: 300           # How often to purge expired files (0 = disabled)
   # Per-tool TTL is set in each tool's JSON config: "cache_ttl": 3600
   # Setting cache_ttl: 0 or omitting it means no caching for that tool.
+  # "cache_per_user": true in a tool's config keys its results by caller as well.
+  per_user_federated: true                # federated tools without cache_per_user are keyed per user
 
 # ── Async Tool Execution ─────────────────────────────────────────────────────
 # Background execution with result delivery via webhook, Kafka, or filesystem.
@@ -693,6 +693,21 @@ observability:
     starttls: true
     username: ''
 
+# ── System notices: what needs attention, shown in the console ──
+# A banner on every page, a System status panel on the dashboard, a navbar badge.
+# Every key: docs/getting-started/Configuration Reference.md#system-notices;
+# design: docs/architecture/System Notices.md.
+notices:
+  enabled: true
+  max_active: 500                  # open notices kept at most (the oldest, lowest-severity one goes first)
+  default_ttl_minutes: 30          # a notice not refreshed for this long is cleared (0 = never)
+  banner_min_severity: error       # error | critical: what takes the banner
+  cleared_retention_minutes: 1440  # how long cleared notices stay under "Show recently cleared"
+  check_interval_seconds: 30       # how often polled sources (breakers, LLM, federation) are re-checked
+  workflow_failures: 3             # scheduled runs failing in a row before a workflow raises a notice
+  forward: []                      # also send notices through alert channels, e.g.
+  #  - { min_severity: critical, channel: { type: webhook, url: "https://hooks.example.com/sajha" } }
+
 # ── Policy engine: rules evaluated before every tool call, on every path ──
 # Rules live in policy.dir (storage backend, hot-reloaded); the shipped file has none, so
 # nothing changes by default. Every key: docs/getting-started/Configuration Reference.md#policy-and-audit;
@@ -719,9 +734,29 @@ audit:
     enabled: true                  # store the hash chain (audit_chain, audit_anchors)
     anchor_every: 100              # sign the chain head every N records
     anchor_interval_seconds: 300   # ... and at least this often while records arrive (0: off)
+    flush_interval_ms: 200         # deferred records (tool calls) are stored this often ...
+    flush_batch: 200               # ... or as soon as this many are waiting
+  # Every tool call is a tool.call record: docs/architecture/Policy and Audit.md#13-tool-calls-in-the-audit-chain
+  tool_calls:
+    enabled: true                  # false: no tool.call records at all
+    success_sample_rate: 1.0       # share of successful calls recorded (failures, denials, destructive: always)
+    sample_rates: []               # per tool, first match wins: ["fred_*=0.1", "calc_*=0"]
+    include_tools: []              # globs; empty: every tool (successes only; failures always recorded)
+    exclude_tools: []              # globs whose successful calls are not recorded
+    arguments: hash                # hash (SHA-256, no values) | redacted | none
+    max_argument_bytes: 4096       # cap on redacted arguments
   export:
     allowed_urls: []               # URL prefixes HTTP sinks may post to (empty: any public host)
     sinks: []                      # syslog | http | file sinks: see docs/architecture/Policy and Audit.md#8-siem-export
+
+# ── Snapshots of users, API keys and tools (signed, chained; works without SAJHA Net) ──
+# docs/architecture/Policy and Audit.md (Snapshots); python -m sajha.snapshots verify|diff|restore
+snapshots:
+  enabled: true
+  interval_minutes: 10             # one snapshot per interval, written by one worker (state-store lease)
+  keep: 20                         # the oldest beyond this are deleted (audited)
+  dir: data/snapshots              # owner-only (0700 / files 0600); git-ignored
+  compress: false                  # gzip (.json.gz)
 
 # ── Tool quality: test harness, linter, health probes, evals, tool versions ──
 # Nothing runs by default: probes are off and no tool has a versions file. Every key:

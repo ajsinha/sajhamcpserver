@@ -139,6 +139,8 @@ def request(method: str, url: str, *, params: Optional[Sequence[Tuple[str, str]]
         pinned = target.copy_with(host=ip, port=port)
         send_headers = dict(headers or {})
         send_headers['Host'] = target.netloc.decode('ascii')
+        from sajha.observability.tracing import inject as _inject_trace
+        _inject_trace(send_headers)                 # W3C traceparent of the current call
         try:
             with httpx.Client(timeout=timeout, follow_redirects=False, trust_env=False) as client:
                 with client.stream(method, pinned, headers=send_headers, content=content,

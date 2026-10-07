@@ -47,8 +47,12 @@ def _run_as_submitter(task, fn):
     from sajha.policy.context import reset_source, set_source
     who = getattr(task, '_caller', None) or Caller(user_id=task.user_id or 'anonymous')
     t_caller, t_source = set_caller(who), set_source('async')
+    from sajha.observability import tracing as _tracing
     try:
-        return fn()
+        # the submitting request's trace continues in the worker (outbound calls, audit records)
+        with _tracing.span(f'async {task.tool_name}', traceparent=getattr(task, '_traceparent', None),
+                           ensure_trace=True):
+            return fn()
     finally:
         reset(t_caller)
         reset_source(t_source)
@@ -295,6 +299,8 @@ class DeliveryRouter:
             'User-Agent': 'sajha-async',
             'X-Sajha-Task-Id': task.task_id,
         }
+        if getattr(task, '_traceparent', None):          # W3C trace context of the submitting request
+            headers['traceparent'] = task._traceparent
         # Merge custom headers from delivery config (never Host / framing headers)
         custom = task.delivery_config.get('headers', {})
         if isinstance(custom, dict):
@@ -497,6 +503,11 @@ class AsyncExecutor:
             task._caller = who if who.user_id == (user_id or who.user_id) else None
         except Exception:
             task._caller = None
+        try:
+            from sajha.observability.tracing import current_traceparent
+            task._traceparent = current_traceparent()
+        except Exception:
+            task._traceparent = None
 
         with self._lock:
             self._tasks[task.task_id] = task

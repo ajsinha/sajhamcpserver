@@ -169,6 +169,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                         <i class="bi bi-play-circle"></i> Enable
                                     </button>
                                     {% endif %}
+                                    <button class="btn btn-sm btn-outline-secondary" title="Sign this user out everywhere"
+                                            aria-label="Sign {{ user_data.user_id }} out everywhere"
+                                            onclick="endSessions('{{ user_data.user_id }}')">
+                                        <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+                                    </button>
                                     {% if user_data.user_id != 'admin' %}
                                     <button class="btn btn-sm btn-danger"
                                             onclick="deleteUser('{{ user_data.user_id }}')">
@@ -297,6 +302,15 @@ function toggleUserStatus(userId, enable) {
                 alert(`Failed to ${action} user: ${userId}`);
             });
     }
+}
+
+function endSessions(userId) {
+    if (!confirm(`Sign "${userId}" out everywhere? Every console session and OAuth token of this user stops working; their API keys are not affected.`)) {
+        return;
+    }
+    $.post(`/api/admin/users/${encodeURIComponent(userId)}/sessions/revoke`)
+        .done(function() { alert(`Every session of ${userId} has ended.`); })
+        .fail(function() { alert(`Failed to end the sessions of ${userId}`); });
 }
 
 function deleteUser(userId) {
