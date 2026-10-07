@@ -76,7 +76,7 @@ semantic tool shortlisting; conversation memory; document search; and the `sajha
 one of its kind.
 
 **The cost of the idea.** When an MCP client with its own model calls an LLM tool, two models
-run in sequence. That costs latency and money, and the two can disagree. Section 11 answers
+run in sequence. That costs latency and money, and the two can disagree. Section 12 answers
 this with sampling (use the client's model when it offers one) and with modes that need no
 tool planning at all.
 
@@ -216,11 +216,12 @@ A complete example, an assistant over market and macro tools with memory:
 | `tools.allow` / `tools.deny` | string[] | `[]` / `[]` | Glob patterns of tools the model may call. Empty `allow` means no tools. Intersected with the caller's own access (section 8). |
 | `rag.sources` | string[] | none | `grounded` mode (optional elsewhere): document-search sources to read. |
 | `limits.*` | numbers | `ai.llm_tools.*` | `max_steps`, `max_tool_calls`, `timeout_s`, `max_input_chars`, `max_output_tokens`, `max_cost_usd`. Clamped to the server ceilings. |
-| `memory.*` | object | `{ "mode": "none" }` | Section 9. |
+| `memory.*` | object | `{ "mode": "none" }` | Section 10. |
 | `sampling` | string | `never` | `never`, `prefer`, `require` (section 12). |
 | `output.citations` / `output.steps` | bool | `true` / `false` | Whether the result carries citations and a step trace. |
 | `confirm` | string | `ask` | `ask` (stop and request confirmation for destructive inner calls) or `refuse` (never run them). |
-| `nesting` | object | `{ "allow": false }` | Section 10. |
+| `nesting` | object | `{ "allow": false }` | Section 11. |
+| `planner_choices` | string[] | none | Planners a caller may pick per call (section 9.12). Adds an optional `planner` enum to the input schema; absent means the caller cannot choose. |
 
 ### 5.2 Load-time validation
 
@@ -400,6 +401,7 @@ A planner is a **directed graph of stages** with named **state**, defined in
 name: reflect_analyst
 version: 1.0.0
 description: ReAct to gather data, then check numbers and self-critique before answering.
+use_when: Numeric or high-stakes questions where every figure must match the data.   # read by automatic selection (9.13)
 models:                      # aliases used by stages; operators re-point aliases, not files
   act: reasoning
   critic: fast
@@ -578,6 +580,93 @@ administrator-only and both still inside the service's enforcement:
   path tests (question → expected stage path) and bound tests (a critic that never passes
   exhausts at `max_visits` and still answers); eval sets compare strategies on the same
   questions.
+
+
+### 9.12 Which planner runs
+
+SAJHA never guesses: the planner for a call is resolved in this order, first match wins.
+
+1. **A routed tool version.** If the tool has an active versions file (canary, user or role pin,
+   [Tool Quality](Tool%20Quality.md)), the version chosen for this call may name a different
+   planner, for example 10% of calls on `reflect_analyst@2.0.0`. This is how two planners are
+   compared on live traffic.
+2. **The caller's choice, only if the tool allows it.** A tool that sets `llm.planner_choices`
+   gets an optional `planner` argument whose schema is an enum of exactly those names. A value
+   outside the list fails argument validation. Without `planner_choices` the argument does not
+   exist: by default the tool's owner, not the caller, decides the strategy, because the
+   strategy decides cost and looping.
+3. **The tool's `llm.planner`:** a name (the latest valid version), `name@version` (pinned), or
+   an inline definition for that tool only.
+4. **`ai.planners.default`** (`react` unless changed).
+
+The Ask SAJHA page is not a tool; it resolves `ai.ask.planner` against the same registry.
+
+**Resolution happens at load, not per call, wherever it can.** A tool whose named planner does
+not exist or does not validate refuses to load, and lint reports it. If an edited planner file
+later fails validation, the registry keeps the last good version, logs the error and raises a
+metric, so running tools keep working. The resolved planner, its version and why it was chosen
+(`version route`, `caller choice`, `tool config`, `server default`, or the automatic selection
+below) are recorded in the audit record and the event stream.
+
+### 9.13 Automatic planner selection
+
+Choosing a planner is itself a planner: a graph whose first stages decide which strategy runs.
+SAJHA ships one, `auto`, built from two mechanisms.
+
+**Selection by the model, from a menu.** Every planner file carries a `use_when` sentence. The
+`auto` planner's first stage tries the deterministic rules (`match`: recipes and known patterns),
+then a `classify` stage on a cheap model alias that sees the question and the menu of the
+tool's *allowed* planners (their names and `use_when` lines) and must return one name. The
+reply is an enum: a question that says "use the expensive planner" cannot reach anything
+outside the list. Below a confidence threshold, the tool's default planner runs.
+
+**Escalation on evidence.** The chosen strategy starts as cheaply as it can (recipes, or `react`
+on a fast alias). Bounded edges then upgrade the run only when a check says so:
+
+| Trigger | Escalates to |
+|---|---|
+| `verify` finds a figure in the draft that no tool result contains | Reflect (critique and revise) |
+| confidence below `escalate_below`, or the run hit `max_steps` | `plan_execute` on the reasoning alias |
+| the question has several parts that the draft does not all answer | `plan_execute` or map-reduce |
+| otherwise | answer |
+
+```yaml
+# config/planners/<name>.yaml for the shipped "auto" planner (abridged)
+name: auto
+use_when: Mixed traffic; pick a strategy per question and upgrade only when checks fail.
+models: { chooser: fast, act: fast, strong: reasoning }
+settings: { candidates: [recipes, react, plan_execute, reflect_analyst], escalate_below: 0.6 }
+start: choose
+stages:
+  choose:   { type: classify, model: chooser, from: candidates, on: { "*": { next: run } } }
+  run:      { type: planner, planner: "{{state.chosen}}", on: { "*": { next: verify } } }
+  verify:   { type: verify, checks: [numbers_in_results, parts_answered],
+              on: { ok: { next: gate }, mismatch: { next: reflect, max_visits: 1, on_exhausted: answer } } }
+  gate:     { type: answer, when: "confidence >= settings.escalate_below",
+              else: { next: deeper, max_visits: 1, on_exhausted: answer } }
+  reflect:  { type: planner, planner: reflect_analyst, on: { "*": { next: answer } } }
+  deeper:   { type: planner, planner: plan_execute, model: strong, on: { "*": { next: answer } } }
+  answer:   { type: answer }
+```
+
+Rules that keep automatic selection safe and predictable:
+
+- **Allowlist only.** It chooses only among the tool's allowed planners that pass the tool's eval
+  set; it never writes or edits planner files.
+- **One budget.** Escalation spends from the same call's limits; trying again can never exceed
+  the tool's cost or time ceiling.
+- **Escalate at most once per kind**, through bounded edges, so a run cannot ping-pong between
+  strategies.
+- **Explained.** The choice and its reason (`rule`, `label 0.82`, `verify mismatch`) go to the
+  audit record and the event stream; the Ask SAJHA animation shows "chose Reflect: verify
+  mismatch".
+- **Measured.** Metrics per tool: how often each planner is chosen and how often each escalation
+  fires, so an operator can see whether the cheap path is good enough.
+
+**Learning from results comes later.** A third mechanism, choosing planners from measured
+outcomes (eval scores offline, and an opt-in bandit across allowed planners online), is on the
+[Roadmap](Roadmap.md) as item L15. It needs history this design does not yet collect at scale,
+and it would reuse the canary machinery for bounded, reversible exploration.
 
 ---
 
@@ -911,7 +1000,7 @@ Each step ends green: full suite, both conformance suites, mobile check for any 
 | 1 | Caller identity for inner calls and the depth context; `sajha_ask` runs as the caller | identity and recursion tests |
 | 2 | `LLMTool`, config validation, modes `answer`, `complete`, `extract`, `classify`; derived annotations; lint rules | mode tests on the mock |
 | 3 | Planner engine: stage library, graph validation (reachability, outcomes, bounded cycles), state slots, `when` expressions, registry and reload; the four built-ins re-expressed as files with their existing tests passing against both forms | path and bound tests |
-| 4 | Strategies shipped as files: Reflect, verify-then-answer, self-consistency, branch and judge, map-reduce, human in the loop; dry run; per-stage events and metrics; eval sets comparing strategies | evals on the mock |
+| 4 | Strategies shipped as files: Reflect, verify-then-answer, self-consistency, branch and judge, map-reduce, human in the loop, and `auto` (selection plus escalation, section 9.13); planner resolution and `planner_choices`; dry run; per-stage events and metrics; eval sets comparing strategies | evals on the mock |
 | 5 | Memory: handle, `tool_name`/`expires_ts` columns in both schema files, turn folding, scheduled purge, `client` history | memory tests incl. two workers |
 | 6 | Resource safety: working-set budget, spool and janitor, concurrency limit and queue, memory guard, optional hot cache, state-store caps; load test that drives the process to its soft and hard limits without a crash | soak and pressure tests |
 | 7 | Modes `grounded`, `narrate`, `judge`; caching for deterministic modes | mode tests |
