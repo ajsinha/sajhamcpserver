@@ -213,6 +213,12 @@ owner of its detail.
   by running the schema file; no DDL run by SAJHA on PostgreSQL.
 - Wave-specific gates listed under each wave (soak test, portability suite, strategy path tests,
   multi-instance tests, extension conformance).
+- When a wave ships a capability that changes an answer on the comparison page
+  (`sajha/web/competitive.py`), the comparison is updated in that wave, every claim about another
+  product checked against its own documentation and cited: expected after wave 3 (LLM tools,
+  configurable planners, the OpenAI-compatible endpoint) and wave 5 (SAJHA Net).
+- After wave 5, a full documentation pass (README, docs map, tutorials sequence, glossary, help
+  cards, the deck), as before 7.0.0.
 - A CHANGELOG section with operator actions, a version bump everywhere the version is copied
   (configuration, banner, client SDK, Helm chart, rendered manifests), a merge to `main` and a tag.
 
