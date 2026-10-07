@@ -38,7 +38,6 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **CLI profile** | A named server URL and its stored credentials for the `sajha` command (`sajha profile add`, `use`, `list`, `remove`), kept in the CLI's `config.json`; chosen by `--profile` or `SAJHA_PROFILE`. |
 | **Plugin** | An extension package in `config/plugins/` (setting `plugins.dir`) with a `plugin.json` manifest, containing tool configs and optionally Python classes. Flow: `discover()`, `validate()` (checksum), `load_plugin()` (install dependencies, register tools). |
 | **Plugin manifest** | A plugin's `plugin.json`: its name, version, the tools it provides, an optional `sha256:` checksum over its files (a mismatch fails loading) and informational fields; read by `discover()`, checked by `validate()`. |
-| **Tenant** | A tenant record (`sajha/core/tenancy.py`, managed through `/api/tenants`): tool patterns, blocked tools, usage quotas and allowed providers for a customer or team. The records are stored and served, but no request path consults them yet, so they neither isolate nor limit anything. |
 | **A2A** (*Agent-to-Agent*) | A protocol for inter-agent communication. SAJHA publishes an agent card at `/.well-known/agent.json` and serves the task lifecycle (`tasks/send`, `tasks/get`, `tasks/cancel`) as JSON-RPC on `POST /a2a`. These A2A tasks are unrelated to MCP tasks. |
 | **Agent card** | The A2A discovery document at `/.well-known/agent.json` describing the agent's name, skills and endpoint. |
 

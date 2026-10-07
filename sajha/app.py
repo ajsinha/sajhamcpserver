@@ -574,14 +574,6 @@ class SajhaMCPServerWebApp:
         except Exception as e:
             logger.info(f"  Observability: {e}")
 
-        # 3d. Multi-tenancy
-        try:
-            from sajha.core.tenancy import init_tenant_manager
-            tenant_mgr = init_tenant_manager()
-            logger.info(f"  Tenancy: {len(tenant_mgr.list_tenants())} tenants")
-        except Exception as e:
-            logger.info(f"  Tenancy: {e}")
-
         # 3e. Plugin system
         try:
             from sajha.core.plugins import init_plugin_manager

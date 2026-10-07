@@ -40,7 +40,7 @@ and pluggable storage.
      MCPHandler (+ 2026-07-28 envelope) · REST routes · page routes · intelligence layer
                                   │                                   (LLM gateway)
    ToolsRegistry ◄─ tool configs              PromptsRegistry ◄─ prompt configs
-   composite tools · Studio tools · plugins · federated tools · versions · tenants
+   composite tools · Studio tools · plugins · federated tools · versions
                                   │
    cache → circuit breaker → tool → provider API | sandbox | upstream MCP server
                                   │
@@ -90,7 +90,6 @@ workers ([Scaling and State](../architecture/Scaling%20and%20State.md)).
 | Caching and circuit breakers | Per-tool `cache_ttl`, the cache statistics, per-provider breakers | [Tutorial 6](../tutorials/TUTORIAL_06_configure_tool_caching.md) |
 | Background execution | Async tool runs delivered to a webhook, Kafka or a file (not the MCP tasks extension) | [Tutorial 7](../tutorials/TUTORIAL_07_submit_async_tool_execution.md); keys in the [Configuration Reference](Configuration%20Reference.md) |
 | Tool quality and versions | Test cases with HTTP cassettes (`python -m sajha.quality test`, JUnit), the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, pins, automatic rollback and sunset dates; the Tool Health, Evals and Tool Versions pages; `quality.*` | [Tool Quality](../architecture/Tool%20Quality.md) |
-| Tenants | Tenant records (tool patterns, quotas) under `/api/tenants`; stored, not yet enforced on any call | [API Reference](../protocol/API%20Reference.md) |
 | Python in the browser | The Python Playground: a Pyodide notebook; `import sajha` calls tools with the user's session; vendored or CDN assets; its own CSP and COOP/COEP | [Python Playground](Python%20Playground.md) |
 | Asking SAJHA questions with an LLM | LLM providers and models, gateway aliases, policy and budgets, the mock provider, `/api/ai/ask`, the Ask SAJHA page, semantic tool search, planners, conversation memory, document search (RAG, `sajha_search_docs`) | [Intelligence Layer](../architecture/Intelligence%20Layer.md) |
 | Extending the intelligence layer | Writing a provider, a model or a planner; the provider contract suite | [Extending the Intelligence Layer](../architecture/Extending%20the%20Intelligence%20Layer.md) |

@@ -364,15 +364,3 @@ class CompositeToolStepRecord(Base):
     )
 
 
-# ── Tenant (v4.5.0 — multi-tenancy) ─────────────────────────
-
-class TenantRecord(Base):
-    __tablename__ = 'tenants'
-    id            = Column(String(36), primary_key=True)
-    name          = Column(String(255), unique=True, nullable=False)
-    enabled       = Column(Boolean, default=True, nullable=False)
-    tool_patterns = Column(Text)
-    blocked_tools = Column(Text)
-    quota_json    = Column(Text)
-    data_prefix   = Column(String(255))
-    created_at    = Column(DateTime, default=datetime.utcnow)

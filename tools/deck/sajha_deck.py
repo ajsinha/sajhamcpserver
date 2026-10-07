@@ -72,7 +72,7 @@ def opening(F: dict[str, Any]) -> list[dict[str, Any]]:
                  f"endpoint over four transports; {len(F['studio_pages'])} ways to make a tool; data connectors, "
                  f"federation, workflows; {F['conformance']['passed']} conformance checks passed, "
                  f"{F['conformance']['failed']} failed."),
-                ("Where is it going?", "Enforced multi-tenancy, finer Studio permissions, a TypeScript client, more "
+                ("Where is it going?", "Finer Studio permissions, revocable sign-in, a TypeScript client, more "
                  "connectors and document sources (Section 7)."),
             ],
             "source": "MCP governance: https://www.anthropic.com/news/donating-the-model-context-protocol-and-"

@@ -85,7 +85,7 @@ order:
    waits at most `federation.startup_wait_seconds`), data connectors' generated tools (no
    database is opened), composite tools from the database, workflows (scheduler,
    triggers, run recovery), observability (metrics, OpenTelemetry, the usage ledger,
-   alert rules), tenant records, plugins, the LLM gateway, the tool-search index, the
+   alert rules), plugins, the LLM gateway, the tool-search index, the
    intelligence service (with the optional `sajha_ask` MCP tool), the document index
    behind `sajha_search_docs`, and the tool-quality health probes.
 7. **Template globals** (version, theme, navigation, help) are registered.
@@ -168,7 +168,7 @@ on every transport. See the [OAuth Guide](../protocol/OAuth%20Guide.md) and the
   recent-execution history ([Observability](Observability.md)).
 - **Around it:** tool versions with canary routing and rollback (`sajha/quality/versions.py`, called first
   in `execute_with_tracking`; [Tool Quality](Tool%20Quality.md)), plugins (`plugins.py`),
-  tenant records (`tenancy.py`; stored and served by `/api/tenants`, not consulted on calls), provider health (`tool_health.py`), webhooks
+  provider health (`tool_health.py`), webhooks
   (`webhooks.py`), async background execution with webhook/Kafka/file delivery
   (`async_executor.py`), and the sandboxed shell tools (`shell_executor.py`, disabled
   by default).
@@ -237,7 +237,7 @@ parameters between steps; `EntropyGuard` tracks cumulative confidence
 
 | Store | What lives there | Code |
 |---|---|---|
-| Database (SQLite default, PostgreSQL) | Users, roles, permissions, API keys, audit log and its hash chain and anchors, tenants, prompts metadata, composite tools, tool usage, LLM providers, models and usage, the observability usage ledger (`obs_usage_events`), connected-account tokens, workflows and their runs, quality runs, conversations; every table is in the schema files | `sajha/db/`, `db/scripts/<type>/`, `sajha/observability/usage.py` |
+| Database (SQLite default, PostgreSQL) | Users, roles, permissions, API keys, audit log and its hash chain and anchors, prompts metadata, composite tools, tool usage, LLM providers, models and usage, the observability usage ledger (`obs_usage_events`), connected-account tokens, workflows and their runs, quality runs, conversations; every table is in the schema files | `sajha/db/`, `db/scripts/<type>/`, `sajha/observability/usage.py` |
 | Storage backend (local, S3, Azure Blob, GCS) | Tool and prompt configs, Studio output, the federation store (upstreams and approvals), guides served at `/help/guides` | `sajha/core/storage.py`; [Storage Guide](../getting-started/Storage%20Guide.md) |
 | Local disk (`data/`) | Tool output cache, async results, shell scratch, DuckDB/SQL data files, the OAuth signing key | config keys under `cache`, `async`, `shell`, `data`, `mcp.auth.builtin` |
 | State store (`state.backend`: memory, Redis or the database) | MCP sessions, MCP task records, OAuth pending consents, codes, refresh tokens and DCR clients, rate-limit windows, LLM budgets, change-bus relay | `sajha/core/state/`; [Scaling and State](Scaling%20and%20State.md) |

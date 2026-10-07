@@ -33,7 +33,7 @@ MATRIX = ["spec_2026", "conformance_ci", "oauth_as", "builtin_tools", "nocode", 
 
 # Schema tables by purpose; a table the schema file has and this map does not fails the build.
 TABLE_GROUPS = [
-    ("Identity and access", ("users", "roles", "user_roles", "permissions", "api_keys", "user_sessions", "tenants")),
+    ("Identity and access", ("users", "roles", "user_roles", "permissions", "api_keys", "user_sessions")),
     ("Audit and usage", ("audit_log", "audit_chain", "audit_anchors", "tool_usage_events", "obs_usage_events")),
     ("Prompts", ("prompts", "prompt_tags")),
     ("Intelligence", ("llm_providers", "llm_models", "ai_conversations", "ai_conversation_turns")),
@@ -428,7 +428,7 @@ def _future(F: dict[str, Any]) -> list[dict[str, Any]]:
         f"each vendor's public pages as of {c['as_of']}, each with a source URL; tests/test_competitive.py checks it."
     )
     lims = [plain(x).rstrip(".") for x in F["limitations"]]
-    pick = [x for x in lims if x.startswith(("Tenant", "Studio access", "JWTs", "No SSO", "Prompts have",
+    pick = [x for x in lims if x.startswith(("Studio access", "JWTs", "No SSO", "Prompts have",
                                             "Sandbox strength", "The WebSocket"))]
     return [
         {
@@ -447,7 +447,6 @@ def _future(F: dict[str, Any]) -> list[dict[str, Any]]:
             "left": {
                 "head": "Not built yet (from the guides)",
                 "items": [
-                    "Enforced multi-tenancy: tenant records are stored, but no request path consults them.",
                     "Finer Studio permissions: the studio permission opens every creator.",
                     "A TypeScript client SDK: the client SDK is Python only.",
                     "Weaviate and Chroma connectors.",
@@ -460,7 +459,7 @@ def _future(F: dict[str, Any]) -> list[dict[str, Any]]:
                 "head": "Known limitations (Security Model)",
                 "items": pick,
             },
-            "source": "Tenancy and Studio: docs/security/Security Model.md 'Known limitations'. TypeScript: clientsdk/ "
+            "source": "Studio: docs/security/Security Model.md 'Known limitations'. TypeScript: clientsdk/ "
             "is Python only. Weaviate, Chroma: docs/architecture/Data Connectors.md §14. Document sources, async, "
             "Vertex, Entra: docs/architecture/Intelligence Layer.md §9. Push reload: docs/getting-started/Storage "
             "Guide.md 'Planned'. Right column: bold heads of 'Known limitations', parsed at build time and filtered "

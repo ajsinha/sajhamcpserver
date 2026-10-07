@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server v4.5.0 — Operations, Tenancy, Versioning & Plugins Routes
+SAJHA MCP Server v4.5.0 — Operations, Versioning & Plugins Routes
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 """
 import json, logging
@@ -109,56 +109,6 @@ async def api_test_all(auth: AuthContext = Depends(require_admin)):
         'total': len(results), 'passed': passed, 'failed': len(results) - passed,
         'results': [r.to_dict() for r in results],
     })
-
-# ── Multi-Tenancy ─────────────────────────────────────────────
-
-@router.get('/api/tenants')
-async def api_list_tenants(auth: AuthContext = Depends(require_admin)):
-    from sajha.core.tenancy import get_tenant_manager
-    tm = get_tenant_manager()
-    return JSONResponse({'tenants': tm.list_tenants() if tm else []})
-
-@router.post('/api/tenants')
-async def api_create_tenant(request: Request, auth: AuthContext = Depends(require_admin)):
-    from sajha.core.tenancy import get_tenant_manager
-    data = await request.json()
-    tm = get_tenant_manager()
-    if not tm: return JSONResponse({'error': 'Tenancy not initialized'}, 503)
-    try:
-        t = tm.create_tenant(data['id'], data['name'],
-            tool_patterns=data.get('tool_patterns', ['*']),
-            blocked_tools=data.get('blocked_tools', []))
-        if 'quota' in data:
-            from sajha.core.tenancy import TenantQuota
-            t.quota = TenantQuota(**data['quota'])
-        return JSONResponse({'success': True, 'tenant': t.to_dict()})
-    except ValueError as e:
-        return JSONResponse({'error': str(e)}, 409)
-
-@router.get('/api/tenants/{tenant_id}')
-async def api_get_tenant(tenant_id: str, auth: AuthContext = Depends(require_admin)):
-    from sajha.core.tenancy import get_tenant_manager
-    tm = get_tenant_manager()
-    t = tm.get_tenant(tenant_id) if tm else None
-    if not t: return JSONResponse({'error': 'Not found'}, 404)
-    return JSONResponse(t.to_dict())
-
-@router.put('/api/tenants/{tenant_id}')
-async def api_update_tenant(tenant_id: str, request: Request, auth: AuthContext = Depends(require_admin)):
-    from sajha.core.tenancy import get_tenant_manager
-    data = await request.json()
-    tm = get_tenant_manager()
-    t = tm.update_tenant(tenant_id, **data) if tm else None
-    if not t: return JSONResponse({'error': 'Not found'}, 404)
-    return JSONResponse({'success': True})
-
-@router.delete('/api/tenants/{tenant_id}')
-async def api_delete_tenant(tenant_id: str, auth: AuthContext = Depends(require_admin)):
-    from sajha.core.tenancy import get_tenant_manager
-    tm = get_tenant_manager()
-    if tm and tm.delete_tenant(tenant_id):
-        return JSONResponse({'success': True})
-    return JSONResponse({'error': 'Not found or cannot delete default'}, 404)
 
 # ── Plugins ───────────────────────────────────────────────────
 

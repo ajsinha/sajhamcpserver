@@ -49,7 +49,7 @@ def print_banner():
    ███████║██║  ██║╚█████╔╝██║  ██║██║  ██║    ██║ ╚═╝ ██║╚██████╗██║
    ╚══════╝╚═╝  ╚═╝ ╚════╝ ╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝     ╚═╝ ╚═════╝╚═╝
 
-              Model Context Protocol Server  v6.0.0
+              Model Context Protocol Server  v7.0.0
          FastAPI · SQLAlchemy · MCP 2025-11-25 · SSE · A2A
 ================================================================================
 """)
@@ -67,7 +67,7 @@ def main():
         from sajha.cli.stdio import main as stdio_main
         sys.exit(stdio_main([a for a in sys.argv[1:] if a != '--stdio']))
 
-    parser = argparse.ArgumentParser(description='SAJHA MCP Server v6.0.0')
+    parser = argparse.ArgumentParser(description='SAJHA MCP Server v7.0.0')
     parser.add_argument('--config', default=None, help='Path to YAML config file (default: config/application.yml)')
     parser.add_argument('--host', default=None, help='Host to bind to')
     parser.add_argument('--port', type=int, default=None, help='Port to listen on')

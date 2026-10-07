@@ -2,9 +2,13 @@
 
 Newest first. The current version is `app.version` in `config/application.yml`.
 
-## Unreleased (planned 7.0.0)
+## Unreleased
 
-Everything since 6.0.0, drafted as one release. It finishes the items 6.0.0 deferred (MCP
+Nothing yet.
+
+## v7.0.0 (October 2026) — governance, intelligence and operations
+
+Everything since 6.0.0. It finishes the items 6.0.0 deferred (MCP
 authorization with OAuth 2.1, MCP Apps, `x-mcp-header`), closes the security gaps a full audit
 found, and adds what running a shared tool catalog for real needs: governance (policy engine,
 tamper-evident audit, connected accounts), new ways to build tools (API import, Describe a tool,
@@ -39,6 +43,14 @@ Read this list before upgrading from 6.0.0.
 - **`tool_versions` table removed** from both schema files and the ORM models: nothing ever read
   or wrote it (tool versions live in `config/tool_versions/*.yaml`). Existing databases may keep
   it; it is unused and can be dropped by hand (`DROP TABLE tool_versions;`). SAJHA never drops it.
+- **Tenancy removed.** Tenant records were stored but never enforced (no request path consulted
+  their tool patterns or quotas), so they are gone rather than half working: `sajha/core/tenancy.py`,
+  the `TenantRecord` model, the `tenants` table in both schema files and the admin routes
+  `GET`/`POST /api/tenants` and `GET`/`PUT`/`DELETE /api/tenants/{tenant_id}` (now 404). Roles,
+  API-key tool access and policy rules separate teams
+  ([Security Model](docs/security/Security%20Model.md#tool-access)). Existing databases may keep
+  the `tenants` table; it is unused and can be dropped by hand (`DROP TABLE tenants;`). SAJHA
+  never drops it.
 
 **Secrets and sign-in**
 - `config/application.yml` ships no JWT or session secret. Empty secrets are generated once into

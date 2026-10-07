@@ -310,6 +310,6 @@ on the families above) and `grafana-sajha-dashboard.json` (an importable dashboa
 * **Instrumentation never raises.** Every `record_*` call is wrapped; a metrics fault is
   logged at debug and the call proceeds.
 * **What is not measured**: WebSocket frames (the upgrade request is counted), the bytes
-  of responses, and per-tenant figures.
+  of responses. There is no tenant dimension: SAJHA has no tenants.
 * **Conformance**: the middleware and MCP wrappers do not change a response; the
   conformance suites run unchanged.

@@ -394,25 +394,14 @@ curl -X POST http://localhost:3002/api/ai/complete \
 | POST | `/api/contract-test/{tool_name}` | admin | Contract-test one tool (optional body `{"arguments": {...}}`). |
 | POST | `/api/contract-test` | admin | Contract-test every tool; returns totals and per-tool results. |
 
-**Tenants and plugins**
+**Plugins**
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | `/api/tenants` | admin | List tenants. Tenant records are stored and served here, but no request path consults them: they do not yet restrict tools or enforce quotas. |
-| POST | `/api/tenants` | admin | Create: `id`, `name` (required), `tool_patterns` (default `["*"]`), `blocked_tools`, `quota`. |
-| GET | `/api/tenants/{tenant_id}` | admin | One tenant. |
-| PUT | `/api/tenants/{tenant_id}` | admin | Update a tenant. |
-| DELETE | `/api/tenants/{tenant_id}` | admin | Delete (the default tenant cannot be deleted). |
 | GET | `/api/plugins` | admin | Plugins and status. |
 | POST | `/api/plugins/discover` | admin | Scan for plugin manifests. |
 | POST | `/api/plugins/{name}/load` | admin | Load a plugin. |
 | POST | `/api/plugins/{name}/unload` | admin | Unload a plugin. |
-
-```bash
-curl -X POST http://localhost:3002/api/tenants \
-  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
-  -d '{"id": "research", "name": "Research team", "tool_patterns": ["fred_*", "calc_*"]}'
-```
 
 **Entropy guard, cache, circuits, providers, replay**
 

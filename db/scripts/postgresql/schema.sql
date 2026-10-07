@@ -227,18 +227,6 @@ CREATE TABLE IF NOT EXISTS composite_tool_steps (
 );
 CREATE INDEX IF NOT EXISTS ix_composite_steps_tool ON composite_tool_steps (composite_tool_id);
 
--- ── Tenants and tool versions ──
-CREATE TABLE IF NOT EXISTS tenants (
-    id                   VARCHAR(36)      NOT NULL PRIMARY KEY,
-    name                 VARCHAR(255)     NOT NULL UNIQUE,
-    enabled              BOOLEAN          NOT NULL DEFAULT TRUE,
-    tool_patterns        TEXT,
-    blocked_tools        TEXT,
-    quota_json           TEXT,
-    data_prefix          VARCHAR(255),
-    created_at           TIMESTAMPTZ      DEFAULT CURRENT_TIMESTAMP
-);
-
 -- ── State store: state.backend database, and the durable task store
 --    (sajha/core/state/database.py). If state.database.url names another database,
 --    run this file there too.
