@@ -50,10 +50,10 @@
 
 | Wave | Release | Theme | Main content | Depends on |
 |---|---|---|---|---|
-| 1 | 7.1.0 | Foundations | Caller identity in tools, API keys owned by users with a default key each, tool calls audited, renewing lease, release hygiene, CI | none |
+| 1 | 7.1.0 | Foundations | Caller identity in tools, API keys owned by users with a default key each, tool calls audited, renewing lease, system notices, release hygiene, CI | none |
 | 2 | 7.2.0 | Model interface and LLM tools | OpenAI-style canonical interface and providers, the LLM tool type and its modes, conversation memory and resource safety, `sajha_ask` moved onto the type | 1 |
 | 3 | 7.3.0 | Planners and authoring | Configurable planners and every shipped strategy, `auto`, Studio LLM tool creator and planner editor, sampling, the OpenAI-compatible endpoint | 2 |
-| 4 | 8.0.0 | SAJHA Net core | Membership, CA, signed requests on one port, catalogs and proxy tools, identity across instances, blocks, persistent keys and snapshots, the Instances page | 1 (3 for remote LLM tools) |
+| 4 | 8.0.0 | SAJHA Net core | Named nets (several per server), membership with required seeds, CA, signed requests on one port, catalogs and proxy tools, resolution order and preferences, offline removal, one name one contract, waterfall fallback, identity across instances, blocks, the Instances page | 1 (3 for remote LLM tools) |
 | 5 | 8.1.0 | Sovereignty, console, other MCP servers | Residency, locality-aware planners, re-export, the full SAJHA Net console, sponsored servers, the agent and library, the extension's conformance suite | 4 |
 
 Wave 4 is a major version because it adds a new table (`sajhanet_api_keys`), new columns on
@@ -75,6 +75,7 @@ hand, as for every schema change.
 | Every tool call as an audit event (not only policy and admin events), trace id in details; outbound `traceparent` | SAJHA Net new-code item 3 | Volume control: sampling and SIEM routing documented |
 | Per-user key option for the tool result cache | SAJHA Net new-code item 4 | |
 | A renewing state-store lease (claim, renew, release) | SAJHA Net new-code item 7 | Used later by the gossip agent and the memory purge |
+| System notices: service, console banner, dashboard System status panel, navbar badge; first sources (schema check, breakers, failed jobs, provider down) | [System Notices](System%20Notices.md) | Later waves add their own sources: LLM tools in wave 2, SAJHA Net in wave 4 |
 | Planner and other YAML files loaded without YAML 1.1 surprises | Planner Reference §16 | Whatever fix the reconciled design adopts |
 | 6.0.0 SQLite upgrade message prints the SQL | Roadmap N2 | |
 | The test suite in CI | Roadmap N3 | Every later gate runs there |
@@ -98,7 +99,7 @@ that governed LLM tools work end to end with the existing four planners.
 | Native async providers, Vertex AI, Entra ID | Roadmap X9 | Same code as the adapters |
 | The `LLMTool` type, config validation, modes `answer`, `complete`, `extract`, `classify`; derived annotations; lint rules | LLM Tools step 3 | |
 | Conversation memory: handle, `tool_name` and `expires_ts` columns, turn folding, scheduled purge, `client` history | LLM Tools step 6 | Schema change in both files; operator note |
-| Resource safety: working-set budget, spool and janitor, concurrency limit and queue, memory guard, optional hot cache, state-store caps; the soak test | LLM Tools step 7 | The pressure test is a gate of this wave |
+| Resource safety: working-set budget, spool and janitor, concurrency limit and queue, memory guard, optional hot cache, state-store caps; the soak test | LLM Tools step 7 | The pressure test is a gate of this wave; the memory guard raises system notices (wave 1's service) |
 | Modes `grounded`, `narrate`, `judge`; caching for deterministic modes | LLM Tools step 8 | |
 | Documents (PDF, Word) as RAG sources | Roadmap X8 | Makes `grounded` useful beyond text files |
 | `sajha_ask` moved onto the type; shipped example tools (off); eval sets | LLM Tools step 9; closes Roadmap X7 | |
@@ -137,19 +138,29 @@ place from the first release.
 | Item | Source | Notes |
 |---|---|---|
 | Protocol-only core and every plug-in interface with contract tests | SAJHA Net phase 1, §5.3–5.4 | |
-| Instance names (configured and address names, collisions refused loudly), the CA run by SAJHA, signed requests on one port, revocation, gossip with restarts and leases | SAJHA Net phase 1, §6; Protocol §5, §8–9, §14 | |
+| Named nets, several per server, each fully separate, chosen per request by the signed `Sajha-Net-Name` header on the one port; `sajhanet.nets` configuration with shared defaults; an unnamed net is `default` | SAJHA Net phase 1, §6.1, §6.7, §19; Protocol §5.1, §7.7 | |
+| Instance names per net (configured and address names, collisions refused loudly), the CA run by SAJHA (one per net), signed requests on one port, revocation, gossip with leases | SAJHA Net phase 1, §6; Protocol §5, §8–9, §14 | |
+| Required seeds (`founder: true` exempt); restarts trying seeds first, then the peer list saved on local disk every 10 minutes and on change, then discovery; "not joined" notice and back-off; an administrator adding a peer by address (console, admin API, `sajha net peers add`), optionally kept as a runtime seed | SAJHA Net §6.6; Protocol §9.7, §9.9 | |
 | Extension advertised on both eras | SAJHA Net new-code item 2 | |
-| Catalog exchange, host and tool table, trust levels, proxy tools with the federation changes (prefix rule, `.` replaced, annotations corrected, old version kept under `review`) | SAJHA Net phase 2, new-code item 5 | |
+| Catalog exchange (everything about a tool shared), the live host and tool table, trust levels, proxy tools with the federation changes (`<net>__<instance>__<tool>` names, `.` replaced, annotations corrected, old version kept under `review`) | SAJHA Net phase 2, new-code item 5 | |
+| Offline hosts: tools removed at once on `left` and `dead`, marked unavailable on `suspect`; nothing remote listed after a restart until peers answer | SAJHA Net phase 2, §8.5; Protocol §10.6 | Replaces the earlier grace period and "unconfirmed" tools |
+| Resolution order of plain names (local, per-tool preferences, nets in order) shown in the table and console; long names mapped to per-request aliases for model providers | SAJHA Net phase 2, §8.2, §8.6 | The provider aliasing sits in wave 2's model gateway |
+| One name, one contract: contract hash, quarantine on any difference, published conflicts, automatic re-activation, notices | SAJHA Net phase 2, §8.7; Protocol §10.7 | |
+| Waterfall fallback after "not executed" failures, `executed` in host refusals, `max_fallbacks`, shared deadline, per-attempt audit and metrics | SAJHA Net phase 2, §9.1; Protocol §15.8, §17 | |
+| SAJHA Net's system notice sources | SAJHA Net §17.4; [System Notices](System%20Notices.md) | On wave 1's notices service |
 | A SAJHA Net network allowlist for the SSRF guard | New-code item 6 | |
 | Imported schemas validated as JSON Schema | New-code item 13 | |
 | Identity resolver and the `api_key` resolver; the net key directory; users across instances; blocks; export and import rules; role maps; linked audit; metrics; per-peer isolation | SAJHA Net phase 3 | Builds on wave 1's owned keys |
 | Cancellation reaches the host | New-code item 12 | |
-| The Instances page for every signed-in user and the navbar badge; minimal admin pages for membership, blocks and certificates | SAJHA Net §17 (subset) | The full console is wave 5 |
-| Helm value for the instance name and advertise address | New-code item 9 | |
+| The Instances page for every signed-in user and the navbar badge; minimal admin pages for membership, blocks, certificates and the conflicts queue | SAJHA Net §17 (subset) | The full console is wave 5 |
+| Helm value for the nets list (each net's instance name, advertise address and seeds) | New-code item 9 | |
 
 **Exit:** gates of section 9; a three-instance test net (in one process and as three containers)
-joins, survives restarts and a crash, refuses a name collision, exchanges catalogs, and answers a
-call as the right user on each host; the extension's conformance cases for SAJHA pass.
+joins through its seeds, survives restarts (seeds down: through the saved peer list) and a crash,
+refuses a name collision, exchanges catalogs, removes a crashed host's tools when it is dead,
+quarantines a tool two hosts disagree about and re-activates it when they agree, falls back to a
+second host when the first is down, and answers a call as the right user on each host; one server
+in two nets keeps them apart; the extension's conformance cases for SAJHA pass.
 
 ---
 
@@ -223,14 +234,15 @@ owner of its detail.
 
 ## 11. Where everything went
 
-Every build step and phase of the two designs, every new-code item the SAJHA Net design lists, and
-every open Roadmap item appears exactly once in this plan:
+Every build step and phase of the two designs, every new-code item the SAJHA Net design lists,
+the System Notices design, and every open Roadmap item appears exactly once in this plan:
 
 | Source | Placed in |
 |---|---|
 | LLM Tools steps 1–13 | 1: wave 1; 2, 3, 6, 7, 8, 9: wave 2; 4, 5, 10, 11, 12, 13: wave 3 |
-| SAJHA Net phases 1–9 | 1, 2, 3: wave 4 (with wave 1's identity groundwork); 4, 5, 6, 7, 8, 9: wave 5 (Instances page and badge from phase 7 come early, in wave 4) |
-| SAJHA Net new-code items 1–13 | 1, 3, 4, 7, 10, 11: wave 1; 2, 5, 6, 9, 12, 13: wave 4; 8: wave 5 |
+| SAJHA Net phases 1–9 | 1, 2, 3: wave 4 (with wave 1's identity groundwork; named nets, seeds and restarts, offline removal, resolution and preferences, one name one contract and waterfall fallback are in phases 1 and 2); 4, 5, 6, 7, 8, 9: wave 5 (Instances page and badge from phase 7 come early, in wave 4) |
+| SAJHA Net new-code items 1–13 ([SAJHA Net §21.1](SAJHA%20Net.md#211-new-code-this-design-needs)) | 1, 3, 4, 7, 10, 11: wave 1; 2, 5, 6, 9, 12, 13: wave 4; 8: wave 5 |
 | Roadmap Now (N2–N5) | wave 1 |
 | Roadmap Next (X2–X17) | X4, X17: wave 1; X7 (closed), X8, X9: wave 2; X2, X15: wave 3; X5, X6: wave 5; X3, X10–X14, X16: section 8 |
 | Roadmap Later (L1–L16) | L16 (SAJHA Net): waves 4–5; all others: section 8 |
+| System Notices | wave 1 (service, console, first sources); its later sources with the waves that add them (LLM tools: 2; SAJHA Net: 4) |

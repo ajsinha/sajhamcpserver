@@ -6,8 +6,8 @@
 > today brings other MCP servers' tools into one SAJHA by hand. It is item L16 on the
 > [Roadmap](Roadmap.md).
 
-A SAJHA server configured as an **instance** of a net automatically learns which tools the other
-instances offer, and builds a **proxy tool** for each one it is allowed to use. The proxy appears
+A SAJHA server configured as an **instance** of a net (or of several named nets, kept apart)
+automatically learns which tools the other instances offer, and builds a **proxy tool** for each one it is allowed to use. The proxy appears
 in its catalog next to its own tools. When a caller (a person, an MCP client, a planner, an LLM
 tool, a workflow) calls a proxy, SAJHA forwards the call to the instance that hosts the tool, as
 that caller, and returns the result. To the caller, a net tool is just a tool.
@@ -82,15 +82,24 @@ copying either domain's data into the other.
   the call itself.
 - G4. Each instance decides what it exports (and to whom) and what it imports (and for whom).
 - G5. Data residency rules can stop data leaving a boundary, in arguments as well as results.
-- G6. Local tools always win over remote ones for an unqualified name; remote tools are never
-  shadowed silently.
+- G6. Local tools always win over remote ones for a plain name (unless the server exports that tool
+  into a net where the name is quarantined, section 8.7); a plain name otherwise resolves in a
+  stated, visible order (per-tool preferences, then nets in configured order); remote tools are never
+  shadowed silently, and a qualified name always reaches exactly the tool it names.
 - G7. Every cross-instance call is audited on both sides, linked by one trace id.
 - G8. An instance that is slow, down, revoked or compromised cannot take the others down or widen
   what anyone may do.
 - G9. Instances come and go without manual peer configuration: arrivals, clean departures and
-  failures are detected automatically.
+  failures are detected automatically, and an instance's tools disappear from every peer the moment
+  it is known to be gone.
 - G10. Any MCP server can take part, natively, through the SAJHA Net agent, or sponsored by a
   SAJHA instance; every moving part is a pluggable interface (section 5).
+- G11. A server can belong to several named nets at once, each fully separate; being in two nets
+  never joins them.
+- G12. When the host chosen for a plain name is down, the call goes to the next host offering the
+  same tool, whenever that cannot run the tool twice.
+- G13. Within a net a tool name means one contract: hosts that disagree about it cannot serve it
+  until they agree (section 8.7).
 
 **Non-goals**
 
@@ -100,6 +109,8 @@ copying either domain's data into the other.
   certificate (section 6.4); everything after that is automatic.
 - Moving data in bulk between instances. A net moves calls, not datasets.
 - Replacing federation with third-party MCP servers; that stays as it is.
+- Joining nets together. A server in two nets keeps them apart; a tool crosses from one net to
+  another only where an administrator turns re-export on for the receiving net (section 14).
 
 ---
 
@@ -109,8 +120,10 @@ These terms go into `GLOSSARY.md` when the feature is built.
 
 | Term | Meaning |
 |---|---|
-| Net | A named group of SAJHA servers that share tools under each other's rules. |
-| Instance | One SAJHA server in a net, with a net-unique id (for example `risk-eu`). |
+| Net | A named group of SAJHA servers that share tools under each other's rules; one server may belong to several. |
+| Net name | A net's name: lowercase, starting with a letter, at most 16 characters, never containing `__`; the first part of every qualified tool name. |
+| Default net | The net a server is in when its configuration names none; it is called `default`. |
+| Instance | One SAJHA server in a net, with a name unique in that net (for example `risk-eu`). |
 | Home instance | The instance that received the caller's request. |
 | Host instance | The instance whose tool is being called. |
 | Proxy tool | A tool in the home instance's catalog that forwards calls to a host instance's tool. |
@@ -124,12 +137,24 @@ These terms go into `GLOSSARY.md` when the feature is built.
 | Sponsor | A SAJHA instance that represents an MCP server unaware of SAJHA Net, governing its tools in the net. |
 | SAJHA Net agent | A small program run next to any MCP server that speaks the SAJHA Net protocol on its behalf. |
 | SAJHA Net extension | The versioned MCP extension (`io.sajha/net`) that participants speak to each other. |
-| Instance name | An instance's name, set in its own configuration and unique in the net. |
+| Instance name | An instance's name in one net, set in its own configuration and unique in that net; a server in several nets may have a different name in each. |
+| Qualified tool name | A remote tool's full name, `<net>__<instance>__<tool>`, which always reaches exactly that tool on that instance in that net. |
+| Plain name | A tool name without net and instance; it resolves to the local tool, else in the resolution order. |
+| Resolution order | The order in which a plain name is matched: the local tool, the tool's preference list, then the nets in configured order. |
+| Preference list | An administrator's ordered list of nets, or instances in a net, to try first for one tool. |
+| Tool contract | What a tool name promises: its input and output schemas and annotations (its description too, though a description difference only warns). |
+| Contract hash | A hash of a tool's input schema, output schema and annotations, used to compare contracts between hosts. |
+| Quarantine | The state of a tool name whose hosts in a net offer different contracts: no copy is listed or callable anywhere in the net until they agree. |
+| Waterfall fallback | Trying the next host offering the same tool, in resolution order, when the chosen host did not run the call. |
+| Not executed | A failed call the home knows, or the host has signed, never ran the tool; only such a failure lets any tool fall back. |
+| Bridge | A server in two nets that offers one net's tools in the other, which it does only when re-export is on for the receiving net. |
 | Net user | A user at an instance, written `user@instance`; the same person may be a different user on each instance. |
 | Default API key | The API key every user always has; kept encrypted at its home instance so it can be forwarded. |
-| Host and tool table | Each instance's record of which instance hosts which remote tool. |
+| Host and tool table | Each instance's live record of which instance, in which net, hosts which remote tool, and in what order a plain name tries them. |
 | Block | An administrator's local decision to stop calls to or from another instance, a tool or a remote user. |
-| Seed instance | An instance a starting instance contacts first to learn the net. |
+| Seed instance | A pre-identified instance a starting instance contacts first to learn a net; every net entry needs at least one, except the founder's. |
+| Founder | The first server of a net, allowed to start with no seeds (`founder: true`), typically its CA instance. |
+| Saved peer list | The peers of a net a server last knew, saved on local disk and tried after the seeds on a restart. |
 | Incarnation | An instance's own counter that makes newer news about it override older news. |
 | Identity resolver | The pluggable part that turns a caller into credentials on the home instance and back into a verified user on the host instance. |
 | Net key directory | Every instance's synced copy of the API key records (hashes, never keys) issued across the net. |
@@ -171,8 +196,8 @@ behaviour that exists today:
 
 | Federation today (code) | What the net needs |
 |---|---|
-| An upstream prefix is 1 to 32 characters, starts with a letter and does not end in `_` (`UpstreamConfig.validate`); `namespaced()` cleans names to the MCP rule `[A-Za-z0-9_.-]{1,128}`, which allows `.` | Address-name prefixes start with a digit and a full IPv6 one with its port is 44 characters (section 6.1), and `.` is not accepted by every LLM provider: net proxies need their own prefix rule and must replace `.` too |
-| A tool whose definition changes goes to status `changed` and is withdrawn from the registry until approved again | `review` trust keeps the previously approved version serving (section 7.3) |
+| An upstream prefix is 1 to 32 characters, starts with a letter and does not end in `_` (`UpstreamConfig.validate`); `namespaced()` cleans names to the MCP rule `[A-Za-z0-9_.-]{1,128}`, which allows `.` | A net proxy's name has two prefixes, `<net>__<instance>__<tool>` (section 8.2); the instance part may be an address name that starts with a digit and is up to 44 characters for IPv6 (section 6.1), and `.` is not accepted by every LLM provider: net proxies need their own name rule and must replace `.` too |
+| A tool whose definition changes goes to status `changed` and is withdrawn from the registry until approved again | `review` trust keeps the previously approved version serving (section 7.3); a changed contract under the same version is refused net-wide (section 8.7) |
 | Annotations are copied from the upstream as they are | Annotations corrected, never widened (section 8.1) |
 | The tool cache (`sajha/core/cache.py`) keys a result by tool name and arguments only, for any tool with `cache_ttl`; federation refuses `cache_ttl` with `connected_account` for that reason | A cache key that includes the caller, and caching limited to read-only tools; until then proxies do not cache (section 9) |
 | The SSRF guard (`sajha/federation/security.py::check_url`) refuses loopback and private addresses unless `federation.allow_localhost` / `allow_private_networks`, and hosts outside `federation.allowed_hosts` when that is set | Instances usually sit on private networks: the net's guard takes its own settings and binds a peer's URL to its certificate (section 18) |
@@ -242,7 +267,7 @@ Python entry-point group (`sajha.net.plugins`), as planners already can.
 | **Key directory store** | where synced key records live | `database` (the `sajhanet_api_keys` table) | Redis, an external secrets service |
 | **Rule evaluators** | export, import, residency and blocking decisions | the policy engine | an external policy decision point (for example OPA) |
 | **Snapshot sink** | where snapshots go | local files, the storage backend, the SIEM export | object storage with retention lock |
-| **Routing strategy** | which participant serves a tool when several could | `local_first` (section 8), `lowest_latency`, `pinned` | cost-aware, region-pinned |
+| **Routing strategy** | the order of the hosts within one net that offer a tool, after the tool's preferences (section 8.2) | `local_first` (the default: local tool first, then hosts in a stable order by instance name), `lowest_latency`, `pinned` (only hosts named in preferences) | cost-aware, region-pinned |
 
 ### 5.4 How the code is organised
 
@@ -265,28 +290,42 @@ Instances find each other, notice when one arrives or leaves, and agree on who i
 through a **gossip protocol**. No administrator has to add each peer by hand, and no central
 server is needed.
 
-### 6.1 Net and instance identity
+### 6.1 Nets and instance identity
 
-- A net has a name (`acme-net`). Each instance is identified by its **instance name**, set in
-  that instance's own configuration (`sajhanet.instance_name`, for example `risk-eu` or `cust-na`)
-  and unique in the net. The instance name is what gossip, the console, audit records, user
-  identities (`alice@risk-eu`) and qualified tool names (`risk-eu__var_calc`) use. An instance
-  also has a base URL, a region and labels (`domain: risk`, `jurisdiction: EU`).
-- **Names never collide.** An instance name identifies exactly one server: the one whose
-  certificate key first held it in the net. The name stays reserved for that key, running or not,
+- **Named nets, several per server.** Every net has a **net name** (`acme-net`): lowercase letters,
+  digits, `-` and `_`, starting with a letter, at most 16 characters, never containing `__` and not
+  ending in `_` (the exact rule is in the [protocol spec](../protocol/SAJHA%20Net%20Protocol.md#51-net-names)).
+  A server may be a member of **more than one net** at once, listed in `sajhanet.nets` (section 19);
+  the order of that list is the server's order of preference between its nets (section 8.2). A net
+  entry without a name is the net named **`default`**, and the console suggests naming nets in
+  production.
+- **Each net is fully separate.** Each has its own CA and its own certificate for every member, its
+  own membership and gossip, key directory, blocks, export and import rules and trust levels. Nothing
+  learned in one net (a member, a key record, a block, a catalog) is ever used in another, even when
+  the same servers belong to both. Being in two nets never bridges them: a server never offers one
+  net's imported tools to another net unless that net's `reexport` is explicitly on (section 14).
+- **Instance names are per net.** In each net an instance is identified by its **instance name**,
+  set in its own configuration (`instance_name` in that net's entry, for example `risk-eu` or
+  `cust-na`) and unique in that net; a server may use a different name in each of its nets. The
+  instance name is what gossip, the console, audit records, user identities (`alice@risk-eu`) and
+  qualified tool names (`acme-net__risk-eu__var_calc`) use. An instance also has a base URL, a region
+  and labels (`domain: risk`, `jurisdiction: EU`).
+- **Names never collide.** Within a net, an instance name identifies exactly one server: the one
+  whose certificate key first held it in that net (the rules below apply to each net separately). The name stays reserved for that key, running or not,
   until an administrator revokes its certificate. The CA refuses to create an enrollment token for
   a name that is held, and tells the administrator who holds it. A server that tries to join under
   a held name with a different key is refused by every instance it contacts (`name_conflict`,
-  naming the holder): it does not join, it logs the error, shows a red banner on every console page
-  and raises an alert metric, and it stops retrying until its configuration or certificate
-  changes. Its local tools keep working. A restart or renewal with the same key is not a conflict.
+  naming the holder): it does not join, it logs the error, raises an error notice (section 17.4)
+  and an alert metric, and it stops retrying until its configuration or certificate
+  changes. Its local tools keep working. A restart, or a certificate renewal by the CA (even with a new key pair), is the same holder
+  and not a conflict: ownership follows the certificate's renewal lineage.
   The rule is normative in the [protocol spec](../protocol/SAJHA%20Net%20Protocol.md#52-instance-names).
-- **When no name is configured, the address is the name.** An instance without
-  `sajhanet.instance_name` is named after the address other instances reach it on, as
+- **When no name is configured, the address is the name.** An instance without an `instance_name`
+  for a net is named, in that net, after the address other instances reach it on, as
   `<ip>:<port>` (for example `10.20.4.17:3002`; IPv6 as `[2001:db8::7]:3002`). The address must be
   real and reachable:
-  - it is `sajhanet.advertise_address` if set (needed behind NAT or a container network, where the
-    address the server sees is not the one peers use);
+  - it is that net's `advertise_address` if set (needed behind NAT or a container network, where
+    the address the server sees is not the one peers use);
   - otherwise the server's bind address, if that is a specific address;
   - otherwise, when bound to all interfaces, the address of the interface that carries the
     default route.
@@ -296,30 +335,31 @@ server is needed.
   join and says why at start-up and on its SAJHA Net settings page; local tools keep working.
 - **Where an address name cannot be used as is.** MCP allows letters, digits, `_`, `-` and `.` in
   tool names (`[A-Za-z0-9_.-]{1,128}`, `sajha/federation/config.py`), but only letters, digits,
-  `_` and `-` are accepted by every LLM provider, so the prefix of qualified tool names uses a
+  `_` and `-` are accepted by every LLM provider, so the instance part of qualified tool names uses a
   safe form of the address: dots and colons become `_` (owner decision), so `10.20.4.17:3002` gives
-  `10_20_4_17_3002__var_calc`. An IPv6 address is first written out in full, without `::`
-  shortening and without brackets, so the safe form never contains `__`, which separates the
-  instance from the tool (`[2001:db8::7]:3002` gives
-  `2001_0db8_0000_0000_0000_0000_0000_0007_3002__var_calc`). Such names are long, and some
-  providers cap tool names at 64 characters, which is one more reason to configure a short name
-  for IPv6 instances. Everywhere else (the console, gossip, audit, `alice@10.20.4.17:3002`) the
-  address is shown as written.
+  `acme-net__10_20_4_17_3002__var_calc`. An IPv6 address is first written out in full, without `::`
+  shortening and without brackets, so the safe form never contains `__`, which separates the parts
+  (`[2001:db8::7]:3002` gives `acme-net__2001_0db8_0000_0000_0000_0000_0000_0007_3002__var_calc`).
+  Because the net name comes first, every qualified name starts with a letter, as some providers
+  require. Long names are not a problem for providers with a length cap either: SAJHA maps them to
+  short aliases when it sends tools to a model (section 8.6). Everywhere else (the console, gossip,
+  audit, `alice@10.20.4.17:3002`) the address is shown as written.
 - **Prefer a configured name in production.** An address name changes when the address does
   (DHCP, a restart that moves a container or Kubernetes pod), and with it every qualified tool
-  name, user link, block and pinned alias that refers to the instance, and its certificate (which
+  name, user link, block and preference entry that refers to the instance, and its certificate (which
   names the instance) must be issued again. The console warns when an instance runs under an
   address name. An instance with several pods or workers is one instance and needs a configured
   name and an `advertise_address` (its Service), since each pod's own address would name a
-  different instance. The Helm chart has no SAJHA Net value today; `sajhanet.instance_name` can
-  already be set through `config.overrides` or `config.env`
-  (`SAJHA_SAJHANET_INSTANCE_NAME`), and a dedicated chart value is part of the build.
-- **Admission is by certificate.** The net has its own certificate authority. Each instance
-  holds a key pair and a certificate signed by the SAJHA Net CA whose subject names the net and
-  the instance name, so an instance cannot claim a name it was not issued. Every request between instances is **signed** with the sender's private key and carries its
+  different instance. The Helm chart has no SAJHA Net value today; the `sajhanet.nets` list, with
+  each net's `instance_name` and `advertise_address`, can already be set through `config.overrides`
+  (deep-merged, with lists replaced whole), and a dedicated chart value is part of the build.
+- **Admission is by certificate.** Each net has its own certificate authority. In each of its
+  nets an instance holds a certificate signed by that net's CA whose subject names the net and the
+  instance name there (and preferably a separate key pair per net), so an instance cannot claim a
+  name, or a net, it was not issued. Every request between instances is **signed** with the sender's private key and carries its
   certificate (section 6.7), and an instance accepts a peer's request only if the certificate chains
-  to the net CA, names the same net, matches the signature, and is not on the net's revocation
-  list. Holding such a certificate is what makes a server an instance: there is no
+  to that net's CA, names the net the request is for (the signed `Sajha-Net-Name` header, section
+  6.7), matches the signature, and is not on that net's revocation list. Holding such a certificate is what makes a server an instance: there is no
   separate approval step, which is how instances can come and go automatically.
 - **Revocation.** A net administrator removes an instance by adding its instance name (or certificate
   serial) to the revocation list, which is signed with the SAJHA Net CA's key and spread by gossip
@@ -331,11 +371,14 @@ server is needed.
 
 | Event | What happens |
 |---|---|
-| An instance starts | It contacts any of its configured **seed instances** (one or two are enough), presents its certificate, and receives the current instance list. Its arrival spreads to everyone within a few gossip rounds; each instance then pulls its catalog and key directory (sections 7 and 10.3). |
-| An instance stops cleanly | It gossips a `leave` message. Others mark it `left` at once and remove its proxy tools after `sajhanet.unhealthy_grace_seconds`. |
-| An instance crashes or is cut off | The failure detector (section 6.3) marks it `suspect`, then `dead` if no one can reach it within `suspect_timeout_seconds`. Its proxy tools stay listed as unavailable during the grace period, then are hidden. |
-| An instance comes back | It rejoins with a higher **incarnation** number, which overrides any stale `suspect` or `dead` entry about it. |
+| An instance starts | It contacts its configured **seed instances** for that net (at least one is required, section 6.6; one or two are enough), presents its certificate, and receives the current instance list. Its arrival spreads to everyone within a few gossip rounds; each instance then pulls its catalog and key directory (sections 7 and 10.3). |
+| An instance stops cleanly | It gossips a `leave` message. Others mark it `left` and remove its tools at once (section 8.5). |
+| An instance crashes or is cut off | The failure detector (section 6.3) marks it `suspect`: its tools stay listed but marked unavailable, and calls skip it. If no one can reach it within `suspect_timeout_seconds` it becomes `dead`, and its tools are removed at that moment (section 8.5). |
+| An instance comes back | It rejoins with a higher **incarnation** number, which overrides any stale `suspect` or `dead` entry about it. Its tools are listed again once its catalog has been pulled anew. |
 | An instance is revoked | Its instance name (or certificate serial) is on the signed revocation list; every instance refuses it and removes its tools, wherever the list reaches first. |
+
+All of this happens in each net separately: a server leaving one net (its configuration no longer
+lists it) stays in its others.
 
 A server whose certificate is not from the SAJHA Net CA cannot join, gossip or call anyone, however
 it learned the addresses.
@@ -346,7 +389,7 @@ The protocol follows the SWIM design (scalable, weakly consistent, infection-sty
 which needs no leader and costs a few small messages per instance per second. At about ten
 instances it is far more than enough.
 
-- **Membership list.** Each instance keeps an entry per instance: id, URL, region, labels,
+- **Membership list.** For each of its nets, each instance keeps an entry per instance: id, URL, region, labels,
   `incarnation`, state (`alive`, `suspect`, `dead`, `left`) and digests (catalog hash, key
   directory version). Entries merge by (incarnation, state precedence), so every instance
   converges on the same list without coordination.
@@ -365,8 +408,8 @@ instances it is far more than enough.
   listener, so gossip passes through Kubernetes services, ingress and corporate proxies unchanged.
 - **Digests trigger pulls.** Gossip carries only digests. When an instance sees a peer's catalog
   hash or key-directory version change, it pulls the changed part from that peer (sections 7.2 and 10.3). Gossip never carries tools, schemas or keys themselves.
-- **One gossip agent per instance.** An instance running several workers elects one of them to run
-  the agent, through a lease in the state store: the worker that stores the lease key with the
+- **One gossip agent per net.** An instance runs one gossip agent for each of its nets. With several
+  workers it elects one of them to run each agent, through a lease per net in the state store: the worker that stores the lease key with the
   state store's atomic `add` and a TTL holds it (the primitive workflow cron and quality probes use
   to claim a slot, `sajha/workflows/service.py`, `sajha/quality/probes.py`), and renews it with
   an atomic `update` that succeeds only while the value is still its own. The renewing lease is
@@ -382,10 +425,11 @@ instances it is far more than enough.
 
 The certificate authority is part of SAJHA; no external PKI is needed.
 
-- **One CA instance.** An administrator designates one instance as the net's CA instance
-  (`sajhanet.ca.enabled: true` on that instance only) and initialises it once
-  (`sajha net ca init`), which creates the CA key pair. The private key is a secret reference
-  (`sajhanet.ca.key_ref`), stored with owner-only permissions and never sent anywhere; the
+- **One CA instance per net.** An administrator designates one instance as the net's CA instance
+  (`ca.enabled: true` in that net's entry, on that instance only) and initialises it once
+  (`sajha net ca init --net acme-net`), which creates the net's CA key pair. One server may be the CA
+  instance of several nets, with a separate CA key for each. The private key is a secret reference
+  (the net's `ca.key_ref`), stored with owner-only permissions and never sent anywhere; the
   administrator is prompted to back it up.
 - **Enrolling an instance.** On the CA instance, an administrator creates an **enrollment token**
   for a named instance (`sajha net ca enroll cust-na`, or the console): one-time, short-lived,
@@ -413,19 +457,53 @@ join offer approved on both sides. Gossip then runs among the approved peers onl
 
 ### 6.6 Restarts
 
-An instance that is shut down and started again finds its peers without anyone's help.
+An instance that is shut down and started again finds its peers without anyone's help. In each of
+its nets, separately, it tries in this order:
 
-1. **Last-known peers.** Every instance keeps the membership list it last saw in the storage
-   backend (refreshed on every change), so it survives a restart. On start-up the instance
-   contacts those addresses first.
-2. **Seeds.** Then the configured `sajhanet.gossip.seeds`, which cover the first start ever and a
-   wiped disk.
+1. **Seeds.** The net's configured `seeds`, the pre-identified peers it connects to first and
+   starts gossiping with. **Every net entry must list at least one seed.** A net entry with no seeds
+   is a configuration error at start-up: the server does not join that net (its other nets are
+   unaffected) and raises an error notice (section 17.4). The one exception is the net's **first
+   server**, which sets `founder: true` (typically the CA instance) and may start alone.
+2. **Saved peers.** If no seed answers, the peers in its last saved peer list for that net, most
+   recently seen first. Each server saves the peers it knows, per net, to **local disk**: on every
+   membership change and at least every `peer_cache.interval_minutes` (default 10), to
+   `peer_cache.path` (default `data/sajhanet/<net>/peers.json`), written atomically (a temporary file,
+   then a rename) with owner-only permissions. For each peer it records the name, URL(s),
+   certificate thumbprint, last state and last-seen time, plus the time of the save. It is kept on
+   local disk, not only in the storage backend, so it is there even when the storage backend is
+   remote or unavailable. An entry is only an address to try: the peer's certificate is verified on
+   contact as always, and entries not seen for more than `peer_cache.max_age_days` (default 7) are
+   skipped.
 3. **Discovery plug-in, if configured.** For example DNS records of a Kubernetes service (section
    5.3).
 4. **Peers look for it too.** An instance marked `dead` stays on every peer's list for
    `sajhanet.gossip.dead_retention_minutes`, during which peers probe its last address at a low
-   rate (`dead_probe_interval_seconds`). A restarted instance whose seeds were all down is still
-   found as soon as any peer can reach it.
+   rate (`dead_probe_interval_seconds`). A restarted instance whose seeds and saved peers were all
+   down is still found as soon as any peer can reach it.
+
+If neither seeds nor saved peers answer, the server raises an error notice ("not joined to
+`<net>`: no seed or saved peer reachable", section 17.4) and keeps retrying with back-off. Saved
+peers and discovery help on restarts but never replace the required seed.
+
+**Adding a peer by hand.** An administrator signed in to this instance can also point it at a peer
+for one net, by IP and port or URL (Net settings or the admin view of Instances, the admin API, or
+`sajha net peers add <ip:port> --net <name>`). The server contacts that address at once for that
+net with an ordinary signed join (a sync). The address is only a hint: the peer's certificate must
+still chain to that net's CA, name a valid instance name that conflicts with no holder, and not be
+revoked (in manual mode the administrator confirms the certificate thumbprint shown before it is
+pinned); injection never bypasses admission, `name_conflict` or the contract rule. The address must
+pass the net's network allowlist and SSRF rules (no loopback or link-local, `allowed_networks`), and
+injections are rate-limited.
+
+- **On success** the peer enters membership through gossip as usual and is written to the saved
+  peer list. An optional **keep as a seed** stores it as a runtime seed for that net in the storage
+  backend; configured seeds stay as configured, and runtime seeds are listed separately in the
+  console with who added them, and can be removed.
+- **On failure** the console says why (unreachable, TLS, signature, wrong net, revoked,
+  `name_conflict`) and nothing is stored.
+- It is never possible through a remote call. Every injection, successful or not, is audited and
+  raises a notice (info on success, warning on failure).
 
 The first peer that answers sends the full membership list; within a few gossip rounds every
 instance knows it is back.
@@ -433,15 +511,15 @@ instance knows it is back.
 - **Its return overrides the news of its death.** It rejoins with a higher incarnation, derived
   from its start time so that it is always higher after a restart even if the previous value was
   lost; that outranks any `suspect`, `dead` or `left` entry about it.
-- **It is not blind before peers answer.** The key directory is in its database, so forwarded keys
-  can be verified at once. The host and tool table is persisted (section 8.4), so its remote
-  tools come back marked *unconfirmed*, then are confirmed, updated or dropped as each peer's
-  catalog digest arrives; a call to an unconfirmed tool is attempted and fails fast if the host is
-  down. Blocks, user links, trust levels and role maps are in the storage backend and apply from
-  the first request.
-- **Clean shutdown and crash end the same way.** A clean shutdown gossips `leave`, so peers hide
-  its tools immediately; a crash is found by the failure detector. Either way the restart path
-  above is the same.
+- **No remote tools until peers answer.** The key directory is in its database, so forwarded keys
+  can be verified at once, and blocks, user links, trust levels and role maps are in the storage
+  backend and apply from the first request. But it lists **no remote tools** until each peer's
+  catalog actually arrives: a peer's tools appear when that peer has answered a catalog pull in this
+  run. The last accepted catalog it stored is used only to ask "has it changed?" (so an unchanged
+  catalog need not be transferred again), never to list or call a tool on its own (section 8.5).
+- **Clean shutdown and crash end the same way.** A clean shutdown gossips `leave`, so peers remove
+  its tools immediately; a crash is found by the failure detector, and peers remove its tools when it
+  becomes `dead`. Either way the restart path above is the same.
 - **Several workers.** The worker that wins the gossip lease (section 6.3) performs the rejoin;
   the others read the membership list from the state store as usual.
 
@@ -449,8 +527,12 @@ instance knows it is back.
 
 Everything between instances uses SAJHA's normal HTTP port: the same server, the same listener,
 the same port MCP clients and the web console use. There is no second port, no UDP and no other
-TCP connection to open in a firewall.
+TCP connection to open in a firewall. One port also serves every net the server belongs to.
 
+- **One port, several nets.** The paths are the same for every net. Each request names its net in
+  a signed `Sajha-Net-Name` header, and the receiver checks it with that net's CA, revocation list and
+  rules only; a request for a net the receiver is not in gets the same plain `404` as a server with
+  SAJHA Net off, so nobody learns which nets a server belongs to.
 - **Paths.** Net traffic is ordinary HTTP under one path prefix, `/sajhanet/`: gossip
   messages, catalog and key-directory pulls, block and digest exchange, and CA enrollment and
   renewal. Calls to remote tools go to the host's normal MCP endpoint, with net headers added.
@@ -468,7 +550,8 @@ TCP connection to open in a firewall.
   really came from the peer it asked, even through proxies.
 - **TLS still protects the wire.** Signatures prove who sent a request; HTTPS keeps it private.
   Forwarded API keys (section 10.2) travel only over HTTPS hops (`require_https`, on by default);
-  turning that off is for a lab only and the console says so in red.
+  turning that off is for a lab only, and the server raises a warning notice while it is off (section
+  17.4).
 - **Mutual TLS remains an option** (`mtls: optional | required`, off by default because asking for
   client certificates can make browsers prompt console users) for deployments where SAJHA
   terminates TLS itself and wants the handshake check as well; it is never the only check.
@@ -481,18 +564,28 @@ TCP connection to open in a firewall.
 
 ### 7.1 What a host instance exports
 
-For each tool its export rules allow a given peer to see, a host instance publishes:
+In each of its nets, for each tool that net's export rules allow a given peer to see, a host
+instance publishes **everything about the tool**:
 
-- the tool's name, description, `inputSchema`, `outputSchema` and annotations;
-- its version and, if versioned, its deprecation state;
-- net metadata: host instance id, region, labels, data classes of its arguments and results
-  (section 12), whether it is an LLM tool, an indicative latency and its health;
+- its whole definition as its own MCP clients see it: name, title, description, `inputSchema`,
+  `outputSchema`, annotations and metadata (`_meta`);
+- its version (informational and for audit only, section 8.7) and, if versioned, its deprecation
+  state;
+- net metadata: net, host instance name, region, labels, data classes of its arguments and results
+  (section 12), whether it is an LLM tool, an indicative latency, its health and its **contract
+  hash** (of its schemas and annotations, section 8.7);
 - a catalog hash, so a peer can tell whether anything changed.
 
 Nothing else: no configuration, credentials, implementation details or usage data.
 
+**MCP Apps views are not shared.** A tool's user-interface links (`_meta.ui`, `ui://` resources)
+resolve only on the host, and the first protocol version does not proxy resource reads, so hosts
+remove them from what they export and homes drop any that arrive. Federation already behaves this way
+(it does not carry MCP Apps views); proxying them is a later protocol version.
+
 ### 7.2 How catalogs travel
 
+- **Per net.** Catalogs are exchanged in each net separately, under that net's export rules.
 - **Digest, then pull.** Every instance's catalog hash travels in gossip (section 6.3). When an
   instance sees a new hash for a peer (or a new peer), it pulls that peer's catalog over MCP
   (`tools/list`, with the net metadata in `_meta`) using its instance identity. An unchanged
@@ -528,26 +621,51 @@ JSON Schema validity check is new.
 
 ### 8.1 Automatic proxies
 
-For every approved remote tool the home instance's import rules allow, SAJHA creates a **proxy
-tool** in its registry automatically: the remote schemas, the remote annotations (corrected,
-never widened: a remote tool is at least `openWorldHint: true`; federation copies annotations as
-they are today, so this correction is new), and a net connection. When
-the tool disappears from the peer's catalog, the proxy is removed; when the peer is unhealthy,
-the proxy stays listed with its health for `sajhanet.unhealthy_grace_seconds` and calls fail fast,
-then it is hidden until the peer recovers.
+For every approved remote tool the home instance's import rules allow, in each of its nets, SAJHA
+creates a **proxy tool** in its registry automatically: the remote schemas, the remote annotations
+(corrected, never widened: a remote tool is at least `openWorldHint: true`; federation copies
+annotations as they are today, so this correction is new), and a net connection. When the tool
+disappears from the peer's catalog, the proxy is removed. When the peer goes offline, its proxies
+are marked unavailable or removed at once, as section 8.5 says; there is no grace period.
 
-### 8.2 Names
+### 8.2 Names and resolution
 
 | Name | Rule |
 |---|---|
-| Qualified name | Always `<instance>__<tool>` (for example `risk-eu__var_calc`; an address name uses its safe form, section 6.1), the same `__` convention federation uses. Any character outside `[A-Za-z0-9_-]` in the host's tool name (MCP also allows `.`) becomes `_`, so the name is valid for every LLM provider's tool-name rules. Planners, audit and metrics always record this name. |
-| Bare alias | Offered in addition only when `sajhanet.bare_aliases` allows it **and** the bare name is unique across the home instance's own tools and every imported tool, **or** an administrator pinned the alias to one instance. |
-| Collision with a local tool | The local tool keeps the bare name. The remote tool is reachable only by its qualified name. Reported on the SAJHA Net page. |
-| Collision between two instances | Neither gets the bare name unless an administrator pins one. Both stay reachable by qualified name. Reported. |
-| Same name, different meaning | Prevented by the rules above: a bare name never silently switches from one implementation to another. If a pinned alias's tool changes its schema, the alias is suspended until reviewed. |
+| Qualified name | Always `<net>__<instance>__<tool>` (for example `acme-net__risk-eu__var_calc`; an address name uses its safe form, section 6.1). It splits at the first two `__`; the tool part may itself contain `__`. Any character outside `[A-Za-z0-9_-]` in the host's tool name (MCP also allows `.`) becomes `_`, so the name is valid for every LLM provider's character rules, and it always starts with a letter (the net name's). A qualified name always goes **exactly** where it says, never anywhere else. Planners, audit and metrics always record this name. |
+| Plain name (bare alias) | The tool's own name without net and instance (`var_calc`). It resolves in the **resolution order** below, so a call by plain name may reach a local tool or any host offering that tool. Offered when `sajhanet.bare_aliases` is `on` (the default); `preferences_only` offers plain names only for tools that have a preference list; `off` offers none for remote tools. |
+| Collision with a local tool | The local tool keeps the plain name (step 1 below). The remote tools stay reachable by their qualified names. Reported on the SAJHA Net page. |
+| Same tool on several hosts | Within a net, hosts offering the same name offer the same contract, or the name is quarantined (section 8.7). The plain name reaches them in resolution order and falls back between them (section 9.1). |
+| Same name in two nets, different contracts | Nets are separate, so this can happen. The plain name follows the contract of the first net in the resolution order that offers the tool; copies with a different contract hash are reached only by qualified name, never by the plain name or a fallback, and the difference is reported. If that contract disappears from every host, the plain name moves to the next contract in order, and the change is logged and audited. |
+
+**Resolution order** of a plain name, at the home instance:
+
+1. **The local tool**, if this instance has one by that name. Local always wins (unless this
+   instance exports that tool into a net where the name is quarantined, section 8.7).
+2. **The tool's preference list**, in order, if `sajhanet.preferences` has one for it. Each entry is
+   `"<net>/<instance>"` (that host in that net) or `"<net>"` (any host in that net, ordered by the
+   routing strategy):
+
+   ```yaml
+   sajhanet:
+     preferences:
+       var_calc: ["acme-net/risk-eu", "acme-net", "partner-net/risk-uk"]
+       customer_lookup: ["crm-net"]
+   ```
+
+   Entries naming a net or host the server is not in, or one that does not offer the tool, are
+   skipped and reported on the Net settings page.
+3. **The nets in configured order** (the order of `sajhanet.nets`): in each, the hosts offering the
+   tool, ordered by the routing strategy (section 5.3). The first eligible host is called.
+
+A host is **eligible** for a call when it offers the tool, is not `suspect` (section 8.5), is not
+blocked, the tool is not quarantined (section 8.7), and this caller's import and residency rules allow
+it. The resolution order of every plain name, and why each candidate is or is not eligible, is
+shown in the host and tool table (section 8.4), on the Remote tools page and on each call's audit
+record, so anyone can see why a call went where it went.
 
 Local always wins, as requested, but a remote tool is never hidden behind a local one: it keeps
-its qualified name, and the conflict is visible.
+its qualified name, and the overlap is visible.
 
 ### 8.3 `tools/list` shows everything the caller may use
 
@@ -556,38 +674,99 @@ proxies together, filtered as always by the caller's access, and now also by imp
 Each proxy carries its net metadata in `_meta["io.sajha/net"]`:
 
 ```json
-{ "instance": "risk-eu", "region": "eu-west", "locality": "remote",
-  "health": "ok", "latency_ms_p50": 85, "data_classes": { "results": ["confidential"] },
-  "llm_tool": false }
+{ "net": "acme-net", "instance": "risk-eu", "qualified_name": "acme-net__risk-eu__var_calc",
+  "region": "eu-west", "locality": "remote", "health": "ok", "latency_ms_p50": 85,
+  "data_classes": { "results": ["confidential"] }, "llm_tool": false }
 ```
 
-The Tools page gains an instance badge, a "local / remote" filter and a per-instance filter. The
-landing-page constellation can colour stars by instance.
+The Tools page gains net and instance badges, a "local / remote" filter and per-net and
+per-instance filters. The landing-page constellation can colour stars by instance.
 
 ### 8.4 The host and tool table
 
-Every instance keeps an explicit **routing table** of which instance hosts which tool. It is the
-single place the proxies, aliases, planners and console read from:
+Every instance keeps an explicit **routing table** of which instance, in which net, hosts which
+tool. It is the single place the proxies, plain names, planners and console read from:
 
 | Field | Meaning |
 |---|---|
-| `qualified_name` | `<instance>__<tool>`, always unique |
-| `alias` | the bare name, when one is offered (unique in this instance's view, or pinned) |
-| `host_instance`, `host_tool` | which instance hosts it, and the tool's own name there |
-| `version`, `schema_hash`, `description_hash` | what was last accepted from the host |
-| `trust`, `state` | trust level; `active`, `held` (awaiting review), `hidden`, `blocked`, `unavailable` |
+| `qualified_name` | `<net>__<instance>__<tool>`, always unique |
+| `net`, `host_instance`, `host_tool` | which net and instance hosts it, and the tool's own name there |
+| `alias` | the plain name, when one is offered |
+| `resolution` | its place in the plain name's resolution order and why (`local`, `preference 2`, `net order: acme-net, 1st by routing`), or why it is not eligible now (`suspect`, `blocked`, `quarantined`, `import rule`, `other contract`) |
+| `version`, `contract_hash`, `description_hash` | what was last accepted from the host (`version` informational) |
+| `trust`, `state` | trust level; `active`, `held` (awaiting review), `hidden`, `blocked`, `unavailable` (host `suspect`), `quarantined` (contract conflict) |
 | `first_seen`, `last_seen`, `last_changed` | when the host first offered it, last confirmed it, last changed it |
 
-- A bare alias always resolves through this table, so even a call by alias knows exactly which
-  host it goes to, and the audit record names both the alias and the qualified name.
-- The table is rebuilt from catalogs as they arrive and kept in the state store (shared by the
-  instance's workers) and in the storage backend (so it survives restarts before peers answer).
+- A plain name always resolves through this table, so even a call by plain name knows exactly which
+  host it goes to and why, and the audit record names the plain name, the qualified name and the
+  reason for the choice.
+- The table holds only what is live: it is rebuilt from catalogs as they arrive, kept in the state
+  store (shared by the instance's workers), and entries leave it the moment their host is gone
+  (section 8.5). It is not restored from storage after a restart.
 - It is included in every snapshot (section 20.4), so an auditor can see which instance served
   which tool at any point in the retained window, and is the **Remote tools** page in the
   console (section 17).
-- When a tool moves (the same tool name appears on a different host, or a host stops offering
-  it), the change is a row in the table's history and an audit event; an alias whose host
-  changes is suspended until an administrator confirms the new host.
+- When a tool appears on another host or a host stops offering it, the change is a row in the
+  table's history and an audit event.
+
+### 8.5 When a host goes offline
+
+A host's tools are only offered while the host is there. Peers remove everything about a host's
+tools from memory as soon as they know it is gone:
+
+| Host state (section 6.3) | What its peers do |
+|---|---|
+| `left` (clean shutdown) | Remove its tools at once. |
+| `dead` (crash or cut-off, found by the failure detector) | Remove its tools at the moment it becomes `dead`. |
+| `suspect` | Keep its tools listed, marked unavailable; calls skip it (a plain name goes to the next host, section 9.1; a qualified name fails fast with "instance unavailable"). |
+| revoked | Remove its tools, as for `dead`. |
+
+Removal covers every live artifact: the proxy tools in the catalog, the host and tool table's live
+entries, plain-name resolution and aliases, planner and Ask SAJHA shortlists, and cached results.
+Audit records and snapshots keep the history only. A returning host's tools come back after its
+catalog is pulled again. After the **home's own restart** it lists no remote tools until each
+peer's catalog actually arrives (section 6.6).
+
+### 8.6 Tool names sent to a model
+
+Qualified names can be longer than some model providers allow for a function name. When SAJHA sends
+tools to a provider (Ask SAJHA, planners, LLM tools), the gateway maps each long qualified name to a
+short alias for that request only and maps the model's tool calls back before anything runs. MCP
+clients, audit, metrics and the console always see the full qualified name; the alias exists only
+inside one request to the provider. See [LLM Tools](LLM%20Tools.md) for the model gateway.
+
+### 8.7 One name, one contract
+
+**Within a net, a tool name stands for exactly one contract, everywhere.** A tool's contract is its
+name, `inputSchema`, `outputSchema` and annotations, compared by a **contract hash**; its
+description and title belong to it too, but a difference there is only a warning.
+
+- **Any difference quarantines the name.** If two or more hosts in a net offer a tool with the same
+  name but different contracts, there is no winner. Every member that sees it logs a loud error
+  (error level, an error notice (section 17.4), an entry in the conflicts queue naming the tool,
+  every host offering it and their contract hashes, the `sajha_net_contract_conflicts` metric and an
+  alert) and **evicts that tool name**: no copy of it is listed, resolvable, callable or a fallback
+  target anywhere in the net, including on the hosts that offer it, for net calls and for plain-name
+  calls alike.
+- **Quarantine lifts by itself** once the contract is the same everywhere again: when every host
+  still offering that name in the net offers the identical contract (the odd host is fixed, stops
+  exporting the tool, or leaves). Entering and leaving quarantine are both logged and audited.
+- **Every member decides from what it sees**, and publishes what it has observed itself, so members
+  that cannot see every offer (because export rules show a tool to some peers only) still converge
+  through gossip. The rule is normative in the
+  [protocol spec](../protocol/SAJHA%20Net%20Protocol.md#107-one-name-one-contract).
+- **Escape hatch.** A host that needs its own differing copy for its local callers stops exporting
+  it (its export rules). It is then not part of the net's contract for that name, the conflict ends,
+  and its local copy works for its own callers as before.
+- **Changing a contract.** Because any difference quarantines the name, a mixed rollout, where some
+  hosts already serve the new schemas and others the old, quarantines the tool for as long as it
+  lasts. To avoid that, either change every host offering the tool together (one coordinated
+  deployment, or take the tool out of the net's export rules on every host, change it, and put it
+  back), or ship the new contract under a **new tool name** (`var_calc_v2`) and let callers move to it
+  gradually. A tool's `version` is informational and recorded in audit; it does not separate
+  contracts, and two versions of one name never coexist as different tools in a net.
+- **Fallback needs nothing more.** Because hosts offering a name in a net always offer the same
+  contract, any of them can stand in for another (section 9.1).
 
 ---
 
@@ -595,6 +774,8 @@ single place the proxies, aliases, planners and console read from:
 
 ```
 caller ──► HOME instance                                   HOST instance
+           0 resolve the name: qualified → that host; plain →
+             local tool, else first eligible host (section 8.2)
            1 access check (caller may call proxy)
            2 import rules (this user, this remote tool)
            3 policy engine (deny / approval / rate limit / quota)
@@ -627,12 +808,45 @@ caller ◄── 17 result
   (`sajha/tools/base_mcp_tool.py`), which runs the policy engine before argument validation,
   the tool cache and the circuit breaker; federation adds its per-upstream rate limit inside the
   call. Redaction and output screening are the policy engine's work on the result, at step 15.
-- Retries follow federation's rule: only tools annotated read-only or idempotent
-  (`readOnlyHint` or `idempotentHint`), up to the peer's retry count. The result cache applies
+- Retries to the same host follow federation's rule: only tools annotated read-only or idempotent
+  (`readOnlyHint` or `idempotentHint`), up to the peer's retry count. Moving to another host is the
+  waterfall fallback of section 9.1. The result cache applies
   only to read-only tools with a `cache_ttl` and needs a cache key that includes the caller, which
   the tool cache does not have today (section 4); until it does, proxy tools are not cached.
 - Destructive remote tools still require confirmation at the home instance (MRTR or `confirm`
   fingerprints), and the host instance may additionally require its own approval.
+
+### 9.1 Waterfall fallback
+
+When a call by plain name cannot be run by the host it went to, the home tries the **next eligible
+host offering the same tool**, in resolution order (section 8.2), in any of its nets.
+
+- **What starts a fallback.** A **"not executed"** failure: the connection was refused, the host's
+  circuit breaker is open, the host is unavailable (`suspect`) or draining, or the host refused
+  before running anything for availability reasons (overloaded, rate-limited). Hosts say so in a
+  signed error field, `executed: false`, defined in the
+  [protocol spec](../protocol/SAJHA%20Net%20Protocol.md#158-not-executed-and-fallback-to-another-host).
+  A refusal for any other reason (access, policy, identity, a block, residency) is that host's answer
+  and is returned to the caller: a refusal is a decision, not an outage.
+- **After a failure that may have run the tool** (a timeout after the request was sent, a dropped
+  connection, a proxy error with no signed answer), the home falls back only for tools that are
+  read-only (`readOnlyHint`), or idempotent (`idempotentHint`) and marked non-destructive; never for
+  destructive tools.
+- **Which hosts are eligible.** Hosts offering the same tool name: within a net that guarantees the
+  same contract (section 8.7); in another net the contract hash must also match. Quarantined, blocked,
+  `suspect` and import- or residency-excluded hosts are skipped.
+- **Each fallback is a full call.** The next host authorizes the user itself; if it refuses, for any
+  reason, the home skips to the next host. The home's own checks that do not depend on the host
+  (access, policy, argument validation, confirmation) run once; those that do (import rules,
+  residency on arguments, breaker, rate limit, hops) run again for each host.
+- **Limits.** At most `sajhanet.max_fallbacks` (default 3) fallbacks after the first attempt. All
+  attempts share one overall deadline (`default_timeout_seconds`, or the caller's own) and one budget;
+  no attempt starts after the deadline.
+- **Visible.** Every attempt is audited under the same trace id with its attempt number, host and
+  outcome; the caller's result carries the list of attempts; metrics count fallbacks
+  (`sajha_net_fallbacks_total`). If no host answers, the caller gets the first host's failure with
+  the list of attempts.
+- **A qualified name never falls back**: it goes exactly where it says.
 
 ---
 
@@ -738,7 +952,10 @@ passthrough does.
 ### 10.3 The net key directory
 
 Each instance publishes the records of the API keys it issued, and every instance keeps a synced
-copy of everyone's: the **net key directory**.
+copy of everyone's: the **net key directory**. Each net has its own directory: an instance in
+several nets publishes its key records in each, naming itself by its name in that net and signed
+with that net's certificate, so its users' keys work in every net it belongs to, and a record from
+one net means nothing in another.
 
 | Field | Meaning |
 |---|---|
@@ -791,23 +1008,30 @@ reach what its users could not reach directly.
 
 ### 11.2 Export and import rules
 
+Rules are per net, in that net's entry of `sajhanet.nets` (instance names are that net's):
+
 ```yaml
 sajhanet:
-  export:                         # what this instance offers
-    - tools: ["var_*", "stress_*"]
-      to_instances: ["risk-*", "treasury-na"]
-      for_roles: ["risk_analyst", "treasurer"]     # remote roles after mapping (11.3)
-      require_approval: false
-    - tools: ["*_delete*"]
-      to_instances: []                                # never exported
-  import:                         # what this instance's users may use
-    - instances: ["risk-eu"]
-      tools: ["var_*"]
-      for_roles: ["analyst"]
-    - instances: ["*"]
-      tools: ["*"]
-      for_roles: ["admin"]
+  nets:
+    - name: acme-net
+      export:                     # what this instance offers in acme-net
+        - tools: ["var_*", "stress_*"]
+          to_instances: ["risk-*", "treasury-na"]
+          for_roles: ["risk_analyst", "treasurer"]     # remote roles after mapping (11.3)
+          require_approval: false
+        - tools: ["*_delete*"]
+          to_instances: []                            # never exported
+      import:                     # what this instance's users may use from acme-net
+        - instances: ["risk-eu"]
+          tools: ["var_*"]
+          for_roles: ["analyst"]
+        - instances: ["*"]
+          tools: ["*"]
+          for_roles: ["admin"]
 ```
+
+Leaving a tool out of a net's export rules is also how a server keeps its own copy of a tool whose
+contract differs from the net's (section 8.7).
 
 Nothing is exported or imported unless a rule allows it. Rules are evaluated at catalog time (a
 caller does not even see a proxy it may not call) and again at call time (rules can change
@@ -821,7 +1045,9 @@ and a person may have no account at all on some instances. Only the administrato
 on every instance (the seed creates user `admin` with role `admin` everywhere, though an operator
 can delete it). The net never merges or copies user accounts.
 
-A net user is therefore always **a user at an instance**: `alice@risk-eu`. When `alice@risk-eu`
+A net user is therefore always **a user at an instance**, in a net: `alice@risk-eu`. Links, name
+matching, role maps and unknown-user handling are set per net, since the same server may carry
+different names, and meet different peers, in each. When `alice@risk-eu`
 calls a tool hosted on `cust-na`, the host instance decides who she is *there*, in this order:
 
 1. **An explicit link.** `cust-na`'s administrator has linked `alice@risk-eu` to a local account
@@ -858,7 +1084,8 @@ mapped or refused, and lets an administrator link or unlink them.
 
 ### 11.4 Blocking
 
-An administrator can block, on their own instance, at four levels. A block takes effect on the
+An administrator can block, on their own instance and per net, at four levels (a block on
+`risk-eu` in `acme-net` does not touch the same server in another net). A block takes effect on the
 next request (in-flight calls finish), is written to the audit log with who, when and why, may
 have an expiry, and is shown everywhere it matters in the console.
 
@@ -916,6 +1143,10 @@ Residency is about where data flows, in both directions.
   wording.
 - **Residency-aware shortlists.** Remote tools that residency rules would refuse for this caller
   are removed before planning, so the model is never offered a call that will be refused.
+- **Only live tools.** Shortlists hold only eligible tools: those of `left`, `dead` or revoked hosts
+  are removed at once, those of `suspect` hosts are left out while they are suspect, and
+  quarantined names are never offered (sections 8.5 and 8.7). A planner that names a tool by its
+  plain name gets the resolution order and the waterfall fallback like any caller.
 - **Remote LLM tools.** A host instance's LLM tools ([LLM Tools](LLM%20Tools.md), itself a design not yet built) are exported
   like any tool (`sajhanet.allow_remote_llm_tools`, on by default: the owner decided LLM and plain
   tools are equally trusted). They run, plan and spend model budget
@@ -933,7 +1164,14 @@ Residency is about where data flows, in both directions.
 ## 14. Hops and loops
 
 - **No transitive re-export by default.** An instance exports only its own tools, never proxies it
-  imported (`sajhanet.reexport: false`). Without re-export, every remote call is exactly one hop.
+  imported (`reexport: false`, set per net). Without re-export, every remote call is exactly one hop.
+- **Nets are never bridged by default.** A server in two nets offers in one net only its own tools,
+  never tools it imported from the other. Only when `reexport` is on **for the net it offers into**
+  does it act as a **bridge**: it offers the other net's tools as its own, authorizes the caller like
+  any host, and calls into the other net as the local user it mapped the caller to (it can vouch
+  only for its own users there, since nothing signed in one net can be checked in the other). The
+  hop count and the list of visited instances (each written `<net>/<instance>`) continue across the
+  bridge, so loops through several nets are caught too.
 - **When re-export is enabled**, each call carries a hop count and the list of instances it has
   visited (in signed headers). An instance refuses a call that would exceed
   `sajhanet.max_hops` or revisit an instance, so A → B → A loops cannot form.
@@ -951,7 +1189,10 @@ Residency is about where data flows, in both directions.
 - **Health.** Each instance probes its peers (and their catalogs) on a schedule and records health;
   the planner and the Tools page see it.
 - **Graceful degradation.** An instance that cannot reach the net still serves all its local tools;
-  proxies fail fast with "instance unavailable".
+  a call by plain name moves to the next host offering the tool (section 9.1); a call by qualified name
+  to an unreachable host fails fast with "instance unavailable".
+- **Offline hosts disappear.** A host that leaves or is found dead has its tools removed from every
+  peer at once; a suspect host's tools stay listed as unavailable and are skipped (section 8.5).
 - **Version skew.** Instances advertise a net protocol version alongside the MCP eras they speak;
   an instance talks to a peer at the highest version both support and refuses peers below
   `sajhanet.min_protocol_version`.
@@ -964,7 +1205,10 @@ Residency is about where data flows, in both directions.
 ## 16. Observability and audit
 
 - **Linked audit.** Both instances record the call in their own tamper-evident audit chains,
-  sharing one trace id (W3C `traceparent`) and the API key's id. A cross-instance call can be
+  sharing one trace id (W3C `traceparent`) and the API key's id. The home's record names the net,
+  the plain and qualified names, why that host was chosen (section 8.2) and, for a call that fell
+  back, one entry per attempt with its number, host and outcome (section 9.1). Contract quarantines
+  and their lifting are audit events too. A cross-instance call can be
   reconstructed by joining the two records, and neither instance's records depend on the other's.
   This is a new audit event: today the chain (`sajha/audit/`, one chain per process) records
   policy decisions, approvals, administration and workflow events, not ordinary tool calls. A
@@ -973,9 +1217,10 @@ Residency is about where data flows, in both directions.
 - **Tracing.** One trace spans home and host (OTLP), so latency per hop is visible. SAJHA already
   continues an inbound `traceparent` (HTTP header or MCP `_meta.traceparent`,
   `sajha/observability/tracing.py`); sending it on the forwarded call is new.
-- **Metrics.** `sajha_net_calls_total{peer,tool,outcome}`, latency per peer, refusals by side
-  and reason (`import`, `export`, `residency`, `identity`, `revoked`), catalog sizes and
-  refresh results, peer health. Every existing metric is named `sajha_<subsystem>_*` (for example
+- **Metrics.** `sajha_net_calls_total{net,peer,tool,outcome}`, latency per peer, refusals by side
+  and reason (`import`, `export`, `residency`, `identity`, `revoked`, `contract_conflict`), fallbacks
+  (`sajha_net_fallbacks_total{net,peer,reason}`, counting each move away from a host), quarantined
+  tool names (`sajha_net_contract_conflicts{net}`), catalog sizes and refresh results, peer health. Every existing metric is named `sajha_<subsystem>_*` (for example
   `sajha_federation_upstream_calls_total`), so `sajhanet_*` breaks that convention;
   `sajha_net_*` would keep it (section 24). Proxy calls also count in `sajha_tool_calls_total`
   under their qualified name, as every tool does.
@@ -1002,23 +1247,24 @@ call these APIs on an instance and run nothing locally.
 
 | Page | What it shows | What an administrator can do |
 |---|---|---|
-| **Instances** (every signed-in user) | Every participant in the net as a card or table row: name (configured or address), kind (SAJHA, agent, sponsored), region, labels, state with last seen, and how many of its tools **this user** may use. Search and filter by name, region, label, kind and state. Clicking an instance opens its tools: each tool's name, alias, description, inputs and outputs, health and latency, with the same **Try it** form as the local Tools page (subject to the user's access). Read-only: no management actions | None here; administrators manage from the pages below |
-| **Net overview** | A live topology map: one node per instance (this one centred), coloured by state (`alive`, `suspect`, `dead`, `left`, blocked), edges showing traffic in the last hour with thickness by calls and colour by error rate; beside it, cards with each instance's name, region, labels, latency, tools shared, last seen, certificate expiry. Net totals: instances, remote tools in use, calls and refusals in the last hour. | Open an instance; filter by region or label; pause the live view |
+| **Instances** (every signed-in user) | Every participant in this server's nets as a card or table row: net, name (configured or address), kind (SAJHA, agent, sponsored), region, labels, state with last seen, and how many of its tools **this user** may use. Search and filter by net, name, region, label, kind and state. Clicking an instance opens its tools: each tool's name, alias, description, inputs and outputs, health and latency, with the same **Try it** form as the local Tools page (subject to the user's access). Read-only for users | Administrators: add a peer by address for a net (section 6.6); everything else from the pages below |
+| **Net overview** | One map per net, with a net selector when this server is in several. A live topology map: one node per instance (this one centred), coloured by state (`alive`, `suspect`, `dead`, `left`, blocked), edges showing traffic in the last hour with thickness by calls and colour by error rate; beside it, cards with each instance's name, region, labels, latency, tools shared, last seen, certificate expiry. Net totals: instances, remote tools in use, calls and refusals in the last hour. | Open an instance; filter by region or label; pause the live view |
 | **Instance detail** | Header with state, incarnation, certificate and expiry, versions; tabs for **Tools** (what it exports to us, what we export to it), **Traffic** (calls each way, latency percentiles, errors and refusals by reason), **Users** (its users we link, match, map or refuse), **Keys** (its key-directory records: count, revoked, last sync), **Blocks** (ours toward it and, from gossip, its toward us), **History** (catalog changes with diffs, state changes, blocks) | Block or unblock (entirely, inbound, outbound), change trust level, edit role map, link users, force a catalog and key refresh |
-| **Remote tools** | Every proxy tool in one searchable table: qualified name, alias, hosting instance, health, latency, trust, data classes, version, last change; local tools can be included for comparison | Hide or block a tool, pin or unpin an alias, review a held change (diff of description and schema), open its audit trail |
-| **Conflicts and reviews** | A queue of what needs a person: name collisions, schema or description changes held under `review` trust, screening flags, pinned aliases suspended by a change, tools refused by limits | Approve, reject, pin, rename alias; bulk actions with a reason |
+| **Remote tools** | Every proxy tool in one searchable table: qualified name, net, hosting instance, plain name, health, latency, trust, data classes, contract hash, version, last change; for each plain name, its **resolution order** with the reason for each place (local, preference, net order) and why any host is skipped now (suspect, blocked, quarantined, rule); local tools can be included for comparison | Hide or block a tool, edit the tool's preference list, review a held change (diff of description and schema), open its audit trail |
+| **Conflicts and reviews** | A queue of what needs a person: **contract conflicts** (each quarantined tool name with every host offering it and its contract hash, a diff of the schemas and annotations, and when it started; each open conflict is also an error notice, section 17.4), description differences (warnings), local tools whose contract differs from the net's, instance-name collisions, changes held under `review` trust, screening flags, tools refused by limits | Approve, reject; block the odd host or its tool; open the export rules to stop exporting a local copy; bulk actions with a reason |
 | **Users across the net** | For each remote instance, its users seen calling here and how each resolved (linked, matched by name, mapped roles, refused), with their last calls | Link a remote user to a local account, unlink, block a remote user, turn name matching off for an instance |
 | **Access and blocks** | A matrix of instances (rows: callers, columns: hosts) showing allowed, blocked inbound, blocked outbound and blocked entirely, from this instance's own blocks plus the blocks others publish; a list view with reasons, who set each, and expiries | Add, edit, expire or remove this instance's blocks, with a required reason and a confirmation that names the effect ("risk-eu's 214 users will lose access to 37 tools") |
 | **Key directory** | Read-only view of synced key records by instance: owner, prefix, state, expiry, tool allowlist, last change, signature status; this instance's persistent keys marked | Force a re-sync; nothing here can change another instance's keys |
 | **Snapshots** | The retained snapshots with time, size, chain status (verified, broken) and signature status | Verify the chain, compare any two snapshots (users, keys and tools added, removed and changed), download, restore users and persistent keys after confirmation |
-| **Live activity** | A stream of cross-instance calls as they happen, drawn in the constellation style of the landing page: a call travels from instance to instance, refusals flash with their reason | Filter by instance, user, tool or outcome; open any call's linked audit records on both sides |
-| **Certificates** (CA instance only, section 6.4) | Issued certificates with instance, serial, expiry and state; pending enrollment tokens; the revocation list | Enroll an instance (create a token), revoke, re-issue |
-| **Net settings** | This instance's name, region and labels (read from configuration), certificate status, seeds, gossip health, defaults for trust, name matching, unknown users and remote administrators | Edit what may be edited at runtime; everything else names the configuration key to change |
+| **Live activity** | A stream of cross-instance calls as they happen, drawn in the constellation style of the landing page: a call travels from instance to instance, refusals flash with their reason, and a fallback shows each attempt in turn with why it moved on | Filter by instance, user, tool or outcome; open any call's linked audit records on both sides |
+| **Certificates** (CA instance only, section 6.4) | For each net this server is the CA of: issued certificates with instance, serial, expiry and state; pending enrollment tokens; the revocation list | Enroll an instance (create a token), revoke, re-issue |
+| **Net settings** | The nets this server is in, in preference order, each with this instance's name there, region and labels (read from configuration), certificate status, configured seeds and, separately, runtime seeds (with who added them), and gossip health; a hint to give a name to a net still called `default`; the per-tool preference lists (with entries that match nothing flagged) and `max_fallbacks`; defaults for trust, name matching, unknown users and remote administrators | Add a peer by address for a net, optionally keeping it as a runtime seed, and remove runtime seeds (section 6.6); edit what may be edited at runtime; everything else names the configuration key to change |
 
 ### 17.2 Where the net shows up elsewhere
 
-- **Tools page and tool detail:** a badge with the hosting instance and its health on every remote
-  tool, a "local / remote / instance" filter, and on the detail page the path a call takes.
+- **Tools page and tool detail:** a badge with the net, the hosting instance and its health on every
+  remote tool, a "local / remote / net / instance" filter, and on the detail page the path a call
+  takes: the plain name's resolution order with the reason for each host, and the fallback order.
 - **Ask SAJHA:** remote tools are labelled with their instance in the plan and the answer's
   citations; the animation colours stars by instance.
 - **Dashboard:** a SAJHA Net tile (instances alive, remote calls, refusals) linking to the overview.
@@ -1028,7 +1274,10 @@ call these APIs on an instance and run nothing locally.
   administrators also see the management pages.
 - **Navbar:** the SAJHA wordmark stays as it is (owner decision). An instance that belongs to a net
   shows a small badge beside it, **Net · `<instance name>`** with a health dot for its connection
-  to the net, linking to Instances. It tells a user at a glance which instance they are on.
+  to the net, linking to Instances (in several nets: **Nets · `<count>`**, listing each net and this
+  instance's name there on hover). It tells a user at a glance which instance they are on. Problems
+  in the net reach administrators as system notices (section 17.4), not as SAJHA Net banners of
+  their own.
 
 ### 17.3 Quality bar
 
@@ -1043,6 +1292,30 @@ call these APIs on an instance and run nothing locally.
 - **Tested like the rest of the console:** page tests for every view and action, the mobile check
   in all themes, and an end-to-end test that blocks an instance and sees its tools disappear.
 
+### 17.4 System notices
+
+SAJHA Net reports conditions that need a person through SAJHA's general
+[System Notices](System%20Notices.md) service, never through banners of its own: an error notice
+shows as a banner on every console page, the dashboard's System status panel lists all open notices,
+and the navbar shows their count. Each notice names its source, links to the SAJHA Net page that
+explains it, clears itself when the condition ends, and can be acknowledged by an administrator.
+SAJHA Net's notice sources, all per net:
+
+| Source | Severity | Clears when |
+|---|---|---|
+| Tool quarantined (`contract_conflict`), naming the tool, every host offering it and their contract hashes (section 8.7) | error | every host offering the name offers one contract again |
+| `name_conflict`: this server refused under a held name, or a conflict seen between two other servers (section 6.1) | error (own), warning (seen) | the configuration or certificate changes; the claimant is gone |
+| Member `suspect`, `dead` or `left` (section 8.5) | warning; `dead` is an error when the member hosts tools this server's users use | the member is `alive` again, or its retention ends |
+| Seeds unreachable, or not joined to the net (including a net with no seeds that is not a founder, section 19) | error | the server has joined the net |
+| This server's certificate expiring (within a third of its validity) or expired | warning, then error | it is renewed |
+| Revocation list stale (older than its expected refresh) | warning | a newer list arrives |
+| Key-directory sync failing for a peer | warning | the next sync succeeds |
+| CA instance unreachable for renewal | warning, error near expiry | renewal succeeds |
+| A block added against this server by another (from published blocks, section 11.4) | info | the block is removed or expires |
+| A peer added by hand: succeeded (info) or failed (warning), section 6.6 | info / warning | acknowledged, or after a day |
+| Forwarded keys allowed over plain HTTP (`require_https: false`) | warning | the setting is on again |
+| A net still named `default` | info | the net is given a name |
+
 ---
 
 ## 18. Threats and mitigations
@@ -1056,19 +1329,25 @@ call these APIs on an instance and run nothing locally.
 | A forwarded API key is captured | Keys travel only in signed requests over HTTPS, are never logged, stored or traced, and are accepted only from their home instance, so a captured key cannot be replayed through another instance; a net that wants no key in transit switches to the `assertion` resolver (section 10.2) |
 | An administrator on one instance takes over another | Net settings can only be changed by an administrator signed in to that instance; remote administrators' tool calls are configurable (`remote_admin`) and audited |
 | The CA key is stolen | It lives only on the CA instance as an owner-only secret; certificates are short-lived; re-keying the CA and re-enrolling instances is a procedure the build documents |
-| An enrollment token is stolen | One-time, short-lived (`sajhanet.ca.enrollment_token_minutes`), bound to one instance name; a used, expired or wrong-name token is refused, and every issue is audited and listed on the Certificates page |
+| An enrollment token is stolen | One-time, short-lived (the net's `ca.enrollment_token_minutes`), bound to one instance name; a used, expired or wrong-name token is refused, and every issue is audited and listed on the Certificates page |
 | Default keys are read from the vault | AES-256-GCM with the connected-accounts vault key (`SAJHA_ACCOUNTS_VAULT_KEY` or a KMS `key_provider`; without either, a generated key in the owner-only server secrets file under the data directory), never in the database; only the home instance can decrypt |
 | The persistent key file or a snapshot is copied | Hashes only, never keys; owner-only permissions; git-ignored; snapshots carry hashes only for persistent keys |
 | Snapshots are edited or deleted to hide a change | Each snapshot chains to the previous one and is signed by the instance; rotation and every snapshot run are audited |
 | An instance forges or alters another instance's key records | Every directory record is signed by its home instance and ignored otherwise; only the home instance may change its records |
 | False gossip (a healthy instance reported dead, a fake instance advertised) | Indirect probes before suspicion; an instance refutes suspicion itself with a higher incarnation; only certificate-holding instances can gossip, and an instance's details are accepted only from itself or as gossip about a certificate-verified instance |
 | A peer's description tries to instruct the model | Descriptions screened and capped; changes held for review; results treated as untrusted data (section 9 step 15) |
-| A peer quietly changes what a tool does | Every description or schema change is recorded in the audit log with a diff and shown on the SAJHA Net page; pinned aliases are suspended until reviewed; under `review` trust the change is held at the last approved version |
+| A peer quietly changes what a tool does | Every description or schema change is recorded in the audit log with a diff and shown on the SAJHA Net page; a contract change that other hosts of the name do not share quarantines the name (section 8.7); under `review` trust the change is held at the last approved version |
 | Data leaves its jurisdiction through arguments | Residency rules on arguments at the home instance; on results at the host instance; residency-aware shortlists |
 | An instance is used as a stepping stone (confused deputy) | Dual authorization on the user's identity; no re-export by default; hop limits |
 | A slow instance drags others down | Per-peer timeouts, breakers, pools and rate limits; local tools unaffected |
 | SSRF through a peer URL | Federation's URL guard (`check_url`) on every peer URL learned from gossip, with the net's own allowed networks, since instances usually have private addresses that federation's defaults refuse; a URL must match the host name or address in the instance's certificate |
 | Denial of service from a peer | Per-peer rate limits at the host instance; catalog size caps |
+| An administrator adds a malicious or wrong peer address | The address is only a hint: the peer is admitted only with a certificate from that net's CA (or a thumbprint the administrator confirms in manual mode), under a non-conflicting name, not revoked; the address must pass the network allowlist and SSRF rules; injections are local-admin only, rate-limited, audited and raise a notice |
+| Contract poisoning: a host offers a tool under a name the net already uses, with other schemas or annotations, so calls or fallbacks meant for one tool reach another | One name, one contract: any difference quarantines the name on every member, including the offering hosts, so no call ever reaches a copy whose contract differs (section 8.7). The trade-off is denial of service: one rogue or misconfigured host can quarantine a tool net-wide. Mitigations: the error notice names the odd host on every member; administrators can block that host or its tool, which removes its offer from their view; the CA can revoke it; `review` and `pinned` trust keep unreviewed tools out; the odd host can stop exporting the tool at once |
+| A server in two nets leaks one net's tools or identities into the other | Nets share nothing but the port: separate CAs, certificates, membership, key directories, blocks and rules; a request for an unknown net gets a plain `404`; imported tools are never offered to another net unless that net's `reexport` is on, and then the other net sees only the bridge's own user (section 14) |
+| A fallback runs a tool twice | Fallback after a failure that may have run the tool only for read-only or idempotent, non-destructive tools; otherwise only after a signed or self-evident "not executed" (section 9.1); a host that falsely signs "not executed" is identifiable from its signature |
+| Fallback used to shop for a host that says yes | A refusal by the first host is returned, never routed around; only availability failures start a fallback, and each host authorizes the user itself |
+| Calls planned against a host that is gone | Tools of left, dead and revoked hosts are removed at once; nothing is listed after a restart until the peer answers (section 8.5) |
 
 ---
 
@@ -1077,37 +1356,57 @@ call these APIs on an instance and run nothing locally.
 ```yaml
 sajhanet:
   enabled: false
-  name: acme-net
-  instance_name: risk-eu            # if unset: <ip>:<port> from a real, reachable address (section 6.1)
-  advertise_address: ""             # ip:port peers should use, behind NAT or container networks
+  nets:                             # one entry per net; list order = preference order between nets (section 8.2)
+    - name: acme-net                # section 6.1; omitted: the net is called `default` (the console suggests naming it)
+      instance_name: risk-eu        # this server's name in this net; if unset: <ip>:<port> (section 6.1)
+      advertise_address: ""         # ip:port peers in this net should use, behind NAT or container networks
+      founder: false                # true only on the net's first server (typically the CA instance)
+      seeds:                        # required (at least one) unless founder: true; tried first (section 6.6)
+        - https://sajha-treasury-na.example.internal
+        - https://sajha-cust-eu.example.internal
+      identity:                     # this net's CA certificate; requests are signed (section 6.7)
+        cert_ref: file:/etc/sajha/sajhanet/acme-net/instance.crt
+        key_ref: file:/etc/sajha/sajhanet/acme-net/instance.key   # secret references, never values
+        ca_ref: file:/etc/sajha/sajhanet/acme-net/ca.pem
+        revocation_list_ref: file:/etc/sajha/sajhanet/acme-net/revoked.json   # signed; also spread by gossip
+      ca: { enabled: false, key_ref: file:/etc/sajha/sajhanet/acme-net/ca.key, cert_validity_days: 30, enrollment_token_minutes: 30 }   # section 6.4, CA instance only
+      peer_cache: { path: data/sajhanet/acme-net/peers.json, interval_minutes: 10, max_age_days: 7 }   # local disk; tried after the seeds (section 6.6)
+      static_peers: []              # membership: static only
+      export: []                    # section 11.2
+      import: []                    # section 11.2
+      # any shared default below may also be set here, for this net only (for example
+      # region, labels, users, default_trust, reexport, max_hops, gossip, limits)
+    - name: partner-net
+      instance_name: risk-eu-partner
+      seeds: [https://sajha-partner-hub.example.net]
+      identity: { cert_ref: file:/etc/sajha/sajhanet/partner-net/instance.crt, key_ref: file:/etc/sajha/sajhanet/partner-net/instance.key, ca_ref: file:/etc/sajha/sajhanet/partner-net/ca.pem, revocation_list_ref: file:/etc/sajha/sajhanet/partner-net/revoked.json }
+      default_trust: review
+      export: []
+      import: []
+  preferences:                      # per-tool resolution preferences, server-wide (section 8.2)
+    var_calc: ["acme-net/risk-eu", "acme-net", "partner-net"]
+  max_fallbacks: 3                  # waterfall fallbacks after the first attempt (section 9.1)
+  # shared defaults for every net
   base_url: https://sajha-risk-eu.example.internal
   region: eu-west
   labels: { domain: risk, jurisdiction: EU, entity: acme-eu }
-  identity:                         # net-CA certificate; requests are signed (section 6.7)
-    cert_ref: file:/etc/sajha/sajhanet/instance.crt
-    key_ref: file:/etc/sajha/sajhanet/instance.key      # secret references, never values
-    ca_ref: file:/etc/sajha/sajhanet/ca.pem
-    revocation_list_ref: file:/etc/sajha/sajhanet/revoked.json   # signed; also spread by gossip
-    signature_max_age_seconds: 30   # a signed request older than this is refused (replay window)
-    require_https: true             # forwarded API keys only over HTTPS hops; false only for a lab
-    mtls: off                       # extra check when SAJHA itself terminates TLS: off | optional | required
+  signature_max_age_seconds: 30     # a signed request older than this is refused (replay window)
+  require_https: true               # forwarded API keys only over HTTPS hops; false only for a lab
+  mtls: off                         # extra check when SAJHA itself terminates TLS: off | optional | required
   users: { match_by_name: true, unknown: refuse, remote_admin: admin }   # section 11.3
   default_keys: { enabled: true, vault: accounts }   # section 10.2
-  ca: { enabled: false, key_ref: file:/etc/sajha/sajhanet/ca.key, cert_validity_days: 30, enrollment_token_minutes: 30 }   # section 6.4, CA instance only
   user_identity: api_key            # api_key (first) | assertion | token_exchange (section 10.2)
   plugins:                          # section 5.3: a shipped name or package.module:Class
-    membership: gossip              # gossip | static (static_peers below)
+    membership: gossip              # gossip | static (static_peers in a net entry)
     admission: builtin_ca           # builtin_ca | manual (section 6.5)
     connector: sajha_native         # sajha_native | mcp_generic
     key_directory_store: database
     routing: local_first            # local_first | lowest_latency | pinned
-  static_peers: []                  # membership: static only
   allowed_networks: []              # CIDRs peers may be reached on; private ranges need listing (section 18)
   key_directory: { sync: true, full_sync_interval_seconds: 300 }
   persistent_keys: { file: config/apikeys.json, reload: true }   # section 20.3
   snapshots: { enabled: true, interval_minutes: 10, keep: 20, dir: data/sajhanet/snapshots, compress: false, to_siem: false }   # section 20.4
   gossip:
-    seeds: [https://sajha-treasury-na.example.internal, https://sajha-cust-eu.example.internal]
     gossip_interval_ms: 1000
     ping_timeout_ms: 500
     indirect_probes: 3
@@ -1116,10 +1415,9 @@ sajhanet:
     dead_retention_minutes: 60      # keep probing a dead instance's last address this long
     dead_probe_interval_seconds: 30
   refresh_interval_seconds: 300
-  unhealthy_grace_seconds: 120
-  default_timeout_seconds: 30
-  bare_aliases: unique              # unique | pinned_only | off  (owner decision: unique)
-  reexport: false
+  default_timeout_seconds: 30       # also the shared deadline of all fallback attempts
+  bare_aliases: on                  # on | preferences_only | off (section 8.2)
+  reexport: false                   # per net; never bridges nets unless on for the receiving net (section 14)
   max_hops: 1
   allow_remote_llm_tools: true     # LLM tools are shared like plain tools (owner decision)
   default_trust: auto               # auto | review | pinned, for newly joined peers (owner decision)
@@ -1127,19 +1425,27 @@ sajhanet:
   min_protocol_version: 1
   limits: { max_tools_per_peer: 2000, max_catalog_bytes: 5242880, max_description_chars: 1024 }
   memory: { remote_results: store }   # store | summary | none, per data class in rules
-  export: []                        # section 11.2
-  import: []                        # section 11.2
 ```
 
-Membership is discovered by gossip. Trust levels, role maps and any manual-mode peers are managed
-on the SAJHA Net pages and kept in the storage backend, like federation's upstream records.
+Membership is discovered by gossip, starting from each net's seeds. Trust levels, role maps, user
+links and any manual-mode peers are managed per net on the SAJHA Net pages and kept in the storage
+backend, like federation's upstream records.
+
+**Which keys live where.** Only in a net entry: `name`, `instance_name`, `advertise_address`,
+`founder`, `seeds`, `identity`, `ca`, `static_peers`, `export` and `import` (`peer_cache` may also be
+set once as a shared default, with `<net>` in its path). Server-wide only:
+`enabled`, `nets`, `preferences`, `max_fallbacks`, `default_keys`, `persistent_keys`, `snapshots`,
+`memory` and `plugins`. Every other key is a shared default that a net entry may override for its
+own net. There is no `unhealthy_grace_seconds`: tools of an offline host are removed or marked at
+once (section 8.5).
 
 `persistent_keys` and `snapshots` apply even when `enabled` is false (they also serve a SAJHA that
 is not in a net, section 22). The persistent key file's path duplicates the existing
 `config.apikeys.path` (default `config/apikeys.json`), which today only feeds an unused legacy
-importer; the build should read that key rather than add a second one. Each key resolves as
+importer; the build should read that key rather than add a second one. The shared keys resolve as
 every `_get` key does: `SAJHA_SAJHANET_<KEY>` in the environment, then this YAML, then the code
-default.
+default. The `nets` list cannot be addressed element by element through environment variables; it
+is set in YAML or, on Kubernetes, through the chart's `config.overrides`.
 
 ---
 
@@ -1164,13 +1470,16 @@ operators run the DDL on PostgreSQL, SQLite creates the tables itself, and
 
 - **Storage backend** (local disk, S3, Azure Blob or GCS, `sajha/core/storage.py`), JSON records
   alongside federation's: blocks and user links (audited on change, published in the gossip
-  digest), trust levels, role maps, manual-mode peers, the last accepted catalog per peer, the
-  last-seen membership list (section 6.6), the copy of the host and tool table (section 8.4),
-  and, on the CA instance only, issued certificates, enrollment tokens and the signed revocation
-  list.
-- **State store** (`state.backend`), shared across an instance's workers: the membership list
-  and incarnations, the gossip agent's lease, catalog and directory digests, the host and tool
-  table, peer health, per-peer rate counters and seen request nonces (section 6.7).
+  digest), trust levels, role maps, manual-mode peers, the last accepted catalog per peer (used
+  only to ask a peer whether it changed and to hold approved versions under `review`, never to list
+  tools, section 8.5), and, on the CA instance only, issued certificates, enrollment tokens and the
+  signed revocation list; all of it per net.
+- **Local disk:** the saved peer list of each net (section 6.6), deliberately outside the storage
+  backend so that a restart can find peers even when that backend is remote or down.
+- **State store** (`state.backend`), shared across an instance's workers: per net, the membership
+  list and incarnations, the gossip agent's lease, catalog, directory and conflicts digests, the host
+  and tool table, contract quarantines, peer health, per-peer rate counters and seen request nonces
+  (section 6.7).
 
 ### 20.3 Persistent API keys in a file
 
@@ -1215,10 +1524,10 @@ at any point in the retained window, and an instance can be rebuilt after losing
   - Users: id, user name, roles, enabled (no password hashes).
   - API keys issued by this instance: the record fields of section 20.3 for every key, persistent
     or not; hashes only for persistent keys, so a snapshot alone cannot verify ordinary keys.
-  - Tools: every local tool (name, version, schema hash, enabled) and every proxy tool (name,
-    host instance, version, schema hash, trust level).
-  - Net view: instances and their states, incarnations and labels as this instance saw them, and
-    the key directory's version per instance.
+  - Tools: every local tool (name, version, contract hash, enabled) and every proxy tool (qualified
+    name, net, host instance, version, contract hash, trust level, state including quarantine).
+  - Net view, per net: instances and their states, incarnations and labels as this instance saw
+    them, and the key directory's version per instance.
 - **Format and place.** One JSON file per snapshot, named with the UTC time and a sequence number,
   in `data/sajhanet/snapshots/` (or the storage backend), owner-only permissions, optionally
   compressed.
@@ -1253,14 +1562,29 @@ at any point in the retained window, and an instance can be rebuilt after losing
 - **Instance names:** a configured name is used as is; without one, the advertised address, a
   specific bind address or the default-route interface gives `<ip>:<port>`; `0.0.0.0`, `::`,
   loopback, `localhost` and link-local addresses are never used, and with nothing acceptable the
-  instance stays out of the net with a clear message; the underscore tool-name prefix for IPv4 and
-  fully expanded IPv6, never containing `__`; tool names over a provider's length limit are reported.
+  instance stays out of the net with a clear message; the underscore form for IPv4 and fully
+  expanded IPv6, never containing `__`; qualified names `<net>__<instance>__<tool>` split at the
+  first two `__` and always start with a letter.
 - **One port and signatures:** all net traffic on the normal port behind a TLS-terminating proxy;
   bad, missing, expired, replayed or wrong-certificate signatures refused; body tampering caught by
   the digest; signed responses verified; forwarded keys refused over plain HTTP unless the lab
   override is on.
-- **Membership:** restart rejoins through last-known peers with seeds down; a dead instance found
-  again by peers' low-rate probes; unconfirmed remote tools after restart; joins through a seed, clean leaves, crashes detected through indirect probes,
+- **Several nets:** one server in two nets under different names; net names validated (`default`
+  when unnamed, with its notice); requests for an unknown net get a plain `404`; certificates,
+  nonces, key records, blocks and catalogs of one net never accepted in the other; no tool offered
+  across nets unless `reexport` is on for the receiving net, and then only as the bridge's own user;
+  a user's key works in both nets of its home.
+- **Seeds and restarts:** a net entry without seeds and without `founder: true` is not joined and
+  raises an error notice while other nets join; a founder starts alone; on restart seeds are tried
+  first, then the saved peer list most recently seen first (entries over `max_age_days` skipped, a
+  stale entry's certificate still verified), then discovery; with all down an error notice and
+  back-off; the peer list saved atomically on change and every interval, on local disk with the
+  storage backend unavailable; a peer added by hand joins only with a valid certificate for that
+  net (wrong net, revoked, `name_conflict`, unreachable and SSRF-refused addresses fail with the
+  reason and store nothing), is saved, optionally kept as a runtime seed, is refused over a remote
+  call, and every attempt is audited.
+- **Membership:** a dead instance found again by peers' low-rate probes; after a restart no remote
+  tool is listed until that peer's catalog arrives; joins through a seed, clean leaves, crashes detected through indirect probes,
   false suspicion refuted, rejoin with a higher incarnation, revocation spreading, a server
   without a net certificate refused; a network split heals through anti-entropy.
 - **Identity:** a forwarded key verified against the directory; unknown, disabled, expired or
@@ -1276,14 +1600,32 @@ at any point in the retained window, and an instance can be rebuilt after losing
 - **CA and default keys:** enrollment with a token (reused, expired and wrong-name tokens
   refused), renewal, revocation; every user has a default key that survives rotation and is
   forwarded for console sessions; the vault copy is unreadable without the instance's key.
-- **Host and tool table:** aliases resolve through it; a tool moving host suspends its alias;
-  it appears in snapshots.
+- **Host and tool table and resolution:** a plain name resolves to the local tool, then the
+  preference list, then the nets in order, with the reason recorded in the table and the audit; a
+  qualified name goes only where it says; preference entries that match nothing are reported; the
+  table holds only live entries and appears in snapshots.
+- **Offline hosts:** on `left` and on `dead` a host's tools leave the catalog, the table, plain-name
+  resolution, planner shortlists and caches at once; while `suspect` they are listed unavailable and
+  skipped; they return only after a new catalog pull.
+- **One name, one contract:** two hosts with different contract hashes for one name quarantine it on
+  every member, including the hosts offering it, with an error notice, conflicts-queue entry, metric
+  and audit event; a description difference only warns; a member that cannot see one offer
+  quarantines through another member's published conflicts; quarantine lifts automatically (and is
+  audited) when the odd host is fixed, stops exporting or leaves; a host that stops exporting keeps its
+  local copy for its own callers.
+- **Waterfall fallback:** each "not executed" case (connection refused, breaker open, suspect,
+  draining, `-32019` with `executed: false`) moves to the next eligible host in order; a timeout after
+  sending falls back only for read-only or idempotent non-destructive tools; refusals by the first
+  host are returned; a refusing fallback host is skipped; `max_fallbacks` and the shared deadline
+  hold; every attempt audited with one trace id; qualified names never fall back.
+- **Tool names sent to a model:** long qualified names reach a provider as short per-request
+  aliases and the model's calls map back to the full names; audit and MCP clients see full names.
 - **Key directory sync:** a new or changed key reaches every instance; a missed update repaired by
   anti-entropy; a leaving instance's keys become unusable.
 - **Authorization:** a user without access at the host instance is refused even when the home
   instance allows it, and the reverse; role maps; anonymous callers.
-- **Names:** local wins; collisions between instances; pinned aliases; schema change suspends an
-  alias.
+- **Names:** local wins; the same name in two nets with different contracts follows the first net
+  in order and never falls back to the other contract.
 - **Residency:** arguments and results of each data class to instances of each jurisdiction;
   residency-aware shortlists.
 - **Resilience:** an instance down, slow, flapping or returning oversized catalogs; local tools keep
@@ -1293,7 +1635,7 @@ at any point in the retained window, and an instance can be rebuilt after losing
 - **Catalog exchange:** a changed digest triggers a pull and an unchanged catalog is never
   transferred; the fallback refresh catches a missed digest; each trust level (`auto`, `review`,
   `pinned`); screening flags and the JSON Schema check; size limits.
-- **Federation changes (section 4):** address-name and IPv6 prefixes accepted for net proxies;
+- **Federation changes (section 4):** `<net>__<instance>__<tool>` names with address and IPv6 instance parts accepted for net proxies;
   `.` in a host tool name replaced; annotations never widened; a changed tool under `review`
   keeps serving its approved version; a proxy result never served from another user's cache
   entry; the SSRF guard with the net's allowed networks.
@@ -1306,19 +1648,44 @@ at any point in the retained window, and an instance can be rebuilt after losing
 
 ---
 
+### 21.1 New code this design needs
+
+Checking the design against today's code found these pieces that do not exist yet. The
+[Implementation Plan](Implementation%20Plan.md) refers to them by number.
+
+1. API keys bound to an owner: a key signs in as its owner with the owner's roles (today it signs in
+   as `apikey:<name>` with role `api_consumer`); `owner_id` set; self-service keys; a revocation
+   record; a default key per user, kept encrypted in the accounts vault.
+2. Advertising the extension on the 2025-11-25 era (today only 2026-07-28's `server/discover`
+   advertises extensions).
+3. Every tool call as an audit event (today only policy, approval, admin and workflow events are in
+   the chain), and an outbound `traceparent`.
+4. A per-user key for the tool result cache (today the key is tool name plus arguments).
+5. Federation changes: the instance-name prefix rule, `.` replaced in names, annotations corrected
+   rather than copied, the old version kept serving under `review`.
+6. A SAJHA Net network allowlist in the SSRF guard (today private networks are refused unless
+   `federation.allow_private_networks` is set).
+7. A renewing state-store lease (today cron and probes claim one slot at a time and never renew).
+8. Policy conditions for data class and destination, and field-level redaction.
+9. A Helm value for the nets list and instance names.
+10. Untracking `config/apikeys.json` and replacing its plaintext legacy keys with the hashed format.
+11. An account page where users manage their own keys.
+12. `notifications/cancelled` reaching the host (today federation only abandons its local task).
+13. JSON Schema validation of imported schemas.
+
 ## 22. Build plan
 
 Each phase ends green: full suite, multi-instance tests, both conformance suites.
 
 | Phase | Scope |
 |---|---|
-| 1 | The protocol-only core and every plug-in interface (section 5.3) from the start, each with its contract tests; then membership: instance names and address names (section 6.1), the SAJHA Net CA run by SAJHA (CA instance, enrollment tokens, renewal, revocation), certificates and signed requests on the normal port, revocation list, gossip agent (SWIM failure detection, dissemination, anti-entropy, seeds, incarnations, a renewing lease across workers), restarts (last-known peers, probes of dead instances), manual mode, protocol version and extension advertisement on both eras; SAJHA Net page (instances and their states) |
-| 2 | Catalog exchange driven by gossip digests, the host and tool table (persisted, with unconfirmed tools after a restart), screening and trust levels, automatic proxy tools with the federation changes of section 4 (prefix rule, annotations, held versions, per-user cache key, SSRF settings), qualified names and alias rules, routing strategies, `tools/list` with net metadata, Tools page badges and filters |
+| 1 | The protocol-only core and every plug-in interface (section 5.3) from the start, each with its contract tests; then membership: named nets, several per server, kept apart on one port by the signed net header, and per-net instance names and address names (section 6.1), the SAJHA Net CA run by SAJHA (CA instance, enrollment tokens, renewal, revocation), certificates and signed requests on the normal port, revocation list, gossip agent per net (SWIM failure detection, dissemination, anti-entropy, required seeds and `founder`, incarnations, a renewing lease across workers), restarts (seeds first, then the saved peer list on local disk, probes of dead instances), manual mode, protocol version and extension advertisement on both eras; SAJHA Net page (instances and their states) |
+| 2 | Catalog exchange driven by gossip digests, the live host and tool table, immediate removal of offline hosts' tools and nothing listed after a restart until peers answer (section 8.5), screening and trust levels, automatic proxy tools with the federation changes of section 4 (name rule, annotations, held versions, per-user cache key, SSRF settings), qualified names `<net>__<instance>__<tool>`, resolution order with per-tool preferences and routing strategies, one name one contract with quarantine and published conflicts (section 8.7), waterfall fallback (section 9.1), `tools/list` with net metadata, Tools page badges and filters, SAJHA Net's system notice sources (section 17.4) |
 | 3 | Identity resolver interface; API keys bound to their owner (owner's roles, self-service keys, revocation record; section 10.2); the `api_key` resolver; default API keys for every user, kept encrypted at home; users across instances (links, name matching, unknown users, remote administrators); blocking at all four levels; the net key directory with signed records, digest-driven sync and the `sajhanet_api_keys` table in both schema files; host-side verification; persistent key file and periodic snapshots (these two also benefit a SAJHA that is not in a net); export and import rules, role maps; linked audit and tracing; metrics; per-peer isolation |
 | 4 | Residency: data classes, residency rules on arguments and results, residency-aware shortlists, memory handling of remote results |
 | 5 | Planners and LLM tools: locality-aware ranking, remote LLM tools, hop and depth limits combined |
 | 6 | Re-export with hop limits; the `assertion` and `token_exchange` resolvers; topology view |
-| 7 | The SAJHA Net console: Instances page for every signed-in user, overview map, instance detail, remote tools and the host and tool table, conflicts and reviews, users, access and blocks, key directory, snapshots, live activity, certificates, settings; net badges across the console, including the navbar badge; mobile check in all themes |
+| 7 | The SAJHA Net console: Instances page for every signed-in user, overview map per net, instance detail, remote tools and the host and tool table with each plain name's resolution order, conflicts and reviews, users, access and blocks, key directory, snapshots, live activity, certificates, settings; net badges across the console, including the navbar badge; mobile check in all themes |
 | 8 | Other MCP servers: sponsored participants; the SAJHA Net extension specification and its conformance suite; the SAJHA Net agent (sidecar) and the reference library; third-party plug-in registration |
 | 9 | Docs: this note becomes as-built; glossary; tutorial ("two domains, one question"); Security Model; Configuration and API Reference; help card; CHANGELOG |
 
@@ -1371,8 +1738,10 @@ What this design would add, in combination, is aimed at regulated, multi-domain 
   revocation (section 6.4).
 - **Default API keys:** every user always has one, kept encrypted at home so console users can
   reach remote tools (section 10.2).
-- **Bare aliases:** on for unique names (`unique`), always resolved through each instance's host
-  and tool table (section 8.4).
+- **Plain names (bare aliases):** on (`bare_aliases: on`), always resolved through each instance's
+  host and tool table in the resolution order (sections 8.2 and 8.4). This replaces the earlier
+  `unique` setting: within a net a name now has one contract (section 8.7), so several hosts of one
+  name are interchangeable rather than a collision.
 
 - **Name:** SAJHA Net (config `sajhanet.*`, metrics `sajha_net_*` like every other SAJHA metric,
   command `sajha net`).
@@ -1392,6 +1761,27 @@ What this design would add, in combination, is aimed at regulated, multi-domain 
 
 - **Navbar:** keep the SAJHA wordmark; show a Net badge with the instance name when in a net.
 - **Default instance name:** `<ip>:<port>` of a real, reachable address when none is configured.
+- **Named nets, several per server:** each net fully separate (CA, certificates, membership, key
+  directory, blocks, rules, trust); instance names per net; an unnamed net is `default`; nets are
+  never bridged unless `reexport` is on for the receiving net (sections 6.1 and 14).
+- **Configuration shape:** `sajhanet.nets` lists the nets, in preference order, with shared defaults
+  at `sajhanet.*` (section 19).
+- **Qualified names** are `<net>__<instance>__<tool>`, so they always start with a letter; long
+  names reach model providers as short per-request aliases (sections 8.2 and 8.6).
+- **Per-tool preferences and resolution order:** local tool, the tool's preference list, then nets
+  in configured order; a qualified name goes exactly where it says (section 8.2).
+- **Everything about a tool is shared**, and a host that goes offline has its tools removed by its
+  peers at once (`left`, `dead`) or marked unavailable (`suspect`); after a restart nothing remote is
+  listed until peers answer (sections 7.1 and 8.5).
+- **Waterfall fallback** to the next host offering the same tool after a "not executed" failure, or
+  after a possible execution only for read-only or idempotent non-destructive tools; up to
+  `max_fallbacks` (default 3) (section 9.1).
+- **One name, one contract:** any contract difference for one name in a net quarantines it
+  everywhere until the hosts agree; `version` is informational; contract changes roll out together
+  or under a new name (section 8.7).
+- **Seeds required** for every net except its founder; restarts try seeds first, then the peer list
+  saved on local disk (section 6.6).
+- **System notices:** SAJHA Net reports through the general System Notices service (section 17.4).
 - **Instances page for everyone:** every signed-in user can browse participants and the tools
   each offers them.
 
@@ -1411,3 +1801,8 @@ No decisions are open.
 | Shared database or state store across instances | Couples instances' availability and crosses the data boundary the net exists to keep |
 | Remote tools under their bare names, local wins | Silent shadowing: the same name could mean different tools on different instances, and a planner would not know which it called |
 | Copying tool definitions and running them locally | The tool would run outside its data's boundary with copied credentials, defeating sovereignty |
+| One net per server | Organisations need overlapping groupings (a domain net and a partner net); separate named nets let one server take part in each under that net's own rules without joining them |
+| Keeping an offline host's tools listed for a grace period | Planners and callers would keep choosing tools that cannot answer; removing them at once and falling back by plain name serves callers better |
+| First host to offer a name fixes its contract | Needs agreement on who was first, which gossip cannot give reliably, and silently serves one contract while another host believes it serves the name; quarantine until the hosts agree has no winner to dispute |
+| Versions side by side under one name | Callers and models choose by name; two contracts behind one name would make a call's meaning depend on routing. A new contract gets a new name |
+| Retrying only on the same host | A host that is down or draining would fail every call by plain name although another host offers the same tool |

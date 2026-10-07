@@ -49,8 +49,10 @@ This specification defines:
   revocation list, certificate enrollment and renewal;
 - how every request and response between participants is signed (RFC 9421), digested (RFC 9530)
   and checked, and how stored records are signed (RFC 8785 canonical JSON);
+- how one participant takes part in several named nets on the same port, keeping them apart (§7.7);
 - how a tool call is forwarded to a host participant over its MCP endpoint, with the user's
-  identity, trace context and hop information;
+  identity, trace context and hop information, and how a host says a refused call was not executed
+  so that the home may try another host (§15.8);
 - names, merge rules, error codes, limits and a conformance test list.
 
 It does **not** define: how a participant decides what to export or import (its rules are its own;
@@ -79,8 +81,9 @@ capitals, as shown here.
   with `$id` `urn:sajha:net:v1`; endpoint schemas refer to them as `urn:sajha:net:v1#/$defs/<name>`.
 - Header field names are case-insensitive; this document writes them in `Title-Case` and uses
   lowercase inside signature bases, as RFC 9421 requires.
-- Terms (net, instance, home and host instance, proxy tool, export and import rules, data class,
-  hop, gossip, incarnation, net key directory, block, seed) have the meanings in the design's
+- Terms (net, net name, instance, home and host instance, proxy tool, qualified tool name,
+  resolution order, waterfall fallback, tool contract, export and import rules, data class, hop, gossip,
+  incarnation, net key directory, block, seed) have the meanings in the design's
   [vocabulary](../architecture/SAJHA%20Net.md#3-vocabulary). This document says **participant** for
   any member of a net and **instance** where the design does; on the wire they are the same thing.
 
@@ -121,12 +124,31 @@ target does not advertise.
 
 ### 5.1 Net names
 
-A net name MUST match `^[a-z][a-z0-9-]{0,62}$` (for example `acme-net`). It appears in every
-certificate (§8.1) and member record.
+A net name MUST match
+
+```
+^(?!.*__)(?!.*_$)[a-z][a-z0-9_-]{0,15}$
+```
+
+that is: lowercase letters, digits, `-` and `_`; it starts with a letter; it is 1 to 16 characters
+long; it never contains `__` and does not end with `_` (for example `acme-net`, `risk_eu`). A
+participant configured without a net name is in the net named **`default`**.
+
+The net name appears in every certificate (§8.1), in the signed `Sajha-Net-Name` header of every
+request and response (§7.7), in every member record and every other signed record that belongs to a
+net, and first in every qualified tool name (§5.3). Because it starts with a letter, every qualified
+tool name starts with a letter; because it never contains `__` and never ends with `_`, the split of
+§5.3 is unambiguous.
+
+A participant MAY belong to several nets. Each net is separate in everything this document defines
+(§7.7).
 
 ### 5.2 Instance names
 
-An **instance name** identifies a participant in its net and is either configured or an address.
+An **instance name** identifies a participant in one net and is either configured or an address. A
+participant in several nets has one instance name per net; the names MAY differ, each MUST be unique
+in its own net, and every rule of this section (ownership, collisions, prevention at the CA) applies
+to each net separately. Holding a name in one net reserves nothing in another.
 
 - A **configured name** MUST match `^[a-z][a-z0-9-]{0,30}[a-z0-9]$`: lowercase letters, digits and
   single hyphens, starting with a letter, ending with a letter or digit, 2 to 32 characters, and MUST
@@ -138,17 +160,22 @@ An **instance name** identifies a participant in its net and is either configure
   written in their RFC 5952 canonical text form in the name.
 - Instance names are compared byte for byte. Two participants in one net MUST NOT have the same name;
   the certificate (§8.1) is what makes a name unforgeable.
-- **Name ownership.** A name belongs to the key that first holds it in the net: the public key of the
-  certificate naming it (its thumbprint, §8.1). The name stays reserved for that key, whatever the
-  holder's membership state (`alive`, `suspect`, `dead`, `left`), until the holder's certificate is
-  revoked (§13). A restart with the same key, or a renewed certificate for the same key, is the same
-  holder, not a conflict.
+- **Name ownership.** A name belongs to a **certificate lineage**: the certificate that first held it
+  in the net, and every certificate the CA issues by renewing it (§14). A renewal is requested with
+  the current, still-valid certificate (proof of possession) and the CA marks the new certificate as
+  renewing the old one (the `renews` field of the issued record, naming the previous serial), so the
+  new key is the same holder even though it is a new key pair. Members accept a different key for a
+  held name only when its certificate is in the holder's lineage (a renewal chain they can follow
+  through the CA's issued records or the `renews` field) or when every certificate of the lineage is
+  revoked (§13). The name stays reserved for the lineage whatever the holder's membership state
+  (`alive`, `suspect`, `dead`, `left`). A restart, or a renewal by the CA, is the same holder, not a
+  conflict.
 - **Collisions are refused, loudly.** A participant that receives a join, sync, ping or signed request
   whose sender name is held by a different key whose certificate is not revoked MUST refuse it with
   `409 name_conflict` (§7.3), whose problem body names the current holder (`holder_url`,
   `holder_thumbprint`, `holder_state`). The refused participant MUST NOT join the net: it MUST log the
-  refusal at error level, surface it to its operators (SAJHA: a red banner on every console page and
-  the `sajha_net_name_conflict` metric), MUST stop retrying the join until its configuration or
+  refusal at error level, surface it to its operators (SAJHA: an error notice, shown as a banner on every console
+  page, and the `sajha_net_name_conflict` metric), MUST stop retrying the join until its configuration or
   certificate changes, and MAY keep serving its own tools locally. Members MUST NOT add the newcomer to
   their membership list or relay gossip about it, and SHOULD raise their own alert naming both
   claimants.
@@ -158,8 +185,9 @@ An **instance name** identifies a participant in its net and is either configure
 
 ### 5.3 Safe prefix and qualified tool names
 
-A tool's **qualified name** is `<safe prefix>__<host tool name>`. The separator is exactly two
-underscores.
+A tool's **qualified name** is `<net>__<safe prefix>__<tool part>`: the net name (§5.1), the host's
+safe prefix in that net, and the host's tool name. Each separator is exactly two underscores
+(`acme-net__risk-eu__var_calc`, `acme-net__10_20_4_17_3002__var_calc`).
 
 | Instance name | Safe prefix | Rule |
 |---|---|---|
@@ -167,19 +195,34 @@ underscores.
 | IPv4 address (`10.20.4.17:3002`) | `10_20_4_17_3002` | replace every `.` and `:` with `_` |
 | IPv6 address (`[2001:db8::7]:3002`) | `2001_0db8_0000_0000_0000_0000_0000_0007_3002` | drop the brackets; write all eight groups as four lowercase hex digits, without `::` shortening (an IPv4-mapped address is written as two final hex groups too); join groups with `_`; append `_<port>` |
 
-- A safe prefix never contains `__`, so a qualified name splits at its **first** `__`: the left part
-  is the prefix, the rest is the host's own tool name, which MAY itself contain `__`.
-- Participants MUST compute the prefix exactly as above and MUST NOT alter it further, so the same
-  tool has the same qualified name everywhere.
-- A qualified name longer than 64 characters SHOULD be reported to an administrator, because some LLM
-  providers cap tool names at 64; it remains valid on the wire. MCP itself bounds tool names to
-  128 characters, and a participant MUST NOT offer a qualified name longer than that.
+- **Splitting.** A net name never contains `__` and never ends with `_`; a safe prefix never
+  contains `__` and never starts or ends with `_`. A qualified name therefore splits at its **first
+  two** `__`: the first part is the net, the second the safe prefix, and the rest is the tool part,
+  which MAY itself contain `__` (`acme-net__risk-eu__a__b` has the tool part `a__b`).
+- **Tool part.** The host's tool name with every character outside `[A-Za-z0-9_-]` replaced by `_`
+  (MCP also allows `.`), so the qualified name is valid for every LLM provider's character rules. The
+  home keeps the host's own name and forwards with it (§15.1). If two tools of one host map to the
+  same tool part, the home MUST NOT offer either under that qualified name and SHOULD report it.
+- **First character.** Every qualified name starts with the net name, so with a lowercase letter,
+  whatever the host's prefix (an address prefix starts with a digit).
+- Participants MUST compute the prefix and tool part exactly as above and MUST NOT alter them
+  further, so the same tool in the same net has the same qualified name everywhere. The same host
+  tool reached through two nets has two qualified names, one per net.
+- **Length.** MCP bounds tool names to 128 characters; a participant MUST NOT offer a qualified
+  name longer than that. Shorter limits of model providers are not a wire concern: a home that sends
+  tools to a provider maps long names to short per-request aliases and maps the provider's replies
+  back (design §8.6), and never changes a qualified name in MCP, on the wire or in audit.
+- A name without the two separators is a **plain name**. A home resolves a plain name in its
+  resolution order (design §8.2); a qualified name always means exactly the tool it names, in the
+  net and on the host it names.
 
 ### 5.4 Net users
 
 A net user is written `<user name>@<instance name>` (`alice@risk-eu`, `alice@10.20.4.17:3002`). It
 names a user **at** an instance; it is never assumed to be the same person as a user of the same name
-elsewhere (design §11.3).
+elsewhere (design §11.3). The net is the one the message belongs to (its `Sajha-Net-Name`, or the
+record's `net`); a participant that shows net users of several nets together SHOULD show the net as
+well (`alice@risk-eu`, net `acme-net`).
 
 ## 6. Capability negotiation
 
@@ -222,15 +265,20 @@ A receiver of either result MUST look in both places.
 
 The 2025-11-25 form is the same object under `"experimental": { "io.sajha/net": { ... } }`.
 
+`net` and `instance` are those of the net the request was signed for (its `Sajha-Net-Name`, §7.7), and
+`features` and `user_identity` are what the participant offers in that net. A participant in several
+nets MUST NOT name its other nets in this object.
+
 To an MCP request that is not signed by a participant (§8), a participant MAY reduce the object to
 `{"protocol_versions": [...], "endpoint": "..."}`, so that an anonymous client does not learn the net
-name or the feature list.
+name or the feature list; a participant in more than one net MUST reduce it.
 
 Schema: `urn:sajha:net:v1#/$defs/extension`.
 
 ### 6.2 Feature flags
 
-A participant lists in `features` what it supports. Peers use a feature only when **both** list it
+A participant lists in `features` what it supports in the net concerned (a participant in several
+nets MAY offer different features in each). Peers use a feature only when **both** list it
 (for features that need both ends) or when the side that must act lists it.
 
 | Flag | Meaning when listed |
@@ -247,7 +295,7 @@ A participant lists in `features` what it supports. Peers use a feature only whe
 | `cancellation` | Relays cancellation of forwarded calls. |
 | `mrtr` | Relays multi-round input requests (`input_required` results) of forwarded calls. |
 | `tasks` | Accepts task-augmented forwarded calls (the MCP tasks extension) for the resolved user. |
-| `reexport` | May offer, and accepts calls to, tools it imported from other participants (§16). |
+| `reexport` | May offer into this net, and accepts calls to, tools it imported from other participants (§16). |
 | `ca` | Is the CA participant and serves §14. |
 
 `user_identity` lists the identity resolvers the participant accepts as a host and can produce as a
@@ -270,9 +318,9 @@ absent.
 ### 6.4 Era for forwarded calls
 
 A home MUST forward on 2026-07-28 when the host lists it in `supportedVersions`, and otherwise on
-2025-11-25 with one MCP session per (home, host) pair. A 2025-11-25 session created by a signed
-request from participant X MUST only be used by signed requests from X (`Mcp-Session-Id` is not an
-identity; every request is signed and its user resolved individually).
+2025-11-25 with one MCP session per (net, home, host). A 2025-11-25 session created by a signed
+request from participant X in net N MUST only be used by signed requests from X in N
+(`Mcp-Session-Id` is not an identity; every request is signed and its user resolved individually).
 
 ## 7. Transport
 
@@ -281,7 +329,8 @@ identity; every request is signed and its user resolved individually).
 Every participant has a **base URL** (`url` in its member record, §9.1), an HTTPS origin optionally
 followed by a path prefix with no trailing slash. All net endpoints are `<url>/sajhanet/v1/...` and the
 MCP endpoint is `<url><mcp_path>` (default `/mcp`). They share the participant's normal HTTP port: no
-second port, no UDP.
+second port, no UDP. The same endpoints serve every net the participant belongs to; the signed
+`Sajha-Net-Name` header says which net a request is for (§7.7).
 
 ### 7.2 Endpoints
 
@@ -296,12 +345,14 @@ second port, no UDP.
 | `POST /sajhanet/v1/keys` | Key-directory delta pull | yes | §11.3 |
 | `POST /sajhanet/v1/keys/digest` | Key-directory digest for anti-entropy | yes | §11.4 |
 | `POST /sajhanet/v1/blocks` | Pull the blocks this participant publishes | yes | §12 |
+| `POST /sajhanet/v1/conflicts` | Pull the contract conflicts this participant observes | yes | §10.7 |
 | `GET /sajhanet/v1/revocations` | Fetch the CA-signed revocation list | yes | §13 |
 | `POST /sajhanet/v1/ca/enroll` | Certificate request with an enrollment token | **no** (token) | §14.1 |
 | `POST /sajhanet/v1/ca/renew` | Certificate renewal | yes | §14.2 |
 | `POST <mcp_path>` | Forwarded MCP requests (`tools/call`, `tools/list`, ...) | yes | §15 |
 
-Every response from every row is signed (§8.8), including error responses.
+Every response from every row is signed (§8.8), including error responses, with one exception: a
+request for a net the receiver does not belong to gets an unsigned `404` (§7.7).
 
 ### 7.3 Common rules
 
@@ -326,14 +377,14 @@ Every response from every row is signed (§8.8), including error responses.
 | 400 | `invalid_request`, `unsupported_version`, `unknown_member` | Body fails its schema; version not spoken; a ping-req target that is not a known member. |
 | 401 | `signature_missing`, `signature_invalid`, `signature_incomplete`, `signature_expired`, `replay`, `digest_mismatch`, `certificate_invalid`, `from_mismatch` | The request could not be authenticated (§8.7). |
 | 403 | `certificate_revoked`, `instance_revoked`, `net_mismatch`, `blocked`, `enrollment_refused`, `not_home` | Authenticated but not allowed. |
-| 404 | | Net disabled, unknown path, or feature not offered. |
+| 404 | | Net disabled; `Sajha-Net-Name` missing, invalid or not a net the receiver belongs to (unsigned, no body, §7.7); unknown path; or feature not offered. |
 | 405 | | Wrong method. |
 | 409 | `name_conflict` | The sender's name is the receiver's own name, or is held in the net by a different key whose certificate is not revoked (§5.2). The body carries `holder_url`, `holder_thumbprint` and `holder_state`. |
 | 413 | `too_large` | Body over the limits of §18. |
 | 415 | | Not `application/json`. |
 | 421 | `recipient_mismatch` | `Sajha-Net-To` is not the receiver's instance name. |
 | 429 | `rate_limited` | Too many requests; `Retry-After` given. |
-| 503 | `unavailable` | Temporarily unable (for example the CA key is not loaded); `Retry-After` given. |
+| 503 | `unavailable`, `draining` | Temporarily unable (for example the CA key is not loaded), or shutting down and accepting no new work; `Retry-After` given. |
 
 ### 7.5 Problem body
 
@@ -359,7 +410,8 @@ participant and MUST NOT contain secrets. `supported_versions` is present only f
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:sajha:net:v1",
   "$defs": {
-    "net_name":      { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$" },
+    "net_name":      { "type": "string", "pattern": "^(?!.*__)(?!.*_$)[a-z][a-z0-9_-]{0,15}$" },
+    "contract_hash": { "type": "string", "pattern": "^sha-256:[A-Za-z0-9_-]{43}$" },
     "instance_name": { "type": "string", "maxLength": 47,
       "anyOf": [
         { "pattern": "^[a-z][a-z0-9-]{0,30}[a-z0-9]$", "not": { "pattern": "--" } },
@@ -395,7 +447,8 @@ participant and MUST NOT contain secrets. `supported_versions` is present only f
         "catalog":     { "type": "string", "maxLength": 128 },
         "keys":        { "$ref": "#/$defs/version" },
         "blocks":      { "$ref": "#/$defs/version" },
-        "revocations": { "$ref": "#/$defs/version" } } },
+        "revocations": { "$ref": "#/$defs/version" },
+        "conflicts":   { "$ref": "#/$defs/version", "description": "absent means 0: no conflicts document" } } },
     "member_record": {
       "type": "object",
       "required": ["type", "net", "name", "url", "mcp_path", "kind", "protocol_versions",
@@ -442,16 +495,46 @@ participant and MUST NOT contain secrets. `supported_versions` is present only f
 
 The key record, blocks document, revocation list and user assertion schemas are in their own
 sections and belong to the same `$defs` (`key_record`, `blocks_document`, `revocation_list`,
-`user_assertion`).
+`user_assertion`), as does the conflicts document of §10.7 (`conflicts_document`).
+
+### 7.7 Several nets on one participant
+
+A participant MAY belong to several nets (design §6.1). It serves all of them on its one base URL,
+its one port, the one `/sajhanet/v1/` prefix and its one MCP endpoint; nothing in the path says which
+net a request is for. The net is named by the **`Sajha-Net-Name`** header, which every request and
+every response between participants carries and which the signature always covers (§8.5, §8.8).
+
+- **Selecting the net.** Before any other check (§8.7), the receiver reads `Sajha-Net-Name`. If it is
+  missing, is not a valid net name (§5.1), or names a net the receiver does not belong to, the
+  receiver MUST answer `404` with no body and no signature, exactly as if SAJHA Net were disabled, so
+  that the answer does not reveal which nets it belongs to. Otherwise it handles the request entirely
+  in that net: that net's CA certificate (or pins, §8.11), revocation list, own instance name and
+  certificate, membership list, key directory, blocks, catalogs, export and import rules, sessions
+  and nonce store.
+- **One certificate per net.** A participant holds a separate certificate for each net, issued by
+  that net's CA with `O=<net name>` (§8.1), and signs every message of a net with that net's
+  certificate. It SHOULD use a separate key pair for each net, so that a key compromised in one net
+  admits nothing in another.
+- **Nothing crosses between nets.** A member, record, key, block, catalog, session, nonce or
+  revocation learned in one net MUST NOT be used in another, even when the same server is a member of
+  both, under the same or different names. Every signed record that belongs to a net carries `net`
+  (member records, key records, blocks documents, conflicts documents, revocation lists, user
+  assertions), and a receiver
+  MUST drop a record whose `net` is not the net it arrived through.
+- **No bridging by default.** A participant MUST NOT offer into one net a tool it imported through
+  another net, unless re-export is enabled for the net it offers into (feature `reexport` in that net,
+  §16).
+- **Requests the participant sends** carry the `Sajha-Net-Name` of the net the receiver was learned
+  in, signed with the participant's certificate for that net.
 
 ## 8. Certificates and signatures
 
 ### 8.1 Certificate profile
 
-Every participant holds an X.509 v3 certificate issued by the net CA (or, in manual mode, §8.11,
-self-signed and pinned):
+Every participant holds, for each net it belongs to, an X.509 v3 certificate issued by that net's CA
+(or, in manual mode, §8.11, self-signed and pinned):
 
-- **Subject** `O=<net name>, CN=<instance name>` (UTF8String), exactly as written in §5.
+- **Subject** `O=<net name>, CN=<instance name in that net>` (UTF8String), exactly as written in §5.
 - **subjectAltName** names the host of the participant's `url`: a `dNSName` for a host name, an
   `iPAddress` for an address. A receiver MUST refuse a member record whose `url` host is not in the
   certificate's subjectAltName (this is what stops a member advertising someone else's address).
@@ -461,8 +544,9 @@ self-signed and pinned):
 - The CA certificate has `O=<net name>`, `basicConstraints cA=true, pathLen=0` (or larger when the
   net uses intermediates), `keyUsage keyCertSign, cRLSign`.
 
-A participant MUST accept a certificate only if it chains to the configured net CA certificate, is
-within its validity period, has `O` equal to the receiver's net name, and is not revoked (§13).
+A participant MUST accept a certificate only if it chains to the configured CA certificate of the net
+named in the message's `Sajha-Net-Name` (§7.7), is within its validity period, has `O` equal to that
+net name, and is not on that net's revocation list (§13).
 
 **Key id.** The `keyid` of a certificate is `base64url(SHA-256(DER of the leaf certificate))`
 (the `x5t#S256` thumbprint).
@@ -495,7 +579,7 @@ Every signed request and response that has a body carries `Content-Digest` (RFC 
 receiver's HTTP stack, before JSON parsing):
 
 ```
-Content-Digest: sha-256=:GmWE8ztwdAgAKupEUE8ySGW/GDF1N4TRv6PSGmbSBl8=:
+Content-Digest: sha-256=:FH+YtinzXcDSV+F2IPdYvsdEmlqry1zKK1duKAzRDeI=:
 ```
 
 Receivers MUST recompute it and refuse a mismatch (`digest_mismatch`). Other digest algorithms MAY
@@ -517,8 +601,9 @@ The covered components are, in this order:
 | `"mcp-session-id"` | on the MCP endpoint, 2025-11-25 era, when present |
 | every `"mcp-param-*"` header | on the MCP endpoint, when present (arguments mirrored by `x-mcp-header`) |
 | `"sajha-net-version"` | always |
-| `"sajha-net-from"` | always: the sender's instance name |
-| `"sajha-net-to"` | always: the receiver's instance name |
+| `"sajha-net-name"` | always: the net the request is for (§7.7) |
+| `"sajha-net-from"` | always: the sender's instance name in that net |
+| `"sajha-net-to"` | always: the receiver's instance name in that net |
 | `"sajha-net-hop"`, `"sajha-net-visited"` | forwarded tool calls (§15.2) |
 | `"sajha-net-api-key"` | when present (§15.3) |
 | `"sajha-net-user-assertion"` | when present (§15.5) |
@@ -538,10 +623,10 @@ The signature parameters are:
 | `tag` | REQUIRED. `"sajha-net-v1"`. |
 | `expires` | OPTIONAL. If present, receivers MUST also refuse after it. |
 
-The headers carrying the result:
+The headers carrying the result (the shape only; §21.1 has a complete, verifiable example):
 
 ```
-Signature-Input: sajhanet=("@method" "@path" "@query" "content-type" "content-digest" "sajha-net-version" "sajha-net-from" "sajha-net-to");created=1791374400;nonce="q1QXbXk3WlNQ8n0Zr6dL4w";keyid="_9toR0iCB-Uqt342hN98Scc5b_lGbZ_OZyriwc0-KTQ";alg="ed25519";tag="sajha-net-v1"
+Signature-Input: sajhanet=("@method" "@path" "@query" "content-type" "content-digest" "sajha-net-version" "sajha-net-name" "sajha-net-from" "sajha-net-to");created=1791374400;nonce="q1QXbXk3WlNQ8n0Zr6dL4w";keyid="_9toR0iCB-Uqt342hN98Scc5b_lGbZ_OZyriwc0-KTQ";alg="ed25519";tag="sajha-net-v1"
 Signature: sajhanet=:<base64 signature>:
 ```
 
@@ -552,9 +637,10 @@ Other signatures under other labels MAY be present and are ignored.
 | Header | Format |
 |---|---|
 | `Sajha-Net-Version` | RFC 8941 Integer (`1`) |
-| `Sajha-Net-From`, `Sajha-Net-To` | the instance name as written in §5.2 (ASCII), not quoted |
+| `Sajha-Net-Name` | the net name as written in §5.1 (ASCII), not quoted |
+| `Sajha-Net-From`, `Sajha-Net-To` | the instance name in that net as written in §5.2 (ASCII), not quoted |
 | `Sajha-Net-Hop` | RFC 8941 Integer, at least 1 |
-| `Sajha-Net-Visited` | RFC 8941 List of Strings (`"risk-eu", "treasury-na"`) |
+| `Sajha-Net-Visited` | RFC 8941 List of Strings, each `<net>/<instance name>` (`"acme-net/risk-eu", "acme-net/treasury-na"`); `/` occurs in neither part |
 | `Sajha-Net-Api-Key` | the raw API key, ASCII |
 | `Sajha-Net-User-Assertion` | base64url of the JCS bytes of a signed user assertion (§15.5) |
 | `Sajha-Net-Certificate` | §8.3 |
@@ -564,8 +650,9 @@ removed, as RFC 9421 §2.1 specifies; senders MUST send each of these headers ex
 
 ### 8.7 Verifying a request
 
-A receiver MUST perform these checks, and refuse at the first failure with the `reason` shown (HTTP
-status per §7.4; JSON-RPC `-32014` on the MCP endpoint):
+A receiver first selects the net from `Sajha-Net-Name` (§7.7), answering an unsigned `404` if it
+does not belong to that net, and then performs these checks in that net, refusing at the first
+failure with the `reason` shown (HTTP status per §7.4; JSON-RPC `-32014` on the MCP endpoint):
 
 1. `Signature-Input` and `Signature` carry the `sajhanet` label, and `Sajha-Net-Certificate` is
    present → else `signature_missing`.
@@ -573,20 +660,20 @@ status per §7.4; JSON-RPC `-32014` on the MCP endpoint):
    §8.5 requires for this request is covered → else `signature_incomplete`.
 3. `Sajha-Net-Version` is a version the receiver speaks → else `unsupported_version`.
 4. `created` is not more than the maximum age before receipt (SAJHA:
-   `sajhanet.identity.signature_max_age_seconds`, design default 30 s; never more than 300 s) and not
+   `sajhanet.signature_max_age_seconds`, design default 30 s; never more than 300 s) and not
    more than 5 s after receipt; `expires`, if present, has not passed → else `signature_expired`.
 5. `Content-Digest` matches the body → else `digest_mismatch`.
-6. The certificate chain is valid for the net (§8.1) → else `certificate_invalid`; its `O` is the
-   receiver's net → else `net_mismatch`.
-7. Neither the certificate's serial nor its `CN` is on the current revocation list (§13) → else
-   `certificate_revoked` or `instance_revoked`.
+6. The certificate chain is valid for the selected net (§8.1) → else `certificate_invalid`; its `O`
+   is the net named in `Sajha-Net-Name` → else `net_mismatch`.
+7. Neither the certificate's serial nor its `CN` is on that net's current revocation list (§13) →
+   else `certificate_revoked` or `instance_revoked`.
 8. `keyid` equals the leaf's thumbprint and `alg` matches its key → else `signature_invalid`.
 9. The signature verifies over the RFC 9421 signature base → else `signature_invalid`.
 10. `Sajha-Net-From` equals the certificate's `CN` → else `from_mismatch`; `CN` is not the receiver's
-    own name → else `name_conflict`; `Sajha-Net-To` equals the receiver's own name → else
-    `recipient_mismatch`.
-11. The pair (`keyid`, `nonce`) has not been seen within the replay window → else `replay`. Only
-    after every check above passes, record the pair for the replay window.
+    own name in that net → else `name_conflict`; `Sajha-Net-To` equals the receiver's own name in
+    that net → else `recipient_mismatch`.
+11. The triple (net, `keyid`, `nonce`) has not been seen within the replay window → else `replay`.
+    Only after every check above passes, record it for the replay window.
 
 The **replay window** is the maximum age plus the 5 s future allowance. A participant with several
 workers MUST keep seen nonces where every worker sees them (SAJHA: the state store).
@@ -597,16 +684,18 @@ Every response to a signed request MUST be signed by the responder, under the la
 covering, in order:
 
 ```
-("@status" "content-type" "content-digest" "sajha-net-version" "sajha-net-from" "sajha-net-to" "signature";req;key="sajhanet")
+("@status" "content-type" "content-digest" "sajha-net-version" "sajha-net-name" "sajha-net-from" "sajha-net-to" "signature";req;key="sajhanet")
 ```
 
 with `created`, `keyid`, `alg` and `tag` as in §8.5 (`nonce` is not needed: the response is bound to
 the request through the request's own signature, `"signature";req;key="sajhanet"`). On a response
-`Sajha-Net-From` is the responder and `Sajha-Net-To` the requester. `content-type` and
-`content-digest` are omitted when there is no body. The response carries `Sajha-Net-Certificate`.
+`Sajha-Net-Name` is the request's net, `Sajha-Net-From` the responder and `Sajha-Net-To` the
+requester. `content-type` and `content-digest` are omitted when there is no body. The response
+carries `Sajha-Net-Certificate`: the responder's certificate for that net.
 
-The requester MUST verify the response as in §8.7 steps 4 to 10 (with `Sajha-Net-From` equal to the
-participant it asked) and MUST discard a response that fails. A requester that receives an unsigned
+The requester MUST verify the response as in §8.7 steps 4 to 10, in the net of its request (with
+`Sajha-Net-Name` equal to that net and `Sajha-Net-From` equal to the participant it asked), and MUST
+discard a response that fails. A requester that receives an unsigned
 error from an intermediary proxy (for example a `502`) treats it as a transport failure, not as an
 answer from the peer.
 
@@ -632,7 +721,8 @@ A JSON (non-streamed) response MAY also carry `response_signature`; it is then c
 Objects that are stored and passed on by others (member records, key records, blocks documents, the
 revocation list, user assertions) carry their own signature so that any holder can verify them later:
 
-- The object has a `type` member (`member`, `key`, `blocks`, `revocations`, `assertion`).
+- The object has a `type` member (`member`, `key`, `blocks`, `revocations`, `assertion`,
+  `conflicts`).
 - **Signing input:** the ASCII bytes `sajha-net-v1:<type>:` followed by the RFC 8785 (JCS)
   canonical UTF-8 serialization of the object **without** its `signature` member. The `type` prefix
   is domain separation: a valid signature over one kind of record never verifies as another.
@@ -643,14 +733,16 @@ revocation list, user assertions) carry their own signature so that any holder c
 - Numbers in signed records are integers (no fractions), so implementations do not depend on
   floating-point formatting for JCS.
 
-A verifier MUST check the signature against a certificate that was valid for the signer's instance
-name (the record's `name`, `home_instance` or `instance`, as each section says) and MUST recompute
+A verifier MUST check the signature against a certificate that was valid, in the record's net, for
+the signer's instance name (the record's `name`, `home_instance`, `instance` or `iss`, as each section
+says), MUST check that the record's `net` is the net it arrived through (§7.7), and MUST recompute
 JCS itself rather than trusting the received byte order.
 
 ### 8.11 Manual mode
 
 A net may run without a CA (design §6.5). Each participant then uses a **self-signed** certificate
-with the profile of §8.1, and each administrator pins the thumbprints of the peers they approve. Step 6
+with the profile of §8.1, and each administrator pins the thumbprints of the peers they approve, per
+net (a participant MAY run one net in manual mode and another with a CA). Step 6
 of §8.7 becomes "the leaf's thumbprint is pinned", step 7 is skipped (removing a pin is the
 revocation), and §13 and §14 do not apply. Everything else is unchanged.
 
@@ -662,7 +754,10 @@ are pulled point to point.
 
 ### 9.1 Member record
 
-A participant describes itself in a **member record**, signed by itself (`type: "member"`, §8.10):
+A participant describes itself in a **member record**, signed by itself (`type: "member"`, §8.10).
+A participant in several nets has one member record per net, each with that net's `net`, its instance
+name there, its own incarnation and digests, signed with its certificate for that net; membership,
+gossip and everything else in this section run separately in each net.
 
 ```json
 {
@@ -686,9 +781,11 @@ A participant describes itself in a **member record**, signed by itself (`type: 
 ```
 
 - `digests.catalog` is an opaque string that MUST change whenever the catalog this participant
-  exports to **any** peer may have changed (a tool, a schema, a description, health class or an export
+  exports to **any** peer in this net may have changed (a tool, a schema, a description, health class or an export
   rule changed). `digests.keys` is its key-directory version (§11), `digests.blocks` its blocks
-  version (§12), `digests.revocations` the version of the revocation list it holds (§13).
+  version (§12), `digests.revocations` the version of the revocation list it holds (§13), and
+  `digests.conflicts`, when present, its conflicts-document version (§10.7). A participant with
+  feature `catalog` MUST serve the conflicts endpoint.
 - `seq` increments every time the participant re-signs its record within one incarnation (a digest or
   label changed) and resets to 0 when the incarnation changes.
 - A record is accepted only if its signature verifies against a certificate whose `CN` equals
@@ -706,7 +803,8 @@ chain, and the sender's view of its state (`urn:sajha:net:v1#/$defs/member_entry
 | `dead` | Suspect for longer than the suspect timeout without refuting | any participant |
 | `left` | Departed cleanly | the subject only: valid only with a record whose `leaving` is `true` |
 
-The state applies to the record's `incarnation`. `certificate` is REQUIRED in sync messages and
+The state applies to the record's `incarnation`. What each state means for the member's tools at
+other participants is in §10.6. `certificate` is REQUIRED in sync messages and
 leave announcements and OPTIONAL in ping, ping-req and ack updates. A receiver that does not hold a
 valid certificate for the record's `keyid` MUST NOT apply the entry and SHOULD run a sync (§9.7)
 with the sender.
@@ -727,7 +825,7 @@ with the sender.
 For an incoming entry U about instance X, against the held entry E:
 
 1. Drop U if X is revoked (§13), the record's signature or certificate fails, or `record.net` is not
-   the receiver's net. An entry about the receiver itself is never merged into its own record; it
+   the net of the message that carried it (its `Sajha-Net-Name`). An entry about the receiver itself is never merged into its own record; it
    is handled by rule 6.
 2. If no E is held: accept U.
 3. If `U.record.incarnation > E.record.incarnation`: replace E with U (record and state).
@@ -822,8 +920,19 @@ priority, design §10.3).
 
 `POST /sajhanet/v1/membership/sync` is a push-pull of the whole list. It is used:
 
-- **to join**: on start-up, to the last-known members first, then the configured seeds, then any
-  discovery plug-in (design §6.6), until one answers (`reason: "join"`);
+- **to join**: on start-up, in each net, to the configured seeds first; if none answers, to the
+  members of the participant's last saved peer list for that net, most recently seen first; then any
+  discovery plug-in (design §6.6); until one answers (`reason: "join"`). A participant MUST be
+  configured with at least one seed for each net, unless it is that net's **founder** (the first
+  member, which may start with an empty list and waits to be contacted). A non-founder with no seeds
+  for a net MUST NOT start membership in that net and MUST report the configuration error to its
+  operators. Saved peers and discovery plug-ins never replace the required seed. If no seed and no
+  saved peer answers, the participant MUST report that it has not joined and keep retrying with
+  back-off;
+- **on an operator's hint**: an operator may give an address to contact for a net; the participant
+  sends the same signed sync (`reason: "join"`). The address carries no trust: the response is
+  verified like any other (§8.7, §8.8), and the peer is admitted, or refused for `name_conflict`, by
+  the same rules as any member;
 - **for anti-entropy**: every full-sync interval (SAJHA: `sajhanet.gossip.full_sync_interval_seconds`)
   with one random member (`reason: "anti_entropy"`);
 - when a receiver lacks a certificate it needs (§9.2).
@@ -870,8 +979,10 @@ there are fewer):
 }
 ```
 
-Response: `{}`. Receivers mark the member `left` at once and disseminate the entry. A receiver MUST
-refuse a leave whose record is not signed by the sender itself (`invalid_request`).
+Response: `{}`. Receivers mark the member `left` at once, withdraw its tools (§10.6) and disseminate
+the entry. A receiver MUST refuse a leave whose record is not signed by the sender itself
+(`invalid_request`). A participant in several nets that stops sends a leave in each of them; one
+that leaves only one net (its configuration no longer lists it) leaves that net alone.
 
 ### 9.9 Retention, restarts and dead probing
 
@@ -879,8 +990,13 @@ refuse a leave whose record is not signed by the sender itself (`invalid_request
   `sajhanet.gossip.dead_retention_minutes`) and then removed. During retention, members probe a dead
   member's last `url` at the dead-probe interval, so a restarted participant whose seeds are all down
   is still found.
-- A participant persists the last membership list it saw and its own last incarnation, and on start
-  contacts the persisted members before its seeds (§9.7).
+- A participant persists its own last incarnation and, per net, the members it knows: on every
+  membership change and at least every 10 minutes (SAJHA: `peer_cache.interval_minutes`), to local
+  storage that does not depend on any remote service, written atomically, with each member's name,
+  URL, certificate thumbprint, last state and last-seen time and the time of the save. On start it
+  contacts its seeds first and the saved members only if no seed answers (§9.7). A saved entry is
+  only an address: the member's certificate is verified on contact as for any request, and entries
+  older than a configured maximum age (SAJHA: `peer_cache.max_age_days`, default 7) are skipped.
 - A participant whose certificate is not from the net CA cannot ping, sync or be pinged: every one of
   these requests is signed and checked (§8.7).
 
@@ -888,10 +1004,11 @@ refuse a leave whose record is not signed by the sender itself (`invalid_request
 
 ### 10.1 When to pull
 
-A participant pulls a peer's catalog when it first learns of the peer, when the peer's
-`digests.catalog` differs from the value it held at its last successful pull, and at least once per
-fallback refresh interval (SAJHA: `sajhanet.refresh_interval_seconds`). It MUST NOT pull from a peer
-it has blocked entirely or outbound.
+A participant pulls a peer's catalog, in each net separately, when it first learns of the peer,
+when the peer becomes `alive` at a new incarnation, when the peer's `digests.catalog` differs from
+the value it held at its last successful pull, and at least once per refresh interval (SAJHA:
+`sajhanet.refresh_interval_seconds`). It MUST NOT pull from a peer it has blocked entirely or
+outbound.
 
 ### 10.2 The catalog endpoint
 
@@ -912,8 +1029,9 @@ Response:
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "catalog response",
-  "type": "object", "required": ["instance", "catalog_digest", "hash", "unchanged"],
+  "type": "object", "required": ["net", "instance", "catalog_digest", "hash", "unchanged"],
   "properties": {
+    "net":            { "$ref": "urn:sajha:net:v1#/$defs/net_name" },
     "instance":       { "$ref": "urn:sajha:net:v1#/$defs/instance_name" },
     "catalog_digest": { "type": "string", "maxLength": 128 },
     "hash":           { "type": "string", "pattern": "^sha-256:[A-Za-z0-9_-]{43}$" },
@@ -930,8 +1048,9 @@ Response:
   },
   "$defs": {
     "tool_net_meta": {
-      "type": "object", "required": ["instance"],
+      "type": "object", "required": ["net", "instance", "contract_hash"],
       "properties": {
+        "net":            { "$ref": "urn:sajha:net:v1#/$defs/net_name" },
         "instance":       { "$ref": "urn:sajha:net:v1#/$defs/instance_name" },
         "region":         { "type": "string" },
         "labels":         { "type": "object", "additionalProperties": { "type": "string" } },
@@ -944,7 +1063,7 @@ Response:
         "latency_ms_p50": { "type": "integer", "minimum": 0 },
         "health":         { "enum": ["ok", "degraded", "down"] },
         "per_user_results": { "type": "boolean" },
-        "schema_hash":    { "type": "string" },
+        "contract_hash":  { "$ref": "urn:sajha:net:v1#/$defs/contract_hash" },
         "description_hash": { "type": "string" },
         "origin":         { "$ref": "urn:sajha:net:v1#/$defs/instance_name" }
       } }
@@ -952,8 +1071,16 @@ Response:
 }
 ```
 
-- `tools` lists exactly the tools the responder's export rules let **the requesting participant** see
-  for at least one of its users (design §11.2). It is present unless `unchanged` is `true`.
+- `tools` lists exactly the tools the responder's export rules for this net let **the requesting
+  participant** see for at least one of its users (design §11.2). It is present unless `unchanged` is
+  `true`. `net` is the net of the request.
+- **Everything about a tool is shared.** Each entry is the complete tool definition the host would
+  return to its own MCP clients: `name`, `title`, `description`, `inputSchema`, `outputSchema`,
+  `annotations` and `_meta` (with any other members MCP defines), plus the net metadata below with the
+  tool's `version`. A host MUST NOT leave out a member it would show its own clients, with one
+  exception: MCP Apps user-interface links (`_meta.ui` and any `ui://` resource reference) are
+  removed, because those resources resolve only at the host and protocol version 1 does not proxy
+  resource reads; a home MUST also drop any that arrive. Proxying them is left to a later version.
 - `hash` is `sha-256:` + base64url of SHA-256 over the JCS bytes of the `tools` array, the array
   sorted by `name`. If `if_none_match` equals the hash the response would have, the responder answers
   `{"unchanged": true, ...}` without `tools`.
@@ -963,14 +1090,29 @@ Response:
   `llm_tool`, health and latency, `per_user_results` (results differ per user, so a home cache must be
   keyed by user), hashes of the schema and description, and `origin` only for a re-exported tool
   (§16).
+- **`version`** is the tool's version as the host declares it (SAJHA: the registered config's own
+  `version`). It is informational, for display and audit only: it does not take part in resolution,
+  fallback or the contract rule, and two versions of a name are never offered side by side as
+  different tools.
+- **`contract_hash`** is `sha-256:` + base64url of SHA-256 over the JCS bytes (RFC 8785, including
+  its number serialisation, since schemas may hold fractions) of
+  `{"inputSchema": <inputSchema>, "outputSchema": <outputSchema or null>, "annotations": <annotations or {}>}`
+  as the host offers them (before the home corrects annotations). The home MUST recompute it from the
+  tool it received; a tool whose stated `contract_hash` differs from the home's computation is not
+  imported, and the peer is flagged. A tool's **contract** is its name, schemas and annotations; the
+  description and title belong to it too but are compared only through `description_hash`, and a
+  difference there is a warning, never a conflict (§10.7).
+- A host MUST serve every forwarded call to a tool with the contract it exported for it (SAJHA: a
+  canary or pinned tool version whose schemas or annotations differ is not used for net calls).
 - Descriptions and schemas are untrusted input at the receiver (§19), which screens and caps them.
 
 ### 10.3 What the home adds
 
 When a home lists its proxies in its own `tools/list`, it sets in `_meta["io.sajha/net"]` the host's
-fields plus `locality` (`"remote"`; `"local"` MAY be set on its own tools), `qualified_name`,
-`host_tool` (the host's name), `alias` when a bare alias is offered, and `state` when the proxy is not
-`active` (`unconfirmed`, `unavailable`, `held`). This is the object shown in the design's §8.3.
+fields plus `locality` (`"remote"`; `"local"` MAY be set on its own tools), `qualified_name`
+(`<net>__<prefix>__<tool part>`), `host_tool` (the host's name), `alias` when a bare alias is offered,
+and `state` when the proxy is not `active` (`unavailable` while its host is `suspect`, `held` under
+review). This is the object shown in the design's §8.3.
 
 ### 10.4 Relationship to `tools/list`
 
@@ -1020,6 +1162,100 @@ For each key id the host resolves the key's owner through its key directory (onl
 (`no_account`, `blocked`, `key_unusable`). The answer is advice for display; every call is still
 authorized by the host (§15.4).
 
+### 10.6 Withdrawing a peer's tools
+
+What a home lists must match what is reachable now. In each net, separately:
+
+- **`left` or `dead`.** When a merge (§9.4) makes a member `left` (a clean departure, §9.8) or `dead`
+  (a crash or cut-off found by the failure detector, §9.5), every other participant MUST at once stop
+  listing the tools it imported from that member, and remove them from everything that could offer
+  or route them: its own catalog, its record of which host offers which tool, aliases, resolution
+  orders, planner shortlists and result caches. It MUST NOT send calls to that member.
+- **`suspect`.** While a member is `suspect`, participants MUST keep its tools listed with
+  `state: "unavailable"` (§10.3) and MUST NOT send calls to it; a call by plain name goes to the next
+  host in the resolution order (§15.8), and a call by qualified name fails at the home with `-32019`
+  (`unavailable`).
+- **Coming back.** A member's tools are listed again only after a catalog pull from it succeeds while
+  it is `alive` (a refuted suspicion keeps the incarnation-current catalog; a member that was `dead`
+  or `left` returns at a new incarnation and is pulled, §10.1).
+- **Restart.** A participant that starts MUST NOT list any tool of a peer until it has received, in
+  this run, a valid signed catalog response from that peer: the full catalog, or `unchanged: true`
+  against a hash it sent in `if_none_match` from a stored copy. A stored copy alone never makes a tool
+  listed or callable.
+- **Revocation.** A revoked member's tools are removed as for `dead` (§13).
+- Records of what was imported MAY be kept as history (audit records, snapshots); they MUST NOT be
+  used to list or route tools.
+
+### 10.7 One name, one contract
+
+Within a net, a tool name stands for exactly one contract (§10.2), everywhere. There is no winner
+when hosts disagree: the name is quarantined until they agree.
+
+- **Conflict.** A **contract conflict** exists in a net for a tool part T when two or more
+  participants offering T in that net (including the observer itself, through its own exports) offer
+  different `contract_hash` values. A difference only in `description_hash` or title is not a
+  conflict; participants SHOULD show it as a warning.
+- **Detection.** Every participant evaluates the rule independently over what it sees: its own
+  exports in the net and the catalogs it holds from peers there (re-evaluated after every catalog
+  pull, §10.1, and every withdrawal, §10.6). Because export rules may show a tool to some peers and not
+  others, participants also publish what they observe (below), so that all members converge.
+- **Conflicts document.** A participant publishes the conflicts **it has observed itself** (never
+  ones it learned from others) in a signed document (`type: "conflicts"`), versioned by
+  `digests.conflicts` in its member record and pulled with `POST /sajhanet/v1/conflicts` (body `{}`)
+  when that version increases, like blocks (§12):
+
+  ```json
+  {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:sajha:net:v1#/$defs/conflicts_document",
+    "type": "object", "required": ["type", "net", "instance", "version", "conflicts", "signature"],
+    "properties": {
+      "type":     { "const": "conflicts" },
+      "net":      { "$ref": "urn:sajha:net:v1#/$defs/net_name" },
+      "instance": { "$ref": "urn:sajha:net:v1#/$defs/instance_name" },
+      "version":  { "$ref": "urn:sajha:net:v1#/$defs/version" },
+      "conflicts": { "type": "array", "maxItems": 1000, "items": {
+        "type": "object", "required": ["tool", "offers", "since"],
+        "properties": {
+          "tool":   { "type": "string" },
+          "offers": { "type": "array", "minItems": 2, "items": {
+            "type": "object", "required": ["instance", "contract_hash"],
+            "properties": {
+              "instance":      { "$ref": "urn:sajha:net:v1#/$defs/instance_name" },
+              "contract_hash": { "$ref": "urn:sajha:net:v1#/$defs/contract_hash" } } } },
+          "since":  { "$ref": "urn:sajha:net:v1#/$defs/timestamp" } } } },
+      "signature": { "$ref": "urn:sajha:net:v1#/$defs/signature" }
+    }
+  }
+  ```
+
+- **Quarantine.** A participant MUST quarantine T in a net while it observes a conflict on T, or while
+  the current conflicts document of any `alive` or `suspect` member of that net lists T. While T is
+  quarantined, no copy of it is listed, resolvable, callable or a fallback target at that
+  participant for that net: not the proxies of any host offering it, and, on a host that exports T
+  into that net, not its own T either for plain-name use or for calls from the net (forwarded calls
+  to T get `-32011` with reason `contract_conflict`). A caller who names T, by plain or qualified name,
+  gets an error with reason `contract_conflict` (`-32018` at the home) whose `data` names the tool,
+  every host offering it and their hashes (§17.1).
+- **Alerting.** Entering a quarantine MUST be logged at error level and surfaced to operators with
+  the tool, every offering host and its `contract_hash` (SAJHA: an error notice, an entry in the
+  conflicts queue, the `sajha_net_contract_conflicts` metric and an alert). Entering and leaving a
+  quarantine are both audited.
+- **Re-activation.** T becomes active again, automatically, when the participant no longer observes a
+  conflict on T and no current conflicts document lists it: every host still offering T in the net
+  offers the identical contract (the odd host was fixed, stopped exporting T, or left, died or was
+  revoked). A participant removes T from its own conflicts document as soon as it no longer observes
+  the conflict itself; documents of `left`, `dead` and revoked members are disregarded.
+- **Escape hatch.** A host that needs its own differing T for its local callers stops exporting T
+  into the net (its export rules). It is then not part of the net's contract for T, the conflict
+  ends, and its local T works as before.
+- **Changing a contract.** Any difference quarantines the name, so a contract change MUST either
+  reach every host offering T together, or ship under a new tool name (for example `var_calc_v2`)
+  that callers move to gradually. `version` does not separate contracts (§10.2).
+- **Convergence.** All members see the same catalogs and the same published conflicts within the
+  usual gossip and pull delay, so they quarantine and re-activate the same names; until then a member
+  acts on what it sees.
+
 ## 11. Net key directory
 
 ### 11.1 Key record
@@ -1027,16 +1263,23 @@ authorized by the host (§15.4).
 Each participant with feature `key_directory` publishes one record per API key it issued, signed by
 itself (`type: "key"`, §8.10). The raw key is never in a record.
 
+A participant in several nets publishes the records of the keys it issued in **each** of them, as
+separate records: each names that net in `net` and the participant's instance name there in
+`home_instance`, is signed with its certificate for that net, and has its own version counter in that
+net. A user's key therefore identifies them in every net their home belongs to, as
+`<user name>@<home's name in that net>`, and a record in one net says nothing in another.
+
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:sajha:net:v1#/$defs/key_record",
   "type": "object",
-  "required": ["type", "key_id", "key_prefix", "name", "key_hash", "home_instance", "owner", "enabled",
+  "required": ["type", "net", "key_id", "key_prefix", "name", "key_hash", "home_instance", "owner", "enabled",
                "expires_at", "revoked_at", "tool_access_mode", "tool_access_list", "persistent",
                "version", "updated_at", "signature"],
   "properties": {
     "type":          { "const": "key" },
+    "net":           { "$ref": "urn:sajha:net:v1#/$defs/net_name" },
     "key_id":        { "type": "string", "maxLength": 64 },
     "key_prefix":    { "type": "string", "maxLength": 16 },
     "name":          { "type": "string", "maxLength": 255 },
@@ -1068,12 +1311,14 @@ itself (`type: "key"`, §8.10). The raw key is never in a record.
 - A deleted key is never removed from the directory: its record gets `revoked_at` and a new
   `version`.
 - `tool_access_mode` and `tool_access_list` are a ceiling on what the key may call anywhere; they
-  name tools by their names **at the home** (qualified names for proxies).
+  name tools by their names **at the home** (plain names for the home's own tools, qualified names
+  `<net>__<prefix>__<tool part>` for proxies).
 
 ### 11.2 Acceptance
 
 A receiver MUST accept a record only if it was returned by its `home_instance` (the responder's
-`Sajha-Net-From`, §11.3) and its signature verifies against a valid certificate of `home_instance`.
+`Sajha-Net-From`, §11.3), its `net` is the response's `Sajha-Net-Name`, and its signature verifies
+against a valid certificate of `home_instance` in that net.
 Records about one home arriving from anyone else are ignored. A record with a lower or equal `version`
 than the held one is ignored. When a certificate serial is revoked (§13), a receiver MUST discard the
 records that certificate signed and re-pull that home's directory from version 0.
@@ -1154,9 +1399,10 @@ document, signed by itself (`type: "blocks"`):
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:sajha:net:v1#/$defs/blocks_document",
-  "type": "object", "required": ["type", "instance", "version", "blocks", "signature"],
+  "type": "object", "required": ["type", "net", "instance", "version", "blocks", "signature"],
   "properties": {
     "type":     { "const": "blocks" },
+    "net":      { "$ref": "urn:sajha:net:v1#/$defs/net_name" },
     "instance": { "$ref": "urn:sajha:net:v1#/$defs/instance_name" },
     "version":  { "$ref": "urn:sajha:net:v1#/$defs/version" },
     "blocks": { "type": "array", "maxItems": 1000, "items": {
@@ -1181,11 +1427,14 @@ document, signed by itself (`type: "blocks"`):
   omitted. `reason` MAY be withheld.
 - A block is **enforced only by the participant that set it**; a published block never changes what
   another participant does.
+- Blocks belong to one net: a block on `risk-eu` in `acme-net` says nothing about the same server in
+  another net, and a participant in several nets publishes one blocks document per net.
 
 ## 13. Revocation list
 
 The CA participant maintains the net's revocation list, signed with the CA key (`type:
-"revocations"`, `keyid` the CA certificate's thumbprint):
+"revocations"`, `keyid` the CA certificate's thumbprint). Each net has its own CA and its own list; a
+participant in several nets holds one list per net and applies each only to its own net:
 
 ```json
 {
@@ -1218,18 +1467,21 @@ The CA participant maintains the net's revocation list, signed with the CA key (
   `digests.revocations` exceeds its own, and accepts it only if the signature verifies against the
   CA certificate, `net` matches and `version` is higher than the one it holds.
 - A participant MUST start with the list from its configuration (SAJHA:
-  `sajhanet.identity.revocation_list_ref`) when it has no newer one, and MUST apply a newer list to
-  every subsequent request (§8.7 step 7), drop the revoked members (§9.4) and remove their tools.
+  the net's `identity.revocation_list_ref` in `sajhanet.nets`) when it has no newer one, and MUST apply a newer list to
+  every subsequent request (§8.7 step 7), drop the revoked members (§9.4) and remove their tools
+  (§10.6).
 
 ## 14. Certificate enrollment and renewal
 
-These endpoints are served only by the participant with feature `ca`. How a new participant obtains
-the enrollment token, the CA certificate and the CA participant's URL is out of band (an operator
-copies them; design §6.4).
+These endpoints are served only by a participant with feature `ca` in the net concerned; one
+participant MAY be the CA participant of several nets, with a separate CA key for each. How a new
+participant obtains the enrollment token, the CA certificate and the CA participant's URL is out of
+band (an operator copies them; design §6.4).
 
 ### 14.1 Enrollment
 
-`POST /sajhanet/v1/ca/enroll`, **not** signed (the requester has no certificate yet), over HTTPS only:
+`POST /sajhanet/v1/ca/enroll`, **not** signed (the requester has no certificate yet), over HTTPS only,
+with `Sajha-Net-Name` set to the body's `net` (a mismatch is `enrollment_refused`):
 
 ```json
 {
@@ -1298,10 +1550,11 @@ certificate stays valid until its own `notAfter`, so old and new overlap without
 ### 15.1 Request
 
 A home forwards a call to a proxy tool as an MCP `tools/call` to the host's MCP endpoint, in the era
-chosen by §6.4, with `params.name` set to the **host's** tool name (not the qualified name) and the
-arguments unchanged after the home's own checks. The home SHOULD add
-`params._meta["io.sajha/net"] = {"home": "<home>", "qualified_name": "<prefix>__<tool>"}` for the
-host's audit. Arguments travel in the body, covered by `Content-Digest`; any `Mcp-Param-*` headers
+chosen by §6.4, in the net the chosen host was learned in, with `params.name` set to the **host's**
+own tool name (not the qualified name or the tool part) and the arguments unchanged after the home's
+own checks. The home SHOULD add
+`params._meta["io.sajha/net"] = {"home": "<home>", "qualified_name": "<net>__<prefix>__<tool part>"}`
+for the host's audit, and, on the second and later attempts of one call (§15.8), `"attempt": <n>`. Arguments travel in the body, covered by `Content-Digest`; any `Mcp-Param-*` headers
 mirroring them are covered by the signature (§8.5).
 
 ### 15.2 Headers
@@ -1309,10 +1562,11 @@ mirroring them are covered by the signature (§8.5).
 | Header | Value | Required |
 |---|---|---|
 | `Sajha-Net-Version` | protocol version in use | yes |
+| `Sajha-Net-Name` | the net of this hop (§7.7) | yes |
 | `Sajha-Net-From` | the sender (the home, or the intermediary on a re-exported call) | yes |
 | `Sajha-Net-To` | the host | yes |
 | `Sajha-Net-Hop` | 1 for a direct call; +1 at each re-export step (§16) | yes |
-| `Sajha-Net-Visited` | the instances already passed, home first; length equals `Sajha-Net-Hop` | yes |
+| `Sajha-Net-Visited` | the participants already passed, as `<net>/<instance>`, home first; length equals `Sajha-Net-Hop` | yes |
 | `traceparent` (and `tracestate` if any) | W3C Trace Context; the same trace id on every hop; also mirrored in `params._meta.traceparent` | yes |
 | `Sajha-Net-Api-Key` | the user's raw API key (§15.3) | with `api_key` identity on hop 1 |
 | `Sajha-Net-User-Assertion` | a home-signed user assertion (§15.5) | with `assertion` identity, or on hop > 1 |
@@ -1333,7 +1587,8 @@ is never served as an anonymous or ordinarily authenticated request.
   directory, and refuses with `-32013` unless: the record exists (`key_unknown`); `enabled` is true
   (`key_disabled`); `expires_at` is null or in the future (`key_expired`); `revoked_at` is null
   (`key_revoked`); and `home_instance` equals `Sajha-Net-From` (`key_not_from_home`: a key enters the
-  net only through its issuer). The verified user is `<owner.user_name>@<home_instance>`, with
+  net only through its issuer). It looks only among the records of the request's net (§11.1). The
+  verified user is `<owner.user_name>@<home_instance>`, with
   `owner.roles` as recorded by the home and the key's tool access as an extra ceiling.
 - The host then maps the user to a local identity (design §11.3: explicit link, name match, role map
   or refusal `no_account`).
@@ -1359,6 +1614,12 @@ A host MUST apply these steps in order and stop at the first refusal (codes in �
 
 A tool's own failure is an ordinary MCP result with `isError: true`, not a net refusal.
 
+Every refusal in steps 1 to 10 happens before the tool is invoked and MUST carry `executed: false`
+(§17.1); a refusal in step 12 happens after it and MUST carry `executed: true`. Independently of these
+steps, a host that is shutting down, overloaded or over its rate limit MAY refuse a forwarded call at
+any point before step 11 with `-32019` (`draining`, `overloaded` or `rate_limited`), HTTP 503 or 429
+with `Retry-After`, and `executed: false`; it MUST NOT do so once step 11 has begun.
+
 ### 15.5 Identity: `assertion`
 
 A **user assertion** is a record signed by the home (`type: "assertion"`, §8.10):
@@ -1368,9 +1629,10 @@ A **user assertion** is a record signed by the home (`type: "assertion"`, §8.10
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:sajha:net:v1#/$defs/user_assertion",
   "type": "object",
-  "required": ["type", "iss", "user", "key_id", "aud", "iat", "exp", "jti", "trace_id", "signature"],
+  "required": ["type", "net", "iss", "user", "key_id", "aud", "iat", "exp", "jti", "trace_id", "signature"],
   "properties": {
     "type":     { "const": "assertion" },
+    "net":      { "$ref": "urn:sajha:net:v1#/$defs/net_name" },
     "iss":      { "$ref": "urn:sajha:net:v1#/$defs/instance_name" },
     "user":     { "type": "string" },
     "key_id":   { "type": "string" },
@@ -1386,8 +1648,10 @@ A **user assertion** is a record signed by the home (`type: "assertion"`, §8.10
 
 `iat` and `exp` are epoch seconds with `exp − iat` at most 60. `aud` is the final host (the tool's
 `origin` for a re-exported tool, §16). It is sent in `Sajha-Net-User-Assertion` as base64url of the JCS
-bytes of the whole object including `signature`. The host verifies the signature against a valid
-certificate of `iss`, checks `aud` is itself, the time window, that `jti` was not seen within the
+bytes of the whole object including `signature`. `net`, `iss` and `aud` are all in one net: an
+assertion never crosses into another net (§16). The host checks that `net` is the request's
+`Sajha-Net-Name`, verifies the signature against a valid certificate of `iss` in that net, checks
+`aud` is itself, the time window, that `jti` was not seen within the
 window, that `trace_id` matches `traceparent`, and that the key record `key_id` of `home_instance =
 iss` is usable (§15.3 checks other than possession). The user is `user`, which MUST equal
 `<owner.user_name>@<iss>` of that record. Intermediaries forward the assertion unchanged.
@@ -1410,20 +1674,84 @@ iss` is usable (§15.3 checks other than possession). The user is `user`, which 
 The home turns any net refusal, or a host it cannot reach, into an MCP tool result with
 `isError: true`, a text content saying which side refused and why in words safe for the caller, and
 `_meta["io.sajha/net"].refusal` holding the `data["io.sajha/net"]` object of §17. It never forwards
-the host's raw error text unscreened.
+the host's raw error text unscreened. When a call made several attempts (§15.8), the result is that
+of the attempt that answered; if none did, the refusal is the first attempt's, and
+`_meta["io.sajha/net"].attempts` lists every attempt (net, host, outcome, `executed`).
+
+### 15.8 Not executed, and fallback to another host
+
+A home that calls a tool by plain name may, when the chosen host does not run the call, try the next
+host offering **the same tool** (the same tool part, which in one net means the same contract,
+§10.7; in another net, also the same `contract_hash`) in its resolution order
+(design §8.2), in any net it belongs to. This section defines what the home may rely on and what it
+must do; the order itself and the configuration are the home's own (SAJHA: design §9.1,
+`sajhanet.max_fallbacks`).
+
+**What "not executed" means.** A call was **not executed** when the host did not invoke the tool and
+no effect of the call happened at the host. The home knows this only in these cases:
+
+| Case | How the home knows |
+|---|---|
+| The request was never sent: name resolution, connection refused, TLS handshake failure, connect timeout | the home itself |
+| The home did not send it: circuit breaker open, the host `suspect` (§10.6), the home's own per-peer rate limit | the home itself |
+| A refusal from the host carrying `executed: false` in `data["io.sajha/net"]` (§17.1), in a response that verifies (§8.8) | the host's signed word |
+
+In every other case the call **may have been executed**: a timeout or a dropped connection after the
+request was sent, a response that fails verification, an unsigned error from an intermediary proxy
+(`502`, `503`, `504`), a refusal without `executed`, or anything the host sent about the call other
+than a not-executed refusal (a progress notification, an `input_required` result, a created task,
+part of a stream).
+
+**When the home may fall back.** A home that falls back MUST observe all of these:
+
+1. Only a call by **plain name**: a call by qualified name goes exactly where it says and is never
+   sent elsewhere.
+2. Only after an **availability** failure: a not-executed case of the first two rows, or a host
+   refusal `-32019` with `executed: false`. Any other refusal by the first host (authorization,
+   identity, blocks, hops, residency) is that host's answer and is returned to the caller.
+3. After a failure that **may have been executed**, only when the tool, as offered by the host that
+   may have run it, is read-only (`readOnlyHint: true`) or idempotent and not destructive
+   (`idempotentHint: true` with `destructiveHint: false`; MCP's default for `destructiveHint` is
+   true, so an idempotent tool that does not say it is non-destructive counts as destructive).
+   A destructive tool is never tried again after it may have run.
+4. Only to hosts offering the same tool part (and, in another net, the same `contract_hash`), never
+   a tool quarantined for a contract conflict (§10.7), in resolution order,
+   skipping hosts that are `suspect`, blocked, or excluded by the home's import or residency rules
+   for this caller.
+5. Each attempt is a **complete, separately signed call** in the candidate's net, with the caller's
+   identity for that net (§15.3); the next host authorizes the user itself. A host that refuses an
+   attempt for any reason is skipped and the next one is tried.
+6. At most the configured number of fallbacks after the first attempt; all attempts share one
+   overall deadline and one budget, and none starts after the deadline has passed.
+7. Every attempt carries the same trace id (a new span each) and `params._meta["io.sajha/net"].attempt`
+   from the second attempt on, and is audited at the home with its attempt number and outcome.
+
+A host never needs to know whether a call is a fallback; it handles every attempt as a new call.
 
 ## 16. Hops and loops
 
-- A participant without feature `reexport` exports only its own tools, so every call is one hop.
-- A participant with `reexport` MAY export tools it imported; such tools carry `origin` (the
-  participant that really hosts them) in `_meta["io.sajha/net"]`. When forwarding one, it increments
-  `Sajha-Net-Hop`, appends itself to `Sajha-Net-Visited`, sets `Sajha-Net-From` to itself, re-signs,
-  and forwards the user assertion unchanged. It MUST NOT forward a raw API key.
-- A home calling a tool with an `origin` MUST use the `assertion` identity, with `aud` = `origin`.
+- Feature `reexport` is listed, and applies, per net. A participant without it in a net exports
+  into that net only its own tools, so every call there is one hop.
+- **Within one net.** A participant with `reexport` in a net MAY export into it tools it imported in
+  the same net; such tools carry `origin` (the participant that really hosts them) in
+  `_meta["io.sajha/net"]`. When forwarding one, it increments `Sajha-Net-Hop`, appends
+  `<net>/<its name>` to `Sajha-Net-Visited`, sets `Sajha-Net-From` to itself, re-signs, and forwards
+  the user assertion unchanged. It MUST NOT forward a raw API key. A home calling a tool with an
+  `origin` MUST use the `assertion` identity, with `aud` = `origin`.
+- **Across nets (a bridge).** A participant in nets M and N MAY export into N tools it imported in M
+  only if `reexport` is enabled for N, the net it offers into (§7.7). In N such a tool is offered as
+  the bridge's own (no `origin`: nothing in N can verify anything signed in M). A home in N calls the
+  bridge as it would call any host. The bridge authorizes and maps the caller like any host (§15.4),
+  then calls into M **as the local user it mapped the caller to**: as the home of a new identity
+  chain in M, with an assertion it signs in M (`iss` = its name in M, `key_id` = that local user's
+  key, normally the default key), never with the caller's raw key. `Sajha-Net-Hop` and
+  `Sajha-Net-Visited` continue across the bridge (the request into M carries hop + 1 and the whole
+  list with `M/<its name in M>` appended), so hop limits and loop detection hold end to end. A
+  host in M sees and authorizes the bridge's user, never the caller from N.
 - Every receiver refuses with `-32016`: `hop_limit` when `Sajha-Net-Hop` exceeds its maximum (SAJHA:
-  `sajhanet.max_hops`; never more than 8); `loop` when its own name is in `Sajha-Net-Visited`;
-  `hop_inconsistent` when the list's length is not the hop count or its last element is not
-  `Sajha-Net-From`.
+  `sajhanet.max_hops`; never more than 8); `loop` when any of its own `<net>/<name>` identities, in
+  any net it belongs to, is in `Sajha-Net-Visited`; `hop_inconsistent` when the list's length is not
+  the hop count or its last element is not `<Sajha-Net-Name>/<Sajha-Net-From>`.
 - Calls made by a remote LLM tool for its own work start a new call chain at the host, but MUST carry
   the incoming hop count and visited list forward, so that remote LLM tools count toward the hop limit.
 
@@ -1437,15 +1765,15 @@ already and never emits `-32002` on the modern path):
 
 | Code | Class | `reason` values | Side | HTTP |
 |---|---|---|---|---|
-| `-32011` | Authorization refused | `export`, `access`, `policy`, `approval_required`, `remote_admin` | host | 200 |
+| `-32011` | Authorization refused | `export`, `access`, `policy`, `approval_required`, `remote_admin`, `contract_conflict` (the tool is quarantined at the host, §10.7) | host | 200 |
 | `-32012` | Residency refused | `residency_arguments` (home), `residency_result` (host) | either | 200 |
 | `-32013` | Identity refused | `key_unknown`, `key_disabled`, `key_expired`, `key_revoked`, `key_not_from_home`, `no_account`, `assertion_invalid`, `https_required`, `anonymous`, `ambiguous_credentials` | host (home for `https_required`, `anonymous`) | 200 |
 | `-32014` | Peer refused | the 401 and 403 reasons of §7.4 that apply to authentication and revocation | host | 401 or 403 as in §7.4 |
 | `-32015` | Blocked | `instance`, `inbound`, `outbound`, `tool`, `user` | either | 200 |
 | `-32016` | Hop refused | `hop_limit`, `loop`, `hop_inconsistent` | host | 200 |
 | `-32017` | Version unsupported | `unsupported_version` | host | 400 |
-| `-32018` | Import refused | `import` | home only; never sent between participants | — |
-| `-32019` | Instance unavailable | `unreachable`, `timeout`, `circuit_open`, `unconfirmed`, `response_invalid` | home only | — |
+| `-32018` | Import refused | `import`, `contract_conflict` (the tool is quarantined, §10.7; `data` adds `conflict`) | home only; never sent between participants | — |
+| `-32019` | Instance unavailable | host: `draining`, `overloaded`, `rate_limited`; home: `unreachable`, `timeout`, `circuit_open`, `unavailable` (host `suspect`), `response_invalid`, `no_host` (no eligible host left after fallback, §15.8) | host (sent only before execution, §15.4) or home | host: 503, or 429 for `rate_limited`; home: — |
 
 A participant MUST recognise a net refusal by `error.data["io.sajha/net"]`, not by the code alone,
 because other implementations may use the same range for other things:
@@ -1457,8 +1785,9 @@ because other implementations may use the same range for other things:
     "code": -32013,
     "message": "Your API key is not recognised on cust-na",
     "data": { "io.sajha/net": {
-      "reason": "key_unknown", "side": "host", "instance": "cust-na", "tool": "var_calc",
-      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736", "retryable": false } }
+      "reason": "key_unknown", "side": "host", "net": "acme-net", "instance": "cust-na",
+      "tool": "var_calc", "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "executed": false, "retryable": false } }
   }
 }
 ```
@@ -1467,10 +1796,14 @@ because other implementations may use the same range for other things:
 |---|---|
 | `reason` | REQUIRED; a value from the table (new values may be added, §4) |
 | `side` | REQUIRED; `home` or `host` |
-| `instance` | REQUIRED; the participant that refused |
+| `net` | REQUIRED; the net in which it refused |
+| `instance` | REQUIRED; the participant that refused (its name in that net) |
 | `tool` | the tool name at that participant, when there is one |
 | `trace_id` | the trace id of the call |
-| `retryable` | true only when the same request may succeed later unchanged (`timeout`, `unreachable`, `rate_limited`) |
+| `executed` | REQUIRED on every refusal of a forwarded `tools/call` (and of the `tasks/*` and MRTR follow-ups of §15.6): `false` when the host guarantees the tool was not invoked and no effect of the call happened, `true` when it was invoked. A host MUST set `false` only when that is certain. Absent means unknown and is treated as possibly executed (§15.8) |
+| `retryable` | true only when the same request may succeed later unchanged (`timeout`, `unreachable`, `rate_limited`, `draining`, `overloaded`) |
+| `attempt` | on a home-side refusal of a call that made several attempts, the number of attempts made |
+| `conflict` | for `contract_conflict`: `{"tool", "offers": [{"instance", "contract_hash"}, ...]}`, every host offering the tool and its hash |
 | `supported_versions` | for `-32017` |
 | `response_signature` | §8.9, when the error ends a stream |
 
@@ -1479,7 +1812,9 @@ the host considers private.
 
 ### 17.2 HTTP errors on `/sajhanet/`
 
-As §7.4 and §7.5. The problem body is signed like any response.
+As §7.4 and §7.5. The problem body is signed like any response. When the MCP endpoint answers a
+forwarded `tools/call` with an HTTP error (401, 403, 429, 503), the JSON-RPC error in the body carries
+`data["io.sajha/net"]` with `executed`, as above.
 
 ## 18. Limits
 
@@ -1496,6 +1831,7 @@ ignoring the excess rather than failing the exchange.
 | key delta response | 1 MiB; at most 1000 records |
 | visibility request | 100 key ids |
 | blocks document | 256 KiB; at most 1000 blocks |
+| conflicts document | 256 KiB; at most 1000 conflicts |
 | revocation list | 1 MiB |
 | `Sajha-Net-Certificate` header | 8 KiB; at most 4 certificates |
 | all request headers together | 16 KiB |
@@ -1503,9 +1839,10 @@ ignoring the excess rather than failing the exchange.
 | signature maximum age | configurable, at most 300 s; future allowance 5 s |
 | assertion lifetime | at most 60 s |
 | hops | at most 8 |
+| net name | 1 to 16 characters (§5.1) |
 | configured instance name | 2 to 32 characters (§5.2) |
 | member `labels` | 32 labels, values up to 128 characters |
-| qualified tool name | at most 128 characters; SHOULD be at most 64 (§5.3) |
+| qualified tool name | at most 128 characters (§5.3) |
 | `digests.catalog` | at most 128 characters |
 
 Oversized bodies get `413 too_large`.
@@ -1552,9 +1889,35 @@ Oversized bodies get `413 too_large`.
   reason for every failure.
 - **CA key.** Whoever holds it can admit participants. It never leaves the CA participant; certificates
   are short-lived so that re-keying the CA bounds the damage of a theft.
-- **Tool-name prefixes.** Address names give prefixes that start with a digit. Some LLM providers
-  require function names to start with a letter or underscore; a participant serving such a provider
-  will need a configured instance name for every peer whose tools it offers there.
+- **Tool names and models.** Every qualified name starts with its net name, so with a letter, as
+  providers that require a leading letter expect, even when the host has an address name. Names longer
+  than a provider allows are mapped to short per-request aliases by the home (§5.3); the alias never
+  appears on the wire, in MCP or in audit, so it cannot be used to reach a different tool.
+- **Several nets.** Nets share nothing but the port: each has its own CA, certificates, revocation
+  list, membership, key directory, blocks, catalogs and nonces (§7.7). A participant in two nets is
+  the only place they meet, so it MUST keep them apart; it never offers one net's imported tools to
+  another unless that net's re-export is enabled, and a bridged call carries into the other net only
+  the bridge's own user, never a credential or assertion from the first net (§16). An unknown net name
+  gets an unsigned `404`, so probing does not reveal which nets a participant belongs to.
+- **Fallback and duplicate execution.** A home tries another host only after a failure that is known
+  not to have executed, or for tools that are read-only or idempotent and non-destructive (§15.8). A
+  host that wrongly signs `executed: false` after running a tool can cause it to run twice; its
+  signature makes that attributable, and a destructive tool's fallback still needs that false claim.
+  Each attempt is authorized afresh by its host, and a refusal by the first host is never routed
+  around.
+- **Contract poisoning.** A host could offer a tool under a name others already offer, with
+  different schemas or annotations, so that calls or fallbacks meant for one tool reach another. In a
+  net a name has one contract or none: any difference quarantines the name everywhere, so no call is
+  ever routed to a copy whose contract differs (§10.7). The trade-off is **denial of service**: one
+  rogue or misconfigured host can quarantine a tool for the whole net. Mitigations: the conflict is
+  loud on every member and names the odd host; administrators can block that host (§12) or its tool,
+  which removes its offer from their view, or the CA can revoke it (§13); `review` and `pinned` trust
+  keep unreviewed tools from a peer out of the catalog in the first place; and the odd host can end
+  the conflict at once by stopping its export. Across nets nothing is shared, so fallback across nets
+  also requires the same `contract_hash` (§15.8).
+- **Stale tools.** Tools of `left`, `dead` and revoked members are withdrawn at once, and after a
+  restart nothing is listed before the peer has answered (§10.6), so a home does not offer, or plan
+  with, a tool whose host is gone.
 - **Denial of service.** Per-sender rate limits (§7.3), the size limits (§18), and per-peer timeouts and
   circuit breakers at the home keep one participant from exhausting another.
 
@@ -1570,11 +1933,19 @@ vectors for SIG-01, SIG-12 and REC-01.
 | NAME-02 | S A L | `10.20.4.17:3002` gives the prefix `10_20_4_17_3002`. |
 | NAME-03 | S A L | `[2001:db8::7]:3002` gives `2001_0db8_0000_0000_0000_0000_0000_0007_3002`; no IPv6 prefix contains `__`; an IPv4-mapped address expands to eight groups. |
 | NAME-04 | S A | Without a configured name, unspecified, loopback, `localhost` and link-local addresses are never used, and with no acceptable address the participant does not join and says why. |
-| NAME-05 | S A L | A qualified name splits at the first `__`; a host tool named `a__b` round-trips. |
+| NAME-05 | S A L | A qualified name splits at its first two `__` into net, prefix and tool part: `acme-net__risk-eu__a__b` gives `acme-net`, `risk-eu`, `a__b`, and `acme-net__10_20_4_17_3002__var_calc` gives the address prefix; a host tool named `a.b` gets the tool part `a_b` and is forwarded as `a.b`; every qualified name starts with a letter. |
 | NAME-06 | S A | A join, sync or signed request from a different key claiming a held name (holder alive, dead or left, certificate not revoked) gets `409 name_conflict` naming the holder; the newcomer appears in no member's list and no gossip. |
 | NAME-07 | S A | A participant refused with `name_conflict` does not join, reports the error, and does not retry until its configuration or certificate changes; its local tools keep working. |
 | NAME-08 | S | The CA refuses an enrollment token for a held name and names the holder; after the holder's certificate is revoked the name can be enrolled again. |
-| NAME-09 | S A | A restart or certificate renewal with the same key is not a conflict. |
+| NAME-09 | S A | A restart, or a CA renewal with a new key pair (`renews` naming the previous serial), is not a conflict; a certificate for the name outside the holder's lineage is. |
+| NAME-10 | S A L | Net names matching §5.1 are accepted (`default`, `a`, `acme-net`, `risk_eu`, 16 characters); upper case, a leading digit, `-` or `_`, `__` anywhere, a trailing `_` and 17 characters are rejected; with no net configured the net is `default`. |
+| NAME-11 | S A | One participant in two nets under different instance names is accepted in both; a name held in one net does not block the same name in the other; `name_conflict` in one net does not affect membership of the other. |
+| NET-01 | S A | Every request and response carries `Sajha-Net-Name`, covered by the signature; a request without it, with an invalid name, or for a net the receiver is not in gets an unsigned `404` with no body, identical to the answer when SAJHA Net is disabled. |
+| NET-02 | S A | A participant in nets M and N verifies a request for M only with M's CA, revocation list and nonce store: a certificate from N's CA in a request naming M → `certificate_invalid`; a certificate with `O=N` in a request naming M → `net_mismatch`; the same nonce used once in M and once in N is not a replay. |
+| NET-03 | S A L | A member record, key record, blocks document, conflicts document, revocation list or assertion whose `net` differs from the net it arrived through is dropped. |
+| NET-04 | S A | A signed `server/discover` or `initialize` in net M shows only M's `net` and `instance`; an unsigned one from a participant in two nets shows only `protocol_versions` and `endpoint`. |
+| NET-05 | S | A participant in M and N never lists in N a tool imported from M, and its catalog for N never contains one, unless re-export is enabled for N; with it enabled the tool is offered as the bridge's own, and the call into M is made as the bridge's mapped local user with an assertion signed in M, never with the caller's key. |
+| NET-06 | S A | A participant publishes its key records in each of its nets with that net's `net`, its name there as `home_instance` and that net's certificate; a user's key verifies in both nets, and a record from M presented in N is ignored. |
 | CAP-01 | S A | `server/discover` carries `capabilities.extensions["io.sajha/net"]`, valid against `extension`. |
 | CAP-02 | S A | A 2025-11-25 `initialize` result carries the same object under `capabilities.experimental`. |
 | CAP-03 | S A | An unsigned discover may carry only `protocol_versions` and `endpoint`; a signed one carries the full object. |
@@ -1608,11 +1979,22 @@ vectors for SIG-01, SIG-12 and REC-01.
 | GOS-09 | S A | After a restart the incarnation exceeds the previous one, with persisted state lost and with the clock set back. |
 | GOS-10 | S A | A revoked member's entries are dropped and its tools removed. |
 | GOS-11 | S A | A dead member is still probed at the dead-probe rate and rejoins when it answers. |
+| GOS-12 | S A | A net configured with no seeds and not marked founder is not joined and the error is reported, while the participant's other nets join normally; a founder with no seeds starts alone and is joined by the next member through its seed. |
+| GOS-13 | S A | On restart the seeds are tried first; with every seed down, saved members are tried most recently seen first, entries older than the maximum age are skipped, and a saved member whose certificate no longer verifies is refused; with seeds and saved members all down, the participant reports it has not joined and retries with back-off. |
+| GOS-14 | S A | A join started from an operator-given address is an ordinary signed sync: a peer whose certificate is from another CA, names another net, is revoked or claims a held name is refused exactly as in GOS-06, NAME-06 and SIG-07/08, and nothing about it is stored. |
 | CAT-01 | S A | The catalog lists only tools exported to the requester; each is a valid MCP Tool with `_meta["io.sajha/net"]` valid against `tool_net_meta`. |
 | CAT-02 | S A | `if_none_match` equal to the current hash → `unchanged: true` without `tools`; the hash is computed as §10.2 says. |
 | CAT-03 | S A | A signed `tools/list` returns the same tools as the catalog endpoint. |
 | CAT-04 | S | An unchanged digest causes no pull; a changed one causes exactly one; oversized catalogs and descriptions are capped and the peer flagged. |
 | CAT-05 | S A (`visibility`) | Visibility lists, per key id, the tools that user may call; keys from another home get `not_home`. |
+| CAT-06 | S A | Each catalog entry carries every member of the tool definition the host shows its own clients (name, title, description, both schemas, annotations, `_meta`) with an informational `version` and a `contract_hash` computed as §10.2 (annotations included); a home that computes a different hash does not import the tool and flags the peer. |
+| CAT-07 | S | A peer's tools disappear from `tools/list`, aliases, resolution and caches as soon as it is `left` or `dead`; while it is `suspect` they are listed with `state: "unavailable"` and no call is sent to it; after it returns they are listed again only after a successful pull. |
+| CAT-08 | S | After a restart, no remote tool is listed or callable until that peer's catalog response (full or `unchanged`) has arrived in this run, even though a stored copy exists. |
+| CON-01 | S A | Hosts offering a tool with the same `contract_hash` are one tool; a difference only in description or title is a warning, not a conflict; `version` plays no part. |
+| CON-02 | S A | When two hosts in a net offer a tool with different `contract_hash` values, every member that sees both quarantines it: no copy is listed, resolved, callable or a fallback target, by plain or qualified name; callers get `contract_conflict` naming every offering host and hash; the event is logged at error level, alerted, counted and audited. |
+| CON-03 | S A | An offering host quarantines its own tool too: its local callers cannot reach it by plain name and forwarded calls get `-32011 contract_conflict`; after it stops exporting the tool, the conflict ends and its local callers reach it again. |
+| CON-04 | S A | A member that cannot see one of the offers (export rules) quarantines the tool when another member's conflicts document lists it; a conflicts document lists only the publisher's own observations, is signed, and is pulled when `digests.conflicts` increases. |
+| CON-05 | S | The tool becomes active again, automatically and audited, when every host still offering it has the identical contract (the odd host fixed, its export stopped, or it left, died or was revoked) and no current conflicts document lists it. |
 | KEY-01 | S A (`key_directory`) | A delta pull returns the responder's records with `version > since`, ascending, paged with `more` and `next_since`. |
 | KEY-02 | S A L | Records whose `home_instance` is not the responder, or with a bad signature, or an older version, are ignored. |
 | KEY-03 | S A L | The digest `root` is computed as §11.4; a mismatch triggers a pull from 0. |
@@ -1630,12 +2012,19 @@ vectors for SIG-01, SIG-12 and REC-01.
 | CALL-05 | S A | A net-signed request also carrying `Authorization` or the ordinary API-key header → `-32013 ambiguous_credentials`; a request with `Sajha-Net-*` headers and a bad signature is never served. |
 | CALL-06 | S A | Each step of §15.4 refuses with its code and reason, in order, with `data["io.sajha/net"]` complete. |
 | CALL-07 | S A (`residency`) | Arguments of a class the host may not receive are refused at the home (`residency_arguments`); results the home may not receive are refused or redacted at the host (`residency_result`). |
-| CALL-08 | S A | `hop_limit`, `loop` and `hop_inconsistent` are refused with `-32016`. |
+| CALL-08 | S A | `hop_limit`, `loop` (including the receiver's identity in another of its nets) and `hop_inconsistent` (a last `Sajha-Net-Visited` entry other than `<Sajha-Net-Name>/<Sajha-Net-From>`) are refused with `-32016`. |
 | CALL-09 | S | A refusal reaches the home's caller as `isError: true` with `_meta["io.sajha/net"].refusal`. |
 | CALL-10 | S A | The raw key appears in no log, audit record, trace attribute, metric label or stored row on either side. |
 | CALL-11 | S A (`progress`, `cancellation`) | Progress reaches the caller; the caller's cancellation reaches the host. |
 | CALL-12 | S A | On 2025-11-25, a session created by one participant cannot be used by another's signed requests. |
-| CALL-13 | S A (`reexport`) | A re-exported call carries an assertion with `aud` = origin, no raw key, hop 2 and the visited list; an expired or replayed assertion → `-32013 assertion_invalid`. |
+| CALL-13 | S A (`reexport`) | A re-exported call carries an assertion with `aud` = origin and `net` = the request's net, no raw key, hop 2 and the visited list; an expired or replayed assertion, or one whose `net` is another net → `-32013 assertion_invalid`. |
+| FB-01 | S A | Every refusal of a forwarded `tools/call` before execution (each step 1 to 10 of §15.4, and `-32019` `draining`, `overloaded`, `rate_limited`) carries `executed: false`; `residency_result` carries `executed: true`; a host never sends `-32019` after the tool has started. |
+| FB-02 | S | A call by plain name whose first host refuses the connection, has its breaker open, is `suspect`, or answers `-32019` with `executed: false` is sent to the next host offering the same tool part and version, in resolution order, across nets (where the `contract_hash` must also match); a host offering another version, or a tool refused for `contract_conflict`, is never tried. |
+| FB-03 | S | After a timeout following the send, an unsigned proxy `502`/`503`/`504`, or a response that fails verification, the home falls back only for tools that are read-only, or idempotent with `destructiveHint: false`; a destructive tool is not tried again. |
+| FB-04 | S | A call by qualified name is never sent to another host; a non-availability refusal by the first host (`-32011`, `-32013`, `-32015`, `-32016`, `-32012`) is returned without fallback. |
+| FB-05 | S | During a fallback, a host that refuses for any reason is skipped and the next one tried; at most `max_fallbacks` hosts are tried after the first; no attempt starts after the shared deadline; when none answers, the caller gets the first attempt's refusal with `attempts` listed. |
+| FB-06 | S | Every attempt carries the same trace id and, from the second on, `attempt` in `params._meta["io.sajha/net"]`; each is audited at the home with its attempt number and outcome, and counted in the fallback metric. |
+| FB-07 | S | Once a host has sent a progress notification, an `input_required` result or a created task for a call, the call is treated as possibly executed. |
 | ERR-01 | S A | Every `/sajhanet/` error is a signed `application/problem+json` body valid against `problem`. |
 | LIM-01 | S A | Bodies and headers over §18 get 413; 32 updates and 1024 members are accepted. |
 
@@ -1653,7 +2042,7 @@ MIIBJjCB2aADAgECAgEBMAUGAytlcDApMREwDwYDVQQKDAhhY21lLW5ldDEUMBIGA1UEAwwLYWNtZS1u
 
 ### 21.1 A signed tool call and its response
 
-`alice@risk-eu` calls `cust-na__var_calc`; `risk-eu` forwards it to `cust-na`. Request:
+`alice@risk-eu` calls `acme-net__cust-na__var_calc`; `risk-eu` forwards it to `cust-na`. Request:
 
 ```http
 POST /mcp HTTP/1.1
@@ -1664,18 +2053,19 @@ MCP-Protocol-Version: 2026-07-28
 Mcp-Method: tools/call
 Mcp-Name: var_calc
 Sajha-Net-Version: 1
+Sajha-Net-Name: acme-net
 Sajha-Net-From: risk-eu
 Sajha-Net-To: cust-na
 Sajha-Net-Hop: 1
-Sajha-Net-Visited: "risk-eu"
+Sajha-Net-Visited: "acme-net/risk-eu"
 Sajha-Net-Api-Key: sja_U7ctcH-MN6JrIdIlX_PfCVXKc79Rmt58aTub2E7N97E
 traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
-Content-Digest: sha-256=:GmWE8ztwdAgAKupEUE8ySGW/GDF1N4TRv6PSGmbSBl8=:
+Content-Digest: sha-256=:FH+YtinzXcDSV+F2IPdYvsdEmlqry1zKK1duKAzRDeI=:
 Sajha-Net-Certificate: :MIIBSTCB/KADAgECAgMaKzwwBQYDK2VwMCkxETAPBgNVBAoMCGFjbWUtbmV0MRQwEgYDVQQDDAthY21lLW5ldCBDQTAeFw0yNjEwMDEwMDAwMDBaFw0yNjEwMzEwMDAwMDBaMCUxETAPBgNVBAoMCGFjbWUtbmV0MRAwDgYDVQQDDAdyaXNrLWV1MCowBQYDK2VwAyEAIWvGipO7YbWU0Mxtr+alRgL4QiXNgPhYTBG2IOEdxKSjSzBJMAwGA1UdEwEB/wQCMAAwDgYDVR0PAQH/BAQDAgeAMCkGA1UdEQQiMCCCHnNhamhhLXJpc2stZXUuZXhhbXBsZS5pbnRlcm5hbDAFBgMrZXADQQCdjQWn60f/a+Co25hWcYkVpEm5gaan+h8jRb85AvE2F4vda21cPZJrjjZW6KpIhte1uVKZReH6ir3hYl6Xm7sJ:
-Signature-Input: sajhanet=("@method" "@path" "@query" "content-type" "content-digest" "mcp-protocol-version" "mcp-method" "mcp-name" "sajha-net-version" "sajha-net-from" "sajha-net-to" "sajha-net-hop" "sajha-net-visited" "sajha-net-api-key" "traceparent");created=1791374400;nonce="q1QXbXk3WlNQ8n0Zr6dL4w";keyid="_9toR0iCB-Uqt342hN98Scc5b_lGbZ_OZyriwc0-KTQ";alg="ed25519";tag="sajha-net-v1"
-Signature: sajhanet=:u6DKXuhDJP0y5wZUtfor1OFkKiJGYiSnU7cye2bk/7muA78MOtt14IkKFG1YzShBgcmUyxSmJ+G5/vMLYZqrDw==:
+Signature-Input: sajhanet=("@method" "@path" "@query" "content-type" "content-digest" "mcp-protocol-version" "mcp-method" "mcp-name" "sajha-net-version" "sajha-net-name" "sajha-net-from" "sajha-net-to" "sajha-net-hop" "sajha-net-visited" "sajha-net-api-key" "traceparent");created=1791374400;nonce="q1QXbXk3WlNQ8n0Zr6dL4w";keyid="_9toR0iCB-Uqt342hN98Scc5b_lGbZ_OZyriwc0-KTQ";alg="ed25519";tag="sajha-net-v1"
+Signature: sajhanet=:xHiAAzcYJVUZBiNqU+OYRIwVVv5I7DfVOTEws0KRlNbLHX9nyOmPPwEiojXWFOSS9su5gbZkm51gcf/nqPYPDQ==:
 
-{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"var_calc","arguments":{"portfolio":"EU-RATES","confidence":0.99,"horizon_days":10},"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{"extensions":{"io.sajha/net":{"protocol_version":1}}},"traceparent":"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01","io.sajha/net":{"home":"risk-eu","qualified_name":"cust-na__var_calc"}}}}
+{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"var_calc","arguments":{"portfolio":"EU-RATES","confidence":0.99,"horizon_days":10},"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{"extensions":{"io.sajha/net":{"protocol_version":1}}},"traceparent":"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01","io.sajha/net":{"home":"risk-eu","qualified_name":"acme-net__cust-na__var_calc"}}}}
 ```
 
 The body is the single line shown, with no trailing newline. Its signature base (what `risk-eu` signed;
@@ -1686,18 +2076,19 @@ never logged in practice, because it contains the key):
 "@path": /mcp
 "@query": ?
 "content-type": application/json
-"content-digest": sha-256=:GmWE8ztwdAgAKupEUE8ySGW/GDF1N4TRv6PSGmbSBl8=:
+"content-digest": sha-256=:FH+YtinzXcDSV+F2IPdYvsdEmlqry1zKK1duKAzRDeI=:
 "mcp-protocol-version": 2026-07-28
 "mcp-method": tools/call
 "mcp-name": var_calc
 "sajha-net-version": 1
+"sajha-net-name": acme-net
 "sajha-net-from": risk-eu
 "sajha-net-to": cust-na
 "sajha-net-hop": 1
-"sajha-net-visited": "risk-eu"
+"sajha-net-visited": "acme-net/risk-eu"
 "sajha-net-api-key": sja_U7ctcH-MN6JrIdIlX_PfCVXKc79Rmt58aTub2E7N97E
 "traceparent": 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
-"@signature-params": ("@method" "@path" "@query" "content-type" "content-digest" "mcp-protocol-version" "mcp-method" "mcp-name" "sajha-net-version" "sajha-net-from" "sajha-net-to" "sajha-net-hop" "sajha-net-visited" "sajha-net-api-key" "traceparent");created=1791374400;nonce="q1QXbXk3WlNQ8n0Zr6dL4w";keyid="_9toR0iCB-Uqt342hN98Scc5b_lGbZ_OZyriwc0-KTQ";alg="ed25519";tag="sajha-net-v1"
+"@signature-params": ("@method" "@path" "@query" "content-type" "content-digest" "mcp-protocol-version" "mcp-method" "mcp-name" "sajha-net-version" "sajha-net-name" "sajha-net-from" "sajha-net-to" "sajha-net-hop" "sajha-net-visited" "sajha-net-api-key" "traceparent");created=1791374400;nonce="q1QXbXk3WlNQ8n0Zr6dL4w";keyid="_9toR0iCB-Uqt342hN98Scc5b_lGbZ_OZyriwc0-KTQ";alg="ed25519";tag="sajha-net-v1"
 ```
 
 `cust-na` verifies the signature, finds the record of §21.3 by the key's hash
@@ -1708,12 +2099,13 @@ to `Sajha-Net-From`, maps `alice@risk-eu`, applies its rules, runs the tool and 
 HTTP/1.1 200 OK
 Content-Type: application/json
 Sajha-Net-Version: 1
+Sajha-Net-Name: acme-net
 Sajha-Net-From: cust-na
 Sajha-Net-To: risk-eu
 Content-Digest: sha-256=:3cc/4zkToj3LIns5PQjmKsHtH56yWZ+r6ASgmPUwZ+8=:
 Sajha-Net-Certificate: :<cust-na's certificate, issued by the same CA>:
-Signature-Input: sajhanet=("@status" "content-type" "content-digest" "sajha-net-version" "sajha-net-from" "sajha-net-to" "signature";req;key="sajhanet");created=1791374401;keyid="TYgEyZ0EpjoyDRl0LSBetA_dB5YYBOYN-zdRoXl2n-I";alg="ed25519";tag="sajha-net-v1"
-Signature: sajhanet=:h/kCVKW7iCnOE16yDGgN81Q61fRAO7iE3IDkgxE23t17BMPgKBP4l9kl42XQlWc3U7Y8/aAGzDsT+VQ+IAXLBw==:
+Signature-Input: sajhanet=("@status" "content-type" "content-digest" "sajha-net-version" "sajha-net-name" "sajha-net-from" "sajha-net-to" "signature";req;key="sajhanet");created=1791374401;keyid="TYgEyZ0EpjoyDRl0LSBetA_dB5YYBOYN-zdRoXl2n-I";alg="ed25519";tag="sajha-net-v1"
+Signature: sajhanet=:VsjDNqwP39vYvKv6QK79JlSp+PSgnZOkvcPpeSRlMmC66VzbfNBVxjHu+zDVbF5i/ZlMT6fPwDLXBGLVKWOBBg==:
 
 {"jsonrpc":"2.0","id":7,"result":{"resultType":"complete","content":[{"type":"text","text":"{\"var\": 1843200.0, \"currency\": \"EUR\"}"}],"structuredContent":{"var":1843200.0,"currency":"EUR"},"isError":false,"_meta":{"io.sajha/net":{"instance":"cust-na","data_classes":{"results":["confidential"]}}}}}
 ```
@@ -1725,10 +2117,11 @@ Its signature base:
 "content-type": application/json
 "content-digest": sha-256=:3cc/4zkToj3LIns5PQjmKsHtH56yWZ+r6ASgmPUwZ+8=:
 "sajha-net-version": 1
+"sajha-net-name": acme-net
 "sajha-net-from": cust-na
 "sajha-net-to": risk-eu
-"signature";req;key="sajhanet": :u6DKXuhDJP0y5wZUtfor1OFkKiJGYiSnU7cye2bk/7muA78MOtt14IkKFG1YzShBgcmUyxSmJ+G5/vMLYZqrDw==:
-"@signature-params": ("@status" "content-type" "content-digest" "sajha-net-version" "sajha-net-from" "sajha-net-to" "signature";req;key="sajhanet");created=1791374401;keyid="TYgEyZ0EpjoyDRl0LSBetA_dB5YYBOYN-zdRoXl2n-I";alg="ed25519";tag="sajha-net-v1"
+"signature";req;key="sajhanet": :xHiAAzcYJVUZBiNqU+OYRIwVVv5I7DfVOTEws0KRlNbLHX9nyOmPPwEiojXWFOSS9su5gbZkm51gcf/nqPYPDQ==:
+"@signature-params": ("@status" "content-type" "content-digest" "sajha-net-version" "sajha-net-name" "sajha-net-from" "sajha-net-to" "signature";req;key="sajhanet");created=1791374401;keyid="TYgEyZ0EpjoyDRl0LSBetA_dB5YYBOYN-zdRoXl2n-I";alg="ed25519";tag="sajha-net-v1"
 ```
 
 A real 2026-07-28 result also carries the server-info `_meta` and caching fields; they are left out
@@ -1738,13 +2131,15 @@ here for length, and would be covered by the digest like everything else in the 
 
 `risk-eu` pings `cust-na`, carrying news that `treasury-na` is suspect. Headers are signed as in §8.5
 (covering `@method`, `@path`, `@query`, `content-type`, `content-digest`, `sajha-net-version`,
-`sajha-net-from`, `sajha-net-to`); signatures and certificates inside the body are elided as `…`.
+`sajha-net-name`, `sajha-net-from`, `sajha-net-to`). This example is illustrative: its digest,
+signatures and certificates are elided as `…`, and only §21.1 and §21.3 are test vectors.
 
 ```http
 POST /sajhanet/v1/gossip/ping HTTP/1.1
 Host: sajha-cust-na.example.internal
 Content-Type: application/json
 Sajha-Net-Version: 1
+Sajha-Net-Name: acme-net
 Sajha-Net-From: risk-eu
 Sajha-Net-To: cust-na
 Content-Digest: sha-256=:…:
@@ -1794,6 +2189,7 @@ The record of the key used in §21.1, signed by `risk-eu`:
 ```json
 {
   "type": "key",
+  "net": "acme-net",
   "key_id": "0b6f3c1e-8a4d-4f7e-9c21-5d3e7a9b2f10",
   "key_prefix": "sja_U7ctcH-M...",
   "name": "alice laptop",
@@ -1810,7 +2206,7 @@ The record of the key used in §21.1, signed by `risk-eu`:
   "version": 42,
   "updated_at": "2026-10-07T11:58:03Z",
   "signature": { "alg": "ed25519", "keyid": "_9toR0iCB-Uqt342hN98Scc5b_lGbZ_OZyriwc0-KTQ",
-                 "sig": "qShDuzikCPsmi6TuBlU_g5btDfV-tqcIBYh4ahgzkBNxMJ9dWC4vwTtE3gu6Bvsh3lVx7XDCc0LNagEik70oBA" }
+                 "sig": "0AFAefhoSn4sMYcjD95AcBYRf_Ik_GTQF2U1oKGlNtgaweBjdz9Ugjygjh5BenumgXzrW8NaHybd1ZXs6_hOBg" }
 }
 ```
 
@@ -1818,7 +2214,7 @@ The signing input is the ASCII `sajha-net-v1:key:` followed by the JCS form of t
 `signature`:
 
 ```
-{"enabled":true,"expires_at":"2027-04-01T00:00:00Z","home_instance":"risk-eu","key_hash":"1db0e8728c95abfa10d2a7b40dabc56c240e72cc4c63d517815b22ac46f09ff4","key_id":"0b6f3c1e-8a4d-4f7e-9c21-5d3e7a9b2f10","key_prefix":"sja_U7ctcH-M...","name":"alice laptop","owner":{"display_name":"Alice Martin","roles":["analyst"],"user_id":"7d2a9e44-1c3b-4b8e-a6f0-2e9d8c7b5a31","user_name":"alice"},"persistent":false,"revoked_at":null,"tool_access_list":["var_calc","stress_test"],"tool_access_mode":"allowlist","type":"key","updated_at":"2026-10-07T11:58:03Z","version":42}
+{"enabled":true,"expires_at":"2027-04-01T00:00:00Z","home_instance":"risk-eu","key_hash":"1db0e8728c95abfa10d2a7b40dabc56c240e72cc4c63d517815b22ac46f09ff4","key_id":"0b6f3c1e-8a4d-4f7e-9c21-5d3e7a9b2f10","key_prefix":"sja_U7ctcH-M...","name":"alice laptop","net":"acme-net","owner":{"display_name":"Alice Martin","roles":["analyst"],"user_id":"7d2a9e44-1c3b-4b8e-a6f0-2e9d8c7b5a31","user_name":"alice"},"persistent":false,"revoked_at":null,"tool_access_list":["var_calc","stress_test"],"tool_access_mode":"allowlist","type":"key","updated_at":"2026-10-07T11:58:03Z","version":42}
 ```
 
 ## 22. Decisions made in this spec
@@ -1872,8 +2268,31 @@ The design leaves these open or states them loosely; this specification decides 
 23. **Manual mode** uses self-signed certificates with pinned thumbprints and otherwise the same
     protocol (§8.11).
 24. **Name syntax.** Configured instance names are lowercase, start with a letter and have at most 32
-    characters; net names at most 63 (§5).
+    characters; net names start with a letter, have at most 16 characters and never contain `__` or
+    end with `_` (owner decision), and an unnamed net is `default` (§5).
 25. **Hop maximum** of 8 regardless of configuration (§16).
+26. **Several nets, one port.** The net is chosen by a signed `Sajha-Net-Name` header on every request
+    and response rather than by path, so a participant serves every net on one `/sajhanet/v1/` prefix
+    and one MCP endpoint; an unknown net gets the same unsigned `404` as a disabled net (§7.7).
+27. **Every net-scoped record carries `net`**: member records (already), key records, blocks
+    documents, revocation lists (already), user assertions, catalog responses and catalog metadata;
+    nonces are kept per net (§7.7, §8.7).
+28. **Qualified names are `<net>__<prefix>__<tool part>`**, split at the first two `__`, so every
+    qualified name starts with a letter; model-provider length limits are handled by home-local
+    aliases, not on the wire (owner decision; §5.3).
+29. **One name, one contract per net, with no winner.** Hosts offering a name with different
+    `contract_hash` values (schemas and annotations) quarantine it net-wide until they agree;
+    observations are published in a signed conflicts document so members converge; `version` is
+    informational only, and a contract change is rolled out everywhere at once or under a new name
+    (owner decision; §10.2, §10.7).
+30. **`executed`** in every refusal of a forwarded call is the host's signed statement that the tool
+    did or did not run; host-side availability refusals use `-32019` before execution only (§15.4,
+    §15.8, §17).
+31. **A bridge between nets is a host in one and a home in the other**: it calls into the second net
+    as its own mapped local user with an assertion signed there; hop count and the net-qualified
+    visited list run end to end (§16).
+32. **Withdrawal is immediate** on `left` and `dead`; `suspect` keeps tools listed as unavailable; a
+    stored catalog never lists tools after a restart (owner decision; §10.6).
 
 ## 23. References
 
