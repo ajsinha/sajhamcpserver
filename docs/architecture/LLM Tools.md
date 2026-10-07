@@ -1013,18 +1013,21 @@ Each step ends green: full suite, both conformance suites, mobile check for any 
 
 ## 20. Decisions for the owner
 
-1. **Default state.** Ship the type enabled with no LLM tools except `sajha_ask` (still off by
-   default), or ship the examples enabled? Recommended: type on, examples off.
-2. **Anonymous access.** Off by default (recommended), since every call spends model budget.
-3. **Sampling.** In this build (step 10) or later?
-4. **Modes.** The seven in section 6, or others to add (for example a `translate` preset of
-   `complete`, or a `compare` preset of `judge`)?
-5. **Who may create LLM tools.** Studio users (the `studio` permission), or administrators only,
-   given they spend model budget?
-6. **Who may author planners.** Administrators only (recommended): a planner decides how much a
-   tool spends and how it loops, so it is closer to policy than to a tool definition.
-7. **Default strategy.** `react` for `answer` tools (recommended), with Reflect or
-   verify-then-answer chosen per tool where accuracy matters more than latency.
+All decided by the owner:
+
+1. **Default state.** The LLM tool type is on; the shipped example LLM tools are off until an
+   administrator enables them. `sajha_ask` stays off by default as today.
+2. **Anonymous access.** Off (`ai.llm_tools.anonymous.enabled: false`): every call spends model
+   budget.
+3. **Sampling.** Later: build step 10, after the core, planners and memory work.
+4. **Modes.** The seven in section 6; presets such as `translate` (of `complete`) or `compare`
+   (of `judge`) only when asked for.
+5. **Who may create LLM tools.** Users with the `studio` permission; limits and budgets bound
+   what a tool can spend.
+6. **Who may author planners.** Administrators only: a planner decides how much a tool spends
+   and how it loops, so it is closer to policy than to a tool definition.
+7. **Default strategy.** `react` for `answer` tools, with Reflect or verify-then-answer chosen
+   per tool where accuracy matters more than latency.
 
 ---
 

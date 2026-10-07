@@ -1115,13 +1115,13 @@ What this design would add, in combination, is aimed at regulated, multi-domain 
 - **SAJHA Net agent language:** Python, built from the shared protocol-only core; a single
   static binary only if a deployment later needs one.
 
-**Still open**
+- **Users with no account on a host** are refused, and the remote tools that would need one are
+  hidden from them (`sajhanet.users.unknown: refuse`, section 11.3).
+- **Administrators from other instances** call tools as the host's administrator
+  (`sajhanet.users.remote_admin: admin`); net settings on an instance still change only through an
+  administrator signed in to it (section 11.3).
 
-1. **Users with no account on a host:** refuse (default, recommended) or run them with mapped
-   roles (`sajhanet.users.unknown`)?
-2. **Administrators from other instances** calling tools: as the host's administrator (default,
-   given the net is trusted), as an ordinary user, or refused (`sajhanet.users.remote_admin`)?
-
+No decisions are open.
 
 ---
 
