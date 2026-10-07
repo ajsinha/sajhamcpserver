@@ -1,10 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- SAJHA favicon: the logo mark (icon-sajha in icons/sajha-icons.svg), white on SAJHA crimson -->
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#667eea"/>
-      <stop offset="100%" style="stop-color:#764ba2"/>
+      <stop offset="0%" stop-color="#A51C30"/>
+      <stop offset="100%" stop-color="#6E1120"/>
     </linearGradient>
   </defs>
-  <rect width="32" height="32" rx="6" fill="url(#bg)"/>
-  <text x="16" y="24" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="white" text-anchor="middle">S</text>
+  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
+  <g transform="translate(4 3.5) scale(1)" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="8.2" x2="6.4" y2="15.6"/>
+    <line x1="12" y1="8.2" x2="17.6" y2="15.6"/>
+    <line x1="8.2" y1="19" x2="15.8" y2="19"/>
+    <circle cx="12" cy="5.4" r="3.1"/>
+    <circle cx="5" cy="19" r="3.1"/>
+    <circle cx="19" cy="19" r="3.1"/>
+  </g>
 </svg>
