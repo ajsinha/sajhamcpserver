@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 7.3.0
+  version: 8.0.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   email: ajsinha@gmail.com
@@ -864,8 +864,8 @@ sajhanet:
   #  - name: acme-net               # omitted: the net is called `default`
   #    instance_name: risk-eu       # unset: this server's address, <ip>:<port>
   #    advertise_address: ""        # ip:port peers should use (NAT, containers)
-  #    founder: false               # true only on the net's first server (usually the CA instance)
-  #    seeds: [https://sajha-treasury-na.example.internal]   # at least one unless founder
+  #    founder: false               # true: start alone when every seed is down (the net's first server)
+  #    seeds: [https://sajha-treasury-na.example.internal]   # none: a net of one (this server its founder)
   #    identity: {cert_ref: file:data/sajhanet/acme-net/instance.crt, key_ref: file:data/sajhanet/acme-net/instance.key,
   #               ca_ref: file:data/sajhanet/acme-net/ca.pem, revocation_list_ref: file:data/sajhanet/acme-net/revoked.json}
   #    ca: {enabled: false, key_ref: file:data/sajhanet/acme-net/ca.key, cert_validity_days: 30, enrollment_token_minutes: 30}

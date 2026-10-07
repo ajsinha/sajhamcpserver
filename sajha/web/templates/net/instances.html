@@ -1,0 +1,114 @@
+{% extends "common/base.html" %}
+{% block title %}Instances - SAJHA Net - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.ni-bar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end;margin-bottom:1rem}
+.ni-bar .form-control,.ni-bar .form-select{min-width:0}
+.ni-bar>div{flex:1 1 9rem;max-width:100%}
+.ni-net{border:1px solid var(--t-card-b);border-radius:var(--radius-lg);background:var(--t-card);margin-bottom:1rem}
+.ni-head{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:space-between;padding:.7rem 1rem;border-bottom:1px solid var(--t-card-b);background:var(--t-card-hdr)}
+.ni-head h2{font-size:1.05rem;margin:0;font-weight:700;color:var(--t-heading);word-break:break-word}
+.ni-meta{font-size:.86rem;color:var(--t-muted)}
+.ni-table{font-size:.86rem;width:100%}
+.ni-table th{background:var(--t-card-hdr);color:var(--t-text2);font-weight:600;font-size:.86rem;text-transform:uppercase;letter-spacing:.05em;padding:.45rem .75rem}
+.ni-table td{padding:.45rem .75rem;border-bottom:1px solid var(--t-card-b);color:var(--t-text);word-break:break-word;vertical-align:top}
+.st{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:.86rem;font-weight:600;color:var(--sajha-on-crimson)}
+.st-alive{background:var(--sajha-ok)}.st-suspect{background:var(--sajha-warn)}.st-dead{background:var(--sajha-bad)}.st-left{background:var(--sajha-slate)}
+.ni-label{display:inline-block;font-size:.86rem;padding:.05rem .4rem;border-radius:.3rem;border:1px solid var(--t-card-b);color:var(--t-text2);margin:0 .2rem .2rem 0}
+.ni-you{font-size:.86rem;font-weight:700;color:var(--t-muted);text-transform:uppercase;margin-left:.35rem}
+@media (max-width:576px){.ni-table th.opt,.ni-table td.opt{display:none}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-share me-2" aria-hidden="true"></i>Instances</h1>
+      <small class="text-muted">Every SAJHA Net participant this server knows, and how many of its tools you may use from here</small>
+    </div>
+    <div class="d-flex gap-2">
+      {% if is_admin %}<a class="btn btn-sm btn-outline-secondary" href="/admin/sajhanet">SAJHA Net admin</a>{% endif %}
+      <a class="btn btn-sm btn-outline-primary" href="/net/instances" aria-label="Reload"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></a>
+    </div>
+  </div>
+
+  {% if not view.enabled %}
+  <div class="alert alert-info small" role="status">
+    <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+    SAJHA Net is off, so this server is a net of one: it is listed below and talks to no other instance.
+    {% if is_admin %}Set <code>sajhanet.enabled: true</code> to let it join others or let others join it.{% endif %}
+  </div>
+  {% endif %}
+
+  <form class="ni-bar" role="search" onsubmit="return false" aria-label="Filter instances">
+    <div><label class="form-label small" for="ni-q">Search</label>
+      <input class="form-control form-control-sm" id="ni-q" placeholder="name, region, label" autocomplete="off"></div>
+    <div><label class="form-label small" for="ni-net">Net</label>
+      <select class="form-select form-select-sm" id="ni-net"><option value="">All</option>
+        {% for n in view.nets %}<option>{{ n.net }}</option>{% endfor %}</select></div>
+    <div><label class="form-label small" for="ni-state">State</label>
+      <select class="form-select form-select-sm" id="ni-state"><option value="">All</option>
+        <option>alive</option><option>suspect</option><option>dead</option><option>left</option></select></div>
+    <div><label class="form-label small" for="ni-kind">Kind</label>
+      <select class="form-select form-select-sm" id="ni-kind"><option value="">All</option>
+        <option>sajha</option><option>agent</option><option>sponsored</option></select></div>
+    <div><label class="form-label small" for="ni-region">Region</label>
+      <input class="form-control form-control-sm" id="ni-region" placeholder="any" autocomplete="off"></div>
+    <div><label class="form-label small" for="ni-labelf">Label</label>
+      <input class="form-control form-control-sm" id="ni-labelf" placeholder="key or key=value" autocomplete="off"></div>
+  </form>
+  <p class="ni-meta" id="ni-count" role="status" aria-live="polite"></p>
+
+  {% for n in view.nets %}
+  <section class="ni-net" data-net="{{ n.net }}" aria-labelledby="ni-net-{{ loop.index }}">
+    <div class="ni-head">
+      <h2 id="ni-net-{{ loop.index }}">{{ n.net }} <span class="ni-meta">as <code>{{ n.instance }}</code></span></h2>
+      <span class="ni-meta">{% if n.single_member %}a net of one{% if n.state != 'off' %} · {{ n.state }}{% endif %}{% else %}{{ n.instances|length }} instances · {{ n.state }}{% endif %}</span>
+    </div>
+    <div class="table-responsive">
+    <table class="ni-table">
+      <caption class="visually-hidden">Instances in {{ n.net }}</caption>
+      <thead><tr><th scope="col">Instance</th><th scope="col">State</th><th scope="col">Your tools</th>
+        <th scope="col" class="opt">Kind</th><th scope="col" class="opt">Region and labels</th><th scope="col" class="opt">Last seen</th></tr></thead>
+      <tbody>
+      {% for i in n.instances %}
+        <tr class="ni-row" data-net="{{ n.net }}" data-state="{{ i.state }}" data-kind="{{ i.kind }}" data-region="{{ i.region|lower }}"
+            data-labels="{% for k, v in i.labels.items() %}{{ k|lower }}={{ v|lower }} {% endfor %}"
+            data-text="{{ i.name|lower }} {{ i.region|lower }} {% for k, v in i.labels.items() %}{{ k|lower }} {{ v|lower }} {% endfor %}">
+          <td><a href="/net/instances/{{ n.net|urlencode }}/{{ i.name|urlencode }}"><code>{{ i.name }}</code></a>{% if i.self %}<span class="ni-you">this server</span>{% endif %}
+            {% if i.note %}<div class="ni-meta">{{ i.note }}</div>{% endif %}</td>
+          <td><span class="st st-{{ i.state }}">{{ i.state }}</span></td>
+          <td>{{ i.tools_usable }}{% if i.tools_total != i.tools_usable %} <span class="ni-meta">of {{ i.tools_total }}</span>{% endif %}</td>
+          <td class="opt">{{ i.kind }}</td>
+          <td class="opt">{{ i.region or '—' }}{% for k, v in i.labels.items() %} <span class="ni-label">{{ k }}: {{ v }}</span>{% endfor %}</td>
+          <td class="opt">{{ i.last_seen or '—' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+  {% endfor %}
+</div>
+<script>
+(function(){
+  const ids = ['ni-q', 'ni-net', 'ni-state', 'ni-kind', 'ni-region', 'ni-labelf'];
+  const v = id => (document.getElementById(id).value || '').trim().toLowerCase();
+  function apply(){
+    const q = v('ni-q'), net = v('ni-net'), st = v('ni-state'), kind = v('ni-kind'), reg = v('ni-region'), lab = v('ni-labelf');
+    let shown = 0, total = 0;
+    document.querySelectorAll('.ni-row').forEach(r => {
+      total++;
+      const ok = (!q || r.dataset.text.includes(q)) && (!net || r.dataset.net.toLowerCase() === net) &&
+        (!st || r.dataset.state === st) && (!kind || r.dataset.kind === kind) &&
+        (!reg || r.dataset.region.includes(reg)) && (!lab || r.dataset.labels.includes(lab));
+      r.hidden = !ok; if (ok) shown++;
+    });
+    document.querySelectorAll('.ni-net').forEach(s => { s.hidden = !s.querySelector('.ni-row:not([hidden])'); });
+    document.getElementById('ni-count').textContent = shown === total ? (total + ' instances') : (shown + ' of ' + total + ' instances shown');
+  }
+  ids.forEach(id => document.getElementById(id).addEventListener('input', apply));
+  apply();
+})();
+</script>
+{% endblock %}

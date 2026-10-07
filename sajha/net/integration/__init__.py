@@ -311,6 +311,8 @@ class SajhaNetService:
             except Exception as e:
                 rt.error = f'the CA certificate ({cfg.identity.ca_ref}) cannot be read: {e}'
                 return
+        if not cfg.seeds and not adm.manual and not cfg.ca.enabled and read_ref(cfg.ca.key_ref):
+            cfg.ca.enabled = True                        # a net of one whose CA was initialised here
         if cfg.ca.enabled and not adm.manual:
             ck, cc = read_ref(cfg.ca.key_ref), read_ref(cfg.ca.cert_ref)
             if ck and cc:
@@ -408,7 +410,14 @@ class SajhaNetService:
             except Exception as e:
                 logger.warning(f'SAJHA Net {net}: not started: {e}', exc_info=True)
                 rt.error = str(e)
-            if rt.error:
+            if rt.error and not rt.cfg.seeds and net not in self.errors:
+                # a net with no seeds is a net of one (owner decision): nothing to join, so no error; it is
+                # networked once it has a certificate (an initialised CA, or enrollment with another's CA)
+                logger.info(f'SAJHA Net {net}: a net of one, not networked yet: {rt.error}')
+                _notice(f'sajhanet.not_joined:{net}', 'info', f'SAJHA Net {net} is a net of one',
+                        f'This server is the only member of {net} and talks to nobody. To let other '
+                        f'instances join, give it a certificate: {rt.error}', ttl=0)
+            elif rt.error:
                 logger.error(f'SAJHA Net {net}: {rt.error}')
                 _notice(f'sajhanet.not_joined:{net}', 'error', f'Not joined to SAJHA Net {net}', rt.error, ttl=0)
             if net == 'default':
@@ -598,12 +607,13 @@ class SajhaNetService:
     def ca_init(self, net: str, by: str = '', alg: str = crypto.ED25519) -> Dict[str, Any]:
         rt = self._rt(net)
         cfg = rt.cfg
-        if not cfg.ca.enabled:
+        if not cfg.ca.enabled and cfg.seeds:
             raise ServiceError(409, f'this server is not the CA instance of {net} (set ca.enabled in its net entry)')
         if cfg.admission != 'builtin_ca':
             raise ServiceError(409, 'the net runs in manual mode: it has no CA')
         if read_ref(cfg.ca.key_ref):
             raise ServiceError(409, f'the CA of {net} is already initialised ({cfg.ca.key_ref})')
+        cfg.ca.enabled = True                                # a net of one (no seeds): its founder is its CA
         key, cert = init_ca(net, alg=alg, now=self.clock())
         write_file(cfg.ca.key_ref, crypto.key_to_pem(key), private=True)
         write_file(cfg.ca.cert_ref, crypto.cert_pem(cert), private=False)

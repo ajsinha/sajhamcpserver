@@ -697,11 +697,11 @@ Fields of a `sajhanet.nets` entry (YAML or `SAJHA_SAJHANET_NETS`). An entry may 
 | `name` | `default` | The net name (lowercase letters, digits, `-`, `_`; starts with a letter; at most 16; never `__`; not ending in `_`). |
 | `instance_name` | the address | This server's name in the net (`risk-eu`: lowercase letters, digits and single hyphens, 2 to 32). Unset: `advertise_address`, else the bind address, else the default-route interface, as `<ip>:<port>`; never unspecified, loopback, `localhost` or link-local, and with none acceptable the net is not joined and an error notice says why. |
 | `advertise_address` | `""` | `ip:port` peers should use behind NAT or a container network. |
-| `founder` | `false` | The net's first server, which may start without seeds. |
-| `seeds` | `[]` | Base URLs tried first to join; at least one is required unless `founder` (otherwise the net is not joined and an error notice says so; the other nets are unaffected). |
+| `founder` | `false` | Start alone when every seed is down instead of retrying (the net's first server when it also lists seeds). A net with no seeds needs no `founder`: it is a net of one. |
+| `seeds` | `[]` | Base URLs tried first to join. None: the net is a **net of one** (owner decision): this server is its founder and only member, joined at once with no error notice, no join retries and no gossip, and it grows into an ordinary net when a peer joins through it or is added by address, without a restart. Until it has a certificate an info notice says how to give it one (`sajha net ca init`, allowed on a net of one without `ca.enabled`, or enrollment). With seeds that are all down (and not `founder`) the net is not joined and an error notice says so; the other nets are unaffected. |
 | `identity.cert_ref`, `identity.key_ref`, `identity.ca_ref`, `identity.revocation_list_ref` | `file:<data_dir>/<net>/instance.crt`, `instance.key`, `ca.pem`, `revoked.json` | This server's certificate and key in the net, the net's CA certificate, and the revocation list it starts with. `file:` references (written by enrollment and renewal; the key owner-only) or `env:NAME` to read only. |
 | `identity.pins` | `[]` | Manual mode: thumbprints of approved peers' certificates. |
-| `ca.enabled` | `false` | This server is the net's CA instance (one per net). |
+| `ca.enabled` | `false` | This server is the net's CA instance (one per net). On a net of one, a CA key already at `ca.key_ref` makes it the CA instance too. |
 | `ca.key_ref`, `ca.cert_ref` | `file:<data_dir>/<net>/ca.key`, `ca.pem` | The CA key (owner-only, never leaves this server; back it up) and certificate, created by `sajha net ca init`. |
 | `ca.cert_validity_days` | `30` | Lifetime of issued certificates; participants renew when a third remains. |
 | `ca.enrollment_token_minutes` | `30` | Lifetime of an enrollment token. |

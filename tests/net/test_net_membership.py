@@ -237,17 +237,26 @@ def test_gos_10_revoked_member_dropped_and_rev_01(net):
 
 # ── GOS-12 / GOS-13 / GOS-14: seeds, restarts, operator hints ──────────
 
-def test_gos_12_seeds_required_unless_founder(tmp_path):
+def test_gos_12_no_seeds_is_a_net_of_one_that_grows_without_restart(tmp_path):
     n = TestNet(tmp_path)
     founder = n.add('risk-eu', founder=True)
     assert founder.try_join() and founder.joined()
-    lonely = n.add('cust-na')                               # no seeds, not founder
-    assert not lonely.try_join() and not lonely.joined()
-    assert ('cust-na', 'config_error') in [(w, k) for w, k, _ in n.events]
-    late = n.add('treasury-na', seeds=[n.url('risk-eu')])
+    lonely = n.add('cust-na')                               # no seeds, not marked founder: a net of one
+    assert lonely.try_join() and lonely.joined()
+    st = lonely.status()
+    assert st['single_member'] and not st.get('config_error') and not st.get('backoff')
+    kinds = [k for w, k, _ in n.events if w == 'cust-na']
+    assert 'config_error' not in kinds and 'not_joined' not in kinds
+    sent, real = [], n.connector.send
+    n.connector.send = lambda *a, **k: sent.append(a) or real(*a, **k)
+    n.rounds(5, only={'cust-na'})                           # nobody to talk to: no join retries, no gossip
+    n.connector.send = real
+    assert lonely.joined() and lonely.members() == [] and sent == []
+    # a peer contacts it later, through it as a seed: the net of one grows without a restart
+    late = n.add('treasury-na', seeds=[n.url('cust-na')])
     assert late.try_join()
     n.rounds(3)
-    assert 'treasury-na' in n.view('risk-eu')
+    assert n.view('cust-na').get('treasury-na') == 'alive' and n.view('treasury-na').get('cust-na') == 'alive'
 
 
 def test_gos_12_other_nets_join_normally(tmp_path):
@@ -257,9 +266,11 @@ def test_gos_12_other_nets_join_normally(tmp_path):
     os.makedirs(tmp_path / 'n', exist_ok=True)
     m.add('hub-m', founder=True)
     nn.add('hub-n', founder=True)
-    bad = m.add('server', route_as='server')                 # net-m entry has no seeds
+    bad = m.add('server', seeds=[m.url('nowhere')], route_as='server')   # net-m's only seed is down
+    m.kill('nowhere')
     good = nn.add('server', seeds=[nn.url('hub-n')], route_as='server')
     assert not bad.try_join() and good.try_join()
+    assert ('server', 'not_joined') in [(w, k) for w, k, _ in m.events]
 
 
 def test_gos_13_restart_seeds_then_saved_peers_then_backoff(net):

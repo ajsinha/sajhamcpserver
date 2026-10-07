@@ -98,6 +98,11 @@ def _notices_view(request) -> dict:
         return {'enabled': False, 'notices': [], 'banner': None, 'others': 0, 'badge': 0}
 
 
+def _net_badge() -> dict:
+    from sajha.net.integration.console import badge_safe
+    return badge_safe()
+
+
 def _password_change_required(token: str) -> bool:
     """True when the session JWT says the user must change their password (claim ``pwc``)."""
     if not token:
@@ -385,6 +390,8 @@ class SajhaMCPServerWebApp:
             'playground_enabled': _playground_enabled,
             # System notices: banner and navbar badge (sajha/notices; docs/architecture/System Notices.md)
             'notices_view': _notices_view,
+            # SAJHA Net navbar badge, "Net · <instance name>" (sajha/net/integration/console.py)
+            'net_badge': _net_badge,
         })
 
         # Template filters

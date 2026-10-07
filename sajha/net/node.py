@@ -278,12 +278,9 @@ class NetNode:
         """One join attempt (§9.7). True when joined."""
         if self.refused():
             return False
-        if not self.cfg.seeds and not self.cfg.founder:
-            why = f'net {self.net} has no seeds and is not marked founder: it is not joined'
-            self._set_status(joined=False, config_error=why)
-            logger.error(f'SAJHA Net: {why}')
-            self.event('config_error', detail=why)
-            return False
+        # A net with no seeds is a net of one (owner decision; protocol §9.7): this participant is its
+        # founder and only member until a peer contacts it, is added by address, or is learnt otherwise.
+        alone_ok = self.cfg.founder or not self.cfg.seeds
         tried = []
         for kind, url, name in self.join_sources():
             try:
@@ -300,8 +297,9 @@ class NetNode:
                 tried.append(f'{url}: {e.reason}')
             except (PeerUnreachable, NetError) as e:
                 tried.append(f'{url}: {getattr(e, "reason", "") or e}')
-        if self.cfg.founder:
-            self._set_status(joined=True, founder_alone=True, config_error=None)
+        if alone_ok:
+            self._set_status(joined=True, founder_alone=True, single_member=not self.cfg.seeds,
+                             config_error=None, backoff=0, next_join_at=0)
             return True
         st = self.status()
         backoff = min(300.0, max(5.0, float(st.get('backoff') or 0) * 2 or 5.0))

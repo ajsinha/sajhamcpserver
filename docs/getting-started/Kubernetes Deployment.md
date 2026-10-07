@@ -264,8 +264,9 @@ kubectl -n sajha create secret generic acme-net-identity \
     --from-file=instance.crt --from-file=instance.key --from-file=ca.pem
 ```
 
-The chart refuses to render a net listed twice, a net without `seeds` that is not the
-`founder`, and, with more than one pod, a net without `instanceName` and
+A net without `seeds` is a net of one: the pod is its founder and only member until a peer joins
+through it ([SAJHA Net §6.6](../architecture/SAJHA%20Net.md#66-restarts)). The chart refuses to render a
+net listed twice and, with more than one pod, a net without `instanceName` and
 `advertiseAddress`: every pod is the same instance, and an address name would differ from
 pod to pod. The schema checks net and instance names against the
 [protocol's rules](../protocol/SAJHA%20Net%20Protocol.md#5-names).

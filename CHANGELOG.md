@@ -4,6 +4,57 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+Nothing yet.
+
+## v8.0.0 (October 2026) — SAJHA Net core
+
+Wave 4 of the [Implementation Plan](docs/architecture/Implementation%20Plan.md). SAJHA servers form
+a net and share tools while each keeps its own data, rules, AI and memory: several named nets per
+server, a CA run by SAJHA, signed requests on the normal port, gossip membership, automatic proxy
+tools (`net__host__tool`), one name one contract, waterfall fallback, the caller's identity on every
+call, blocks, linked audit, the Instances page and a three-instance demo. A server with no peers is a
+net of one. Credentials follow the owner's intranet settings (plain storage, administrators' files).
+
+### Upgrading from 7.3.0
+
+- **Database:** new table `sajhanet_api_keys` and column `api_keys.key_value`. PostgreSQL: run what
+  `python -m sajha.db upgrade-sql` prints. SQLite development: recreate the database.
+- **Credentials:** `auth.credential_storage` defaults to `plain`; `config/apikeys.json` and the
+  returning `config/users.json` win over the database; `config/apikeys_db.json` is written every 10
+  minutes. The test admin key and account ship **enabled** (`sajhanet.test_admin_key.enabled: true`,
+  owner decision) with a critical notice while active: disable it before production.
+- **SAJHA Net** is off unless `sajhanet.enabled` is set; see Tutorial 28 and
+  `deployment/sajhanet-demo/`.
+
+### SAJHA Net: Instances page, navbar badge, Remote tools, the net of one (wave 4, phase 4.3)
+
+- **Changed (owner decision):** a net entry with no seeds is a **net of one**: this server is its
+  founder and only member, joined at once with no "not joined" error notice, no join retries and no
+  gossip; it grows into an ordinary net when a peer joins through it or is added by address, without a
+  restart. The rule "seeds are required unless `founder: true`" is withdrawn (protocol §9.7 and GOS-12,
+  the Helm chart's render check). A net of one may initialise its CA (`sajha net ca init`) without
+  `ca.enabled`; until it has a certificate an info notice says how to give it one.
+- Added: the **Instances** page for every signed-in user (`/net/instances`, `/net/instances/{net}/{instance}`,
+  `/net/instances/this`; JSON at `/api/sajhanet/instances`): every participant with kind, region, labels,
+  state, last seen and how many of its tools the user may use here, with search and filters, and each
+  instance's tools (alias, description, inputs and outputs, health, latency) with Try it. This server is
+  always listed, as a net of one when SAJHA Net is off.
+- Added: the navbar badge `Net · <instance name>` with a health dot (`+N` for further nets), linking to
+  Instances; a SAJHA Net menu.
+- Added: the admin's **Remote tools** page (`/admin/sajhanet/tools`): the host and tool table with
+  filters, approve and withdraw for tools held under `review` trust, and the contract conflicts.
+- Added: the three-instance test net, in process (`tests/net/test_net_three_instances.py`) and as
+  containers (`deployment/sajhanet-demo/`, a compose file, a README and a smoke script), and Tutorial 28,
+  "Build a SAJHA Net".
+- Fixed: a forwarded call ran at the host without the local account's roles' permissions (the access
+  policy was built without the host's database), so a host refused every remote user who was not an
+  administrator; it now uses the host's database.
+- Fixed: a peer that gave up on a request (a probe past its ping timeout) left a stack trace in the
+  host's log; `/sajhanet/` now answers such a request quietly.
+- Docs: [SAJHA Net](docs/architecture/SAJHA%20Net.md) §5.5 lists the protocol's conformance ids SAJHA's
+  tests cover and those that remain; §4's rows for the per-user cache key and the outbound `traceparent`
+  now say they are built.
+
 ### Credentials: files, plain storage, test admin, per-member keys (owner decisions)
 
 - **Upgrading:** `auth.credential_storage` defaults to `plain` — new and changed passwords and API keys

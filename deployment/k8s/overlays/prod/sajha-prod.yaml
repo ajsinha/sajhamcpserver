@@ -7,7 +7,7 @@ metadata:
   labels:
     app.kubernetes.io/name: sajha
     app.kubernetes.io/instance: sajha
-    app.kubernetes.io/version: 7.3.0
+    app.kubernetes.io/version: 8.0.0
     app.kubernetes.io/part-of: sajha
 spec:
   podSelector:
@@ -82,7 +82,7 @@ metadata:
   labels:
     app.kubernetes.io/name: sajha
     app.kubernetes.io/instance: sajha
-    app.kubernetes.io/version: 7.3.0
+    app.kubernetes.io/version: 8.0.0
     app.kubernetes.io/part-of: sajha
 spec:
   podSelector:
@@ -112,7 +112,7 @@ metadata:
   labels:
     app.kubernetes.io/name: sajha
     app.kubernetes.io/instance: sajha
-    app.kubernetes.io/version: 7.3.0
+    app.kubernetes.io/version: 8.0.0
     app.kubernetes.io/part-of: sajha
 spec:
   minAvailable: 1
@@ -129,7 +129,7 @@ metadata:
   labels:
     app.kubernetes.io/name: sajha
     app.kubernetes.io/instance: sajha
-    app.kubernetes.io/version: 7.3.0
+    app.kubernetes.io/version: 8.0.0
     app.kubernetes.io/part-of: sajha
     app.kubernetes.io/component: redis
 spec:
@@ -149,7 +149,7 @@ metadata:
   labels:
     app.kubernetes.io/name: sajha
     app.kubernetes.io/instance: sajha
-    app.kubernetes.io/version: 7.3.0
+    app.kubernetes.io/version: 8.0.0
     app.kubernetes.io/part-of: sajha
 spec:
   revisionHistoryLimit: 5
@@ -170,7 +170,7 @@ spec:
         app.kubernetes.io/instance: sajha
         app.kubernetes.io/component: server
       annotations:
-        checksum/config: 3d13f34c170220734426e153d0a2abd1b49c491fe4eee37fe3128e47d1fa2951
+        checksum/config: 930e042e1f8df67abbab34c72662fc11abd6fdb5a3a07cea6638131c4d0490b4
     spec:
       serviceAccountName: sajha
       automountServiceAccountToken: false
@@ -186,7 +186,7 @@ spec:
           type: RuntimeDefault
       initContainers:
       - name: seed
-        image: ghcr.io/ajsinha/sajhamcpserver:7.3.0
+        image: ghcr.io/ajsinha/sajhamcpserver:8.0.0
         imagePullPolicy: IfNotPresent
         command:
         - python
@@ -220,7 +220,7 @@ spec:
           mountPath: /seed/impl
       containers:
       - name: sajha
-        image: ghcr.io/ajsinha/sajhamcpserver:7.3.0
+        image: ghcr.io/ajsinha/sajhamcpserver:8.0.0
         imagePullPolicy: IfNotPresent
         args:
         - --host
@@ -399,7 +399,7 @@ metadata:
   labels:
     app.kubernetes.io/name: sajha
     app.kubernetes.io/instance: sajha
-    app.kubernetes.io/version: 7.3.0
+    app.kubernetes.io/version: 8.0.0
     app.kubernetes.io/part-of: sajha
 spec:
   scaleTargetRef:
@@ -426,7 +426,7 @@ metadata:
   labels:
     app.kubernetes.io/name: sajha
     app.kubernetes.io/instance: sajha
-    app.kubernetes.io/version: 7.3.0
+    app.kubernetes.io/version: 8.0.0
     app.kubernetes.io/part-of: sajha
     app.kubernetes.io/component: redis
 spec:
@@ -514,7 +514,7 @@ metadata:
   labels:
     app.kubernetes.io/name: sajha
     app.kubernetes.io/instance: sajha
-    app.kubernetes.io/version: 7.3.0
+    app.kubernetes.io/version: 8.0.0
     app.kubernetes.io/part-of: sajha
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: 16m
@@ -545,7 +545,7 @@ metadata:
   labels:
     app.kubernetes.io/name: sajha
     app.kubernetes.io/instance: sajha
-    app.kubernetes.io/version: 7.3.0
+    app.kubernetes.io/version: 8.0.0
     app.kubernetes.io/part-of: sajha
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: 16m

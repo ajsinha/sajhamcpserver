@@ -1,0 +1,82 @@
+# SAJHA Net demo: three SAJHA instances in one net (deployment/sajhanet-demo/README.md)
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha
+#
+#   docker compose -f deployment/sajhanet-demo/docker-compose.yml up -d --build
+#   python3 deployment/sajhanet-demo/smoke.py          # CA, enrollment, membership, a remote call
+#   docker compose -f deployment/sajhanet-demo/docker-compose.yml down -v
+#
+# A LAB: plain HTTP between the containers (require_https: false) and the test admin key from
+# config/apikeys.json.example. Never run a net like this outside a laptop or a CI job.
+
+x-sajha: &sajha
+  image: sajha:sajhanet-demo
+  build:
+    context: ../..
+    dockerfile: Dockerfile
+  restart: "no"
+  volumes:
+    # the test admin key (sja_test_admin_dev_key_0001) signs the smoke script in as an administrator,
+    # and SAJHA Net calls between the three carry it (sajhanet.test_admin_key.enabled)
+    - ../../config/apikeys.json.example:/app/config/apikeys.json:ro
+  networks: [sajhanet]
+
+x-env: &env
+  SAJHA_SAJHANET_ENABLED: "true"
+  SAJHA_SAJHANET_REQUIRE_HTTPS: "false"
+  SAJHA_SAJHANET_ALLOWED_NETWORKS: '["172.29.0.0/16"]'
+  SAJHA_SAJHANET_TEST_ADMIN_KEY_ENABLED: "true"
+  SAJHA_SAJHANET_GOSSIP_GOSSIP_INTERVAL_MS: "1000"
+  SAJHA_SAJHANET_REFRESH_INTERVAL_SECONDS: "30"
+
+services:
+  # the founder and CA instance: no seeds, so it starts as a net of one until the others enroll
+  risk-eu:
+    <<: *sajha
+    hostname: sajha-risk-eu
+    ports: ["3201:3002"]
+    environment:
+      <<: *env
+      SAJHA_SAJHANET_BASE_URL: http://sajha-risk-eu:3002
+      SAJHA_SAJHANET_REGION: eu-west
+      SAJHA_SAJHANET_NETS: >-
+        [{"name": "demo-net", "instance_name": "risk-eu", "founder": true, "ca": {"enabled": true},
+          "labels": {"domain": "risk"},
+          "export": [{"tools": ["calc_*"]}], "import": [{"tools": ["*"]}]}]
+    networks:
+      sajhanet: {aliases: [sajha-risk-eu]}
+
+  cust-na:
+    <<: *sajha
+    hostname: sajha-cust-na
+    ports: ["3202:3002"]
+    environment:
+      <<: *env
+      SAJHA_SAJHANET_BASE_URL: http://sajha-cust-na:3002
+      SAJHA_SAJHANET_REGION: us-east
+      SAJHA_SAJHANET_NETS: >-
+        [{"name": "demo-net", "instance_name": "cust-na", "seeds": ["http://sajha-risk-eu:3002"],
+          "labels": {"domain": "customer"},
+          "export": [{"tools": ["calc_*"]}], "import": [{"tools": ["*"]}]}]
+    networks:
+      sajhanet: {aliases: [sajha-cust-na]}
+
+  treasury-na:
+    <<: *sajha
+    hostname: sajha-treasury-na
+    ports: ["3203:3002"]
+    environment:
+      <<: *env
+      SAJHA_SAJHANET_BASE_URL: http://sajha-treasury-na:3002
+      SAJHA_SAJHANET_REGION: us-east
+      SAJHA_SAJHANET_NETS: >-
+        [{"name": "demo-net", "instance_name": "treasury-na", "seeds": ["http://sajha-risk-eu:3002"],
+          "labels": {"domain": "treasury"},
+          "export": [{"tools": ["calc_*"]}], "import": [{"tools": ["*"]}]}]
+    networks:
+      sajhanet: {aliases: [sajha-treasury-na]}
+
+networks:
+  sajhanet:
+    ipam:
+      config:
+        - subnet: 172.29.0.0/16

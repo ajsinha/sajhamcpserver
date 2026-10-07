@@ -1841,3 +1841,20 @@ pre.pg-repr { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--sajha-indigo) 5
   .ask-call-tool { grid-column: 2 / 4; }
 }
 @media (prefers-reduced-motion: reduce) { .ask-calls-log { scroll-behavior: auto; } }
+
+/* ── SAJHA Net navbar badge (design §17.2): "Net · <instance name>" beside the wordmark ── */
+.sajha-net-badge { order: 0; display: inline-flex; align-items: center; gap: .35rem; min-height: 32px; max-width: 14rem;
+  margin-right: .5rem; padding: .15rem .55rem; border-radius: 999px; border: 1px solid rgba(255,255,255,.35);
+  color: var(--sajha-on-nav); text-decoration: none; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.sajha-net-badge:hover, .sajha-net-badge:focus-visible { background: rgba(255,255,255,.14); color: var(--sajha-on-nav); }
+.sajha-net-badge .lbl { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.sajha-net-badge .dot { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(255,255,255,.7); }
+.sajha-net-badge .dot-ok { background: var(--sajha-ok); }
+.sajha-net-badge .dot-warn { background: var(--sajha-warn); }
+.sajha-net-badge .dot-bad { background: var(--sajha-bad); }
+.sajha-net-badge .dot-solo { background: var(--sajha-slate); }
+@media (max-width: 420px) {
+  .sajha-net-badge { max-width: 7.5rem; margin-right: .25rem; padding: .15rem .4rem; }
+  .sajha-net-badge .pre { display: none; }
+  .sajha-nav .sajha-brand { margin-right: .5rem; }
+}

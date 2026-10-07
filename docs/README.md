@@ -161,6 +161,7 @@ These guides document each provider's tools, parameters and API keys.
 25. [Tutorial 25: Connect a Database](tutorials/TUTORIAL_25_connect_a_database.md)
 26. [Tutorial 26: Build an LLM Tool](tutorials/TUTORIAL_26_build_an_llm_tool.md)
 27. [Tutorial 27: Write a Planner](tutorials/TUTORIAL_27_write_a_planner.md)
+28. [Tutorial 28: Build a SAJHA Net](tutorials/TUTORIAL_28_build_a_sajha_net.md)
 
 ## Clients and security
 

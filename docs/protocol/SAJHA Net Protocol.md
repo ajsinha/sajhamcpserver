@@ -930,13 +930,14 @@ priority, design §10.3).
 
 - **to join**: on start-up, in each net, to the configured seeds first; if none answers, to the
   members of the participant's last saved peer list for that net, most recently seen first; then any
-  discovery plug-in (design §6.6); until one answers (`reason: "join"`). A participant MUST be
-  configured with at least one seed for each net, unless it is that net's **founder** (the first
-  member, which may start with an empty list and waits to be contacted). A non-founder with no seeds
-  for a net MUST NOT start membership in that net and MUST report the configuration error to its
-  operators. Saved peers and discovery plug-ins never replace the required seed. If no seed and no
-  saved peer answers, the participant MUST report that it has not joined and keep retrying with
-  back-off;
+  discovery plug-in (design §6.6); until one answers (`reason: "join"`). A participant configured
+  with no seeds for a net is that net's **founder** and, while no saved peer or discovery result
+  answers, its only member: a **net of one**. It MUST start membership in that net alone, MUST NOT
+  report an error for the missing seeds, and sends nothing until a peer is known (a participant that
+  joins with it as its seed, or an operator's hint); it then gossips as any member, without a restart.
+  A participant whose seeds are all down and that is marked founder starts alone in the same way.
+  Otherwise, if no seed and no saved peer answers, the participant MUST report that it has not joined
+  and keep retrying with back-off;
 - **on an operator's hint**: an operator may give an address to contact for a net; the participant
   sends the same signed sync (`reason: "join"`). The address carries no trust: the response is
   verified like any other (§8.7, §8.8), and the peer is admitted, or refused for `name_conflict`, by
@@ -2007,7 +2008,7 @@ vectors for SIG-01, SIG-12 and REC-01.
 | GOS-09 | S A | After a restart the incarnation exceeds the previous one, with persisted state lost and with the clock set back. |
 | GOS-10 | S A | A revoked member's entries are dropped and its tools removed. |
 | GOS-11 | S A | A dead member is still probed at the dead-probe rate and rejoins when it answers. |
-| GOS-12 | S A | A net configured with no seeds and not marked founder is not joined and the error is reported, while the participant's other nets join normally; a founder with no seeds starts alone and is joined by the next member through its seed. |
+| GOS-12 | S A | A net configured with no seeds is a net of one: membership starts alone, no error is reported, no join is retried and nothing is sent; the next member joins through it as its seed without a restart of either. A net whose seeds are all down and that is not marked founder is not joined and the error is reported, while the participant's other nets join normally. |
 | GOS-13 | S A | On restart the seeds are tried first; with every seed down, saved members are tried most recently seen first, entries older than the maximum age are skipped, and a saved member whose certificate no longer verifies is refused; with seeds and saved members all down, the participant reports it has not joined and retries with back-off. |
 | GOS-14 | S A | A join started from an operator-given address is an ordinary signed sync: a peer whose certificate is from another CA, names another net, is revoked or claims a held name is refused exactly as in GOS-06, NAME-06 and SIG-07/08, and nothing about it is stored. |
 | CAT-01 | S A | The catalog lists only tools exported to the requester; each is a valid MCP Tool with `_meta["io.sajha/net"]` valid against `tool_net_meta`. |
@@ -2330,6 +2331,9 @@ The design leaves these open or states them loosely; this specification decides 
 35. **The enrollment answer is bound by its key.** The unsigned enrollment request has no signature
     to cover, so the answer omits `"signature";req` and the requester checks the issued certificate
     against its own CSR (§14.1).
+36. **No seeds is a net of one** (owner decision): a participant with no seeds for a net is its founder
+    and only member, starts membership alone, reports no error and sends nothing until a peer is known;
+    the earlier rule that a non-founder must list a seed is withdrawn (§9.7, GOS-12).
 
 ## 23. References
 

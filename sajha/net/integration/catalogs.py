@@ -540,17 +540,30 @@ class NetCatalogs:
         uid = str(user.get('user_id') or user.get('name') or f'sajhanet:{ctx.net}/{ctx.peer}')
         access = None
         if ctx.user is not None:
+            a = getattr(self.svc, 'authz', None)
+            db = None
             try:
                 from sajha.auth import AuthContext
                 from sajha.auth.access import policy_for
-                auth = AuthContext(authenticated=True, user_id=uid, user_name=str(user.get('user_name_local') or uid),
-                                   roles=list(roles), auth_type='sajhanet', is_admin='admin' in roles,
-                                   api_key_mode=user.get('tool_access_mode') or None,
-                                   api_key_tools=json.dumps(user.get('tool_access_list') or []))
+                if a is not None and hasattr(a, 'auth_context') and hasattr(a, 'db'):
+                    # the local account's roles and their permissions come from this server's database
+                    db = a.db()
+                    auth = a.auth_context(dict(user, user_id=uid, roles=list(roles)), db)
+                else:
+                    auth = AuthContext(authenticated=True, user_id=uid, user_name=str(user.get('user_name_local') or uid),
+                                       roles=list(roles), auth_type='sajhanet', is_admin='admin' in roles,
+                                       api_key_mode=user.get('tool_access_mode') or None,
+                                       api_key_tools=json.dumps(user.get('tool_access_list') or []))
                 access = policy_for(auth).can_execute
             except Exception as e:
                 logger.warning(f'SAJHA Net: access policy for {uid}: {e}')
                 raise HostRefusal('access')
+            finally:
+                if db is not None:
+                    try:
+                        db.close()
+                    except Exception:
+                        pass
             if not access(ctx.tool):
                 raise HostRefusal('access')
         token = set_caller(Caller(uid, '', roles, 'sajhanet', access, 'admin' in roles))

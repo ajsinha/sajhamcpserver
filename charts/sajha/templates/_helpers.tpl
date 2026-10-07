@@ -146,9 +146,7 @@ memory
 {{- fail (printf "sajhanet.nets: the net %s is listed twice" .name) -}}
 {{- end -}}
 {{- $_ := set $seen .name true -}}
-{{- if and (not .founder) (not .seeds) -}}
-{{- fail (printf "sajhanet.nets %s: seeds are required unless founder: true" .name) -}}
-{{- end -}}
+{{- /* a net without seeds is a net of one (owner decision): no rule here */ -}}
 {{- if and $multi (or (not .instanceName) (not .advertiseAddress)) -}}
 {{- fail (printf "sajhanet.nets %s: more than one pod needs instanceName and advertiseAddress (every pod is the same instance; an address name would differ per pod)" .name) -}}
 {{- end -}}

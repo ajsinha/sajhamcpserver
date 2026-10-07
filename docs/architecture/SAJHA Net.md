@@ -156,8 +156,9 @@ These terms go into `GLOSSARY.md` when the feature is built.
 | Default API key | The API key every user always has; kept encrypted at its home instance so it can be forwarded. |
 | Host and tool table | Each instance's live record of which instance, in which net, hosts which remote tool, and in what order a plain name tries them. |
 | Block | An administrator's local decision to stop calls to or from another instance, a tool or a remote user. |
-| Seed instance | A pre-identified instance a starting instance contacts first to learn a net; every net entry needs at least one, except the founder's. |
-| Founder | The first server of a net, allowed to start with no seeds (`founder: true`), typically its CA instance. |
+| Seed instance | A pre-identified instance a starting instance contacts first to learn a net. A net entry without seeds is a net of one (section 6.6). |
+| Founder | The first server of a net, which starts with no seeds (or with `founder: true`, so that it starts alone when its seeds are all down), typically its CA instance. |
+| Net of one | A net whose only member is this server: an entry with no seeds and no known peers (owner decision). It joins nothing, gossips with nobody and raises no error, and grows into an ordinary net when a peer joins through it or is added by address, without a restart. |
 | Saved peer list | The peers of a net a server last knew, saved on local disk and tried after the seeds on a restart. |
 | Incarnation | An instance's own counter that makes newer news about it override older news. |
 | Identity resolver | The pluggable part that turns a caller into credentials on the home instance and back into a verified user on the host instance. |
@@ -204,10 +205,10 @@ marked **built** are in the code now (section 21.1 has the status of each item):
 | A tool whose definition changes goes to status `changed` and is withdrawn from the registry until approved again | `review` trust keeps the previously approved version serving (section 7.3); a changed contract under the same version is refused net-wide (section 8.7). **Built** in federation: an upstream's `on_change: hold` keeps the approved version serving (the default stays `withdraw`) |
 | Annotations are copied from the upstream as they are | Annotations corrected, never widened (section 8.1). **Built**: `security.py::correct_annotations`, used by federation for every upstream tool |
 | Imported schemas are taken as they are (only their text is screened) | Schemas checked for valid JSON Schema (section 7.3). **Built**: `security.py::schema_problem`; an invalid tool is `invalid`, with the reason in the approval queue |
-| The tool cache (`sajha/core/cache.py`) keys a result by tool name and arguments only, for any tool with `cache_ttl`; federation refuses `cache_ttl` with `connected_account` for that reason | A cache key that includes the caller, and caching limited to read-only tools; until then proxies do not cache (section 9) |
+| The tool cache (`sajha/core/cache.py`) keyed a result by tool name and arguments only | A cache key that includes the caller. **Built** (wave 1): `cache_per_user` adds the caller to the key, and federated tools default to it (`cache.per_user_federated`); federation still refuses `cache_ttl` with `connected_account`, and net proxies do not cache (section 9) |
 | The SSRF guard (`sajha/federation/security.py::check_url`) refuses loopback and private addresses unless `federation.allow_localhost` / `allow_private_networks`, and hosts outside `federation.allowed_hosts` when that is set | Instances usually sit on private networks: the net's guard takes its own settings and binds a peer's URL to its certificate (section 18). **Built**: `check_peer_url`, with `sajhanet.allowed_networks`; binding to the certificate is the request signing's |
 | Federation abandoned its local wait when its caller cancelled; a 2025-11-25 `notifications/cancelled` stopped nothing | Cancellation reaches the host. **Built**: either era's cancellation cancels the upstream request, which the SDK sends on (`sajha/core/mcp_cancellation.py`, [Federation](Federation.md#7-calls)) |
-| No trace context is sent upstream; a server span only continues an inbound `traceparent` | Outbound `traceparent` on every forwarded call (section 16) |
+| No trace context was sent upstream; a server span only continued an inbound `traceparent` | Outbound `traceparent` on every forwarded call (section 16). **Built** (wave 1): SAJHA continues or starts a `traceparent` and sends it on its outbound calls (`sajha/observability/tracing.py::inject`), federation forwards the caller's (`sajha/federation/connection.py`), and a forwarded net call carries it in the header and in `_meta` (protocol §15.2) |
 | Upstreams and approval records are one JSON document at `federation.state_path` in the storage backend | The same storage backend, plus the state store for what changes often (section 20.2) |
 
 ---
@@ -291,7 +292,8 @@ Python entry-point group (`sajha.net.plugins`), as planners already can.
 ### 5.5 What is built
 
 Wave 4, phase 4.1 built membership; phase 4.2 built catalogs and routing (sections 7 to 9, 14 and 15)
-alongside identity and authorization; what is not listed here is still design.
+alongside identity and authorization; phase 4.3 built the first console pages, the net of one and the
+three-instance test net. What is not listed here is still design.
 
 - **The protocol core** is `sajha/net/` and imports nothing from the rest of SAJHA
   (`tests/net/test_net_plugins.py` checks it): names (`names.py`), RFC 8785 canonical JSON
@@ -367,8 +369,40 @@ alongside identity and authorization; what is not listed here is still design.
   `user_identity: ["api_key"]` and the features `key_directory`, `key_verification` and `blocks`. Not
   built: the `assertion` identity (re-export), the "Users across the net" and "Access and blocks" pages
   of section 17.1 beyond the admin page's section.
-- **Not yet:** the Instances page and the rest of the
-  console of section 17 (the admin page is a minimal one), mutual TLS (`mtls` stays off), the
+- **Built of section 17 and the net of one** (`sajha/net/integration/console.py`, the routes in
+  `sajha/routes/sajhanet_routes.py`, templates `net/instances.html`, `net/instance.html` and
+  `admin/sajhanet_tools.html`): the **Instances** page for every signed-in user (`/net/instances`), with
+  this server always first (a net of one when SAJHA Net is off or no one else has joined), each
+  participant's net, name, kind, region, labels, state and last seen, and how many of its tools this
+  user may use here (this server's tool access and visibility; the host decides again on every call),
+  with search and filters by net, state, kind, region and label; an instance's page
+  (`/net/instances/{net}/{instance}`, and `/net/instances/this`) with the tools it offers this user:
+  name, qualified name, alias, description, inputs and outputs, health and latency, and the Tools page's
+  Try it form; the JSON behind both (`/api/sajhanet/instances`); the navbar badge `Net · <instance
+  name>` with a health dot in words on hover (`+N` for further nets), linking to Instances; a SAJHA Net
+  menu (Instances for everyone, Remote tools and the admin page for administrators); and the admin's
+  **Remote tools** page (`/admin/sajhanet/tools`): the host and tool table with filters by net, host,
+  state and trust, approve and withdraw for tools held under `review` trust (the existing admin API), and
+  the contract conflicts with every offer and hash. A net entry with no seeds is a net of one (section
+  6.6), and a net of one may initialise its CA without `ca.enabled`. The three-instance test net runs in
+  one process (`tests/net/test_net_three_instances.py`: join through a seed, catalog exchange, a call
+  as the user with the `api_key` resolver, a block, a host down with fallback, a contract conflict
+  quarantined and re-activated, a restart) and as containers (`deployment/sajhanet-demo/`, with a smoke
+  script). A forwarded call now runs at the host with the local account's roles and permissions from
+  the host's database.
+- **Conformance** (protocol §20, the ids whose targets include S). Covered by tests under `tests/net/`
+  (and `tests/test_sajhanet_groundwork.py` for CAP-01 to CAP-03): NAME-01 to NAME-11; NET-01 to NET-04
+  and NET-06; CAP-01 to CAP-05; SIG-01 to SIG-15; REC-01, REC-02; GOS-01 to GOS-14; CAT-01 to CAT-04 and
+  CAT-06 to CAT-08; CON-01 to CON-06; KEY-01 to KEY-05; BLK-01; REV-01; CA-01 to CA-03; CALL-01 to
+  CALL-05 and CALL-08 to CALL-10; FB-01 to FB-06; ERR-01; LIM-01. Remaining: NET-05 and CALL-13
+  (re-export is not built); CAT-05 (the `visibility` feature is not built); CALL-07 (residency
+  is not built); CALL-11 and FB-07 (progress, cancellation, input requests and tasks are not
+  relayed on forwarded calls); CALL-12 (forwarded calls use the 2026-07-28 era only, so there is no
+  2025-11-25 session to share); CALL-06 is covered step by step across the files (each refusal, its code
+  and `executed`) but not yet by one test that walks every step of §15.4 in order.
+- **Not yet:** the other console pages of section 17.1 (net overview, instance detail, conflicts and
+  reviews as their own page, users, access and blocks, key directory, snapshots, live activity,
+  certificates, net settings; the admin page is a minimal one), mutual TLS (`mtls` stays off), the
   SAJHA Net agent and the reference library.
 
 ---
@@ -461,7 +495,7 @@ server is needed.
 
 | Event | What happens |
 |---|---|
-| An instance starts | It contacts its configured **seed instances** for that net (at least one is required, section 6.6; one or two are enough), presents its certificate, and receives the current instance list. Its arrival spreads to everyone within a few gossip rounds; each instance then pulls its catalog and key directory (sections 7 and 10.3). |
+| An instance starts | It contacts its configured **seed instances** for that net (one or two are enough; with none it is a net of one, section 6.6), presents its certificate, and receives the current instance list. Its arrival spreads to everyone within a few gossip rounds; each instance then pulls its catalog and key directory (sections 7 and 10.3). |
 | An instance stops cleanly | It gossips a `leave` message. Others mark it `left` and remove its tools at once (section 8.5). |
 | An instance crashes or is cut off | The failure detector (section 6.3) marks it `suspect`: its tools stay listed but marked unavailable, and calls skip it. If no one can reach it within `suspect_timeout_seconds` it becomes `dead`, and its tools are removed at that moment (section 8.5). |
 | An instance comes back | It rejoins with a higher **incarnation** number, which overrides any stale `suspect` or `dead` entry about it. Its tools are listed again once its catalog has been pulled anew. |
@@ -553,10 +587,15 @@ An instance that is shut down and started again finds its peers without anyone's
 its nets, separately, it tries in this order:
 
 1. **Seeds.** The net's configured `seeds`, the pre-identified peers it connects to first and
-   starts gossiping with. **Every net entry must list at least one seed.** A net entry with no seeds
-   is a configuration error at start-up: the server does not join that net (its other nets are
-   unaffected) and raises an error notice (section 17.4). The one exception is the net's **first
-   server**, which sets `founder: true` (typically the CA instance) and may start alone.
+   starts gossiping with. **A net entry with no seeds is a net of one** (owner decision): this
+   server is that net's founder and only member. With no saved peer and no discovery result either,
+   it joins at once alone: no "not joined" notice, no join retries and no gossip traffic, since there
+   is nobody to talk to. It accepts a peer later without a restart: an instance that enrolls with
+   its CA and joins with this server as its seed, or a peer an administrator adds by address. Until
+   it holds a certificate (an initialised CA, `sajha net ca init`, which a net of one may run without
+   `ca.enabled`; or enrollment with another net's CA) it is not networked, and an info notice says
+   how to give it one. `founder: true` is for the first server that also lists seeds: when they are
+   all down it starts alone instead of retrying. Malformed seeds are still refused.
 2. **Saved peers.** If no seed answers, the peers in its last saved peer list for that net, most
    recently seen first. Each server saves the peers it knows, per net, to **local disk**: on every
    membership change and at least every `peer_cache.interval_minutes` (default 10), to
@@ -574,9 +613,9 @@ its nets, separately, it tries in this order:
    rate (`dead_probe_interval_seconds`). A restarted instance whose seeds and saved peers were all
    down is still found as soon as any peer can reach it.
 
-If neither seeds nor saved peers answer, the server raises an error notice ("not joined to
-`<net>`: no seed or saved peer reachable", section 17.4) and keeps retrying with back-off. Saved
-peers and discovery help on restarts but never replace the required seed.
+If the net has seeds and neither they nor saved peers answer, the server raises an error notice
+("not joined to `<net>`: no seed or saved peer reachable", section 17.4) and keeps retrying with
+back-off (a founder starts alone instead).
 
 **Adding a peer by hand.** An administrator signed in to this instance can also point it at a peer
 for one net, by IP and port or URL (Net settings or the admin view of Instances, the admin API, or
@@ -1431,7 +1470,7 @@ SAJHA Net's notice sources, all per net:
 | Tool quarantined (`contract_conflict`), naming the tool, every host offering it and their contract hashes (section 8.7) | error | every host offering the name offers one contract again |
 | `name_conflict`: this server refused under a held name, or a conflict seen between two other servers (section 6.1) | error (own), warning (seen) | the configuration or certificate changes; the claimant is gone |
 | Member `suspect`, `dead` or `left` (section 8.5) | warning; `dead` is an error when the member hosts tools this server's users use | the member is `alive` again, or its retention ends |
-| Seeds unreachable, or not joined to the net (including a net with no seeds that is not a founder, section 19) | error | the server has joined the net |
+| Seeds unreachable, or not joined to the net (a net with no seeds is a net of one and raises only an info notice while it has no certificate, section 6.6) | error | the server has joined the net |
 | This server's certificate expiring (within a third of its validity) or expired | warning, then error | it is renewed |
 | Revocation list stale (older than its expected refresh) | warning | a newer list arrives |
 | Key-directory sync failing for a peer | warning | the next sync succeeds |
@@ -1486,7 +1525,7 @@ sajhanet:
       instance_name: risk-eu        # this server's name in this net; if unset: <ip>:<port> (section 6.1)
       advertise_address: ""         # ip:port peers in this net should use, behind NAT or container networks
       founder: false                # true only on the net's first server (typically the CA instance)
-      seeds:                        # required (at least one) unless founder: true; tried first (section 6.6)
+      seeds:                        # tried first (section 6.6); none: a net of one, this server its founder
         - https://sajha-treasury-na.example.internal
         - https://sajha-cust-eu.example.internal
       identity:                     # this net's CA certificate; requests are signed (section 6.7)
@@ -1699,8 +1738,9 @@ at any point in the retained window, and an instance can be rebuilt after losing
   nonces, key records, blocks and catalogs of one net never accepted in the other; no tool offered
   across nets unless `reexport` is on for the receiving net, and then only as the bridge's own user;
   a user's key works in both nets of its home.
-- **Seeds and restarts:** a net entry without seeds and without `founder: true` is not joined and
-  raises an error notice while other nets join; a founder starts alone; on restart seeds are tried
+- **Seeds and restarts:** a net entry without seeds is a net of one (joined alone, no error notice,
+  no join retries or gossip) and grows without a restart when a peer joins through it; a founder
+  whose seeds are down starts alone; on restart seeds are tried
   first, then the saved peer list most recently seen first (entries over `max_age_days` skipped, a
   stale entry's certificate still verified), then discovery; with all down an error notice and
   back-off; the peer list saved atomically on change and every interval, on local disk with the
@@ -1910,8 +1950,10 @@ What this design would add, in combination, is aimed at regulated, multi-domain 
 - **One name, one contract:** any contract difference for one name in a net quarantines it
   everywhere until the hosts agree; `version` is informational; contract changes roll out together
   or under a new name (section 8.7).
-- **Seeds required** for every net except its founder; restarts try seeds first, then the peer list
-  saved on local disk (section 6.6).
+- **No seeds, a net of one:** a net entry without seeds makes this server the net's founder and
+  only member, with no error, retries or gossip; it grows into an ordinary net when a peer joins
+  through it or is added by address, without a restart. Restarts try seeds first, then the peer list
+  saved on local disk (section 6.6). This replaces the earlier "seeds required except on the founder".
 - **System notices:** SAJHA Net reports through the general System Notices service (section 17.4).
 - **Instances page for everyone:** every signed-in user can browse participants and the tools
   each offers them.

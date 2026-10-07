@@ -33,7 +33,7 @@ MATRIX = ["spec_2026", "conformance_ci", "oauth_as", "builtin_tools", "nocode", 
 
 # Schema tables by purpose; a table the schema file has and this map does not fails the build.
 TABLE_GROUPS = [
-    ("Identity and access", ("users", "roles", "user_roles", "permissions", "api_keys", "user_sessions")),
+    ("Identity and access", ("users", "roles", "user_roles", "permissions", "api_keys", "user_sessions", "sajhanet_api_keys")),
     ("Audit and usage", ("audit_log", "audit_chain", "audit_anchors", "tool_usage_events", "obs_usage_events")),
     ("Prompts", ("prompts", "prompt_tags")),
     ("Intelligence", ("llm_providers", "llm_models", "ai_conversations", "ai_conversation_turns")),

@@ -624,7 +624,7 @@ Written for someone who does *not* already know the field. Where a term has a ge
 
 | Term | Meaning |
 |---|---|
-| **SAJHA Net** | SAJHA servers (and other MCP servers) joined into a net: they find each other by gossip, prove who they are with net certificates and sign every request between them. Off by default (`sajhanet.enabled`). Membership, names, the CA, signed requests, catalogs, proxies and routing are built. |
+| **SAJHA Net** | SAJHA servers (and other MCP servers) joined into a net: they find each other by gossip, prove who they are with net certificates and sign every request between them. Off by default (`sajhanet.enabled`). Membership, names, the CA, signed requests, catalogs, proxies, routing, identity, blocks, the Instances and Remote tools pages and the navbar badge are built. |
 | **Net** | One SAJHA Net: its own CA, certificates, members and revocation list. A server may be in several nets at once; nothing learned in one is used in another. |
 | **Net name** | The name of a net (`acme-net`): lowercase letters, digits, `-` and `_`, starting with a letter, at most 16 characters, never `__` and not ending in `_`. A net entry without a name is the net `default`. |
 | **Participant** | Anything that holds a net certificate and speaks the SAJHA Net protocol: a SAJHA instance, an agent in front of an MCP server, or a server built on the reference library. |
@@ -632,8 +632,9 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Address name** | An instance name made from the address peers reach the server on, `<ip>:<port>` or `[<ipv6>]:<port>`; never unspecified, loopback, `localhost` or link-local. |
 | **Safe prefix** | The instance part of a qualified tool name: a configured name as is, an address with every `.` and `:` replaced by `_`, IPv6 written out in full. |
 | **Qualified tool name** | `<net>__<safe prefix>__<tool>`: one tool on one host in one net, split at the first two `__`. |
-| **Seed** | An address a server contacts first to join a net. Every net entry needs at least one, except on the net's founder. |
-| **Founder** | The first server of a net (`founder: true`), which may start without seeds and waits to be contacted; usually the CA instance. |
+| **Seed** | An address a server contacts first to join a net. A net entry without seeds is a net of one. |
+| **Founder** | The first server of a net, which starts without seeds (or with `founder: true` when its seeds may all be down) and waits to be contacted; usually the CA instance. |
+| **Net of one** | A net whose only member is this server: a net entry with no seeds and no known peers, or every server while SAJHA Net is off. Nothing to join, no gossip and no error; it grows into an ordinary net when a peer joins through it or is added by address, without a restart. |
 | **Gossip** (*SWIM*) | How participants keep one membership list without a leader: each pings a random member every interval, asks others to ping one that does not answer, marks it suspect and then dead, and piggybacks changes on the messages. |
 | **Member record** | A participant's own signed statement in a net: name, URL, features, incarnation, sequence and digests. Relays can repeat it but not change it. |
 | **Incarnation** | A participant's own counter in a net, milliseconds since the epoch chosen at start as max(now, last + 1); a higher incarnation overrides any older claim that it is suspect or dead. |
@@ -668,4 +669,6 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Role map** | The local roles a host gives users of another instance who have no local account, by their roles at home, when `sajhanet.users.unknown` is `map_roles`. |
 | **Export rule** | A rule in a net entry naming which tools this instance offers to which instances and roles; nothing is exported unless a rule allows it. |
 | **Import rule** | A rule in a net entry naming which instances' tools this instance's users may use, and for which roles; nothing is imported unless a rule allows it. |
+| **Instances page** | The console page every signed-in user has (`/net/instances`): each participant of this server's nets with kind, region, labels, state and last seen, and the tools it offers that user, each with the Tools page's Try it form. |
+| **Net badge** | The navbar badge beside the SAJHA wordmark, `Net · <instance name>` with a health dot (and `+N` for further nets), naming the instance a user is on and linking to the Instances page. |
 | **Net block** | A local decision of one instance in one net to stop traffic: an instance entirely, inbound, outbound, a tool or a remote user; audited, may expire, enforced only by the instance that set it and published in its signed blocks document. |

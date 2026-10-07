@@ -129,7 +129,7 @@ CATALOG: List[dict] = [
             _g('MCP Apps and Headers Guide', 'MCP Apps and Headers Guide.md', 'bi-window-stack',
                'Interactive tool views (ui:// resources) and x-mcp-header argument mirroring.'),
             _g('SAJHA Net protocol (spec)', 'SAJHA Net Protocol.md', 'bi-share',
-               'Specification of the io.sajha/net extension (membership built, the rest not yet): /sajhanet/ endpoints, RFC 9421 '
+               'Specification of the io.sajha/net extension: /sajhanet/ endpoints, RFC 9421 '
                'signed requests, gossip, key directory, call forwarding headers, error codes, conformance tests.'),
             _g('API Reference', 'API Reference.md', 'bi-signpost-split',
                'Every HTTP endpoint the server registers: REST, MCP, OAuth, A2A, AI, Studio, '
@@ -191,8 +191,10 @@ CATALOG: List[dict] = [
                'expression grammar, verify checks, validation messages, JSON Schema, shipped strategies, '
                'and the planner editor.'),
             _g('SAJHA Net (design)', 'SAJHA Net.md', 'bi-diagram-3',
-               'Design for SAJHA servers sharing tools across domains (membership built): gossip membership, automatic proxy tools, '
-               'API-key identity with a synced key directory, two-sided authorization, residency, snapshots.'),
+               'SAJHA servers sharing tools across domains (core built; section 5.5 says what): gossip membership, '
+               'automatic proxy tools, API-key identity with a synced key directory, two-sided authorization, blocks.'),
+            _p('SAJHA Net instances', 'net_instances_page', 'bi-hdd-network',
+               'Every instance in your nets, this server first, and the tools each offers you, with Try it.'),
             _g('System notices', 'System Notices.md', 'bi-exclamation-triangle',
                'One place where SAJHA shows what needs attention: notices from the schema check, circuit '
                'breakers, workflows, LLM providers, federation and alert rules; the console banner, the '
@@ -378,6 +380,9 @@ CATALOG: List[dict] = [
             _g('27. Write a planner', 'TUTORIAL_27_write_a_planner.md', 'bi-signpost-split',
                'Write a planner file for a desk: match a known question shape, call one tool, check the figures, '
                'loop a bounded number of times, dry-run it on the mock model, pin it in an LLM tool and version it.'),
+            _g('28. Build a SAJHA Net', 'TUTORIAL_28_build_a_sajha_net.md', 'bi-share',
+               'Three instances in one net: a founder with its CA, two joining through it, a tool called across '
+               'as yourself, a block, the test admin key and per-member keys.'),
         ],
     },
     {

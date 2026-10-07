@@ -14,6 +14,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
   arrived through the net (``auth_type`` ``sajhanet``): net settings are changed only by an administrator
   signed in to this server.
 * ``/admin/sajhanet``: the console page (membership, adding a peer, blocks, users and keys).
+* ``/net/instances`` and ``/net/instances/{net}/{instance}`` (every signed-in user): the Instances page
+  and one instance's tools (design §17.1), with ``/api/sajhanet/instances`` behind them; this server is
+  always listed, as a net of one when SAJHA Net is off. ``/admin/sajhanet/tools``: the Remote tools page
+  (host and tool table, held tools, conflicts).
 
 Design: docs/architecture/SAJHA Net.md; protocol: docs/protocol/SAJHA Net Protocol.md.
 """
@@ -26,9 +30,10 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, Response
+from starlette.requests import ClientDisconnect
 
 from sajha.app import render
-from sajha.auth import AuthContext, require_admin
+from sajha.auth import AuthContext, require_admin, require_auth
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=['sajhanet'])
@@ -80,8 +85,11 @@ async def serve(svc, request: Request) -> Response:
     several instances in one process)."""
     if svc is None or not svc.participant.enabled:
         return Response(status_code=404)
-    body = await request.body()
-    proto = request.headers.get('x-forwarded-proto', '').split(',')[0].strip().lower()
+    try:
+        body = await request.body()
+    except ClientDisconnect:                 # the sender gave up (a probe past its ping timeout): nobody to answer
+        return Response(status_code=400)
+    proto =request.headers.get('x-forwarded-proto', '').split(',')[0].strip().lower()
     secure = request.url.scheme == 'https' or proto == 'https'
     source = request.client.host if request.client else ''
     r = await run_in_threadpool(svc.participant.handle, request.method, request.url.path, request.url.query,
@@ -360,3 +368,68 @@ async def sajhanet_approve(net: str, peer: str, tool: str, auth: AuthContext = D
 async def sajhanet_unapprove(net: str, peer: str, tool: str, auth: AuthContext = Depends(require_admin)):
     c = _catalogs()
     return _off() if c is None else await _call(c.approve, net, peer, tool, False, auth.user_id)
+
+
+# ── the Instances page (every signed-in user) and Remote tools (admin), design §17.1 ─────
+
+def _user(auth: AuthContext) -> Dict[str, Any]:
+    return {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles}
+
+
+@router.get('/net/instances')
+async def net_instances_page(request: Request, auth: AuthContext = Depends(require_auth)):
+    from sajha.net.integration.console import instances_view
+    view = await run_in_threadpool(instances_view, auth)
+    return render(request, 'net/instances.html', {'user': _user(auth), 'is_admin': auth.is_admin, 'view': view})
+
+
+@router.get('/net/instances/this')
+async def net_this_instance_page(request: Request, auth: AuthContext = Depends(require_auth)):
+    """This server's own entry in its first net (a stable address for links and checks)."""
+    from sajha.net.integration.console import instance_view, instances_view
+    view = await run_in_threadpool(instances_view, auth)
+    n = view['nets'][0] if view['nets'] else None
+    one = await run_in_threadpool(instance_view, n['net'], n['instances'][0]['name'], auth) if n else None
+    if one is None:
+        return render(request, 'common/error.html', {'error': 'Instance not found',
+                                                     'message': 'This server is in no net'}, status_code=404)
+    return render(request, 'net/instance.html', {'user': _user(auth), 'is_admin': auth.is_admin, 'view': one})
+
+
+@router.get('/net/instances/{net}/{instance}')
+async def net_instance_page(net: str, instance: str, request: Request, auth: AuthContext = Depends(require_auth)):
+    from sajha.net.integration.console import instance_view
+    view = await run_in_threadpool(instance_view, net, instance, auth)
+    if view is None:
+        return render(request, 'common/error.html', {
+            'error': 'Instance not found', 'message': f'{instance} is not a member of {net} that this server knows'},
+            status_code=404)
+    return render(request, 'net/instance.html', {'user': _user(auth), 'is_admin': auth.is_admin, 'view': view})
+
+
+@router.get('/api/sajhanet/instances')
+async def sajhanet_instances(auth: AuthContext = Depends(require_auth)):
+    """Every participant of every net, this server first, with the tools this caller may use here."""
+    from sajha.net.integration.console import instances_view
+    return await _call(instances_view, auth)
+
+
+@router.get('/api/sajhanet/instances/{net}/{instance}')
+async def sajhanet_instance(net: str, instance: str, auth: AuthContext = Depends(require_auth)):
+    from sajha.net.integration.console import instance_view
+    view = await run_in_threadpool(instance_view, net, instance, auth)
+    if view is None:
+        return JSONResponse({'error': f'{instance} is not a known member of {net}'}, status_code=404)
+    return JSONResponse(view)
+
+
+@router.get('/admin/sajhanet/tools')
+async def admin_sajhanet_tools_page(request: Request, auth: AuthContext = Depends(require_admin)):
+    c = _catalogs()
+    table = await run_in_threadpool(c.table) if c is not None else {'rows': [], 'resolution': {}, 'aliases': {}}
+    conflicts = await run_in_threadpool(c.conflicts) if c is not None else {'nets': {}}
+    from sajha.net.integration.console import _rfc
+    for r in table.get('rows') or []:
+        r['last_seen'] = _rfc(r.get('last_seen'))
+    return render(request, 'admin/sajhanet_tools.html', {
+        'user': _user(auth), 'is_admin': True, 'enabled': c is not None, 'table': table, 'conflicts': conflicts})

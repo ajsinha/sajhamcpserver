@@ -214,4 +214,4 @@ To change the desk without surprising the tools that pin it:
   [Planner Reference](../architecture/Planner%20Reference.md)
 - A stage type of your own, in code: [Extending the Intelligence Layer](../architecture/Extending%20the%20Intelligence%20Layer.md)
   section 4.6
-- This is the last tutorial; the [documentation index](../README.md) lists every guide
+- Next tutorial: [Tutorial 28: Build a SAJHA Net](TUTORIAL_28_build_a_sajha_net.md)

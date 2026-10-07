@@ -193,9 +193,35 @@ PAGE_HELP: dict = {
         'what': 'The SAJHA Nets this server belongs to: its name and certificate in each, whether it has joined, the '
                 'members it knows and their states; add a peer by address; blocks, remote users and the net key '
                 'directory of each net.',
-        'terms': ['SAJHA Net', 'Net name', 'Instance name', 'Seed', 'Member state', 'Name conflict',
+        'terms': ['SAJHA Net', 'Net name', 'Instance name', 'Seed', 'Net of one', 'Member state', 'Name conflict',
                   'SAJHA Net CA', 'Saved peer list', 'Net block', 'Net user', 'User link', 'Role map',
                   'Net key directory'],
+        'guide': 'SAJHA Net.md'},
+    'net_instances_page': {
+        'what': 'Every instance in the SAJHA Nets this server is in, this server first (a net of one when SAJHA Net '
+                'is off or nobody else has joined): kind, region, labels, state with when it was last seen, and how '
+                'many of its tools you may use from here. Open an instance to see and try those tools.',
+        'terms': ['SAJHA Net', 'Net of one', 'Instance name', 'Participant', 'Member state', 'Net badge',
+                  'Proxy tool'],
+        'guide': 'SAJHA Net.md'},
+    'net_instance_page': {
+        'what': 'The tools one instance offers you through this server: name, qualified name and alias, '
+                'description, inputs and outputs, health and latency, with the Try it form of the Tools page. The '
+                'host checks your access again on every call.',
+        'terms': ['Proxy tool', 'Qualified tool name', 'Bare alias', 'Host instance', 'Home instance',
+                  'Quarantine'],
+        'guide': 'SAJHA Net.md'},
+    'net_this_instance_page': {
+        'what': 'This server as an instance of its first net: the tools of this server you may use, with '
+                'their inputs and outputs and the Try it form of the Tools page.',
+        'terms': ['Net of one', 'Instance name', 'Proxy tool', 'Qualified tool name'],
+        'guide': 'SAJHA Net.md'},
+    'admin_sajhanet_tools_page': {
+        'what': 'The host and tool table: every tool other instances offer this server with its net, host, '
+                'version, contract hash, trust and state, and where it stands in the resolution order; approve or '
+                'withdraw tools held under review trust; the contract conflicts and description warnings.',
+        'terms': ['Host and tool table', 'Resolution order', 'Trust level', 'Contract hash',
+                  'Contract conflict', 'Quarantine', 'Bare alias'],
         'guide': 'SAJHA Net.md'},
     'admin_connections_page': {
         'what': 'Which services each user has linked, with what access and when last used; unlink an account, '

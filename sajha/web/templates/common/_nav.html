@@ -25,6 +25,15 @@
       (url_for('ai_settings'), 'cloud', 'LLM', 'Providers, models and the default'),
       (url_for('prompts_list'), 'chat-square-text', 'Prompts', 'The prompt library, tested and versioned')])])] %}
 {% endif %}
+{% if session.token %}
+{% set MENU = MENU + [
+  ('SAJHA Net', 'share', [
+    ('Net', [
+      (url_for('net_instances_page'), 'hdd-network', 'Instances', 'Every instance in your nets and the tools each offers you')]
+      + ([(url_for('admin_sajhanet_tools_page'), 'diagram-2', 'Remote tools', 'The host and tool table, held tools and conflicts'),
+          (url_for('admin_sajhanet_page'), 'gear', 'SAJHA Net admin', 'Membership, adding a peer, CA, blocks, users and keys')]
+         if is_admin else []))])] %}
+{% endif %}
 {% set show_studio = is_admin or (can_studio is defined and can_studio) %}
 {% if session.token and show_studio %}
 {# Only the creators the caller's permissions open (studio:<creator>; admins all) #}
@@ -91,6 +100,7 @@
     <a class="navbar-brand sajha-brand" href="{{ url_for('dashboard') if session.token else '/' }}">
       <svg class="sajha-mark" aria-hidden="true"><use href="#icon-sajha"/></svg>
       <span><span class="name">SAJHA</span><small>MCP Server</small></span></a>
+    {% if session.token %}{% include "common/_net_badge.html" %}{% endif %}
     {% include "common/_notices_badge.html" %}
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sajha-menu"
             aria-controls="sajha-menu" aria-expanded="false" aria-label="Toggle navigation">

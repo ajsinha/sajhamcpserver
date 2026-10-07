@@ -28,6 +28,11 @@ an operator runs `db/scripts/postgresql/schema.sql` (then `seed.sql`) with `psql
 before the first start. There are no migrations. Each recipe's README shows the commands;
 [Database Setup](../docs/getting-started/Database%20Setup.md) is the procedure.
 
+## SAJHA Net demo
+
+Three SAJHA instances in one net on one machine, with a smoke script: [`sajhanet-demo/`](sajhanet-demo/)
+(a lab: plain HTTP and the test admin key).
+
 ## Monitoring
 
 Prometheus scrape job, alerting rules and a Grafana dashboard for any of the targets:
