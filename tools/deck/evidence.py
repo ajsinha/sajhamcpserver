@@ -52,11 +52,15 @@ def _need(cond: Any, what: str) -> None:
 # ── version, catalog, protocol ──────────────────────────────────────────
 
 
-def version() -> str:
+def _app() -> dict[str, Any]:
     import yaml
 
     with open(ROOT / "config" / "application.yml", encoding="utf-8") as f:
-        return str(yaml.safe_load(f)["app"]["version"])
+        return yaml.safe_load(f)["app"]
+
+
+def version() -> str:
+    return str(_app()["version"])
 
 
 @functools.lru_cache(maxsize=1)
@@ -307,7 +311,7 @@ def composition_example() -> dict[str, Any]:
     """Confidence through a three-step composite: the EntropyGuard, as composites use it."""
     from sajha.core.composition import EntropyGuard, get_tool_confidence
 
-    steps = ["fred_series_observations", "fmp_company_profile", "calc_percentage_change"]
+    steps = require_tools(["fred_10yr_treasury", "fmp_company_profile", "calc_percentage_change"])
     g = EntropyGuard()
     rows = []
     for s in steps:
@@ -468,6 +472,99 @@ def competition() -> dict[str, Any]:
     }
 
 
+# ── facts the reworked deck adds ───────────────────────────────────────
+
+
+def require_tools(names: list[str]) -> list[str]:
+    """Tool names a slide uses as examples must exist in the live registry."""
+    have = set(registry().tools)
+    missing = [n for n in names if n not in have]
+    _need(not missing, f"example tools not in the registry: {missing}")
+    return names
+
+
+def describe_tools(prefixes: tuple[str, ...]) -> list[tuple[str, str]]:
+    """(name, first sentence of the description) for every tool with one of ``prefixes``."""
+    out = []
+    for name in sorted(registry().tools):
+        if name.startswith(prefixes):
+            desc = str(registry().tools[name].description or "").strip()
+            first = re.split(r"(?<=[.!?])\s", desc, maxsplit=1)[0].rstrip(".")
+            out.append((name, first))
+    _need(out, f"no tools with prefixes {prefixes}")
+    return out
+
+
+def short_description(text: str, limit: int = 64) -> str:
+    """A description cut for a dense table: the clause before an em dash, then at a word
+    boundary near ``limit`` characters, marked with an ellipsis when cut."""
+    text = text.split(" — ")[0].strip()
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0].rstrip(",;:") + "…"
+
+
+def studio_pages() -> list[str]:
+    """The MCP Studio creators, as the Studio routes serve them: '' is the Python code
+    editor; every other page but the examples is a creator."""
+    src = (ROOT / "sajha" / "routes" / "studio_routes.py").read_text(encoding="utf-8")
+    pages = re.findall(r"^@pages\.get\('(/?[a-z]*)'\)", src, re.M)
+    names = ["python"] + [p.strip("/") for p in pages if p.strip("/") and p.strip("/") != "examples"]
+    _need(len(names) > 3, "no Studio creator pages found")
+    for extra, path in (("describe", "describe_routes.py"), ("api_import", "api_import_routes.py")):
+        _need((ROOT / "sajha" / "routes" / path).exists(), f"no {path}")
+        names.append(extra)
+    return names
+
+
+def schema_tables() -> list[str]:
+    """Tables in the PostgreSQL schema file; the SQLite file must define the same set."""
+    def tables(dialect: str) -> list[str]:
+        text = (ROOT / "db" / "scripts" / dialect / "schema.sql").read_text(encoding="utf-8")
+        return re.findall(r"^CREATE TABLE(?: IF NOT EXISTS)?\s+(\w+)", text, re.M | re.I)
+
+    pg, lite = tables("postgresql"), tables("sqlite")
+    _need(pg and sorted(pg) == sorted(lite), "the two schema files define different tables")
+    return pg
+
+
+def seed_roles() -> list[tuple[str, str, list[tuple[str, str, str]]]]:
+    """(role, description, [(resource type, resource, actions)]) from the SQLite seed file."""
+    text = (ROOT / "db" / "scripts" / "sqlite" / "seed.sql").read_text(encoding="utf-8")
+    roles = re.findall(r"\('(r-[\w-]+)', '(\w+)', '([^']*)', \d\)", text)
+    perms = re.findall(r"\('p-[\w-]+', '(r-[\w-]+)', '([^']*)', '([^']*)', '([^']*)'\)", text)
+    _need(roles and perms, "no roles or permissions in seed.sql")
+    return [(name, desc, [(t, r, a) for rid2, t, r, a in perms if rid2 == rid]) for rid, name, desc in roles]
+
+
+def cli_commands() -> list[str]:
+    src = (ROOT / "clientsdk" / "sajhaclient" / "cli" / "main.py").read_text(encoding="utf-8")
+    cmds = re.findall(r'add\(sub, "([\w-]+)"', src)
+    _need(len(cmds) > 5, "no sajha CLI commands found")
+    return cmds
+
+
+def prompts() -> int:
+    return len(list((ROOT / "config" / "prompts").glob("*.json")))
+
+
+def pages() -> int:
+    """Console pages that carry an 'About this page' panel."""
+    from sajha.web.page_help import PAGE_HELP
+
+    return len([k for k in PAGE_HELP if k != "error"])
+
+
+def route_modules() -> int:
+    return len(list((ROOT / "sajha" / "routes").glob("*_routes.py")))
+
+
+def sdk_languages() -> list[str]:
+    """Not derived: the official MCP SDKs listed at https://modelcontextprotocol.io/docs/sdk
+    (read 2026-10-06). Kept here so the deck states it once, with its source."""
+    return ["TypeScript", "Python", "C#", "Go", "Rust", "Ruby", "Java", "Swift", "PHP", "Kotlin"]
+
+
 @functools.lru_cache(maxsize=1)
 def facts() -> dict[str, Any]:
     """Everything, once per build."""
@@ -475,6 +572,8 @@ def facts() -> dict[str, Any]:
     try:
         return {
             "version": version(),
+            "email": str(_app()["email"]),
+            "repo": str(_app()["github"]["repo"]),
             "catalog": catalog(),
             "eras": eras(),
             "ci": ci(),
@@ -502,6 +601,17 @@ def facts() -> dict[str, Any]:
             "helm": helm_templates(),
             "recipes": recipes(),
             "competition": competition(),
+            "studio_pages": studio_pages(),
+            "tables": schema_tables(),
+            "roles": seed_roles(),
+            "cli": cli_commands(),
+            "prompts": prompts(),
+            "pages": pages(),
+            "routes": route_modules(),
+            "calc_tools": describe_tools(("calc_",)),
+            "search_tools": describe_tools(("tavily_", "wiki_", "crawl_", "extract_", "ir_", "check_", "get_page")),
+            "analytics_tools": describe_tools(("duckdb_", "olap_", "sqlselect_")),
+            "sdks": sdk_languages(),
         }
     finally:
         logging.disable(logging.NOTSET)

@@ -1,7 +1,11 @@
 """
-The deck, as data. Parts 5 and 6: governance an enterprise can sign off (with a policy
-evaluated and an audit chain tampered with while the deck is built), and every tool you
-have.
+The deck, as data. Sections 4 and 5: agent and workflow integration (agents, a worked
+analysis, several agents on one server, workflows, extending the server, hot reload, and
+how a tool is made, step by step), and data and analytics (search, DuckDB and OLAP, the
+financial calculators, the connector guard, and search combined with analytics).
+
+Every tool named on these slides is checked against the live registry while the deck is
+built; the worked workflows are marked illustrative.
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
@@ -10,375 +14,105 @@ from __future__ import annotations
 
 from typing import Any
 
-from evidence import ROOT
-from prose import js, listing, plain, wrap
+from evidence import require_tools, short_description
+from prose import listing
 
 
-def _rule(rule_id: str, path: str = "config/policies/example-guardrails.yaml") -> list[str]:
-    """One rule of a shipped policy file, verbatim."""
-    lines = (ROOT / path).read_text(encoding="utf-8").splitlines()
-    start = next(i for i, ln in enumerate(lines) if ln.strip() == f"- id: {rule_id}")
-    out = [lines[start]]
-    for ln in lines[start + 1 :]:
-        if ln.strip().startswith("- id:") or not ln.strip():
-            break
-        out.append(ln)
-    lines = [ln[2:] if ln.startswith("  ") else ln for ln in out]
-    wrapped: list[str] = []
-    for ln in lines:
-        lead = ln[: len(ln) - len(ln.lstrip())]
-        wrapped += wrap(ln, 44, lead + "    ") if len(ln) > 44 else [ln]
-    return wrapped
-
-
-def _part5(F: dict[str, Any]) -> list[dict[str, Any]]:
-    pol, aud, siem, fixes = F["policy"], F["audit"], F["siem"], F["fixes"]
-    shortest = sorted((plain(f) for f in fixes), key=len)[:9]
-    cf = {r["suite"].split(" ")[0]: r for r in F["conformance"]["rows"]}
-    auth = cf.get("authorization")
-    policy_src = (
-        "Evaluated while the deck was built (tools/deck/evidence.py, policy_example): "
-        "sajha.policy.engine.PolicyEngine.evaluate over the shipped files in config/policies, disabled "
-        "examples included (include_disabled=True, as the Policies page's test bench offers); nothing was "
-        "run."
-    )
+def _section4(F: dict[str, Any]) -> list[dict[str, Any]]:
+    wf = F["workflows"]
+    risk = require_tools(["fred_fed_funds_rate", "fred_2yr_treasury", "fred_10yr_treasury", "duckdb_sql",
+                          "olap_pivot_table", "tavily_news_search", "calc_bond_price"])
     return [
         {
             "kind": "divider",
-            "num": "5",
-            "title": "Governance an enterprise can sign off",
-            "sub": "A security review asks five things: who is calling, what may they do, what stops a bad "
-            "call, what record is left, and what happens to code and credentials SAJHA did not write. Each "
-            "answer here is code, and two of them were exercised while this deck was built.",
-            "points": [
-                "Identities and one access policy",
-                "OAuth 2.1 on the MCP endpoint",
-                "Rules before every call, evaluated",
-                "A tamper-evident audit, tampered with",
-                "Sandbox and connected accounts",
-                "Fixes, listed as evidence",
+            "num": "4",
+            "title": "Agent and workflow integration",
+            "sub": "How agents use SAJHA, alone and together; how a schedule or an event runs a governed graph of "
+            "steps; and how the server is extended while it runs.",
+            "points": ["Agent architecture", "A worked analysis", "Several agents", "Workflows", "Extending",
+                       "Hot reload", "Making a tool, step by step"],
+        },
+        {
+            "kind": "diagram",
+            "kicker": "Agent architecture",
+            "title": "The agent reasons; SAJHA executes, authorizes and records",
+            "groups": [
+                {"id": "rt", "label": "AI AGENT RUNTIME", "x": 0.0, "y": 0.0, "w": 0.36, "h": 0.62},
+                {"id": "sv", "label": "SAJHA MCP SERVER", "x": 0.52, "y": 0.0, "w": 0.48, "h": 0.62},
             ],
+            "nodes": [
+                {"id": "llm", "text": "LLM", "x": 0.03, "y": 0.13, "w": 0.3, "h": 0.12, "style": "soft"},
+                {"id": "orc", "text": "Orchestrator", "sub": "multi-step reasoning, retries", "x": 0.03, "y": 0.29,
+                 "w": 0.3, "h": 0.13, "style": "accent"},
+                {"id": "cl", "text": "MCP client", "x": 0.03, "y": 0.46, "w": 0.3, "h": 0.12, "style": "dark"},
+                {"id": "gov", "text": "Access · policy · audit", "x": 0.55, "y": 0.46, "w": 0.42, "h": 0.12,
+                 "style": "accent"},
+                {"id": "t1", "text": "FRED", "x": 0.55, "y": 0.13, "w": 0.13, "h": 0.12, "style": "white", "size": 11},
+                {"id": "t2", "text": "EDGAR", "x": 0.695, "y": 0.13, "w": 0.13, "h": 0.12, "style": "white", "size": 11},
+                {"id": "t3", "text": "Central banks", "x": 0.84, "y": 0.13, "w": 0.13, "h": 0.12, "style": "white",
+                 "size": 11},
+                {"id": "t4", "text": "DuckDB", "x": 0.55, "y": 0.29, "w": 0.13, "h": 0.12, "style": "white", "size": 11},
+                {"id": "t5", "text": "OLAP", "x": 0.695, "y": 0.29, "w": 0.13, "h": 0.12, "style": "white", "size": 11},
+                {"id": "t6", "text": "Tavily", "x": 0.84, "y": 0.29, "w": 0.13, "h": 0.12, "style": "white", "size": 11},
+                {"id": "data", "text": "Databases and lake", "x": 0.52, "y": 0.78, "w": 0.22, "h": 0.14},
+                {"id": "web", "text": "Public APIs and the web", "x": 0.78, "y": 0.78, "w": 0.22, "h": 0.14},
+            ],
+            "edges": [("llm", "orc", ""), ("orc", "cl", ""), ("cl", "gov", "MCP", "both")],
+            "items": [
+                "The agent lists tools at start (tools/list) and puts their schemas in the model's prompt; the "
+                "orchestrator handles multi-step reasoning and retries.",
+                "SAJHA handles execution, authentication, policy and records: a clean separation of concerns.",
+            ],
+            "items_h": 1.0,
+            "source": "Tool families shown are live groups (fred, edgar, the central-bank groups, duckdb, olap, tavily). "
+            "Governance path: sajha/tools/base_mcp_tool.py execute_with_tracking. After the earlier deck's agent slide.",
         },
         {
             "kind": "table",
-            "kicker": "Who is calling",
-            "title": "Four kinds of caller, one access policy on every path",
-            "col_w": [1.5, 3.2, 2.6],
+            "kicker": "Illustrative workflow",
+            "title": "A worked analysis: interest-rate exposure, one tool at a time",
+            "intro": "Illustrative. “How exposed is our Treasury portfolio to a move in rates?” An agent might chain "
+            "these real tools; the holdings table is your own data in DuckDB.",
+            "col_w": [0.5, 2.6, 2.0, 2.6],
             "rows": [
-                ["Caller", "How it proves who it is", "What it may see and run"],
-                ["A user", "Web sign-in (lockout, throttling, password policy), then a session or a SAJHA JWT",
-                 "Its roles' tool permissions: read to see a tool, execute to run it"],
-                ["An API key", "A key issued by an administrator, optionally with an expiry",
-                 "Its tool access mode: all, allowlist, denylist or regex"],
-                ["An OAuth client", "An access token for /mcp from SAJHA's authorization server or yours",
-                 "Its scopes for methods, then the user's tool access on top"],
-                ["Anonymous", "Nothing", "No tools, prompts or data files by default (mcp.anonymous.*)"],
+                ["#", "Agent action", "SAJHA tool", "Output"],
+                ["1", "Fetch the policy rate", risk[0], "Rate and its history"],
+                ["2", "Fetch the 2-year and 10-year yields", f"{risk[1]}, {risk[2]}", "The curve's short and long end"],
+                ["3", "Read portfolio holdings", risk[3], "Positions, coupons, maturities"],
+                ["4", "Bucket exposure by maturity", risk[4], "Exposure per bucket"],
+                ["5", "Reprice a bond after +100 bp", risk[6], "Price change per position"],
+                ["6", "Search for central-bank guidance", risk[5], "Recent statements, with links"],
+                ["7", "Synthesise", "the model", "Exposure summary, citing each call"],
             ],
-            "note": "One policy (sajha/auth/access.py) applies to REST, MCP in both eras, SSE, WebSocket, "
-            "stdio, A2A and asynchronous calls; tools/list shows a caller only what it may run.",
-            "source": "docs/security/Security Model.md §1 (Identities and credentials, Tool access); "
-            "GLOSSARY.md 'Tool access', 'Tool access mode', 'mcp.auth.mode'; sajha/auth/access.py.",
+            "note": "Each output becomes context for the next step; the model chooses the path from what it sees. "
+            "Section 6 shows a real run, captured when this deck was built.",
+            "source": "Illustrative: no run is claimed. Every tool name is checked against the live registry at build "
+            "time (evidence.require_tools). After the earlier deck's risk-analysis table, with names that exist.",
         },
         {
-            "kind": "bullets",
-            "kicker": "The MCP endpoint",
-            "title": "OAuth 2.1 on /mcp: SAJHA's own authorization server, or yours",
-            "intro": "An authorization server issues the tokens; a resource server accepts them. SAJHA can be "
-            "both, or only the second behind your identity provider. It is off by default (mcp.auth.mode: "
-            "off, optional or required); API keys and SAJHA's own tokens work in every mode.",
+            "kind": "diagram",
+            "kicker": "Multi-agent coordination",
+            "title": "Several agents share one server, each with its own identity and rights",
+            "nodes": [
+                {"id": "ra", "text": "Research agent", "sub": "API key: tavily_*, edgar_*, fed_*", "x": 0.0,
+                 "y": 0.0, "w": 0.3, "h": 0.22},
+                {"id": "aa", "text": "Analytics agent", "sub": "API key: duckdb_*, olap_*, calc_*", "x": 0.35,
+                 "y": 0.0, "w": 0.3, "h": 0.22},
+                {"id": "pa", "text": "Reporting agent", "sub": "role: user, prompts, Ask SAJHA", "x": 0.7, "y": 0.0,
+                 "w": 0.3, "h": 0.22},
+                {"id": "s", "text": "SAJHA MCP server", "sub": "one catalog · one policy · one audit", "x": 0.0,
+                 "y": 0.42, "w": 1.0, "h": 0.2, "style": "accent"},
+            ],
+            "edges": [("ra", "s", "MCP"), ("aa", "s", "MCP"), ("pa", "s", "MCP")],
             "items": [
-                ("Resource server", "Protected-resource metadata (RFC 9728), audience-bound tokens: a token "
-                 "issued for another API is refused."),
-                ("Built-in authorization server", "Authorization code with PKCE S256, client ID metadata "
-                 "documents, optional dynamic registration, rotating refresh tokens with reuse detection."),
-                ("Tested by the suite", (f"The official authorization scenarios: {auth['scenarios']} scenarios, "
-                 f"{auth['passed']} checks passed, {auth['failed']} failed (Part 4)." if auth else
-                 "The official authorization scenarios are recorded in the compliance report.")),
+                "Each agent gets its own credentials (an API key in allowlist mode, or a role), so least privilege is "
+                "enforced per agent and the audit names which agent called what.",
+                "Agents hand work to each other over A2A (/.well-known/agent.json, POST /a2a); MCP carries tool access. "
+                "Several workers with a shared state store serve more agents without changing the server.",
             ],
-            "source": "docs/protocol/OAuth Guide.md; sajha/auth/oauth/resource_server.py and "
-            "authorization_server.py; the authorization row of the conformance table in "
-            "docs/protocol/MCP 2026-07-28 Compliance.md §5, parsed at build time.",
-        },
-        {
-            "kind": "split",
-            "kicker": "Policy",
-            "title": "A rule is a few lines of YAML, and it decides before the tool runs",
-            "left_w": 0.46,
-            "left": {"head": "config/policies/example-guardrails.yaml", "lines": _rule("sql-read-only")
-                     + ["", "# deny wins over allow; a violated constraint", "# denies with the rule's name"]},
-            "right": {
-                "head": "The rule language",
-                "items": [
-                    ("Match", "Tool names and groups, annotations such as destructiveHint, the caller "
-                     "(anonymous, user, role, API key), the path, a time window, argument values."),
-                    ("Decide", "allow, deny with a reason, or require_approval by the caller or an "
-                     "administrator; deny overrides; default_effect: deny turns it into an allowlist."),
-                    ("Oblige", "Argument constraints, rate limits and quotas shared by every worker, "
-                     "redaction of personal data, screening of results for injected instructions."),
-                    ("Operate", "Files reload on change; every decision that is not allow is audited; the "
-                     "Policies page has a test bench."),
-                ],
-                "size": 16,
-            },
-            "source": "The rules shown are read verbatim from config/policies/example-guardrails.yaml at build "
-            "time (disabled in the shipped configuration). Rule language: docs/architecture/Policy and "
-            "Audit.md §3; sajha/policy/model.py and engine.py.",
-        },
-        {
-            "kind": "table",
-            "kicker": "Policy, evaluated",
-            "title": "The shipped example policy, evaluated on four calls",
-            "col_w": [1.0, 2.9, 1.3, 3.0],
-            "rows": [["Caller", "Tool and arguments", "Decision", "Rule and reason"]]
-            + [
-                [
-                    p["caller"],
-                    f"{p['tool']} {js(p['args'])}",
-                    p["effect"] + (f" + {', '.join(p['obligations'])}" if p["obligations"] else ""),
-                    (p["rule"].split("/")[-1] + ": " if p["rule"] else "no deciding rule: ")
-                    + (p["reason"] or "allowed; obligations still apply"),
-                ]
-                for p in pol
-            ],
-            "note": "The same engine sits in BaseMCPTool.execute_with_tracking, so these decisions would be the "
-            "same over MCP, REST, the command line or Ask SAJHA.",
-            "source": policy_src,
-        },
-        {
-            "kind": "split",
-            "kicker": "Audit, tampered with",
-            "title": "Change one stored field and the audit says which record and which field",
-            "left_w": 0.5,
-            "left": {
-                "head": "Captured while building this deck",
-                "lines": [
-                    "# write a short chain, signed every 5 records",
-                    f"✓ verify: {aud['records']} records, {aud['anchors']} signed anchors, ok={aud['ok_before']}",
-                    "",
-                    "# change one stored outcome, deny -> ok",
-                    f"UPDATE audit_chain SET outcome='ok' WHERE seq={aud['seq']}",
-                    "",
-                    f"✗ verify: ok={aud['ok_after']}",
-                    *[ln for p in aud["problems"] for ln in wrap(p, 48)],
-                ],
-            },
-            "right": {
-                "head": "How",
-                "items": [
-                    ("Chained", "Each record's SHA-256 covers the previous record's hash, so an edit, "
-                     "deletion, insertion or reordering breaks the chain."),
-                    ("Signed", "The head is signed (RS256) every N records, every few minutes and at "
-                     "shutdown, with the key published at /oauth/jwks."),
-                    ("Checked", "python -m sajha.audit verify, or the Audit page."),
-                    ("Exported", f"To {listing(siem['types'])} sinks ({listing(siem['flavors'])}) as "
-                     f"{listing(f.upper() if f != 'ocsf' else 'OCSF' for f in siem['formats'])}."),
-                ],
-                "size": 16,
-            },
-            "source": "Run while the deck was built (tools/deck/evidence.py, audit_example): "
-            "sajha.audit.chain.ChainWriter on a temporary SQLite file with a throwaway RSA key, then "
-            "sajha.audit.verify.verify before and after one UPDATE. SIEM sinks and formats: sajha/audit/sinks.py "
-            "TYPES and FLAVORS, sajha/audit/formats.py FORMATS.",
-        },
-        {
-            "kind": "cards",
-            "kicker": "Code and credentials SAJHA did not write",
-            "title": "User code runs in a sandbox; a user's tokens stay in a vault",
-            "cols": 2,
-            "cards": [
-                ("SANDBOX", "Every call of user code in its own process",
-                 "Python and script tools made in Studio, and the admin shell, run per call with no server "
-                 "environment, no view of its files and no network unless allowed. Backends: "
-                 f"{listing(F['sandbox'], 'or')}; on Linux the default adds Landlock, seccomp and "
-                 "namespaces."),
-                ("WHAT IT DOES NOT COVER", "Built-in tools are not sandboxed",
-                 "Shipped tools and tools of other servers run in-process or remotely. On macOS and Windows "
-                 "the default sandbox gives only a clean environment and limits; where kernel exploits "
-                 "matter, use docker with gVisor."),
-                ("CONNECTED ACCOUNTS", "A tool acts as the user, not as a shared key",
-                 f"A user links an account once ({listing(F['accounts'])}, or any OAuth 2.0 service); "
-                 "tools that declare it call the service with that user's token."),
-                ("THE VAULT", "Tokens encrypted, bound and fenced",
-                 "AES-256-GCM, bound to user and provider, refreshed by one worker at a time, sent only to "
-                 "the provider's listed hosts; per-user results are never cached."),
-            ],
-            "source": "Sandbox backends: sajha/sandbox/backends.py BACKENDS; limits: docs/architecture/Sandbox.md "
-            "and Security Model §8 'Sandboxing'. Account templates: sajha/accounts/providers.py TEMPLATES; "
-            "vault: docs/architecture/Connected Accounts.md, sajha/accounts/vault.py.",
-        },
-        {
-            "kind": "stats",
-            "kicker": "Evidence",
-            "title": "Security fixes are listed, with where each one lives in the code",
-            "intro": "The Security Model keeps a table of issues found and fixed since the last major release, "
-            "each with the file that fixes it. A list kept in the open is worth more than a claim of none.",
-            "stats": [
-                (str(len(fixes)), "issues found and fixed, each named with its fix and its file"),
-                (str(len(F["limitations"])), "known limitations, listed so a deployment can compensate"),
-            ],
-            "rows": [["The shortest entries in the fixes table"]] + [[f] for f in shortest],
-            "size": 12,
-            "bold_col0": False,
-            "source": "docs/security/Security Model.md, the 'Fixes since …' table and the 'Known limitations' "
-            "section, both parsed at build time (tools/deck/evidence.py security_fixes, limitations). The rows "
-            "shown are the nine shortest, chosen mechanically.",
-        },
-    ]
-
-
-def _part6(F: dict[str, Any]) -> list[dict[str, Any]]:
-    cat, conn, wf, comp = F["catalog"], F["connectors"], F["workflows"], F["composition"]
-    rows = [["Group", "Tools", "For example"]] + [[g, str(n), ex] for g, n, ex in cat["top"][:10]]
-    rest = sum(n for _g, n, _e in cat["top"][10:])
-    rows.append([f"{cat['groups'] - 10} more groups", str(rest), "search, central banks, documents, …"])
-    creators = [c.replace("powerbidax", "Power BI DAX").replace("powerbi", "Power BI")
-                .replace("dbquery", "SQL query").replace("rest", "REST").replace("livelink", "LiveLink")
-                .replace("sharepoint", "SharePoint") for c in F["studio"]]
-    ways = [
-        ["Way", "You give", "You get"],
-        ["MCP Studio creators", listing(creators),
-         "A generated tool, deployed into the running server; code tools run sandboxed"],
-        ["Describe a tool", "A sentence", "A proposed, tested tool an administrator reviews and approves"],
-        ["Import an API", "An OpenAPI 3, Swagger 2 or GraphQL description",
-         "Reviewed tools on one generic executor; no code generated"],
-        ["Data connectors", "A database, warehouse or vector store connection",
-         "Read-only list, describe, query and search tools, and curated views"],
-        ["Federation", "Another MCP server's address", "Its tools in the catalog, under SAJHA's rules"],
-        ["Composite tool", "Steps that chain existing tools", "One tool, with confidence tracking"],
-        ["Workflow", "A graph of steps and a trigger", "A scheduled or triggered run, optionally a tool"],
-    ]
-    n_ways = {1: "One", 2: "Two", 3: "Three", 4: "Four", 5: "Five", 6: "Six", 7: "Seven", 8: "Eight",
-              9: "Nine"}.get(len(ways) - 1, str(len(ways) - 1))
-    comp_lines = ["# confidence through a three-step composite", "# step                      conf  chain  bits"]
-    for s, c, cum, bits in comp["rows"]:
-        comp_lines.append(f"{s[:25]:<25} {c:.2f}  {cum:.3f}  {bits:.2f}")
-    comp_lines += ["", f"# refused above {comp['max_bits']:.1f} bits (max_entropy_bits)"]
-    return [
-        {
-            "kind": "divider",
-            "num": "6",
-            "title": "Every tool you have",
-            "sub": "A catalog is shared only if it holds the tools people need. SAJHA ships a large one, and "
-            f"gives {n_ways.lower()} ways to add more without writing a server: browser creators, a sentence, an API "
-            "description, a database connection, another MCP server, a composite and a workflow.",
-            "points": [
-                "The catalog in the box",
-                "Studio, and describing a tool in a sentence",
-                "API import and data connectors",
-                "Federation",
-                "Composition and confidence",
-                "Workflows",
-            ],
-        },
-        {
-            "kind": "table",
-            "kicker": "In the box",
-            "title": f"{cat['tools']} tools in {cat['groups']} groups ship with the server",
-            "col_w": [1.6, 0.8, 3.0],
-            "rows": rows,
-            "size": 12,
-            "note": "Market data, central banks, filings, public statistics, search and calculators. The live "
-            "list is tools/list or the Tools page; a caller sees only what it may run.",
-            "source": "The tools registry loaded from config/tools at build time, grouped by "
-            "live_tool_groups (sajha/web/help_catalog.py); 'for example' is each group's first tool by name.",
-        },
-        {
-            "kind": "table",
-            "kicker": "Adding tools",
-            "title": f"{n_ways} ways to make a tool without writing an MCP server",
-            "col_w": [1.7, 2.6, 3.0],
-            "rows": ways,
-            "source": "Studio creators: sajha/studio/*_tool_generator.py, listed at build time; "
-            "docs/studio/MCP Studio User Guide.md; docs/architecture/Tool Generation.md, API Import.md, "
-            "Data Connectors.md, Federation.md, Composition Framework.md, Workflows.md.",
-        },
-        {
-            "kind": "flow",
-            "kicker": "Describe a tool",
-            "title": "A sentence becomes a proposal, and nothing deploys without a person",
-            "box_h": 3.0,
-            "steps": [
-                ("Describe", "“Fetch today's FX rate for a currency pair from our rates API.”"),
-                ("Propose", "The toolsmith model drafts the kind, name, schemas, implementation and test cases."),
-                ("Check", "Treated as untrusted: read-only SQL, host checks, no credentials, risky imports flagged."),
-                ("Test", "Cases run in the sandbox, offline where possible, bound to the draft's SHA-256."),
-                ("Approve", "An administrator approves that hash; policy can require a second one."),
-            ],
-            "items": [
-                "Out of the box the toolsmith alias points at an offline mock that knows a few shapes; real "
-                "designs need a real model. Generated Python tools always run sandboxed.",
-            ],
-            "source": "docs/architecture/Tool Generation.md; sajha/studio/describe.py; "
-            "sajha/ai/llm/mock_toolsmith.py; CHANGELOG 'Describe a tool'. The example sentence is illustrative.",
-        },
-        {
-            "kind": "split",
-            "kicker": "APIs and databases",
-            "title": "An API description or a database becomes governed, read-only tools",
-            "left": {
-                "head": "Import an API",
-                "items": [
-                    "OpenAPI 3.x, Swagger 2.0 or a GraphQL endpoint becomes a preview of every operation: "
-                    "name, JSON Schema in and out, read-only and destructive hints.",
-                    "Choose, test one call, deploy; credentials only as secret references.",
-                    "Every call passes an SSRF guard; re-import shows a diff. Multipart bodies are not "
-                    "supported.",
-                ],
-                "size": 16,
-            },
-            "right": {
-                "head": "Data connectors",
-                "items": [
-                    f"SQL: {listing(conn['sql'])}. Search: {listing(conn['search'])}.",
-                    "Read-only three times over: a statement guard, a read-only session, and the login's own "
-                    "grants. Row, byte and time limits; masking per column.",
-                    f"Curated views become typed tools; {listing(conn['per_user'])} can sign in as each user.",
-                ],
-                "size": 16,
-            },
-            "source": "Connector kinds: sajha/connectors/model.py KINDS, read at build time. "
-            "docs/architecture/API Import.md and Data Connectors.md; CHANGELOG 'Data connectors' and "
-            "'API Import'.",
-        },
-        {
-            "kind": "bullets",
-            "kicker": "Federation",
-            "title": "Other MCP servers' tools join the catalog under SAJHA's rules",
-            "intro": "Federation means SAJHA fronting another MCP server: its tools appear in the catalog as "
-            "<prefix>__<tool> and every call to them passes SAJHA's access policy, rules, cache, circuit "
-            "breakers and audit. It is off by default.",
-            "items": [
-                ("Approval before exposure", "An upstream's tools wait for an administrator; a changed "
-                 "definition waits again."),
-                ("Screened text", "Descriptions and results are screened for injected instructions; flagged "
-                 "items always wait for a person."),
-                ("Fenced network", "Upstream and token addresses pass an SSRF guard; each user's own token "
-                 "can be passed through instead of a shared one."),
-                ("Not isolated", "An upstream server runs where it runs; SAJHA governs the calls, not the "
-                 "server's process."),
-            ],
-            "source": "docs/architecture/Federation.md; sajha/federation/; GLOSSARY.md 'Federation', "
-            "'Tool poisoning'; the federation and isolation cells of sajha/web/competitive.py.",
-        },
-        {
-            "kind": "split",
-            "kicker": "Composition",
-            "title": "Confidence falls as uncertain steps chain, and SAJHA computes by how much",
-            "left_w": 0.52,
-            "left": {"head": "Computed while building this deck", "lines": comp_lines},
-            "right": {
-                "head": "Why it matters",
-                "items": [
-                    "Sequential steps multiply confidence; parallel steps take the lowest.",
-                    "Entropy in bits measures the doubt that has built up; a composite whose predicted "
-                    "entropy passes the limit is refused before it runs.",
-                    "A deterministic step (a calculator) adds no doubt, so it does not lower the chain.",
-                    "Composite tools are ordinary catalog tools, so every rule of Part 5 applies to them.",
-                ],
-                "size": 16,
-            },
-            "source": "sajha.core.composition.EntropyGuard and get_tool_confidence, run at build time on "
-            "three tool names (tools/deck/evidence.py, composition_example). GLOSSARY.md 'EntropyGuard'.",
+            "items_h": 1.45,
+            "source": "Tool access per API key: sajha/auth/access.py apikey_policy; A2A: sajha/routes/a2a_routes.py; "
+            "workers: docs/architecture/Scaling and State.md. The key patterns are illustrative.",
         },
         {
             "kind": "cards",
@@ -388,22 +122,222 @@ def _part6(F: dict[str, Any]) -> list[dict[str, Any]]:
             "cards": [
                 ("STEPS", "Tools, composites, questions, decisions", f"Step kinds: {listing(wf['steps'])}."),
                 ("TRIGGERS", "Started by time or by events",
-                 f"{listing(t if t != 'cron' else 'cron schedules' for t in wf['triggers'])}, or by hand; "
-                 "one fire per slot across workers."),
-                ("DURABLE", "A run survives a crash",
-                 "Every step is stored; another worker takes over a dead worker's run and re-runs only "
-                 "idempotent steps."),
-                ("AS THE OWNER", "Runs with the owner's rights",
-                 "Steps run with the owner's current roles, seen by policy, usage and audit as that caller."),
+                 f"{listing(t if t != 'cron' else 'cron schedules' for t in wf['triggers'])}, or by hand; one fire "
+                 "per slot across workers."),
+                ("DURABLE", "A run survives a crash", "Every step is stored; another worker takes over a dead "
+                 "worker's run and re-runs only idempotent steps."),
+                ("AS THE OWNER", "Runs with the owner's rights", "Steps run with the owner's current roles, seen by "
+                 "policy, usage and audit as that caller."),
                 ("RE-RUN", "From the step that failed", "Finished steps are reused; a run can be cancelled."),
-                ("PUBLISHED", "A workflow can be a tool",
-                 "An administrator can publish it to the catalog, callable from both eras."),
+                ("PUBLISHED", "A workflow can be a tool", "An administrator can publish it to the catalog, callable "
+                 "from both eras."),
             ],
             "source": "sajha/workflows/model.py STEP_KINDS and TRIGGER_TYPES, read at build time; "
-            "docs/architecture/Workflows.md; CHANGELOG 'Workflows'.",
+            "docs/architecture/Workflows.md.",
+        },
+        {
+            "kind": "split",
+            "kicker": "Extending the server",
+            "title": "Two ways to add a tool, and agents cannot tell them apart",
+            "left": {
+                "head": "No code: MCP Studio",
+                "items": [
+                    "REST, database query, script, Power BI, SharePoint, LiveLink and OLAP creators, or describe the "
+                    "tool in a sentence.",
+                    "Import an OpenAPI or GraphQL description; connect a database.",
+                    "Deploy with one click; the tool is live without a restart.",
+                ],
+            },
+            "right": {
+                "head": "Full code: a Python tool",
+                "items": [
+                    "Subclass BaseMCPTool and implement execute(); declare the input schema.",
+                    "The whole Python ecosystem: numpy, pandas, scipy.",
+                    "A JSON config in config/tools loads it; a plugin (plugin.json and tools/) packages several.",
+                ],
+            },
+            "note": "Both produce ordinary MCP tools with schemas, governed and audited the same way.",
+            "source": "sajha/tools/base_mcp_tool.py (BaseMCPTool); sajha/core/plugins.py (plugin.json manifest, "
+            "discover, load_plugin; /api/plugins in sajha/routes/ops_routes.py); Studio pages in "
+            "sajha/routes/studio_routes.py.",
+        },
+        {
+            "kind": "bullets",
+            "kicker": "Hot reload",
+            "title": "Tools, rules and permissions change without a restart",
+            "items": [
+                ("Tools", "A JSON config added or changed in config/tools is picked up by the registry's file monitor; "
+                 "with an object store, its poller does the same."),
+                ("Studio and imports", "Deploying from Studio, an import or a connector registers the tool in the "
+                 "running server at once."),
+                ("Policies", "Policy files reload when they change."),
+                ("Users, roles and keys", "Changed in the console; the next request uses them, because the user is "
+                 "reloaded on every request."),
+                ("Clients notice", "Clients on SSE or WebSocket, and 2026-07-28 clients through subscriptions/listen, "
+                 "receive list-changed notifications; Ask SAJHA's shortlist sees a new tool without a reload."),
+            ],
+            "source": "sajha/tools/tools_registry.py (start_monitoring, _monitor_files); sajha/core/reload_manager.py "
+            "(object-store polling); sajha/policy/loader.py (policy.reload_seconds); sajha/core/mcp_handler.py (listChanged on push channels; subscriptions/listen in mcp_modern); docs/security/Security "
+            "Model.md §1 (user reloaded per request); docs/architecture/Intelligence Layer.md (tool index sync).",
+        },
+        {
+            "kind": "mono",
+            "kicker": "Step by step",
+            "title": "Tool creation: MCP Studio, zero code",
+            "band": "Developer or admin  →  MCP Studio",
+            "lines": [
+                "1. Open /studio and choose a creator",
+                "   └─ Python | REST | DB query | Script | OLAP | Power BI |",
+                "      SharePoint | LiveLink | Describe | Import an API",
+                "2. Fill the form: name, parameters, source",
+                '   ├─ name: "fx_rate"',
+                '   ├─ parameters: { "pair": "string" }',
+                "   └─ source: URL template, SQL, code or script",
+                "3. Preview: the JSON Schema is generated",
+                "   └─ inputSchema with types and required fields",
+                "4. Deploy",
+                "   ├─ Config written under config/tools",
+                "   ├─ Registered in the running server",
+                "   └─ Code and scripts will run in the sandbox",
+                "5. Any MCP client sees it in tools/list,",
+                "   under its caller's access policy",
+            ],
+            "source": "sajha/routes/studio_routes.py (pages, /preview and /deploy actions per creator); "
+            "docs/studio/MCP Studio User Guide.md. The tool name and parameters are illustrative.",
+        },
+        {
+            "kind": "mono",
+            "kicker": "Step by step",
+            "title": "Tool creation: a Python tool, full code",
+            "band": "Developer  →  SAJHA tools registry",
+            "lines": [
+                "1. Write the class",
+                "   ├─ class FxRateTool(BaseMCPTool):",
+                "   ├─     def execute(self, arguments): ...",
+                "   └─ input schema with types, ranges, required",
+                "2. Describe it: a JSON config in config/tools",
+                "   └─ name, description, implementation class, cache_ttl",
+                "3. Or package several as a plugin",
+                "   ├─ config/plugins/my-tools/plugin.json",
+                "   └─ tools/ with configs or classes; a checksum",
+                "4. Test",
+                "   ├─ Tool tests with recorded HTTP cassettes",
+                "   └─ The schema linter",
+                "5. Deploy: the registry loads the config;",
+                "   the tool appears in tools/list",
+            ],
+            "source": "sajha/tools/base_mcp_tool.py; sajha/tools/tools_registry.py; sajha/core/plugins.py (manifest "
+            "format in its docstring); docs/architecture/Tool Quality.md (tests, cassettes, lint). The class name is "
+            "illustrative.",
+        },
+    ]
+
+
+def _pairs(tools: list[tuple[str, str]]) -> list[list[str]]:
+    """Two (tool, description) pairs per row, filled down the left column first."""
+    half = (len(tools) + 1) // 2
+    tools = [(n, short_description(d)) for n, d in tools]
+    left, right = tools[:half], tools[half:] + [("", "")] * (2 * half - len(tools))
+    return [["Tool", "What it does", "Tool", "What it does"]] + [[a, b, c, d] for (a, b), (c, d) in zip(left, right)]
+
+
+def _section5(F: dict[str, Any]) -> list[dict[str, Any]]:
+    search = [(n, d) for n, d in F["search_tools"] if n.startswith(("tavily_", "wiki_", "crawl_", "extract_"))]
+    ir = [n for n, _d in F["search_tools"] if n.startswith("ir_")]
+    analytics = F["analytics_tools"]
+    calc = F["calc_tools"]
+    combo = require_tools(["tavily_news_search", "duckdb_sql", "olap_pivot_table", "calc_correlation"])
+    return [
+        {
+            "kind": "divider",
+            "num": "5",
+            "title": "Data and analytics integration",
+            "sub": "Search for what the world says, SQL and pivots for what your data says, calculators for the "
+            "arithmetic, and guards so that none of it can write.",
+            "points": ["Search and the web", "DuckDB and OLAP", "Financial calculators", "The connector guard",
+                       "Search plus analytics"],
+        },
+        {
+            "kind": "table",
+            "kicker": "Search and the web",
+            "title": f"{len(search)} search, extraction and crawling tools",
+            "col_w": [1.55, 2.4, 1.55, 2.4],
+            "rows": _pairs(search),
+            "note": "Results come back as structured text for a model, not raw HTML; Tavily calls need a Tavily key. "
+            f"For filings, {len(ir)} investor-relations tools (ir_*) find reports and presentations.",
+            "source": "Names and first sentences of the descriptions from the live registry at build time "
+            "(evidence.describe_tools, cut by evidence.short_description over tavily_, wiki_, crawl_, extract_; ir_ counted).",
+        },
+        {
+            "kind": "table",
+            "kicker": "DuckDB and OLAP",
+            "title": "SQL over your files, pivots and statistics, read-only by construction",
+            "col_w": [1.55, 2.4, 1.55, 2.4],
+            "rows": _pairs(analytics),
+            "note": "duckdb_sql accepts one read-only statement and cannot read arbitrary files or URLs; the OLAP "
+            "tools bind values instead of pasting them into SQL.",
+            "source": "Names and descriptions from the live registry at build time (duckdb_, olap_, sqlselect_). "
+            "Guards: the 'Fixes since' table of docs/security/Security Model.md (duckdb_sql, OLAP SQL injection).",
+        },
+        {
+            "kind": "table",
+            "kicker": "Financial calculators",
+            "title": f"{len(calc)} calculators: pure arithmetic, no network, confidence 1.0",
+            "col_w": [1.55, 2.4, 1.55, 2.4],
+            "rows": _pairs(calc),
+            "source": "Names and descriptions from the live registry at build time (calc_). Confidence: "
+            "sajha.core.composition.get_tool_confidence for the calc group, "
+            f"{F['confidence']['calc']:.1f}.",
+        },
+        {
+            "kind": "diagram",
+            "kicker": "The connector guard",
+            "title": "A query to your database passes three read-only checks",
+            "items_h": 1.9,
+            "nodes": [
+                {"id": "q", "text": "Tool call", "sub": "query or curated view", "x": 0.0, "y": 0.08, "w": 0.15,
+                 "h": 0.7, "style": "white"},
+                {"id": "g1", "text": "1  Statement guard", "sub": "one SELECT; table allowlist; no procedures",
+                 "x": 0.205, "y": 0.08, "w": 0.18, "h": 0.7, "style": "accent"},
+                {"id": "g2", "text": "2  Read-only session", "sub": "the connection itself refuses writes",
+                 "x": 0.44, "y": 0.08, "w": 0.18, "h": 0.7, "style": "accent"},
+                {"id": "g3", "text": "3  The login's grants", "sub": "the database's own control",
+                 "x": 0.675, "y": 0.08, "w": 0.18, "h": 0.7, "style": "dark"},
+                {"id": "db", "text": "Your database", "x": 0.91, "y": 0.08, "w": 0.09, "h": 0.7, "style": "box",
+                 "size": 11},
+            ],
+            "edges": [("q", "g1", ""), ("g1", "g2", ""), ("g2", "g3", ""), ("g3", "db", "")],
+            "items": [
+                ("Limits", "Row, byte and time limits on every query; masking per column."),
+                ("Per-user sign-in", f"{listing(F['connectors']['per_user'])} can run as each user, so the database "
+                 "applies that user's own rights."),
+                ("Honest limit", "SAJHA's guard works on query text it can analyse; database-native grants, views "
+                 "and masking are stronger and should back anything sensitive."),
+            ],
+                        "source": "docs/architecture/Data Connectors.md (the guard, limits, masking, §14 'Limits of this design'); "
+            "sajha/connectors/model.py PER_USER_KINDS, read at build time.",
+        },
+        {
+            "kind": "steps",
+            "kicker": "Search plus analytics",
+            "title": "One session blends outside intelligence with inside data",
+            "intro": "Illustrative. “What is the market saying about credit spreads, and how are we positioned?”",
+            "head_w": 2.6,
+            "head_font": "Consolas",
+            "head_size": 13,
+            "steps": [
+                (combo[0], "News on the credit-spread outlook: the market's view, with links."),
+                (combo[1], "SELECT sector, rating, spread, duration FROM portfolio: our positions."),
+                (combo[2], "Exposure by sector and rating: where we are concentrated."),
+                (combo[3], "How our spreads have moved with the market's: correlation of two series."),
+                ("the model", "A synthesis that cites each call, with SAJHA's confidence attached."),
+            ],
+            "note": "Same server, same identity, same rules and the same audit for every step.",
+            "source": "Illustrative: no run is claimed. Tool names checked against the live registry at build time. "
+            "After the earlier deck's combined-workflow slide.",
         },
     ]
 
 
 def slides(F: dict[str, Any]) -> list[dict[str, Any]]:
-    return _part5(F) + _part6(F)
+    return _section4(F) + _section5(F)

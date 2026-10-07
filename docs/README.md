@@ -163,4 +163,4 @@ These guides document each provider's tools, parameters and API keys.
 - [Deployment recipes](../deployment/README.md): AWS CDK, Hetzner, bare metal, Kubernetes
 - [Archive](archive/README.md): old audits and notes, not maintained
 - How SAJHA compares with other MCP products: the server's `/comparison` page (data in `sajha/web/competitive.py`)
-- [The deck](../tools/deck/GUIDE.md): `docs/publications/SAJHA-One-Governed-Catalog-of-Tools.pptx`, rebuilt from source with every number derived at build time
+- [The deck](../tools/deck/GUIDE.md): `docs/publications/SAJHA-MCP-Server.pptx`, rebuilt from source with every number derived at build time

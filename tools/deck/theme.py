@@ -215,12 +215,61 @@ def fitted(
     raise DoesNotFit(f"text block does not fit {w:.2f}x{h:.2f} at {floor}pt")
 
 
-def footer(sl: Any) -> None:
-    rect(sl, ML, FOOTER_Y, CW, 0.008, fill=RULE)
+FOOTER_TEXT = "SAJHA \u2022 Ashutosh Sinha"
+ICONS = TOKENS.parents[1] / "icons" / "sajha-icons.svg"
+
+
+def _mark_geometry(path: Path = ICONS) -> tuple[float, list[tuple[float, float, float]], list[tuple[float, ...]]]:
+    """SAJHA's own mark, the ``icon-sajha`` symbol the web console's brand uses: its
+    view box, circles and lines, read from the icon sprite so the deck draws the same mark."""
+    svg = path.read_text(encoding="utf-8")
+    m = re.search(r'<symbol id="icon-sajha" viewBox="0 0 (\d+) \d+"[^>]*>(.*?)</symbol>', svg, re.S)
+    if not m:
+        raise ValueError(f"no icon-sajha symbol in {path}")
+    body = m.group(2)
+    circles = [tuple(float(v) for v in c) for c in re.findall(r'<circle cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"', body)]
+    lines = [tuple(float(v) for v in ln) for ln in re.findall(
+        r'<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"', body)]
+    if not circles or not lines:
+        raise ValueError("the icon-sajha symbol has no circles or lines")
+    return float(m.group(1)), circles, lines  # type: ignore[return-value]
+
+
+MARK = _mark_geometry()
+
+
+def mark(sl: Any, x: float, y: float, size: float, color: Any, lw: float = 1.5) -> None:
+    """Draw SAJHA's mark (three joined circles) in a ``size`` square at (x, y)."""
+    box, circles, lines = MARK
+    k = size / box
+    for x1, y1, x2, y2 in lines:
+        c = sl.shapes.add_connector(1, In(x + x1 * k), In(y + y1 * k), In(x + x2 * k), In(y + y2 * k))
+        c.line.color.rgb = color
+        c.line.width = Pt(lw)
+    for cx, cy, r in circles:
+        o = sl.shapes.add_shape(MSO_SHAPE.OVAL, In(x + (cx - r) * k), In(y + (cy - r) * k), In(2 * r * k), In(2 * r * k))
+        o.fill.background()
+        o.line.color.rgb = color
+        o.line.width = Pt(lw)
+        o.shadow.inherit = False
+
+
+def footer(sl: Any, color: Any = None) -> None:
+    color = color or MUTED
+    rect(sl, ML, FOOTER_Y, CW, 0.008, fill=RULE if color is MUTED else color)
     tf = txt(sl, ML, SH - 0.46, CW * 0.7, 0.24)
-    para(tf, _state["chapter"], size=8.5, color=MUTED, first=True, space_after=0)
+    para(tf, FOOTER_TEXT, size=8.5, color=color, first=True, space_after=0)
     tf = txt(sl, ML + CW * 0.7, SH - 0.46, CW * 0.3, 0.24, align=PP_ALIGN.RIGHT)
-    para(tf, str(_state["n"]), size=8.5, color=MUTED, first=True, space_after=0, bold=True)
+    para(tf, str(_state["n"]), size=8.5, color=color, first=True, space_after=0, bold=True)
+
+
+def brand(sl: Any, color: Any = None, light: bool = False) -> None:
+    """The mark and the wordmark in the top-right corner of a content slide."""
+    color = color or CRIMSON
+    x = SW - ML - 1.05
+    mark(sl, x, 0.16, 0.30, color, 1.1)
+    tf = txt(sl, x + 0.38, 0.17, 0.75, 0.28)
+    para(tf, "SAJHA", size=11, color=color, bold=True, font=SERIF, first=True, space_after=0)
 
 
 def content(title: str, kicker: str | None = None) -> tuple[Any, float]:
@@ -242,48 +291,138 @@ def content(title: str, kicker: str | None = None) -> tuple[Any, float]:
     para(tf, title, size=size, color=INK, font=SERIF, first=True, space_after=0, line=1.15)
     body_top = y + th + 0.24
     rect(sl, ML, body_top - 0.14, CW, 0.012, fill=RULE)
+    brand(sl)
     footer(sl)
     return sl, body_top
 
 
+SECTION_SHAPE = "Section numeral"
+
+
 def divider(num: str, title: str, sub: str, points: list[str]) -> Any:
-    """A crimson part divider with its contents on the right."""
+    """A numbered section divider: a large numeral in a circle, the section's title, one
+    sentence on what it answers, and its contents in a line."""
     _state["chapter"] = f"{num} · {title}"
     _state["n"] += 1
     sl = blank()
     rect(sl, 0, 0, SW, SH, fill=CRIMSON)
     rect(sl, 0, 0, 0.18, SH, fill=CRIMSON_D)
-    tf = txt(sl, ML + 0.25, 2.0, CW * 0.58, 0.4)
-    para(tf, f"PART {num}", size=12, color=PINK, bold=True, first=True, space_after=0)
-    tw = CW * 0.58
-    size = 42.0
+    mark(sl, ML, 0.42, 0.42, PINK, 1.4)
+    tf = txt(sl, ML + 0.55, 0.47, 3.0, 0.32)
+    para(tf, "SAJHA", size=14, color=PINK, bold=True, font=SERIF, first=True, space_after=0)
+    d = 1.55
+    circle = rect(sl, (SW - d) / 2, 0.85, d, d, fill=CRIMSON_D, line=PINK, lw=2.5, shape=MSO_SHAPE.OVAL)
+    circle.name = SECTION_SHAPE
+    tf = circle.text_frame
+    tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    tf.paragraphs[0].alignment = PP_ALIGN.CENTER
+    para(tf, num, size=48, color=WHITE, font=SERIF, bold=True, first=True, space_after=0, line=1.0)
+    tw = CW * 0.86
+    size = 40.0
     while size > 26 and est_lines(title, tw * SAFETY, size, False, SERIF) > 1:
         size -= 2
-    tf = txt(sl, ML + 0.25, 2.5, tw, 1.0)
-    para(tf, title, size=size, color=WHITE, font=SERIF, first=True, space_after=0)
-    rect(sl, ML + 0.25, 3.7, 1.5, 0.035, fill=PINK)
-    fitted(
-        sl,
-        ML + 0.25,
-        3.95,
-        tw,
-        1.9,
-        lambda tf, s: para(
-            tf, sub, size=s, color=PINK_L, italic=True, first=True, space_after=0, line=1.3
-        ),
-        15,
-        11,
-    )
-    x = ML + CW * 0.66
-    tf = txt(sl, x, 2.0, CW * 0.34, 0.3)
-    para(tf, "IN THIS PART", size=9.5, color=PINK, bold=True, first=True, space_after=0)
+    th = text_h(title, tw * SAFETY, size, False, SERIF, 1.1)
+    tf = txt(sl, (SW - tw) / 2, 2.72, tw, th + 0.05, align=PP_ALIGN.CENTER)
+    para(tf, title, size=size, color=WHITE, font=SERIF, first=True, space_after=0, line=1.1)
+    y = 2.72 + th + 0.22
+    rect(sl, (SW - 1.6) / 2, y, 1.6, 0.035, fill=PINK)
+    y += 0.25
+    sw = CW * 0.74
 
-    def write(tf: Any, s: float) -> None:
-        for i, pnt in enumerate(points):
-            para(tf, pnt, size=s, color=PINK_L, space_after=6, line=1.15, first=i == 0)
+    def write_sub(tf: Any, s: float) -> None:
+        tf.paragraphs[0].alignment = PP_ALIGN.CENTER
+        para(tf, sub, size=s, color=PINK_L, italic=True, first=True, space_after=0, line=1.25)
 
-    fitted(sl, x, 2.4, CW * 0.34, 4.0, write, 12, 9)
+    used = fitted(sl, (SW - sw) / 2, y, sw, 1.45, write_sub, 16, 11)
+    y += used + 0.32
+
+    def write_points(tf: Any, s: float) -> None:
+        tf.paragraphs[0].alignment = PP_ALIGN.CENTER
+        para(tf, "   ·   ".join(points), size=s, color=PINK, bold=True, first=True, space_after=0, line=1.3)
+
+    fitted(sl, ML + 0.4, y, CW - 0.8, FOOTER_Y - 0.15 - y, write_points, 12.5, 9)
+    footer(sl, PINK)
     return sl
+
+
+def arrow(sl: Any, x1: float, y1: float, x2: float, y2: float, color: Any = None, width: float = 1.5) -> Any:
+    """A straight connector with an arrowhead at (x2, y2)."""
+    from pptx.oxml.ns import qn
+
+    c = connect(sl, x1, y1, x2, y2, color or SLATE, width)
+    ln = c.line._get_or_add_ln()
+    tail = ln.makeelement(qn("a:tailEnd"), {"type": "triangle", "w": "med", "len": "med"})
+    ln.append(tail)
+    return c
+
+
+def boxed(
+    sl: Any,
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+    text: str,
+    fill: Any = None,
+    color: Any = None,
+    line: Any = None,
+    start: float = 13,
+    floor: float = 8.5,
+    bold: bool = True,
+    shape: Any = MSO_SHAPE.ROUNDED_RECTANGLE,
+    align: Any = PP_ALIGN.CENTER,
+    sub: str = "",
+    font: str = SANS,
+) -> Any:
+    """A filled shape with its own text, centred, at the largest size that fits; lines in
+    ``text`` separated by newlines become paragraphs. ``sub`` is a smaller second line."""
+    s = sl.shapes.add_shape(shape, In(x), In(y), In(w), In(h))
+    if fill is None:
+        s.fill.background()
+    else:
+        s.fill.solid()
+        s.fill.fore_color.rgb = fill
+    if line is None:
+        s.line.fill.background()
+    else:
+        s.line.color.rgb = line
+        s.line.width = Pt(1.0)
+    s.shadow.inherit = False
+    if shape == MSO_SHAPE.ROUNDED_RECTANGLE:
+        s.adjustments[0] = min(0.5, 0.08 / max(0.1, min(w, h)))
+    tf = s.text_frame
+    tf.word_wrap = True
+    tf.margin_left = tf.margin_right = In(0.06)
+    tf.margin_top = tf.margin_bottom = In(0.03)
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    color = color or INK
+    size = start
+    while True:
+        for p in list(tf.paragraphs)[1:]:
+            p._p.getparent().remove(p._p)
+        tf.paragraphs[0].text = ""
+        for r in list(tf.paragraphs[0].runs):
+            r._r.getparent().remove(r._r)
+        heads = text.split("\n")
+        for i, t in enumerate(heads):
+            p = para(tf, t, size=size, color=color, bold=bold, first=i == 0, space_after=0, line=1.05, font=font)
+            p.alignment = align
+        if sub:
+            p = para(tf, sub, size=max(7.5, size - 2.5), color=color, first=False, space_after=0, line=1.05)
+            p.alignment = align
+        if text_extent(s) <= h - 0.06 or size <= floor:
+            break
+        size -= 0.5
+    if text_extent(s) > h - 0.02:
+        raise DoesNotFit(f"box text {text!r} does not fit {w:.2f}x{h:.2f} at {floor}pt")
+    return s
+
+
+def numdot(sl: Any, x: float, y: float, d: float, num: str, fill: Any = None, color: Any = None) -> Any:
+    """A numbered circle."""
+    return boxed(sl, x, y, d, d, num, fill=fill or CRIMSON, color=color or WHITE, start=min(16, d * 30),
+                 floor=7, shape=MSO_SHAPE.OVAL)
 
 
 def _row_heights(
@@ -364,7 +503,7 @@ def fitted_table(
     """``table`` at the largest size in [9, start] that fits ``h``."""
     fs = start
     while fs >= 9.0:
-        used = table(sl, data, x, y, w, col_w, fs=fs, hfs=min(fs, 13), bold_col0=bold_col0)
+        used = table(sl, data, x, y, w, col_w, fs=fs, hfs=min(fs, 15), bold_col0=bold_col0)
         if used <= h:
             return used
         remove(sl.shapes[-1])
@@ -399,7 +538,7 @@ def card(sl: Any, x: float, y: float, w: float, h: float, num: str, title: str, 
             space_after=0,
             line=1.12,
         ),
-        16,
+        19,
         10.5,
     )
     by = top + used + 0.10
@@ -410,7 +549,7 @@ def card(sl: Any, x: float, y: float, w: float, h: float, num: str, title: str, 
         inner,
         (y + h - 0.14) - by,
         lambda tf, s: para(tf, body, size=s, color=SLATE, first=True, space_after=0, line=1.2),
-        14,
+        17,
         8.5,
     )
 
@@ -451,7 +590,7 @@ def statbar(sl: Any, y: float, stats: list[tuple[str, str]], h: float = 1.25) ->
             lambda tf, s, lab=label: para(
                 tf, lab, size=s, color=SLATE, first=True, space_after=0, line=1.12
             ),
-            10.5,
+            13,
             8,
         )
 
@@ -487,4 +626,8 @@ def panel(sl: Any, x: float, y: float, w: float, h: float, lines: list[str], sta
                 p.runs[0].font.color.rgb = CRIMSON_D
                 p.runs[0].font.bold = True
 
-    return fitted(sl, x + 0.25, y + 0.16, w - 0.42, h - 0.30, write, start, 8.0)
+    # A monospaced panel is a captured run: a wrapped line misaligns its columns, so the type
+    # is never larger than the size at which the longest line fits on one line.
+    longest = max((len(ln) for ln in lines), default=1)
+    widest = (w - 0.42) * SAFETY * 72.0 / (0.620 * max(longest, 1))
+    return fitted(sl, x + 0.25, y + 0.16, w - 0.42, h - 0.30, write, max(8.0, min(start, widest)), 8.0)

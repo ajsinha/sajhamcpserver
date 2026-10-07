@@ -3,9 +3,11 @@ The deck, checked by the same tool that claims to check it.
 
 ``tools/deck/GUIDE.md`` makes the geometry audit the shipping gate for the deck. A gate
 that is wired into no test is a gate somebody forgets, so the deck in
-``docs/publications`` is audited here, its slide count is asserted (a deck module that
-silently lost slides still builds), every content slide must say in its notes where its
-content comes from, and the document properties must name the author and no tool.
+``docs/publications`` is audited here, its slide and section counts are asserted (a deck
+module that silently lost slides still builds), every content slide must say in its notes
+where its content comes from, the document properties must name the author and no tool,
+and no slide, note or property may name the organisation an earlier version of the deck
+was written for.
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
@@ -20,9 +22,12 @@ import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 AUDIT = ROOT / "tools" / "deck" / "audit.py"
-DECK = "SAJHA-One-Governed-Catalog-of-Tools"
-SLIDES = 55
-PARTS = 9
+DECK = "SAJHA-MCP-Server"
+SLIDES = 85
+SECTIONS = 7
+SECTION_SHAPE = "Section numeral"  # tools/deck/theme.py SECTION_SHAPE, on every divider
+# Never on any slide, note or property, in any case.
+BANNED = ("bmo", "erpm")
 # Anywhere in the file: no tool or assistant credited as a maker of the deck. (Provider and
 # client names such as Anthropic or Claude Desktop are content on the slides, so the stricter
 # words apply only to the document properties.)
@@ -57,17 +62,27 @@ def test_the_deck_has_no_geometry_issues():
     )
 
 
-def test_the_deck_has_the_slides_and_parts_the_guide_claims():
+def _is_divider(slide) -> bool:
+    return any(shape.name == SECTION_SHAPE for shape in slide.shapes)
+
+
+def _notes(slide) -> str:
+    return slide.notes_slide.notes_text_frame.text if slide.has_notes_slide else ""
+
+
+def test_the_deck_has_the_slides_and_sections_the_guide_claims():
     prs = _deck()
     assert len(prs.slides) == SLIDES
-    dividers = [s for s in prs.slides if _text(s).lstrip().startswith("PART ")]
-    assert len(dividers) == PARTS
+    dividers = [s for s in prs.slides if _is_divider(s)]
+    assert len(dividers) == SECTIONS
+    numerals = [next(sh for sh in s.shapes if sh.name == SECTION_SHAPE).text_frame.text for s in dividers]
+    assert numerals == [str(n) for n in range(1, SECTIONS + 1)]
 
 
 def test_every_content_slide_names_its_source_in_its_notes():
     prs = _deck()
     for i, slide in enumerate(prs.slides, 1):
-        if i == 1 or _text(slide).lstrip().startswith("PART "):
+        if i == 1 or _is_divider(slide):
             continue
         notes = slide.notes_slide.notes_text_frame.text if slide.has_notes_slide else ""
         assert notes.startswith("Source: ") and len(notes) > 30, f"slide {i} has no source in its notes"
@@ -81,6 +96,21 @@ def test_the_deck_names_its_author_and_no_tool():
     assert not [w for w in FORBIDDEN_IN_PROPERTIES if w in fields.lower()]
     text = " ".join(_text(s) for s in prs.slides).lower()
     assert not [w for w in FORBIDDEN if w in text]
+
+
+def test_no_slide_note_or_property_names_the_earlier_organisation():
+    """The deck once carried another organisation's name, confidentiality marking and
+    product name; none of them may come back, anywhere in the file."""
+    prs = _deck()
+    props = prs.core_properties
+    fields = [props.title, props.subject, props.comments, props.keywords, props.category, props.author,
+              props.last_modified_by]
+    for i, slide in enumerate(prs.slides, 1):
+        for where, text in (("text", _text(slide)), ("notes", _notes(slide))):
+            found = [w for w in BANNED if w in text.lower()]
+            assert not found, f"slide {i} {where} names {found}"
+    found = [w for w in BANNED if w in " ".join(f or "" for f in fields).lower()]
+    assert not found, f"document properties name {found}"
 
 
 def test_the_audit_can_see_tables_at_all():

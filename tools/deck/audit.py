@@ -1,7 +1,7 @@
 """
 Geometry audit for the generated decks.
 
-    python tools/deck/audit.py docs/publications/SAJHA-One-Governed-Catalog-of-Tools.pptx
+    python tools/deck/audit.py docs/publications/SAJHA-MCP-Server.pptx
 
 It re-derives the geometry of every shape on every slide and reports:
 

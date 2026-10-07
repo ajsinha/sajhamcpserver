@@ -2,7 +2,7 @@
 Build the deck.
 
     python tools/deck/build.py                 # into docs/publications/
-    python tools/deck/audit.py docs/publications/SAJHA-One-Governed-Catalog-of-Tools.pptx
+    python tools/deck/audit.py docs/publications/SAJHA-MCP-Server.pptx
 
 The deck is a list of slide specs across the part modules; ``layouts`` draws them with
 the ``theme``, and ``evidence`` derives every number on them while the deck is built.
@@ -28,7 +28,7 @@ import sajha_deck  # noqa: E402
 import theme  # noqa: E402
 
 DOCS = HERE.parents[1] / "docs" / "publications"
-NAME = "SAJHA-One-Governed-Catalog-of-Tools"
+NAME = "SAJHA-MCP-Server"
 AUTHOR = "Ashutosh Sinha"
 
 
@@ -41,7 +41,7 @@ def build(out_dir: Path = DOCS) -> tuple[Path, int]:
     props.author = AUTHOR
     props.last_modified_by = AUTHOR
     props.comments = "Copyright All rights Reserved 2025-2030, Ashutosh Sinha."
-    props.keywords = "SAJHA; MCP; tools; governance"
+    props.keywords = "SAJHA; MCP; Model Context Protocol; tools; governance"
     props.category = ""
     props.revision = 1
     stamp = dt.datetime(2026, 10, 6, 12, 0, 0)
