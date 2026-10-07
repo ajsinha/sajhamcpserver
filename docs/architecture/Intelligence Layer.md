@@ -434,7 +434,9 @@ providers. `mock-echo` replies with the last user message; `mock-scripted` plays
 `mock-planner` scores the offered tools against the question's keywords, calls the best
 one or two with arguments filled from the schema (defaults, numbers near the parameter's
 name, ticker symbols) and answers from the results, planning only from the question,
-never from tool output; `mock-embed` hashes word n-grams into normalised vectors. Fault
+never from tool output; `mock-toolsmith` designs a tool for Studio's Describe a tool from
+the description and the context it is sent ([Tool Generation](Tool%20Generation.md));
+`mock-embed` hashes word n-grams into normalised vectors. Fault
 injection (`latency_ms`, `fail_every`, `fail_with`, `seed`) exercises the gateway's
 reliability paths. Calls are priced at zero but report token usage.
 

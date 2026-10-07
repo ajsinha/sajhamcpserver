@@ -165,16 +165,25 @@ CATALOG: List[dict] = [
             _g('Observability', 'Observability.md', 'bi-activity',
                'Prometheus /metrics, OpenTelemetry traces over OTLP, the usage ledger behind the '
                'Usage & cost page, and alert rules.'),
+            _g('Workflows', 'Workflows.md', 'bi-diagram-3',
+               'DAGs of tools, composites and Ask SAJHA steps; cron, webhook, file and event triggers; '
+               'durable runs that resume after a crash, re-run from a step, publish as a tool.'),
+            _g('Tool Quality', 'Tool Quality.md', 'bi-heart-pulse',
+               'Test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, '
+               'evals for Ask SAJHA, and tool versions with canary routing, rollback and sunset dates.'),
             _g('Policy and Audit', 'Policy and Audit.md', 'bi-shield-check',
                'Declarative rules on every tool call (deny, approval, argument constraints, rate limits, '
                'quotas, PII redaction, injection screening); hash-chained, signed audit; SIEM export.'),
+            _g('Data Connectors', 'Data Connectors.md', 'bi-database-gear',
+               'Enterprise databases, warehouses, vector stores and search clusters as governed, read-only '
+               'tools: drivers, the statement guard, limits, masking, curated views, per-user credentials.'),
         ],
     },
     {
         'id': 'studio', 'name': 'MCP Studio', 'icon': 'bi-magic',
         'blurb': 'Build tools in the browser, from code, services and enterprise sources.',
         'groups': [
-            ('Start here', ['MCP Studio User Guide']),
+            ('Start here', ['MCP Studio User Guide', 'Describe a tool']),
             ('Code and services', ['Python code tools', 'REST service tools', 'Import an API',
                                    'DB query tools', 'Script tools']),
             ('Enterprise sources', ['Power BI reports', 'Power BI DAX queries', 'IBM LiveLink',
@@ -183,6 +192,8 @@ CATALOG: List[dict] = [
         'topics': [
             _g('MCP Studio User Guide', 'MCP Studio User Guide.md', 'bi-magic',
                'What Studio builds, how a generated tool is deployed, and a guide per creator.'),
+            _g('Describe a tool', 'Tool Generation.md', 'bi-chat-square-text',
+               'Say what a tool should do; review the proposed files, run its tests, approve the deploy.'),
             _g('Python code tools', 'MCP Studio Python Code Tool Creator Guide.md', 'bi-code-slash',
                'Turn a Python function with the @sajhamcptool decorator into a tool.'),
             _g('REST service tools', 'MCP Studio REST Tool Creator Guide.md', 'bi-cloud-arrow-up',
@@ -220,7 +231,7 @@ CATALOG: List[dict] = [
             ('Search', ['Google Search', 'MSDOC Search', 'Tavily Search', 'Web Crawler',
                         'Wikipedia Search']),
             ('Analytics', ['DuckDB', 'Financial Calculators', 'OLAP Analytics', 'SQL Select']),
-            ('Enterprise', ['SharePoint (tools)', 'Connected accounts (tools)']),
+            ('Enterprise', ['SharePoint (tools)', 'Connected accounts (tools)', 'Data connectors (tools)']),
             ('Prompts', ['Prompts Management Guide']),
         ],
         'topics': [
@@ -260,6 +271,9 @@ CATALOG: List[dict] = [
             _g('Connected accounts (tools)', 'Connected Account Tools Reference Guide.md', 'bi-link-45deg',
                'GitHub, Slack, Google Drive and Outlook tools that act as the signed-in user, and '
                'connected_http_request.'),
+            _g('Data connectors (tools)', 'Data Connectors Reference Guide.md', 'bi-database-gear',
+               'Per-kind setup (PostgreSQL, MySQL, SQL Server, Oracle, Snowflake, BigQuery, Databricks, '
+               'Redshift, SQLite, DuckDB, pgvector, Qdrant, Elasticsearch) and the tools each connection gets.'),
             _g('Prompts Management Guide', 'Prompts Management Guide.md', 'bi-chat-square-text',
                'Prompt configs, arguments, and the prompt pages.'),
         ],
@@ -316,6 +330,18 @@ CATALOG: List[dict] = [
             _g('21. Planners, memory and document search', 'TUTORIAL_21_planners_memory_and_rag.md', 'bi-diagram-3',
                'Run a plan with parallel steps, add a recipe and a router, ask a follow-up, delete your history, '
                'ask the docs and index your own documents.'),
+            _g('22. Schedule a workflow', 'TUTORIAL_22_schedule_a_workflow.md', 'bi-calendar-check',
+               'Build a workflow with a branch and a loop, run it, schedule it, trigger it from a signed '
+               'webhook, watch a run resume, re-run a failed step, publish it as a tool.'),
+            _g('23. Test and canary your tools', 'TUTORIAL_23_test_and_canary_your_tools.md', 'bi-heart-pulse',
+               'Write test cases, record a cassette and replay it offline in CI, lint the catalog, probe a tool, '
+               'run an eval on the mock provider, canary a new version and watch it roll back.'),
+            _g('24. Describe a tool', 'TUTORIAL_24_describe_a_tool.md', 'bi-chat-square-text',
+               'Describe three tools in plain words, read the proposals, run their tests in the sandbox and '
+               'against fixtures, approve one, and watch the checks refuse an unsafe proposal.'),
+            _g('25. Connect a database', 'TUTORIAL_25_connect_a_database.md', 'bi-database-gear',
+               'Run PostgreSQL in Docker, connect it read-only, browse the catalog, mask a column, add a curated '
+               'view, watch the guard refuse writes, and ask SAJHA a question about the data.'),
         ],
     },
     {

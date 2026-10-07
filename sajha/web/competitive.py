@@ -129,11 +129,16 @@ SAJHA = {
                            ['sajha/accounts', 'sajha/routes/accounts_routes.py'], 'Connected Accounts.md'),
         'nocode': _s('Yes', 'MCP Studio (admins): import an OpenAPI 3 or Swagger 2 spec, or a GraphQL schema, as '
                             'reviewed tools on one generic executor (no code generated; re-import shows a diff; '
-                            'multipart bodies not supported); plus REST, SQL, script, Power BI, LiveLink, '
-                            'SharePoint and OLAP creators.',
-                     ['sajha/studio', 'sajha/api_import'], 'API Import.md'),
-        'composition': _s('Yes', 'Composite tools with confidence tracking, registered as MCP tools.',
-                          ['sajha/core/composition.py'], 'Composition Framework.md'),
+                            'multipart bodies not supported); REST, SQL, script, Power BI, LiveLink, '
+                            'SharePoint and OLAP creators; and Describe a tool: a sentence becomes a proposed, '
+                            'tested tool an admin reviews and approves (the offline mock knows a few shapes; '
+                            'real designs need an LLM).',
+                     ['sajha/studio', 'sajha/api_import', 'sajha/studio/describe.py'], 'MCP Studio User Guide.md'),
+        'composition': _s('Yes', 'Composite tools with confidence tracking, registered as MCP tools; workflows: '
+                                  'DAGs of tool, composite and Ask SAJHA steps with branches, loops, retries, '
+                                  'approvals, cron/webhook/file/event triggers and durable, resumable runs, '
+                                  'optionally published as tools.',
+                          ['sajha/core/composition.py', 'sajha/workflows'], 'Workflows.md'),
         'federation': _s('Yes', 'Fronts upstream MCP servers (both eras, SSE, opt-in stdio) as namespaced '
                                 '<prefix>__<tool> registry tools under its own access policy, approval, circuit '
                                 'breakers and audit; off by default (federation.enabled).',

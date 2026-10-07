@@ -376,4 +376,81 @@ CREATE TABLE IF NOT EXISTS audit_anchors (
 );
 CREATE INDEX IF NOT EXISTS ix_audit_anchors_chain_seq ON audit_anchors (chain_id, seq);
 
+-- ── Workflows: definitions, durable runs and per-step records (sajha/workflows/store.py);
+-- times are epoch seconds. Design: docs/architecture/Workflows.md ──
+CREATE TABLE IF NOT EXISTS workflows (
+    name                 VARCHAR(100)     NOT NULL PRIMARY KEY,
+    description          TEXT,
+    definition_json      TEXT             NOT NULL,
+    owner                VARCHAR(200)     NOT NULL,
+    enabled              BOOLEAN          NOT NULL DEFAULT 1,
+    published            BOOLEAN          NOT NULL DEFAULT 0,
+    version              INTEGER          NOT NULL DEFAULT 1,
+    created_at           REAL             NOT NULL,
+    updated_at           REAL             NOT NULL,
+    updated_by           VARCHAR(200)
+);
+
+CREATE TABLE IF NOT EXISTS workflow_runs (
+    id                   VARCHAR(36)      NOT NULL PRIMARY KEY,
+    workflow             VARCHAR(100)     NOT NULL,
+    version              INTEGER          NOT NULL,
+    status               VARCHAR(20)      NOT NULL,
+    trigger_type         VARCHAR(20)      NOT NULL,
+    trigger_id           VARCHAR(100),
+    trigger_detail       TEXT,
+    run_as               VARCHAR(200)     NOT NULL,
+    started_by           VARCHAR(200),
+    input_json           TEXT,
+    output_json          TEXT,
+    error                TEXT,
+    idempotency_key      VARCHAR(200),
+    parent_run_id        VARCHAR(36),
+    from_step            VARCHAR(100),
+    worker_id            VARCHAR(200),
+    cancel_requested     BOOLEAN          NOT NULL DEFAULT 0,
+    delivery_status      VARCHAR(200),
+    definition_json      TEXT             NOT NULL,
+    created_at           REAL             NOT NULL,
+    started_at           REAL,
+    finished_at          REAL,
+    heartbeat_at         REAL
+);
+CREATE INDEX IF NOT EXISTS ix_workflow_runs_workflow_created ON workflow_runs (workflow, created_at);
+CREATE INDEX IF NOT EXISTS ix_workflow_runs_status ON workflow_runs (status);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_workflow_runs_idempotency ON workflow_runs (workflow, idempotency_key);
+
+CREATE TABLE IF NOT EXISTS workflow_run_steps (
+    id                   INTEGER          NOT NULL PRIMARY KEY,
+    run_id               VARCHAR(36)      NOT NULL REFERENCES workflow_runs (id) ON DELETE CASCADE,
+    step_id              VARCHAR(100)     NOT NULL,
+    kind                 VARCHAR(20)      NOT NULL,
+    status               VARCHAR(20)      NOT NULL,
+    attempts             INTEGER          NOT NULL DEFAULT 0,
+    input_json           TEXT,
+    output_json          TEXT,
+    error                TEXT,
+    idempotency_key      VARCHAR(64),
+    detail_json          TEXT,
+    started_at           REAL,
+    finished_at          REAL,
+    duration_ms          REAL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_workflow_run_steps_run_step ON workflow_run_steps (run_id, step_id);
+
+-- ── Tool quality: saved test-harness and eval runs (sajha/quality/store.py); times are
+--    epoch seconds. Design: docs/architecture/Tool Quality.md ──
+CREATE TABLE IF NOT EXISTS quality_runs (
+    id                   VARCHAR(36)      NOT NULL PRIMARY KEY,
+    kind                 VARCHAR(10)      NOT NULL,
+    name                 VARCHAR(255)     NOT NULL,
+    status               VARCHAR(16)      NOT NULL,
+    started_at           REAL             NOT NULL,
+    finished_at          REAL            ,
+    created_by           VARCHAR(200),
+    summary_json         TEXT,
+    detail_json          TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_quality_runs_kind_started ON quality_runs (kind, started_at);
+
 COMMIT;

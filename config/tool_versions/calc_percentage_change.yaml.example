@@ -1,0 +1,21 @@
+# Tool versions for calc_percentage_change (docs/architecture/Tool Quality.md §6).
+# Copy to calc_percentage_change.yaml to activate; Tutorial 23 walks through it.
+tool: calc_percentage_change
+versions:
+  "5.0.0":
+    overrides:
+      implementation: sajha.examples.quality.pct_change_v2.PercentChangeV2
+      description: Percentage change between two values, rounded to 2 places, with the direction of the move.
+    changelog: Rounds to two places; adds direction.
+  "4.5.0":                              # the registered config's own version
+    sunset: 2027-06-30
+    successor: "5.0.0"
+routing:
+  canary: {version: "5.0.0", percent: 10}
+  roles: {beta: "5.0.0"}
+  api_keys: {}
+rollback:
+  max_error_rate: 0.2
+  max_p95_ms: 2000
+  min_calls: 20
+  window_seconds: 300

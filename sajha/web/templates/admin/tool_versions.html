@@ -1,0 +1,128 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Tool Versions (administration): versions, canary routing, rollback and deprecation per tool.
+Design: docs/architecture/Tool Quality.md, section 6
+-->
+{% block title %}Tool Versions - Admin - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.q-meta{font-size:.875rem;color:var(--t-muted)}
+.q-forms{display:flex;flex-wrap:wrap;gap:.5rem;align-items:end}
+.q-forms .form-control,.q-forms .form-select{max-width:14rem}
+.q-yaml{font-family:var(--bs-font-monospace);font-size:.875rem;min-height:14rem;width:100%;background:var(--t-inp);color:var(--t-inp-t);border:1px solid var(--t-inp-b);border-radius:6px;padding:.5rem}
+.obs-pill.q-warn{background:var(--sajha-warn)}
+.obs-pill{white-space:nowrap}
+.q-route{font-size:.875rem;overflow-wrap:anywhere}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-signpost-split me-2" aria-hidden="true"></i>Tool Versions</h1>
+      <small class="text-muted">Several versions behind one tool name: canary by percentage, pins per role, user or API key, automatic rollback, sunset dates.</small>
+    </div>
+    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_tool_health_page') }}"><i class="bi bi-heart-pulse me-1" aria-hidden="true"></i>Tool health</a>
+  </div>
+
+  {% if notice %}<div class="alert alert-success" role="status">{{ notice }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+  {% if not enabled %}<div class="alert alert-warning" role="status">Versioning is off (<code>quality.versions.enabled: false</code>): every call runs the registered tool.</div>{% endif %}
+  {% for path, e in errors.items() %}<div class="alert alert-warning" role="alert"><code>{{ path }}</code> is ignored: {{ e }}</div>{% endfor %}
+
+  {% for t in tools %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between gap-2">
+        <h2 class="h5 mb-1">{{ t.tool }}</h2>
+        {% if t.missing %}<span class="obs-pill obs-bad">tool not loaded</span>{% else %}
+        <span class="q-meta">stable <strong>{{ t.stable }}</strong> · registered config {{ t.base_version }}</span>{% endif %}
+      </div>
+      {% if not t.missing %}
+      {% if t.deprecation.sunset %}<div class="alert {{ 'alert-danger' if t.deprecation.retired else 'alert-warning' }} py-2 my-2" role="status">The tool is {{ 'retired (hidden from tools/list)' if t.deprecation.retired else 'deprecated' }}: sunset {{ t.deprecation.sunset }}{% if t.deprecation.successor %}, successor {{ t.deprecation.successor }}{% endif %}.</div>{% endif %}
+      <p class="q-route mb-2">Routing:
+        {% if t.routing.canary.version and t.routing.canary.percent %}canary <strong>{{ t.routing.canary.version }}</strong> at {{ t.routing.canary.percent }}%{% else %}no canary{% endif %}
+        {% for r, v in t.routing.roles.items() %} · role {{ r }} → {{ v }}{% endfor %}
+        {% for u, v in t.routing.users.items() %} · user {{ u }} → {{ v }}{% endfor %}
+        {% for k, v in t.routing.api_keys.items() %} · API key {{ k }} → {{ v }}{% endfor %}
+        <span class="q-meta">· rollback when errors &gt; {{ '%.0f'|format(t.rollback.max_error_rate * 100) }}%{% if t.rollback.max_p95_ms %} or p95 &gt; {{ '%.0f'|format(t.rollback.max_p95_ms) }} ms{% endif %} over {{ t.rollback.min_calls }}+ calls in {{ '%.0f'|format(t.rollback.window_seconds) }} s</span></p>
+      {% endif %}
+    </div>
+    {% if not t.missing %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">Version</th><th scope="col">State</th><th scope="col">Calls (window)</th><th scope="col">Errors</th><th scope="col">Slow</th><th scope="col">Changelog</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+        {% for v in t.versions %}
+          <tr>
+            <td><strong>{{ v.version }}</strong>{% if v.registered %}<div class="q-meta">registered config</div>{% endif %}</td>
+            <td>
+              {% if v.stable %}<span class="obs-pill obs-ok">stable</span>{% endif %}
+              {% if v.rolled_back %}<span class="obs-pill obs-bad">rolled back</span><div class="q-meta">{{ v.rolled_back.when }}: {{ v.rolled_back.reason }}</div>{% endif %}
+              {% if v.past_sunset %}<span class="obs-pill obs-bad">past sunset</span>{% elif v.deprecated %}<span class="obs-pill q-warn">deprecated</span>{% if v.sunset %}<div class="q-meta">until {{ v.sunset }}</div>{% endif %}{% endif %}
+            </td>
+            <td>{{ v.window.calls }}</td>
+            <td>{{ v.window.errors }}{% if v.window.calls %} <span class="q-meta">({{ '%.0f'|format(v.window.error_rate * 100) }}%)</span>{% endif %}</td>
+            <td>{{ v.window.slow }}</td>
+            <td class="q-meta">{{ v.changelog }}</td>
+            <td class="text-nowrap">
+              {% if v.rolled_back %}
+              <form method="post" action="/admin/tool-versions/{{ t.tool }}/clear" class="d-inline">
+                <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ v.version }}">
+                <button class="btn btn-sm btn-outline-secondary" type="submit" aria-label="Clear the rollback of {{ t.tool }} {{ v.version }}">Clear rollback</button>
+              </form>{% endif %}
+              {% if not v.stable and not v.past_sunset %}
+              <form method="post" action="/admin/tool-versions/{{ t.tool }}/promote" class="d-inline">
+                <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ v.version }}">
+                <button class="btn btn-sm btn-outline-primary" type="submit" aria-label="Make {{ v.version }} the stable version of {{ t.tool }}">Promote</button>
+              </form>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-body">
+      <form method="post" action="/admin/tool-versions/{{ t.tool }}/canary" class="q-forms mb-3">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div><label class="form-label small mb-1" for="cv-{{ loop.index }}">Canary version</label>
+          <select class="form-select form-select-sm" id="cv-{{ loop.index }}" name="version">{% for v in t.versions if not v.stable %}<option {{ 'selected' if v.version == t.routing.canary.version }}>{{ v.version }}</option>{% endfor %}</select></div>
+        <div><label class="form-label small mb-1" for="cp-{{ loop.index }}">Percent of callers</label>
+          <input class="form-control form-control-sm" id="cp-{{ loop.index }}" name="percent" type="number" min="0" max="100" step="0.1" value="{{ t.routing.canary.percent }}"></div>
+        <button class="btn btn-sm btn-primary" type="submit">Set canary</button>
+      </form>
+      <details>
+        <summary>Edit <code>{{ t.source }}</code></summary>
+        <form method="post" action="/admin/tool-versions/{{ t.tool }}/save" class="mt-2">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <label class="visually-hidden" for="y-{{ loop.index }}">Versions file of {{ t.tool }}</label>
+          <textarea class="q-yaml" id="y-{{ loop.index }}" name="text" spellcheck="false">{{ t.text }}</textarea>
+          <button class="btn btn-sm btn-primary mt-2" type="submit">Validate and save</button>
+        </form>
+      </details>
+    </div>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="alert alert-info" role="status">No tool has versions yet. Versions files live in <code>{{ directory }}</code>, one per tool.</div>
+  {% endfor %}
+
+  <h2 class="h5">Version a tool</h2>
+  <form method="get" action="{{ url_for('admin_tool_versions_page') }}" class="q-forms mb-2">
+    <div><label class="form-label small mb-1" for="new-tool">Tool</label>
+      <input class="form-control form-control-sm" id="new-tool" name="new" list="tool-names" value="{{ selected }}" required>
+      <datalist id="tool-names">{% for n in tool_names %}<option value="{{ n }}"></option>{% endfor %}</datalist></div>
+    <button class="btn btn-sm btn-outline-primary" type="submit">Start a versions file</button>
+  </form>
+  {% if template %}
+  <form method="post" action="/admin/tool-versions/{{ selected }}/save" class="mb-4">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="form-label small" for="new-yaml">Versions file of {{ selected }} (validated before it is written)</label>
+    <textarea class="q-yaml" id="new-yaml" name="text" spellcheck="false">{{ template }}</textarea>
+    <button class="btn btn-sm btn-primary mt-2" type="submit">Validate and save</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

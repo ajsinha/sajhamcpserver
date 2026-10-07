@@ -49,15 +49,43 @@ async def api_metrics_tool(tool_name: str, auth: AuthContext = Depends(require_a
 
 @router.get('/api/tool-versions')
 async def api_list_versions(auth: AuthContext = Depends(require_auth)):
-    from sajha.core.tool_versioning import ToolVersionManager
-    # For now return from in-memory; later from DB
-    return JSONResponse({'versions': []})
+    """Every versioned tool's versions (config/tool_versions; docs/architecture/Tool Quality.md §6)."""
+    from sajha.quality import versions
+    from sajha.app import tools_registry
+    m = versions.get_manager()
+    out = []
+    for name in sorted(m.files()):
+        tool = tools_registry.get_tool(name) if tools_registry else None
+        if tool is not None:
+            out.extend(dict(v, tool_name=name) for v in m.describe(tool).get('versions', []))
+    return JSONResponse({'versions': out})
 
 @router.post('/api/tool-versions/{tool_name}/deprecate')
 async def api_deprecate_tool(tool_name: str, request: Request, auth: AuthContext = Depends(require_admin)):
+    """Deprecate one version (``{"version", "sunset_date"?, "successor"?}``) in the tool's versions file."""
+    import copy
+    from sajha.quality import versions
+    from sajha.app import tools_registry
     data = await request.json()
-    from sajha.core.tool_versioning import ToolVersionManager
-    return JSONResponse({'success': True, 'tool_name': tool_name})
+    tool = tools_registry.get_tool(tool_name) if tools_registry else None
+    if tool is None:
+        return JSONResponse({'error': 'Tool not found'}, 404)
+    ver = str(data.get('version') or tool.version)
+    m = versions.get_manager()
+    vf = m.get(tool_name)
+    doc = copy.deepcopy(vf.raw) if vf else {'tool': tool_name}
+    entry = (doc.setdefault('versions', {}) or {}).setdefault(ver, {}) or {}
+    doc['versions'][ver] = entry
+    entry['deprecated'] = True
+    if data.get('sunset_date'):
+        entry['sunset'] = str(data['sunset_date'])
+    if data.get('successor'):
+        entry['successor'] = str(data['successor'])
+    try:
+        m.save_doc(tool_name, doc, str(tool.version))
+    except versions.VersionsError as e:
+        return JSONResponse({'success': False, 'error': str(e)}, 400)
+    return JSONResponse({'success': True, 'tool_name': tool_name, 'version': ver})
 
 # ── Contract Testing ──────────────────────────────────────────
 

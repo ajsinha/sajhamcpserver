@@ -200,6 +200,9 @@ class SajhaMCPServerWebApp:
         from sajha.routes.api_import_routes import router as api_import_router
         from sajha.routes.accounts_routes import router as accounts_router
         from sajha.routes.policy_routes import router as policy_router
+        from sajha.routes.quality_routes import router as quality_router
+        from sajha.routes.workflow_routes import router as workflow_router
+        from sajha.routes.connectors_routes import router as connectors_router
 
         routers = [
             auth_router, dashboard_router, api_router, tools_router,
@@ -219,6 +222,9 @@ class SajhaMCPServerWebApp:
             api_import_router,
             accounts_router,
             policy_router,
+            quality_router,
+            workflow_router,
+            connectors_router,
         ]
 
         for router in routers:
@@ -523,6 +529,14 @@ class SajhaMCPServerWebApp:
         except Exception as e:
             logger.warning(f'  Federation: unavailable ({e})', exc_info=True)
 
+        # 3a'. Data connectors: each connection's governed tools (config/connectors/*.json;
+        #      docs/architecture/Data Connectors.md). Opens no database; never fails start-up.
+        try:
+            from sajha.connectors import init_connectors
+            await _asyncio.to_thread(init_connectors, tools_registry)
+        except Exception as e:
+            logger.warning(f'  Data connectors: unavailable ({e})', exc_info=True)
+
         # 3b. Composite tools (load from DB, build schemas, register)
         try:
             from sajha.tools.composite_tool import CompositeToolEngine
@@ -537,6 +551,13 @@ class SajhaMCPServerWebApp:
                 db.close()
         except Exception as e:
             logger.info(f'  Composite Tools: none loaded ({e})')
+
+        # 3b'. Workflows (scheduler, triggers, run recovery; docs/architecture/Workflows.md)
+        try:
+            from sajha.workflows import init_workflows
+            init_workflows(tools_registry)
+        except Exception as e:
+            logger.warning(f'  Workflows: unavailable ({e})')
 
         # 3c. Observability (metrics, OTEL, health probes)
         try:
@@ -647,6 +668,13 @@ class SajhaMCPServerWebApp:
         except Exception as e:
             logger.warning(f'  RAG: unavailable ({e})', exc_info=True)
 
+        # 4e. Tool quality: scheduled health probes (quality.probes.enabled; docs/architecture/Tool Quality.md)
+        try:
+            from sajha.quality import probes as _probes
+            logger.info(f'  Tool health probes: {"on" if _probes.start(tools_registry) else "off (quality.probes.enabled: false)"}')
+        except Exception as e:
+            logger.warning(f'  Tool health probes: unavailable ({e})', exc_info=True)
+
         # 5. Template globals
         self._register_template_globals()
 
@@ -673,11 +701,21 @@ class SajhaMCPServerWebApp:
 
         # Shutdown
         logger.info('Shutting down SAJHA MCP Server...')
+        try:
+            from sajha.workflows import shutdown_workflows
+            shutdown_workflows()
+        except Exception as e:
+            logger.debug(f'workflows shutdown: {e}')
         try:   # close this process's audit chain (chain.close + a signed anchor) and drain SIEM sinks
             from sajha.audit import shutdown_audit
             shutdown_audit()
         except Exception as e:
             logger.debug(f'audit shutdown: {e}')
+        try:
+            from sajha.quality import probes as _probes
+            _probes.stop()
+        except Exception as e:
+            logger.debug(f'probes shutdown: {e}')
         try:   # flush the usage ledger, stop alerts, the metrics publisher/listener and OTel
             from sajha.observability import shutdown_observability
             shutdown_observability()
@@ -688,6 +726,11 @@ class SajhaMCPServerWebApp:
             shutdown_federation()
         except Exception as e:
             logger.debug(f'federation shutdown: {e}')
+        try:   # close pooled data-connector connections (sajha/connectors)
+            from sajha.connectors import shutdown_connectors
+            shutdown_connectors()
+        except Exception as e:
+            logger.debug(f'connectors shutdown: {e}')
         try:   # end MCP subscriptions/listen streams (and legacy push forwarders)
             from sajha.core.change_bus import get_change_bus
             get_change_bus().shutdown()

@@ -1054,3 +1054,7 @@ async def studio_olap_delete(request: Request, auth: AuthContext = Depends(requi
 router = APIRouter()
 router.include_router(pages)
 router.include_router(actions)
+
+# "Describe a tool" (sajha/routes/describe_routes.py) is served through this router too.
+from sajha.routes.describe_routes import router as _describe_router  # noqa: E402
+router.include_router(_describe_router)

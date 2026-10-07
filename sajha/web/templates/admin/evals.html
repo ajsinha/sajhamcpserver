@@ -1,0 +1,147 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Evals (administration): golden question sets for Ask SAJHA, runs per model and planner, comparison.
+Design: docs/architecture/Tool Quality.md, section 5
+-->
+{% block title %}Evals - Admin - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.q-meta{font-size:.875rem;color:var(--t-muted)}
+.q-msg{font-size:.875rem;overflow-wrap:anywhere;max-width:30rem}
+.q-forms{display:flex;flex-wrap:wrap;gap:.5rem;align-items:end}
+.q-forms .form-control,.q-forms .form-select{max-width:18rem}
+.q-better{color:var(--sajha-ok);font-weight:600}
+.q-worse{color:var(--sajha-bad);font-weight:600}
+.obs-pill.q-warn{background:var(--sajha-warn)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-clipboard-check me-2" aria-hidden="true"></i>Evals</h1>
+      <small class="text-muted">Golden questions for Ask SAJHA: did it pick the right tools, is the answer right, and what did it cost.</small>
+    </div>
+    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_tool_health_page') }}"><i class="bi bi-heart-pulse me-1" aria-hidden="true"></i>Tool health</a>
+  </div>
+
+  {% if notice %}<div class="alert alert-success" role="status">{{ notice }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+  {% if not ask_ready %}<div class="alert alert-warning" role="status">Ask SAJHA is not available on this server, so runs cannot start here. The command line still works: <code>python -m sajha.quality eval</code>.</div>{% endif %}
+
+  <h2 class="h5">Eval sets</h2>
+  <div class="card mb-3">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">Set</th><th scope="col">Questions</th><th scope="col">Models</th><th scope="col">Planners</th><th scope="col">Tools offered</th></tr></thead>
+        <tbody>
+        {% for s in sets %}
+          <tr>
+            <td><strong>{{ s.name }}</strong><div class="q-meta">{{ s.description }}</div></td>
+            <td>{{ s.questions }}</td>
+            <td>{{ s.models|join(', ') or 'default' }}</td>
+            <td>{{ s.planners|join(', ') or 'default' }}</td>
+            <td>{{ s.tools|join(', ') or 'all' }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-muted text-center py-3">No eval sets in <code>config/evals/</code>.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if sets %}
+  <form method="post" action="/admin/evals/run" class="q-forms mb-4">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div><label class="form-label small mb-1" for="e-set">Set</label>
+      <select class="form-select form-select-sm" id="e-set" name="set_name">{% for s in sets %}<option>{{ s.name }}</option>{% endfor %}</select></div>
+    <div><label class="form-label small mb-1" for="e-model">Model or alias</label>
+      <input class="form-control form-control-sm" id="e-model" name="model" list="e-models" placeholder="the set's default">
+      <datalist id="e-models">{% for m in models %}<option value="{{ m }}"></option>{% endfor %}</datalist></div>
+    <div><label class="form-label small mb-1" for="e-planner">Planner</label>
+      <select class="form-select form-select-sm" id="e-planner" name="planner"><option value="">the set's default</option>{% for p in planners %}<option>{{ p }}</option>{% endfor %}</select></div>
+    <button class="btn btn-sm btn-primary" type="submit" {{ 'disabled' if not ask_ready }}><i class="bi bi-play-circle me-1" aria-hidden="true"></i>Run</button>
+  </form>
+  {% endif %}
+
+  {% if compare %}
+  <h2 class="h5">Comparison</h2>
+  <p class="q-meta mb-2">A: {{ compare.a.set }} · {{ compare.a.model }} · {{ compare.a.planner }} &nbsp; B: {{ compare.b.set }} · {{ compare.b.model }} · {{ compare.b.planner }}</p>
+  <div class="card mb-3">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">Metric</th><th scope="col">A</th><th scope="col">B</th><th scope="col">Change</th></tr></thead>
+        <tbody>
+        {% for m in compare.metrics %}
+          <tr><td>{{ m.metric|replace('_', ' ') }}</td><td>{{ m.a }}</td><td>{{ m.b }}</td>
+            <td class="{{ 'q-better' if m.direction == 'better' else ('q-worse' if m.direction == 'worse' else '') }}">{{ '%+g'|format(m.delta) }} {{ m.direction }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% if compare.regressed %}<div class="alert alert-danger" role="status"><strong>Regressed:</strong> {% for q in compare.regressed %}{{ q.id }} ({{ q.reasons|join('; ') }}){{ ', ' if not loop.last }}{% endfor %}</div>{% endif %}
+  {% if compare.improved %}<div class="alert alert-success" role="status"><strong>Improved:</strong> {% for q in compare.improved %}{{ q.id }}{{ ', ' if not loop.last }}{% endfor %}</div>{% endif %}
+  {% endif %}
+
+  {% if run %}
+  <h2 class="h5">Run: {{ run.set }} · {{ run.model }} · {{ run.planner }}</h2>
+  <p class="q-meta mb-2">{{ run.summary.passed }}/{{ run.summary.questions }} passed · tool selection {{ '%.0f'|format(run.summary.tool_selection_accuracy * 100) }}% · answers {{ '%.0f'|format(run.summary.answer_accuracy * 100) }}% · {{ run.summary.total_tokens }} tokens · ${{ '%.4f'|format(run.summary.total_cost_usd) }} · p95 {{ '%.0f'|format(run.summary.p95_latency_ms) }} ms</p>
+  <div class="card mb-4">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">Question</th><th scope="col">Result</th><th scope="col">Tools called</th><th scope="col">Steps · tokens · ms</th><th scope="col">Why</th></tr></thead>
+        <tbody>
+        {% for q in run.questions %}
+          <tr>
+            <td><strong>{{ q.id }}</strong><div class="q-msg">{{ q.question }}</div></td>
+            <td><span class="obs-pill {{ 'obs-ok' if q.passed else 'obs-bad' }}">{{ 'pass' if q.passed else 'fail' }}</span></td>
+            <td>{{ q.tools_called|join(', ') or '—' }}{% if q.expect_tools %}<div class="q-meta">expected {{ q.expect_tools|join(', ') }}</div>{% endif %}</td>
+            <td>{{ q.steps }} · {{ q.tokens }} · {{ q.latency_ms }}</td>
+            <td class="q-msg">{{ q.reasons|join('; ') }}{% if q.answer %}<details><summary>answer</summary>{{ q.answer }}</details>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <h2 class="h5">Runs</h2>
+  <form method="get" action="{{ url_for('admin_evals_page') }}" class="q-forms mb-2">
+    <div><label class="form-label small mb-1" for="c-a">Compare A</label>
+      <select class="form-select form-select-sm" id="c-a" name="a">{% for r in runs if r.status == 'done' %}<option value="{{ r.id }}" {{ 'selected' if r.id == sel_a }}>{{ r.started }} · {{ r.name }}</option>{% endfor %}</select></div>
+    <div><label class="form-label small mb-1" for="c-b">with B</label>
+      <select class="form-select form-select-sm" id="c-b" name="b">{% for r in runs if r.status == 'done' %}<option value="{{ r.id }}" {{ 'selected' if r.id == sel_b }}>{{ r.started }} · {{ r.name }}</option>{% endfor %}</select></div>
+    <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-arrow-left-right me-1" aria-hidden="true"></i>Compare</button>
+  </form>
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">Started</th><th scope="col">Set · model · planner</th><th scope="col">Status</th><th scope="col">Pass</th><th scope="col">Tool selection</th><th scope="col">Answers</th><th scope="col">Tokens</th><th scope="col">Cost</th><th scope="col">p95 ms</th></tr></thead>
+        <tbody>
+        {% for r in runs %}
+          <tr>
+            <td>{% if r.status == 'done' %}<a href="{{ url_for('admin_evals_page') }}?run={{ r.id }}">{{ r.started }}</a>{% else %}{{ r.started }}{% endif %}<div class="q-meta">{{ r.created_by }}</div></td>
+            <td>{{ r.name }}</td>
+            <td><span class="obs-pill {{ 'obs-ok' if r.status == 'done' else ('obs-bad' if r.status == 'failed' else 'q-warn') }}">{{ r.status }}</span>{% if r.summary.error %}<div class="q-msg">{{ r.summary.error }}</div>{% endif %}</td>
+            <td>{% if r.summary.questions is defined %}{{ r.summary.passed }}/{{ r.summary.questions }}{% endif %}</td>
+            <td>{% if r.summary.tool_selection_accuracy is defined %}{{ '%.0f'|format(r.summary.tool_selection_accuracy * 100) }}%{% endif %}</td>
+            <td>{% if r.summary.answer_accuracy is defined %}{{ '%.0f'|format(r.summary.answer_accuracy * 100) }}%{% endif %}</td>
+            <td>{{ r.summary.total_tokens if r.summary.total_tokens is defined }}</td>
+            <td>{% if r.summary.total_cost_usd is defined %}${{ '%.4f'|format(r.summary.total_cost_usd) }}{% endif %}</td>
+            <td>{% if r.summary.p95_latency_ms is defined %}{{ '%.0f'|format(r.summary.p95_latency_ms) }}{% endif %}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="9" class="text-muted text-center py-3">No runs yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% if running %}<script>setTimeout(function () { location.reload(); }, 3000);</script>{% endif %}
+{% endblock %}

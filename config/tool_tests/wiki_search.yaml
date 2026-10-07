@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/wiki_search/marie_curie.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool wiki_search --record
+tool: wiki_search
+cases:
+  - name: marie curie
+    tags: [http]
+    arguments: {query: Marie Curie, limit: 3}
+    expect:
+      - schema: output
+      - path: $.result_count
+        min: 1
+      - path: $.results[0].title
+        regex: "Curie"
+      - path: $.results[*].url
+        regex: "^https://en\\.wikipedia\\.org/wiki/"
+probe:
+  case: marie curie
+  cron: "*/30 * * * *"

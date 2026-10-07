@@ -486,7 +486,7 @@ def test_studio_menu_lists_the_sharepoint_creator(web):
 def test_enable_disable_does_not_write_resolved_secrets(tmp_path):
     """Toggling a tool persists only 'enabled'; the file keeps its ${...} references."""
     from sajha.tools.tools_registry import ToolsRegistry
-    reg = ToolsRegistry.__new__(ToolsRegistry)
+    reg = object.__new__(ToolsRegistry)   # not ToolsRegistry.__new__: that returns the live singleton
     raw = {'name': 'zz_secret_probe', 'enabled': True, 'api_key': '${fred.api.key}'}
     store = {'config/tools/zz_secret_probe.json': json.loads(json.dumps(raw))}
 

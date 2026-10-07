@@ -65,8 +65,10 @@ async def api_tool_execute(
     set_caller(from_auth(auth))      # the usage ledger's caller (this request's context only)
     from sajha.policy.context import set_source      # policy rules can match the source
     set_source('playground' if request.headers.get('X-SAJHA-Client') == 'playground' else 'rest')
+    from sajha.quality import versions as _versions    # a versioned tool says which version ran
     try:
-        result = tool.execute_with_tracking(arguments)
+        with _versions.collect_meta() as version_meta:
+            result = tool.execute_with_tracking(arguments)
         duration_ms = int((time.time() - start) * 1000)
 
         # Log to DB
@@ -81,7 +83,10 @@ async def api_tool_execute(
             user_agent=request.headers.get('User-Agent'),
         )
 
-        return JSONResponse({'success': True, 'result': result})
+        body = {'success': True, 'result': result}
+        if version_meta:
+            body['_meta'] = version_meta
+        return JSONResponse(body)
     except Exception as e:
         from sajha.accounts.errors import ConnectedAccountRequired
         if isinstance(e, ConnectedAccountRequired):     # 428 + connect_url (sajha/accounts/respond.py)

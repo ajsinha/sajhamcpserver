@@ -1,0 +1,170 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Tool Health (administration): health probes, saved test runs, the schema linter.
+Design: docs/architecture/Tool Quality.md, sections 2 to 4
+-->
+{% block title %}Tool Health - Admin - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.q-meta{font-size:.875rem;color:var(--t-muted)}
+.q-strip{display:flex;flex-wrap:wrap;gap:2px;max-width:14rem}
+.q-dot{display:inline-block;width:.6rem;height:.9rem;border-radius:2px;background:var(--sajha-ok)}
+.q-dot.fail,.q-dot.error{background:var(--sajha-bad)}
+.obs-pill.q-warn{background:var(--sajha-warn)}
+.q-msg{font-size:.875rem;overflow-wrap:anywhere;max-width:28rem}
+.q-forms{display:flex;flex-wrap:wrap;gap:.5rem;align-items:end}
+.q-forms .form-control,.q-forms .form-select{max-width:16rem}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-heart-pulse me-2" aria-hidden="true"></i>Tool Health</h1>
+      <small class="text-muted">Scheduled probes against live services, saved runs of the test harness, and the schema linter.</small>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_tool_versions_page') }}"><i class="bi bi-signpost-split me-1" aria-hidden="true"></i>Tool versions</a>
+      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_evals_page') }}"><i class="bi bi-clipboard-check me-1" aria-hidden="true"></i>Evals</a>
+    </div>
+  </div>
+
+  {% if notice %}<div class="alert alert-success" role="status">{{ notice }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+  {% for e in suite_errors %}<div class="alert alert-warning" role="alert">Test file: {{ e }}</div>{% endfor %}
+
+  <div class="obs-tiles mb-4">
+    <div class="obs-tile obs-tile-accent"><div class="obs-label">Test cases</div><div class="obs-value">{{ case_count }}</div><div class="obs-sub">in {{ tool_count }} tools (quality.tests_dir)</div></div>
+    <div class="obs-tile"><div class="obs-label">Probes</div><div class="obs-value">{{ probes|length }}</div><div class="obs-sub">{{ 'scheduler on' if probes_enabled else 'scheduler off (quality.probes.enabled)' }}</div></div>
+    <div class="obs-tile"><div class="obs-label">Failing probes</div><div class="obs-value">{{ probes|selectattr('last')|selectattr('last.status', 'ne', 'pass')|list|length }}</div><div class="obs-sub">last result not a pass</div></div>
+    <div class="obs-tile"><div class="obs-label">Saved test runs</div><div class="obs-value">{{ test_runs|length }}</div><div class="obs-sub">python -m sajha.quality test --save</div></div>
+  </div>
+
+  <h2 class="h5">Probes</h2>
+  <div class="card mb-4">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">Tool and case</th><th scope="col">Schedule</th><th scope="col">Last result</th><th scope="col">History</th><th scope="col"><span class="visually-hidden">Run</span></th></tr></thead>
+        <tbody>
+        {% for p in probes %}
+          <tr>
+            <td><strong>{{ p.tool }}</strong>{% if not p.registered %} <span class="obs-pill obs-bad">not loaded</span>{% endif %}<div class="q-meta">{{ p.case }}</div></td>
+            <td>{{ p.schedule }}<div class="q-meta">next {{ p.next_text or '—' }}</div></td>
+            <td>
+              {% if p.last %}
+                <span class="obs-pill {{ 'obs-ok' if p.last.status == 'pass' else 'obs-bad' }}">{{ p.last.status }}</span>
+                {{ '%.0f'|format(p.last.duration_ms) }} ms
+                <div class="q-meta">{{ p.last.when }} · {{ p.last.trigger }}{% if p.consecutive_failures %} · {{ p.consecutive_failures }} failing in a row{% endif %}</div>
+                {% if p.last.message %}<div class="q-msg">{{ p.last.message }}</div>{% endif %}
+              {% else %}<span class="q-meta">not run yet</span>{% endif %}
+            </td>
+            <td><div class="q-strip" aria-label="last {{ p.history|length }} results">{% for h in p.history %}<span class="q-dot {{ h.status }}" title="{{ h.when }}: {{ h.status }} {{ '%.0f'|format(h.duration_ms) }} ms"></span>{% endfor %}</div></td>
+            <td>
+              <form method="post" action="/admin/tool-health/probes/{{ p.tool }}/run">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <button class="btn btn-sm btn-outline-primary" type="submit" aria-label="Run the probe of {{ p.tool }} now"><i class="bi bi-play" aria-hidden="true"></i> Run now</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-muted text-center py-3">No probes. Add a <code>probe:</code> block to a test file in <code>config/tool_tests/</code>.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2 class="h5">Test runs</h2>
+  <form method="post" action="/admin/tool-health/tests/run" class="q-forms mb-2">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div><label class="form-label small mb-1" for="t-tool">Tools (glob)</label><input class="form-control form-control-sm" id="t-tool" name="tool" placeholder="all, or calc_*"></div>
+    <div><label class="form-label small mb-1" for="t-mode">HTTP</label>
+      <select class="form-select form-select-sm" id="t-mode" name="mode">
+        <option value="replay">replay cassettes (offline)</option>
+        <option value="auto">auto (replay if recorded, else live)</option>
+        <option value="live">live</option>
+      </select></div>
+    <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-play-circle me-1" aria-hidden="true"></i>Run tests</button>
+  </form>
+
+  {% if run %}
+  <div class="card mb-3">
+    <div class="card-body pb-1"><strong>{{ run.name }}</strong> <span class="q-meta">{{ run.summary.total }} cases · {{ run.summary.pass }} passed · {{ run.summary.fail }} failed · {{ run.summary.error }} errors · {{ run.summary.skip }} skipped</span></div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">Tool</th><th scope="col">Case</th><th scope="col">Result</th><th scope="col">Time</th><th scope="col">Detail</th></tr></thead>
+        <tbody>
+        {% for r in run.detail or [] %}
+          <tr>
+            <td>{{ r.tool }}</td><td>{{ r.case }}</td>
+            <td><span class="obs-pill {{ 'obs-ok' if r.status == 'pass' else ('q-warn' if r.status == 'skip' else 'obs-bad') }}">{{ r.status }}</span> <span class="q-meta">{{ r.mode }}</span></td>
+            <td>{{ '%.0f'|format(r.duration_ms) }} ms</td>
+            <td class="q-msg">{{ r.message }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card mb-4">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">Started</th><th scope="col">Run</th><th scope="col">Passed</th><th scope="col">Failed</th><th scope="col">Errors</th><th scope="col">By</th></tr></thead>
+        <tbody>
+        {% for r in test_runs %}
+          <tr>
+            <td><a href="{{ url_for('admin_tool_health_page') }}?run={{ r.id }}">{{ r.started }}</a></td>
+            <td>{{ r.name }}</td>
+            <td>{{ r.summary.pass }}/{{ r.summary.total }}</td>
+            <td>{% if r.summary.fail %}<span class="obs-pill obs-bad">{{ r.summary.fail }}</span>{% else %}0{% endif %}</td>
+            <td>{% if r.summary.error %}<span class="obs-pill obs-bad">{{ r.summary.error }}</span>{% else %}0{% endif %}</td>
+            <td>{{ r.created_by }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="text-muted text-center py-3">No saved test runs yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2 class="h5">Schema lint</h2>
+  <form method="get" action="{{ url_for('admin_tool_health_page') }}" class="q-forms mb-2">
+    <input type="hidden" name="lint" value="1">
+    <div><label class="form-label small mb-1" for="l-level">Show</label>
+      <select class="form-select form-select-sm" id="l-level" name="level">
+        <option value="" {{ 'selected' if not level }}>every finding</option>
+        <option value="error" {{ 'selected' if level == 'error' }}>errors</option>
+        <option value="warning" {{ 'selected' if level == 'warning' }}>warnings</option>
+        <option value="info" {{ 'selected' if level == 'info' }}>notes</option>
+      </select></div>
+    <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-search me-1" aria-hidden="true"></i>Lint every tool</button>
+  </form>
+  {% if lint %}
+  <p class="q-meta mb-2">{{ lint.tools }} tools checked: {{ lint.summary.error }} errors, {{ lint.summary.warning }} warnings, {{ lint.summary.info }} notes{% if lint.truncated %} (first 1000 shown){% endif %}.</p>
+  <div class="card mb-4">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">Tool</th><th scope="col">Level</th><th scope="col">Rule</th><th scope="col">Finding</th></tr></thead>
+        <tbody>
+        {% for f in lint.findings %}
+          <tr>
+            <td>{{ f.tool }}</td>
+            <td><span class="obs-pill {{ 'obs-bad' if f.level == 'error' else ('q-warn' if f.level == 'warning' else 'obs-ok') }}">{{ f.level }}</span></td>
+            <td><code>{{ f.rule }}</code></td>
+            <td class="q-msg">{{ f.message }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="text-muted text-center py-3">Nothing to report.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

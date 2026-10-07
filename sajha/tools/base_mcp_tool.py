@@ -216,6 +216,12 @@ class BaseMCPTool(ABC):
         Returns:
             Tool execution result
         """
+        # Tool versions (docs/architecture/Tool Quality.md §6): a versioned tool's call runs on
+        # the version routing chooses; every other tool gets NOT_ROUTED (a dict miss)
+        from sajha.quality import versions as _versions
+        routed = _versions.route_call(self, arguments)
+        if routed is not _versions.NOT_ROUTED:
+            return routed
         import time as _time
         from sajha.core.mcp_mrtr import InputRequired
         from sajha.observability import metrics as _metrics, tracing as _tracing

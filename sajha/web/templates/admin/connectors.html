@@ -1,0 +1,306 @@
+{% extends "common/base.html" %}
+{% block title %}Data Connectors - Admin - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.cx-card{border:1px solid var(--t-card-b);border-radius:var(--radius-lg);background:var(--t-card);margin-bottom:1rem}
+.cx-head{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-bottom:1px solid var(--t-card-b);background:var(--t-card-hdr)}
+.cx-head h2{font-size:1.05rem;margin:0;font-weight:700;color:var(--t-heading);word-break:break-word}
+.cx-meta{font-size:12.5px;color:var(--t-muted);word-break:break-word}
+.cx-meta code{font-size:12px}
+.cx-body{padding:.75rem 1rem}
+.cx-chip{display:inline-block;margin:.1rem .25rem .1rem 0;padding:.1rem .5rem;border-radius:999px;font-size:12px;border:1px solid var(--t-card-b);color:var(--t-text);background:var(--t-inp);word-break:break-all}
+.cx-chip.off{opacity:.6;text-decoration:line-through}
+.st{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:12px;font-weight:600;color:var(--sajha-on-crimson)}
+.st-ok{background:var(--sajha-ok)}.st-off{background:var(--sajha-slate)}.st-bad{background:var(--sajha-bad)}.st-warn{background:var(--sajha-warn)}
+.cx-err{color:var(--sajha-bad);font-size:12.5px;word-break:break-word}
+.cx-form .form-label{font-size:12.5px;font-weight:600;margin-bottom:.15rem}
+.cx-form textarea{font-family:var(--bs-font-monospace);font-size:12.5px}
+.cx-actions{display:flex;flex-wrap:wrap;gap:.25rem}
+.cx-actions .btn,.cx-actions .btn.btn-sm{padding:.3rem .6rem;font-size:12.5px;min-height:40px}
+.cx-table{font-size:13px;width:100%}
+.cx-table th{background:var(--t-card-hdr);color:var(--t-text2);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em;padding:.4rem .6rem}
+.cx-table td .btn,.cx-table td .btn.btn-sm{min-height:40px}
+.cx-table td{padding:.35rem .6rem;border-bottom:1px solid var(--t-card-b);color:var(--t-text);vertical-align:top;word-break:break-word}
+.cx-table tr:hover td{background:var(--t-dd-hb)}
+.cx-pre{background:var(--t-inp);color:var(--t-text);padding:.5rem;border-radius:6px;font-size:12px;max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.cx-panel{border-top:1px solid var(--t-card-b);padding:.75rem 1rem}
+.cx-kinds summary{cursor:pointer;color:var(--t-link);font-size:.9rem;min-height:2.5rem;display:list-item;padding:.5rem 0}
+.cx-filter{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;margin-bottom:.35rem}
+.cx-filter select,.cx-filter input{max-width:100%}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-database-gear me-2" aria-hidden="true"></i>Data Connectors</h1>
+      <small class="text-muted">Databases, warehouses, vector stores and search clusters as governed, read-only tools: catalog, describe, query and curated views</small>
+    </div>
+    <div class="d-flex flex-wrap gap-1">
+      <button class="btn btn-sm btn-success" type="button" onclick="showForm()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add connection</button>
+      <button class="btn btn-sm btn-outline-primary" type="button" onclick="syncAll()"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Sync tools</button>
+      <button class="btn btn-sm btn-outline-secondary" type="button" onclick="load()" aria-label="Reload"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
+    </div>
+  </div>
+
+  {% if not enabled %}
+  <div class="alert alert-warning small" role="status"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>
+    Data connectors are off (<code>connectors.enabled: false</code>): connections are kept, their tools refuse calls.</div>
+  {% endif %}
+  {% if not sqlglot %}
+  <div class="alert alert-info small" role="status"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+    sqlglot is not installed, so caller SQL is checked by the conservative scanner, which refuses more queries
+    (<code>pip install 'sqlglot'</code> for the parser).</div>
+  {% endif %}
+
+  <details class="cx-kinds mb-3"><summary>Kinds and their drivers</summary>
+    <div class="table-responsive mt-2"><table class="cx-table" aria-label="Connector kinds"><thead><tr>
+      <th scope="col">Kind</th><th scope="col">Package</th><th scope="col">Installed</th><th scope="col">Per-user sign-in</th></tr></thead>
+      <tbody id="kinds"><tr><td colspan="4" class="text-muted">Loading…</td></tr></tbody></table></div>
+  </details>
+
+  <div class="cx-card cx-form" id="cxForm" style="display:none">
+    <div class="cx-head"><h2 id="formTitle">Add connection</h2></div>
+    <div class="cx-body">
+      <div class="row g-2">
+        <div class="col-6 col-md-3"><label class="form-label" for="fId">Id (tool prefix)</label>
+          <input class="form-control form-control-sm" id="fId" placeholder="shop" autocomplete="off"></div>
+        <div class="col-6 col-md-3"><label class="form-label" for="fKind">Kind</label>
+          <select class="form-select form-select-sm" id="fKind" onchange="kindChanged()"></select></div>
+        <div class="col-12 col-md-6"><label class="form-label" for="fTitle">Title</label>
+          <input class="form-control form-control-sm" id="fTitle" placeholder="Shop database"></div>
+        <div class="col-12"><label class="form-label" for="fDesc">Description (planners read it: say what the data is)</label>
+          <input class="form-control form-control-sm" id="fDesc" placeholder="Orders, customers and products of the web shop."></div>
+        <div class="col-12 col-md-4 k-net"><label class="form-label" for="fHost">Host</label>
+          <input class="form-control form-control-sm" id="fHost" placeholder="db.internal"></div>
+        <div class="col-4 col-md-2 k-net"><label class="form-label" for="fPort">Port</label>
+          <input class="form-control form-control-sm" id="fPort" type="number" min="1"></div>
+        <div class="col-8 col-md-3 k-net"><label class="form-label" for="fDb">Database</label>
+          <input class="form-control form-control-sm" id="fDb"></div>
+        <div class="col-6 col-md-3 k-net"><label class="form-label" for="fUser">User</label>
+          <input class="form-control form-control-sm" id="fUser" autocomplete="off"></div>
+        <div class="col-12 col-md-8 k-file" style="display:none"><label class="form-label" for="fPath">Database file</label>
+          <input class="form-control form-control-sm" id="fPath" placeholder="data/shop.duckdb"></div>
+        <div class="col-12 col-md-8 k-http" style="display:none"><label class="form-label" for="fUrl">URL</label>
+          <input class="form-control form-control-sm" id="fUrl" placeholder="http://qdrant.internal:6333"></div>
+        <div class="col-6 col-md-3"><label class="form-label" for="fPw">Password / key reference</label>
+          <input class="form-control form-control-sm" id="fPw" placeholder="env:SHOP_DB_PASSWORD" autocomplete="off"></div>
+        <div class="col-12 col-md-6"><label class="form-label" for="fOpts">More options (JSON)</label>
+          <textarea class="form-control form-control-sm" id="fOpts" rows="2" placeholder='{"sslmode": "require", "warehouse": "WH"}'></textarea></div>
+        <div class="col-12 col-md-6"><label class="form-label" for="fSecrets">More secret references (JSON)</label>
+          <textarea class="form-control form-control-sm" id="fSecrets" rows="2" placeholder='{"credentials_json": "file:/run/secrets/bq.json"}'></textarea></div>
+        <div class="col-4 col-md-2"><label class="form-label" for="fRows">Max rows</label>
+          <input class="form-control form-control-sm" id="fRows" type="number" min="1" placeholder="{{ defaults.max_rows }}"></div>
+        <div class="col-4 col-md-2"><label class="form-label" for="fBytes">Max bytes</label>
+          <input class="form-control form-control-sm" id="fBytes" type="number" min="1024" placeholder="{{ defaults.max_bytes }}"></div>
+        <div class="col-4 col-md-2"><label class="form-label" for="fTimeout">Timeout (s)</label>
+          <input class="form-control form-control-sm" id="fTimeout" type="number" min="1" placeholder="{{ defaults.timeout_seconds }}"></div>
+        <div class="col-6 col-md-2"><label class="form-label" for="fCache">Cache TTL (s)</label>
+          <input class="form-control form-control-sm" id="fCache" type="number" min="0" placeholder="0"></div>
+        <div class="col-6 col-md-4"><label class="form-label" for="fSchemas">Allowed schemas</label>
+          <input class="form-control form-control-sm" id="fSchemas" placeholder="public, sales (empty: all)"></div>
+        <div class="col-12 col-md-6"><label class="form-label" for="fTables">Allowed tables (globs)</label>
+          <input class="form-control form-control-sm" id="fTables" placeholder="* (or sales.orders, customers*)"></div>
+        <div class="col-12 col-md-6"><label class="form-label" for="fDeny">Denied tables (globs)</label>
+          <input class="form-control form-control-sm" id="fDeny" placeholder="*.audit_*"></div>
+        <div class="col-12 col-md-6"><label class="form-label" for="fMask">Masking, one per line: column = mode ({{ mask_modes|join(', ') }})</label>
+          <textarea class="form-control form-control-sm" id="fMask" rows="3" placeholder="customers.email = partial&#10;*.ssn = hide"></textarea></div>
+        <div class="col-12 col-md-6 k-vector" style="display:none"><label class="form-label" for="fVector">Vector settings (JSON)</label>
+          <textarea class="form-control form-control-sm" id="fVector" rows="3" placeholder='{"table": "docs", "vector_column": "embedding", "text_column": "body"}'></textarea></div>
+        <div class="col-6 col-md-3 k-user" style="display:none"><label class="form-label" for="fProvider">Per-user: provider</label>
+          <input class="form-control form-control-sm" id="fProvider" placeholder="(empty: service account)"></div>
+        <div class="col-6 col-md-3 k-user" style="display:none"><label class="form-label" for="fScopes">Per-user: scopes</label>
+          <input class="form-control form-control-sm" id="fScopes"></div>
+        <div class="col-12 d-flex flex-wrap gap-3 small">
+          <label><input type="checkbox" id="fEnabled" checked> Enabled</label>
+          <label><input type="checkbox" id="fQuery" checked> Caller SQL (<code>__query</code>)</label>
+          <label class="k-search"><input type="checkbox" id="fSearch" checked> Search tool</label>
+        </div>
+      </div>
+      <p class="small text-muted mt-2 mb-2">Secrets are references (<code>env:NAME</code>, <code>file:/path</code>, <code>db:llm_providers/&lt;type&gt;</code>), never values. Use an account with read privileges only.</p>
+      <div class="cx-actions">
+        <button class="btn btn-sm btn-outline-primary" type="button" onclick="testConn()"><i class="bi bi-plug me-1" aria-hidden="true"></i>Test</button>
+        <button class="btn btn-sm btn-success" type="button" onclick="saveConn()"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>Save</button>
+        <button class="btn btn-sm btn-outline-secondary" type="button" onclick="hideForm()">Cancel</button>
+      </div>
+      <div id="formMsg" class="small mt-2" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div id="conns"><div class="text-muted small">Loading…</div></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+var KINDS={}, cache={}, editing=null, OPS={{ view_operators|list|tojson }};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function api(method,url,body){
+  return fetch(url,{method:method,credentials:'same-origin',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined})
+    .then(function(r){return r.json().catch(function(){return {}}).then(function(d){if(!r.ok||d.success===false){throw new Error(d.error||('HTTP '+r.status))}return d})});
+}
+function v(id){return document.getElementById(id).value.trim()}
+function list(s){return s?s.split(',').map(function(x){return x.trim()}).filter(Boolean):[]}
+function json(id){var t=v(id);if(!t)return {};try{return JSON.parse(t)}catch(e){throw new Error(id.replace('f','')+': not valid JSON')}}
+function family(k){return (KINDS[k]||{}).family||'sql'}
+function loadKinds(){
+  return api('GET','/api/connectors/kinds').then(function(d){
+    var sel=document.getElementById('fKind'), rows='';
+    sel.innerHTML='';
+    d.kinds.forEach(function(k){KINDS[k.kind]=k;
+      var o=document.createElement('option');o.value=k.kind;o.textContent=k.name+(k.installed?'':' (driver not installed)');sel.appendChild(o);
+      rows+='<tr><td><code>'+esc(k.kind)+'</code> '+esc(k.name)+'</td><td>'+(k.pip?'<code>pip install \''+esc(k.pip)+'\'</code>':'none (HTTP)')+'</td><td>'+(k.installed?'<span class="st st-ok">yes</span>':'<span class="st st-off">no</span>')+'</td><td>'+(k.per_user?'yes':'')+'</td></tr>'});
+    document.getElementById('kinds').innerHTML=rows;
+  });
+}
+function load(){
+  api('GET','/api/connectors').then(function(d){
+    cache={};
+    var cs=d.connections||[];
+    cs.forEach(function(c){cache[c.id]=c});
+    document.getElementById('conns').innerHTML=cs.length?cs.map(render).join(''):
+      '<div class="text-muted small">No connections yet. Add one, or put a record in <code>config/connectors/&lt;id&gt;.json</code> and press Sync tools.</div>';
+  }).catch(function(e){document.getElementById('conns').innerHTML='<div class="cx-err">'+esc(e.message)+'</div>'});
+}
+function btn(act,id,label,cls){return '<button type="button" class="btn btn-sm '+cls+'" data-act="'+act+'" data-id="'+esc(id)+'">'+label+'</button>'}
+function render(c){
+  var st=!c.valid?'<span class="st st-bad">invalid</span>':!c.enabled?'<span class="st st-off">disabled</span>':!c.installed?'<span class="st st-warn">driver missing</span>':'<span class="st st-ok">ready</span>';
+  var h='<section class="cx-card" aria-label="Connection '+esc(c.id)+'"><div class="cx-head"><div>';
+  h+='<h2>'+esc(c.title)+' '+st+'</h2><div class="cx-meta"><code>'+esc(c.id)+'</code> · '+esc(c.kind)+(c.per_user?' · per-user sign-in':'')+' · '+(c.masking||0)+' masking rule(s) · '+(c.views||0)+' view(s)';
+  if(c.updated_at)h+=' · updated '+esc(new Date(c.updated_at).toLocaleString())+(c.updated_by?' by '+esc(c.updated_by):'');
+  h+='</div>'+(c.description?'<div class="cx-meta">'+esc(c.description)+'</div>':'')+(c.error?'<div class="cx-err">'+esc(c.error)+'</div>':'')+'</div>';
+  h+='<div class="cx-actions">'+btn('browse',c.id,'<i class="bi bi-table" aria-hidden="true"></i> Browse','btn-outline-primary')+btn('refresh',c.id,'<i class="bi bi-arrow-repeat" aria-hidden="true"></i> Refresh catalog','btn-outline-secondary');
+  if((KINDS[c.kind]||{}).family==='sql')h+=btn('view',c.id,'<i class="bi bi-funnel" aria-hidden="true"></i> Add view','btn-outline-success');
+  h+=btn('edit',c.id,'<i class="bi bi-pencil" aria-hidden="true"></i> Edit','btn-outline-secondary')+btn('remove',c.id,'<i class="bi bi-trash" aria-hidden="true"></i> Remove','btn-outline-danger')+'</div></div>';
+  h+='<div class="cx-body"><div class="cx-meta mb-1">Tools</div>'+((c.tools||[]).map(function(t){return '<span class="cx-chip'+(t.loaded?'':' off')+'">'+esc(t.name)+'</span>'}).join('')||'<span class="cx-meta">none</span>')+'</div>';
+  h+='<div class="cx-panel" id="panel-'+esc(c.id)+'" style="display:none"></div></section>';
+  return h;
+}
+document.addEventListener('click',function(ev){
+  var b=ev.target.closest('button[data-act]');if(!b)return;
+  var id=b.dataset.id, a=b.dataset.act;
+  if(a==='browse')browse(id);else if(a==='refresh')refreshConn(id);else if(a==='edit')editConn(id);
+  else if(a==='remove')removeConn(id);else if(a==='view')viewBuilder(id);else if(a==='describe')describe(id,b.dataset.table);
+  else if(a==='delview')deleteView(id,b.dataset.view);else if(a==='saveview')saveView(id);else if(a==='addfilter')addFilter(id);
+});
+function panel(id,html){var p=document.getElementById('panel-'+id);p.style.display='block';p.innerHTML=html;return p}
+function browse(id){
+  panel(id,'<div class="text-muted small">Loading the catalog…</div>');
+  api('GET','/api/connectors/'+encodeURIComponent(id)+'/tables').then(function(d){
+    var h='<div class="table-responsive"><table class="cx-table" aria-label="Tables of '+esc(id)+'"><thead><tr><th scope="col">Table</th><th scope="col">Type</th><th scope="col">Comment</th><th scope="col"></th></tr></thead><tbody>';
+    d.tables.forEach(function(t){var full=t.schema?t.schema+'.'+t.name:t.name;
+      h+='<tr><td><code>'+esc(full)+'</code></td><td>'+esc(t.type)+'</td><td>'+esc(t.comment)+'</td><td><button type="button" class="btn btn-sm btn-outline-primary" data-act="describe" data-id="'+esc(id)+'" data-table="'+esc(full)+'">Describe</button></td></tr>'});
+    h+='</tbody></table></div>'+(d.truncated?'<div class="cx-meta">The catalog is capped (connectors.catalog_max_tables).</div>':'')+'<div id="desc-'+esc(id)+'"></div>';
+    panel(id,h);
+  }).catch(function(e){panel(id,'<div class="cx-err">'+esc(e.message)+'</div>')});
+}
+var rawCache={};
+function describe(id,table){
+  var box=document.getElementById('desc-'+id);box.innerHTML='<div class="text-muted small">Describing…</div>';
+  api('GET','/api/connectors/'+encodeURIComponent(id)+'/describe?table='+encodeURIComponent(table)).then(function(d){
+    delete d.success;box.innerHTML='<div class="cx-meta mt-2">'+esc(table)+'</div><pre class="cx-pre">'+esc(JSON.stringify(d,null,2))+'</pre>';
+  }).catch(function(e){box.innerHTML='<div class="cx-err">'+esc(e.message)+'</div>'});
+}
+function refreshConn(id){api('POST','/api/connectors/'+encodeURIComponent(id)+'/refresh').then(function(d){panel(id,'<div class="small">Catalog refreshed: '+d.tables+' table(s).</div>')}).catch(function(e){panel(id,'<div class="cx-err">'+esc(e.message)+'</div>')})}
+function removeConn(id){if(!confirm('Remove connection '+id+' and its tools?'))return;api('DELETE','/api/connectors/'+encodeURIComponent(id)).then(load).catch(function(e){alert(e.message)})}
+function syncAll(){api('POST','/api/connectors/sync').then(function(d){load();if(d.errors&&Object.keys(d.errors).length)alert(JSON.stringify(d.errors))}).catch(function(e){alert(e.message)})}
+// ── view builder ─────────────────────────────────────────────
+function viewBuilder(id){
+  api('GET','/api/connectors/'+encodeURIComponent(id)).then(function(r){
+    rawCache[id]=r.connection;
+    return api('GET','/api/connectors/'+encodeURIComponent(id)+'/tables');
+  }).then(function(d){
+    var raw=rawCache[id], opts=d.tables.map(function(t){var f=t.schema?t.schema+'.'+t.name:t.name;return '<option value="'+esc(f)+'">'+esc(f)+'</option>'}).join('');
+    var h='<div class="row g-2 cx-form"><div class="col-6 col-md-3"><label class="form-label" for="vName-'+esc(id)+'">View name</label><input class="form-control form-control-sm" id="vName-'+esc(id)+'" placeholder="orders_by_status"></div>';
+    h+='<div class="col-6 col-md-4"><label class="form-label" for="vTable-'+esc(id)+'">Table or view</label><select class="form-select form-select-sm" id="vTable-'+esc(id)+'">'+opts+'</select></div>';
+    h+='<div class="col-6 col-md-2"><label class="form-label" for="vMax-'+esc(id)+'">Max rows</label><input class="form-control form-control-sm" id="vMax-'+esc(id)+'" type="number" min="1"></div>';
+    h+='<div class="col-6 col-md-3"><label class="form-label" for="vOrder-'+esc(id)+'">Order by (column [desc])</label><input class="form-control form-control-sm" id="vOrder-'+esc(id)+'" placeholder="created_at desc"></div>';
+    h+='<div class="col-12"><label class="form-label" for="vDesc-'+esc(id)+'">Description</label><input class="form-control form-control-sm" id="vDesc-'+esc(id)+'"></div>';
+    h+='<div class="col-12"><label class="form-label" for="vCols-'+esc(id)+'">Columns to return (comma separated; empty: all that are not hidden)</label><input class="form-control form-control-sm" id="vCols-'+esc(id)+'"></div>';
+    h+='<div class="col-12"><div class="form-label">Filters (column, operators, required)</div><div id="vFilters-'+esc(id)+'"></div>'+btn('addfilter',id,'<i class="bi bi-plus" aria-hidden="true"></i> Filter','btn-outline-secondary')+'</div>';
+    h+='<div class="col-12 cx-actions">'+btn('saveview',id,'<i class="bi bi-check-lg" aria-hidden="true"></i> Save view','btn-success')+'</div><div class="col-12 small" id="vMsg-'+esc(id)+'" role="status" aria-live="polite"></div></div>';
+    var views=raw.views||[];
+    if(views.length){h+='<div class="cx-meta mt-2">Views</div>'+views.map(function(w){return '<span class="cx-chip">'+esc(id+'__'+w.name)+' <button type="button" class="btn btn-sm btn-link p-0" data-act="delview" data-id="'+esc(id)+'" data-view="'+esc(w.name)+'" aria-label="Remove view '+esc(w.name)+'">×</button></span>'}).join('')}
+    panel(id,h);addFilter(id);
+  }).catch(function(e){panel(id,'<div class="cx-err">'+esc(e.message)+'</div>')});
+}
+function addFilter(id){
+  var box=document.getElementById('vFilters-'+id), n=box.children.length;
+  var row=document.createElement('div');row.className='cx-filter';
+  row.innerHTML='<input class="form-control form-control-sm" style="width:12rem" placeholder="column" aria-label="Filter column '+(n+1)+'" data-f="col">'+
+    '<select class="form-select form-select-sm" style="width:12rem" multiple size="3" aria-label="Operators '+(n+1)+'" data-f="ops">'+OPS.map(function(o){return '<option value="'+o+'"'+(o==='eq'?' selected':'')+'>'+o+'</option>'}).join('')+'</select>'+
+    '<label class="small"><input type="checkbox" data-f="req"> required</label>';
+  box.appendChild(row);
+}
+function saveView(id){
+  var raw=JSON.parse(JSON.stringify(rawCache[id])), msg=document.getElementById('vMsg-'+id);
+  var filters=[];document.querySelectorAll('#vFilters-'+id+' .cx-filter').forEach(function(r){
+    var col=r.querySelector('[data-f=col]').value.trim();if(!col)return;
+    var ops=Array.prototype.map.call(r.querySelector('[data-f=ops]').selectedOptions,function(o){return o.value});
+    filters.push({column:col,operators:ops.length?ops:['eq'],required:r.querySelector('[data-f=req]').checked})});
+  var order=v('vOrder-'+id), ob=[];if(order){order.split(',').forEach(function(p){var w=p.trim().split(/\s+/);if(w[0])ob.push({column:w[0],direction:(w[1]||'asc').toLowerCase()})})}
+  var view={name:v('vName-'+id),table:v('vTable-'+id),description:v('vDesc-'+id),columns:list(v('vCols-'+id)),filters:filters,order_by:ob};
+  if(v('vMax-'+id))view.max_rows=Number(v('vMax-'+id));
+  raw.views=(raw.views||[]).filter(function(w){return w.name!==view.name}).concat([view]);
+  msg.className='small';msg.textContent='Saving…';
+  api('POST','/api/connectors',raw).then(function(d){msg.className='small text-success';msg.textContent=d.message;load()}).catch(function(e){msg.className='small cx-err';msg.textContent=e.message});
+}
+function deleteView(id,name){
+  var raw=JSON.parse(JSON.stringify(rawCache[id]));raw.views=(raw.views||[]).filter(function(w){return w.name!==name});
+  api('POST','/api/connectors',raw).then(function(){load()}).catch(function(e){alert(e.message)});
+}
+// ── the form ─────────────────────────────────────────────────
+var FIELDS=['fId','fTitle','fDesc','fHost','fPort','fDb','fUser','fPath','fUrl','fPw','fOpts','fSecrets','fRows','fBytes','fTimeout','fCache','fSchemas','fTables','fDeny','fMask','fVector','fProvider','fScopes'];
+function kindChanged(){
+  var k=v('fKind'), fam=family(k), file=(k==='sqlite'||k==='duckdb'), http=fam==='search';
+  var show=function(cls,on){document.querySelectorAll(cls).forEach(function(e){e.style.display=on?'':'none'})};
+  show('.k-net',!file&&!http);show('.k-file',file);show('.k-http',http);
+  show('.k-vector',k==='pgvector'||http);show('.k-search',k==='pgvector'||http);show('.k-user',!!(KINDS[k]||{}).per_user);
+}
+function formData(){
+  var k=v('fKind'), fam=family(k), opts=json('fOpts'), secrets=json('fSecrets');
+  if(v('fHost'))opts.host=v('fHost');if(v('fPort'))opts.port=Number(v('fPort'));if(v('fDb'))opts.database=v('fDb');
+  if(v('fUser'))opts.user=v('fUser');if(v('fPath'))opts.path=v('fPath');if(v('fUrl'))opts.url=v('fUrl');
+  if(v('fPw'))secrets[fam==='search'?'api_key':(k==='databricks'?'token':'password')]=v('fPw');
+  var d={id:v('fId'),kind:k,title:v('fTitle'),description:v('fDesc'),enabled:document.getElementById('fEnabled').checked,options:opts,secrets:secrets,
+    limits:{},allow:{schemas:list(v('fSchemas')),tables:list(v('fTables')),deny_tables:list(v('fDeny'))},masking:[],
+    tools:{query:document.getElementById('fQuery').checked,search:document.getElementById('fSearch').checked}};
+  if(v('fRows'))d.limits.max_rows=Number(v('fRows'));if(v('fBytes'))d.limits.max_bytes=Number(v('fBytes'));if(v('fTimeout'))d.limits.timeout_seconds=Number(v('fTimeout'));
+  if(v('fCache'))d.cache_ttl=Number(v('fCache'));
+  v('fMask').split('\n').forEach(function(l){var p=l.split('=');if(p.length===2&&p[0].trim())d.masking.push({column:p[0].trim(),mode:p[1].trim()})});
+  if(k==='pgvector'||fam==='search'){var vec=json('fVector');if(Object.keys(vec).length)d.vector=vec}
+  if(v('fProvider'))d.auth={type:'connected_account',provider:v('fProvider'),scopes:list(v('fScopes').replace(/\s+/g,','))};
+  if(editing&&(cache[editing]||{}).raw)d.views=cache[editing].raw.views||[];
+  return d;
+}
+function msg(t,ok){var m=document.getElementById('formMsg');m.className='small mt-2 '+(ok?'text-success':'cx-err');m.textContent=t}
+function testConn(){var d;try{d=formData()}catch(e){return msg(e.message,false)}msg('Connecting…',true);
+  api('POST','/api/connectors/test',d).then(function(r){msg('Connected: '+r.server_version+' · '+r.tables+' allowed table(s) · '+r.ms+' ms',true)}).catch(function(e){msg(e.message,false)})}
+function saveConn(){var d;try{d=formData()}catch(e){return msg(e.message,false)}
+  if(!editing)d.create=true;
+  api('POST','/api/connectors',d).then(function(r){msg(r.message+((r.warnings||[]).length?' · '+r.warnings.join('; '):''),true);hideForm();load()}).catch(function(e){msg(e.message,false)})}
+function showForm(){editing=null;document.getElementById('formTitle').textContent='Add connection';FIELDS.forEach(function(i){document.getElementById(i).value=''});
+  document.getElementById('fId').disabled=false;['fEnabled','fQuery','fSearch'].forEach(function(i){document.getElementById(i).checked=true});
+  kindChanged();msg('',true);document.getElementById('cxForm').style.display='block';document.getElementById('fId').focus()}
+function hideForm(){document.getElementById('cxForm').style.display='none';editing=null}
+function editConn(id){
+  api('GET','/api/connectors/'+encodeURIComponent(id)).then(function(r){
+    var d=r.connection;showForm();editing=id;cache[id]=Object.assign(cache[id]||{},{raw:d});
+    document.getElementById('formTitle').textContent='Edit connection '+id;
+    var set=function(i,x){document.getElementById(i).value=(x==null?'':x)};
+    var o=Object.assign({},d.options||{}), s=Object.assign({},d.secrets||{});
+    set('fId',d.id);document.getElementById('fId').disabled=true;set('fKind',d.kind);set('fTitle',d.title);set('fDesc',d.description);
+    ['host','port','database','user','path','url'].forEach(function(k,i){set(['fHost','fPort','fDb','fUser','fPath','fUrl'][i],o[k]);delete o[k]});
+    var pk=family(d.kind)==='search'?'api_key':(d.kind==='databricks'?'token':'password');set('fPw',s[pk]);delete s[pk];
+    set('fOpts',Object.keys(o).length?JSON.stringify(o):'');set('fSecrets',Object.keys(s).length?JSON.stringify(s):'');
+    var l=d.limits||{};set('fRows',l.max_rows);set('fBytes',l.max_bytes);set('fTimeout',l.timeout_seconds);set('fCache',d.cache_ttl||'');
+    var a=d.allow||{};set('fSchemas',(a.schemas||[]).join(', '));set('fTables',(a.tables||[]).join(', '));set('fDeny',(a.deny_tables||[]).join(', '));
+    set('fMask',(d.masking||[]).map(function(m){return m.column+' = '+m.mode}).join('\n'));
+    set('fVector',d.vector?JSON.stringify(d.vector):'');var u=d.auth||{};set('fProvider',u.provider);set('fScopes',(u.scopes||[]).join(' '));
+    document.getElementById('fEnabled').checked=d.enabled!==false;var t=d.tools||{};
+    document.getElementById('fQuery').checked=t.query!==false;document.getElementById('fSearch').checked=t.search!==false;
+    kindChanged();
+  }).catch(function(e){alert(e.message)});
+}
+loadKinds().then(load).catch(function(e){document.getElementById('conns').innerHTML='<div class="cx-err">'+esc(e.message)+'</div>'});
+</script>
+{% endblock %}

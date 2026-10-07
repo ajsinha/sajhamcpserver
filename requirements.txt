@@ -90,3 +90,14 @@ ollama>=0.4.0,<1.0.0              # Ollama local models
 # opentelemetry-exporter-otlp>=1.20.0,<2.0.0
 # Uncomment above for OTEL trace/metric export to Datadog/Grafana/Splunk
 psutil>=5.9.0,<8.0.0  # System monitoring (optional)
+
+# ── Data connectors (optional — only for the kinds you connect) ──────────
+# Imported on first use by sajha/connectors/drivers/; a missing one is reported with the
+# package to install. PostgreSQL/Redshift/pgvector (psycopg2) and MySQL (pymysql) are above;
+# SQLite is in Python and DuckDB above; Qdrant and Elasticsearch/OpenSearch use httpx.
+# sqlglot>=25,<31                            # the statement guard's SQL parser (recommended)
+# pyodbc>=5.0,<6.0                           # kind: sqlserver
+# oracledb>=2.0,<4.0                         # kind: oracle (thin mode, no Oracle client)
+# snowflake-connector-python>=3.6,<5.0       # kind: snowflake
+# google-cloud-bigquery>=3.17,<4.0           # kind: bigquery
+# databricks-sql-connector>=3.0,<5.0         # kind: databricks

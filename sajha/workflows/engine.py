@@ -185,7 +185,8 @@ class RunExecutor:
         except Exception as e:
             return self._finish('failed', error=f'cannot resolve the run-as identity: {e}')
         t_caller, t_source = set_caller(self.ident.caller()), set_source('workflow')
-        t_chain = CHAIN.set(tuple(CHAIN.get()) + (self.run['workflow'],))
+        detail = self.run.get('trigger_detail') if isinstance(self.run.get('trigger_detail'), dict) else {}
+        t_chain = CHAIN.set(tuple(detail.get('chain') or ()) + (self.run['workflow'],))
         try:
             return self._execute()
         except Exception as e:

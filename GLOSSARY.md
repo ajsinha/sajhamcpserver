@@ -244,7 +244,7 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **ToolsRegistry** | The singleton (`sajha/tools/tools_registry.py`, `get_tools_registry()`) that loads, instantiates and manages every tool from its JSON config, supports hot-reload and publishes changes to the change bus. |
 | **Tool group** | A UI grouping taken from the text before the first `_` in a tool name (`yahoo_get_quote` is in group `yahoo`). |
 | **Generic tool pattern** | One Python class serving many tools by deriving the API endpoint from the tool name (`FMPGenericTool`, `OpenBBGenericTool`, `FREDCustomSeriesTool`); a new tool needs only a JSON config. |
-| **Tool versioning** | Running v1 and v2 of a tool side by side with a lifecycle `active`, `deprecated`, `sunset` (still registered, returns a warning), `retired` (removed from `tools/list`), plus contract testing (`sajha/core/tool_versioning.py`). |
+| **Tool versioning** | Several versions of one tool behind its one MCP name, declared in `config/tool_versions/<tool>.yaml` and routed per call (`sajha/quality/versions.py`); the result's `_meta["io.sajha/tool-version"]` names the version that ran. See **Tool version**, **Canary**, **Version pin**, **Automatic rollback**, **Sunset date**. |
 | **Literature** | Contextual documentation attached to a tool to help an AI understand when and how to use it; also indexed by semantic tool search. |
 | **Catalog resources** | `sajha://tools/catalog` and `sajha://prompts/catalog`: resources listing the tools and prompts, updated (with `resources/updated`) whenever they change. |
 | **Prompt template** / **Template** | A prompt's raw text with `{{variable}}` placeholders that are filled in at runtime. |
@@ -292,7 +292,14 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **GraphQL introspection** | The standard query a GraphQL server answers with its own schema (types, queries, mutations); API Import builds one tool per query and mutation from it. |
 | **$ref** | A JSON reference from one part of an API description to another, or into another document. API Import inlines every one (remote documents through the SSRF guard) so each tool schema stands alone. |
 | **Import record** | The JSON document `config/api_imports/<api_id>.json` that remembers an import's source, server, credential references and a fingerprint per deployed operation, so importing again shows what was added, changed or removed. |
-| **Secret reference** | A pointer to a secret instead of the secret: `env:NAME`, `file:/path` or `db:llm_providers/<type>`. Resolved when used, never written to a config or logged. Used by LLM providers, federation upstreams and API Import credentials. |
+| **Secret reference** | A pointer to a secret instead of the secret: `env:NAME`, `file:/path` or `db:llm_providers/<type>`. Resolved when used, never written to a config or logged. Used by LLM providers, federation upstreams, API Import credentials and data connectors. |
+| **Describe a tool** | The Studio page (`/studio/describe`, admins) and the `sajha studio describe` command: a plain-language description goes to the model behind the `toolsmith` alias, which proposes a tool; an administrator reads the generated files, runs the tests and approves the deploy. |
+| **Tool proposal** | What Describe a tool's model returns: a kind (`python`, `rest`, `dbquery`, `composite` or `openapi`), name, description, input and output schemas, implementation and test cases. SAJHA checks every field as untrusted input. |
+| **Draft** (*Describe a tool*) | A tool proposal kept in the state store with its generated files, policy preview and test results, until `studio.describe.draft_ttl_seconds` passes or it is deployed. |
+| **Proposal hash** | The SHA-256 of a checked tool proposal. A deploy names the hash the administrator reviewed; it must be the draft's current hash, and the tests must have run on it. |
+| **Live test** | A Describe a tool test case that needs the network or a real service; it runs only when the administrator asks. Offline Python cases run in the sandbox with no network at all. |
+| **Test fixture** | A canned HTTP reply (status, and JSON or text) that a generated REST tool's test case answers from, so the tool is tested without calling its endpoint. |
+| **toolsmith** (*model alias*) | The gateway alias Describe a tool asks (`studio.describe.model`); out of the box it maps to `mock/mock-toolsmith`. Point it at a real model with `SAJHA_AI_ALIASES_TOOLSMITH`. |
 | **Query template** | A DB Query tool's SQL with parameter placeholders filled in at call time. |
 | **Parameter escaping** | Automatic quoting and escaping of parameter values to prevent SQL injection. |
 | **Connection string** | The database connection details: host, port, credentials and database name. |
@@ -313,6 +320,21 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Shannon entropy** | An information-theoretic measure of uncertainty in bits, `H = -p·log2(p) - (1-p)·log2(1-p)`: 0 bits for a certain result, 1 bit for a 50/50 one. |
 | **Confidence score** | A 0.0–1.0 estimate of a tool's reliability: 1.0 deterministic (calculators), about 0.95 a stable API (FRED), about 0.80 a web crawl. Composites compound it. |
 | **Weakest-link model** | The confidence rule for parallel steps: `min` of the steps' scores, since the composite is only as reliable as its least reliable independent part. |
+| **Workflow** | A saved DAG of steps (tool, composite, Ask SAJHA, condition, foreach, wait, approval) with parameter mapping, retries and timeouts, run by hand or by triggers and recorded run by run (`sajha/workflows/`, the Workflows page). |
+| **Workflow step** | One node of a workflow: an `id`, a `kind`, its `depends_on` (plus every `$steps.<id>` it reads), and per-kind fields; it runs when its dependencies are done and its `join` rule and `when` condition allow. |
+| **DAG** (*Directed Acyclic Graph*) | Nodes joined by one-way edges with no cycles; a workflow's steps and dependencies form one, so every step has a run order. |
+| **Join rule** | When a workflow step with several dependencies runs: `all_success` (default), `any_success` (after branches) or `all_done`. A step whose rule fails is skipped. |
+| **Foreach step** | A workflow step that runs one tool, composite or Ask SAJHA call per element of a list (`$item`, `$index`), capped by `max_items`, optionally in parallel. |
+| **Workflow trigger** | What starts a workflow run besides a manual run: a cron schedule, a signed webhook, a file arriving on the storage backend, or a change-bus event. |
+| **Cron schedule** | A five-field time pattern (minute hour day month weekday) evaluated in an IANA timezone; each due slot is claimed in the state store so one worker fires it. |
+| **Signed webhook** | An inbound HTTP trigger authenticated by `X-Sajha-Signature: sha256=HMAC(secret, timestamp.body)` and `X-Sajha-Timestamp`; old timestamps and repeated signatures are refused (replay protection). |
+| **HMAC** (*Hash-based Message Authentication Code*) | A keyed hash (here SHA-256) that proves a message came from someone holding the shared secret and was not altered. |
+| **Run as** | The identity a workflow's steps run under: its owner, re-read from the database at each run, so the owner's current roles, tool access and policies apply. |
+| **Workflow run** | One execution of a workflow, stored durably with its status, trigger, input, output and a record per step (inputs and outputs truncated, durations, attempts, errors). |
+| **Idempotency key** | A caller-chosen key that makes a request safe to repeat: a second workflow run with the same key returns the first. Steps also get one per call, and a step marked idempotent is the only kind re-run after a crash. |
+| **Run resume** | A worker taking over a run whose worker stopped (its heartbeat went stale): finished steps keep their outputs, interrupted idempotent steps run again, others are marked failed. |
+| **Re-run from a step** | A new run of the same definition and input that reuses the outputs of the steps before the chosen (default: first failed) step and runs it and everything after it. |
+| **Published workflow** | A workflow registered as an ordinary MCP tool (`publish.enabled`, administrators only): calling it starts a run and returns its output; it is listed, governed and federated like any tool. |
 | **ClientPipeline** | Client-side composition in the SDK (`clientsdk/sajhaclient/mcp_client.py`): chains `add_step()` calls with the same `$.` / `$input.` mapping and tracks confidence and entropy, without a server-side composite. |
 | **TransportCoalgebra** | The SDK's abstract transport interface, `step(method, params) → (result, new_state)`, implemented by `HTTPTransport`, `SSETransport` and `WSTransport`. |
 | **Bisimilar** / **Bisimulation** | Behavioural equivalence: two transports are bisimilar if they give the same outputs for the same inputs, so they can be swapped. The SDK's `bisimilar()` tests it. |
@@ -373,6 +395,20 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Streams Ingress** | The second Ingress object of the Helm chart, carrying only the long-lived paths (`/mcp`, `/api/mcp`, `/api/ai/ask`) with proxy buffering off and one-hour timeouts. |
 | **Kustomize overlay** | A directory of `deployment/k8s/overlays/` (dev, prod) that `kubectl apply -k` builds on `deployment/k8s/base`; SAJHA's are rendered from the Helm chart by `deployment/k8s/render.py`. |
 | **Schema file** | `db/scripts/<dialect>/schema.sql` (dialect `sqlite` or `postgresql`): every table, column, key and index SAJHA uses, as idempotent `CREATE ... IF NOT EXISTS` statements, with `seed.sql` beside it for the default roles and admin. There are no migrations: SQLite runs it at start-up; on PostgreSQL an operator runs it with `psql` and SAJHA only checks the result (`db.schema_check`). |
+| **Tool test case** | One call of a tool with arguments and the assertions its result must meet, in `config/tool_tests/*.yaml` (or `tests` in the tool's config); run by `python -m sajha.quality test` (`sajha/quality/`). |
+| **Test assertion** | A check on a test case's result: JSON Schema match (`schema: output`), a JSONPath with `equals` (optional numeric `tolerance`), `contains`, `regex`, `type`, `min`/`max` or `length`, or a `latency_ms` budget. |
+| **HTTP cassette** | A recorded set of a test case's HTTP exchanges (`config/tool_tests/cassettes/<tool>/<case>.json`) that `--replay` serves instead of the network; intercepts `urllib.request`, `requests` and `httpx`, never stores request headers and redacts secret query parameters. |
+| **Health probe** | A tool test case run on a schedule against the live service (`probe:` in a test file; `quality.probes.enabled`); one worker runs each slot (a state-store claim), results feed `sajha_tool_probe_*` metrics and the Tool Health page. |
+| **Schema lint** | Static checks of every tool's definition: MCP tool-name rule, description length, valid JSON Schema 2020-12 input and output schemas, property descriptions, examples and defaults that validate, sensible annotations (`python -m sajha.quality lint`). |
+| **JUnit XML** | The test-report format CI systems read; `--junit FILE` on `test`, `lint` and `eval` writes one. |
+| **Tool version** | One implementation of a tool: the registered config (its own `version`) or one declared in the tool's versions file as overrides of that config or a whole config; never listed separately. |
+| **Canary** | Routing a percentage of a tool's callers to a new version (`routing.canary`); sticky per caller (a hash of the API key or user id). |
+| **Version pin** | A routing rule that sends one API key (by name), user or role to a given version of a tool, ahead of the canary. |
+| **Automatic rollback** | Taking a canary version out of routing on every worker when its error rate or slow-call rate over a sliding window passes the file's `rollback` thresholds; recorded in the state store until an administrator clears it. |
+| **Sunset date** | The date after which a deprecated version is no longer routed to, or (for the whole tool) the tool is hidden from `tools/list` and refuses calls; before it, results carry `_meta["io.sajha/deprecation"]`. |
+| **Eval set** | A list of golden questions for Ask SAJHA with expected tools, answer checks and limits (`config/evals/*.yaml`), run per model and planner by `python -m sajha.quality eval` or the Evals page. |
+| **Tool-selection accuracy** | The share of an eval run's questions where every expected tool was called and no forbidden one was. |
+| **Answer check** | A lexical check on an eval answer: `contains`, `not_contains`, `regex`, `equals`, or `number` with `tolerance`. |
 
 ---
 
@@ -402,6 +438,7 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **pgvector** | A PostgreSQL extension that adds a `vector` column type and similarity search; SAJHA uses it for the document index when the extension and the optional `rag_chunks` table exist. |
 | **Reciprocal rank fusion** | Combining rankings by summing 1/(k + rank) per item; the document search fuses its vector and BM25 rankings this way. |
 | **Mock provider** | The built-in LLM provider that needs no network or key (`sajha/ai/llm/mock.py`). Its `mock-planner` model picks tools from keywords and numbers in the question; it serves every model alias until a real provider is enabled. |
+| **mock-toolsmith** | The mock provider's offline tool designer: it answers Describe a tool deterministically from the description and the context SAJHA sends (a URL, a table, named tools, a few recipes, else a skeleton to edit). |
 | **Semantic tool search** | Natural-language tool discovery (`sajha/ai/tool_resolver.py`, `POST /api/ai/resolve-tool`): ranks tools by a query over their name, description, parameters, tags and literature. The embedder is set by `ai.tool_search.embedder`. |
 | **bm25** (*embedder*) | The default tool-search ranker: a dependency-free lexical BM25 index (`sajha/ai/lexical.py`) with IDF weighting, needing no model and no network. |
 | **gateway** (*embedder*) | Tool-search mode that embeds tool text and queries through the LLM gateway's embedding provider and ranks by cosine similarity; the vector index can be persisted via storage. |
@@ -440,6 +477,17 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **DAX** (*Data Analysis Expressions*) | Power BI's query and formula language; the Power BI DAX creator builds tools that run DAX queries against datasets. |
 | **LiveLink** | OpenText Content Server (formerly Livelink), an enterprise content management system; the LiveLink creator builds document search, browse and retrieval tools. |
 | **SharePoint** | Microsoft's document and list platform in Microsoft 365; the SharePoint creator builds document, list and search tools over it. |
+| **Data connector** | A configured connection to an enterprise data store (a SQL database or warehouse, a vector database or a search cluster) that SAJHA turns into governed, read-only tools named `<id>__...`; managed on the Data Connectors page (`/admin/connectors`). |
+| **Connection record** | The JSON document `config/connectors/<id>.json` that defines one data connector: its kind, options, secret references, limits, table allowlist, masking rules and curated views. |
+| **Statement guard** | The check every caller-written query passes before it reaches a data connector: exactly one read-only SELECT, no denied function, only allowed tables, masking rules respected. It uses sqlglot when installed, else a conservative scanner. |
+| **Read-only session** | A database session that refuses writes by itself (PostgreSQL `default_transaction_read_only`, MySQL `TRANSACTION READ ONLY`, SQLite `mode=ro`, DuckDB `read_only`); the wall under the statement guard. |
+| **Schema catalog** | A data connector's allowed tables and their described columns, cached per process for `connectors.catalog_ttl_seconds`. |
+| **Table allowlist** | A data connector's `allow` block: the schemas and table patterns a query may read, and the ones it may not. |
+| **Column masking** | Rewriting a column's values in a data connector's results (hide, null, redact, hash, partial or PII redaction) by rules on `column`, `table.column` or `schema.table.column`. |
+| **Curated view** | An administrator-defined tool over one table: chosen columns and typed filter arguments, its SQL built by SAJHA with every value bound. Named `<id>__<view name>`. |
+| **sqlglot** | A Python SQL parser for many dialects; when installed, the statement guard checks queries on its syntax tree. |
+| **Qdrant** | A vector database with a REST API; a data-connector kind searched by nearest neighbour. |
+| **Elasticsearch** / **OpenSearch** | Search engines with a REST API (OpenSearch is the open-source fork); data-connector kinds searched by full text, or by k-NN when a vector field is configured. |
 | **Time series** | A sequence of data points indexed by time (GDP by quarter, a yield by day). FRED, the World Bank and the other data tools return them. |
 | **Economic indicator** | A statistic about economic activity, such as GDP, unemployment or inflation. |
 | **Indicator** | A specific measurable value tracked over time (literacy rate, life expectancy); UN and World Bank tools look data up by indicator. |

@@ -277,3 +277,31 @@ def test_live_config_and_federation(admin, capsys):
     if code == 0:
         assert 'upstreams' in json.loads(out)
     assert run(capsys, 'federation', 'refresh', 'no_such_upstream_xyz')[0] in (5,)
+
+
+def test_live_workflows(admin, capsys):
+    """sajha workflows list|run|runs|show against a workflow saved through the REST API."""
+    from sajhaclient.cli import profiles as _p
+    tok = _p.resolve().token
+    body = json.dumps({'name': 'cli_wf_test', 'steps': [
+        {'id': 'pct', 'tool': 'calc_percentage_change',
+         'params': {'old_value': '$input.a', 'new_value': '$input.b'}}]}).encode()
+    req = urllib.request.Request(admin + '/api/workflows', data=body, method='POST',
+                                 headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {tok}'})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        assert r.status == 200
+    code, out, err = run(capsys, 'workflows', 'list')
+    assert code == 0 and 'cli_wf_test' in out, err
+    code, out, err = run(capsys, 'workflows', 'run', 'cli_wf_test', '--input', 'a=10', '--input', 'b=15',
+                         '--wait', '30', '--json')
+    assert code == 0, err
+    run_rec = json.loads(out)
+    assert run_rec['status'] == 'succeeded' and run_rec['output']['pct']['percentage_change'] == 50.0
+    code, out, _ = run(capsys, 'workflows', 'runs', 'cli_wf_test')
+    assert code == 0 and run_rec['id'] in out
+    code, out, _ = run(capsys, 'workflows', 'show', run_rec['id'])
+    assert code == 0 and 'pct' in out and 'succeeded' in out
+    code, out, _ = run(capsys, 'workflows', 'show', 'cli_wf_test', '--yaml')
+    assert code == 0 and 'name: cli_wf_test' in out
+    assert run(capsys, 'workflows', 'run', 'cli_wf_test', '--wait', '30')[0] == 1    # missing input: fails
+    assert run(capsys, 'workflows', 'show', 'no_such_workflow_xyz')[0] == 5

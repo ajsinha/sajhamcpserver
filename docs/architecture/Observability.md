@@ -80,6 +80,7 @@ units). The live list is the endpoint itself; each family carries `# HELP` and `
 | `sajha_federation_upstream_calls_total`, `sajha_federation_upstream_failures_total` | counter (collected) | `upstream` |
 | `sajha_alerts_fired_total` | counter | `rule` |
 | `sajha_policy_decisions_total`, `sajha_policy_redactions_total`, `sajha_policy_output_flags_total`, `sajha_audit_records_total`, `sajha_audit_export_total` | counter | policy and audit; labels in [Policy and Audit §6](Policy%20and%20Audit.md#6-decisions-are-logged-and-counted) |
+| `sajha_tool_probe_runs_total`, `sajha_tool_probe_up`, `sajha_tool_probe_duration_seconds`, `sajha_tool_version_calls_total`, `sajha_tool_version_call_duration_seconds`, `sajha_tool_version_rollbacks_total` | counter, gauge, histogram | health probes and tool versions; labels in [Tool Quality §4 and §6.4](Tool%20Quality.md#4-health-probes) |
 | `sajha_info` | gauge | `version` |
 | `process_*`, `python_*` | gauge / counter (collected) | resident memory, CPU seconds, open file descriptors, start time, threads, GC collections, Python version |
 

@@ -1,0 +1,188 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Workflows: DAGs of tool, composite and Ask SAJHA steps; schedules, triggers and run history.
+Design: docs/architecture/Workflows.md
+-->
+{% block title %}Workflows - {{ app_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.wf-list .list-group-item{cursor:pointer;background:var(--t-card,transparent);color:var(--t-text)}
+.wf-list .list-group-item.active{background:var(--sajha-crimson-tint);color:var(--t-text);border-color:var(--sajha-crimson)}
+.wf-meta{font-size:.875rem;color:var(--t-muted)}
+.wf-step{border:1px solid var(--sajha-border);border-radius:8px;padding:.6rem;margin-bottom:.6rem;background:var(--t-inp)}
+.wf-step textarea,.wf-text{font-family:'JetBrains Mono',monospace;font-size:.875rem}
+.wf-text{min-height:22rem;width:100%}
+.wf-dag-wrap{overflow-x:auto;max-width:100%;border:1px solid var(--sajha-border);border-radius:8px;background:var(--t-inp)}
+.wf-dag-wrap svg{display:block}
+.wf-dag-wrap text{fill:var(--t-text);font-size:13px}
+.wf-dag-wrap .wf-node rect{fill:var(--sajha-surface);stroke:var(--sajha-crimson);stroke-width:1.5}
+.wf-dag-wrap .wf-node.st-succeeded rect{stroke:var(--sajha-ok);stroke-width:2.5}
+.wf-dag-wrap .wf-node.st-failed rect{stroke:var(--sajha-bad);stroke-width:2.5}
+.wf-dag-wrap .wf-node.st-waiting rect,.wf-dag-wrap .wf-node.st-running rect{stroke:var(--sajha-warn);stroke-width:2.5}
+.wf-dag-wrap .wf-node.st-skipped rect,.wf-dag-wrap .wf-node.st-cancelled rect{stroke-dasharray:4 3;opacity:.7}
+.wf-dag-wrap .wf-edge{stroke:var(--sajha-slate);stroke-width:1.3;fill:none}
+.wf-dag-wrap .wf-edge.branch{stroke-dasharray:5 4}
+.wf-kind{fill:var(--t-muted)!important;font-size:12px!important}
+.wf-pill{display:inline-block;padding:.05rem .5rem;border-radius:999px;font-size:.875rem;font-weight:600;border:1px solid var(--sajha-border);color:var(--t-text)}
+.wf-pill.s-succeeded{background:var(--sajha-ok);color:var(--sajha-on-crimson);border-color:var(--sajha-ok)}
+.wf-pill.s-failed{background:var(--sajha-bad);color:var(--sajha-on-crimson);border-color:var(--sajha-bad)}
+.wf-pill.s-running,.wf-pill.s-waiting,.wf-pill.s-queued{background:var(--sajha-highlight);color:var(--sajha-ink)}
+.wf-tl-row{display:grid;grid-template-columns:minmax(6rem,10rem) 1fr;gap:.5rem;align-items:center;padding:.3rem 0;border-bottom:1px solid var(--sajha-border)}
+.wf-tl-track{position:relative;height:.9rem;background:var(--sajha-canvas);border-radius:4px;overflow:hidden}
+.wf-tl-bar{position:absolute;top:0;bottom:0;border-radius:4px;background:var(--sajha-slate);min-width:3px}
+.wf-tl-bar.s-succeeded{background:var(--sajha-ok)}.wf-tl-bar.s-failed{background:var(--sajha-bad)}
+.wf-tl-bar.s-waiting,.wf-tl-bar.s-running{background:var(--sajha-warn)}
+.wf-io{font-size:.875rem;white-space:pre-wrap;word-break:break-word;max-height:14rem;overflow:auto;margin:.3rem 0 0;background:var(--t-inp);color:var(--t-text);padding:.4rem;border-radius:6px;border:1px solid var(--sajha-border)}
+.wf-err{color:var(--sajha-bad);font-size:.875rem;word-break:break-word}
+.wf-tabs .nav-link{color:var(--t-text)}
+.wf-tabs .nav-link.active{color:var(--sajha-crimson);font-weight:600}
+@media (max-width:575.98px){.wf-tl-row{grid-template-columns:1fr}.wf-actions .btn{flex:1 1 auto}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-diagram-3 me-2" aria-hidden="true"></i>Workflows</h1>
+      <small class="text-muted">Steps that call tools, composites and Ask SAJHA, with branches, loops, waits and approvals; run on a schedule, a webhook, a new file, a change event or by hand. Steps run as the workflow's owner.</small>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('composite_builder') }}"><i class="bi bi-boxes me-1" aria-hidden="true"></i>Composites</a>
+      <button class="btn btn-sm btn-primary" type="button" id="wfNew"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>New workflow</button>
+    </div>
+  </div>
+
+  {% if not available %}<div class="alert alert-warning" role="status">Workflows are not running on this server (<code>workflows.enabled</code>, or the workflow tables are missing from the database).</div>{% endif %}
+  {% if available and not state_shared %}<div class="alert alert-info" role="status">The state store is this worker's memory (<code>state.backend: memory</code>): fine for one worker. With several workers use <code>redis</code> or <code>database</code> so schedules fire once and approvals are seen everywhere.</div>{% endif %}
+  <div id="wfAlert" role="status" aria-live="polite"></div>
+
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-list-ul me-2" aria-hidden="true"></i>Your workflows</span>
+          <button class="btn btn-sm btn-outline-secondary" type="button" id="wfRefresh" aria-label="Refresh the list"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
+        </div>
+        <div class="list-group list-group-flush wf-list" id="wfList"><div class="p-3 text-muted small">Loading...</div></div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card mb-3">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <span><i class="bi bi-pencil-square me-2" aria-hidden="true"></i><span id="wfTitle">New workflow</span></span>
+          <span class="wf-meta" id="wfInfo"></span>
+        </div>
+        <div class="card-body">
+          <ul class="nav nav-tabs wf-tabs mb-3" role="tablist">
+            <li class="nav-item" role="presentation"><button class="nav-link active" type="button" data-wf-tab="form" role="tab">Steps</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" type="button" data-wf-tab="triggers" role="tab">Triggers</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" type="button" data-wf-tab="json" role="tab">JSON</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" type="button" data-wf-tab="yaml" role="tab">YAML</button></li>
+          </ul>
+
+          <div data-wf-pane="form">
+            <div class="row g-2 mb-2">
+              <div class="col-md-5"><label class="form-label fw-bold" for="wfName">Name</label><input class="form-control" id="wfName" placeholder="daily_rates" autocomplete="off"></div>
+              <div class="col-md-7"><label class="form-label fw-bold" for="wfDesc">Description</label><input class="form-control" id="wfDesc" placeholder="What this workflow does"></div>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6 col-md-3"><label class="form-label small fw-bold" for="wfConc">Concurrent runs</label><input class="form-control form-control-sm" id="wfConc" type="number" min="1" placeholder="default"></div>
+              <div class="col-6 col-md-3"><label class="form-label small fw-bold" for="wfPar">Parallel steps</label><input class="form-control form-control-sm" id="wfPar" type="number" min="1" placeholder="default"></div>
+              <div class="col-6 col-md-3"><label class="form-label small fw-bold" for="wfTimeout">Run timeout (s)</label><input class="form-control form-control-sm" id="wfTimeout" type="number" min="1" placeholder="none"></div>
+              <div class="col-6 col-md-3 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" id="wfPublish" {% if not is_admin %}disabled{% endif %}><label class="form-check-label small" for="wfPublish">Publish as an MCP tool{% if not is_admin %} (admins){% endif %}</label></div></div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h2 class="h6 mb-0">Steps</h2>
+              <div class="d-flex gap-1 flex-wrap">
+                <label class="visually-hidden" for="wfAddKind">Step kind</label>
+                <select class="form-select form-select-sm" id="wfAddKind" style="width:auto">
+                  <option value="tool">tool</option><option value="composite">composite</option><option value="ask">ask</option>
+                  <option value="condition">condition</option><option value="foreach">foreach</option><option value="wait">wait</option><option value="approval">approval</option>
+                </select>
+                <button class="btn btn-sm btn-outline-success" type="button" id="wfAddStep"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add step</button>
+              </div>
+            </div>
+            <div id="wfSteps"></div>
+          </div>
+
+          <div data-wf-pane="triggers" hidden>
+            <p class="small text-muted">A manual run is always possible (here, <code>sajha workflows run</code>, or the API). Webhook secrets are generated on save and shown masked; sign with HMAC-SHA256 over <code>timestamp + "." + body</code>.</p>
+            <div id="wfTriggers"></div>
+            <div class="d-flex gap-1 flex-wrap">
+              <label class="visually-hidden" for="wfAddTrig">Trigger type</label>
+              <select class="form-select form-select-sm" id="wfAddTrig" style="width:auto">
+                <option value="cron">cron schedule</option><option value="webhook">webhook</option><option value="file">file arrival</option><option value="event">change event</option>
+              </select>
+              <button class="btn btn-sm btn-outline-success" type="button" id="wfAddTrigBtn"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add trigger</button>
+            </div>
+            <h2 class="h6 mt-3">Deliver the output</h2>
+            <div class="row g-2">
+              <div class="col-md-4"><label class="form-label small" for="wfDelType">Channel</label>
+                <select class="form-select form-select-sm" id="wfDelType"><option value="">stored only</option><option value="webhook">webhook (allow-listed)</option><option value="file">file (async.delivery.file.base_dir)</option><option value="kafka">kafka topic</option></select></div>
+              <div class="col-md-8"><label class="form-label small" for="wfDelDest">Destination</label><input class="form-control form-control-sm" id="wfDelDest" placeholder="https://hooks.example.com/x, out/rates.json or a topic"></div>
+            </div>
+          </div>
+
+          <div data-wf-pane="json" hidden>
+            <label class="visually-hidden" for="wfJson">Definition as JSON</label>
+            <textarea class="form-control wf-text" id="wfJson" spellcheck="false"></textarea>
+          </div>
+          <div data-wf-pane="yaml" hidden>
+            <label class="visually-hidden" for="wfYaml">Definition as YAML</label>
+            <textarea class="form-control wf-text" id="wfYaml" spellcheck="false"></textarea>
+          </div>
+
+          <h2 class="h6 mt-3"><i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>Graph</h2>
+          <div class="wf-dag-wrap mb-3"><svg id="wfDag" width="300" height="80" role="img" aria-label="The workflow's steps and their dependencies"></svg></div>
+
+          <div class="d-flex flex-wrap gap-2 wf-actions">
+            <button class="btn btn-primary" type="button" id="wfSave"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>Save</button>
+            <button class="btn btn-outline-secondary" type="button" id="wfValidate"><i class="bi bi-patch-check me-1" aria-hidden="true"></i>Validate</button>
+            <button class="btn btn-outline-success" type="button" id="wfRun" disabled><i class="bi bi-play-fill me-1" aria-hidden="true"></i>Run now</button>
+            <button class="btn btn-outline-secondary" type="button" id="wfToggle" disabled>Disable</button>
+            <button class="btn btn-outline-danger ms-sm-auto" type="button" id="wfDelete" disabled><i class="bi bi-trash me-1" aria-hidden="true"></i>Delete</button>
+          </div>
+          <div class="mt-2" id="wfRunInputWrap" hidden>
+            <label class="form-label small" for="wfRunInput">Run input (JSON)</label>
+            <textarea class="form-control wf-text" style="min-height:4rem" id="wfRunInput" spellcheck="false">{}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-clock-history me-2" aria-hidden="true"></i>Run history</span>
+          <button class="btn btn-sm btn-outline-secondary" type="button" id="wfRunsRefresh" aria-label="Refresh run history"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th scope="col">Started</th><th scope="col">Trigger</th><th scope="col">Status</th><th scope="col">Duration</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody id="wfRuns"><tr><td colspan="5" class="text-muted small">Open a workflow to see its runs.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card mb-3" id="wfRunCard" hidden>
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <span><i class="bi bi-bar-chart-steps me-2" aria-hidden="true"></i>Run <code id="wfRunId"></code></span>
+          <span id="wfRunStatus"></span>
+        </div>
+        <div class="card-body">
+          <div class="wf-meta mb-2" id="wfRunMeta"></div>
+          <div id="wfRunErr" class="wf-err mb-2"></div>
+          <div id="wfTimeline"></div>
+          <details class="mt-2"><summary class="small">Run output</summary><pre class="wf-io" id="wfRunOut"></pre></details>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>window.WF_TOOLS = {{ tool_names | tojson }}; window.WF_IS_ADMIN = {{ 'true' if is_admin else 'false' }};</script>
+<script src="/static/js/workflows.js"></script>
+{% endblock %}

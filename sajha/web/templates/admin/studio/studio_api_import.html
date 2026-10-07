@@ -12,15 +12,15 @@ Design: docs/architecture/API Import.md
     .section-header { padding: 12px 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
     .section-body { padding: 16px 18px; }
     .creator-header { padding: 22px; margin-bottom: 18px; }
-    .ai-ops { font-size: .86rem; }
+    .ai-ops { font-size: .875rem; }
     .ai-ops td, .ai-ops th { vertical-align: middle; }
-    .ai-ops input.ai-name { min-width: 220px; font-family: var(--font-mono, monospace); font-size: .82rem; }
-    .ai-method { font-family: var(--font-mono, monospace); font-weight: 700; font-size: .78rem; }
-    .ai-path { font-family: var(--font-mono, monospace); font-size: .8rem; word-break: break-all; }
-    .ai-flag { font-size: .75rem; color: var(--sajha-danger, #b02a37); }
-    .ai-hint { font-size: .7rem; margin-right: 3px; }
+    .ai-ops input.ai-name { min-width: 220px; font-family: var(--font-mono, monospace); font-size: .875rem; }
+    .ai-method { font-family: var(--font-mono, monospace); font-weight: 700; font-size: .86rem; }
+    .ai-path { font-family: var(--font-mono, monospace); font-size: .86rem; word-break: break-all; }
+    .ai-flag { font-size: .86rem; color: var(--sajha-danger, #b02a37); }
+    .ai-hint { font-size: .86rem; margin-right: 3px; }
     .ai-pre { background: var(--sajha-nav-to); color: var(--sajha-on-nav); border-radius: 10px; padding: 12px;
-              font-size: .8rem; max-height: 360px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+              font-size: .875rem; max-height: 360px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
     .ai-auth-row { border: 1px solid var(--sajha-border); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
     .ai-status-new { background: var(--sajha-ok, #198754) !important; color: #fff !important; }
     .ai-status-changed { background: var(--sajha-warn, #b8860b) !important; color: #fff !important; }
@@ -470,6 +470,14 @@ Design: docs/architecture/API Import.md
         loadApis();
         parse();
     });
+
+    // Prefilled from "Describe a tool" (/studio/api-import?url=...&prefix=...): the admin still reads and deploys.
+    const qs = new URLSearchParams(location.search);
+    if (qs.get('url')) {
+        $('aiUrl').value = qs.get('url');
+        if (qs.get('prefix')) $('aiPrefix').value = qs.get('prefix');
+        message('Prefilled from Describe a tool. Press Read the API to review its operations.', 'info');
+    }
 
     loadApis();
 })();

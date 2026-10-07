@@ -23,6 +23,22 @@ os.environ.setdefault('SAJHA_AI_RAG_PERSIST', 'false')
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _keep_the_database_engine():
+    """Safety net for test order: a test that clears or re-points the process-wide database
+    engine (sajha.db.engine._engine/_SessionLocal) must not leave an app started earlier
+    (the session ``web`` fixture) without its database. When an engine was set before the
+    test, it is put back afterwards; an engine the test made in its place is disposed."""
+    from sajha.db import engine as eng
+    saved = eng._engine, eng._SessionLocal
+    yield
+    if saved[0] is None or (eng._engine, eng._SessionLocal) == saved:
+        return
+    if eng._engine is not None and eng._engine is not saved[0]:
+        eng._engine.dispose()
+    eng._engine, eng._SessionLocal = saved
+
+
 @pytest.fixture(scope='session')
 def web():
     """(TestClient, admin cookies) on one started app, shared by the help tests.

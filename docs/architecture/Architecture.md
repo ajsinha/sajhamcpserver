@@ -160,7 +160,8 @@ on every transport. See the [OAuth Guide](../protocol/OAuth%20Guide.md) and the
   per-tool `cache_ttl`) → per-provider circuit breaker (`sajha/core/circuit_breaker.py`)
   → `execute()` in a worker thread → metrics, usage ledger, trace span and
   recent-execution history ([Observability](Observability.md)).
-- **Around it:** tool versioning (`tool_versioning.py`), plugins (`plugins.py`),
+- **Around it:** tool versions with canary routing and rollback (`sajha/quality/versions.py`, called first
+  in `execute_with_tracking`; [Tool Quality](Tool%20Quality.md)), plugins (`plugins.py`),
   tenancy (`tenancy.py`), provider health (`tool_health.py`), webhooks
   (`webhooks.py`), async background execution with webhook/Kafka/file delivery
   (`async_executor.py`), and the sandboxed shell tools (`shell_executor.py`, disabled

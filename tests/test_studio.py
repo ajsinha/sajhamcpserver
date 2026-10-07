@@ -194,7 +194,9 @@ TOOL_CLASS = ZzLegacyScriptTool
     spec.loader.exec_module(module)
     monkeypatch.setitem(sys.modules, 'sajha.tools.impl.zz_legacy_script_tool', module)
 
-    reg = ToolsRegistry.__new__(ToolsRegistry)  # bypass the singleton's file loading
+    # object.__new__, not ToolsRegistry.__new__: the singleton's __new__ would hand back the live
+    # registry, and the line below would empty it for every later test.
+    reg = object.__new__(ToolsRegistry)
     import logging
     import threading
     reg.tools, reg.tool_configs, reg.tool_errors = {}, {}, {}

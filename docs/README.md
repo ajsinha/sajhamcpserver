@@ -60,10 +60,14 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Extending the Intelligence Layer](architecture/Extending%20the%20Intelligence%20Layer.md): writing a provider, a model and a planner
 - [Federation](architecture/Federation.md): other MCP servers' tools behind SAJHA's governance
 - [API Import](architecture/API%20Import.md): an OpenAPI, Swagger or GraphQL description to a reviewed set of tools
+- [Data Connectors](architecture/Data%20Connectors.md): databases, warehouses, vector stores and search clusters as governed, read-only tools: the statement guard, limits, masking, curated views, per-user credentials
+- [Tool Generation](architecture/Tool%20Generation.md): Describe a tool, from a sentence to a checked, tested tool an administrator approves
 - [Connected Accounts](architecture/Connected%20Accounts.md): users link GitHub, Slack, Google, Microsoft 365 and other accounts once; tools and federated servers act as them
 - [Sandbox](architecture/Sandbox.md): where user code (Studio Python and script tools, the shell) runs, and what each backend guarantees
 - [Scaling and State](architecture/Scaling%20and%20State.md): several workers or hosts; the state store (memory, Redis, database), durable tasks, and what stays per process
 - [Observability](architecture/Observability.md): Prometheus `/metrics`, OpenTelemetry traces over OTLP, the usage and cost dashboard, alert rules
+- [Workflows](architecture/Workflows.md): DAGs of tools, composites and Ask SAJHA steps; cron, webhook, file and event triggers; durable runs that resume after a crash; re-run from a step; publish as a tool
+- [Tool Quality](architecture/Tool%20Quality.md): test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, rollback and sunset dates
 - [Policy and Audit](architecture/Policy%20and%20Audit.md): declarative rules on every tool call (deny, approval, argument constraints, rate limits, quotas, redaction, injection screening); the hash-chained, signed audit and SIEM export
 
 ## MCP Studio
@@ -103,7 +107,7 @@ These guides document each provider's tools, parameters and API keys.
   [Financial Calculators](tools/analytics/Financial%20Calculators%20Tool%20Reference%20Guide.md) ·
   [OLAP Analytics](tools/analytics/OLAP%20Analytics%20Tool%20Reference%20Guide.md) ·
   [SQL Select](tools/analytics/SQL%20Select%20Tool%20Reference%20Guide.md)
-- **Enterprise:** [SharePoint](tools/enterprise/SharePoint%20Tool%20Reference%20Guide.md), [Connected account tools](tools/enterprise/Connected%20Account%20Tools%20Reference%20Guide.md) (GitHub, Slack, Google Drive, Outlook, as the user)
+- **Enterprise:** [SharePoint](tools/enterprise/SharePoint%20Tool%20Reference%20Guide.md), [Connected account tools](tools/enterprise/Connected%20Account%20Tools%20Reference%20Guide.md) (GitHub, Slack, Google Drive, Outlook, as the user), [Data connectors](tools/enterprise/Data%20Connectors%20Reference%20Guide.md) (setup per database, warehouse and vector store)
 - **Prompts:** [Prompts Management Guide](tools/prompts/Prompts%20Management%20Guide.md)
 
 ## Tutorials
@@ -129,6 +133,10 @@ These guides document each provider's tools, parameters and API keys.
 19. [Tutorial 19: Import an OpenAPI Spec](tutorials/TUTORIAL_19_import_an_openapi_spec.md)
 20. [Tutorial 20: Policies, approvals and a tamper-evident audit](tutorials/TUTORIAL_20_policies_approvals_and_audit.md)
 21. [Tutorial 21: Planners, Conversation Memory and Document Search](tutorials/TUTORIAL_21_planners_memory_and_rag.md)
+22. [Tutorial 22: Schedule a Workflow](tutorials/TUTORIAL_22_schedule_a_workflow.md)
+23. [Tutorial 23: Test and Canary Your Tools](tutorials/TUTORIAL_23_test_and_canary_your_tools.md)
+24. [Tutorial 24: Describe a Tool](tutorials/TUTORIAL_24_describe_a_tool.md)
+25. [Tutorial 25: Connect a Database](tutorials/TUTORIAL_25_connect_a_database.md)
 
 ## Clients and security
 

@@ -697,6 +697,76 @@ def cmd_studio_import_openapi(ctx: Context) -> int:
     return EXIT_OK if result.get("success", True) else EXIT_FAIL
 
 
+def cmd_studio_describe(ctx: Context) -> int:
+    """Describe a tool in plain words: SAJHA proposes it, checks it and runs its tests; with --deploy and a
+    confirmation, deploys exactly the reviewed version (design: docs/architecture/Tool Generation.md)."""
+    a = ctx.args
+    text = " ".join(a.description).strip()
+    if text == "-":
+        text = sys.stdin.read().strip()
+    if not text:
+        raise CLIError("describe the tool, e.g. sajha studio describe \"query table orders by region\"", EXIT_USAGE)
+
+    def _post(endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            return ctx.request("POST", f"/admin/studio/describe/{endpoint}", body=data)
+        except SajhaValidationError as e:
+            raise CLIError(_error_text(str(e).split(":", 1)[-1]), EXIT_FAIL)
+        except Exception as e:
+            raise translate(e, ctx.settings.url)
+
+    draft = _post("propose", {"description": text, "kind": a.kind or "auto"})
+    if not draft.get("errors"):
+        draft = _post("test", {"draft_id": draft["id"], "live": bool(a.live)})
+    out = ctx.out
+    p = draft.get("proposal") or {}
+    if ctx.json_output and not a.deploy:
+        out.json(draft)
+    elif not ctx.json_output:
+        out.print(f"{p.get('kind')} tool {p.get('name')}: {p.get('description')}")
+        out.note(f"model {draft.get('model')} · draft {draft.get('id')} · version {str(draft.get('hash'))[:12]}")
+        for e in draft.get("errors") or []:
+            out.print(f"  error: {e}")
+        for w in draft.get("warnings") or []:
+            out.note(f"warning: {w}")
+        for n in p.get("notes") or []:
+            out.note(f"note: {n}")
+        for f in draft.get("files") or []:
+            lines = (f.get("content") or "").count("\n") + 1
+            out.print(f"  new file {f.get('path')} ({lines} lines)")
+            if a.show_files or a.deploy:
+                out.print(f.get("diff") or f.get("content") or "")
+        run = draft.get("tests_run") or {}
+        rows = [(r.get("status", ""), "live" if r.get("live") else "", r.get("name", ""), r.get("detail") or "")
+                for r in run.get("results") or []]
+        if rows:
+            table(out, rows, ("RESULT", "", "CASE", "DETAIL"))
+        if draft.get("handoff"):
+            out.print(f"An OpenAPI spec is imported operation by operation: {ctx.settings.url}{draft['handoff']}")
+    if draft.get("errors"):
+        return EXIT_FAIL
+    counts = (draft.get("tests_run") or {}).get("counts") or {}
+    if not a.deploy:
+        return EXIT_FAIL if counts.get("failed") else EXIT_OK
+    if draft.get("handoff"):
+        raise CLIError("an OpenAPI proposal is deployed from Import an API (see the link above)", EXIT_FAIL)
+    if not a.yes:
+        if not sys.stdin.isatty():
+            raise CLIError("--deploy needs a confirmation: run it in a terminal, or add --yes after reviewing "
+                           "the files", EXIT_USAGE)
+        answer = input(f"Deploy {p.get('name')} now? Type the tool name to approve: ").strip()
+        if answer != p.get("name"):
+            out.note("not deployed")
+            return EXIT_FAIL
+    result = _post("deploy", {"draft_id": draft["id"], "hash": draft.get("hash"), "approve": True,
+                              "accept_failures": bool(a.accept_failures)})
+    if ctx.json_output:
+        out.json(result)
+    else:
+        out.print(result.get("message") or f"Deployed {p.get('name')}")
+    return EXIT_OK if result.get("success", True) else EXIT_FAIL
+
+
 # ── commands: federation ─────────────────────────────────────────
 
 def _federation(ctx: Context, method: str, path: str, body: Optional[Dict] = None):
@@ -771,6 +841,133 @@ def cmd_federation_remove(ctx: Context) -> int:
         ctx.out.json(data)
     else:
         ctx.out.print(f"Removed upstream '{ctx.args.id}'")
+    return EXIT_OK
+
+
+# ── commands: workflows ──────────────────────────────────────────
+
+_RUN_ID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+
+def _wf(ctx: Context, method: str, path: str, body: Optional[Dict] = None, params: Optional[Dict] = None,
+        what: str = ""):
+    try:
+        return ctx.request(method, "/api/workflows" + path, body=body, params=params)
+    except SajhaNotFoundError:
+        raise CLIError(f"no such workflow or run: {what}" if what else "this server has no workflows API "
+                       "(/api/workflows)", EXIT_NOT_FOUND)
+    except SajhaValidationError as e:
+        raise CLIError(_error_text(str(e).split(":", 1)[-1]), EXIT_FAIL)
+    except Exception as e:
+        raise translate(e, ctx.settings.url)
+
+
+def _dur(run: Dict[str, Any]) -> str:
+    if run.get("finished_at") and run.get("started_at"):
+        return f"{run['finished_at'] - run['started_at']:.1f}s"
+    return "-"
+
+
+def _when(t) -> str:
+    if not t:
+        return "-"
+    import datetime as _dt
+    return _dt.datetime.fromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def cmd_workflows_list(ctx: Context) -> int:
+    data = _wf(ctx, "GET", "")
+    if ctx.json_output:
+        ctx.out.json(data)
+        return EXIT_OK
+    rows = [(w["name"], "on" if w.get("enabled") else "off", w.get("version"), w.get("owner"),
+             ",".join(t["type"] for t in w.get("triggers") or []) or "manual",
+             ("tool " if w.get("published") else "") + (w.get("description") or ""))
+            for w in data.get("workflows") or []]
+    if rows:
+        table(ctx.out, rows, ("NAME", "ENABLED", "VER", "OWNER", "TRIGGERS", "DESCRIPTION"))
+    else:
+        ctx.out.note("no workflows (create one on the Workflows page or POST /api/workflows)")
+    return EXIT_OK
+
+
+def cmd_workflows_run(ctx: Context) -> int:
+    a = ctx.args
+    inp = load_json_arg(a.json_input, "--input-json") if a.json_input else {}
+    if a.input:
+        inp.update(parse_kv(a.input))
+    body: Dict[str, Any] = {"input": inp}
+    if a.idempotency_key:
+        body["idempotency_key"] = a.idempotency_key
+    if a.wait:
+        body["wait"] = a.wait
+        try:    # the HTTP call must outlive the server-side wait
+            ctx.settings.timeout = max(float(ctx.settings.timeout or 30), min(a.wait, 300) + 15)
+        except (AttributeError, TypeError):
+            pass
+    data = _wf(ctx, "POST", f"/{a.name}/runs", body, what=a.name)
+    run = data.get("run") or {}
+    if ctx.json_output:
+        ctx.out.json(run)
+    else:
+        ctx.out.print(f"run {run.get('id')}: {run.get('status')}"
+                      + (f" ({run['error']})" if run.get("error") else ""))
+        if run.get("status") == "succeeded" and run.get("output") is not None:
+            ctx.out.json(run["output"])
+    return EXIT_FAIL if run.get("status") in ("failed", "cancelled") else EXIT_OK
+
+
+def cmd_workflows_runs(ctx: Context) -> int:
+    a = ctx.args
+    params = {"limit": a.limit}
+    if a.status:
+        params["status"] = a.status
+    data = _wf(ctx, "GET", f"/{a.name}/runs", params=params, what=a.name)
+    if ctx.json_output:
+        ctx.out.json(data)
+        return EXIT_OK
+    rows = [(r["id"], _when(r.get("created_at")), r.get("status"), r.get("trigger_type"), _dur(r),
+             (r.get("error") or "")[:120]) for r in data.get("runs") or []]
+    if rows:
+        table(ctx.out, rows, ("RUN", "CREATED", "STATUS", "TRIGGER", "TIME", "ERROR"))
+    else:
+        ctx.out.note("no runs yet")
+    return EXIT_OK
+
+
+def cmd_workflows_show(ctx: Context) -> int:
+    a = ctx.args
+    if _RUN_ID.match(a.target):
+        run = (_wf(ctx, "GET", f"/runs/{a.target}", what=a.target) or {}).get("run") or {}
+        if ctx.json_output:
+            ctx.out.json(run)
+            return EXIT_OK
+        ctx.out.print(f"run {run.get('id')} of {run.get('workflow')} v{run.get('version')}: {run.get('status')} "
+                      f"(trigger {run.get('trigger_type')}, run as {run.get('run_as')}, {_dur(run)})")
+        if run.get("error"):
+            ctx.out.print(f"error: {run['error']}")
+        rows = [(s["step_id"], s.get("kind"), s.get("status"), s.get("attempts"),
+                 f"{s['duration_ms']:.0f}ms" if s.get("duration_ms") is not None else "-",
+                 (s.get("error") or "")[:120]) for s in run.get("steps") or []]
+        if rows:
+            table(ctx.out, rows, ("STEP", "KIND", "STATUS", "TRIES", "TIME", "ERROR"))
+        return EXIT_OK
+    if a.yaml:
+        import urllib.parse as _up
+        req = urllib.request.Request(f"{ctx.settings.url}/api/workflows/{_up.quote(a.target)}?format=yaml",
+                                     headers={"Accept": "application/yaml", **ctx.auth().get_headers()})
+        try:
+            with urllib.request.urlopen(req, timeout=ctx.settings.timeout) as resp:
+                ctx.out.print(resp.read().decode("utf-8").rstrip())
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                raise CLIError(f"no such workflow: {a.target}", EXIT_NOT_FOUND)
+            raise http_error(e.code, e.read().decode("utf-8", errors="replace"), a.target)
+        except urllib.error.URLError as e:
+            raise CLIError(f"cannot reach {ctx.settings.url}: {e.reason}", EXIT_UNREACHABLE)
+        return EXIT_OK
+    data = _wf(ctx, "GET", f"/{a.target}", what=a.target)
+    ctx.out.json(data if ctx.json_output else data.get("definition") or data)
     return EXIT_OK
 
 
@@ -873,7 +1070,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser = argparse.ArgumentParser(
         prog="sajha", parents=[common],
-        description="SAJHA MCP Server command line: tools, prompts, ask, Studio, federation, and the stdio server.",
+        description="SAJHA MCP Server command line: tools, prompts, ask, Studio, federation, workflows, and the "
+                    "stdio server.",
         epilog="Exit codes: 0 ok, 1 failed, 2 usage, 3 auth, 4 forbidden, 5 not found, 6 unreachable. "
                "Guide: docs/clients/Command Line.md")
     json_flag(parser)
@@ -954,7 +1152,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--events", action="store_true", help="with --json: every step event as NDJSON")
     p.add_argument("--verbose", "-v", action="store_true", help="full arguments and summaries")
 
-    p = add(sub, "studio", None, "deploy, import or delete MCP Studio tools (admin)")
+    p = add(sub, "studio", None, "describe, deploy, import or delete MCP Studio tools (admin)")
     ss = p.add_subparsers(dest="studio_cmd", metavar="ACTION")
     sd = add(ss, "deploy", cmd_studio_deploy, "deploy a Python file with a @sajhamcptool function")
     json_flag(sd)
@@ -981,6 +1179,19 @@ def build_parser() -> argparse.ArgumentParser:
                                                    "\"value_ref\": \"env:KEY\"}}")
     si.add_argument("--graphql", action="store_true", help="the source is a GraphQL endpoint or introspection file")
     si.add_argument("--dry-run", action="store_true", help="preview only (POST /admin/studio/api-import/parse)")
+    sdesc = add(ss, "describe", cmd_studio_describe,
+                "describe a tool in plain words: SAJHA proposes it and runs its tests; --deploy to approve it")
+    json_flag(sdesc)
+    sdesc.add_argument("description", nargs="+", help="what the tool should do ('-' reads stdin)")
+    sdesc.add_argument("--kind", choices=("auto", "python", "rest", "dbquery", "composite", "openapi"),
+                       help="the kind of tool to propose (default: SAJHA chooses)")
+    sdesc.add_argument("--live", action="store_true", help="also run the test cases that need the network")
+    sdesc.add_argument("--show-files", action="store_true", help="print every file the deploy would write")
+    sdesc.add_argument("--deploy", action="store_true",
+                       help="deploy after showing the files and tests, once you confirm by typing the tool name")
+    sdesc.add_argument("--yes", action="store_true", help="with --deploy: skip the typed confirmation")
+    sdesc.add_argument("--accept-failures", action="store_true", dest="accept_failures",
+                       help="with --deploy: deploy even if tests failed or none ran")
     p.set_defaults(func=lambda ctx, _p=p: _usage(_p))
 
     p = add(sub, "federation", None, "upstream MCP servers SAJHA fronts (admin)")
@@ -1004,6 +1215,28 @@ def build_parser() -> argparse.ArgumentParser:
     fx = add(fs, "remove", cmd_federation_remove, "remove an upstream added at run time")
     json_flag(fx)
     fx.add_argument("id")
+    p.set_defaults(func=lambda ctx, _p=p: _usage(_p))
+
+    p = add(sub, "workflows", None, "workflows: list, run, run history, show a definition or a run")
+    ws = p.add_subparsers(dest="workflows_cmd", metavar="ACTION")
+    wl = add(ws, "list", cmd_workflows_list, "your workflows (administrators: all)")
+    json_flag(wl)
+    wr = add(ws, "run", cmd_workflows_run, "start a run (exit 1 when it fails)")
+    json_flag(wr)
+    wr.add_argument("name")
+    wr.add_argument("--input", action="append", metavar="KEY=VALUE", help="an input field")
+    wr.add_argument("--input-json", dest="json_input", metavar="JSON", help="the whole input as JSON (@file, '-')")
+    wr.add_argument("--wait", type=float, default=0, metavar="SECONDS", help="wait for the run to finish (max 300)")
+    wr.add_argument("--idempotency-key", help="repeat-safe: a second run with this key returns the first")
+    wn = add(ws, "runs", cmd_workflows_runs, "a workflow's run history")
+    json_flag(wn)
+    wn.add_argument("name")
+    wn.add_argument("--status", choices=("queued", "running", "waiting", "succeeded", "failed", "cancelled"))
+    wn.add_argument("--limit", type=int, default=20)
+    wsh = add(ws, "show", cmd_workflows_show, "a definition (NAME) or a run with its steps (RUN_ID)")
+    json_flag(wsh)
+    wsh.add_argument("target", metavar="NAME|RUN_ID")
+    wsh.add_argument("--yaml", action="store_true", help="the definition as YAML")
     p.set_defaults(func=lambda ctx, _p=p: _usage(_p))
 
     p = add(sub, "serve", cmd_serve, "run the server from a SAJHA checkout: HTTP, or MCP over stdio "

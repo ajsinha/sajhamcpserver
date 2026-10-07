@@ -13,6 +13,19 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 os.chdir(str(Path(__file__).parent.parent))
 
 
+@pytest.fixture(autouse=True)
+def _restore_db_engine():
+    """These tests point sajha.db.engine at throwaway databases (and clear it). Put back
+    whatever engine was there before, so an app another module started keeps its database."""
+    from sajha.db import engine as eng
+    saved = eng._engine, eng._SessionLocal
+    yield
+    current = eng._engine
+    if current is not None and current is not saved[0]:
+        current.dispose()
+    eng._engine, eng._SessionLocal = saved
+
+
 def _make_db(tmp_dir: str):
     """Create a fresh SQLite test DB from db/scripts/sqlite/schema.sql and seed.sql."""
     from sqlalchemy import create_engine
@@ -119,11 +132,12 @@ class TestDAOs:
         db_file = os.path.join(tmp_dir, 'test.db')
         orig = type(s).database_url.fget
         type(s).database_url = property(lambda self: f'sqlite:///{db_file}')
-
-        from sajha.db.engine import init_db, get_db_session
-        init_db(s)
-        session = get_db_session()
-        type(s).database_url = property(orig)
+        try:
+            from sajha.db.engine import init_db, get_db_session
+            init_db(s)
+            session = get_db_session()
+        finally:
+            type(s).database_url = property(orig)
         return session, eng
 
     def test_user_dao_get_admin(self):
@@ -344,10 +358,12 @@ class TestAuthManager:
         db_file = os.path.join(tmp_dir, 'test.db')
         orig = type(s).database_url.fget
         type(s).database_url = property(lambda self: f'sqlite:///{db_file}')
-        from sajha.db.engine import init_db, get_db_session
-        init_db(s)
-        db = get_db_session()
-        type(s).database_url = property(orig)
+        try:
+            from sajha.db.engine import init_db, get_db_session
+            init_db(s)
+            db = get_db_session()
+        finally:
+            type(s).database_url = property(orig)
         return db, eng
 
     def test_local_login_success(self):

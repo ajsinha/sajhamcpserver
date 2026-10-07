@@ -93,6 +93,7 @@ def _env(tmp, backend, prefix):
 
 class Server:
     def __init__(self, env, tmp, name, workers=1):
+        self.env, self.tmp = env, tmp
         self.port = _free_port()
         self.base = f"http://127.0.0.1:{self.port}"
         self.log = open(tmp / f"{name}.log", "wb")
@@ -213,15 +214,39 @@ def test_task_created_on_a_is_visible_on_b(pair):
     assert _modern(a, "tasks/get", {"taskId": created["taskId"]}, name=created["taskId"])["status"] == "cancelled"
 
 
+def _clear_login_failures(backend, server):
+    """Forget the failed sign-ins counted for 127.0.0.1 in the pair's shared store, so the
+    lockout below does not refuse the sign-ins of tests that run after it on the same pair."""
+    from sajha.security import FailureThrottle
+    prefix = server.env["SAJHA_STATE_KEY_PREFIX"]
+    if backend == "redis":
+        from sajha.core.state.redis_store import RedisStateStore
+        store = RedisStateStore(REDIS_URL, prefix=prefix)
+    else:
+        from sqlalchemy import create_engine
+        from sajha.core.state.database import DatabaseStateStore
+        engine = create_engine(f"sqlite:///{server.tmp / 'sajha.db'}")
+        store = DatabaseStateStore(engine=engine, prefix=prefix)
+    try:
+        store.delete_prefix(FailureThrottle._PREFIX)
+    finally:
+        if backend != "redis":
+            engine.dispose()
+
+
 def test_sign_in_failures_are_counted_across_workers(pair):
-    _, a, b = pair
+    backend, a, b = pair
     bad = {"user_id": f"nobody-{secrets.token_hex(3)}", "password": "wrong"}
-    assert a.client.post("/api/auth/login", json=bad).status_code == 401
-    assert b.client.post("/api/auth/login", json=bad).status_code == 401
-    assert a.client.post("/api/auth/login", json=bad).status_code == 401
-    # three failures from this IP (limit 3), two on A and one on B: both workers now refuse
-    assert b.client.post("/api/auth/login", json=bad).status_code == 429
-    assert a.client.post("/api/auth/login", json=bad).status_code == 429
+    try:
+        assert a.client.post("/api/auth/login", json=bad).status_code == 401
+        assert b.client.post("/api/auth/login", json=bad).status_code == 401
+        assert a.client.post("/api/auth/login", json=bad).status_code == 401
+        # three failures from this IP (limit 3), two on A and one on B: both workers now refuse
+        assert b.client.post("/api/auth/login", json=bad).status_code == 429
+        assert a.client.post("/api/auth/login", json=bad).status_code == 429
+    finally:
+        _clear_login_failures(backend, a)
+    assert a.client.post("/api/auth/login", json=bad).status_code == 401   # the lockout is gone
 
 
 def test_change_event_on_a_reaches_listen_stream_on_b(pair):

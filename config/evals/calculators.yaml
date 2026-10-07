@@ -1,0 +1,30 @@
+# An Ask SAJHA eval set (docs/architecture/Tool Quality.md §5). Runs offline on the mock provider:
+#   python -m sajha.quality eval calculators
+name: calculators
+description: Offline calculator questions; tool choice, the number in the answer, and limits.
+models: [mock/mock-planner]
+planners: [react]
+tools: ["calc_*"]
+defaults:
+  max_steps: 3
+  max_tokens: 20000
+  max_cost_usd: 0.05
+  max_latency_ms: 30000
+questions:
+  - id: pct-change
+    question: What is the percentage change from 80 to 100?
+    expect_tools: [calc_percentage_change]
+    answer:
+      - number: 25
+        tolerance: 0.01
+  - id: compound-interest
+    question: Compound interest on a principal of 1000 at rate 5 for 10 years
+    expect_tools: [calc_compound_interest]
+    forbid_tools: [calc_simple_interest]
+    answer:
+      - contains: "1"
+  - id: npv
+    question: What is the net present value NPV of cash flows -100, 50, 60 at discount rate 10
+    expect_tools: [calc_npv]
+    answer:
+      - regex: "-?4\\.96"

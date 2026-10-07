@@ -28,7 +28,7 @@ The **Reader** column in the tables below says which one applies to each key.
 | Reader | Used for | Resolution (highest wins) |
 |--------|----------|---------------------------|
 | **Settings**: `get_settings()` in `sajha/core/config.py` | app, server, db, auth (secrets, JWT), config, hot_reload, logging, data, cache, async, shell | 1. env var named after the Settings field, `SAJHA_<FIELD_NAME>` (pydantic-settings, `env_prefix='SAJHA_'`) → 2. `SAJHA_` + the dotted key in upper case with dots changed to underscores → 3. YAML (after `${VAR}` substitution) → 4. built-in default. It is evaluated once per process (`lru_cache`). |
-| **Live `_get`**: `_get` / `_bool` / `_int` / `_list` in `sajha/core/config.py`, called on each use | all `mcp.*` keys, `state.*`, `auth.login.*`, `auth.password.min_length`, `auth.secrets_file`, `async.delivery.webhook.allowed_urls`, `playground.*`, `sandbox.*` | 1. `SAJHA_<DOTTED_KEY>` (for example `SAJHA_MCP_AUTH_MODE`) → 2. YAML → 3. code default. Env vars are read on every call, but the YAML is a snapshot taken at import, so a YAML edit needs a restart. |
+| **Live `_get`**: `_get` / `_bool` / `_int` / `_list` in `sajha/core/config.py`, called on each use | all `mcp.*` keys, `state.*`, `auth.login.*`, `auth.password.min_length`, `auth.secrets_file`, `async.delivery.webhook.allowed_urls`, `playground.*`, `sandbox.*`, `workflows.*`, `quality.*` | 1. `SAJHA_<DOTTED_KEY>` (for example `SAJHA_MCP_AUTH_MODE`) → 2. YAML → 3. code default. Env vars are read on every call, but the YAML is a snapshot taken at import, so a YAML edit needs a restart. |
 | **Raw YAML / PropertiesConfigurator**: `sajha.core.config._CFG` and `sajha/core/properties_configurator.py` | `ai.tool_search.*`, `ai.embedding_model`, `${key}` references inside tool JSON configs (`storage.*` is read this way too, but with env overrides first: see [storage](#storage)) | YAML only (after `${VAR}` substitution); `SAJHA_` env overrides **do not apply**. To override one of these keys, edit the YAML, or put a `${VAR:default}` placeholder in the value and set `VAR`. |
 | **AI settings**: `sajha/ai/llm/settings.py` | the rest of `ai.*` (providers, aliases, policy, budgets, cache, retry, breaker, gateway, ask) | 1. `SAJHA_AI_<SECTION>_<FIELD>` → 2. the vendor's own variable (providers only) → 3. YAML → 4. the `llm_providers` / `llm_models` tables (providers only) → 5. default. See [ai](#ai). |
 
@@ -390,7 +390,7 @@ fields below. Built-in providers not listed still exist, disabled.
 
 | Key | Default | Purpose |
 |---|---|---|
-| `ai.aliases.<name>` | `default`, `fast`, `reasoning` → `[mock/mock-planner]`; `embedding` → `[mock/mock-embed]` | Ordered candidates: `provider/model` or a bare provider. Env: `SAJHA_AI_ALIASES_<NAME>`. |
+| `ai.aliases.<name>` | `default`, `fast`, `reasoning` → `[mock/mock-planner]`; `embedding` → `[mock/mock-embed]`; `toolsmith` → `[mock/mock-toolsmith]` (set in `config/application.yml`, used by Studio's Describe a tool) | Ordered candidates: `provider/model` or a bare provider. Env: `SAJHA_AI_ALIASES_<NAME>`. |
 | `ai.policy.enabled` | `true` | Apply role policy. |
 | `ai.policy.roles.<role>` | shipped: `viewer: {allowed: [mock/*], tools: false}` | `{allowed: [globs], tools, max_output_tokens, daily_tokens}`. |
 | `ai.policy.default` | — | Policy for roles not listed; unset means unrestricted. |
@@ -590,6 +590,53 @@ are not configured here: each import stores secret references (`env:NAME`, `file
 | `api_import.graphql_depth` | `2` | Depth of the selection sets generated for GraphQL tools (1 to 5); an import can set its own. |
 | `api_import.records_dir` | `config/api_imports` | Storage-backend folder of the import records (one JSON document per imported API). |
 
+## Data connectors
+
+Reader: live `_get` (`sajha/connectors/settings.py`), read on every use, so
+`SAJHA_CONNECTORS_*` environment variables override the YAML without a restart. Connections
+themselves are not configured here: each is a record at `config/connectors/<id>.json` (written
+by the Data Connectors page, `/admin/connectors`) holding only secret references (`env:NAME`,
+`file:/path`, `db:llm_providers/<type>`). A connection's own `limits` default to the
+`default_*` keys and are capped by the `max_*` ones. Design:
+[Data Connectors](../architecture/Data%20Connectors.md); per-kind setup:
+[Data Connectors Reference Guide](../tools/enterprise/Data%20Connectors%20Reference%20Guide.md).
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `connectors.enabled` | `true` | Off: connections and their tools stay, and every call is refused with the reason. |
+| `connectors.records_dir` | `config/connectors` | Storage-backend folder of the connection records. |
+| `connectors.default_max_rows` | `500` | Rows a query or view returns when the connection sets none. |
+| `connectors.max_rows_limit` | `10000` | The most rows any connection may allow. |
+| `connectors.default_max_bytes` | `2097152` | JSON size of a result when the connection sets none; fetching stops there. |
+| `connectors.max_bytes_limit` | `16777216` | The most bytes any connection may allow. |
+| `connectors.default_timeout_seconds` | `30` | Statement time limit when the connection sets none. |
+| `connectors.max_timeout_seconds` | `300` | The longest time limit any connection may set. |
+| `connectors.sample_rows` | `3` | Sample rows `describe_table` shows (0 to 20); a caller can ask for fewer or more within that range. |
+| `connectors.catalog_ttl_seconds` | `600` | How long a connection's catalog (tables, described columns) is cached per process; 0 re-reads every time. |
+| `connectors.catalog_max_tables` | `2000` | The most tables a catalog lists. |
+| `connectors.pool_size` | `4` | Idle connections kept per connection and process (never for per-user connections). |
+| `connectors.pool_max_age_seconds` | `300` | An idle connection older than this is closed instead of reused. |
+| `connectors.record_refresh_seconds` | `5` | How often a running tool checks its connection record for changes. |
+| `connectors.require_sqlglot` | `false` | Refuse caller SQL when sqlglot is not installed, instead of using the conservative scanner. |
+| `connectors.audit_sql` | `false` | Put the SQL text (up to 4000 characters) in `connector.query` audit records; otherwise only its SHA-256. |
+| `connectors.sync_on_startup` | `true` | Regenerate every connection's tools at start-up (no database is opened). |
+
+## Studio: Describe a tool
+
+Reader: live `_get` (`sajha/studio/describe.py`), read on every use, so
+`SAJHA_STUDIO_DESCRIBE_*` environment variables override the YAML without a restart. None
+of these keys is in the shipped `config/application.yml`; the defaults apply. Design:
+[Tool Generation](../architecture/Tool%20Generation.md).
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `studio.describe.enabled` | `true` | The Describe a tool page and its endpoints; off, they refuse with 403. |
+| `studio.describe.model` | `toolsmith` | The gateway alias (or `provider/model`) that designs the tool. When the alias is not configured, `mock/mock-toolsmith` is used. |
+| `studio.describe.max_description_chars` | `4000` | Longer descriptions are cut before the model sees them. |
+| `studio.describe.draft_ttl_seconds` | `86400` | How long a draft (proposal, files, test results) stays in the state store. |
+| `studio.describe.max_tests` | `8` | Test cases kept from a proposal (1 to 20). |
+| `studio.describe.context_tools` | `40` | Existing tools offered to the model as context for composites (0 to 200). |
+
 ## accounts
 
 Connected accounts: users link third-party services; tools act as them. Reader: live
@@ -656,6 +703,32 @@ rule fields: [Observability](../architecture/Observability.md).
 | `observability.alerts_email.starttls` | `true` | Use STARTTLS. |
 | `observability.alerts_email.username` | `''` | SMTP user; the password is `SAJHA_OBSERVABILITY_ALERTS_EMAIL_PASSWORD`. |
 
+## workflows
+
+Reader: live `_get` (`sajha/workflows/service.py`, `WorkflowService`), read once when the
+service starts, so `SAJHA_WORKFLOWS_*` environment variables override the YAML; restart to
+apply a change. A definition's own `concurrency`, `max_parallel`, `timeout_seconds` and each
+step's `timeout_seconds` and `max_items` override the defaults below. Design, the definition
+format and operation: [Workflows](../architecture/Workflows.md). Delivery uses
+[`async.delivery`](#async-and-shell) (the webhook allow-list and the file directory).
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `workflows.enabled` | `true` | Master switch for the scheduler, triggers and the API (off: the API answers 503). |
+| `workflows.tick_seconds` | `5` | Scheduler period: cron slots, file polls, resuming orphaned runs, waking parked runs, starting queued runs. |
+| `workflows.max_concurrent_runs` | `8` | Runs executing at once in one worker. |
+| `workflows.default_concurrency` | `4` | Runs of one workflow `running` or `waiting` at once, across all workers. |
+| `workflows.max_parallel_steps` | `4` | Steps of one run executing at once. |
+| `workflows.step_timeout_seconds` | `300` | Timeout of a call step that sets none. |
+| `workflows.loop_max_items` | `100` | `foreach` cap when the step sets no `max_items`. |
+| `workflows.loop_hard_max_items` | `10000` | `foreach` cap no step can exceed. |
+| `workflows.inline_wait_seconds` | `5` | Waits up to this long run in the worker; longer ones park the run (status `waiting`) and free the worker. |
+| `workflows.heartbeat_seconds` | `5` | How often a worker refreshes the heartbeat of a run it executes. |
+| `workflows.stale_seconds` | `60` | A `running` run whose heartbeat is older (and whose worker is gone from the state store) is resumed by another worker. |
+| `workflows.step_output_max_chars` | `262144` | A larger step or run output is stored as a truncated preview. |
+| `workflows.step_input_max_chars` | `16384` | The same for the stored resolved input of a step. |
+| `workflows.run_retention_days` | `30` | Finished runs older than this are deleted; `0` keeps every run. |
+
 ## Policy and audit
 
 Reader: live `_get` for every scalar key (`sajha/policy/`, `sajha/audit/`), so
@@ -686,6 +759,28 @@ The rule language, the sink fields and the design:
 | `audit.chain.anchor_interval_seconds` | `300` | Also sign it at least this often while records arrive; `0` turns the timer off. |
 | `audit.export.allowed_urls` | `[]` | URL prefixes HTTP sinks may post to; empty allows any public host. |
 | `audit.export.sinks` | `[]` | The SIEM sinks: `type` `syslog`, `http` or `file`, `format` `json`, `cef` or `ocsf` (fields in [Policy and Audit](../architecture/Policy%20and%20Audit.md#8-siem-export)). Tokens are secret references (`env:NAME`, `file:/path`). |
+
+## Quality
+
+Reader: live `_get` for every key (`sajha/quality/`), so `SAJHA_QUALITY_*` environment
+variables override the YAML. Directories are read on use (tests, evals) or rechecked every
+`quality.versions.reload_seconds` (versions files); the probe scheduler starts with the
+process when `quality.probes.enabled` is true. The file formats, the routing rules and the
+design: [Tool Quality](../architecture/Tool%20Quality.md).
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `quality.tests_dir` | `config/tool_tests` | Test-case files (`*.yaml`, `*.yml`, `*.json`); a tool config may also carry `tests` and `probe`. |
+| `quality.cassettes_dir` | `config/tool_tests/cassettes` | Recorded HTTP fixtures, `<tool>/<case>.json`. |
+| `quality.evals_dir` | `config/evals` | Ask SAJHA eval sets. |
+| `quality.versions_dir` | `config/tool_versions` | One versions file per tool (`<tool>.yaml`); a version's whole config (`config:`) lives here too. |
+| `quality.lint.min_description` | `40` | A tool description shorter than this many characters is a lint warning. |
+| `quality.probes.enabled` | `false` | Run the `probe:` blocks of test files on their schedules (one worker per slot through the state store). |
+| `quality.probes.tick_seconds` | `15` | How often the probe scheduler looks for due probes. |
+| `quality.probes.default_every_seconds` | `300` | The interval of a probe that sets neither `every` nor `cron`. |
+| `quality.probes.history` | `20` | Results kept per tool in the state store. |
+| `quality.versions.enabled` | `true` | `false`: versions files are ignored and every call runs the registered tool. |
+| `quality.versions.reload_seconds` | `5` | Recheck the versions directory at most this often (on the next call). |
 
 ## Secrets
 

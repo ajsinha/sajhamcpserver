@@ -476,6 +476,9 @@ class MCPHandler:
         if self.auth_manager and not self.auth_manager.is_unrestricted(session):
             all_tools = [tool for tool in all_tools
                          if self.auth_manager.can_see(session, tool.get('name'))]
+        # tools past their sunset (config/tool_versions; docs/architecture/Tool Quality.md §6.5)
+        from sajha.quality import versions as _versions
+        all_tools = _versions.listed(all_tools)
         all_tools = sorted(all_tools, key=lambda t: str(t.get('name', '')))
         if era == 'modern':
             all_tools = [self._with_task_support(t) for t in all_tools]
@@ -649,7 +652,10 @@ class MCPHandler:
         try:
             # the same path as the REST API: enabled check, argument validation, cache,
             # circuit breaker and metrics all live in execute_with_tracking
-            result = tool.execute_with_tracking(arguments)
+            # a versioned tool reports the version that ran (and any deprecation) in _meta
+            from sajha.quality import versions as _versions
+            with _versions.collect_meta() as version_meta:
+                result = tool.execute_with_tracking(arguments)
         except ConnectedAccountRequired as e:
             # the caller must link an account first: a URL elicitation (either era) or a tool
             # error naming the connect page (sajha/accounts/respond.py)
@@ -677,7 +683,10 @@ class MCPHandler:
                 "content": [{"type": "text", "text": f"Tool execution failed: {str(e)}"}],
                 "isError": True
             }
-        return self._format_tool_result(tool, result)
+        response = self._format_tool_result(tool, result)
+        if version_meta:
+            response = dict(response, _meta={**(response.get('_meta') or {}), **version_meta})
+        return response
 
     def _advertise_output_schema(self) -> bool:
         from sajha.core.config import _bool

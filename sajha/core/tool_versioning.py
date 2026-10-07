@@ -1,10 +1,11 @@
 """
-SAJHA MCP Server v4.5.0 — Tool Versioning & Quality
+SAJHA MCP Server — Tool lifecycle enum and the contract-test runner behind /api/contract-test.
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
-Versioned tools: v1 and v2 run side-by-side.
-Deprecation lifecycle: active → deprecated → sunset.
-Contract testing: validate input/output schemas against live data.
+Tool versions, canary routing, rollback and deprecation live in sajha/quality/versions.py
+(config/tool_versions/<tool>.yaml); test cases, cassettes and the linter in sajha/quality/.
+Design: docs/architecture/Tool Quality.md. ``ToolVersionManager`` below is the original
+in-memory sketch, kept for callers that construct it; nothing in SAJHA routes through it.
 """
 
 import json

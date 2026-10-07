@@ -26,6 +26,8 @@ DELIVERY_TYPES = ('webhook', 'file', 'kafka')
 EVENT_KINDS = ('tools', 'prompts', 'resources', 'resource_updated')
 
 NAME_RE = re.compile(r'^[A-Za-z][A-Za-z0-9_\-]{0,99}$')
+RESERVED_NAMES = ('runs', 'validate')
+MASK = '********'          # how a webhook secret is shown; saving it back keeps the stored secret
 ID_RE = re.compile(r'^[A-Za-z][A-Za-z0-9_]{0,99}$')
 
 
@@ -227,7 +229,7 @@ def _trigger(raw: Any, i: int) -> Dict[str, Any]:
         secret_ref = raw.get('secret_ref')
         if secret_ref and not str(secret_ref).startswith('env:'):
             raise WorkflowError(f'{where}: secret_ref is env:NAME')
-        if secret is not None and (not isinstance(secret, str) or len(secret) < 16):
+        if secret is not None and secret != MASK and (not isinstance(secret, str) or len(secret) < 16):
             raise WorkflowError(f'{where}: secret must be at least 16 characters')
         if secret:
             out['secret'] = secret
@@ -276,6 +278,8 @@ def normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
     name = raw.get('name')
     if not isinstance(name, str) or not NAME_RE.match(name):
         raise WorkflowError(f'name must match {NAME_RE.pattern}')
+    if name in RESERVED_NAMES:
+        raise WorkflowError(f'{name} is reserved (it is part of the /api/workflows routes)')
     steps_raw = raw.get('steps')
     if not isinstance(steps_raw, list) or not steps_raw:
         raise WorkflowError('a workflow has at least one step')
@@ -400,5 +404,5 @@ def public(defn: Dict[str, Any], reveal_secrets: bool = False) -> Dict[str, Any]
     if not reveal_secrets:
         for t in d.get('triggers', []):
             if t.get('secret'):
-                t['secret'] = '********'
+                t['secret'] = MASK
     return d

@@ -224,7 +224,7 @@ curl http://localhost:3002/ready
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/api/tools/execute` | user | Run a tool: body `{"tool": "...", "arguments": {...}}`. 403 if the caller lacks access to the tool; 400 if the arguments do not satisfy its input schema; 428 with `error_code: connected_account_required` and `connect_url` when the tool acts through a connected account the caller has not linked ([Connected Accounts](../architecture/Connected%20Accounts.md)). Logged to tool usage. |
+| POST | `/api/tools/execute` | user | Run a tool: body `{"tool": "...", "arguments": {...}}`. 403 if the caller lacks access to the tool; 400 if the arguments do not satisfy its input schema; 428 with `error_code: connected_account_required` and `connect_url` when the tool acts through a connected account the caller has not linked ([Connected Accounts](../architecture/Connected%20Accounts.md)). For a versioned tool the body also has `_meta` naming the version that ran and any deprecation ([Tool Quality §6](../architecture/Tool%20Quality.md#6-tool-versions-and-canary)). Logged to tool usage. |
 | GET | `/api/tools/list` | as MCP | The tools the caller may see. |
 | GET | `/api/tools/{tool_name}/schema` | as MCP | One tool in MCP format (name, description, input schema); 404 for a tool the caller may not see. |
 | GET | `/api/tool-groups/search?q=` | as MCP | Search the caller's visible tools by name/description (at least 2 characters; first 50 results). |
@@ -388,8 +388,8 @@ curl -X POST http://localhost:3002/api/ai/complete \
 | GET | `/api/observability/usage.csv?dimension=user\|api_key\|role\|model\|tool\|day` | user | One usage table as CSV. |
 | GET | `/api/observability/alerts` | admin | Alert rules and their state. |
 | GET | `/api/observability/status` | admin | Effective observability settings and the OpenTelemetry state. |
-| GET | `/api/tool-versions` | user | Placeholder: always returns `{"versions": []}`. |
-| POST | `/api/tool-versions/{tool_name}/deprecate` | admin | Placeholder: returns success without changing anything. |
+| GET | `/api/tool-versions` | user | Every version of every versioned tool (`config/tool_versions/`; [Tool Quality §6](../architecture/Tool%20Quality.md#6-tool-versions-and-canary)). |
+| POST | `/api/tool-versions/{tool_name}/deprecate` | admin | Deprecate one version in the tool's versions file: `{"version", "sunset_date"?, "successor"?}`. |
 | POST | `/api/contract-test/{tool_name}` | admin | Contract-test one tool (optional body `{"arguments": {...}}`). |
 | POST | `/api/contract-test` | admin | Contract-test every tool; returns totals and per-tool results. |
 
@@ -524,6 +524,21 @@ in [API Import](../architecture/API%20Import.md)). Every body is the import requ
 | GET | `/api/studio/api-import/apis/{api_id}` | admin | An import's saved request, to re-import it. |
 | POST | `/admin/studio/api-import/delete` | admin | `{"api_id"}`: remove the import's tools and its record. |
 
+Describe a tool (`describe_routes.py`, served through `studio_routes.py`'s router; prefixes
+`/studio`, `/admin/studio/describe` and `/api/studio/describe`; design in
+[Tool Generation](../architecture/Tool%20Generation.md)). Each answer is the draft
+(`id`, `proposal`, `hash`, `errors`, `warnings`, `files`, `policy`, `tests_run`, `deployed`)
+with `"success": true`; a refusal is `{"success": false, "error"}` with 400, 403, 404, 409
+(a deploy precondition; `approval_id` when a policy holds it) or 503 (no model).
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| POST | `/admin/studio/describe/propose` | admin | `{"description", "kind"?}`: the model's proposal, checked, with the files a deploy would write and the policy preview. Writes no tool. |
+| POST | `/admin/studio/describe/revise` | admin | `{"draft_id", "proposal"}`: an edited proposal, checked again (new hash, tests cleared). |
+| POST | `/admin/studio/describe/test` | admin | `{"draft_id", "live"?}`: run the test cases (Python in the sandbox, REST against fixtures). |
+| POST | `/admin/studio/describe/deploy` | admin | `{"draft_id", "hash", "approve": true, "accept_failures"?}`: deploy the reviewed version. |
+| GET | `/api/studio/describe/drafts/{draft_id}` | admin | A draft. |
+
 ### 4.12 Misc, help and docs (`misc_routes.py`, `help_routes.py`)
 
 Only HTML pages and redirects (section 4.14). The help pages are rendered from `sajha/web/help_catalog.py`; the superseded help URLs in its `REDIRECTS` answer 301.
@@ -540,7 +555,7 @@ These render templates; they are not JSON APIs. Unauthenticated requests to `use
 |---|---|
 | none / optional | `/`, `/login`, `/help`, `/help/c/{cid}`, `/help/guides`, `/help/guides/{name}`, `/glossary`, `/help/tools`, `/about`, `/comparison`, `/oauth/authorize`; and the 301 redirects `/help/ai`, `/help/enterprise`, `/help/tutorials`, `/help/glossary`, `/help/storage`, `/docs`, `/docs/view/{doc_path}` |
 | user | `/dashboard`, `/account/password`, `/tools`, `/tools/{tool_name}/execute`, `/tools/{tool_name}/schema`, `/prompts`, `/prompts/{prompt_name}`, `/prompts/{prompt_name}/test`, `/prompts/category/{category}`, `/prompts/tag/{tag}`, `/reports`, `/composite/builder`, `/ai/settings`, `/ask`, `/playground`, `/monitoring/usage` |
-| admin | `/admin/users`, `/admin/users/create`, `/admin/tools`, `/admin/system-monitor`, `/admin/prompts`, `/admin/async-tasks`, `/admin/apikeys`, `/admin/apikeys/create`, `/admin/apikeys/{key_id}/view`, `/admin/federation`, `/prompts/create`, `/tools/{tool_name}/config`, `/monitoring/tools`, `/monitoring/users`, `/studio`, `/studio/rest`, `/studio/dbquery`, `/studio/script`, `/studio/livelink`, `/studio/olap`, `/studio/powerbi`, `/studio/powerbidax`, `/studio/sharepoint`, `/studio/examples`, `/studio/api-import` |
+| admin | `/admin/users`, `/admin/users/create`, `/admin/tools`, `/admin/system-monitor`, `/admin/prompts`, `/admin/async-tasks`, `/admin/apikeys`, `/admin/apikeys/create`, `/admin/apikeys/{key_id}/view`, `/admin/federation`, `/admin/connectors`, `/prompts/create`, `/tools/{tool_name}/config`, `/monitoring/tools`, `/monitoring/users`, `/studio`, `/studio/rest`, `/studio/dbquery`, `/studio/script`, `/studio/livelink`, `/studio/olap`, `/studio/powerbi`, `/studio/powerbidax`, `/studio/sharepoint`, `/studio/examples`, `/studio/api-import`, `/studio/describe` |
 
 ### 4.15 Python Playground (`playground_routes.py`)
 
@@ -617,6 +632,82 @@ answers a policy outcome (403, 202 with `approval_id`, 429 with `Retry-After` on
 | GET | `/api/audit/verify` | admin | Verify every chain (`?chain=` one): `{ok, chains: [{chain_id, ok, problems, warnings, ...}]}`. |
 | POST | `/api/audit/anchor` | admin (CSRF) | Sign this worker's chain head now. |
 | GET | `/api/audit/sinks` | admin | This worker's chain writer and SIEM sink status. |
+
+
+### 4.20 Workflows (`workflow_routes.py`)
+
+Workflow definitions, runs and inbound webhooks. Signed-in users manage their own
+workflows; administrators see and manage all; only administrators may publish one as a
+tool. Behaviour, the definition format and the webhook signature:
+[Workflows](../architecture/Workflows.md).
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/workflows` | user | The Workflows page. |
+| GET | `/api/workflows` | user | `{workflows: [...], status}`. |
+| POST | `/api/workflows` | user | Create or update: a JSON definition, a YAML body (`Content-Type: application/yaml`), or `{"text": "..."}`. 400 with the reason when invalid, 403 when not yours. |
+| POST | `/api/workflows/validate` | user | `{valid, definition, yaml, order}`; nothing is saved. |
+| GET | `/api/workflows/{name}` | owner, admin | One workflow (`?format=yaml`; `?reveal=1` shows webhook secrets). |
+| PUT | `/api/workflows/{name}` | owner, admin | Update (version + 1). |
+| DELETE | `/api/workflows/{name}` | owner, admin | Delete it and its run history (active runs are cancelled). |
+| POST | `/api/workflows/{name}/enable`, `/api/workflows/{name}/disable` | owner, admin | Switch its triggers and published tool on or off. |
+| POST | `/api/workflows/{name}/runs` | owner, admin | `{"input", "wait"?, "idempotency_key"?}` (or an `Idempotency-Key` header) → `{run}`; 200 when finished within `wait`, else 202. |
+| GET | `/api/workflows/{name}/runs` | owner, admin | `{runs}` (`?status`, `?limit`). |
+| GET | `/api/workflows/runs/{id}` | owner, admin | `{run}` with its `steps`. |
+| POST | `/api/workflows/runs/{id}/cancel` | owner, admin | Cancel. |
+| POST | `/api/workflows/runs/{id}/rerun` | owner, admin | `{"from_step"?, "latest_definition"?}` → 202 `{run}`. |
+| POST | `/api/workflows/{name}/hooks/{trigger}` | HMAC signature | Inbound webhook: `X-Sajha-Timestamp`, `X-Sajha-Signature`, optional `X-Sajha-Delivery`; 202 `{run_id}`, 401 bad signature or stale timestamp, 409 replay, 404 unknown trigger. |
+
+### 4.19 Tool quality (`quality_routes.py`)
+
+Probes, saved test runs, the linter, evals and tool versions. Every route is admin only; a
+cookie session sends the page's CSRF token (form field `csrf`, or header `X-CSRF-Token`) on
+state changes. Behaviour: [Tool Quality](../architecture/Tool%20Quality.md).
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/admin/tool-health` | admin | The Tool Health page (`?run=<id>` a saved test run, `?lint=1&level=` the linter). |
+| POST | `/admin/tool-health/probes/{tool}/run` | admin (form, CSRF) | Run the tool's probe now. |
+| POST | `/admin/tool-health/tests/run` | admin (form, CSRF) | Run the test harness: `tool` (glob), `mode` (`replay`, `auto`, `live`); saves the run. |
+| GET | `/api/quality/probes` | admin | `{enabled, probes: [...]}`: every probe with its schedule, last result and history. |
+| POST | `/api/quality/probes/{tool}/run` | admin (CSRF) | Run one probe now; 404 when the tool has none. |
+| GET | `/api/quality/lint` | admin | `{summary, findings}` (`?tool=` glob). |
+| POST | `/api/quality/tests/run` | admin (CSRF) | `{"tool", "mode"}` → `{id, summary, results}`. |
+| GET | `/api/quality/runs` | admin | Saved runs (`?kind=test|eval`). |
+| GET | `/api/quality/runs/{id}` | admin | One saved run with its detail. |
+| GET | `/admin/evals` | admin | The Evals page (`?run=<id>`, `?a=<id>&b=<id>` compares). |
+| POST | `/admin/evals/run` | admin (form, CSRF) | Start a run: `set_name`, `model`, `planner`. |
+| GET | `/api/quality/evals` | admin | `{sets, runs}`. |
+| POST | `/api/quality/evals/run` | admin (CSRF) | `{"set", "model"?, "planner"?}` → 202 `{id, status: "running"}`. |
+| GET | `/api/quality/evals/compare` | admin | `?a=<id>&b=<id>` → metric deltas, regressed and improved questions. |
+| GET | `/admin/tool-versions` | admin | The Tool Versions page (`?new=<tool>` starts a versions file). |
+| POST | `/admin/tool-versions/{tool}/{action}` | admin (form, CSRF) | `save` (`text`), `canary` (`version`, `percent`), `promote` (`version`), `clear` (`version`: clear a rollback). |
+| GET | `/api/quality/versions` | admin | Every versioned tool: versions, routing, window statistics, rollbacks, file errors. |
+| PUT | `/api/quality/versions/{tool}` | admin (CSRF) | The versions file as the YAML body; validated before it is written (400 with the reason). |
+| POST | `/api/quality/versions/{tool}/canary` | admin (CSRF) | `{"version", "percent"}`. |
+| POST | `/api/quality/versions/{tool}/promote` | admin (CSRF) | `{"version"}`: make it stable and clear its rollback. |
+| DELETE | `/api/quality/versions/{tool}/rollback/{version}` | admin (CSRF) | Clear an automatic rollback. |
+
+### 4.21 Data connectors (`connectors_routes.py`)
+
+Connections to databases, warehouses, vector stores and search clusters, and the tools generated
+for them. Every route is admin only; changes are audited. Behaviour:
+[Data Connectors](../architecture/Data%20Connectors.md).
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/admin/connectors` | admin | The Data Connectors page. |
+| GET | `/api/connectors` | admin | `{connections: [...]}`: each record's summary, its tools (loaded or not), idle pooled connections. |
+| GET | `/api/connectors/kinds` | admin | `{kinds: [...]}`: each kind, its family, Python package, whether it is installed, per-user support. |
+| POST | `/api/connectors` | admin | Create or replace a connection (the record; `"create": true` refuses an existing id); writes it and syncs its tools. 400 with the field at fault. |
+| POST | `/api/connectors/test` | admin | Connect with an unsaved definition: `{success, server_version, tables}` or `{success: false, error}`. |
+| POST | `/api/connectors/sync` | admin | Regenerate every connection's tools and remove orphans (no database is opened). |
+| POST | `/api/connectors/view-preview` | admin | `{"connection": <record>}`: the input schema its last view would get. |
+| GET | `/api/connectors/{cid}` | admin | `{connection}`: the stored record (secret references, never values). |
+| DELETE | `/api/connectors/{cid}` | admin | Remove the connection and its tools. |
+| POST | `/api/connectors/{cid}/refresh` | admin | Re-read the catalog: `{tables, truncated}`. |
+| GET | `/api/connectors/{cid}/tables` | admin | The allowed tables (or collections). |
+| GET | `/api/connectors/{cid}/describe` | admin | `?table=`: what `<id>__describe_table` (or `__describe_collection`) returns. |
 
 ---
 

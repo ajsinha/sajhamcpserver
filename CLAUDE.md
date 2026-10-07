@@ -37,6 +37,10 @@ the same thing, merge them and leave a link.
 | Topic | Owner |
 |---|---|
 | Database schema (SQLite and PostgreSQL schema files, manual setup) | `docs/getting-started/Database Setup.md` |
+| Describe a tool (generated tools, review and deploy gate) | `docs/architecture/Tool Generation.md` |
+| Data connectors (governed read access to databases and vector stores) | `docs/architecture/Data Connectors.md` |
+| Tool testing, lint, probes, evals, tool versions and canary | `docs/architecture/Tool Quality.md` |
+| Workflows (DAGs, schedules, triggers, runs) | `docs/architecture/Workflows.md` |
 | Federation (other MCP servers' tools) | `docs/architecture/Federation.md` |
 | Sandboxed code tools | `docs/architecture/Sandbox.md` |
 | Metrics, tracing, usage and cost, alerts | `docs/architecture/Observability.md` |

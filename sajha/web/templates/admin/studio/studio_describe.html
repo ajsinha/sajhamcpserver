@@ -1,0 +1,353 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Studio "Describe a tool": a description in plain words -> a proposal to review, test and approve.
+Design: docs/architecture/Tool Generation.md
+-->
+{% block title %}Describe a tool - MCP Studio - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section { margin-bottom: 18px; overflow: hidden; }
+    .section-header { padding: 12px 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .section-body { padding: 16px 18px; }
+    .creator-header { padding: 22px; margin-bottom: 18px; }
+    .dt-pre { background: var(--sajha-nav-to); color: var(--sajha-on-nav); border-radius: 10px; padding: 12px;
+              font-size: .875rem; max-height: 420px; overflow: auto; white-space: pre; margin: 0; }
+    .dt-pre .add { color: inherit; }
+    .dt-file { border: 1px solid var(--sajha-border); border-radius: 10px; margin-bottom: 10px; }
+    .dt-file > summary { padding: 10px 12px; cursor: pointer; font-family: var(--font-mono, monospace); font-size: .875rem;
+                         word-break: break-all; min-height: 40px; }
+    .dt-kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: .95rem; }
+    .dt-kv dt { font-weight: 600; color: var(--t-muted); }
+    .dt-kv dd { margin: 0; word-break: break-word; }
+    .dt-status { font-weight: 700; font-size: .875rem; }
+    .dt-status.passed { color: var(--sajha-ok, #198754); }
+    .dt-status.failed { color: var(--sajha-danger, #b02a37); }
+    .dt-status.skipped { color: var(--t-muted); }
+    .dt-tests td, .dt-tests th { vertical-align: top; font-size: .875rem; }
+    .dt-tests code { white-space: pre-wrap; word-break: break-word; }
+    .dt-tests .small, .dt-tests code, .dt-pre code { font-size: inherit; }
+    .dt-code { font-family: var(--font-mono, monospace); font-size: .875rem; }
+    #dtMessage:empty { display: none; }
+    .dt-example { min-height: 40px; }
+</style>
+{% include 'admin/studio/_studio_theme.html' %}
+{% endblock %}
+
+{% block content %}
+{% include "admin/studio/_studio_nav.html" %}
+<div class="container-fluid py-3">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('studio_home') }}">MCP Studio</a></li>
+            <li class="breadcrumb-item active">Describe a tool</li>
+        </ol>
+    </nav>
+
+    <div class="creator-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h3><i class="bi bi-chat-square-text me-2"></i>Describe a tool</h3>
+                <p class="subtitle mb-0">Say what the tool should do. SAJHA proposes the kind, name, schemas,
+                    implementation and tests; you review the files, run the tests, and only then approve the deploy.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ guide_url('Tool Generation.md') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-question-circle me-1"></i>Design</a>
+                <a href="{{ guide_url('TUTORIAL_24_describe_a_tool.md') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-mortarboard me-1"></i>Tutorial</a>
+            </div>
+        </div>
+    </div>
+
+    {% if not enabled %}
+    <div class="alert alert-warning">Describe a tool is turned off (<code>studio.describe.enabled: false</code>).</div>
+    {% endif %}
+
+    <div id="dtMessage" class="alert" role="status"></div>
+
+    <div class="row">
+        <div class="col-xl-8">
+            <!-- 1. Describe -->
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-pencil"></i>1. Describe it</div>
+                <div class="section-body">
+                    <label class="form-label fw-bold" for="dtText">What should the tool do?</label>
+                    <textarea id="dtText" class="form-control" rows="4" maxlength="{{ max_chars }}"
+                              placeholder="Get the 10-year US treasury yield and its change over 30 days"></textarea>
+                    <div class="form-text">Mention the URL, table or existing tools it should use. The text is treated as
+                        data: it is screened for instructions aimed at the model and never runs as code.</div>
+                    <div class="d-flex flex-wrap gap-2 mt-2" aria-label="Examples">
+                        <button type="button" class="btn btn-sm btn-outline-secondary dt-example">Get the 10-year US treasury yield and its change over 30 days</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary dt-example">Query table orders by region</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary dt-example">Wrap this REST endpoint https://api.example.com/v1/weather/{city}</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary dt-example">Mean, median and standard deviation of a list of numbers</button>
+                    </div>
+                    <div class="row g-2 mt-2 align-items-end">
+                        <div class="col-sm-6 col-md-4">
+                            <label class="form-label fw-bold" for="dtKind">Kind</label>
+                            <select id="dtKind" class="form-select">
+                                <option value="auto">Let SAJHA choose</option>
+                                <option value="python">Python code (sandboxed)</option>
+                                <option value="rest">REST endpoint</option>
+                                <option value="dbquery">Database query</option>
+                                <option value="composite">Composite of existing tools</option>
+                                <option value="openapi">OpenAPI import</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6 col-md-8 d-flex gap-2 flex-wrap">
+                            <button class="btn btn-primary" id="dtPropose" {% if not enabled %}disabled{% endif %}><i class="bi bi-magic me-1"></i>Propose a tool</button>
+                            <button class="btn btn-outline-secondary" id="dtClear">Clear</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="dtDraft" class="d-none">
+                <!-- 2. Proposal -->
+                <div class="form-section">
+                    <div class="section-header"><i class="bi bi-clipboard-check"></i>2. The proposal <span class="badge bg-secondary" id="dtKindBadge"></span></div>
+                    <div class="section-body">
+                        <div id="dtProblems"></div>
+                        <dl class="dt-kv" id="dtSummary"></dl>
+                        <div id="dtNotes" class="mt-2"></div>
+                        <div id="dtPolicy" class="mt-2 small"></div>
+                    </div>
+                </div>
+
+                <!-- 3. Files -->
+                <div class="form-section">
+                    <div class="section-header"><i class="bi bi-file-diff"></i>3. What a deploy writes</div>
+                    <div class="section-body">
+                        <p class="small text-muted mb-2">Every file below is new; nothing existing is changed. Read them before you approve.</p>
+                        <div id="dtFiles"></div>
+                    </div>
+                </div>
+
+                <!-- 4. Edit -->
+                <div class="form-section">
+                    <div class="section-header"><i class="bi bi-sliders"></i>4. Change it (optional)</div>
+                    <div class="section-body">
+                        <div id="dtCodeWrap" class="d-none mb-2">
+                            <label class="form-label fw-bold" for="dtCode">Python code (runs only in the sandbox)</label>
+                            <textarea id="dtCode" class="form-control dt-code" rows="14" spellcheck="false"></textarea>
+                        </div>
+                        <label class="form-label fw-bold" for="dtJson">The whole proposal (JSON)</label>
+                        <textarea id="dtJson" class="form-control dt-code" rows="12" spellcheck="false"></textarea>
+                        <div class="form-text">Changing anything makes a new version: it is checked again and its tests must run again.</div>
+                        <button class="btn btn-outline-primary mt-2" id="dtRevise"><i class="bi bi-arrow-repeat me-1"></i>Check my changes</button>
+                    </div>
+                </div>
+
+                <!-- 5. Tests -->
+                <div class="form-section">
+                    <div class="section-header"><i class="bi bi-check2-square"></i>5. Tests</div>
+                    <div class="section-body">
+                        <p class="small text-muted mb-2">Python code runs in the sandbox with no network for offline cases; REST cases
+                            answer from canned replies; database queries run read-only. Live cases call real services and run only when you ask.</p>
+                        <div class="d-flex flex-wrap gap-3 align-items-center mb-2">
+                            <button class="btn btn-primary" id="dtRunTests"><i class="bi bi-play me-1"></i>Run the tests</button>
+                            <label class="form-check mb-0"><input class="form-check-input" type="checkbox" id="dtLive"> include live tests</label>
+                            <span class="small text-muted" id="dtCounts"></span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm dt-tests" data-sajha-table="false">
+                                <thead><tr><th>Case</th><th>Arguments</th><th>Expect</th><th>Result</th></tr></thead>
+                                <tbody id="dtTests"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. Approve -->
+                <div class="form-section">
+                    <div class="section-header"><i class="bi bi-rocket-takeoff"></i>6. Approve and deploy</div>
+                    <div class="section-body">
+                        <div id="dtHandoff" class="d-none"></div>
+                        <div id="dtApprove">
+                            <label class="form-check"><input class="form-check-input" type="checkbox" id="dtReviewed">
+                                I have read the files and the test results, and I approve this version (<code id="dtHash"></code>).</label>
+                            <label class="form-check"><input class="form-check-input" type="checkbox" id="dtAccept">
+                                Deploy even though some tests failed or none ran.</label>
+                            <button class="btn btn-success mt-2" id="dtDeploy" disabled><i class="bi bi-rocket-takeoff me-1"></i>Deploy</button>
+                            <div id="dtDeployResult" class="mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-info-circle"></i>How it works</div>
+                <div class="section-body small">
+                    <p>The model behind the <code>{{ model_alias }}</code> alias designs the tool
+                        (<code>studio.describe.model</code>; out of the box the offline <code>mock-toolsmith</code>).
+                        Its answer is checked like any untrusted input: names, URLs, SQL, headers and sandbox requests.</p>
+                    <ul class="ps-3 mb-2">
+                        <li><strong>Python</strong>: model-written code, always sandboxed{% if sandbox %} (backend <code>{{ sandbox.backend }}</code>){% endif %}; it never runs in the server.</li>
+                        <li><strong>REST</strong> and <strong>database query</strong>: Studio's own generators, filled with checked values; no credentials are generated.</li>
+                        <li><strong>Composite</strong>: existing tools run together.</li>
+                        <li><strong>OpenAPI</strong>: handed to Import an API, where you pick the operations.</li>
+                    </ul>
+                    <p class="mb-0">A deploy needs your approval of the exact version you reviewed, its tests run, and
+                        the policy engine's consent to <code>studio.deploy</code>.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const BASE = '/admin/studio/describe';
+    let draft = null;
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+
+    function message(text, level) {
+        const m = $('dtMessage');
+        m.className = 'alert alert-' + (level || 'info');
+        m.textContent = text || '';
+    }
+
+    async function post(path, body) {
+        const r = await fetch(BASE + path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+        let data = {};
+        try { data = await r.json(); } catch (e) { data = {success: false, error: 'HTTP ' + r.status}; }
+        return data;
+    }
+
+    function render(d) {
+        draft = d;
+        const p = d.proposal || {};
+        $('dtDraft').classList.remove('d-none');
+        $('dtKindBadge').textContent = p.kind || '';
+        const problems = (d.errors || []).map(e => '<div class="alert alert-danger py-1 small mb-2">' + esc(e) + '</div>').join('') +
+            (d.warnings || []).map(w => '<div class="alert alert-warning py-1 small mb-2">' + esc(w) + '</div>').join('');
+        $('dtProblems').innerHTML = problems;
+        const im = p.implementation || {};
+        const rows = [['Name', '<code>' + esc(p.name) + '</code>'], ['Description', esc(p.description)],
+                      ['Category', esc(p.category)], ['Model', '<code>' + esc(d.model) + '</code>']];
+        if (p.kind === 'python') rows.push(['Sandbox', 'network <code>' + esc((im.sandbox || {}).network) + '</code>' +
+            ((im.sandbox || {}).allow_hosts ? ' to <code>' + esc(im.sandbox.allow_hosts.join(', ')) + '</code>' : '')]);
+        if (p.kind === 'rest') rows.push(['Endpoint', '<code>' + esc(im.method) + ' ' + esc(im.endpoint) + '</code>']);
+        if (p.kind === 'dbquery') rows.push(['Query', '<code>' + esc(im.query_template) + '</code>']);
+        if (p.kind === 'composite') rows.push(['Tools', esc([im.master_tool].concat((im.steps || []).map(s => s.tool_name)).join(', '))]);
+        if (p.kind === 'openapi') rows.push(['Spec', '<code>' + esc(im.url) + '</code>']);
+        $('dtSummary').innerHTML = rows.map(([k, v]) => '<dt>' + k + '</dt><dd>' + v + '</dd>').join('');
+        $('dtNotes').innerHTML = (p.notes || []).length ? '<div class="small fw-bold">Notes from the model</div><ul class="small mb-0">' +
+            p.notes.map(n => '<li>' + esc(n) + '</li>').join('') + '</ul>' : '';
+        const pol = d.policy || {};
+        $('dtPolicy').innerHTML = pol.deploy ? 'Policy: deploying is <strong>' + esc(pol.deploy.effect) + '</strong>' +
+            (pol.deploy.rule ? ' (rule <code>' + esc(pol.deploy.rule) + '</code>)' : '') + '; calls to the new tool would be <strong>' +
+            esc(pol.calls.effect) + '</strong>' + ((pol.calls.matched || []).length ? ' (rules: ' + pol.calls.matched.map(esc).join(', ') + ')' : '') + '.' : '';
+        $('dtFiles').innerHTML = (d.files || []).map((f, i) => '<details class="dt-file"' + (i === 0 ? ' open' : '') + '><summary>' + esc(f.path) +
+            ' <span class="badge bg-success">new</span></summary><pre class="dt-pre">' + esc(f.diff || f.content) + '</pre></details>').join('') ||
+            '<span class="text-muted small">Fix the errors above to see the files.</span>';
+        $('dtCodeWrap').classList.toggle('d-none', p.kind !== 'python');
+        $('dtCode').value = p.kind === 'python' ? (im.code || '') : '';
+        $('dtJson').value = JSON.stringify(p, null, 2);
+        renderTests();
+        $('dtHash').textContent = (d.hash || '').slice(0, 12);
+        $('dtReviewed').checked = false;
+        $('dtAccept').checked = false;
+        const handoff = d.handoff;
+        $('dtHandoff').classList.toggle('d-none', !handoff);
+        $('dtApprove').classList.toggle('d-none', !!handoff || !!d.deployed);
+        if (handoff) $('dtHandoff').innerHTML = '<p class="small">An OpenAPI spec becomes one tool per operation; you choose them in Import an API.</p>' +
+            '<a class="btn btn-primary" href="' + esc(handoff) + '"><i class="bi bi-filetype-json me-1"></i>Continue in Import an API</a>';
+        if (d.deployed) $('dtDeployResult').innerHTML = deployedHtml(d.deployed);
+        gate();
+    }
+
+    function renderTests() {
+        const p = draft.proposal || {};
+        const run = draft.tests_run && draft.tests_run.hash === draft.hash ? draft.tests_run : null;
+        const byName = {};
+        ((run && run.results) || []).forEach(r => byName[r.name] = r);
+        $('dtTests').innerHTML = (p.tests || []).map(t => {
+            const r = byName[t.name];
+            const status = r ? '<span class="dt-status ' + r.status + '">' + r.status + '</span>' +
+                (r.detail ? '<div class="small">' + esc(r.detail) + '</div>' : '') +
+                (r.result ? '<details class="small"><summary>result</summary><code>' + esc(r.result) + '</code></details>' : '')
+                : '<span class="text-muted small">not run</span>';
+            return '<tr><td>' + esc(t.name) + (t.live ? ' <span class="badge bg-warning text-dark">live</span>' : '') +
+                (t.fixture ? ' <span class="badge bg-info">fixture</span>' : '') + '</td><td><code>' + esc(JSON.stringify(t.arguments)) +
+                '</code></td><td><code>' + esc(JSON.stringify(t.expect)) + '</code></td><td>' + status + '</td></tr>';
+        }).join('');
+        $('dtCounts').textContent = run ? (run.counts.passed + ' passed, ' + run.counts.failed + ' failed, ' + run.counts.skipped + ' skipped' +
+            (run.harness ? ' · saved to ' + run.harness : '')) : '';
+    }
+
+    function gate() {
+        const run = draft && draft.tests_run && draft.tests_run.hash === draft.hash ? draft.tests_run : null;
+        const clean = run && !run.counts.failed && run.counts.passed > 0;
+        $('dtDeploy').disabled = !(draft && !(draft.errors || []).length && run && $('dtReviewed').checked && (clean || $('dtAccept').checked));
+        $('dtRunTests').disabled = !draft || (draft.errors || []).length > 0;
+    }
+
+    function deployedHtml(dep) {
+        return '<div class="alert alert-success py-2">Deployed <a href="/tools/' + encodeURIComponent(dep.name) + '/execute"><code>' +
+            esc(dep.name) + '</code></a> (' + esc(dep.kind) + ')' + (dep.harness ? '; its test cases went to ' + esc(dep.harness) : '') + '.</div>';
+    }
+
+    $('dtPropose').addEventListener('click', async () => {
+        const text = $('dtText').value.trim();
+        if (!text) { message('Describe the tool first', 'warning'); return; }
+        message('Designing the tool…', 'info');
+        $('dtPropose').disabled = true;
+        const data = await post('/propose', {description: text, kind: $('dtKind').value});
+        $('dtPropose').disabled = false;
+        if (!data.success) { message(data.error || 'No proposal', 'danger'); return; }
+        message((data.errors || []).length ? 'The proposal has problems: fix them below.' : 'Review the proposal, run its tests, then approve.',
+                (data.errors || []).length ? 'warning' : 'success');
+        $('dtDeployResult').innerHTML = '';
+        render(data);
+    });
+
+    $('dtRevise').addEventListener('click', async () => {
+        if (!draft) return;
+        let p;
+        try { p = JSON.parse($('dtJson').value); } catch (e) { message('The proposal is not valid JSON: ' + e.message, 'danger'); return; }
+        if (p.kind === 'python' && $('dtCode').value.trim() && p.implementation) p.implementation.code = $('dtCode').value;
+        const data = await post('/revise', {draft_id: draft.id, proposal: p});
+        if (!data.success) { message(data.error || 'Could not check the change', 'danger'); return; }
+        message('Checked. Run the tests on this version before you deploy.', (data.errors || []).length ? 'warning' : 'info');
+        render(data);
+    });
+
+    $('dtRunTests').addEventListener('click', async () => {
+        if (!draft) return;
+        message('Running the tests…', 'info');
+        $('dtRunTests').disabled = true;
+        const data = await post('/test', {draft_id: draft.id, live: $('dtLive').checked});
+        if (!data.success) { message(data.error || 'The tests did not run', 'danger'); gate(); return; }
+        const c = data.tests_run.counts;
+        message(c.passed + ' passed, ' + c.failed + ' failed, ' + c.skipped + ' skipped.', c.failed ? 'warning' : 'success');
+        render(data);
+    });
+
+    $('dtReviewed').addEventListener('change', gate);
+    $('dtAccept').addEventListener('change', gate);
+
+    $('dtDeploy').addEventListener('click', async () => {
+        if (!draft || !confirm('Deploy ' + draft.proposal.name + ' now? It becomes callable at once.')) return;
+        const data = await post('/deploy', {draft_id: draft.id, hash: draft.hash, approve: $('dtReviewed').checked,
+                                            accept_failures: $('dtAccept').checked});
+        if (!data.success) {
+            $('dtDeployResult').innerHTML = '<div class="alert alert-danger py-2">' + esc(data.error) +
+                (data.approval_id ? ' <a href="/admin/approvals">Approvals</a>' : '') + '</div>';
+            return;
+        }
+        message(data.message, 'success');
+        render(data);
+    });
+
+    document.querySelectorAll('.dt-example').forEach(b => b.addEventListener('click', () => { $('dtText').value = b.textContent.trim(); $('dtText').focus(); }));
+    $('dtClear').addEventListener('click', () => { $('dtText').value = ''; $('dtDraft').classList.add('d-none'); draft = null; message(''); });
+})();
+</script>
+{% endblock %}

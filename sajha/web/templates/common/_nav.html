@@ -11,6 +11,7 @@
       (url_for('tools_list'), 'tools', 'All tools', 'Browse, inspect and execute every registered tool')]
       + ([(url_for('playground_page'), 'filetype-py', 'Python Playground', 'Python in your browser; call tools with import sajha')]
          if playground_enabled is defined and playground_enabled() else []) + [
+      (url_for('workflows_page'), 'diagram-3', 'Workflows', 'Schedules, triggers and run history for DAGs of tools'),
       (url_for('reports_dashboard'), 'bar-chart-line', 'Reports', 'Usage and performance reports')]),
     ('Monitor', [
       (url_for('monitoring_tools'), 'graph-up', 'Tool metrics', 'Calls, latency and errors per tool'),
@@ -28,6 +29,7 @@
   ('MCP Studio', 'magic', [
     ('Code & services', [
       (url_for('studio_home'), 'house', 'Studio home', 'Everything you can build here'),
+      (url_for('studio_describe'), 'chat-square-text', 'Describe a tool', 'Say what it should do; review, test and approve'),
       (url_for('studio_home') ~ '#python-creator', 'code-slash', 'Python code tool', 'Turn a Python function into a tool (on Studio home)'),
       (url_for('studio_rest'), 'cloud-arrow-up', 'REST service tool', 'Wrap an HTTP endpoint as a tool'),
       (url_for('studio_api_import'), 'filetype-json', 'Import an API', 'OpenAPI, Swagger or GraphQL: one tool per operation'),
@@ -40,7 +42,8 @@
       (url_for('studio_sharepoint'), 'microsoft', 'SharePoint', 'Documents, lists or search on a SharePoint site'),
       (url_for('studio_olap'), 'graph-up-arrow', 'OLAP dataset', 'Slice a cube as a tool')]),
     ('Compose', [
-      (url_for('composite_builder'), 'boxes', 'Composite builder', 'Chain tools into one')])]),
+      (url_for('composite_builder'), 'boxes', 'Composite builder', 'Chain tools into one'),
+      (url_for('workflows_page'), 'diagram-3', 'Workflows', 'Steps, branches and loops on a schedule or trigger')])]),
   ('Admin', 'shield-lock', [
     ('Manage', [
       (url_for('admin_tools'), 'tools', 'Tools', 'Enable, disable and configure tools'),
@@ -48,7 +51,8 @@
       (url_for('admin_prompts'), 'chat-square-text', 'Prompts', 'Create, edit and retire prompts'),
       (url_for('admin_apikeys'), 'key', 'API keys', 'Keys, scopes and expiry'),
       (url_for('admin_federation_page'), 'diagram-2', 'Federation', 'Other MCP servers behind SAJHA: upstreams and approvals'),
-      (url_for('admin_connections_page'), 'link-45deg', 'Connected accounts', 'Which services each user linked; revoke; vault keys')]),
+      (url_for('admin_connections_page'), 'link-45deg', 'Connected accounts', 'Which services each user linked; revoke; vault keys'),
+      (url_for('admin_connectors_page'), 'database-gear', 'Data connectors', 'Databases and vector stores as governed, read-only tools')]),
     ('Governance', [
       (url_for('admin_policies_page'), 'shield-check', 'Policies', 'Rules on every tool call; the test bench'),
       (url_for('admin_approvals_page'), 'person-check', 'Approvals', 'Tool calls waiting for a human decision'),
@@ -56,6 +60,9 @@
     ('Operations', [
       ('/admin/system-monitor', 'activity', 'System monitor', 'CPU, memory and connections'),
       ('/admin/async-tasks', 'skip-forward-circle', 'Async tasks', 'Long-running calls in flight'),
+      (url_for('admin_tool_health_page'), 'heart-pulse', 'Tool health', 'Probes, test runs and the schema linter'),
+      (url_for('admin_tool_versions_page'), 'signpost-split', 'Tool versions', 'Canary, pins, rollback and sunset dates'),
+      (url_for('admin_evals_page'), 'clipboard-check', 'Evals', 'Golden questions for Ask SAJHA, per model and planner'),
       (url_for('ai_settings'), 'cpu', 'AI providers & models', 'Provider credentials and model profiles')])])] %}
 {% endif %}
 {% set MENU = MENU + [

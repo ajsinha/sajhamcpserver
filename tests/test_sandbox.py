@@ -349,7 +349,7 @@ def _registry():
     import logging
     import threading
     from sajha.tools.tools_registry import ToolsRegistry
-    reg = ToolsRegistry.__new__(ToolsRegistry)
+    reg = object.__new__(ToolsRegistry)   # not ToolsRegistry.__new__: that returns the live singleton
     reg.tools, reg.tool_configs, reg.tool_errors = {}, {}, {}
     reg._tools_lock, reg.builtin_tools, reg.logger = threading.RLock(), {}, logging.getLogger('t')
     reg._properties_configurator = None
@@ -377,8 +377,10 @@ def test_studio_python_tool_in_process_when_enforcement_off(studio_python_tool, 
     from sajha.sandbox.tools import SandboxedPythonTool
     reg = _registry()
     reg.register_tool_from_dict(studio_python_tool)
-    assert not isinstance(reg.tools['zz_sbx_reader'], SandboxedPythonTool)
-    monkeypatch.delitem(__import__('sys').modules, 'sajha.tools.impl.studio_zz_sbx_reader', raising=False)
+    try:
+        assert not isinstance(reg.tools['zz_sbx_reader'], SandboxedPythonTool)
+    finally:   # a plain pop: monkeypatch.delitem would put the imported module back at teardown
+        __import__('sys').modules.pop('sajha.tools.impl.studio_zz_sbx_reader', None)
 
 
 def test_studio_script_tool_is_sandboxed(tmp_path):

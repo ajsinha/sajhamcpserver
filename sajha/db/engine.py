@@ -31,13 +31,21 @@ def create_db_engine(settings, url: str | None = None):
         else settings.db_type
 
     if db_type == 'sqlite':
-        engine = create_engine(url, connect_args={'check_same_thread': False}, echo=settings.db_echo)
+        # timeout: wait for a lock another process holds (several workers starting on one file)
+        engine = create_engine(url, connect_args={'check_same_thread': False, 'timeout': 30},
+                               echo=settings.db_echo)
 
-        # Enable WAL mode for better concurrent read performance
+        # Enable WAL mode for better concurrent read performance.  WAL is stored in the file,
+        # so only the first connection switches it; switching needs an exclusive lock, and
+        # asking again on every connection failed with "database is locked" while another
+        # worker was creating the schema.
         @event.listens_for(engine, 'connect')
         def _set_sqlite_pragma(dbapi_conn, connection_record):
             cursor = dbapi_conn.cursor()
-            cursor.execute('PRAGMA journal_mode=WAL')
+            cursor.execute('PRAGMA busy_timeout=30000')
+            mode = (cursor.execute('PRAGMA journal_mode').fetchone() or [''])[0]
+            if str(mode).lower() not in ('wal', 'memory'):
+                cursor.execute('PRAGMA journal_mode=WAL')
             cursor.execute('PRAGMA foreign_keys=ON')
             cursor.close()
 

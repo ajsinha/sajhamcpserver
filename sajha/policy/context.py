@@ -2,7 +2,7 @@
 SAJHA MCP Server — the facts about a call that the tool itself does not carry.
 
 * the **source**: which entry point the call came in through (``mcp``, ``stdio``,
-  ``websocket``, ``rest``, ``playground``, ``a2a``, ``ask``, ``async``; ``other`` when none
+  ``websocket``, ``rest``, ``playground``, ``a2a``, ``ask``, ``async``, ``workflow``; ``other`` when none
   said). The first entry point to set it wins (:func:`ensure_source`), so a stdio call stays
   ``stdio`` when it reaches the shared MCP handler; :func:`set_source` overrides (Ask SAJHA,
   whose tool calls a model chooses).
@@ -24,7 +24,7 @@ import contextlib
 import contextvars
 from typing import Iterator, Optional
 
-SOURCES = ('mcp', 'stdio', 'websocket', 'rest', 'playground', 'a2a', 'ask', 'async', 'other')
+SOURCES = ('mcp', 'stdio', 'websocket', 'rest', 'playground', 'a2a', 'ask', 'async', 'workflow', 'other')
 
 _source: contextvars.ContextVar[str] = contextvars.ContextVar('sajha_policy_source', default='')
 _confirmed: contextvars.ContextVar[bool] = contextvars.ContextVar('sajha_policy_confirmed', default=False)

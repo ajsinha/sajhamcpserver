@@ -131,9 +131,34 @@ also removes a single imported tool. The mapping rules, the guard and the limits
 [API Import](../architecture/API%20Import.md); [Tutorial 19](../tutorials/TUTORIAL_19_import_an_openapi_spec.md)
 walks through the petstore spec.
 
+## Describe a tool
+
+**Describe a tool** (`/studio/describe`) starts from a sentence instead of a form: "get the
+10-year US treasury yield and its change over 30 days", "query table orders by region",
+"wrap this REST endpoint https://…". The model behind the `toolsmith` alias (the offline
+`mock-toolsmith` out of the box) proposes the kind (Python code, REST, DB query, composite
+of existing tools, or an OpenAPI import), the name, the schemas, the implementation and
+test cases.
+
+1. **Describe it**, and optionally pick the kind.
+2. **Read the proposal**: errors block it, warnings (a host your description does not
+   mention, a risky import, a removed credential header) are for you to judge, and the
+   policy line says whether the policy engine would allow the deploy.
+3. **Read the files** a deploy would write, the same files the creators write.
+4. **Change it** if needed (the code, or the whole proposal as JSON); every change is
+   checked again and needs its tests run again.
+5. **Run the tests**: Python cases in the sandbox, REST cases against canned replies, DB
+   queries read-only; live cases only when you tick "include live tests".
+6. **Approve and deploy**: tick that you reviewed this version; failed or skipped tests
+   need a second tick. An OpenAPI proposal goes on to Import an API instead.
+
+How the proposal is checked, the deploy gate and the limits are in
+[Tool Generation](../architecture/Tool%20Generation.md);
+[Tutorial 24](../tutorials/TUTORIAL_24_describe_a_tool.md) walks through it.
+
 ## Other ways in
 
-- **Command line:** `sajha studio deploy <file.py>` analyses and deploys a decorated function, `sajha studio import-openapi <url|file>` imports an API description, and `sajha studio delete <name>` removes a tool ([Command Line](../clients/Command%20Line.md)).
+- **Command line:** `sajha studio deploy <file.py>` analyses and deploys a decorated function, `sajha studio import-openapi <url|file>` imports an API description, `sajha studio describe "<text>"` proposes and tests a tool from a description (`--deploy` to approve it), and `sajha studio delete <name>` removes a tool ([Command Line](../clients/Command%20Line.md)).
 - **Python Playground:** **Open in playground** on the Python creator sends the function to the [Python Playground](../getting-started/Python%20Playground.md) with a cell that calls it, so you can try it before deploying.
 
 ---

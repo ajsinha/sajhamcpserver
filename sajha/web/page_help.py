@@ -175,6 +175,12 @@ PAGE_HELP: dict = {
                 're-encrypt the vault after a key change. Never a token.',
         'terms': ['Connected account', 'Token vault', 'Vault key', 'Audit log'],
         'guide': 'Connected Accounts.md'},
+    'admin_connectors_page': {
+        'what': 'Databases, warehouses, vector stores and search clusters behind governed, read-only tools: add and '
+                'test a connection, browse its catalog, mask columns, build curated views.',
+        'terms': ['Data connector', 'Connection record', 'Statement guard', 'Read-only session', 'Schema catalog',
+                  'Table allowlist', 'Column masking', 'Curated view', 'Secret reference'],
+        'guide': 'Data Connectors.md'},
     'admin_policies_page': {
         'what': 'The policy files: rules evaluated before every tool call on every path, and a test bench that '
                 'answers "would this call be allowed?" without running it.',
@@ -191,6 +197,28 @@ PAGE_HELP: dict = {
                 'anchor the chain head, watch the SIEM sinks.',
         'terms': ['Audit log', 'Audit hash chain', 'Audit anchor', 'SIEM export', 'CEF', 'OCSF'],
         'guide': 'Policy and Audit.md'},
+    'workflows_page': {
+        'what': 'Workflows: DAGs of tool, composite and Ask SAJHA steps with branches, loops, waits and approvals; '
+                'their schedules and triggers, and every run with its step timeline. Steps run as the owner.',
+        'terms': ['Workflow', 'Workflow step', 'Join rule', 'Workflow trigger', 'Cron schedule', 'Signed webhook',
+                  'Run as', 'Workflow run', 'Run resume', 'Re-run from a step', 'Published workflow'],
+        'guide': 'Workflows.md'},
+    'admin_tool_health_page': {
+        'what': 'Tool quality at a glance: scheduled health probes and their history, saved runs of the test '
+                'harness (run them here against cassettes or live), and the schema linter.',
+        'terms': ['Tool test case', 'Test assertion', 'HTTP cassette', 'Health probe', 'Schema lint', 'JUnit XML',
+                  'State store'],
+        'guide': 'Tool Quality.md'},
+    'admin_tool_versions_page': {
+        'what': 'Tools with several versions behind one name: routing (canary, role, user and API-key pins), '
+                'per-version calls and errors, automatic rollbacks, sunset dates; edit, promote, clear.',
+        'terms': ['Tool version', 'Canary', 'Version pin', 'Automatic rollback', 'Sunset date', 'State store'],
+        'guide': 'Tool Quality.md'},
+    'admin_evals_page': {
+        'what': 'Golden question sets for Ask SAJHA: run one on a model and planner, read each answer, and compare '
+                'two runs for tool-selection accuracy, answer checks, steps, tokens, cost and latency.',
+        'terms': ['Eval set', 'Tool-selection accuracy', 'Answer check', 'Planner', 'Mock provider'],
+        'guide': 'Tool Quality.md'},
     'admin_async_tasks_page': {
         'what': 'Background tool runs submitted for asynchronous execution, and where their results go.',
         'terms': ['Async execution', 'AsyncTask', 'DeliveryRouter', 'Backpressure'],
@@ -201,6 +229,11 @@ PAGE_HELP: dict = {
         'terms': ['MCP Studio', 'Creator', '@sajhamcptool decorator', 'AST', 'Type hints',
                   'Code generation', 'Sandbox', 'Sandbox policy'],
         'guide': 'MCP Studio User Guide.md'},
+    'studio_describe': {
+        'what': 'Describe a tool in plain words; review the proposed files, run its tests, approve the deploy.',
+        'terms': ['Describe a tool', 'Tool proposal', 'toolsmith (model alias)', 'Proposal hash', 'Live test',
+                  'Test fixture', 'Sandbox', 'Policy engine'],
+        'guide': 'Tool Generation.md'},
     'studio_examples': {
         'what': 'Worked examples to start a Python code tool from.',
         'terms': ['Template (Studio)', '@sajhamcptool decorator', 'Type hints', 'Docstring'],

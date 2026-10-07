@@ -79,7 +79,7 @@ The engine needs three facts the tool does not have:
 | Fact | Where it comes from |
 |---|---|
 | the caller (user, API key, roles, auth type) | `sajha.observability.caller.current()`, set by each entry point (A2A and async tasks now set it too) |
-| the source | `sajha.policy.context`: `mcp`, `stdio`, `websocket`, `rest`, `playground`, `a2a`, `ask`, `async`, else `other`. The first entry point to set it wins, so a stdio call stays `stdio` when it reaches the MCP handler; Ask SAJHA overrides it, because its tool calls are chosen by a model |
+| the source | `sajha.policy.context`: `mcp`, `stdio`, `websocket`, `rest`, `playground`, `a2a`, `ask`, `async`, `workflow` (a workflow step, run as the workflow owner; docs/architecture/Workflows.md), else `other`. The first entry point to set it wins, so a stdio call stays `stdio` when it reaches the MCP handler; Ask SAJHA and workflows override it, because its tool calls are chosen by a model |
 | whether the caller confirmed | the MRTR answer on the 2026-07-28 path, or the Ask SAJHA confirm button (section 5) |
 
 ---

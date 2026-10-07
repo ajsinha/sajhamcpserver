@@ -26,12 +26,21 @@ def client():
         yield c
 
 
+@pytest.fixture(autouse=True)
+def _anonymous_client(client):
+    """Each test starts signed out: a sign-in test leaves its session cookie in the shared
+    client's jar, which made later "anonymous" checks pass or fail by test order."""
+    client.cookies.clear()
+    yield
+
+
 @pytest.fixture(scope='module')
 def auth_headers(client):
     """Admin JWT token as Authorization header."""
     r = client.post('/api/auth/login', json={'user_id': 'admin', 'password': 'admin123'})
     assert r.status_code == 200
     token = r.json()['token']
+    client.cookies.clear()     # the shared client stays anonymous; tests pass these headers
     return {'Authorization': f'Bearer {token}'}
 
 
@@ -40,6 +49,7 @@ def auth_cookies(client):
     """Admin session cookie from form login."""
     r = client.post('/login', data={'user_id': 'admin', 'password': 'admin123'}, follow_redirects=False)
     assert r.status_code == 302
+    client.cookies.clear()     # else every later "signed-out" request in this module is signed in
     return dict(r.cookies)
 
 

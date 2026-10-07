@@ -1,0 +1,26 @@
+# Tool test cases (docs/architecture/Tool Quality.md §2). Run: python -m sajha.quality test --tool calc_*
+tool: calc_percentage_change
+cases:
+  - name: increase
+    tags: [smoke]
+    arguments: {old_value: 80, new_value: 100}
+    expect:
+      - schema: output
+      - path: $.percentage_change
+        equals: 25
+        tolerance: 0.0001
+      - path: $.old_value
+        type: number
+      - latency_ms: 1000
+  - name: decrease
+    arguments: {old_value: 200, new_value: 150}
+    expect:
+      - path: $.percentage_change
+        equals: -25
+  - name: rejects a string
+    arguments: {old_value: "eighty", new_value: 100}
+    error: "old_value"
+# opt-in health probe (quality.probes.enabled: true turns the scheduler on)
+probe:
+  case: increase
+  every: 300

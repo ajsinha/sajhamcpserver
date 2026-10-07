@@ -1,0 +1,14 @@
+# Tool test cases (docs/architecture/Tool Quality.md §2)
+tool: calc_npv
+cases:
+  - name: small project
+    tags: [smoke]
+    arguments: {discount_rate: 10, cash_flows: [-100, 50, 60]}
+    expect:
+      - path: $.npv
+        equals: -4.96
+        tolerance: 0.01
+      - path: $.cash_flows
+        length: 3
+      - path: $.cash_flows[0]
+        max: 0

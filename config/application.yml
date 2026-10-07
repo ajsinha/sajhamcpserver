@@ -413,6 +413,7 @@ ai:
     fast:      [mock/mock-planner]
     reasoning: [mock/mock-planner]
     embedding: [mock/mock-embed]
+    toolsmith: [mock/mock-toolsmith]   # Studio "Describe a tool" (studio.describe.model)
   policy:
     enabled: true
     roles:
@@ -487,6 +488,27 @@ async:
       # Files are written only inside this directory (relative paths; no traversal)
       base_dir: ${ASYNC_FILE_DIR:data/async_results}
       max_size_mb: 50
+
+# ── Workflows (sajha/workflows; docs/architecture/Workflows.md) ──────────────
+# DAGs of tool, composite and Ask SAJHA steps with cron, webhook, file and event
+# triggers. Runs are stored in the workflow_runs tables; several workers need a
+# shared state store (state.backend redis|database) so a schedule fires once.
+# Outputs are delivered through async.delivery (the same allow-list and file dir).
+workflows:
+  enabled: true
+  tick_seconds: 5                 # scheduler period: cron, file polls, resume, queued runs
+  max_concurrent_runs: 8          # runs executing at once in this worker
+  default_concurrency: 4          # runs of one workflow at once (all workers); a definition's "concurrency" overrides
+  max_parallel_steps: 4           # steps of one run at once; a definition's "max_parallel" overrides
+  step_timeout_seconds: 300       # a step that sets no timeout_seconds
+  loop_max_items: 100             # foreach cap when the step sets no max_items
+  loop_hard_max_items: 10000      # foreach cap no step can exceed
+  inline_wait_seconds: 5          # longer waits park the run and free the worker
+  heartbeat_seconds: 5
+  stale_seconds: 60               # a running run whose heartbeat is older is resumed elsewhere
+  step_output_max_chars: 262144   # larger step outputs are stored as a truncated preview
+  step_input_max_chars: 16384
+  run_retention_days: 30          # finished runs older than this are deleted (0 keeps all)
 
 # ── Shell Execution (DISABLED BY DEFAULT) ────────────────────────────────────
 # Sandboxed Python and Bash execution for AI agents.
@@ -586,6 +608,29 @@ api_import:
   graphql_depth: 2                 # selection-set depth generated for GraphQL tools (1-5)
   records_dir: config/api_imports  # import records (storage backend)
 
+# ── Data connectors: databases, warehouses, vector stores as governed read-only tools ──
+# Every key: docs/getting-started/Configuration Reference.md#data-connectors; design:
+# docs/architecture/Data Connectors.md. Connections live in config/connectors/<id>.json
+# (the /admin/connectors page writes them) with secret references only, never values.
+connectors:
+  enabled: true
+  records_dir: config/connectors   # connection records (storage backend)
+  default_max_rows: 500            # a connection's limits default to these ...
+  max_rows_limit: 10000            # ... and are capped by these
+  default_max_bytes: 2097152
+  max_bytes_limit: 16777216
+  default_timeout_seconds: 30
+  max_timeout_seconds: 300
+  sample_rows: 3                   # sample rows describe_table shows
+  catalog_ttl_seconds: 600         # per-process schema catalog cache
+  catalog_max_tables: 2000
+  pool_size: 4                     # idle connections kept per connection
+  pool_max_age_seconds: 300
+  record_refresh_seconds: 5
+  require_sqlglot: false           # true: refuse caller SQL without the sqlglot parser
+  audit_sql: false                 # true: SQL text in audit records (else its SHA-256)
+  sync_on_startup: true
+
 # ── Connected accounts: users link GitHub, Slack, Google, ... once; tools act as them ──
 # Every key: docs/getting-started/Configuration Reference.md#connected-accounts; design:
 # docs/architecture/Connected Accounts.md. Secrets never go here: the vault key comes from
@@ -677,3 +722,22 @@ audit:
   export:
     allowed_urls: []               # URL prefixes HTTP sinks may post to (empty: any public host)
     sinks: []                      # syslog | http | file sinks: see docs/architecture/Policy and Audit.md#8-siem-export
+
+# ── Tool quality: test harness, linter, health probes, evals, tool versions ──
+# Nothing runs by default: probes are off and no tool has a versions file. Every key:
+# docs/getting-started/Configuration Reference.md#quality; design: docs/architecture/Tool Quality.md.
+quality:
+  tests_dir: config/tool_tests     # test cases (*.yaml|*.yml|*.json); tool configs may also carry "tests"
+  cassettes_dir: config/tool_tests/cassettes   # recorded HTTP fixtures, <tool>/<case>.json
+  evals_dir: config/evals          # Ask SAJHA eval sets
+  versions_dir: config/tool_versions   # <tool>.yaml: versions, canary routing, rollback, deprecation
+  lint:
+    min_description: 40            # shorter tool descriptions are a warning
+  probes:
+    enabled: false                 # true: run the probe: blocks of test files on their schedule
+    tick_seconds: 15               # how often the scheduler looks for due probes
+    default_every_seconds: 300     # a probe with neither every nor cron
+    history: 20                    # results kept per tool (state store)
+  versions:
+    enabled: true                  # false: versions files are ignored (every call runs the registered tool)
+    reload_seconds: 5              # recheck versions_dir at most this often

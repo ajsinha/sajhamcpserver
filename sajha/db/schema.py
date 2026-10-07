@@ -146,7 +146,9 @@ def metadatas() -> list:
     from sajha.core.state.database import _meta as state_md
     from sajha.db.base import Base
     from sajha.observability.usage import metadata as usage_md
-    return [Base.metadata, state_md, usage_md, accounts_md, memory_md, audit_md]
+    from sajha.quality.store import metadata as quality_md
+    from sajha.workflows.store import metadata as workflows_md
+    return [Base.metadata, state_md, usage_md, accounts_md, memory_md, audit_md, workflows_md, quality_md]
 
 
 def tables() -> dict:

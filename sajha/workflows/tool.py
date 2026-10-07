@@ -46,7 +46,8 @@ class WorkflowTool(BaseMCPTool):
         if self.workflow_name in CHAIN.get():
             raise RuntimeError(f'workflow {self.workflow_name} cannot call itself (through its published tool)')
         run = self._service.start_run(self.workflow_name, dict(arguments or {}), trigger_type='tool',
-                                      trigger_id=self.name, started_by=current().user_id)
+                                      trigger_id=self.name, started_by=current().user_id,
+                                      trigger_detail={'chain': list(CHAIN.get())})
         run = self._service.wait_for(run['id'], self._timeout)
         status = run['status']
         result = {'run_id': run['id'], 'status': status, 'output': run.get('output')}

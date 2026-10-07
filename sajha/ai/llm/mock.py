@@ -13,6 +13,8 @@ real provider is configured, so a fresh install can use the intelligence layer a
                      question's keywords, calls the best one (or two) with arguments filled
                      from the schema (defaults, numbers, symbols in the question), then
                      answers from the tool results
+    mock-toolsmith   designs a tool from a description for Studio's "Describe a tool"
+                     (structured output only; sajha/ai/llm/mock_toolsmith.py)
     mock-embed       deterministic embeddings from hashed word n-grams (default 256 dims)
 
 Fault injection (config or per test): latency_ms [lo, hi] (seeded), fail_every N,
@@ -148,6 +150,9 @@ class MockProvider(LLMProvider):
                                            tags=frozenset({"deterministic"})),
         "mock-planner": ModelCapabilities(tools=True, structured_output=True, context_window=128_000,
                                           tags=frozenset({"deterministic", "fast", "cheap", "reasoning"})),
+        # Studio "Describe a tool": designs a tool from a description (sajha/ai/llm/mock_toolsmith.py)
+        "mock-toolsmith": ModelCapabilities(tools=False, structured_output=True, context_window=128_000,
+                                            tags=frozenset({"deterministic"})),
     }
 
     def __init__(self, *a, **kw):
@@ -236,6 +241,9 @@ class MockProvider(LLMProvider):
         if caps is None:
             from sajha.ai.llm.errors import UnsupportedFeature
             raise UnsupportedFeature(f"mock has no model '{model_id}'", provider=self.name, model=model_id)
+        if base == "mock-toolsmith":
+            from sajha.ai.llm.mock_toolsmith import ToolsmithModel
+            return ToolsmithModel(self, model_id, caps, **options)
         cls = {"mock-echo": EchoModel, "mock-scripted": ScriptedModel, "mock-planner": PlannerModel}[base]
         return cls(self, model_id, caps, **options)
 

@@ -1,0 +1,14 @@
+# Tool test cases for two more offline calculators (docs/architecture/Tool Quality.md §2)
+tool: calc_compound_interest
+cases:
+  - name: ten years at five percent
+    tags: [smoke]
+    arguments: {principal: 1000, rate: 5, years: 10}
+    expect:
+      - path: $.future_value
+        equals: 1647.01
+        tolerance: 0.01
+      - path: $.total_interest
+        min: 0
+      - path: $
+        contains: {principal: 1000, years: 10}
