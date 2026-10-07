@@ -35,15 +35,16 @@ versions as any other tool.
 10. [Conversation memory](#10-conversation-memory)
 11. [Recursion and composition](#11-recursion-and-composition)
 12. [Models, sampling, budgets and limits](#12-models-sampling-budgets-and-limits)
-13. [Safety](#13-safety)
-14. [Results and errors](#14-results-and-errors)
-15. [Observability and audit](#15-observability-and-audit)
-16. [Testing and quality](#16-testing-and-quality)
-17. [Moving `sajha_ask` onto the new type](#17-moving-sajha_ask-onto-the-new-type)
-18. [Schema and configuration changes](#18-schema-and-configuration-changes)
-19. [Build plan](#19-build-plan)
-20. [Decisions for the owner](#20-decisions-for-the-owner)
-21. [Alternatives considered](#21-alternatives-considered)
+13. [The model interface: OpenAI-style, for portability](#13-the-model-interface-openai-style-for-portability)
+14. [Safety](#14-safety)
+15. [Results and errors](#15-results-and-errors)
+16. [Observability and audit](#16-observability-and-audit)
+17. [Testing and quality](#17-testing-and-quality)
+18. [Moving `sajha_ask` onto the new type](#18-moving-sajha_ask-onto-the-new-type)
+19. [Schema and configuration changes](#19-schema-and-configuration-changes)
+20. [Build plan](#20-build-plan)
+21. [Decisions for the owner](#21-decisions-for-the-owner)
+22. [Alternatives considered](#22-alternatives-considered)
 
 ---
 
@@ -98,6 +99,8 @@ tool planning at all.
   routing and loops are expressed as bounded graphs of stages, not code.
 - G9. No load can take the process down: memory is bounded per call and per process, large data
   spills to disk, and excess work is queued or refused.
+- G10. Portable model interface: providers, models and the gateway speak the OpenAI Chat
+  Completions format, and SAJHA can offer that API outward (section 13).
 
 **Non-goals**
 
@@ -128,6 +131,7 @@ definitions live).
 | Stage | One unit of planner work from a fixed library (act, plan, critique, verify, ...), ending in a typed outcome. |
 | Bounded edge | A planner transition that may loop back, with a maximum number of visits and a destination when it is reached. |
 | Spool | Per-run files on local disk that hold large in-flight payloads instead of process memory. |
+| Canonical format | The OpenAI Chat Completions request and response shapes that every SAJHA model call uses (section 13). |
 | Memory guard | The watchdog that slows, refuses or ends LLM-tool runs before the process runs out of memory. |
 
 ---
@@ -145,13 +149,13 @@ An LLM tool is a normal entry in the tool registry:
 | Registry and reload | Loaded by `ToolsRegistry`; hot reload picks up edits; a broken `llm` block fails that tool's load only. |
 | Access | Visible and callable under the same rules as any tool (roles, API-key tool patterns, `mcp.anonymous.*`). |
 | Policy engine | Every call to the LLM tool and every inner call is evaluated (allow, deny, redact, require approval, rate limit). |
-| Audit and metrics | The LLM tool call is one record; each inner call is its own record linked to it (section 15). |
+| Audit and metrics | The LLM tool call is one record; each inner call is its own record linked to it (section 16). |
 | Tool quality | Test cases, cassettes, lint, probes, evals, versions and canary apply unchanged ([Tool Quality](Tool%20Quality.md)). |
 | Studio | A new creator, "LLM tool", writes the config file; Describe a tool can propose one ([Tool Generation](Tool%20Generation.md)). |
 | Planners | A planner registry loads planner files from `config/planners/<name>.yaml` with the same loading, reload, lint and versioning as tools (section 9). |
 | Composition and workflows | Composites and workflow steps can call an LLM tool like any other tool, subject to the depth rule (section 11). |
 
-Server-wide settings live under a new `ai.llm_tools.*` section (section 18). They are
+Server-wide settings live under a new `ai.llm_tools.*` section (section 19). They are
 **ceilings**: a tool config can ask for less, never more.
 
 ---
@@ -553,7 +557,7 @@ A planner file is refused (and `python -m sajha.quality lint` reports it) when:
   tool configs), reloads on change, and keeps the previous good version if a new file fails
   validation.
 - Each planner has a `version`. A tool can pin `name@version`; tool versions and canaries
-  (section 16) can compare two planners on live traffic, and eval sets can compare them offline
+  (section 17) can compare two planners on live traffic, and eval sets can compare them offline
   (`python -m sajha.quality eval`, per model and planner, already exists).
 - The audit record of every LLM-tool call names the planner, its version and the path of stages
   taken.
@@ -723,7 +727,7 @@ four tiers with an explicit bound and an explicit spill path for each:
 
 Each call builds the model's context from the summary plus the last `ai.memory.history_turns`
 turns verbatim, and condenses a follow-up into a standalone question so tool shortlisting
-works. LLM tools add a `tool_name` and an `expires_ts` to the conversation row (section 18), so
+works. LLM tools add a `tool_name` and an `expires_ts` to the conversation row (section 19), so
 each tool's conversations are separate and each can expire on its own schedule.
 
 ### 10.4 Bounding RAM and protecting the process
@@ -816,7 +820,7 @@ from the outer call's remaining cost and time, never a fresh allowance.
 **Model choice.** Through the gateway only, so provider policy (`ai.policy`), per-user daily
 token budgets (`ai.budgets`), retries, circuit breakers, fallback across an alias's candidates
 and the response cache all apply. Per-tool `model` picks an alias; the mock model answers every
-mode offline (it needs scripted replies for each mode, section 16).
+mode offline (it needs scripted replies for each mode, section 17).
 
 **Sampling.** `sampling: prefer` uses the client's model when the client declared the sampling
 capability, and SAJHA's own model otherwise; `require` refuses callers without it; `never`
@@ -838,7 +842,121 @@ limits still apply.
 
 ---
 
-## 13. Safety
+## 13. The model interface: OpenAI-style, for portability
+
+Every model call an LLM tool, a planner stage or Ask SAJHA makes goes through one interface. This
+design makes that interface the **OpenAI Chat Completions format**: the request and response shapes
+that OpenAI defined and that most providers, open-source model servers and client libraries now
+accept or emulate. Code written against SAJHA's provider and model abstraction then reads like
+code written against any OpenAI-compatible SDK, and moves between providers, and in and out of
+SAJHA, without rewriting.
+
+### 13.1 Today
+
+The intelligence layer ([Intelligence Layer](Intelligence%20Layer.md)) has its own neutral types
+in `sajha/ai/llm/types.py`: a `ChatRequest` with `messages` made of typed parts, a separate
+`system` field, `tools` as `ToolSpec` objects with `input_schema`, `response_schema` for
+structured output, and a `ChatResponse` whose `Usage` counts `input_tokens` and `output_tokens`.
+Each provider in `sajha/ai/llm/providers/` translates those types to its vendor's API; the
+`openai_compat` provider covers the many servers that already speak the OpenAI format. The
+types are sound, but they are SAJHA's own: a planner or provider written for SAJHA does not look
+like anything a developer already knows, and nothing outside SAJHA can call its gateway.
+
+### 13.2 The canonical format
+
+SAJHA's request and response types become typed models of the Chat Completions format:
+
+| Concept | OpenAI-style field | Replaces today's |
+|---|---|---|
+| Conversation | `messages: [{role: system \| user \| assistant \| tool, content, name?}]` | `messages` of parts plus a separate `system` |
+| Multimodal content | `content` as a string or a list of `{type: "text"}` / `{type: "image_url"}` parts | `TextPart`, `ImagePart` |
+| Tool definitions | `tools: [{type: "function", function: {name, description, parameters, strict?}}]` | `ToolSpec(name, description, input_schema)` |
+| Tool choice | `tool_choice: "auto" \| "none" \| "required" \| {type: "function", function: {name}}`, `parallel_tool_calls` | `tool_choice` string |
+| Tool calls | assistant `tool_calls: [{id, type: "function", function: {name, arguments}}]`, `arguments` a JSON string | `ToolCallPart(id, name, arguments: dict)` |
+| Tool results | `{role: "tool", tool_call_id, content}` | `ToolResultPart` |
+| Structured output | `response_format: {type: "json_schema", json_schema: {name, schema, strict}}` or `{type: "json_object"}` | `response_schema` |
+| Sampling controls | `temperature`, `top_p`, `max_completion_tokens` (accepting `max_tokens`), `stop`, `seed`, `n` | same ideas, different names |
+| Response | `{id, object: "chat.completion", created, model, choices: [{index, message, finish_reason}], usage}` | `ChatResponse` |
+| Finish reasons | `stop`, `length`, `tool_calls`, `content_filter` | free-form `finish_reason` |
+| Usage | `usage: {prompt_tokens, completion_tokens, total_tokens, prompt_tokens_details: {cached_tokens}}` | `Usage(input_tokens, output_tokens, cached_tokens)` |
+| Streaming | `chat.completion.chunk` events with `choices[].delta` (content and tool-call fragments), usage in the last chunk | `TextDelta`, `ToolCallDelta` |
+| Embeddings | `{model, input}` → `{data: [{embedding, index}], usage}` | `embed(texts)` |
+
+**SAJHA's own information stays out of the standard fields.** What only SAJHA needs (the caller's
+identity for budgets and policy, the trace id, the access check for tool calls, the cost it
+computed, whether the cache answered, which provider and fallback served the call) travels in a
+single namespaced field, `sajha` (request) and `sajha` (response), so a request stripped of it is
+a valid OpenAI request and a response stripped of it is a valid OpenAI response. The equivalent of
+the OpenAI SDKs' `extra_body` carries provider-specific options that have no standard field.
+
+### 13.3 The provider and model interfaces
+
+The interfaces mirror the shape developers know from OpenAI-style client libraries:
+
+```python
+class LLMModel(Protocol):                       # one model at one provider
+    def chat_completions_create(self, **request) -> ChatCompletion: ...
+    def chat_completions_stream(self, **request) -> Iterator[ChatCompletionChunk]: ...
+    async def achat_completions_create(self, **request) -> ChatCompletion: ...
+    def embeddings_create(self, **request) -> EmbeddingsResponse: ...    # embedding models only
+
+class LLMProvider(Protocol):                    # a vendor or server, with its credentials
+    def models(self) -> list[ModelInfo]: ...    # like GET /v1/models
+    def model(self, name: str) -> LLMModel: ...
+```
+
+- **The gateway exposes the same interface.** `gateway.chat_completions_create(model="reasoning",
+  messages=[...], tools=[...])` resolves the alias, applies policy, budgets, cache, retries,
+  breakers and fallback, and returns a `ChatCompletion`. Planner stages and LLM tools call only
+  the gateway.
+- **Providers translate at the edge, once.** Each provider adapter converts the canonical format to
+  its vendor's API and back (Anthropic Messages, Gemini, Bedrock Converse, Cohere, Mistral, and so
+  on). For every OpenAI-compatible server (OpenAI, Azure OpenAI, Groq, Together, Fireworks,
+  DeepSeek, xAI, OpenRouter, Perplexity, vLLM, LM Studio, Ollama's compatible endpoint) the adapter
+  is a pass-through with only authentication and base URL differing.
+- **Differences are declared, not hidden.** Each model's `ModelInfo` states what it supports
+  (tools, parallel tool calls, `json_schema` output, vision, streaming usage, seeds, maximum
+  context). The gateway refuses a request a model cannot honour (for example `response_format`
+  with `strict` on a model without structured output) with a clear error, or uses the declared
+  fallback (for example JSON mode plus validation and one retry), never a silent downgrade.
+- **The mock follows the same format.** The mock provider and its scripted replies speak Chat
+  Completions, so tests and the offline default exercise exactly the shapes real providers return.
+
+### 13.4 SAJHA as an OpenAI-compatible endpoint
+
+Because SAJHA speaks the format internally, it can also offer it outward, opt-in
+(`ai.openai_api.enabled`):
+
+- `POST /v1/chat/completions`, `GET /v1/models` and `POST /v1/embeddings`, authenticated with a
+  SAJHA API key as the bearer token, so any OpenAI SDK or tool can use SAJHA's gateway by changing
+  only its base URL and key, and gets SAJHA's governance: model policy per role, budgets, caching,
+  fallback across providers, audit and cost reporting.
+- **LLM tools appear as models.** Each enabled LLM tool can be listed as a model
+  (`sajha:markets_assistant`): a chat completion addressed to it runs the tool, with its planner,
+  its tools, its limits and the caller's identity, and returns its answer as the assistant message
+  (with the conversation handle in the `sajha` field). An OpenAI-style client can thus use a
+  governed SAJHA assistant without knowing MCP.
+- These endpoints follow the same access rules as everything else: a caller sees only the models
+  and LLM tools their role allows.
+
+### 13.5 Moving to the new format
+
+- The canonical models are added next to today's types, with lossless converters both ways, so
+  providers, planners and the Ask SAJHA service move one at a time; the old types are removed once
+  nothing uses them.
+- Every provider gets **golden translation tests**: the same canonical requests (plain chat, tool
+  definitions, a tool-call round trip, parallel tool calls, structured output, streaming with tool
+  fragments, an image) translated to the vendor's format and the vendor's recorded replies
+  translated back, compared with stored expectations.
+- A **portability suite** runs one set of canonical requests through the mock and through every
+  configured provider, and checks the responses are well-formed Chat Completions with the
+  declared capabilities honoured.
+- `docs/architecture/Extending the Intelligence Layer.md` is rewritten around the new interfaces,
+  so a custom provider is written against the format its author already knows.
+
+---
+
+## 14. Safety
 
 - **Prompt injection through tool results.** Tool results are data, inserted in delimited
   blocks and screened with the same injection markers federation uses; a flagged result is
@@ -856,7 +974,7 @@ limits still apply.
 
 ---
 
-## 14. Results and errors
+## 15. Results and errors
 
 A successful call returns `structuredContent` matching the output schema, plus a text block
 for clients on older protocol versions. `stopped_by` says how the run ended:
@@ -876,7 +994,7 @@ Argument validation errors and access denials are ordinary tool errors, as for a
 
 ---
 
-## 15. Observability and audit
+## 16. Observability and audit
 
 - **Audit.** The LLM tool call is one record; every inner call is its own record carrying the
   outer call's id, so an answer can be traced to each tool it used. Conversation turns carry the
@@ -891,7 +1009,7 @@ Argument validation errors and access denials are ordinary tool errors, as for a
 
 ---
 
-## 16. Testing and quality
+## 17. Testing and quality
 
 - **Mock scripts per mode.** The mock model gets scripted replies for each mode (plan steps,
   extraction JSON, labels, rubric scores), so every mode is tested offline and in CI.
@@ -910,7 +1028,7 @@ Argument validation errors and access denials are ordinary tool errors, as for a
 
 ---
 
-## 17. Moving `sajha_ask` onto the new type
+## 18. Moving `sajha_ask` onto the new type
 
 `sajha_ask` becomes a config file in `config/tools/` (to be added) with `mode: answer`, the current input and
 output fields, and `memory.mode: conversation`. `sajha/ai/ask_tool.py` is reduced to a
@@ -928,7 +1046,7 @@ the same pipeline.
 
 ---
 
-## 18. Schema and configuration changes
+## 19. Schema and configuration changes
 
 **Database** (no migrations: both schema files change together, `tests/test_db_schema.py`
 enforces it; SAJHA runs no DDL on PostgreSQL):
@@ -991,27 +1109,29 @@ onto the registry.
 
 ---
 
-## 19. Build plan
+## 20. Build plan
 
 Each step ends green: full suite, both conformance suites, mobile check for any page.
 
 | Step | Scope | Gate |
 |---|---|---|
 | 1 | Caller identity for inner calls and the depth context; `sajha_ask` runs as the caller | identity and recursion tests |
-| 2 | `LLMTool`, config validation, modes `answer`, `complete`, `extract`, `classify`; derived annotations; lint rules | mode tests on the mock |
-| 3 | Planner engine: stage library, graph validation (reachability, outcomes, bounded cycles), state slots, `when` expressions, registry and reload; the four built-ins re-expressed as files with their existing tests passing against both forms | path and bound tests |
-| 4 | Strategies shipped as files: Reflect, verify-then-answer, self-consistency, branch and judge, map-reduce, human in the loop, and `auto` (selection plus escalation, section 9.13); planner resolution and `planner_choices`; dry run; per-stage events and metrics; eval sets comparing strategies | evals on the mock |
-| 5 | Memory: handle, `tool_name`/`expires_ts` columns in both schema files, turn folding, scheduled purge, `client` history | memory tests incl. two workers |
-| 6 | Resource safety: working-set budget, spool and janitor, concurrency limit and queue, memory guard, optional hot cache, state-store caps; load test that drives the process to its soft and hard limits without a crash | soak and pressure tests |
-| 7 | Modes `grounded`, `narrate`, `judge`; caching for deterministic modes | mode tests |
-| 8 | `sajha_ask` moved onto the type; shipped examples (an assistant, a summariser, a classifier, a grounded docs Q&A); eval sets | evals pass on the mock |
-| 9 | Studio "LLM tool" creator and a planner editor with validation and dry run; Describe-a-tool proposals; conversations page | page tests, mobile check |
-| 10 | Sampling (`prefer`, `require`) on both eras, starting with non-planner modes | protocol tests, conformance |
-| 11 | Docs: this note becomes as-built; glossary terms; tutorials (an LLM tool, a custom planner); Configuration and API Reference; Security Model; help card; CHANGELOG | doc-rot tests |
+| 2 | Canonical OpenAI-style model interface: Chat Completions types, gateway and model interfaces, provider adapters (pass-through for OpenAI-compatible servers), declared capabilities, the mock in the same format, golden translation tests and the portability suite; converters from today's types so callers move one at a time | translation and portability suites |
+| 3 | `LLMTool`, config validation, modes `answer`, `complete`, `extract`, `classify`; derived annotations; lint rules | mode tests on the mock |
+| 4 | Planner engine: stage library, graph validation (reachability, outcomes, bounded cycles), state slots, `when` expressions, registry and reload; the four built-ins re-expressed as files with their existing tests passing against both forms | path and bound tests |
+| 5 | Strategies shipped as files: Reflect, verify-then-answer, self-consistency, branch and judge, map-reduce, human in the loop, and `auto` (selection plus escalation, section 9.13); planner resolution and `planner_choices`; dry run; per-stage events and metrics; eval sets comparing strategies | evals on the mock |
+| 6 | Memory: handle, `tool_name`/`expires_ts` columns in both schema files, turn folding, scheduled purge, `client` history | memory tests incl. two workers |
+| 7 | Resource safety: working-set budget, spool and janitor, concurrency limit and queue, memory guard, optional hot cache, state-store caps; load test that drives the process to its soft and hard limits without a crash | soak and pressure tests |
+| 8 | Modes `grounded`, `narrate`, `judge`; caching for deterministic modes | mode tests |
+| 9 | `sajha_ask` moved onto the type; shipped examples (an assistant, a summariser, a classifier, a grounded docs Q&A); eval sets | evals pass on the mock |
+| 10 | Studio "LLM tool" creator and a planner editor with validation and dry run; Describe-a-tool proposals; conversations page | page tests, mobile check |
+| 11 | Sampling (`prefer`, `require`) on both eras, starting with non-planner modes | protocol tests, conformance |
+| 12 | SAJHA as an OpenAI-compatible endpoint (opt-in): chat completions, models and embeddings with API-key auth, LLM tools listed as models, access rules applied | client tests with an OpenAI SDK |
+| 13 | Docs: this note becomes as-built, and `Intelligence Layer.md` and `Extending the Intelligence Layer.md` describe the new interfaces; glossary terms; tutorials (an LLM tool, a custom planner); Configuration and API Reference; Security Model; help card; CHANGELOG | doc-rot tests |
 
 ---
 
-## 20. Decisions for the owner
+## 21. Decisions for the owner
 
 All decided by the owner:
 
@@ -1019,7 +1139,7 @@ All decided by the owner:
    administrator enables them. `sajha_ask` stays off by default as today.
 2. **Anonymous access.** Off (`ai.llm_tools.anonymous.enabled: false`): every call spends model
    budget.
-3. **Sampling.** Later: build step 10, after the core, planners and memory work.
+3. **Sampling.** Later: build step 11, after the core, planners and memory work.
 4. **Modes.** The seven in section 6; presets such as `translate` (of `complete`) or `compare`
    (of `judge`) only when asked for.
 5. **Who may create LLM tools.** Users with the `studio` permission; limits and budgets bound
@@ -1031,7 +1151,7 @@ All decided by the owner:
 
 ---
 
-## 21. Alternatives considered
+## 22. Alternatives considered
 
 | Alternative | Why not |
 |---|---|
