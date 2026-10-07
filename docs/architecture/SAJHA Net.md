@@ -1112,14 +1112,16 @@ What this design would add, in combination, is aimed at regulated, multi-domain 
 - **Any MCP server may join**, so the protocol is a published MCP extension and the
   implementation is pluggable (section 5).
 
+- **SAJHA Net agent language:** Python, built from the shared protocol-only core; a single
+  static binary only if a deployment later needs one.
+
 **Still open**
 
 1. **Users with no account on a host:** refuse (default, recommended) or run them with mapped
    roles (`sajhanet.users.unknown`)?
 2. **Administrators from other instances** calling tools: as the host's administrator (default,
    given the net is trusted), as an ordinary user, or refused (`sajhanet.users.remote_admin`)?
-3. **SAJHA Net agent language:** Python first (from the shared core), with a single static binary
-   later for servers where Python is unwelcome?
+
 
 ---
 
