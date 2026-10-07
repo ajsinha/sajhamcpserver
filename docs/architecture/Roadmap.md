@@ -114,13 +114,14 @@ judgement. They are collected in [section 5](#5-decisions-needed).
 | X1 | Enforce tenants (L), or remove the records and rely on roles, API-key tool access and policy rules (S)? |
 | X16 | Build a TypeScript client now, or keep it deferred? |
 | L13 | One-click templates only, or a hosted service as well? |
-| none | Licence: `/comparison` records SAJHA as "All rights reserved: no OSI licence", which keeps it out of evaluations that require one. |
 
 ---
 
 ## 6. Not planned
 
 Limits that are deliberate, so they are not roadmap items. Each owner says why.
+
+- **No open-source licence**: decided. SAJHA is proprietary ("All rights reserved", as `/comparison` records); evaluations that require an OSI licence are out of scope.
 
 - **No stream resumability on the 2026-07-28 path**: by design of that protocol version
   ([MCP 2026-07-28 Compliance](../protocol/MCP%202026-07-28%20Compliance.md#8-known-limits)).
