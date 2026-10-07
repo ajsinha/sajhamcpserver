@@ -122,7 +122,7 @@ SAJHA becomes usable from any OpenAI-style client.
 | Studio permissions per creator, and ownership | Roadmap X2 | Lands with the new creators |
 | Sampling (`prefer`, `require`) on both eras | LLM Tools step 11 | |
 | SAJHA as an OpenAI-compatible endpoint; LLM tools listed as models | LLM Tools step 12 | |
-| One LLM package boundary: everything LLM in `sajha/ai/llm/` (gateway moved in, the legacy `sajha/ai/providers/` layer retired), application code using only the OpenAI-style public API and the abstract provider and model classes, old message types removed from callers, and an architecture test that fails on any vendor SDK, provider module or old type used outside the package | Owner decision; LLM Tools §13 |
+| One LLM package boundary: everything LLM in `sajha/ai/llm/` (gateway moved in, the legacy `sajha/ai/providers/` layer retired), application code using only the OpenAI-style public API and the abstract provider and model classes, old message types removed from callers; an `LLMFactory` (from configuration and the registry) as the only way to obtain providers and models, returning a `GovernedModel` proxy that applies policy, budgets, cache, retries, breakers, fallback, audit and usage before delegating to the provider model, with vendor specifics delegated to per-provider functions; and an architecture test that fails on any vendor SDK, provider module, direct construction or old type used outside the package | Owner decision; LLM Tools §13 |
 | Console end-to-end and accessibility checks | Roadmap X15 | The new editor pages are their first users |
 | LLM Tools, Planner Reference and Intelligence Layer docs become as-built; tutorials | LLM Tools step 13 | |
 
