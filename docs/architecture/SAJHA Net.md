@@ -363,6 +363,40 @@ The certificate authority is part of SAJHA; no external PKI is needed.
 Where an administrator prefers not to run a CA, peers can still be added by hand with a one-time
 join offer approved on both sides. Gossip then runs among the approved peers only.
 
+### 6.6 Restarts
+
+An instance that is shut down and started again finds its peers without anyone's help.
+
+1. **Last-known peers.** Every instance keeps the membership list it last saw in the storage
+   backend (refreshed on every change), so it survives a restart. On start-up the instance
+   contacts those addresses first.
+2. **Seeds.** Then the configured `sajhanet.gossip.seeds`, which cover the first start ever and a
+   wiped disk.
+3. **Discovery plug-in, if configured.** For example DNS records of a Kubernetes service (section
+   5.3).
+4. **Peers look for it too.** An instance marked `dead` stays on every peer's list for
+   `sajhanet.gossip.dead_retention_minutes`, during which peers probe its last address at a low
+   rate (`dead_probe_interval_seconds`). A restarted instance whose seeds were all down is still
+   found as soon as any peer can reach it.
+
+The first peer that answers sends the full membership list; within a few gossip rounds every
+instance knows it is back.
+
+- **Its return overrides the news of its death.** It rejoins with a higher incarnation, derived
+  from its start time so that it is always higher after a restart even if the previous value was
+  lost; that outranks any `suspect`, `dead` or `left` entry about it.
+- **It is not blind before peers answer.** The key directory is in its database, so forwarded keys
+  can be verified at once. The host and tool table is persisted (section 8.4), so its remote
+  tools come back marked *unconfirmed*, then are confirmed, updated or dropped as each peer's
+  catalog digest arrives; a call to an unconfirmed tool is attempted and fails fast if the host is
+  down. Blocks, user links, trust levels and role maps are in the storage backend and apply from
+  the first request.
+- **Clean shutdown and crash end the same way.** A clean shutdown gossips `leave`, so peers hide
+  its tools immediately; a crash is found by the failure detector. Either way the restart path
+  above is the same.
+- **Several workers.** The worker that wins the gossip lease (section 6.3) performs the rejoin;
+  the others read the membership list from the state store as usual.
+
 ---
 
 ## 7. Catalog exchange
@@ -924,6 +958,8 @@ sajhanet:
     indirect_probes: 3
     suspect_timeout_seconds: 10
     full_sync_interval_seconds: 30
+    dead_retention_minutes: 60      # keep probing a dead instance's last address this long
+    dead_probe_interval_seconds: 30
   refresh_interval_seconds: 300
   unhealthy_grace_seconds: 120
   default_timeout_seconds: 30
@@ -1044,7 +1080,8 @@ at any point in the retained window, and an instance can be rebuilt after losing
   loopback, `localhost` and link-local addresses are never used, and with nothing acceptable the
   instance stays out of the net with a clear message; the underscore tool-name prefix for IPv4 and
   fully expanded IPv6, never containing `__`; tool names over a provider's length limit are reported.
-- **Membership:** joins through a seed, clean leaves, crashes detected through indirect probes,
+- **Membership:** restart rejoins through last-known peers with seeds down; a dead instance found
+  again by peers' low-rate probes; unconfirmed remote tools after restart; joins through a seed, clean leaves, crashes detected through indirect probes,
   false suspicion refuted, rejoin with a higher incarnation, revocation spreading, a server
   without a net certificate refused; a network split heals through anti-entropy.
 - **Identity:** a forwarded key verified against the directory; unknown, disabled, expired or
