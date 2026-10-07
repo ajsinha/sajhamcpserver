@@ -6,6 +6,11 @@
 > built, this file becomes the as-built owner and the [Roadmap](Roadmap.md) item X7
 > (Ask SAJHA over MCP, finished) is closed by it.
 
+> **Across SAJHA servers.** [SAJHA Net](SAJHA%20Net.md) builds on this design: LLM tools are
+> shared between instances like any tool and run, plan and spend model budget on the instance
+> that hosts them; conversation memory always stays on the caller's own instance; and planners
+> see remote tools with their location, health and data classes (SAJHA Net, section 13).
+
 An **LLM tool** is an ordinary MCP tool (a name, a description, an input schema, an output
 schema, a config file in `config/tools/`) whose `execute()` runs a language model instead of
 a fixed piece of code. Depending on its *mode*, the model may use SAJHA's other tools, read

@@ -96,7 +96,8 @@ copying either domain's data into the other.
 
 - Shared state between instances. Each instance keeps its own database, state store and memory;
   only catalogs and calls travel.
-- A consensus protocol or leader election. Membership is configured and approved by people.
+- A consensus protocol or leader election. Who may join is decided by people, by issuing a
+  certificate (section 6.4); everything after that is automatic.
 - Moving data in bulk between instances. A net moves calls, not datasets.
 - Replacing federation with third-party MCP servers; that stays as it is.
 
@@ -132,7 +133,7 @@ These terms go into `GLOSSARY.md` when the feature is built.
 | Incarnation | An instance's own counter that makes newer news about it override older news. |
 | Identity resolver | The pluggable part that turns a caller into credentials on the home instance and back into a verified user on the host instance. |
 | Net key directory | Every instance's synced copy of the API key records (hashes, never keys) issued across the net. |
-| User assertion | (later resolver) A short-lived JWT signed by the home instance naming the user. |
+| User assertion | A short-lived JWT signed by the home instance naming the user; a later identity resolver, not the first (section 10.2). |
 
 ---
 
@@ -665,7 +666,7 @@ copy of everyone's: the **net key directory**.
 |---|---|
 | `key_id`, `key_prefix`, `name` | the key's identity, as in the issuing instance's `api_keys` table |
 | `key_hash` | the SHA-256 hash SAJHA already stores; **the raw key is never synced** |
-| `home_member` | the instance that issued it and is its only authority |
+| `home_instance` | the instance that issued it and is its only authority |
 | `owner` | the owner's user id, display name and role names at the home instance |
 | `enabled`, `expires_at`, `revoked_at` | its current state |
 | `tool_access_mode`, `tool_access_list` | its tool allowlist |
@@ -713,11 +714,11 @@ reach what its users could not reach directly.
 sajhanet:
   export:                         # what this instance offers
     - tools: ["var_*", "stress_*"]
-      to_members: ["risk-*", "treasury-na"]
+      to_instances: ["risk-*", "treasury-na"]
       for_roles: ["risk_analyst", "treasurer"]     # remote roles after mapping (10.3)
       require_approval: false
     - tools: ["*_delete*"]
-      to_members: []                                # never exported
+      to_instances: []                                # never exported
   import:                         # what this instance's users may use
     - instances: ["risk-eu"]
       tools: ["var_*"]
