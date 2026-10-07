@@ -54,6 +54,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [OAuth Guide](protocol/OAuth%20Guide.md)
 - [MCP Apps and Headers Guide](protocol/MCP%20Apps%20and%20Headers%20Guide.md)
 - [API Reference](protocol/API%20Reference.md)
+- [SAJHA Net Protocol](protocol/SAJHA%20Net%20Protocol.md): specification (not built) of the `io.sajha/net` extension that SAJHA Net participants speak: endpoints, signed requests, gossip, key directory, call forwarding, errors, conformance tests
 
 ## Architecture
 
@@ -73,6 +74,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Tool Quality](architecture/Tool%20Quality.md): test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, rollback and sunset dates
 - [Policy and Audit](architecture/Policy%20and%20Audit.md): declarative rules on every tool call (deny, approval, argument constraints, rate limits, quotas, redaction, injection screening); the hash-chained, signed audit and SIEM export
 - [LLM Tools](architecture/LLM%20Tools.md): design (not built) for tools whose work is done by a model, configured like any tool and governed the same way
+- [Planner Reference](architecture/Planner%20Reference.md): design (not built) reference for planner files: keys, the stage library, transitions and bounded loops, the `when` expression language, verify checks, validation messages, a JSON Schema and every shipped strategy in full
 - [SAJHA Net](architecture/SAJHA%20Net.md): design (not built) for several SAJHA servers sharing tools while each keeps its own data, policy, AI and memory
 - [Roadmap](architecture/Roadmap.md): what is not built yet and what should come next, by horizon (now, next, later), each item linked to the guide that records the gap
 

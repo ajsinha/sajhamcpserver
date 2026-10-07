@@ -218,6 +218,9 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Audit anchor** | A checkpoint of an audit hash chain: its head hash and sequence number signed (RS256) with the server's OAuth signing key, stored in `audit_anchors` and in the chain, so a rewritten chain cannot reproduce it. |
 | **SIEM export** | Streaming audit records to a security information and event management system: syslog (RFC 5424 over TCP or TLS), HTTP (Splunk HEC, Datadog, generic) or a rotated JSON Lines file (`audit.export.sinks`). |
 | **CEF** (*Common Event Format*) | ArcSight's one-line event format: a `CEF:0` header of vendor, product, version, event id, name and severity, then key=value extensions; one of the SIEM export formats. |
+| **HTTP Message Signature** | A signature over chosen parts of an HTTP request or response (method, path, headers, a body digest, a creation time and nonce), defined by RFC 9421. The SAJHA Net protocol (a design, not built) signs every request between participants this way instead of relying on mutual TLS. |
+| **Content-Digest** | An HTTP header carrying a hash of the message body (RFC 9530), for example `sha-256=:...:`; covering it in an HTTP Message Signature makes the body tamper-evident. |
+| **JCS** (*JSON Canonicalization Scheme*) | RFC 8785: one exact byte form of a JSON value (sorted member names, fixed number and string formatting), so a signature over JSON verifies however the JSON was re-serialized on the way. |
 | **OCSF** (*Open Cybersecurity Schema Framework*) | A vendor-neutral JSON schema for security events; SAJHA's `ocsf` export format maps audit records to its API Activity, Authentication and Account Change classes. |
 
 ---

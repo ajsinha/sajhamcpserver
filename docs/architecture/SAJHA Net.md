@@ -6,7 +6,7 @@
 > today brings other MCP servers' tools into one SAJHA by hand. It is item L16 on the
 > [Roadmap](Roadmap.md).
 
-A SAJHA server configured as a **instance** of a net automatically learns which tools the other
+A SAJHA server configured as an **instance** of a net automatically learns which tools the other
 instances offer, and builds a **proxy tool** for each one it is allowed to use. The proxy appears
 in its catalog next to its own tools. When a caller (a person, an MCP client, a planner, an LLM
 tool, a workflow) calls a proxy, SAJHA forwards the call to the instance that hosts the tool, as
@@ -134,6 +134,12 @@ These terms go into `GLOSSARY.md` when the feature is built.
 | Identity resolver | The pluggable part that turns a caller into credentials on the home instance and back into a verified user on the host instance. |
 | Net key directory | Every instance's synced copy of the API key records (hashes, never keys) issued across the net. |
 | User assertion | A short-lived JWT signed by the home instance naming the user; a later identity resolver, not the first (section 10.2). |
+| Address name | The `<ip>:<port>` an instance is named after when no instance name is configured (section 6.1). |
+| CA instance | The one instance that runs the SAJHA Net CA: enrolls, renews and revokes instance certificates (section 6.4). |
+| Enrollment token | A one-time, short-lived token, bound to one instance name, with which a new instance obtains its certificate (section 6.4). |
+| Trust level | How a home instance accepts a peer's tools: `auto`, `review` or `pinned` (section 7.3). |
+| Persistent key | An API key whose record is also kept, hashed, in a file so it survives a lost database (section 20.3). |
+| Snapshot | A periodic, signed and chained record of an instance's users, keys and tools (section 20.4). |
 
 ---
 
@@ -153,12 +159,25 @@ The net **reuses all of that** and adds what federation lacks:
 | Who the remote side sees | The upstream's own credential for every caller, or the user's own SaaS token | The **SAJHA user**, identified by their API key and checked against a synced key directory (section 10) |
 | Authorization at the remote side | Whatever the upstream does | The host instance's export rules, access rules and policy engine, every call (section 11) |
 | Data residency | Not modelled | Data classes on arguments and results, checked on both sides (section 12) |
-| Audit | Local only | Both sides, linked by one trace id (section 16) |
+| Audit | Policy events only (denials, approvals, redactions); ordinary tool calls go to the usage ledger, not the audit chain | Every cross-instance call on both sides, linked by one trace id (section 16) |
 | Planner awareness | A federated tool looks local | Locality, region, health and latency in the catalog (section 13) |
 
 Implementation-wise, a net proxy is a subclass of the federated tool with a net connection
 (instance identity plus user identity) instead of an upstream credential; discovery, refresh,
 namespacing and failure isolation are shared code.
+
+Federation's code does not yet do everything the net needs. These are changes to build, not
+behaviour that exists today:
+
+| Federation today (code) | What the net needs |
+|---|---|
+| An upstream prefix is 1 to 32 characters, starts with a letter and does not end in `_` (`UpstreamConfig.validate`); `namespaced()` cleans names to the MCP rule `[A-Za-z0-9_.-]{1,128}`, which allows `.` | Address-name prefixes start with a digit and a full IPv6 one with its port is 44 characters (section 6.1), and `.` is not accepted by every LLM provider: net proxies need their own prefix rule and must replace `.` too |
+| A tool whose definition changes goes to status `changed` and is withdrawn from the registry until approved again | `review` trust keeps the previously approved version serving (section 7.3) |
+| Annotations are copied from the upstream as they are | Annotations corrected, never widened (section 8.1) |
+| The tool cache (`sajha/core/cache.py`) keys a result by tool name and arguments only, for any tool with `cache_ttl`; federation refuses `cache_ttl` with `connected_account` for that reason | A cache key that includes the caller, and caching limited to read-only tools; until then proxies do not cache (section 9) |
+| The SSRF guard (`sajha/federation/security.py::check_url`) refuses loopback and private addresses unless `federation.allow_localhost` / `allow_private_networks`, and hosts outside `federation.allowed_hosts` when that is set | Instances usually sit on private networks: the net's guard takes its own settings and binds a peer's URL to its certificate (section 18) |
+| No trace context is sent upstream; a server span only continues an inbound `traceparent` | Outbound `traceparent` on every forwarded call (section 16) |
+| Upstreams and approval records are one JSON document at `federation.state_path` in the storage backend | The same storage backend, plus the state store for what changes often (section 20.2) |
 
 ---
 
@@ -191,14 +210,21 @@ sponsor's full governance but only the MCP features the server itself implements
 What participants speak to each other is published as a versioned specification, so others can
 implement it without SAJHA's code:
 
-- it is an **MCP extension** (`io.sajha/net`), negotiated through the server's capabilities on
-  both protocol eras (in the 2026-07-28 `server/discover` result and in the 2025-11-25
-  `initialize` result), the same way SAJHA already negotiates the tasks extension;
+- it is an **MCP extension** (`io.sajha/net`), advertised in the server's capabilities on both
+  protocol eras. On 2026-07-28 it goes in `capabilities.extensions` of the `server/discover`
+  result, where SAJHA already lists the tasks (`io.modelcontextprotocol/tasks`) and MCP Apps
+  (`io.modelcontextprotocol/ui`) extensions (`sajha/core/mcp_modern.py`). The 2025-11-25
+  `initialize` result has no `extensions` map today (only `experimental.sajha`,
+  `sajha/core/mcp_handler.py`), so advertising it there is new: under
+  `capabilities.experimental["io.sajha/net"]`;
 - it defines the gossip messages, the catalog's `_meta["io.sajha/net"]` metadata, the key-directory
   records and their signatures, the identity headers, the block and digest formats, and the
   error codes for refusals;
 - it has its own version number, independent of MCP's, and a conformance test suite that the
   agent, the library and SAJHA itself all run in CI.
+
+The specification is [SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md): endpoints, schemas,
+signatures, merge rules, error codes, limits and the conformance test list.
 
 ### 5.3 Plug-in points
 
@@ -246,6 +272,15 @@ server is needed.
   and unique in the net. The instance name is what gossip, the console, audit records, user
   identities (`alice@risk-eu`) and qualified tool names (`risk-eu__var_calc`) use. An instance
   also has a base URL, a region and labels (`domain: risk`, `jurisdiction: EU`).
+- **Names never collide.** An instance name identifies exactly one server: the one whose
+  certificate key first held it in the net. The name stays reserved for that key, running or not,
+  until an administrator revokes its certificate. The CA refuses to create an enrollment token for
+  a name that is held, and tells the administrator who holds it. A server that tries to join under
+  a held name with a different key is refused by every instance it contacts (`name_conflict`,
+  naming the holder): it does not join, it logs the error, shows a red banner on every console page
+  and raises an alert metric, and it stops retrying until its configuration or certificate
+  changes. Its local tools keep working. A restart or renewal with the same key is not a conflict.
+  The rule is normative in the [protocol spec](../protocol/SAJHA%20Net%20Protocol.md#52-instance-names).
 - **When no name is configured, the address is the name.** An instance without
   `sajhanet.instance_name` is named after the address other instances reach it on, as
   `<ip>:<port>` (for example `10.20.4.17:3002`; IPv6 as `[2001:db8::7]:3002`). The address must be
@@ -259,9 +294,10 @@ server is needed.
   Never `0.0.0.0`, `::`, a loopback address (`127.0.0.0/8`, `::1`), `localhost`, or a link-local
   address (`169.254.0.0/16`, `fe80::/10`). If no acceptable address is found, the instance does not
   join and says why at start-up and on its SAJHA Net settings page; local tools keep working.
-- **Where an address name cannot be used as is.** Tool names allow only letters, digits, `_` and
-  `-` for every LLM provider, so the prefix of qualified tool names uses a safe form of the
-  address: dots and colons become `_` (owner decision), so `10.20.4.17:3002` gives
+- **Where an address name cannot be used as is.** MCP allows letters, digits, `_`, `-` and `.` in
+  tool names (`[A-Za-z0-9_.-]{1,128}`, `sajha/federation/config.py`), but only letters, digits,
+  `_` and `-` are accepted by every LLM provider, so the prefix of qualified tool names uses a
+  safe form of the address: dots and colons become `_` (owner decision), so `10.20.4.17:3002` gives
   `10_20_4_17_3002__var_calc`. An IPv6 address is first written out in full, without `::`
   shortening and without brackets, so the safe form never contains `__`, which separates the
   instance from the tool (`[2001:db8::7]:3002` gives
@@ -271,9 +307,13 @@ server is needed.
   address is shown as written.
 - **Prefer a configured name in production.** An address name changes when the address does
   (DHCP, a restart that moves a container or Kubernetes pod), and with it every qualified tool
-  name, user link, block and pinned alias that refers to the instance. The console warns when an
-  instance runs under an address name, and the Helm chart sets `sajhanet.instance_name` from a
-  value so pods keep their name.
+  name, user link, block and pinned alias that refers to the instance, and its certificate (which
+  names the instance) must be issued again. The console warns when an instance runs under an
+  address name. An instance with several pods or workers is one instance and needs a configured
+  name and an `advertise_address` (its Service), since each pod's own address would name a
+  different instance. The Helm chart has no SAJHA Net value today; `sajhanet.instance_name` can
+  already be set through `config.overrides` or `config.env`
+  (`SAJHA_SAJHANET_INSTANCE_NAME`), and a dedicated chart value is part of the build.
 - **Admission is by certificate.** The net has its own certificate authority. Each instance
   holds a key pair and a certificate signed by the SAJHA Net CA whose subject names the net and
   the instance name, so an instance cannot claim a name it was not issued. Every request between instances is **signed** with the sender's private key and carries its
@@ -295,7 +335,7 @@ server is needed.
 | An instance stops cleanly | It gossips a `leave` message. Others mark it `left` at once and remove its proxy tools after `sajhanet.unhealthy_grace_seconds`. |
 | An instance crashes or is cut off | The failure detector (section 6.3) marks it `suspect`, then `dead` if no one can reach it within `suspect_timeout_seconds`. Its proxy tools stay listed as unavailable during the grace period, then are hidden. |
 | An instance comes back | It rejoins with a higher **incarnation** number, which overrides any stale `suspect` or `dead` entry about it. |
-| An instance is revoked | Its id is on the signed revocation list; every instance refuses it and removes its tools, wherever the list reaches first. |
+| An instance is revoked | Its instance name (or certificate serial) is on the signed revocation list; every instance refuses it and removes its tools, wherever the list reaches first. |
 
 A server whose certificate is not from the SAJHA Net CA cannot join, gossip or call anyone, however
 it learned the addresses.
@@ -326,9 +366,14 @@ instances it is far more than enough.
 - **Digests trigger pulls.** Gossip carries only digests. When an instance sees a peer's catalog
   hash or key-directory version change, it pulls the changed part from that peer (sections 7.2 and 10.3). Gossip never carries tools, schemas or keys themselves.
 - **One gossip agent per instance.** An instance running several workers elects one of them to run
-  the agent, through a lease in the state store (the same claim mechanism workflow cron uses);
-  the membership list is kept in the state store so every worker sees the same net. If the
-  agent's worker dies, another takes the lease.
+  the agent, through a lease in the state store: the worker that stores the lease key with the
+  state store's atomic `add` and a TTL holds it (the primitive workflow cron and quality probes use
+  to claim a slot, `sajha/workflows/service.py`, `sajha/quality/probes.py`), and renews it with
+  an atomic `update` that succeeds only while the value is still its own. The renewing lease is
+  new code on existing primitives; cron and probes claim one slot at a time and never renew. The
+  membership list is kept in the state store so every worker sees the same net. If the agent's
+  worker dies, its lease expires and another worker takes it. With `state.backend: memory` each
+  process has its own store, so an instance with several workers needs `redis` or `database`.
 - **No split-brain hazard.** Instances never need to agree on anything beyond membership: each
   call is point to point and authorized by the host. Two instances that briefly see different
   lists only disagree about which proxies to show.
@@ -448,7 +493,7 @@ Nothing else: no configuration, credentials, implementation details or usage dat
 
 ### 7.2 How catalogs travel
 
-- **Digest, then pull.** Every instance's catalog hash travels in gossip (section 6.3). When a
+- **Digest, then pull.** Every instance's catalog hash travels in gossip (section 6.3). When an
   instance sees a new hash for a peer (or a new peer), it pulls that peer's catalog over MCP
   (`tools/list`, with the net metadata in `_meta`) using its instance identity. An unchanged
   catalog is never transferred.
@@ -472,7 +517,10 @@ according to the peer's trust level:
 The owner's decision is that net instances are trusted, so `auto` is the default. Screening stays
 on anyway: it is cheap, and it limits the damage if a trusted instance is ever compromised. Under
 `review`, a tool whose description or schema changes after approval is held at its previous
-approved version until reviewed.
+approved version until reviewed. (Federation today withdraws such a tool until it is approved
+again, section 4; holding the old version is new.) Federation's screening covers descriptions,
+titles and the text inside schemas (`sajha/federation/security.py`, `INJECTION_MARKERS`); the
+JSON Schema validity check is new.
 
 ---
 
@@ -482,7 +530,8 @@ approved version until reviewed.
 
 For every approved remote tool the home instance's import rules allow, SAJHA creates a **proxy
 tool** in its registry automatically: the remote schemas, the remote annotations (corrected,
-never widened: a remote tool is at least `openWorldHint: true`), and a net connection. When
+never widened: a remote tool is at least `openWorldHint: true`; federation copies annotations as
+they are today, so this correction is new), and a net connection. When
 the tool disappears from the peer's catalog, the proxy is removed; when the peer is unhealthy,
 the proxy stays listed with its health for `sajhanet.unhealthy_grace_seconds` and calls fail fast,
 then it is hidden until the peer recovers.
@@ -491,7 +540,7 @@ then it is hidden until the peer recovers.
 
 | Name | Rule |
 |---|---|
-| Qualified name | Always `<instance>__<tool>` (for example `risk-eu__var_calc`), the same `__` convention federation uses, valid for every LLM provider's tool-name rules. Planners, audit and metrics always record this name. |
+| Qualified name | Always `<instance>__<tool>` (for example `risk-eu__var_calc`; an address name uses its safe form, section 6.1), the same `__` convention federation uses. Any character outside `[A-Za-z0-9_-]` in the host's tool name (MCP also allows `.`) becomes `_`, so the name is valid for every LLM provider's tool-name rules. Planners, audit and metrics always record this name. |
 | Bare alias | Offered in addition only when `sajhanet.bare_aliases` allows it **and** the bare name is unique across the home instance's own tools and every imported tool, **or** an administrator pinned the alias to one instance. |
 | Collision with a local tool | The local tool keeps the bare name. The remote tool is reachable only by its qualified name. Reported on the SAJHA Net page. |
 | Collision between two instances | Neither gets the bare name unless an administrator pins one. Both stay reachable by qualified name. Reported. |
@@ -548,10 +597,10 @@ single place the proxies, aliases, planners and console read from:
 caller ──► HOME instance                                   HOST instance
            1 access check (caller may call proxy)
            2 import rules (this user, this remote tool)
-           3 argument validation (proxy's inputSchema)
+           3 policy engine (deny / approval / rate limit / quota)
            4 residency check on arguments (section 12)
-           5 policy engine (deny / redact / approval / rate limit)
-           6 breaker, rate limit, hop check (section 14)
+           5 argument validation (proxy's inputSchema), tool cache
+           6 breaker, per-peer rate limit, hop check (section 14)
            7 identity resolver: attach the user's API key;
              signed request, trace id, hop count ──────────► 8 verify signature, certificate, revocation
                                                             9 identity resolver: hash the key, look
@@ -570,9 +619,18 @@ caller ◄── 17 result
 - Both instances' checks must pass; either can refuse. A refusal returns a normal tool error that
   says which side refused and why, in words safe to show the caller.
 - Progress notifications and cancellation pass through: a caller's cancel reaches the host.
-- Retries happen only for tools annotated read-only and idempotent; the result cache applies
-  only to read-only tools with a `cache_ttl`, keyed by user where the host instance says results
-  differ per user.
+  Federation already relays progress and, on a cancel, abandons its request task
+  (`FederationManager._wait`); the build must make sure the host also receives
+  `notifications/cancelled`, rather than only the home side giving up.
+- Steps 1, 3, 5 and 6 are what SAJHA already does for every tool, in this order: the access
+  check (`sajha/auth/access.py`), then `execute_with_tracking`
+  (`sajha/tools/base_mcp_tool.py`), which runs the policy engine before argument validation,
+  the tool cache and the circuit breaker; federation adds its per-upstream rate limit inside the
+  call. Redaction and output screening are the policy engine's work on the result, at step 15.
+- Retries follow federation's rule: only tools annotated read-only or idempotent
+  (`readOnlyHint` or `idempotentHint`), up to the peer's retry count. The result cache applies
+  only to read-only tools with a `cache_ttl` and needs a cache key that includes the caller, which
+  the tool cache does not have today (section 4); until it does, proxy tools are not cached.
 - Destructive remote tools still require confirmation at the home instance (MRTR or `confirm`
   fingerprints), and the host instance may additionally require its own approval.
 
@@ -608,7 +666,8 @@ change anywhere else.
    instance, and calls SAJHA there.
 2. The home instance verifies the key: first in its database as it does today, then in its
    persistent key file if the database does not know it or is unavailable (section 20.3);
-   either way the hash, enabled flag, expiry and tool allowlist are checked.
+   either way the SHA-256 hash, enabled flag and expiry are checked (`ApiKeyDAO.validate_key`,
+   `sajha/db/dao`), and the key's tool access mode and list when a tool is called.
 3. When the call goes to a proxy tool, the home instance forwards the **key itself** to the host
    instance in a dedicated header of the signed request, over HTTPS, together with the trace id and
    hop count.
@@ -618,8 +677,23 @@ change anywhere else.
    is not expired or revoked, and that the request came **from the key's home instance** (a key can
    only enter the net through the instance that issued it).
 5. The verified net user is the key's owner, with the owner's roles as recorded by the home
-   instance, mapped to local roles (section 11.3), and the key's tool allowlist as an extra
+   instance, mapped to local roles (section 11.3), and the key's tool access list as an extra
    ceiling. Authorization then proceeds as in section 11.
+
+**What API keys are today, and what must change.** This resolver assumes a key acts as the user
+who owns it. Today it does not (`AuthManager.authenticate_apikey`, `sajha/auth/__init__.py`): a
+key authenticates as a service identity `apikey:<key name>` with the single role `api_consumer`,
+and what it may call is decided only by the key's own `tool_access_mode` (`all`, `allowlist`,
+`denylist` or `regex`) and `tool_access_list` (`sajha/auth/access.py`), not by any user's roles.
+The `api_keys` table has an `owner_id` column, but keys are created by administrators only
+(`/admin/apikeys`, `sajha/routes/apikeys_routes.py`), and creation never sets it. A key has no
+`revoked_at`: it is disabled (`enabled` toggled off) or deleted. The build therefore adds:
+
+- keys bound to an owner: `owner_id` set when a key is created, and a key that has an owner
+  authenticates as that user, with the user's roles and the key's access list as an extra
+  ceiling (keys without an owner keep today's service identity and never cross the net);
+- users creating and rotating their own keys, including the default key below;
+- a record of revocation that survives deletion (section 10.3).
 
 **Handling rules for forwarded keys.** The raw key exists only in memory during the call: it is
 never logged, never written to the audit log (the key's id and prefix are), never stored, never
@@ -639,18 +713,22 @@ crosses, without other changes.
 **Every user has a default API key.** Every user account on every instance always has a
 **default API key**, created with the account (and, when this ships, for every existing account
 at start-up). It cannot be deleted, only rotated (regenerated) by the user or an administrator,
-or disabled by an administrator. The user sees it on their profile page, can copy it once after
-each rotation, and uses it like any other key.
+or disabled by an administrator. The user sees it on a new page in their own account area (today
+that area has only Connected accounts, `/account/connections`), can copy it once after each
+rotation, and uses it like any other key.
 
 Because API keys are stored only as hashes, the home instance could not forward a key it had
-not just received. So the default key is also kept **encrypted** at its home instance, in the
-same AES-256-GCM vault connected accounts use, readable only by that instance. When a signed-in
+not just received. So the default key is also kept **encrypted** at its home instance, with the
+AES-256-GCM encryption and data key of the connected-accounts vault (`sajha/accounts/vault.py`:
+`accounts.vault.key`, env `SAJHA_ACCOUNTS_VAULT_KEY`, or a `key_provider` hook, else a key
+generated once in the server secrets file under the data directory), readable only by that
+instance. When a signed-in
 console user (or Ask SAJHA, a workflow or an LLM tool acting for them) calls a remote tool, the
 home instance decrypts the user's default key and forwards it. A caller who arrived with an API
 key forwards that key instead.
 
 Default keys are ordinary keys everywhere else: in the key directory, in snapshots, under the
-user's tool allowlist (by default the user's own access) and revocable at once.
+user's tool access list (by default `all`, so the user's own access) and revocable at once.
 
 **Connected accounts.** A user's linked SaaS tokens never leave their home instance. A remote tool
 that needs the user's token for a provider runs only on an instance where that user has linked the
@@ -664,12 +742,12 @@ copy of everyone's: the **net key directory**.
 
 | Field | Meaning |
 |---|---|
-| `key_id`, `key_prefix`, `name` | the key's identity, as in the issuing instance's `api_keys` table |
+| `key_id`, `key_prefix`, `name` | the key's identity, as in the issuing instance's `api_keys` table (`id`, `key_prefix`, `name`) |
 | `key_hash` | the SHA-256 hash SAJHA already stores; **the raw key is never synced** |
 | `home_instance` | the instance that issued it and is its only authority |
-| `owner` | the owner's user id, display name and role names at the home instance |
-| `enabled`, `expires_at`, `revoked_at` | its current state |
-| `tool_access_mode`, `tool_access_list` | its tool allowlist |
+| `owner` | the owner's user id (`users.user_id`, the login name), display name (`users.user_name`) and role names at the home instance |
+| `enabled`, `expires_at`, `revoked_at` | its current state; `revoked_at` is new (the `api_keys` table has none): it is set when the home instance deletes the key, and the directory keeps the record as a tombstone |
+| `tool_access_mode`, `tool_access_list` | its tool access: `all`, `allowlist`, `denylist` or `regex`, and the patterns |
 | `version`, `updated_at` | a counter the home instance increments on every change |
 | `signature` | the home instance's signature over the record, so no other instance can forge or alter it |
 
@@ -677,11 +755,14 @@ copy of everyone's: the **net key directory**.
 Gossip carries every instance's directory version in its digest (section 6.3). When an instance sees
 a newer version for a peer, it pulls only the records changed since the version it holds, from
 that peer, verifies each record's signature against the peer's certificate, and stores them. A
-full comparison runs during anti-entropy, so a missed update is repaired within
-`full_sync_interval_seconds`.
+full comparison with one random instance runs every
+`sajhanet.key_directory.full_sync_interval_seconds` (default 300; gossip's own anti-entropy,
+`sajhanet.gossip.full_sync_interval_seconds`, exchanges only directory versions), so a missed
+update is repaired within that time.
 
 **Revocation is fast where it matters.** Disabling or revoking a key takes effect on its home
-instance at once, and a forwarded key can only arrive from its home instance (step 4 above), so a
+instance at once, and a forwarded key can only arrive from its home instance (section 10.2, step
+4), so a
 revoked key stops working across the net immediately even before the directory update has
 spread. Revocations are also gossiped with priority, so every instance's copy follows within a
 few rounds.
@@ -715,7 +796,7 @@ sajhanet:
   export:                         # what this instance offers
     - tools: ["var_*", "stress_*"]
       to_instances: ["risk-*", "treasury-na"]
-      for_roles: ["risk_analyst", "treasurer"]     # remote roles after mapping (10.3)
+      for_roles: ["risk_analyst", "treasurer"]     # remote roles after mapping (11.3)
       require_approval: false
     - tools: ["*_delete*"]
       to_instances: []                                # never exported
@@ -737,7 +818,8 @@ between the two).
 Every instance has **its own users**. The same person may have an account on several instances,
 under the same or a different user name, with different roles and different API keys on each;
 and a person may have no account at all on some instances. Only the administrator account exists
-on every instance. The net never merges or copies user accounts.
+on every instance (the seed creates user `admin` with role `admin` everywhere, though an operator
+can delete it). The net never merges or copies user accounts.
 
 A net user is therefore always **a user at an instance**: `alice@risk-eu`. When `alice@risk-eu`
 calls a tool hosted on `cust-na`, the host instance decides who she is *there*, in this order:
@@ -745,7 +827,8 @@ calls a tool hosted on `cust-na`, the host instance decides who she is *there*, 
 1. **An explicit link.** `cust-na`'s administrator has linked `alice@risk-eu` to a local account
    (say `a.smith`). The call runs as `a.smith`, with `a.smith`'s roles and policy.
 2. **The same user name, if allowed.** With `sajhanet.users.match_by_name` on (the default), a local
-   account with the same user name (`alice`) is used. Its local roles apply, never the roles
+   account with the same user id (`alice`: the login name, `users.user_id`, which is unique;
+   `users.user_name` is a display name and is never matched) is used. Its local roles apply, never the roles
    `alice` has on `risk-eu`. An administrator can turn matching off for an instance or exclude
    names.
 3. **No local account.** Governed by `sajhanet.users.unknown`:
@@ -805,13 +888,19 @@ Residency is about where data flows, in both directions.
   declare classes for its results. Instances declare their jurisdiction labels.
 - **Residency rules** are policy-engine rules with a new condition: *data of class C may (or may
   not) go to an instance whose jurisdiction is J*. Examples: `eu-personal` never leaves instances
-  labelled `jurisdiction: EU`; `confidential` only to instances in the same legal entity.
+  labelled `jurisdiction: EU`; `confidential` only to instances in the same legal entity. The
+  rule language has nothing like this today: a rule matches on tools, groups, annotations,
+  callers, sources, time and argument values (`sajha/policy/model.py`), and parsing is strict, so
+  an unknown key is an error. Data classes, the destination instance and its labels are new
+  match conditions.
 - **Arguments.** Before a call leaves (step 4), the home instance checks the classes of the
   arguments' fields against the host instance's labels. A planner cannot route EU personal data to
   a US tool by accident: the call is refused, and the planner is told why so it can choose a
   local alternative.
 - **Results.** The host instance checks its results' classes against the home instance's labels
-  before answering (step 14) and can refuse, redact (policy `redact`) or summarise.
+  before answering (step 14) and can refuse, redact or summarise. Policy `redact` today masks
+  kinds of personal data (emails, phones, cards, national ids, custom patterns) anywhere in a result;
+  removing the fields of a data class is new.
 - **What the home instance keeps.** Conversation memory stores answers, which may now contain data
   from other instances. Per data class, `sajhanet.memory.remote_results` decides whether such answers
   are stored as written, stored as a summary without the remote figures, or not stored.
@@ -827,7 +916,7 @@ Residency is about where data flows, in both directions.
   wording.
 - **Residency-aware shortlists.** Remote tools that residency rules would refuse for this caller
   are removed before planning, so the model is never offered a call that will be refused.
-- **Remote LLM tools.** A host instance's LLM tools ([LLM Tools](LLM%20Tools.md)) are exported
+- **Remote LLM tools.** A host instance's LLM tools ([LLM Tools](LLM%20Tools.md), itself a design not yet built) are exported
   like any tool (`sajhanet.allow_remote_llm_tools`, on by default: the owner decided LLM and plain
   tools are equally trusted). They run, plan and spend model budget
   on the host instance, under its AI governance, with the user's identity. Their inner calls may
@@ -848,14 +937,17 @@ Residency is about where data flows, in both directions.
 - **When re-export is enabled**, each call carries a hop count and the list of instances it has
   visited (in signed headers). An instance refuses a call that would exceed
   `sajhanet.max_hops` or revisit an instance, so A → B → A loops cannot form.
-- **Remote LLM tools** count toward both the LLM-tool depth limit and the hop limit.
+- **Remote LLM tools** count toward both the LLM-tool depth limit (`ai.llm_tools.max_depth` in
+  the LLM Tools design) and the hop limit.
 
 ---
 
 ## 15. Reliability
 
 - **Per-peer isolation.** Connection pools, timeouts, circuit breakers and rate limits are per
-  peer, so one slow or failing instance affects only its own tools.
+  peer, so one slow or failing instance affects only its own tools. Federation already works this
+  way per upstream: one connection each, a circuit breaker registered for the upstream's prefix,
+  and `max_calls_per_minute` (`sajha/federation/manager.py`).
 - **Health.** Each instance probes its peers (and their catalogs) on a schedule and records health;
   the planner and the Tools page see it.
 - **Graceful degradation.** An instance that cannot reach the net still serves all its local tools;
@@ -863,8 +955,9 @@ Residency is about where data flows, in both directions.
 - **Version skew.** Instances advertise a net protocol version alongside the MCP eras they speak;
   an instance talks to a peer at the highest version both support and refuses peers below
   `sajhanet.min_protocol_version`.
-- **Several workers.** Peer records and approvals live in the storage backend and the state store
-  (as federation's do), so every worker of an instance sees the same net.
+- **Several workers.** Peer records and approvals live in the storage backend (as federation's
+  do) and fast-changing state in the state store, so every worker of an instance sees the same
+  net.
 
 ---
 
@@ -873,10 +966,19 @@ Residency is about where data flows, in both directions.
 - **Linked audit.** Both instances record the call in their own tamper-evident audit chains,
   sharing one trace id (W3C `traceparent`) and the API key's id. A cross-instance call can be
   reconstructed by joining the two records, and neither instance's records depend on the other's.
-- **Tracing.** One trace spans home and host (OTLP), so latency per hop is visible.
-- **Metrics.** `sajhanet_calls_total{peer,tool,outcome}`, latency per peer, refusals by side
+  This is a new audit event: today the chain (`sajha/audit/`, one chain per process) records
+  policy decisions, approvals, administration and workflow events, not ordinary tool calls. A
+  record's `details` is free JSON inside the hashed record, so the trace id, key id and peer
+  instance fit without a schema change.
+- **Tracing.** One trace spans home and host (OTLP), so latency per hop is visible. SAJHA already
+  continues an inbound `traceparent` (HTTP header or MCP `_meta.traceparent`,
+  `sajha/observability/tracing.py`); sending it on the forwarded call is new.
+- **Metrics.** `sajha_net_calls_total{peer,tool,outcome}`, latency per peer, refusals by side
   and reason (`import`, `export`, `residency`, `identity`, `revoked`), catalog sizes and
-  refresh results, peer health.
+  refresh results, peer health. Every existing metric is named `sajha_<subsystem>_*` (for example
+  `sajha_federation_upstream_calls_total`), so `sajhanet_*` breaks that convention;
+  `sajha_net_*` would keep it (section 24). Proxy calls also count in `sajha_tool_calls_total`
+  under their qualified name, as every tool does.
 - **Net page.** Instances and their health, pending joins and approvals, imported and exported
   tool counts, name conflicts, trust levels, role maps and the last refusals; a topology view of
   which instances call which.
@@ -885,12 +987,16 @@ Residency is about where data flows, in both directions.
 
 ## 17. The SAJHA Net console
 
-The net is managed from a new **Net** area in SAJHA's web console. It follows the console's
-conventions (the four themes, page help from the glossary, phone-width layouts checked by
-`scripts/check_mobile.py`, the same tables, filters and confirmation dialogs as the rest of the
-console) and its own bar: an operator should understand the state of the net in ten seconds
-and change it safely in two clicks. Every page has a JSON API behind it and the same actions in
-the `sajha` command line.
+The net is managed from a new **SAJHA Net** area in SAJHA's web console. It follows the
+console's conventions (the four themes, light, dark, blue and green; page help whose terms come
+from `GLOSSARY.md` through `sajha/web/page_help.py`; phone-width layouts checked by
+`scripts/check_mobile.py`, whose `ROUTES` list gains each new page; the same tables, filters and
+confirmation dialogs as the rest of the console) and its own bar: an operator should understand
+the state of the net in ten seconds and change it safely in two clicks. Every page has a JSON API
+behind it and the same actions in the `sajha` command line. That command is the client CLI
+(`clientsdk/`, [Command Line](../clients/Command%20Line.md)), which works over HTTP, so
+`sajha net ...` commands, including `sajha net ca init` and `sajha net ca enroll` (section 6.4),
+call these APIs on an instance and run nothing locally.
 
 ### 17.1 Pages
 
@@ -906,6 +1012,7 @@ the `sajha` command line.
 | **Key directory** | Read-only view of synced key records by instance: owner, prefix, state, expiry, tool allowlist, last change, signature status; this instance's persistent keys marked | Force a re-sync; nothing here can change another instance's keys |
 | **Snapshots** | The retained snapshots with time, size, chain status (verified, broken) and signature status | Verify the chain, compare any two snapshots (users, keys and tools added, removed and changed), download, restore users and persistent keys after confirmation |
 | **Live activity** | A stream of cross-instance calls as they happen, drawn in the constellation style of the landing page: a call travels from instance to instance, refusals flash with their reason | Filter by instance, user, tool or outcome; open any call's linked audit records on both sides |
+| **Certificates** (CA instance only, section 6.4) | Issued certificates with instance, serial, expiry and state; pending enrollment tokens; the revocation list | Enroll an instance (create a token), revoke, re-issue |
 | **Net settings** | This instance's name, region and labels (read from configuration), certificate status, seeds, gossip health, defaults for trust, name matching, unknown users and remote administrators | Edit what may be edited at runtime; everything else names the configuration key to change |
 
 ### 17.2 Where the net shows up elsewhere
@@ -942,13 +1049,15 @@ the `sajha` command line.
 
 | Threat | Mitigation |
 |---|---|
+| A server takes over an existing instance's name (by mistake or on purpose) | Names are bound to the holder's certificate key; the CA will not enroll a held name; any join or request claiming a held name with another key is refused with `name_conflict` and alerted on both sides |
 | A rogue server pretends to be an instance | Every request signed with a key whose certificate comes from the SAJHA Net CA only, with a timestamp, nonce and body digest; the signed revocation list is checked on every request; gossip from a server without a net certificate is refused |
 | A compromised instance impersonates users | Host instances authorize the named user against their own export and access rules, never "the instance says so"; role maps grant nothing by default; revocation is immediate |
 | A request is replayed or altered in transit | Signatures cover method, path, key headers and a body digest; a creation time and nonce with a short window, seen nonces kept in the state store |
 | A forwarded API key is captured | Keys travel only in signed requests over HTTPS, are never logged, stored or traced, and are accepted only from their home instance, so a captured key cannot be replayed through another instance; a net that wants no key in transit switches to the `assertion` resolver (section 10.2) |
 | An administrator on one instance takes over another | Net settings can only be changed by an administrator signed in to that instance; remote administrators' tool calls are configurable (`remote_admin`) and audited |
-| The CA key is stolen | It lives only on the CA instance as an owner-only secret; certificates are short-lived; re-keying the CA and re-enrolling instances is a documented procedure |
-| Default keys are read from the vault | AES-256-GCM with the instance's vault key (from the environment, never in the database); only the home instance can decrypt |
+| The CA key is stolen | It lives only on the CA instance as an owner-only secret; certificates are short-lived; re-keying the CA and re-enrolling instances is a procedure the build documents |
+| An enrollment token is stolen | One-time, short-lived (`sajhanet.ca.enrollment_token_minutes`), bound to one instance name; a used, expired or wrong-name token is refused, and every issue is audited and listed on the Certificates page |
+| Default keys are read from the vault | AES-256-GCM with the connected-accounts vault key (`SAJHA_ACCOUNTS_VAULT_KEY` or a KMS `key_provider`; without either, a generated key in the owner-only server secrets file under the data directory), never in the database; only the home instance can decrypt |
 | The persistent key file or a snapshot is copied | Hashes only, never keys; owner-only permissions; git-ignored; snapshots carry hashes only for persistent keys |
 | Snapshots are edited or deleted to hide a change | Each snapshot chains to the previous one and is signed by the instance; rotation and every snapshot run are audited |
 | An instance forges or alters another instance's key records | Every directory record is signed by its home instance and ignored otherwise; only the home instance may change its records |
@@ -958,7 +1067,7 @@ the `sajha` command line.
 | Data leaves its jurisdiction through arguments | Residency rules on arguments at the home instance; on results at the host instance; residency-aware shortlists |
 | An instance is used as a stepping stone (confused deputy) | Dual authorization on the user's identity; no re-export by default; hop limits |
 | A slow instance drags others down | Per-peer timeouts, breakers, pools and rate limits; local tools unaffected |
-| SSRF through a peer URL | Federation's URL guard on every peer URL learned from gossip; a URL must match the host name in the instance's certificate |
+| SSRF through a peer URL | Federation's URL guard (`check_url`) on every peer URL learned from gossip, with the net's own allowed networks, since instances usually have private addresses that federation's defaults refuse; a URL must match the host name or address in the instance's certificate |
 | Denial of service from a peer | Per-peer rate limits at the host instance; catalog size caps |
 
 ---
@@ -986,6 +1095,14 @@ sajhanet:
   default_keys: { enabled: true, vault: accounts }   # section 10.2
   ca: { enabled: false, key_ref: file:/etc/sajha/sajhanet/ca.key, cert_validity_days: 30, enrollment_token_minutes: 30 }   # section 6.4, CA instance only
   user_identity: api_key            # api_key (first) | assertion | token_exchange (section 10.2)
+  plugins:                          # section 5.3: a shipped name or package.module:Class
+    membership: gossip              # gossip | static (static_peers below)
+    admission: builtin_ca           # builtin_ca | manual (section 6.5)
+    connector: sajha_native         # sajha_native | mcp_generic
+    key_directory_store: database
+    routing: local_first            # local_first | lowest_latency | pinned
+  static_peers: []                  # membership: static only
+  allowed_networks: []              # CIDRs peers may be reached on; private ranges need listing (section 18)
   key_directory: { sync: true, full_sync_interval_seconds: 300 }
   persistent_keys: { file: config/apikeys.json, reload: true }   # section 20.3
   snapshots: { enabled: true, interval_minutes: 10, keep: 20, dir: data/sajhanet/snapshots, compress: false, to_siem: false }   # section 20.4
@@ -1015,7 +1132,14 @@ sajhanet:
 ```
 
 Membership is discovered by gossip. Trust levels, role maps and any manual-mode peers are managed
-on the SAJHA Net page and kept in the storage backend, like federation's upstream records.
+on the SAJHA Net pages and kept in the storage backend, like federation's upstream records.
+
+`persistent_keys` and `snapshots` apply even when `enabled` is false (they also serve a SAJHA that
+is not in a net, section 22). The persistent key file's path duplicates the existing
+`config.apikeys.path` (default `config/apikeys.json`), which today only feeds an unused legacy
+importer; the build should read that key rather than add a second one. Each key resolves as
+every `_get` key does: `SAJHA_SAJHANET_<KEY>` in the environment, then this YAML, then the code
+default.
 
 ---
 
@@ -1023,25 +1147,30 @@ on the SAJHA Net page and kept in the storage backend, like federation's upstrea
 
 ### 20.1 Database
 
-- **One new table, `sajhanet_api_keys`,** for the net key directory (section 10.3): one row per key
+Every change goes into both schema files (`db/scripts/<dialect>/schema.sql`; no migrations:
+operators run the DDL on PostgreSQL, SQLite creates the tables itself, and
+`tests/test_db_schema.py` checks that models and both files agree).
+
+- **New table `sajhanet_api_keys`** for the net key directory (section 10.3): one row per key
   issued anywhere in the net, indexed by key hash, holding the record fields and its home
-  instance's signature. It is added to both schema files (no migrations: operators run the
-  `CREATE TABLE` on PostgreSQL; SQLite creates it) and kept apart from the local `api_keys`
-  table, so local key administration is unchanged.
+  instance's signature. It is kept apart from the local `api_keys` table, so local key
+  administration is unchanged.
+- **New table for default keys:** the encrypted copy of each user's default key (section 10.2),
+  keyed by the key id, next to `connected_accounts` and encrypted the same way.
+- **New columns on `api_keys`:** a *persistent* flag (section 20.3) and a *default* flag (section
+  10.2). `owner_id` already exists but is never set today (section 10.2).
 
 ### 20.2 Storage backend and state store
 
-- **Default keys:** the encrypted copy of each user's default key, in a small table next to the
-  connected-accounts vault (both schema files), keyed by the key id.
-- **Blocks and user links:** records in the storage backend, audited on change, published in the
-  gossip digest.
-- **Host and tool table:** state store, with a copy in the storage backend (section 8.4).
-- **CA instance only:** issued certificates, enrollment tokens and the signed revocation list.
-
-- **Storage backend:** trust levels, role maps, manual-mode peers and catalog snapshots as JSON
-  records, alongside federation's.
-- **State store:** the membership list and incarnations, the gossip agent's lease, catalog and
-  directory digests, peer health and per-peer rate counters (shared across an instance's workers).
+- **Storage backend** (local disk, S3, Azure Blob or GCS, `sajha/core/storage.py`), JSON records
+  alongside federation's: blocks and user links (audited on change, published in the gossip
+  digest), trust levels, role maps, manual-mode peers, the last accepted catalog per peer, the
+  last-seen membership list (section 6.6), the copy of the host and tool table (section 8.4),
+  and, on the CA instance only, issued certificates, enrollment tokens and the signed revocation
+  list.
+- **State store** (`state.backend`), shared across an instance's workers: the membership list
+  and incarnations, the gossip agent's lease, catalog and directory digests, the host and tool
+  table, peer health, per-peer rate counters and seen request nonces (section 6.7).
 
 ### 20.3 Persistent API keys in a file
 
@@ -1063,15 +1192,18 @@ to the database.
 - **Keeping it current.** SAJHA rewrites the file atomically (write a temporary file, then rename)
   whenever a persistent key is created, changed or revoked, and reloads it when it changes on
   disk (an operator may edit it, for example to revoke a key during an outage). Every change is
-  written to the audit log.
+  written to the audit log. The reload can hang off the watch `sajha/core/hot_reload_manager.py`
+  already keeps on `apikeys.json`, whose callback does nothing today.
 - **Protection.** The file is created with owner-only permissions and is git-ignored; a tracked
-  a tracked example file next to it documents the format. A hash of a long random key cannot be
+  example file next to it documents the format. Today `config/apikeys.json` is itself tracked in
+  git, so the build removes it from the repository and adds it to `.gitignore`. A hash of a long random key cannot be
   reversed, but the file still names users and their access, so it is treated as sensitive.
 - **In the net.** Persistent keys are part of the instance's key directory like any other key, so
   every instance can verify them too.
-- **Today's file.** `config/apikeys.json` currently holds a plaintext demo key that nothing reads
-  (Roadmap item N5). This design replaces it with the hashed format above; the demo key is not
-  carried over.
+- **Today's file.** `config/apikeys.json` currently holds four plaintext demo keys in an older
+  format (Roadmap item N5). Nothing reads it: `import_legacy_apikeys` in `sajha/db/seed.py` is
+  never called, and the hot-reload watch does nothing. This design replaces it with the hashed
+  format above; the demo keys are not carried over.
 
 ### 20.4 Periodic snapshots
 
@@ -1091,13 +1223,15 @@ at any point in the retained window, and an instance can be rebuilt after losing
   in `data/sajhanet/snapshots/` (or the storage backend), owner-only permissions, optionally
   compressed.
 - **Tamper evidence.** Each snapshot records the SHA-256 of the previous one and is signed with
-  the instance's key, so a deleted, reordered or edited snapshot is detected, the same idea as the
-  audit chain. A snapshot run is also an audit event.
+  the instance's net key (outside a net, with the server signing key in `data/oauth/` that also
+  signs the audit chain's anchors), so a deleted, reordered or edited snapshot is detected, the
+  same idea as the audit chain. A snapshot run is also an audit event.
 - **Rotation.** After writing a snapshot, the oldest beyond `keep` are deleted (and their deletion
   audited). Twenty snapshots ten minutes apart cover a little over three hours; for longer
   history each snapshot can also be sent to the SIEM export, which keeps it under the SIEM's own
   retention.
-- **One writer.** With several workers, the gossip agent's lease holder writes the snapshot, so a
+- **One writer.** With several workers, the gossip agent's lease holder writes the snapshot (a
+  SAJHA outside a net takes the same kind of lease for snapshots alone, section 6.3), so an
   instance produces exactly one per interval.
 - **Restoring.** After a database loss, an administrator can re-create users, roles and key
   records from a chosen snapshot (keys come back only if they were persistent, since only those
@@ -1113,6 +1247,9 @@ at any point in the retained window, and an instance can be rebuilt after losing
   like SAJHA instances (proxies, identity, blocks, audit); capability negotiation; every
   interface's contract suite against each shipped implementation; the extension's conformance
   suite against SAJHA, the agent and the library.
+- **Name collisions:** enrollment of a held name refused; a join under a held name with a different
+  key refused everywhere, alerted, never retried until configuration changes; same-key restarts
+  accepted.
 - **Instance names:** a configured name is used as is; without one, the advertised address, a
   specific bind address or the default-route interface gives `<ip>:<port>`; `0.0.0.0`, `::`,
   loopback, `localhost` and link-local addresses are never used, and with nothing acceptable the
@@ -1153,6 +1290,18 @@ at any point in the retained window, and an instance can be rebuilt after losing
   working.
 - **Planners:** a question needing tools on two instances is answered; memory stays on the home
   instance.
+- **Catalog exchange:** a changed digest triggers a pull and an unchanged catalog is never
+  transferred; the fallback refresh catches a missed digest; each trust level (`auto`, `review`,
+  `pinned`); screening flags and the JSON Schema check; size limits.
+- **Federation changes (section 4):** address-name and IPv6 prefixes accepted for net proxies;
+  `.` in a host tool name replaced; annotations never widened; a changed tool under `review`
+  keeps serving its approved version; a proxy result never served from another user's cache
+  entry; the SSRF guard with the net's allowed networks.
+- **Hops and versions:** no re-export by default; with re-export on, the hop limit and a revisited
+  instance refused; a peer below `min_protocol_version` refused; the extension advertised on both
+  eras.
+- **Audit, tracing and metrics:** both sides' audit records carry the same trace id and key id;
+  one trace spans home and host; refusals counted by side and reason.
 - **Conformance:** both MCP suites stay green on every instance.
 
 ---
@@ -1163,13 +1312,13 @@ Each phase ends green: full suite, multi-instance tests, both conformance suites
 
 | Phase | Scope |
 |---|---|
-| 1 | The protocol-only core and every plug-in interface (section 5.3) from the start, each with its contract tests; then membership: the SAJHA Net CA run by SAJHA (CA instance, enrollment tokens, renewal, revocation), certificates and signed requests on the normal port, revocation list, gossip agent (SWIM failure detection, dissemination, anti-entropy, seeds, incarnations, leases across workers); SAJHA Net page (instances and their states) |
-| 2 | Catalog exchange driven by gossip digests, the host and tool table, screening and trust levels, automatic proxy tools, qualified names and alias rules, `tools/list` with net metadata, Tools page badges and filters |
-| 3 | Identity resolver interface; the `api_key` resolver; default API keys for every user, kept encrypted at home; users across instances (links, name matching, unknown users, remote administrators); blocking at all four levels; the net key directory with signed records, digest-driven sync and the `sajhanet_api_keys` table in both schema files; host-side verification; persistent key file and periodic snapshots (these two also benefit a SAJHA that is not in a net); export and import rules, role maps; linked audit and tracing; metrics; per-peer isolation |
+| 1 | The protocol-only core and every plug-in interface (section 5.3) from the start, each with its contract tests; then membership: instance names and address names (section 6.1), the SAJHA Net CA run by SAJHA (CA instance, enrollment tokens, renewal, revocation), certificates and signed requests on the normal port, revocation list, gossip agent (SWIM failure detection, dissemination, anti-entropy, seeds, incarnations, a renewing lease across workers), restarts (last-known peers, probes of dead instances), manual mode, protocol version and extension advertisement on both eras; SAJHA Net page (instances and their states) |
+| 2 | Catalog exchange driven by gossip digests, the host and tool table (persisted, with unconfirmed tools after a restart), screening and trust levels, automatic proxy tools with the federation changes of section 4 (prefix rule, annotations, held versions, per-user cache key, SSRF settings), qualified names and alias rules, routing strategies, `tools/list` with net metadata, Tools page badges and filters |
+| 3 | Identity resolver interface; API keys bound to their owner (owner's roles, self-service keys, revocation record; section 10.2); the `api_key` resolver; default API keys for every user, kept encrypted at home; users across instances (links, name matching, unknown users, remote administrators); blocking at all four levels; the net key directory with signed records, digest-driven sync and the `sajhanet_api_keys` table in both schema files; host-side verification; persistent key file and periodic snapshots (these two also benefit a SAJHA that is not in a net); export and import rules, role maps; linked audit and tracing; metrics; per-peer isolation |
 | 4 | Residency: data classes, residency rules on arguments and results, residency-aware shortlists, memory handling of remote results |
 | 5 | Planners and LLM tools: locality-aware ranking, remote LLM tools, hop and depth limits combined |
 | 6 | Re-export with hop limits; the `assertion` and `token_exchange` resolvers; topology view |
-| 7 | The SAJHA Net console: overview map, instance detail, remote tools and the host and tool table, conflicts and reviews, users, access and blocks, key directory, snapshots, live activity, certificates, settings; net badges across the console; mobile check in all themes |
+| 7 | The SAJHA Net console: Instances page for every signed-in user, overview map, instance detail, remote tools and the host and tool table, conflicts and reviews, users, access and blocks, key directory, snapshots, live activity, certificates, settings; net badges across the console, including the navbar badge; mobile check in all themes |
 | 8 | Other MCP servers: sponsored participants; the SAJHA Net extension specification and its conformance suite; the SAJHA Net agent (sidecar) and the reference library; third-party plug-in registration |
 | 9 | Docs: this note becomes as-built; glossary; tutorial ("two domains, one question"); Security Model; Configuration and API Reference; help card; CHANGELOG |
 
@@ -1214,7 +1363,7 @@ What this design would add, in combination, is aimed at regulated, multi-domain 
 
 - **Instances and users:** each instance is named in its own configuration; users and their API
   keys are per instance, and a user may not exist on some instances; the administrator account
-  exists everywhere (sections 5.1 and 10.3).
+  exists everywhere (sections 6.1 and 11.3).
 - **Blocking:** an administrator can block another instance entirely, in one direction, per tool
   or per remote user, for their own instance (section 11.4).
 - **Console:** a full SAJHA Net area in the web console (section 17).
@@ -1225,7 +1374,10 @@ What this design would add, in combination, is aimed at regulated, multi-domain 
 - **Bare aliases:** on for unique names (`unique`), always resolved through each instance's host
   and tool table (section 8.4).
 
-- **Name:** SAJHA Net (config `sajhanet.*`, metrics `sajhanet_*`, command `sajha net`).
+- **Name:** SAJHA Net (config `sajhanet.*`, metrics `sajha_net_*` like every other SAJHA metric,
+  command `sajha net`).
+- **Instance names never collide:** a held name is refused loudly at enrollment and at join
+  (section 6.1).
 - **Any MCP server may join**, so the protocol is a published MCP extension and the
   implementation is pluggable (section 5).
 

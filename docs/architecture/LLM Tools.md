@@ -148,7 +148,7 @@ An LLM tool is a normal entry in the tool registry:
 | Framework piece | How an LLM tool uses it |
 |---|---|
 | Config file | `config/tools/<name>.json`, same top-level shape as any tool, plus an `llm` block. |
-| Implementation | One generic class, `sajha.ai.llm_tools.LLMTool` (a `BaseMCPTool`), named in `implementation`. Like the generic REST and database tools, the behaviour comes from config. |
+| Implementation | One generic class, `sajha.ai.llm_tools.LLMTool` (a `BaseMCPTool`), named in `implementation`. Like imported API tools (`ImportedAPITool`) and data-connector tools (`ConnectorTool`), the behaviour comes from config. |
 | Schemas | `inputSchema` and `outputSchema` are JSON Schema 2020-12, authored per tool. Each mode adds the fields it needs (section 6) and the loader checks they are present. |
 | Annotations | Derived, never trusted from config: `readOnlyHint` is true only if every tool the LLM tool may call is read-only; `destructiveHint` is true if any may be destructive; `openWorldHint` is true if any reaches outside the server. A config that claims less is corrected and the lint flags it. |
 | Registry and reload | Loaded by `ToolsRegistry`; hot reload picks up edits; a broken `llm` block fails that tool's load only. |
@@ -331,7 +331,9 @@ caller ── tools/call markets_assistant {question, conversation_id?}
 
 Progress (`notifications/progress`) is reported at each planner step when the request asked
 for it, and cancellation stops the loop between steps, through the existing per-call tool
-context (`sajha/core/mcp_tool_context.py`).
+context (`sajha/core/mcp_tool_context.py`). That context exists today on the 2026-07-28 path
+only; on 2025-11-25 the run reports progress and checks cancellation through the equivalent
+the build adds there.
 
 ---
 
@@ -368,6 +370,10 @@ call tools, when to check its own work, when to loop and when to stop. The model
 reasoning inside each step; the planner decides the shape of the steps. This section makes
 planners configuration, so a new strategy (ReAct, Reflect, plan-and-execute, self-consistency,
 map-reduce, routing, a domain-specific flow) is a file, not code.
+
+The [Planner Reference](Planner%20Reference.md) owns the planner file itself: every key and
+stage setting, transitions, the `when` expression grammar, the verify checks, validation
+messages, a JSON Schema, and a complete file for each shipped strategy.
 
 ### 9.1 What a planner is, and what it is not
 
@@ -477,12 +483,13 @@ its inputs, its outputs (state slots it writes) and its outcomes, which the load
 Transitions can also carry a `when` condition over state, written in a small expression
 language with no code execution: comparisons, `and`/`or`/`not`, `len()`, `in`, and JSONPath
 lookups (the same JSONPath the tool-quality assertions use). Example:
-`when: "len(results) == 0"`.
+`when: "len(results) == 0"`. Each stage's settings, inputs, outputs and outcomes, and the
+expression grammar, are in the [Planner Reference](Planner%20Reference.md) (sections 6 and 8).
 
 ### 9.4 Strategies are configurations
 
 Every common strategy is a short graph. SAJHA ships these as files (`config/planners/<name>.yaml`),
-so they double as examples:
+so they double as examples (each in full in the [Planner Reference](Planner%20Reference.md), section 13):
 
 | Strategy | Graph | Use when |
 |---|---|---|
@@ -595,7 +602,7 @@ administrator-only and both still inside the service's enforcement:
 
 SAJHA never guesses: the planner for a call is resolved in this order, first match wins.
 
-1. **A routed tool version.** If the tool has an active versions file (canary, user or role pin,
+1. **A routed tool version.** If the tool has an active versions file (canary, or an API-key, user or role pin,
    [Tool Quality](Tool%20Quality.md)), the version chosen for this call may name a different
    planner, for example 10% of calls on `reflect_analyst@2.0.0`. This is how two planners are
    compared on live traffic.
@@ -741,7 +748,9 @@ The goal is that no amount of traffic, conversation length or tool output can ta
 process down: under pressure, work slows down or is refused, it does not crash.
 
 1. **Load only the window.** A call reads the conversation row and at most `history_turns` turn
-   rows; older turns are represented by the summary and never loaded.
+   rows; older turns are represented by the summary and never loaded. (Today
+   `ConversationMemory.context` reads every turn row of the conversation and slices the window
+   in memory; the design reads only the window.)
 2. **Per-call working-set budget.** Every item a run holds is measured when added. A tool result
    larger than `spill_threshold_kb` is written to the run's spool folder (T3) at once; the run
    keeps a reference and a preview of `ai.ask.max_result_chars` characters, which is all a model
@@ -763,8 +772,9 @@ process down: under pressure, work slows down or is refused, it does not crash.
      calls are never killed mid-step.
 6. **Hot cache stays small and optional.** T1 is off by default; when on, it is bounded by
    measured bytes, has a TTL, and is the first thing given up under pressure.
-7. **State store.** Short-lived shared state (MRTR request state, Describe drafts, approvals,
-   tasks) lives in the state store. Production with several workers uses `state.backend:
+7. **State store.** Short-lived shared state (MCP sessions, tasks, approvals, Describe drafts,
+   OAuth codes) lives in the state store; MRTR request state does not, because SAJHA signs it
+   and the client carries it (`sajha/core/mcp_mrtr.py`). Production with several workers uses `state.backend:
    database` or `redis`, which keep it out of process memory; the design adds a count and byte
    cap per kind to the `memory` backend so that even a single-worker setup cannot grow without
    bound.
@@ -822,8 +832,8 @@ from the outer call's remaining cost and time, never a fresh allowance.
 
 ## 12. Models, sampling, budgets and limits
 
-**Model choice.** Through the gateway only, so provider policy (`ai.policy`), per-user daily
-token budgets (`ai.budgets`), retries, circuit breakers, fallback across an alias's candidates
+**Model choice.** Through the gateway only, so provider policy (`ai.policy`), per-user and
+per-role daily token budgets (`ai.budgets`), retries, circuit breakers, fallback across an alias's candidates
 and the response cache all apply. Per-tool `model` picks an alias; the mock model answers every
 mode offline (it needs scripted replies for each mode, section 17).
 
@@ -861,9 +871,16 @@ SAJHA, without rewriting.
 The intelligence layer ([Intelligence Layer](Intelligence%20Layer.md)) has its own neutral types
 in `sajha/ai/llm/types.py`: a `ChatRequest` with `messages` made of typed parts, a separate
 `system` field, `tools` as `ToolSpec` objects with `input_schema`, `response_schema` for
-structured output, and a `ChatResponse` whose `Usage` counts `input_tokens` and `output_tokens`.
-Each provider in `sajha/ai/llm/providers/` translates those types to its vendor's API; the
-`openai_compat` provider covers the many servers that already speak the OpenAI format. The
+structured output, a `ChatResponse` with a `finish_reason` normalised to `stop`, `tool_calls`,
+`length`, `content_filter` or `error`, and a `Usage` of `input_tokens`, `output_tokens`,
+`cached_tokens` and `cost_usd`; streaming yields `TextDelta`, `ToolCallDelta`, `UsageEvent` and
+a final `Done`. Each model declares what it can do in `ModelCapabilities`
+(`sajha/ai/llm/model.py`), and `ChatModel.validate` refuses tools, structured output or images a
+model does not declare. Each provider in `sajha/ai/llm/providers/` translates those types to its
+vendor's API (the mock lives in `sajha/ai/llm/mock.py`); `openai_compat.py` covers OpenAI, Azure
+OpenAI and the many servers that already speak the OpenAI format, and Mistral reuses it. Some
+behaviour is fixed per provider in configuration rather than per request (`strict_schema`,
+`parallel_tool_calls`, `stream_usage`, `embedding_dimensions`, `extra_body`). The
 types are sound, but they are SAJHA's own: a planner or provider written for SAJHA does not look
 like anything a developer already knows, and nothing outside SAJHA can call its gateway.
 
@@ -882,10 +899,13 @@ SAJHA's request and response types become typed models of the Chat Completions f
 | Structured output | `response_format: {type: "json_schema", json_schema: {name, schema, strict}}` or `{type: "json_object"}` | `response_schema` |
 | Sampling controls | `temperature`, `top_p`, `max_completion_tokens` (accepting `max_tokens`), `stop`, `seed`, `n` | same ideas, different names |
 | Response | `{id, object: "chat.completion", created, model, choices: [{index, message, finish_reason}], usage}` | `ChatResponse` |
-| Finish reasons | `stop`, `length`, `tool_calls`, `content_filter` | free-form `finish_reason` |
+| Finish reasons | `stop`, `length`, `tool_calls`, `content_filter` | `finish_reason` normalised to the same values plus SAJHA's own `error` |
 | Usage | `usage: {prompt_tokens, completion_tokens, total_tokens, prompt_tokens_details: {cached_tokens}}` | `Usage(input_tokens, output_tokens, cached_tokens)` |
-| Streaming | `chat.completion.chunk` events with `choices[].delta` (content and tool-call fragments), usage in the last chunk | `TextDelta`, `ToolCallDelta` |
+| Streaming | `chat.completion.chunk` events with `choices[].delta` (content and tool-call fragments), usage in the last chunk | `TextDelta`, `ToolCallDelta`, `UsageEvent`, `Done` |
 | Embeddings | `{model, input}` → `{data: [{embedding, index}], usage}` | `embed(texts)` |
+
+Exactly which fields and values are supported, passed through or refused is settled in section
+13.6.
 
 **SAJHA's own information stays out of the standard fields.** What only SAJHA needs (the caller's
 identity for budgets and policy, the trace id, the access check for tool calls, the cost it
@@ -915,13 +935,16 @@ class LLMProvider(Protocol):                    # a vendor or server, with its c
   breakers and fallback, and returns a `ChatCompletion`. Planner stages and LLM tools call only
   the gateway.
 - **Providers translate at the edge, once.** Each provider adapter converts the canonical format to
-  its vendor's API and back (Anthropic Messages, Gemini, Bedrock Converse, Cohere, Mistral, and so
-  on). For every OpenAI-compatible server (OpenAI, Azure OpenAI, Groq, Together, Fireworks,
-  DeepSeek, xAI, OpenRouter, Perplexity, vLLM, LM Studio, Ollama's compatible endpoint) the adapter
-  is a pass-through with only authentication and base URL differing.
-- **Differences are declared, not hidden.** Each model's `ModelInfo` states what it supports
-  (tools, parallel tool calls, `json_schema` output, vision, streaming usage, seeds, maximum
-  context). The gateway refuses a request a model cannot honour (for example `response_format`
+  its vendor's API and back (Anthropic Messages, Gemini, Bedrock Converse, Cohere v2 Chat,
+  Ollama's native chat API). For every OpenAI-compatible server (OpenAI, Azure OpenAI,
+  Mistral, Groq, Together, Fireworks, DeepSeek, xAI, OpenRouter, Perplexity, vLLM, LM Studio) the
+  adapter is a pass-through; what differs is authentication, base URL and path (Azure's
+  deployments) and a few declared spellings that exist today as provider settings (`max_tokens`
+  instead of `max_completion_tokens`, Mistral's `any` for a required tool call).
+- **Differences are declared, not hidden.** Each model's `ModelInfo` (today's
+  `ModelCapabilities`, extended) states what it supports (tools, forced tool choice, parallel
+  tool calls, `json_schema` output, vision, temperature, reasoning effort, streaming usage,
+  seeds, maximum context). The gateway refuses a request a model cannot honour (for example `response_format`
   with `strict` on a model without structured output) with a clear error, or uses the declared
   fallback (for example JSON mode plus validation and one retry), never a silent downgrade.
 - **The mock follows the same format.** The mock provider and its scripted replies speak Chat
@@ -959,6 +982,157 @@ Because SAJHA speaks the format internally, it can also offer it outward, opt-in
 - `docs/architecture/Extending the Intelligence Layer.md` is rewritten around the new interfaces,
   so a custom provider is written against the format its author already knows.
 
+### 13.6 Field coverage
+
+This settles which parts of Chat Completions the canonical format carries. The rule: support
+what the planners, the LLM-tool modes and today's providers need; pass through what only
+OpenAI-compatible servers understand; refuse everything else with a clear error, never drop it
+silently.
+
+| Status | Meaning |
+|---|---|
+| **Supported** | Part of the canonical types. Translated for every provider whose model declares the feature; a model that does not declare it refuses the request with `unsupported_feature`, and the gateway moves to the alias's next candidate, as it does today for tools, structured output and images. |
+| **Passed through** | Accepted only when the model that serves the call is on an OpenAI-compatible provider (OpenAI, Azure OpenAI, Mistral, the presets, any `openai_compatible` server); sent and returned unchanged. On any other provider the request is refused, as above. |
+| **Refused** | Always an `invalid_request` error naming the field, whatever the provider. |
+| **Not in scope** | Not part of this design; refused like the row above, so a client never believes it worked. |
+
+Fields that only one vendor has (Anthropic `thinking` budgets, Gemini safety settings, Bedrock
+guardrails, Ollama `keep_alive`) stay in provider configuration or the request's `extra_body`,
+as today. Fields outside these tables are refused. SAJHA's own markers on a response (below
+`sajha`) say when it did something on the caller's behalf: `ignored` lists parameters it left
+out, `usage_estimated` marks token counts it estimated, `structured_output: "emulated"` marks
+JSON mode plus validation instead of a native schema.
+
+**Request: messages and content**
+
+| Field | Status | Notes |
+|---|---|---|
+| `role: "system"` | Supported | Anthropic, Gemini and Bedrock take one top-level system text; several system messages are joined with a blank line, as today. SAJHA's safety preamble is always the first system text. |
+| `role: "developer"` | Supported | OpenAI and Azure OpenAI receive it unchanged; every other provider receives it as `system`, since most OpenAI-compatible servers reject the role. |
+| `role: "user"` | Supported | Every provider. |
+| `role: "assistant"` with `content` and `tool_calls` | Supported | History for tool loops. Anthropic thinking blocks and Gemini thought signatures from the same provider are echoed back verbatim (see reasoning models, below). A `refusal` in history is sent as assistant text. |
+| `role: "tool"` with `tool_call_id`, `content` | Supported | Content as a string or text parts. An error result carries `sajha.is_error`, translated to Anthropic `is_error`, Bedrock `status: "error"`, Gemini `{"error": ...}`, and an `ERROR: ` prefix elsewhere (today's behaviour). Gemini and Ollama also receive the tool's name, looked up from the call. |
+| `role: "function"`, `functions`, `function_call` | Refused | Deprecated by OpenAI; `tools` and `tool_choice` cover them. |
+| `name` on a message | Passed through | Participant names have no equivalent at the other vendors. |
+| Content part `text` | Supported | Every provider. |
+| Content part `image_url` | Supported | Models that declare vision. A `data:` URL becomes the vendor's inline image (Anthropic base64 source, Gemini `inlineData`, Bedrock bytes, Ollama `images`). An `http(s)` URL is passed through to OpenAI-compatible servers and refused elsewhere: SAJHA does not fetch URLs on a model's behalf. `detail` other than `auto` is passed through. |
+| Content part `input_audio` | Not in scope | No SAJHA path takes audio; see `modalities`. |
+| Content part `file` | Not in scope | Documents reach a model through document search (`grounded` mode, `rag.sources`), where they are governed, cited and size-bounded. |
+
+**Request: tools**
+
+| Field | Status | Notes |
+|---|---|---|
+| `tools[].type: "function"` with `name`, `description`, `parameters` | Supported | `parameters` is the MCP tool's `inputSchema`. Anthropic `input_schema`, Gemini `functionDeclarations` (`parametersJsonSchema`, or the OpenAPI subset with `schema_mode: openapi`), Bedrock `toolSpec.inputSchema.json`, Cohere and Ollama the same shape as OpenAI. |
+| `function.strict` | Supported | `true` only on models that declare strict tools; refused elsewhere. SAJHA's own planners do not set it, because the normal tool path validates every call's arguments against the input schema anyway. |
+| Other tool types (`custom`, vendor-hosted tools such as web or file search) | Refused | A hosted tool runs at the vendor, outside SAJHA's access rules, policy, audit and budgets. SAJHA's tools are offered as functions. |
+| `tool_choice: "auto"` | Supported | Every provider with tools. |
+| `tool_choice: "none"` | Supported | Tools are not sent at all, as today (the planners' synthesis and memory calls use this). |
+| `tool_choice: "required"` | Supported | Anthropic `{type: "any"}`, Gemini mode `ANY`, Bedrock `any`, Cohere `REQUIRED`, Mistral `any`. Refused on models that declare no forced tool choice (Ollama, and catalogue models flagged so); today those are quietly downgraded to `auto`. |
+| `tool_choice: {type: "function", function: {name}}` | Supported | Anthropic `{type: "tool", name}`, Gemini `ANY` with `allowedFunctionNames`, Bedrock `{tool: {name}}`. Cohere has no named choice: accepted only when that function is the one offered (then `REQUIRED`), refused otherwise; today it becomes `REQUIRED` over every offered tool. |
+| `tool_choice: {type: "allowed_tools", ...}` | Refused | SAJHA narrows the set by offering only the allowed tools. |
+| `parallel_tool_calls` | Supported | `true` is every provider's default and the service runs independent calls in parallel. `false` is sent to OpenAI-compatible servers and as `disable_parallel_tool_use` to Anthropic; refused on providers with no such switch. Today it is a per-provider setting; it becomes per request, with the setting as default. |
+
+**Request: output format and sampling**
+
+| Field | Status | Notes |
+|---|---|---|
+| `response_format: {type: "text"}` | Supported | The default. |
+| `response_format: {type: "json_object"}` | Supported | OpenAI-compatible as is, Gemini `responseMimeType` without a schema, Cohere `json_object`, Ollama `format: "json"`; Anthropic receives the schema `{"type": "object"}`. Refused on models without structured output (Bedrock Converse today). |
+| `response_format: {type: "json_schema", json_schema: {name, description?, schema, strict?}}` | Supported | OpenAI-compatible as is, Anthropic `output_config.format`, Gemini `responseJsonSchema` (or `responseSchema` in `schema_mode: openapi`), Cohere `json_object` with `json_schema`, Ollama `format` set to the schema. `strict` becomes per request (today the provider setting `strict_schema`). A model that declares JSON mode but no schema output gets JSON mode, the schema in its instructions, validation and one retry, marked `structured_output: "emulated"`; a model with neither refuses. The `extract`, `classify` and `judge` modes validate every reply against the output schema regardless. |
+| `temperature` | Supported | Anthropic, Gemini, Bedrock, Cohere, Ollama `options.temperature`. A model that declares no temperature (catalogue flag `n`, often reasoning models) is called without it and the response lists it in `sajha.ignored`; today it is left out without a trace. Not refused, because SAJHA's own callers send one by default (`ai.ask.temperature`). |
+| `top_p` | Supported | New: Anthropic `top_p`, Gemini `topP`, Bedrock `topP`, Cohere `p`, Ollama `options.top_p`; treated like `temperature` on models without sampling controls. |
+| `max_completion_tokens`, `max_tokens` | Supported | Both accepted; `max_completion_tokens` wins. Sent as each provider's own field (`max_tokens_param` for OpenAI-compatible servers, Anthropic `max_tokens`, Gemini `maxOutputTokens`, Bedrock `maxTokens`, Ollama `num_predict`), clamped by the role's `ai.policy` cap as today. On reasoning models it includes reasoning tokens. |
+| `stop` | Supported | A string or a list. Anthropic and Cohere `stop_sequences`, Gemini and Bedrock `stopSequences`, Ollama `options.stop`. Refused on models that declare no stop sequences. |
+| `seed` | Supported | Models that declare it: OpenAI-compatible servers, Gemini `seed`, Cohere `seed`, Mistral `random_seed`, Ollama `options.seed`. Refused elsewhere (Anthropic, Bedrock). Used by evals and tests for repeatable runs. |
+| `n` | Supported | Sent natively where declared (OpenAI-compatible, Gemini `candidateCount`); elsewhere the gateway makes `n` calls and merges the choices, each counted against budgets. Capped by `ai.planners.limits.max_samples`. Needed by the `sample` stage. |
+| `presence_penalty`, `frequency_penalty` | Passed through | No planner needs them. |
+| `logit_bias` | Passed through | Token ids belong to one tokenizer. |
+| `logprobs`, `top_logprobs` | Passed through | Returned unchanged in `choices[].logprobs`. |
+| `stream` | Supported | Every provider. A model that declares no streaming answers in one content chunk followed by the final chunk, as `ChatModel.stream` does today. |
+| `stream_options.include_usage` | Supported | The final chunk carries `usage` and empty `choices`. Usage comes from the vendor's stream events; where a vendor sends none, SAJHA estimates it (about four characters a token, as today) and sets `sajha.usage_estimated`. |
+| `user` | Supported (SAJHA meaning) | Recorded in the audit record as the end user's label; never forwarded to a vendor. Identity for policy and budgets comes from the authenticated caller, not this field. |
+| `metadata` | Supported (SAJHA meaning) | String pairs recorded in the audit record and usage ledger; never forwarded. |
+| `store` | Refused when `true` | Storing completions at a vendor bypasses SAJHA's retention and audit. `false` is accepted. |
+| `service_tier` | Passed through | The response's `service_tier` is returned unchanged; the cost estimate still uses the catalogue price. |
+| `reasoning_effort` | Supported | Models that declare a reasoning control. OpenAI-compatible as is; Anthropic `output_config.effort`; Gemini `thinkingConfig`; Ollama `think`; Bedrock through `additionalModelRequestFields` where the model declares how. Refused on models without one. |
+| `modalities`, `audio` | Not in scope | `modalities: ["text"]` is accepted; anything else is refused. |
+| `prediction` | Passed through | Predicted outputs exist only on some OpenAI-compatible models. |
+| `web_search_options` | Refused | Search at the vendor bypasses governance; SAJHA's own search and document-search tools are offered as functions instead. |
+
+**Response**
+
+| Field | Status | Notes |
+|---|---|---|
+| `id`, `object: "chat.completion"`, `created` | Supported | Generated by SAJHA when the vendor has none. |
+| `model` | Supported | The vendor's model id that actually answered (after fallback); `sajha.provider` and the qualified id name where. |
+| `choices[]` with `index`, `message`, `finish_reason` | Supported | One choice per `n`. |
+| `message.content` | Supported | A string, or `null` when the message has only tool calls or a refusal. Several vendor text blocks are joined. |
+| `message.refusal` | Supported | OpenAI's `refusal` is kept (today it is dropped, and a refusal looks like an empty answer). Anthropic `stop_reason: "refusal"`, Gemini safety finishes (`SAFETY`, `PROHIBITED_CONTENT`, `BLOCKLIST`, `SPII`, `RECITATION`, `IMAGE_SAFETY`) and Bedrock `guardrail_intervened` become `finish_reason: "content_filter"` with a `refusal` text naming the reason. A prompt the vendor blocks before generating (Gemini `promptFeedback`, a provider's content-filter HTTP error) stays a `content_filtered` error, as today: not retried on another candidate and never cached. An LLM tool reports either as `stopped_by: refused` (section 15). |
+| `message.tool_calls[]` with `id`, `type`, `function.name`, `function.arguments` | Supported | `arguments` is a JSON string. Vendors that return objects (Anthropic, Gemini, Bedrock, Ollama) are serialised; vendors without call ids get generated ones, as today. |
+| `message.annotations` | Passed through | URL citations from search-capable OpenAI-compatible models. SAJHA's own citations travel in `sajha.citations`. |
+| `message.audio` | Not in scope | See `modalities`. |
+| `finish_reason` | Supported | `stop`, `length`, `tool_calls`, `content_filter`. `function_call` becomes `tool_calls`; Anthropic `pause_turn` and Gemini `OTHER` become `stop`; a context-window stop becomes `length`. Today's extra value `error` (Gemini `MALFORMED_FUNCTION_CALL`, Cohere `ERROR` and `TIMEOUT`) becomes a gateway error instead, so the next candidate can be tried and responses carry only standard values. |
+| `usage.prompt_tokens`, `completion_tokens`, `total_tokens` | Supported | Anthropic prompt tokens include cache reads and writes, Gemini completion tokens include thought tokens, as today. |
+| `usage.completion_tokens_details.reasoning_tokens` | Supported | From OpenAI-compatible servers and Gemini `thoughtsTokenCount`; absent when a vendor does not report it separately (Anthropic, Bedrock, Cohere, Ollama), never guessed. Reasoning tokens are already inside `completion_tokens` and priced as output. |
+| `usage.completion_tokens_details` other fields (`audio_tokens`, `accepted_prediction_tokens`, `rejected_prediction_tokens`) | Passed through | |
+| `usage.prompt_tokens_details.cached_tokens` | Supported | OpenAI `cached_tokens`, Anthropic `cache_read_input_tokens`, Gemini `cachedContentTokenCount`, Bedrock `cacheReadInputTokens`; absent elsewhere. |
+| `system_fingerprint` | Passed through | Returned when the vendor sends one. |
+| `sajha` | SAJHA | Provider, qualified model, `cost_usd`, `cached` (gateway response cache), latency, fallback attempts, trace id, `ignored`, `usage_estimated`, `structured_output`. |
+
+**Streaming chunks**
+
+| Field | Status | Notes |
+|---|---|---|
+| `object: "chat.completion.chunk"`, `id`, `created`, `model` | Supported | Same values in every chunk of one response. |
+| `choices[].delta.role` | Supported | On the first chunk. |
+| `choices[].delta.content` | Supported | From Anthropic `text_delta`, Gemini text parts, Bedrock content deltas, Cohere `content-delta`, Ollama's NDJSON lines. |
+| `choices[].delta.tool_calls[]` with `index`, `id`, `function.name`, `function.arguments` fragment | Supported | Anthropic `input_json_delta` and Cohere `tool-call-delta` stream fragments; Gemini and Ollama deliver each call whole, sent as one fragment. |
+| `choices[].delta.refusal` | Supported | Streamed by OpenAI-compatible servers; for other vendors one delta when the refusal is known. |
+| `choices[].finish_reason` | Supported | On the last content chunk, mapped as in the response. |
+| `choices[].logprobs` | Passed through | |
+| final `usage` chunk | Supported | With `stream_options.include_usage`. |
+| Vendor reasoning text (Anthropic `thinking_delta`, `reasoning_content` from some compatible servers, Ollama `thinking`) | Not in scope | Not emitted as content. What a vendor needs echoed back on the next turn is kept as provider state (below). |
+
+**Embeddings**
+
+| Field | Status | Notes |
+|---|---|---|
+| `model` | Supported | An alias (`embedding`) or `provider/model`. |
+| `input` as a string or an array of strings | Supported | OpenAI-compatible `input`, Gemini `batchEmbedContents`, Cohere `texts`, Bedrock one call per text (Titan) or a batch (Cohere Embed), Ollama's embed API. |
+| `input` as token arrays | Passed through | Token ids belong to one tokenizer. |
+| `encoding_format: "float"` | Supported | The default. |
+| `encoding_format: "base64"` | Supported | SAJHA encodes the floats itself, since some vendors return only floats. |
+| `dimensions` | Supported | Models that declare a variable size: OpenAI-compatible `dimensions`, Gemini `outputDimensionality`, Cohere `output_dimension`, Titan v2 `dimensions`, Ollama `dimensions`. Refused on fixed-size models. Per request instead of today's provider setting `embedding_dimensions`; a document index keeps one size for all its vectors. |
+| `user` | Supported (SAJHA meaning) | Audit only, as for chat. |
+| Response `data[]` with `object`, `embedding`, `index`; `model`; `usage.prompt_tokens`, `usage.total_tokens` | Supported | Usage is estimated and marked where a vendor reports none. |
+| Query or document purpose | SAJHA | No standard field; `sajha.input_purpose: "query" \| "document"` maps to Cohere `input_type` and Gemini `taskType`. Today one configured value (`search_document`, `RETRIEVAL_DOCUMENT`) is used for both indexing and queries. |
+
+**Reasoning and thinking models.**
+
+- *Effort.* `reasoning_effort` is the one portable control, mapped per provider as in the table.
+  A vendor-specific budget (Anthropic `thinking.budget_tokens`, Gemini `thinkingBudget`) stays in
+  `extra_body` or provider configuration, as `extra_body` and Ollama's `think` setting carry it
+  today.
+- *Sampling.* Models that refuse sampling controls declare it, and SAJHA leaves `temperature`
+  and `top_p` out and lists them in `sajha.ignored`, as above.
+- *Tokens.* `max_completion_tokens` includes reasoning; reasoning tokens are reported in
+  `completion_tokens_details.reasoning_tokens` where the vendor reports them, and are priced as
+  output.
+- *Thinking state.* Anthropic thinking blocks and Gemini thought signatures must be sent back on
+  the next turn of a tool loop. Today they ride in `Message.meta` and are echoed only to the same
+  provider, never logged; the canonical assistant message keeps them as private provider state
+  in the same way. On SAJHA's outward endpoint (13.4) they are returned as an opaque
+  `sajha.provider_state` on the assistant message for the client to send back; a turn without it
+  is sent as plain history.
+- *Thinking text* is never returned as content and never logged.
+
+**Refusals and filters**, in one place: a model's refusal is a successful response with
+`finish_reason: "content_filter"` and `message.refusal`; a request the vendor blocks outright is
+a `content_filtered` error. Neither is retried on another candidate (the refusal is a property of
+the request), neither is cached (today the cache keeps only `stop` and `tool_calls`), and both
+are audited.
+
 ---
 
 ## 14. Safety
@@ -970,7 +1144,7 @@ Because SAJHA speaks the format internally, it can also offer it outward, opt-in
 - **No privilege through the model.** Section 8: the model can only call what the caller can.
 - **Output validation.** Structured modes validate against the output schema; free-text modes
   are length-limited. Policy `redact` rules can mask PII in the final answer (the policy engine's
-  `redact_text`).
+  `redact_text`, `sajha/policy/redact.py`).
 - **Data separation.** Conversations are per owner and per tool; the shortlist and context are
   built per call; nothing from one caller's run reaches another's.
 - **Secrets.** The model never sees credentials: connected-account tokens and connector
@@ -990,6 +1164,9 @@ for clients on older protocol versions. `stopped_by` says how the run ended:
 | `needs_confirmation` | A destructive inner call waits for confirmation (fingerprints in the result, or an MRTR request) | false |
 | `max_steps`, `max_tool_calls`, `timeout`, `max_cost` | A limit ended the run; a partial answer is returned | false |
 | `no_sources` | `grounded` found nothing to answer from | false |
+| `needs_input` | An `ask_user` stage waits for the caller's answer, on paths without MRTR (section 9.3) | false |
+| `refused` | The model refused or the provider's filter blocked the request; the refusal text is returned (section 13.6). In `extract`, `classify` and `judge` it is `invalid_output` instead | false |
+| `busy`, `memory_pressure` | The process refused or ended the run to protect itself (section 10.4); REST answers 503 with `Retry-After` for `busy` | true |
 | `invalid_output` | `extract`, `classify` or `judge` could not produce valid output after the retry | true |
 | `budget_exhausted` | The caller's token budget is used up | true |
 | `model_unavailable` | Every candidate for the alias failed | true |
@@ -1057,12 +1234,14 @@ the same pipeline.
 enforces it; SAJHA runs no DDL on PostgreSQL):
 
 - `ai_conversations`: add `tool_name VARCHAR(200)` (null for Ask SAJHA page conversations) and
-  `expires_ts REAL` (null means the global retention applies); add an index on
+  `expires_ts` (`REAL` in SQLite, `DOUBLE PRECISION` in PostgreSQL, like the table's other
+  timestamps; null means the global retention applies); add an index on
   `(user_id, tool_name, updated_ts)` and one on `expires_ts`.
 - Operator action for existing databases, in the CHANGELOG: run the two `ALTER TABLE ... ADD
   COLUMN` statements and the two `CREATE INDEX` statements from the schema file (PostgreSQL by
-  the operator; SQLite likewise, since the start-up check refuses a database with missing
-  columns, as in roadmap item N2).
+  the operator; SQLite likewise, since SQLite creates only missing tables, not missing columns,
+  and the start-up schema check (`db.schema_check: strict`, the default) refuses a database with
+  missing columns; roadmap item N2 makes that message print the statements).
 
 **Configuration** (`config/application.yml`, documented in the Configuration Reference):
 

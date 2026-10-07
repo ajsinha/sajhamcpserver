@@ -110,7 +110,8 @@ CATALOG: List[dict] = [
         'id': 'protocol', 'name': 'MCP protocol', 'icon': 'bi-diagram-3',
         'blurb': 'Both protocol eras on one /mcp endpoint, the evidence, OAuth, and every HTTP endpoint.',
         'groups': [
-            ('How it works', ['MCP Protocol Guide', 'OAuth Guide', 'MCP Apps and Headers Guide']),
+            ('How it works', ['MCP Protocol Guide', 'OAuth Guide', 'MCP Apps and Headers Guide',
+                              'SAJHA Net protocol (spec)']),
             ('Evidence', ['MCP 2026-07-28 Compliance', 'MCP 2025-11-25 Compliance']),
             ('Endpoints', ['API Reference', 'Interactive API docs', 'ReDoc API reference']),
         ],
@@ -127,6 +128,9 @@ CATALOG: List[dict] = [
                'server or an external issuer.'),
             _g('MCP Apps and Headers Guide', 'MCP Apps and Headers Guide.md', 'bi-window-stack',
                'Interactive tool views (ui:// resources) and x-mcp-header argument mirroring.'),
+            _g('SAJHA Net protocol (spec)', 'SAJHA Net Protocol.md', 'bi-share',
+               'Specification (not built) of the io.sajha/net extension: /sajhanet/ endpoints, RFC 9421 '
+               'signed requests, gossip, key directory, call forwarding headers, error codes, conformance tests.'),
             _g('API Reference', 'API Reference.md', 'bi-signpost-split',
                'Every HTTP endpoint the server registers: REST, MCP, OAuth, A2A, AI, Studio, '
                'workflows, policy, quality and connector routes.'),
@@ -182,6 +186,9 @@ CATALOG: List[dict] = [
             _g('LLM tools (design)', 'LLM Tools.md', 'bi-chat-square-text',
                'Design for tools whose work is done by a model: modes, config, running as the caller, '
                'config-driven planners (ReAct, Reflect, loops), memory tiers with disk spill, safety, build plan.'),
+            _g('Planner reference (design)', 'Planner Reference.md', 'bi-signpost-split',
+               'Planner files in full: keys, every stage type, transitions and bounded loops, the when '
+               'expression grammar, verify checks, validation messages, JSON Schema, shipped strategies.'),
             _g('SAJHA Net (design)', 'SAJHA Net.md', 'bi-diagram-3',
                'Design for SAJHA servers sharing tools across domains: gossip membership, automatic proxy tools, '
                'API-key identity with a synced key directory, two-sided authorization, residency, snapshots.'),
