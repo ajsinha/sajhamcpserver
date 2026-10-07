@@ -725,6 +725,44 @@
                 </div>
             </div>
         </div>
+
+        <!-- LLM Tool Creator Card -->
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card h-100 shadow-sm tool-method-card">
+                <div class="card-header d-flex align-items-center">
+                    <i class="bi bi-chat-square-text fs-4 me-2" aria-hidden="true"></i>
+                    <div>
+                        <h5 class="mb-0">LLM Tool</h5>
+                        <small class="opacity-75">A language model does the work</small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        An assistant over chosen tools, a summariser, a classifier, an extractor or a judge:
+                        mode, model, instructions, allowed tools and limits in one form.
+                    </p>
+                    <div class="feature-list mb-3">
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1" aria-hidden="true"></i>
+                            <small>Seven modes, schemas generated per mode</small>
+                        </div>
+                        <div class="d-flex align-items-start mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1" aria-hidden="true"></i>
+                            <small>Live allow/deny matching, limits within the ceilings</small>
+                        </div>
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-check-circle-fill text-success me-2 mt-1" aria-hidden="true"></i>
+                            <small>Tried on the mock model before deploy</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <a href="{{ url_for('studio_llm') }}" class="btn btn-primary w-100">
+                        <i class="bi bi-arrow-right me-1" aria-hidden="true"></i>Open LLM Tool Creator
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- Coming Soon Row -->

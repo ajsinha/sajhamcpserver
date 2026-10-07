@@ -37,7 +37,7 @@ section 11). Everything a client can reach over HTTP comes through one of four d
    │ apps · change bus             │ PromptsRegistry ◄── prompt configs        │
    │                               │ connectors · workflows · plugins ·        │
    │                               │ tool versions · policy engine             │
-   │ IntelligenceService → LLMGateway → LLM providers (sajha/ai/)              │
+   │ IntelligenceService → LLMFactory → GovernedModel → providers (sajha/ai/)  │
    └───────────────┬───────────────┴───────────────┬───────────────────────────┘
                    │ execution: cache → circuit breaker → tool.execute() → metrics, usage
                    │ (user code runs out of process, in the sajha/sandbox/ runner)
@@ -215,9 +215,13 @@ parameters between steps; `EntropyGuard` tracks cumulative confidence
 - **Workflows and quality.** `sajha/workflows/` runs DAGs of tool, composite and ask steps
   on schedules and triggers ([Workflows](Workflows.md)); `sajha/quality/` holds the test
   harness, linter, probes, evals and tool versions ([Tool Quality](Tool%20Quality.md)).
-- **AI.** `sajha/ai/llm/` holds the provider-neutral types, the provider and model
-  abstractions and the native providers; `sajha/ai/gateway.py` (`LLMGateway`) resolves
-  aliases to models with policy, budgets, retries, fallback and caching;
+- **AI.** `sajha/ai/llm/` is the one LLM package and its boundary: the public API
+  (`sajha.ai.llm`: the canonical OpenAI-style types, the abstract `LLMProvider` and
+  `LLMModel`, `llm_factory()`, the errors), the provider SPI (`spi.py`), one module per
+  provider in `providers/`, and the factory (`factory.py`, `LLMFactory`) whose
+  `model(alias)` returns a `GovernedModel` proxy (`governed.py`) that resolves aliases to
+  models with policy, budgets, retries, fallback, caching, audit and tracing. Nothing outside
+  the package imports a vendor SDK or a private module of it (`tests/test_llm_boundary.py`);
   `sajha/ai/intelligence.py` (`IntelligenceService`) is the ask loop behind
   `POST /api/ai/ask`, the Ask SAJHA page (`/ask`) and the optional `sajha_ask` MCP tool,
   with pluggable planners (planner files in `config/planners/` run by `sajha/ai/planners_engine/`,
@@ -301,6 +305,29 @@ does not open, fit and close. It warns about tap targets under 40px, text under 
 and tall fixed elements. `tests/test_mobile_layout.py` checks that its routes still
 render and that every page has a viewport meta; it runs the browser check only when
 `SAJHA_CHECK_BASE` names a running server.
+
+**Flows and accessibility.** `scripts/check_console.py` drives the console end to end in
+Chromium: sign in, Ask SAJHA answers an example question, the LLM tool creator builds, tries,
+deploys and deletes a tool, the planner editor dry-runs a planner, and the Conversations page
+lists the conversation. It then scans its `PAGES` (or, with `--all`, every route of
+`check_mobile.py`) for accessibility: with axe-core (`--axe <axe.min.js>` or `SAJHA_AXE_JS`) the
+WCAG 2.x A and AA rules, failing on serious or critical violations; without it, a documented
+subset of those rules (`RULES` in the script). Run it against a scratch server, in each theme
+with `--theme`:
+
+```
+python scripts/check_console.py --base http://127.0.0.1:3087 --axe /path/to/axe.min.js --theme dark
+```
+
+`tests/test_console_checks.py` checks that its pages render and runs it only when
+`SAJHA_CHECK_BASE` names a running server.
+
+**Who sees which page.** The MCP Studio menu and its sub-navigation list only the creators the
+caller's Studio permissions open (`studio_creators` in `render()`'s context; the
+[MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md#permissions)); the planner editor
+(`/studio/planners`) is for administrators. The Conversations page (`/conversations`, under
+**AI → Ask**) shows each user only their own conversation memory; administrators also see counts
+per scope.
 
 ## 11. Clients, the CLI and stdio
 

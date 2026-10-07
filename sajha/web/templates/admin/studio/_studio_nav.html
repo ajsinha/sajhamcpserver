@@ -1,21 +1,25 @@
-<!-- #15 Studio sub-navigation -->
+<!-- #15 Studio sub-navigation: only the creators the caller's permissions open (studio:<creator>) -->
+{% set SC = studio_creators if studio_creators is defined else [] %}
+{% set ALL = is_admin is defined and is_admin %}
 <div class="card mb-3">
     <div class="card-body py-2">
-        <nav class="d-flex flex-wrap gap-2 align-items-center">
+        <nav class="d-flex flex-wrap gap-2 align-items-center" aria-label="Studio creators">
             <span class="text-muted small fw-bold me-2"><i class="bi bi-magic me-1"></i>STUDIO:</span>
             <a href="{{ url_for('studio_home') }}" class="filter-chip {% if request.path == '/studio' %}active{% endif %}"><i class="bi bi-house me-1"></i>Home</a>
-            <a href="{{ url_for('studio_describe') }}" class="filter-chip {% if 'describe' in request.path %}active{% endif %}"><i class="bi bi-chat-square-text me-1"></i>Describe</a>
-            <a href="{{ url_for('studio_home') }}#python-creator" class="filter-chip"><i class="bi bi-code-slash me-1"></i>Python</a>
-            <a href="{{ url_for('studio_rest') }}" class="filter-chip {% if 'rest' in request.path %}active{% endif %}"><i class="bi bi-cloud-arrow-up me-1"></i>REST</a>
-            <a href="{{ url_for('studio_api_import') }}" class="filter-chip {% if 'api-import' in request.path %}active{% endif %}"><i class="bi bi-filetype-json me-1"></i>Import an API</a>
-            <a href="{{ url_for('studio_dbquery') }}" class="filter-chip {% if 'dbquery' in request.path %}active{% endif %}"><i class="bi bi-database me-1"></i>DB Query</a>
-            <a href="{{ url_for('studio_script') }}" class="filter-chip {% if 'script' in request.path %}active{% endif %}"><i class="bi bi-terminal me-1"></i>Script</a>
-            <a href="{{ url_for('studio_powerbi') }}" class="filter-chip {% if 'powerbi' in request.path and 'dax' not in request.path %}active{% endif %}"><i class="bi bi-bar-chart-fill me-1"></i>PowerBI</a>
-            <a href="{{ url_for('studio_powerbidax') }}" class="filter-chip {% if 'dax' in request.path %}active{% endif %}"><i class="bi bi-braces me-1"></i>DAX</a>
-            <a href="{{ url_for('studio_livelink') }}" class="filter-chip {% if 'livelink' in request.path %}active{% endif %}"><i class="bi bi-folder2-open me-1"></i>LiveLink</a>
-            <a href="{{ url_for('studio_sharepoint') }}" class="filter-chip {% if 'sharepoint' in request.path %}active{% endif %}"><i class="bi bi-microsoft me-1"></i>SharePoint</a>
-            <a href="{{ url_for('studio_olap') }}" class="filter-chip {% if 'olap' in request.path %}active{% endif %}"><i class="bi bi-graph-up-arrow me-1"></i>OLAP</a>
-            <a href="{{ url_for('composite_builder') }}" class="filter-chip {% if 'composite' in request.path %}active{% endif %}"><i class="bi bi-boxes me-1"></i>Composite</a>
+            {% if ALL or 'describe' in SC %}<a href="{{ url_for('studio_describe') }}" class="filter-chip {% if 'describe' in request.path %}active{% endif %}"><i class="bi bi-chat-square-text me-1"></i>Describe</a>{% endif %}
+            {% if ALL or 'python' in SC %}<a href="{{ url_for('studio_home') }}#python-creator" class="filter-chip"><i class="bi bi-code-slash me-1"></i>Python</a>{% endif %}
+            {% if ALL or 'rest' in SC %}<a href="{{ url_for('studio_rest') }}" class="filter-chip {% if 'rest' in request.path %}active{% endif %}"><i class="bi bi-cloud-arrow-up me-1"></i>REST</a>{% endif %}
+            {% if ALL or 'api_import' in SC %}<a href="{{ url_for('studio_api_import') }}" class="filter-chip {% if 'api-import' in request.path %}active{% endif %}"><i class="bi bi-filetype-json me-1"></i>Import an API</a>{% endif %}
+            {% if ALL or 'dbquery' in SC %}<a href="{{ url_for('studio_dbquery') }}" class="filter-chip {% if 'dbquery' in request.path %}active{% endif %}"><i class="bi bi-database me-1"></i>DB Query</a>{% endif %}
+            {% if ALL or 'script' in SC %}<a href="{{ url_for('studio_script') }}" class="filter-chip {% if 'script' in request.path %}active{% endif %}"><i class="bi bi-terminal me-1"></i>Script</a>{% endif %}
+            {% if ALL or 'powerbi' in SC %}<a href="{{ url_for('studio_powerbi') }}" class="filter-chip {% if 'powerbi' in request.path and 'dax' not in request.path %}active{% endif %}"><i class="bi bi-bar-chart-fill me-1"></i>PowerBI</a>{% endif %}
+            {% if ALL or 'powerbidax' in SC %}<a href="{{ url_for('studio_powerbidax') }}" class="filter-chip {% if 'dax' in request.path %}active{% endif %}"><i class="bi bi-braces me-1"></i>DAX</a>{% endif %}
+            {% if ALL or 'livelink' in SC %}<a href="{{ url_for('studio_livelink') }}" class="filter-chip {% if 'livelink' in request.path %}active{% endif %}"><i class="bi bi-folder2-open me-1"></i>LiveLink</a>{% endif %}
+            {% if ALL or 'sharepoint' in SC %}<a href="{{ url_for('studio_sharepoint') }}" class="filter-chip {% if 'sharepoint' in request.path %}active{% endif %}"><i class="bi bi-microsoft me-1"></i>SharePoint</a>{% endif %}
+            {% if ALL or 'olap' in SC %}<a href="{{ url_for('studio_olap') }}" class="filter-chip {% if 'olap' in request.path %}active{% endif %}"><i class="bi bi-graph-up-arrow me-1"></i>OLAP</a>{% endif %}
+            {% if ALL or 'llm' in SC %}<a href="{{ url_for('studio_llm') }}" class="filter-chip {% if request.path == '/studio/llm' %}active{% endif %}"><i class="bi bi-chat-square-text me-1"></i>LLM tool</a>{% endif %}
+            {% if ALL %}<a href="{{ url_for('studio_planners') }}" class="filter-chip {% if 'planners' in request.path %}active{% endif %}"><i class="bi bi-signpost-split me-1"></i>Planners</a>{% endif %}
+            {% if ALL or 'composite' in SC %}<a href="{{ url_for('composite_builder') }}" class="filter-chip {% if 'composite' in request.path %}active{% endif %}"><i class="bi bi-boxes me-1"></i>Composite</a>{% endif %}
         </nav>
     </div>
 </div>

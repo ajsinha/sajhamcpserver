@@ -143,19 +143,19 @@ def bootstrap(with_ai: bool = False):
     if with_ai:
         try:
             from sajha.core.config import _CFG
-            from sajha.ai.gateway import init_gateway
+            from sajha.ai.llm import init_llm_factory
             from sajha.ai.intelligence import init_intelligence
             from sajha.ai.ask_tool import register_if_enabled
             db = get_db_session()
             try:
-                gw = init_gateway(_CFG, db_session=db)
+                gw = init_llm_factory(_CFG, db_session=db)
             finally:
                 db.close()
             if gw is not None:
                 svc = init_intelligence(gw, tools)
                 register_if_enabled(tools, svc.settings)
         except Exception as e:
-            logger.warning(f'AI gateway unavailable on stdio: {e}')
+            logger.warning(f'LLM factory unavailable on stdio: {e}')
 
     handler = MCPHandler(tools_registry=tools, auth_manager=SessionToolAccess(), prompts_registry=prompts)
 

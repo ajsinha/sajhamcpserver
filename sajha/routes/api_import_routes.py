@@ -25,7 +25,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 
 from sajha.app import render
-from sajha.auth import AuthContext, require_studio
+from sajha.auth import AuthContext, require_creator
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +61,22 @@ def _audit(auth: AuthContext, what: str, details: Any = None) -> None:
         logger.debug(f'api import audit: {e}')
 
 
+def _not_owner(auth: AuthContext, api_id: str):
+    """A 403 when a non-admin re-deploys or deletes an import someone else made (None otherwise)."""
+    if auth.is_admin or not api_id:
+        return None
+    from sajha.api_import import store
+    from sajha.studio.ownership import refusal
+    try:
+        record = store.load(api_id)
+    except Exception:
+        record = None
+    if not record:
+        return None
+    refused = refusal(auth, str(record.get('created_by') or ''), api_id)
+    return _fail(refused, 403) if refused else None
+
+
 async def _run(fn, *args, **kwargs) -> JSONResponse:
     from sajha.api_import.service import APIImportError
     try:
@@ -76,7 +92,7 @@ async def _run(fn, *args, **kwargs) -> JSONResponse:
 # ── page ────────────────────────────────────────────────────────────
 
 @pages.get('/api-import')
-async def studio_api_import(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_api_import(request: Request, auth: AuthContext = Depends(require_creator('api_import'))):
     from sajha.api_import import settings
     from sajha.api_import.service import connected_accounts_available
     return render(request, 'admin/studio/studio_api_import.html', {
@@ -92,13 +108,13 @@ async def studio_api_import(request: Request, auth: AuthContext = Depends(requir
 # ── actions ─────────────────────────────────────────────────────────
 
 @actions.post('/parse')
-async def api_import_parse(request: Request, auth: AuthContext = Depends(require_studio)):
+async def api_import_parse(request: Request, auth: AuthContext = Depends(require_creator('api_import'))):
     from sajha.api_import import service
     return await _run(service.plan, await _body(request), _registry())
 
 
 @actions.post('/test')
-async def api_import_test(request: Request, auth: AuthContext = Depends(require_studio)):
+async def api_import_test(request: Request, auth: AuthContext = Depends(require_creator('api_import'))):
     from sajha.api_import import service
     data = await _body(request)
     _audit(auth, 'test', {'prefix': data.get('prefix'), 'operation': data.get('operation')})
@@ -106,9 +122,12 @@ async def api_import_test(request: Request, auth: AuthContext = Depends(require_
 
 
 @actions.post('/deploy')
-async def api_import_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
+async def api_import_deploy(request: Request, auth: AuthContext = Depends(require_creator('api_import'))):
     from sajha.api_import import service
     data = await _body(request)
+    refused = _not_owner(auth, str(data.get('prefix') or '').strip().lower())
+    if refused:
+        return refused
     response = await _run(service.deploy, data, _registry(), auth.user_id)
     try:
         result = json.loads(response.body)
@@ -119,21 +138,24 @@ async def api_import_deploy(request: Request, auth: AuthContext = Depends(requir
 
 
 @reads.get('/apis')
-async def api_import_list(auth: AuthContext = Depends(require_studio)):
+async def api_import_list(auth: AuthContext = Depends(require_creator('api_import'))):
     from sajha.api_import import service
     return await _run(lambda: {'success': True, 'apis': service.list_apis(_registry())})
 
 
 @reads.get('/apis/{api_id}')
-async def api_import_get(api_id: str, auth: AuthContext = Depends(require_studio)):
+async def api_import_get(api_id: str, auth: AuthContext = Depends(require_creator('api_import'))):
     from sajha.api_import import service
     return await _run(lambda: {'success': True, 'request': service.reimport_request(api_id)})
 
 
 @actions.post('/delete')
-async def api_import_delete(request: Request, auth: AuthContext = Depends(require_studio)):
+async def api_import_delete(request: Request, auth: AuthContext = Depends(require_creator('api_import'))):
     from sajha.api_import import service
     api_id = str((await _body(request)).get('api_id') or '').strip().lower()
+    refused = _not_owner(auth, api_id)
+    if refused:
+        return refused
     response = await _run(service.delete_api, api_id, _registry())
     _audit(auth, 'delete', {'api_id': api_id, 'status': response.status_code})
     return response

@@ -1,15 +1,16 @@
 # SAJHA MCP Server — Tool Generation ("Describe a tool")
 
-Someone with MCP Studio access (an administrator, or a developer: a role with the `studio`
-permission) describes a tool in plain words ("get the 10-year US treasury yield and
-its change over 30 days", "wrap this REST endpoint …", "query table orders by region").
+Someone with MCP Studio access (an administrator, or a role with the `studio:describe` or
+`studio:*` permission) describes a tool in plain words ("get the 10-year US treasury yield and
+its change over 30 days", "wrap this REST endpoint …", "query table orders by region",
+"classify a support message into billing, technical or other").
 SAJHA asks a model to design it, checks the design as untrusted input, renders the exact
 files a deploy would write, runs the design's test cases (Python code in the sandbox, REST
 against canned replies), and deploys only when that person approves that exact
 version and the policy engine agrees.
 
 This document owns the topic. The page is **Studio → Describe a tool**
-(`/studio/describe`, Studio access: admin or the `studio` permission); the command is `sajha studio describe` (see
+(`/studio/describe`, permission `studio:describe`; admins always); the command is `sajha studio describe` (see
 [Command Line](../clients/Command%20Line.md#3-commands)); the walkthrough is
 [Tutorial 24](../tutorials/TUTORIAL_24_describe_a_tool.md); the keys are in the
 [Configuration Reference](../getting-started/Configuration%20Reference.md#studio-describe-a-tool);
@@ -26,16 +27,19 @@ the terms are in the [Glossary](../../GLOSSARY.md). The code is `sajha/studio/de
                                                                       │  gateway alias "toolsmith"
                                                                       ▼  (structured output)
  proposal  {kind, name, description, category, input_schema, output_schema, implementation, tests, notes}
+           kind: python | rest | dbquery | composite | openapi | llm
       │  validate: every field is untrusted (names, URLs, SQL, headers, sandbox requests, code)
       ▼
  draft     state store, bound to proposal hash · files rendered by Studio's own generators · policy preview
       │  the administrator reads the files, may edit the proposal (new hash), runs the tests
       ▼
  tests     python: sandbox (offline cases get no network) · rest: fixtures (live on request)
-           dbquery: the generated tool on the listed database · composite / openapi: live only
+           dbquery: the generated tool on the listed database · llm: the mock model
+           composite / openapi: live only
       │  approve: true + the reviewed hash + tests run on that hash + policy allows studio.deploy
       ▼
  deploy    module + config/tools/<name>.json, hot-loaded (python, rest, dbquery)
+           config/tools/<name>.json only, hot-loaded (llm)
            a composite record in the database (composite) · hand-off to Import an API (openapi)
 ```
 
@@ -66,7 +70,10 @@ method from an upper-case `POST`/`PUT`/`PATCH`/`DELETE` in the text); a table th
 lists, or "table X" (kind `dbquery`, a `WHERE col = {{col}}` per "by <column>"); two or more
 existing tools named, or "combine"/"together"/"snapshot" with matching tools (kind
 `composite`, sibling); a treasury or FRED series with "change over N days", and summary
-statistics of a list of numbers (kind `python`). Anything else gets a Python skeleton that
+statistics of a list of numbers (kind `python`); "summarise", "classify … into a, b or c",
+"extract the x, y and z from", "sentiment", or "answer questions" / "assistant" (kind `llm`:
+mode `complete`, `classify`, `extract`, or `answer` with `tools.allow` from tools or tool
+prefixes the description names, else `grounded` over `sajha_docs`). Anything else gets a Python skeleton that
 echoes its input, with a note saying so. It exists for demos, tests and air-gapped
 installs; it does not understand language.
 
@@ -89,7 +96,7 @@ block testing and deploying) and warnings (shown for review):
 
 | Field | Checks |
 |---|---|
-| `kind` | one of `python`, `rest`, `dbquery`, `composite`, `openapi` |
+| `kind` | one of `python`, `rest`, `dbquery`, `composite`, `openapi`, `llm` |
 | `name` | 3-64 lowercase letters, digits, underscores; an invalid one is replaced by a slug; a taken one gets `_2`, `_3`, … |
 | `description`, `category`, notes | one line, no quotes or backslashes (they end up inside generated Python), capped |
 | python `code` | at most 20,000 characters; compiles; exactly one `@sajhamcptool` function; imports of `os`, `subprocess`, `socket` and similar, and calls to `eval`, `exec`, `open` and similar, are flagged |
@@ -99,7 +106,8 @@ block testing and deploying) and warnings (shown for review):
 | dbquery | `duckdb` or `sqlite`; the connection string must be one the context listed; one statement, `SELECT` or `WITH`, no writes, DDL, `ATTACH`, `COPY`, `PRAGMA` or file-reading functions (`read_csv`, `read_parquet`, `glob`, …); only listed tables; every `{{placeholder}}` has a parameter |
 | composite | the master tool and every step tool are loaded tools, other than the new one; plain output keys; at most 8 steps |
 | openapi | the spec URL passes the same checks as a REST endpoint; the prefix is 2-31 lowercase characters |
-| tests | at most `studio.describe.max_tests` cases; arguments are JSON objects under 4,000 characters; a REST case without a fixture, and every composite and openapi case, is live |
+| llm | `implementation` is the tool's `llm` block, and the block with the proposal's schemas is checked by the LLM-tool loader itself (`parse_llm_block` and the catalog rules: `tools.allow` must match a tool, a narrate source must exist); each problem is an error prefixed `llm:`. `tools.allow: ["*"]` is flagged |
+| tests | at most `studio.describe.max_tests` cases; arguments are JSON objects under 4,000 characters; a REST case without a fixture, and every composite and openapi case, is live; an llm case is never live |
 
 ## 4. The draft and its hash
 
@@ -118,8 +126,11 @@ reviewer saw; if the draft has moved on, the deploy is refused.
 The files are produced by Studio's own generators, so a deploy writes exactly what the
 creators would: `ToolCodeGenerator` for Python (`sajha/tools/impl/studio_<name>.py`),
 `RESTToolGenerator` (`rest_<name>.py`), `DBQueryToolGenerator` (`dbquery_<name>.py`), each
-with `config/tools/<name>.json`. The config's `metadata` records `generated_from:
-description` and the draft id. A Python tool's config always carries
+with `config/tools/<name>.json`; an LLM tool is the config file alone, with
+`implementation` `sajha.ai.llm_tools.LLMTool` and the proposal's `llm` block, as the
+[LLM tool creator](../studio/MCP%20Studio%20LLM%20Tool%20Creator%20Guide.md) writes it. The
+config's `metadata` records `generated_from: description`, the draft id and, on deploy, the
+deploying user (`created_by`). A Python tool's config always carries
 `"sandbox": {"enabled": true, ...}`, so it is sandboxed even when
 `sandbox.enforce_for_generated_tools` is off; its `inputSchema` comes from the function's
 signature and its `outputSchema` from the proposal when that names properties.
@@ -138,12 +149,13 @@ live tests" on the page, `--live` in the CLI).
 | dbquery | the generated tool against the listed database (the query is read-only by construction, §3) |
 | composite | live: the composite built from the definition runs its tools |
 | openapi | live: the spec is fetched and planned by API Import; it passes when it lists operations |
+| llm | offline: the tool runs once on `ai.planners.dry_run_model` (the mock model), remembering and auditing nothing; tools it may call are offered and only read-only ones run, as in the planner dry run |
 
 A REST or DB query module is SAJHA's own template filled with checked values, so it runs
 in-process for its tests; only Python code tools contain model-written code, and that runs
 only in the sandbox.
 
-The generated config of a Python, REST or DB query tool carries the proposal's
+The generated config of a Python, REST, DB query or LLM tool carries the proposal's
 non-fixture cases as its `tests` list, in the format of the tool test harness
 ([Tool Quality](Tool%20Quality.md)): `keys` become `exists` assertions, `equals` become
 `equals`, an expected error becomes `error`, and live cases are tagged `live`. You review
@@ -156,9 +168,10 @@ them with the files, and `python -m sajha.quality test` keeps running them after
 `POST /admin/studio/describe/deploy` with `draft_id`, `hash`, `approve: true` and optionally
 `accept_failures`. It is refused unless every one of these holds, checked on the server:
 
-1. the caller has Studio access (every route needs the admin role or the `studio` permission;
-   a non-admin works only on drafts they created, any other draft id answers 404) and sent
-   `approve: true`;
+1. the caller has Studio access (every route needs the admin role or `studio:describe`; a
+   non-admin works only on drafts they created, any other draft id answers 404), has the
+   permission of the kind deployed (`studio:python`, `studio:rest`, `studio:dbquery`,
+   `studio:composite` or `studio:llm`, or `studio:*`), and sent `approve: true`;
 2. the draft has no errors and is not deployed already; an `openapi` proposal is never
    deployed here: the page links to Import an API with the URL and prefix filled in, where
    the operations are chosen;
@@ -180,10 +193,12 @@ carries `"sandbox": {"enabled": true}`, so it runs in the sandbox whatever
 `sandbox.enforce_for_generated_tools` says.
 
 Files are written module first, then the config through the storage backend, then the tool
-is hot-loaded; if it does not load, the files are removed and the error returned. A
+is hot-loaded; if it does not load, the files are removed and the error returned. An LLM tool
+has no module: its config is written and loaded the same way. A
 composite is created in the database and the composite engine reloads. Generation, test
 runs and deploys are audited (`studio.describe.generate`, `.test`, `.deploy`). A deployed
-Python, REST or DB query tool is an ordinary Studio tool (Studio's delete removes it); a
+Python, REST, DB query or LLM tool is an ordinary Studio tool (Studio's delete removes it,
+and the LLM tool creator edits an LLM tool); a
 composite is managed in the Composite builder.
 
 The page also shows, before any deploy, what the policy engine would decide for the

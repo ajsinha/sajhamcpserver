@@ -61,8 +61,8 @@ class UnknownPlanner(ValueError):
 
 def _check_alias(alias: str) -> bool:
     try:
-        from sajha.ai.gateway import get_gateway
-        gw = get_gateway()
+        from sajha.ai.llm import llm_factory
+        gw = llm_factory()
     except Exception:
         gw = None
     if gw is None:

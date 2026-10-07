@@ -44,7 +44,7 @@ class Embedder(ABC):
 
 
 class GatewayEmbedder(Embedder):
-    """Delegates to the LLM gateway's embedding provider (any API model, e.g. OpenAI)."""
+    """Embeds through the LLM factory's ``embedding`` alias (any API model, e.g. OpenAI)."""
 
     def __init__(self, gateway, model: str = ''):
         self._gw = gateway
@@ -55,11 +55,11 @@ class GatewayEmbedder(Embedder):
     def embed(self, texts: List[str], purpose: str = 'document') -> List[List[float]]:
         if not texts:
             return []
-        resp = self._gw.embed(list(texts), purpose=purpose)
-        embeddings = getattr(resp, 'embeddings', None) or []
-        if getattr(resp, 'dimensions', 0):
-            self.dimension = resp.dimensions
-        elif embeddings:
+        from sajha.ai.llm import SajhaRequest
+        resp = self._gw.model('embedding', kind='embedding').embeddings_create(
+            input=list(texts), sajha=SajhaRequest(input_purpose=purpose))
+        embeddings = [list(v) for v in resp.vectors]
+        if embeddings:
             self.dimension = len(embeddings[0])
         return embeddings
 

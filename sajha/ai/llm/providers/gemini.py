@@ -48,7 +48,7 @@ from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionRequest, ChatM
 from sajha.ai.llm.errors import AuthenticationFailed, ContentFiltered, ModelFailed
 from sajha.ai.llm.http import post_json
 from sajha.ai.llm.model import EmbeddingModel, ModelCapabilities
-from sajha.ai.llm.provider import LLMProvider
+from sajha.ai.llm.provider import ProviderBase
 from sajha.ai.llm.registry import register_provider
 from sajha.ai.llm.settings import ProviderConfig
 
@@ -375,7 +375,7 @@ class GeminiEmbeddingModel(EmbeddingModel):
 
 
 @register_provider
-class GeminiProvider(LLMProvider):
+class GeminiProvider(ProviderBase):
     name = "gemini"
     config_model = GeminiConfig
     default_base_url = "https://generativelanguage.googleapis.com"

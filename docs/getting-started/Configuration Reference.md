@@ -426,7 +426,7 @@ fields below. Built-in providers not listed still exist, disabled.
 | `ai.planners.reload_interval_s` | `2` | How often a lookup checks the planner files for changes. |
 | `ai.planners.python_builtins` | `false` | `true`: the names `react`, `plan_execute`, `recipes` and `router` run the Python classes in `sajha/ai/planners.py` instead of the shipped files (a rollback switch). |
 | `ai.planners.resume_ttl_s` | `900` | How long a run paused at an `ask_user` stage (MRTR, 2026-07-28) is kept in the state store for the client's retry. |
-| `ai.planners.dry_run_model` | `mock/mock-planner` | The model every call of a dry run (`POST /api/ai/planners/dry-run`) goes to. |
+| `ai.planners.dry_run_model` | `mock/mock-planner` | The model every call of a dry run (`POST /api/ai/planners/dry-run`, the planner editor's Dry run) and of the LLM tool creator's test run (`POST /admin/studio/llm/test`) goes to. |
 | `ai.planners.max_input_chars` | `20000` | Text a `match` stage or the `matches()` function searches is clipped to this. |
 | `ai.planners.menu_min_pass_rate` | `0.5` | Automatic selection (`classify` with `menu: planners`): a candidate whose latest recorded eval run, on an eval set for the tool, passed fewer questions than this is left off the menu. |
 | `ai.planners.limits.max_stages_run` | `40` | Ceiling of a run's stage executions, sub-runs included (`stopped_by: stage_limit`). The `ai.planners.limits` values are ceilings a planner file may lower, never raise (a higher value is clamped with lint warning P060). Env `SAJHA_AI_PLANNERS_LIMITS_<FIELD>`. |
@@ -687,6 +687,15 @@ of these keys is in the shipped `config/application.yml`; the defaults apply. De
 | `studio.describe.draft_ttl_seconds` | `86400` | How long a draft (proposal, files, test results) stays in the state store. |
 | `studio.describe.max_tests` | `8` | Test cases kept from a proposal (1 to 20). |
 | `studio.describe.context_tools` | `40` | Existing tools offered to the model as context for composites (0 to 200). |
+
+## Studio: permissions, the LLM tool creator and the planner editor
+
+These have no configuration keys. Who may use each Studio creator is data, not configuration:
+rows in the `permissions` table with resource type `studio` (`studio:<creator>` or `studio:*`;
+the seeded roles are in `db/scripts/<dialect>/seed.sql`), described in the
+[MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md#permissions). The LLM tool
+creator's limits are bounded by `ai.llm_tools.limits.*` and its test runs, like the planner
+editor's dry runs, use `ai.planners.dry_run_model`; the planner editor writes to `ai.planners.dir`.
 
 ## accounts
 

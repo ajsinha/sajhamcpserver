@@ -1,46 +1,25 @@
 """
-SAJHA MCP Server — LLM Gateway
+SAJHA Intelligence Layer — governance: the GovernedModel proxy and its engine.
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
-The only thing consumers call. It turns "a request for a kind of model" into a call on a
-concrete model and applies policy around it:
+``LLMFactory.model(name)`` returns a GovernedModel: an LLMModel proxy that resolves ``name`` (an
+alias such as ``default``, ``fast``, ``reasoning``, ``embedding``, or ``provider/model``) to the
+ordered candidates of ai.aliases and delegates each call to a provider's model after
 
-  * aliases, not model ids, in code: ``default``, ``fast``, ``reasoning``, ``embedding`` map to
-    ordered ``provider/model`` candidates (a bare provider name = its default model); the first
-    active, healthy candidate whose capabilities fit wins; a user's saved preference goes first;
-  * role policy (allowed provider/model globs, tool use, output-token cap) checked before a call;
-  * retries with jittered backoff for RateLimited / ProviderUnavailable, then fallback to the
-    next candidate; a circuit breaker per provider (SAJHA's CircuitBreaker);
+  * role policy (allowed provider/model globs, tool use, output-token cap), checked before a call;
   * budgets from the token tracker, per user and per role, per UTC day;
   * the response cache keyed on the canonical request;
-  * one OpenTelemetry span per call (prompts excluded unless ai.gateway.trace_prompts).
+  * retries with jittered backoff for RateLimited / ProviderUnavailable, then fallback to the
+    next candidate; a circuit breaker per provider (SAJHA's CircuitBreaker);
+  * audit, usage and cost recording, and one OpenTelemetry span per call (prompts excluded
+    unless ai.gateway.trace_prompts).
 
-The interface is shaped like an OpenAI-style client over the canonical Chat Completions types
-(sajha/ai/llm/canonical.py; docs/architecture/LLM Tools.md §13):
+The first active, healthy candidate whose capabilities fit wins; a user's saved preference goes
+first. The caller's identity travels in ``sajha.context`` (a RequestContext), or is bound with
+``factory.model(name, context=ctx)``; the response's ``sajha`` says which provider and model
+answered, the cost, whether the cache answered, the fallback attempts and the trace id.
 
-    gw.chat_completions_create(model="reasoning", messages=[...], tools=[...]) -> ChatCompletion
-    gw.chat_completions_stream(...)          -> Iterator[ChatCompletionChunk]
-    await gw.achat_completions_create(...)   native async (HTTP providers use httpx.AsyncClient)
-    gw.achat_completions_stream(...)         async iterator of chunks
-    gw.embeddings_create(model="embedding", input=[...]) -> EmbeddingsResponse
-    gw.models(ctx)                           -> list[ModelInfo] the caller's role may use
-
-The caller's identity travels in ``sajha.context`` (a RequestContext); the response's ``sajha``
-says which provider and model answered, the cost, whether the cache answered, the fallback
-attempts, the trace id, and what SAJHA did on the caller's behalf (``ignored``,
-``usage_estimated``, ``structured_output``).
-
-    from sajha.ai.gateway import get_gateway
-    from sajha.ai.llm.canonical import ChatMessage, SajhaRequest
-    gw = get_gateway()
-    c = gw.chat_completions_create(model="default", messages=[ChatMessage.user("Hello")],
-                                   sajha=SajhaRequest(context=ctx))
-    c.text, c.sajha.provider, c.sajha.cost_usd
-
-The original interface (chat / stream / achat on ChatRequest and ChatResponse) and the pre-6.x
-API (complete, complete_messages, embed, list_all_models, health_check_all, user preferences,
-stats) are thin shims over the canonical calls (lossless converters in convert.py), so every
-existing caller keeps working.
+The engine (Governor) is the former LLM gateway; LLMFactory inherits it and adds construction.
 """
 
 from __future__ import annotations
@@ -58,6 +37,7 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Tuple
 
+from sajha.ai.llm.base import LLMModel
 from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionChunk, ChatCompletionRequest, ChunkAccumulator,
                                     CompletionUsage, EmbeddingsRequest, EmbeddingsResponse, SajhaRequest,
                                     StreamOptions, check_request, completion_to_chunks)
@@ -66,10 +46,10 @@ from sajha.ai.llm.errors import (AuthenticationFailed, BudgetExceeded, Configura
                                  ContextTooLong, InvalidRequest, LLMError, ModelFailed, NoModelAvailable,
                                  PolicyDenied, ProviderUnavailable, RateLimited, UnsupportedFeature)
 from sajha.ai.llm.model import ChatModel, EmbeddingModel, HealthStatus, ModelInfo, Needs
-from sajha.ai.llm.provider import LLMProvider
+from sajha.ai.llm.base import LLMProvider
 from sajha.ai.llm.secrets import SecretStore
-from sajha.ai.llm.settings import AISettings, ModelOverride, RolePolicy, load_ai_yaml
-from sajha.ai.llm.types import ChatRequest, ChatResponse, ImagePart, Message, RequestContext, Usage
+from sajha.ai.llm.settings import AISettings, RolePolicy
+from sajha.ai.llm.types import ChatRequest, ChatResponse, ImagePart, RequestContext, Usage
 
 logger = logging.getLogger(__name__)
 
@@ -216,9 +196,14 @@ class Attempt:
     detail: str = ""
 
 
-# ── The gateway ─────────────────────────────────────────────────
+# ── The governance engine ─────────────────────────────────────────────────
 
-class LLMGateway:
+class Governor:
+    """The governance engine behind every GovernedModel: alias resolution, role policy, budgets, the
+    response cache, retries with backoff, circuit breakers, fallback across an alias's candidates,
+    audit, usage and cost, and one span per call. LLMFactory (factory.py) inherits it and adds
+    construction; application code reaches it only through ``LLMFactory.model()``."""
+
     def __init__(self, settings: Optional[AISettings] = None, providers: Optional[Dict[str, LLMProvider]] = None,
                  *, secrets: Optional[SecretStore] = None, build_errors: Optional[List[str]] = None):
         self.settings = settings or AISettings({})
@@ -237,7 +222,7 @@ class LLMGateway:
         self.sleep = time.sleep          # injectable (tests)
         self.audit_hook = None           # callable(dict) for per-call audit, optional
         active = [n for n, p in self.providers.items() if p.active]
-        logger.info(f"LLMGateway initialized: providers={active} default={self.settings.aliases.get('default')}")
+        logger.info(f"LLM factory initialized: providers={active} default={self.settings.aliases.get('default')}")
 
     # ── providers ──────────────────────────────────────────────
     @property
@@ -253,6 +238,22 @@ class LLMGateway:
 
     def get_provider(self, name: str) -> Optional[LLMProvider]:
         return self.providers.get(name)
+
+    def cache_stats(self) -> Dict[str, Any]:
+        return self._cache.stats()
+
+    def active_provider_names(self) -> List[str]:
+        return [n for n, p in self.providers.items() if p.active]
+
+    def breaker_states(self) -> Dict[str, Any]:
+        """The circuit breakers created so far, by provider name."""
+        with self._lock:
+            return dict(self._breakers)
+
+    @property
+    def tracker(self) -> "TokenTracker":
+        """Usage and the daily budget counters (observability reads them)."""
+        return self._tracker
 
     def provider_health(self, name: str, refresh: bool = False) -> HealthStatus:
         p = self.providers.get(name)
@@ -671,8 +672,8 @@ class LLMGateway:
             raise NoModelAvailable(self._no_model_msg(alias, attempts))
         return req, alias, ctx, attempts, cands
 
-    # ── the canonical interface ────────────────────────────────
-    def chat_completions_create(self, request: Any = None, /, **fields) -> ChatCompletion:
+    # ── the governed calls (GovernedModel delegates here) ───────
+    def _governed_create(self, request: Any = None, /, **fields) -> ChatCompletion:
         """A Chat Completions call through policy, budgets, cache, retries, breakers and fallback.
 
         ``model`` is an alias (``default``, ``fast``, ``reasoning``) or ``provider/model``; the
@@ -698,7 +699,7 @@ class LLMGateway:
                 return self._on_success(ctx, cm, req, comp, span, t0, attempts, key)
         raise NoModelAvailable(self._no_model_msg(alias, attempts)) from last_err
 
-    async def achat_completions_create(self, request: Any = None, /, **fields) -> ChatCompletion:
+    async def _governed_acreate(self, request: Any = None, /, **fields) -> ChatCompletion:
         """The native-async twin of chat_completions_create (HTTP providers call their vendor
         with httpx.AsyncClient; others run in a worker thread)."""
         req, alias, ctx, attempts, cands = self._begin(request, fields)
@@ -722,7 +723,7 @@ class LLMGateway:
                 return self._on_success(ctx, cm, req, comp, span, t0, attempts, key)
         raise NoModelAvailable(self._no_model_msg(alias, attempts)) from last_err
 
-    def chat_completions_stream(self, request: Any = None, /, **fields) -> Iterator[ChatCompletionChunk]:
+    def _governed_stream(self, request: Any = None, /, **fields) -> Iterator[ChatCompletionChunk]:
         """Stream chunks from the first candidate that starts; falls back only before the first
         chunk. The final usage chunk is sent when ``stream_options.include_usage`` is set."""
         req, alias, ctx, attempts, cands = self._begin(request, fields)
@@ -748,7 +749,7 @@ class LLMGateway:
                 last_err = e
         raise NoModelAvailable(self._no_model_msg(alias, attempts)) from last_err
 
-    async def achat_completions_stream(self, request: Any = None, /, **fields) -> AsyncIterator[ChatCompletionChunk]:
+    async def _governed_astream(self, request: Any = None, /, **fields) -> AsyncIterator[ChatCompletionChunk]:
         req, alias, ctx, attempts, cands = self._begin(request, fields)
         include = req.include_usage
         last_err: Optional[LLMError] = None
@@ -782,7 +783,7 @@ class LLMGateway:
             c.sajha = done.sajha
         return c
 
-    # ── the original interface (ChatRequest / ChatResponse), over the canonical one ──
+    # ── the original interface (ChatRequest / ChatResponse; internal, tests only) ──
     @staticmethod
     def _legacy_request(request: ChatRequest, model: str, needs: Any) -> ChatCompletionRequest:
         creq = to_canonical_request(request, model)
@@ -790,17 +791,17 @@ class LLMGateway:
         return creq
 
     def chat(self, request: ChatRequest, *, model: str = "default", needs: Any = None) -> ChatResponse:
-        return from_canonical_response(self.chat_completions_create(self._legacy_request(request, model, needs)))
+        return from_canonical_response(self._governed_create(self._legacy_request(request, model, needs)))
 
     def stream(self, request: ChatRequest, *, model: str = "default", needs: Any = None) -> Iterator:
         """Legacy events (TextDelta, ToolCallDelta, UsageEvent, Done) from the canonical stream."""
         creq = self._legacy_request(request, model, needs)
         creq.stream_options = StreamOptions(include_usage=True)
-        yield from events_from_chunks(self.chat_completions_stream(creq))
+        yield from events_from_chunks(self._governed_stream(creq))
 
     async def achat(self, request: ChatRequest, *, model: str = "default", needs: Any = None) -> ChatResponse:
         creq = self._legacy_request(request, model, needs)
-        return from_canonical_response(await self.achat_completions_create(creq))
+        return from_canonical_response(await self._governed_acreate(creq))
 
     async def aembed(self, texts: List[str], model: str = "embedding", purpose: Optional[str] = None
                      ) -> "EmbeddingVectors":
@@ -831,7 +832,7 @@ class LLMGateway:
             return em
         raise NoModelAvailable(self._no_model_msg(model, attempts))
 
-    def embeddings_create(self, request: Any = None, /, **fields) -> EmbeddingsResponse:
+    def _governed_embeddings(self, request: Any = None, /, **fields) -> EmbeddingsResponse:
         """Embeddings through the alias's candidates, with retries and fallback.
 
         ``sajha.input_purpose`` (query | document) selects the vendor's input type where it has
@@ -865,9 +866,9 @@ class LLMGateway:
             return resp
         raise NoModelAvailable(f"no embedding model available for '{target}' (tried {tried})") from last
 
-    async def aembeddings_create(self, request: Any = None, /, **fields) -> EmbeddingsResponse:
+    async def _governed_aembeddings(self, request: Any = None, /, **fields) -> EmbeddingsResponse:
         import anyio
-        return await anyio.to_thread.run_sync(lambda: self.embeddings_create(request, **fields))
+        return await anyio.to_thread.run_sync(lambda: self._governed_embeddings(request, **fields))
 
     def embed(self, texts: List[str], provider: str = "", model: str = "", purpose: Optional[str] = None
               ) -> EmbeddingVectors:
@@ -878,7 +879,7 @@ class LLMGateway:
             target = f"{provider}/{model}" if model else provider
         elif model and model not in self.settings.aliases and "/" not in model:
             target = "embedding"
-        resp = self.embeddings_create(model=target, input=list(texts),
+        resp = self._governed_embeddings(model=target, input=list(texts),
                                       sajha=SajhaRequest(input_purpose=purpose) if purpose else None)
         return EmbeddingVectors(resp.vectors, resp.model, resp.sajha.provider if resp.sajha else "")
 
@@ -912,74 +913,22 @@ class LLMGateway:
         except LLMError:
             return SimpleNamespace(default_provider="", default_model="")
 
-    # ── legacy shims ───────────────────────────────────────────
-    def _legacy_target(self, user_id: str, provider: str, model: str) -> str:
+    # ── targets and catalog ────────────────────────────────────
+    def qualify(self, provider: str = "", model: str = "") -> str:
+        """A model target from a (provider, model) pair: ``provider/model``, a provider's default,
+        an alias or ``provider/model`` as given, a bare model id found in a provider's catalogue,
+        or ``default``."""
         if provider and model:
             return f"{provider}/{model}"
         if provider:
             return provider
-        if model and "/" in model:
+        if model and ("/" in model or model in self.settings.aliases):
             return model
         if model:
-            # a bare model id: find the provider that lists it
             for p in self.providers.values():
-                if p.active and any(d.id == model for d in p.list_models()):
+                if p.active and any(d.id == model for d in p.models()):
                     return f"{p.name}/{model}"
         return "default"
-
-    def complete(self, prompt: str, user_id: str = "", provider: str = "", model: str = "", system: str = "",
-                 temperature: float = 0.0, max_tokens: int = 0, tools: Optional[List[Dict]] = None,
-                 use_cache: bool = True, **kwargs):
-        return self.complete_messages([{"role": "user", "content": prompt}], user_id=user_id, provider=provider,
-                                      model=model, system=system, temperature=temperature, max_tokens=max_tokens,
-                                      tools=tools, use_cache=use_cache, **kwargs)
-
-    def complete_messages(self, messages: List[Dict[str, str]], user_id: str = "", provider: str = "",
-                          model: str = "", system: str = "", temperature: float = 0.0, max_tokens: int = 0,
-                          tools: Optional[List[Dict]] = None, use_cache: bool = True, roles=None, **kwargs):
-        from sajha.ai.llm.types import TextPart, ToolSpec
-        from sajha.ai.providers import LLMResponse
-        pref = self._user_preferences.get(user_id, {})
-        msgs = []
-        for m in messages:
-            role = m.get("role", "user")
-            if role == "system":
-                system = (system + "\n\n" + m.get("content", "")).strip()
-            else:
-                msgs.append(Message("assistant" if role == "assistant" else "user",
-                                    [TextPart(m.get("content", ""))]))
-        req = ChatRequest(msgs, system=system,
-                          tools=[ToolSpec.from_mcp(t) for t in tools or []],
-                          temperature=temperature or pref.get("temperature") or 0.0,
-                          max_output_tokens=max_tokens or pref.get("max_tokens") or None,
-                          metadata=RequestContext(user_id=user_id, roles=list(roles or [])))
-        if not use_cache:
-            req.temperature = req.temperature or 0.0001
-        resp = self.chat(req, model=self._legacy_target(user_id, provider, model))
-        return LLMResponse(content=resp.text, model=resp.model, provider=resp.provider,
-                           input_tokens=resp.usage.input_tokens, output_tokens=resp.usage.output_tokens,
-                           total_tokens=resp.usage.total_tokens, finish_reason=resp.finish_reason,
-                           latency_ms=resp.latency_ms, cost_usd=resp.usage.cost_usd)
-
-    def list_all_models(self):
-        from sajha.ai.providers import ModelInfo
-        out = []
-        for name, p in self.providers.items():
-            if not p.active:
-                continue
-            try:
-                for d in p.list_models():
-                    c = d.capabilities
-                    out.append(ModelInfo(id=d.id, name=d.display_name or d.id, provider=name,
-                                         context_window=c.context_window,
-                                         input_cost_per_1k=c.input_cost_per_mtok / 1000,
-                                         output_cost_per_1k=c.output_cost_per_mtok / 1000,
-                                         supports_tools=c.tools, supports_vision=c.vision,
-                                         supports_streaming=c.streaming, max_output_tokens=c.max_output_tokens,
-                                         tags=sorted(c.tags) + (["embedding"] if d.kind == "embedding" else [])))
-            except Exception as e:
-                logger.warning(f"Failed to list models for {name}: {e}")
-        return out
 
     def health_check_all(self) -> Dict[str, bool]:
         return {n: self.provider_health(n, refresh=True).ok for n, p in self.providers.items() if p.active}
@@ -992,7 +941,7 @@ class LLMGateway:
             "aliases": self.settings.aliases,
             "cache": self._cache.stats(),
             "user_preferences": len(self._user_preferences),
-            "total_models": len(self.list_all_models()),
+            "total_models": len(self.models()),
             "breakers": {n: b.to_dict() for n, b in self._breakers.items()},
         }
 
@@ -1039,135 +988,83 @@ class LLMGateway:
                 pass
 
 
-# ── construction ────────────────────────────────────────────────
+# ── The proxy ───────────────────────────────────────────────────
 
-def _db_provider_rows(db_session) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, List[ModelOverride]]]:
-    rows, models = {}, {}
-    if db_session is None:
-        return rows, models
-    try:
-        from sajha.db.dao import LLMModelDAO, LLMProviderDAO
-        for rec in LLMProviderDAO(db_session).get_all():
-            d = {"api_key": rec.api_key, "base_url": rec.base_url, "region": rec.region}
-            if rec.extra_config:
-                try:
-                    d.update(json.loads(rec.extra_config))
-                except Exception:
-                    pass
-            rows[rec.provider_type] = {k: v for k, v in d.items() if v not in (None, "")}
-        for m in LLMModelDAO(db_session).get_all():
-            models.setdefault(m.provider_type, []).append(ModelOverride(
-                id=m.model_id, kind="embedding" if m.supports_embeddings else "chat",
-                display_name=m.display_name or "", enabled=bool(m.enabled),
-                tools=bool(m.supports_tools), vision=bool(m.supports_vision),
-                streaming=bool(m.supports_streaming), context_window=m.context_window or None,
-                max_output_tokens=m.max_output_tokens or None,
-                input_cost_per_mtok=(m.input_cost_per_1k or 0) * 1000,
-                output_cost_per_mtok=(m.output_cost_per_1k or 0) * 1000,
-                tags=[t.strip() for t in (m.tags or "").split(",") if t.strip()] or None))
-    except Exception as e:
-        logger.warning(f"ai: could not read llm_providers/llm_models: {e}")
-    return rows, models
+class GovernedModel(LLMModel):
+    """An LLMModel for a model *target* (alias or provider/model) that applies SAJHA's governance and
+    delegates to whichever provider model the target resolves to. Callers never learn which
+    provider is behind it, except from the response's ``sajha.provider``."""
 
+    def __init__(self, engine: Governor, target: str = "default", *, kind: str = "chat",
+                 context: Optional[RequestContext] = None, needs: Any = None):
+        self._engine = engine
+        self.target = target or "default"
+        self.kind = kind or "chat"
+        self.context = context
+        self.needs = needs
 
-_LEGACY_KEYS = {"api_key": "api_key", "base_url": "base_url", "endpoint": "base_url", "region": "region"}
+    # identity
+    @property
+    def id(self) -> str:
+        return self.target
 
+    @property
+    def qualified_id(self) -> str:
+        return self.target
 
-def build_gateway(raw: Optional[Dict[str, Any]] = None, *, db_session=None, environ: Optional[Dict[str, str]] = None,
-                  transports: Optional[Dict[str, Any]] = None, secrets: Optional[SecretStore] = None,
-                  db_lookup=None) -> LLMGateway:
-    """Build the gateway from the ai: section (raw YAML dict), env, and optionally the DB tables."""
-    from sajha.ai.llm import registry
-    from sajha.ai.llm.secrets import db_secret_lookup
-    raw = load_ai_yaml() if raw is None else raw
-    settings = AISettings(raw, environ)
-    registry.ensure_builtins()
-    if settings.gateway.load_entry_points:
-        registry.load_entry_points()
-    secrets = secrets or SecretStore(db_lookup=db_lookup or (db_secret_lookup if db_session is not None else None),
-                                     environ=environ)
-    db_rows, db_models = (_db_provider_rows(db_session) if settings.gateway.use_db_providers else ({}, {}))
-    transports = transports or {}
-    errors: List[str] = []
+    def __repr__(self) -> str:
+        return f"GovernedModel({self.target!r}, kind={self.kind!r})"
 
-    entries: Dict[str, Dict[str, Any]] = {n: {"cls": c, "config": {}} for n, c in registry.registered_providers().items()}
-    for item in raw.get("providers") or []:
-        if not isinstance(item, dict) or not item.get("name"):
-            errors.append(f"ai.providers entry without a name: {item!r}")
-            continue
-        name = item["name"]
-        try:
-            if item.get("class"):
-                cls = registry.load_class(item["class"])
-            elif item.get("type"):
-                cls = registry.provider_class(item["type"])
-            else:
-                cls = registry.provider_class(name)
-            if cls is None:
-                raise ConfigurationError(f"unknown provider '{item.get('type') or name}' "
-                                         f"(registered: {sorted(registry.registered_providers())})")
-        except LLMError as e:
-            errors.append(f"ai.providers[{name}]: {e}")
-            logger.error(f"ai.providers[{name}]: {e}")
-            continue
-        cfg = dict(item.get("config") or {})
-        for k in ("enabled",):
-            if k in item and k not in cfg:
-                cfg[k] = item[k]
-        entries[name] = {"cls": cls, "config": cfg}
-    # legacy pre-6.x keys (ai.<vendor>.api_key etc.) as config values
-    for name, ent in entries.items():
-        legacy = raw.get(name)
-        if isinstance(legacy, dict):
-            for k, target in _LEGACY_KEYS.items():
-                if legacy.get(k) and target in ent["cls"].config_model.model_fields:
-                    ent["config"].setdefault(target, legacy[k])
-    # providers registered with the old register_provider_class()
-    try:
-        from sajha.ai.providers import get_registered_types
-        from sajha.ai.llm.legacy import LegacyProviderAdapter
-        for t in get_registered_types():
-            if t not in entries:
-                entries[t] = {"cls": LegacyProviderAdapter, "config": {"legacy_type": t}}
-    except Exception as e:
-        logger.debug(f"legacy provider scan failed: {e}")
+    def with_context(self, context: Optional[RequestContext]) -> "GovernedModel":
+        """The same target bound to another caller."""
+        return GovernedModel(self._engine, self.target, kind=self.kind, context=context, needs=self.needs)
 
-    providers: Dict[str, LLMProvider] = {}
-    for name, ent in entries.items():
-        cls = ent["cls"]
-        fields = cls.config_model.model_fields
-        db = {k: v for k, v in db_rows.get(name, {}).items() if k in fields}
-        try:
-            providers[name] = cls.from_settings(name, ent["config"], db=db, db_models=db_models.get(name),
-                                                secrets=secrets, environ=environ,
-                                                transport=transports.get(name))
-        except Exception as e:
-            errors.append(f"ai.providers[{name}]: {e}")
-            logger.error(f"ai provider '{name}' not created: {e}")
-    gw = LLMGateway(settings, providers, secrets=secrets, build_errors=errors)
-    return gw
+    # requests
+    def _sajha(self, sj: Optional[SajhaRequest], *, needs: bool) -> Optional[SajhaRequest]:
+        upd: Dict[str, Any] = {}
+        if self.context is not None and (sj is None or sj.context is None):
+            upd["context"] = self.context
+        if needs and self.needs is not None and (sj is None or sj.needs is None):
+            upd["needs"] = self.needs
+        if not upd:
+            return sj
+        return sj.model_copy(update=upd) if sj is not None else SajhaRequest(**upd)
 
+    def _chat_request(self, request: Any, fields: Dict[str, Any]) -> ChatCompletionRequest:
+        req = ChatCompletionRequest.coerce(request, **fields)
+        return req.model_copy(update={"model": self.target, "sajha": self._sajha(req.sajha, needs=True)})
 
-# ── Singleton ────────────────────────────────────────────────────
+    def _embeddings_request(self, request: Any, fields: Dict[str, Any]) -> EmbeddingsRequest:
+        req = EmbeddingsRequest.coerce(request, **fields)
+        return req.model_copy(update={"model": self.target, "sajha": self._sajha(req.sajha, needs=False)})
 
-_gateway: Optional[LLMGateway] = None
+    # LLMModel
+    def info(self) -> ModelInfo:
+        """The model that would answer now for this caller (raises NoModelAvailable when none)."""
+        if self.kind == "embedding":
+            return self._engine.embedding_model(self.target).info()
+        return self._engine.resolve(self.target, self.needs, self.context).info()
 
+    def candidates(self) -> List[str]:
+        """The qualified ids this target would try, in order, for this caller."""
+        if self.kind == "embedding":
+            return [self._engine.embedding_model(self.target).qualified_id]
+        return [c.qualified_id for c in self._engine.candidates(self.target, self.needs, self.context)]
 
-def init_gateway(config: Any = None, db_session=None, *, raw: Optional[Dict[str, Any]] = None) -> LLMGateway:
-    """Initialise the process-wide gateway. ``config`` (the flattened _CFG) is accepted for
-    backward compatibility; ai.* is read from the raw YAML."""
-    global _gateway
-    old = _gateway
-    _gateway = build_gateway(raw, db_session=db_session)
-    if old is not None:
-        old.close()
-    return _gateway
+    def chat_completions_create(self, request: Any = None, /, **fields) -> ChatCompletion:
+        return self._engine._governed_create(self._chat_request(request, fields))
 
+    async def achat_completions_create(self, request: Any = None, /, **fields) -> ChatCompletion:
+        return await self._engine._governed_acreate(self._chat_request(request, fields))
 
-def set_gateway(gw: Optional[LLMGateway]) -> None:
-    global _gateway
-    _gateway = gw
+    def chat_completions_stream(self, request: Any = None, /, **fields) -> Iterator[ChatCompletionChunk]:
+        return self._engine._governed_stream(self._chat_request(request, fields))
 
+    def achat_completions_stream(self, request: Any = None, /, **fields) -> AsyncIterator[ChatCompletionChunk]:
+        return self._engine._governed_astream(self._chat_request(request, fields))
 
-def get_gateway() -> Optional[LLMGateway]:
-    return _gateway
+    def embeddings_create(self, request: Any = None, /, **fields) -> EmbeddingsResponse:
+        return self._engine._governed_embeddings(self._embeddings_request(request, fields))
+
+    async def aembeddings_create(self, request: Any = None, /, **fields) -> EmbeddingsResponse:
+        return await self._engine._governed_aembeddings(self._embeddings_request(request, fields))

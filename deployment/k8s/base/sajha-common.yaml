@@ -7,7 +7,7 @@ metadata:
   labels:
     app.kubernetes.io/name: sajha
     app.kubernetes.io/instance: sajha
-    app.kubernetes.io/version: 7.2.0
+    app.kubernetes.io/version: 7.3.0
     app.kubernetes.io/part-of: sajha
 automountServiceAccountToken: false
 ---
@@ -18,7 +18,7 @@ metadata:
   labels:
     app.kubernetes.io/name: sajha
     app.kubernetes.io/instance: sajha
-    app.kubernetes.io/version: 7.2.0
+    app.kubernetes.io/version: 7.3.0
     app.kubernetes.io/part-of: sajha
 data:
   overrides.yaml: '{}
@@ -70,7 +70,7 @@ metadata:
   labels:
     app.kubernetes.io/name: sajha
     app.kubernetes.io/instance: sajha
-    app.kubernetes.io/version: 7.2.0
+    app.kubernetes.io/version: 7.3.0
     app.kubernetes.io/part-of: sajha
     app.kubernetes.io/component: server
 spec:

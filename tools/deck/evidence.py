@@ -341,11 +341,11 @@ def service() -> Any:
     """Ask SAJHA over the whole catalog, on the offline mock model only (no keys, no
     network for the model, no audit written)."""
     from sajha.ai import tool_resolver
-    from sajha.ai.gateway import build_gateway
+    from sajha.ai.llm import build_llm_factory
     from sajha.ai.intelligence import IntelligenceService
     from sajha.ai.llm.settings import AskSettings
 
-    gw = build_gateway(
+    gw = build_llm_factory(
         {
             "gateway": {"load_entry_points": False, "use_db_providers": False},
             "providers": [{"name": "mock", "config": {"enabled": True, "scripts_dir": ""}}],

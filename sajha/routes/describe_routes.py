@@ -23,7 +23,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 
 from sajha.app import render
-from sajha.auth import AuthContext, require_studio
+from sajha.auth import AuthContext, require_creator
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ async def _run(fn, *args, **kwargs) -> JSONResponse:
 
 
 @pages.get('/describe')
-async def studio_describe(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_describe(request: Request, auth: AuthContext = Depends(require_creator('describe'))):
     from sajha.studio import describe
     try:
         from sajha.sandbox import studio_policy
@@ -72,28 +72,28 @@ async def studio_describe(request: Request, auth: AuthContext = Depends(require_
 
 
 @actions.post('/propose')
-async def describe_propose(request: Request, auth: AuthContext = Depends(require_studio)):
+async def describe_propose(request: Request, auth: AuthContext = Depends(require_creator('describe'))):
     from sajha.studio import describe
     data = await _body(request)
     return await _run(describe.propose, str(data.get('description') or ''), str(data.get('kind') or 'auto'), auth)
 
 
 @actions.post('/revise')
-async def describe_revise(request: Request, auth: AuthContext = Depends(require_studio)):
+async def describe_revise(request: Request, auth: AuthContext = Depends(require_creator('describe'))):
     from sajha.studio import describe
     data = await _body(request)
     return await _run(describe.revise, str(data.get('draft_id') or ''), data.get('proposal'), auth)
 
 
 @actions.post('/test')
-async def describe_test(request: Request, auth: AuthContext = Depends(require_studio)):
+async def describe_test(request: Request, auth: AuthContext = Depends(require_creator('describe'))):
     from sajha.studio import describe
     data = await _body(request)
     return await _run(describe.run_tests, str(data.get('draft_id') or ''), bool(data.get('live')), auth)
 
 
 @actions.post('/deploy')
-async def describe_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
+async def describe_deploy(request: Request, auth: AuthContext = Depends(require_creator('describe'))):
     from sajha.studio import describe
     data = await _body(request)
     return await _run(describe.deploy, str(data.get('draft_id') or ''), str(data.get('hash') or ''),
@@ -101,7 +101,7 @@ async def describe_deploy(request: Request, auth: AuthContext = Depends(require_
 
 
 @reads.get('/drafts/{draft_id}')
-async def describe_draft(draft_id: str, auth: AuthContext = Depends(require_studio)):
+async def describe_draft(draft_id: str, auth: AuthContext = Depends(require_creator('describe'))):
     from sajha.studio import describe
     return await _run(lambda: describe.public(describe.get_draft(draft_id, auth)))
 

@@ -102,12 +102,13 @@ The seed data in `db/scripts/<type>/seed.sql` creates these roles and permission
 | `user` | `tool`, `*`, `execute,read` |
 | `viewer` | `tool`, `*`, `read` |
 | `developer` | `studio`, `*`, `*` and `tool`, `*`, `execute,read,create` |
+| `llm_author` | `studio`, `llm`, `use` and `tool`, `*`, `execute,read` |
 
 How these rows are used:
 
 - **Matching.** `PermissionDAO.check_access` (`sajha/db/dao/__init__.py`) matches `resource_name` with fnmatch wildcards.
 - **Admin check.** `User.is_admin` is true when the user has the `admin` role. Admin-only routes use `require_admin`.
-- **Other resource types.** Async execution needs the admin role or a permission row (`async`, `*`, `execute`); the shell endpoints need the admin role or (`shell`, `*`, `execute`); MCP Studio needs the admin role or (`studio`, `*`, `*` or `use`), which the seeded `developer` role has (`require_studio`).
+- **Other resource types.** Async execution needs the admin role or a permission row (`async`, `*`, `execute`); the shell endpoints need the admin role or (`shell`, `*`, `execute`); each MCP Studio creator needs the admin role or (`studio`, `<creator>` or `*`, `*` or `use`): `studio:*` (the seeded `developer` role) opens every creator, `studio:llm` (the seeded `llm_author` role) only the LLM tool creator (`require_creator`; [MCP Studio](#mcp-studio) below).
 
 ### Tool access
 
@@ -335,7 +336,9 @@ How strong the boundary is depends on the backend and the host: on Linux the def
 
 ### MCP Studio
 
-The Studio pages (`/studio/*`), the actions they post to (`/admin/studio/*`: analyze, preview, deploy, delete, Describe a tool, Import an API), the `/api/studio/*` reads and creating composites need Studio access: the admin role or a role with the `studio` permission, such as the seeded `developer` (`require_studio` in `sajha/auth/__init__.py`). API keys never have it. A deploy writes the generated files and loads the tool into the live registry. A developer can deploy and delete Studio tools (Describe a tool proposals included, through the same policy-engine gate as an administrator, so a `studio.deploy` rule can deny or `require_approval`), sees only their own Describe drafts, and changes or deletes only the composites they created. Admin only: deploying a Python code or script tool while `sandbox.enforce_for_generated_tools` is `false` (the code would run in-process), sandbox configuration, and everything outside Studio (federation, connectors, policies, approvals, audit, users, API keys). Delete refuses tools Studio did not create, for everyone.
+Studio access is per creator (Roadmap X2; `require_creator`, `can_use_creator` in `sajha/auth/__init__.py`). A role permission with resource type `studio` names the creator it opens: `studio:python`, `studio:rest`, `studio:api_import`, `studio:dbquery`, `studio:script`, `studio:powerbi`, `studio:powerbidax`, `studio:livelink`, `studio:sharepoint`, `studio:olap`, `studio:composite`, `studio:describe` or `studio:llm`; `studio:*` opens all of them and is what the single `studio` permission always meant, so existing roles keep their access (permissions are data: no migration). Each creator's page, its `/admin/studio/<creator>/…` actions and its `/api/studio/<creator>/…` reads check its permission; a Describe a tool deploy also needs the permission of the kind deployed, so `studio:describe` cannot be used to reach a creator the role lacks. The planner editor is admin only for every role, because a planner decides how much every tool that uses it may spend. API keys never have Studio access.
+
+**Ownership.** A deploy records its creator: `metadata.created_by` in the tool config (with `metadata.studio_creator`), `created_by` on a composite and in an API import record, `created_by_user` on an OLAP dataset (`sajha/studio/ownership.py`). A non-admin may change or delete only what records them; a tool with no recorded creator (shipped tools, tools made before this) is the administrators'. Delete still refuses, for everyone, tools Studio did not create. A deploy writes the generated files and loads the tool into the live registry. A developer can deploy Describe a tool proposals through the same policy-engine gate as an administrator (a `studio.deploy` rule can deny or `require_approval`) and sees only their own Describe drafts. Admin only: the planner editor, deploying a Python code or script tool while `sandbox.enforce_for_generated_tools` is `false` (the code would run in-process), sandbox configuration, and everything outside Studio (federation, connectors, policies, approvals, audit, users, API keys).
 
 Code a user supplies runs in the [sandbox](../architecture/Sandbox.md), not in the server: a Python code tool's module is never imported into the server, and a script tool's script runs in a fresh sandbox per call, with no server environment, no view of the server's files, and no network unless its `sandbox` policy allowlists hosts (`sandbox.enforce_for_generated_tools`, default `true`). Secrets reach a sandbox only by name through `sandbox.secrets_allowlist`, never a `SAJHA_*` variable. Studio's template creators (REST, DB query, Power BI, LiveLink, SharePoint, OLAP) take configuration, not code, and run in-process.
 
@@ -454,7 +457,7 @@ These describe the code as it stands. They are listed so you can compensate for 
 - **Prompts have no per-user permissions.** Every signed-in caller sees every prompt; only anonymous callers are filtered (`mcp.anonymous.prompts`).
 - **Data file resources have no per-user permissions.** `sajha://data/{file}` is readable by every signed-in caller, whatever their tool access (an API key limited to `calc_*` can still read the CSVs); only anonymous callers are filtered (`mcp.anonymous.resources`). Resources of federated upstream servers are not filtered by this policy.
 - **OAuth scopes** (`mcp:read` / `mcp:tools`) gate methods, not individual tools; tool access then applies on top.
-- **Studio access is all-or-nothing.** The `studio` permission opens every creator (code, script, REST, DB query, enterprise sources, Describe a tool, Import an API); it cannot be narrowed to some of them, and a developer can delete any Studio-generated tool, not only their own. Generated Python code and scripts are sandboxed; the template creators run in-process with the server's configured credentials.
+- **Studio template creators run with the server's credentials.** Per-creator permissions (`studio:<creator>`) and ownership narrow who builds what, but the template creators (REST, DB query, Power BI, LiveLink, SharePoint, OLAP) still run in-process with the server's configured credentials; generated Python code and scripts are sandboxed.
 
 **Brute force and sessions**
 

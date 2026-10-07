@@ -5,9 +5,9 @@ import json
 
 import pytest
 
-from sajha.ai.gateway import LLMGateway
-from sajha.ai.llm import (BudgetExceeded, ChatRequest, ContentFiltered, Done, Message, NoModelAvailable,
-                          PolicyDenied, RequestContext, TextDelta, ToolSpec)
+from sajha.ai.llm import LLMFactory
+from sajha.ai.llm import BudgetExceeded, ContentFiltered, NoModelAvailable, PolicyDenied, RequestContext
+from sajha.ai.llm.types import ChatRequest, Done, Message, TextDelta, ToolSpec
 from sajha.ai.llm.secrets import SecretStore
 from sajha.ai.llm.settings import AISettings
 from tests.ai.conftest import make_gateway
@@ -302,15 +302,16 @@ def test_entry_point_plugins(monkeypatch):
 
 
 def test_register_provider_validates():
-    from sajha.ai.llm import ConfigurationError, register_provider
+    from sajha.ai.llm import ConfigurationError
+    from sajha.ai.llm.spi import register_provider
 
     with pytest.raises(ConfigurationError):
         register_provider(object)
 
 
 def test_legacy_provider_class_is_wrapped():
-    from sajha.ai import providers as legacy
-    from sajha.ai.providers import LLMProvider as OldProvider, LLMResponse, ModelInfo
+    from sajha.ai.llm.spi import LegacyLLMProvider as OldProvider, LegacyModelInfo as ModelInfo, LLMResponse
+    from sajha.ai.llm.spi import register_provider_class, unregister_provider_class
 
     class OldStyle(OldProvider):
         provider_type = "oldstyle"
@@ -331,7 +332,7 @@ def test_legacy_provider_class_is_wrapped():
         def health_check(self):
             return True
 
-    legacy.register_provider_class("oldstyle", OldStyle)
+    register_provider_class("oldstyle", OldStyle)
     try:
         gw = make_gateway({"providers": [{"name": "oldstyle", "class": "sajha.ai.llm.legacy:LegacyProviderAdapter",
                                           "config": {"enabled": True, "legacy_type": "oldstyle"}}],
@@ -339,22 +340,22 @@ def test_legacy_provider_class_is_wrapped():
         r = gw.chat(req("hi"))
         assert r.text == "old:hi" and r.provider == "oldstyle"
     finally:
-        legacy._registry.pop("oldstyle", None)
+        unregister_provider_class("oldstyle")
 
 
-# ── legacy API shims (ai_routes, tool resolver, settings page) ──
+# ── the factory's catalog and admin surface (ai_routes, settings page) ──
 
-def test_legacy_shims(gateway):
-    r = gateway.complete("hello", user_id="u", model="mock/mock-echo")
-    assert r.content == "echo: hello" and r.provider == "mock" and r.total_tokens > 0
-    r = gateway.complete_messages([{"role": "system", "content": "s"}, {"role": "user", "content": "yo"}],
-                                  provider="mock", model="mock-echo")
-    assert r.content == "echo: yo"
-    r = gateway.complete("hello", model="mock-echo")          # bare model id: provider found by listing
-    assert r.provider == "mock"
+def test_factory_catalog_and_admin(gateway):
+    from sajha.ai.llm import ChatMessage, RequestContext
+    ctx = RequestContext(user_id="u")
+    c = gateway.model("mock/mock-echo", context=ctx).chat_completions_create(messages=[ChatMessage.user("hello")])
+    assert c.text == "echo: hello" and c.sajha.provider == "mock" and c.usage.total_tokens > 0
+    assert gateway.qualify("mock", "mock-echo") == "mock/mock-echo"
+    assert gateway.qualify("", "mock-echo") == "mock/mock-echo"       # bare model id: provider found by listing
+    assert gateway.qualify("", "fast") == "fast" and gateway.qualify() == "default"
     emb = gateway.embed(["a b", "c"])
     assert len(emb.embeddings) == 2 and emb.dimensions == 256 and emb.provider == "mock"
-    assert {m.id for m in gateway.list_all_models()} >= {"mock-echo", "mock-planner", "mock-embed"}
+    assert {m.id for m in gateway.models()} >= {"mock-echo", "mock-planner", "mock-embed"}
     assert gateway.health_check_all() == {"mock": True}
     st = gateway.get_stats()
     assert st["providers"] == ["mock"] and st["default_provider"] == "mock"

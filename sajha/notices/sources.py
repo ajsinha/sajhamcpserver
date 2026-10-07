@@ -86,9 +86,9 @@ def breakers_now() -> Dict[str, Dict[str, Any]]:
     except Exception as e:
         logger.debug(f'breaker source: {e}')
     try:
-        from sajha.ai.gateway import get_gateway
-        gw = get_gateway()
-        for _, b in list(getattr(gw, '_breakers', {}).items()) if gw is not None else []:
+        from sajha.ai.llm import llm_factory
+        gw = llm_factory()
+        for _, b in list(gw.breaker_states().items()) if gw is not None else []:
             if b.state.value != 'closed':
                 out[BREAKER_PREFIX + b.name] = _breaker_notice(b.name, 'llm', b.to_dict())
     except Exception as e:
@@ -179,13 +179,14 @@ def check_llm() -> None:
     aliases: Dict[str, Dict[str, Any]] = {}
     providers: Dict[str, Dict[str, Any]] = {}
     try:
-        from sajha.ai.gateway import get_gateway
-        gw = get_gateway()
+        from sajha.ai.llm import llm_factory
+        gw = llm_factory()
     except Exception:
         gw = None
     if gw is not None:
-        for name, p in list(gw.providers.items()):
-            if not p.active:
+        for name in gw.provider_names():
+            p = gw.provider(name)
+            if p is None or not p.active:
                 continue
             try:
                 h = gw.provider_health(name)
@@ -199,13 +200,10 @@ def check_llm() -> None:
                     'title': f'LLM provider {name} is failing',
                     'detail': (f'Its health check says: {detail or "down"}. Aliases fall back to their next '
                                'candidate; check the provider\'s key, URL and quota on the LLM page.')}
-        from sajha.ai.llm.errors import LLMError
+        from sajha.ai.llm import LLMError
         for alias in list(gw.settings.aliases):
             try:
-                if alias == 'embedding':
-                    gw.embedding_model(alias)
-                else:
-                    gw.resolve(alias)
+                gw.model(alias).info()          # the model that would answer now
             except LLMError as e:
                 aliases[ALIAS_PREFIX + alias] = {
                     'severity': 'error' if alias == 'default' else 'warning', 'source': 'llm',

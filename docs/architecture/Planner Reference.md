@@ -37,7 +37,7 @@ itself or with today's code, and how each was resolved, are listed in
 11. [Limits and ceilings](#11-limits-and-ceilings)
 12. [Validation rules and messages](#12-validation-rules-and-messages)
 13. [Shipped planners](#13-shipped-planners)
-14. [Writing your own planner](#14-writing-your-own-planner)
+14. [Writing your own planner](#14-writing-your-own-planner) (and [the planner editor](#141-the-planner-editor))
 15. [Decisions made in this reference](#15-decisions-made-in-this-reference)
 16. [Where the design disagrees with itself or the code](#16-where-the-design-disagrees-with-itself-or-the-code)
 17. [As built: where the code departs from this reference](#17-as-built-where-the-code-departs-from-this-reference)
@@ -2019,6 +2019,36 @@ Tips: put deterministic stages (`match`, `call`, `verify`) before model stages; 
 the smallest `max_visits` that works; prefer `revise` targeted at `findings` over a second
 `critique`; and keep `use_when` honest, because automatic selection reads it.
 
+### 14.1 The planner editor
+
+Steps 2 to 4 and 6 can be done in the console: **MCP Studio → Planner editor**
+(`/studio/planners`, `sajha/studio/planner_editor.py`). It is for administrators only, whatever
+Studio permissions a role has, because a planner decides how much every tool that uses it may
+spend and how often it may loop ([LLM Tools](LLM%20Tools.md) §9.10, decision 6).
+
+- **The list** shows every planner the registry knows (files and Python registrations), the
+  newest version of each and how many versions are kept, and under **Load problems** each file
+  the registry refused with its findings. A refused file whose `name@version` loaded before keeps
+  its **last good version** in use (section 2.2): the list says which version is running, so
+  tools that use it keep working while the file is fixed. A Python planner has no file to edit.
+- **The file** opens as YAML text, any kept version from the version picker. Typing checks it
+  (`POST /admin/studio/planners/check`) exactly as the registry loads it: the JSON Schema of
+  Appendix A and every P-rule of section 12, including the sub-planner checks that need the
+  other files (P033 to P035, P071). Each finding is listed with its rule, location and message.
+- **The graph** draws the stages from `start`, left to right, with every transition: outcomes,
+  `next`, `else`, and where an exhausted bound leads. A bounded edge is dashed in the accent
+  colour and labelled with its `max_visits`; an unreachable stage has a dashed border. The same
+  edges are listed as a table for screen readers and small screens.
+- **Dry run** sends the file in the editor (saved or not) to `POST /api/ai/planners/dry-run` as
+  an inline planner with a question, and shows the stage path it took (highlighted on the
+  graph), the bounds it reached, the tool calls (those not run are marked) and the answer.
+- **Save as a new version** (`POST /admin/studio/planners/save`) refuses a file with errors (it
+  never writes one) and a version that exists already with different content (P070: change
+  `version`). Saving a higher version than `<name>.yaml` holds moves the old content to
+  `<name>@<old version>.yaml` first, so tools pinned to it keep it; saving a lower version
+  writes only `<name>@<version>.yaml`. The registry reloads at once, and the save is audited
+  (`studio.planner.save`).
+
 ---
 
 ## 15. Decisions made in this reference
@@ -2239,8 +2269,8 @@ What the build settled, and where it differs from the sections above:
 11. **The path.** `planner_path` in the result and the audit record lists every stage run, sub-run
     stages as `<chain>/<stage>` (for example `router>recipes/call`); the dry run also returns the
     top planner's own stages as `path`.
-12. **The dry run** is the admin endpoint `POST /api/ai/planners/dry-run` (there is no planner
-    editor page yet). Every model call goes to `ai.planners.dry_run_model`. Tools are offered as
+12. **The dry run** is the admin endpoint `POST /api/ai/planners/dry-run`, which the planner
+    editor (section 14.1) calls. Every model call goes to `ai.planners.dry_run_model`. Tools are offered as
     usual, but only those annotated `readOnlyHint: true`, and those the admin names in
     `run_tools`, actually run; any other call returns an error result ("not run in a dry run"),
     so the path still shows where the planner goes.

@@ -23,7 +23,8 @@ import threading
 import pytest
 
 from sajha.ai.intelligence import IntelligenceService
-from sajha.ai.llm import ChatRequest, ConfigurationError, Message, RequestContext, registry
+from sajha.ai.llm import ConfigurationError, RequestContext, registry
+from sajha.ai.llm.types import ChatRequest, Message
 from sajha.ai.llm.secrets import SecretStore
 from sajha.ai.llm.settings import AskSettings
 from tests.ai import test_provider_contract as contract

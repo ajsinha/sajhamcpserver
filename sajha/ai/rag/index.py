@@ -95,18 +95,29 @@ class DocIndex:
         if not alias or alias.lower() == "none" or self.gateway is None:
             return ""
         try:
-            return self.gateway.embedding_model(alias).qualified_id
+            return self._embedding_model().info().qualified_id
         except Exception as e:
             logger.info(f"rag: no embedding model for {alias!r} ({e}); lexical search only")
             return ""
 
+    def _embedding_model(self):
+        """The GovernedModel for ai.rag.embedding_model (an alias or provider/model; anything else
+        means the ``embedding`` alias)."""
+        alias = (self.settings.embedding_model or "").strip() or "embedding"
+        aliases = getattr(getattr(self.gateway, "settings", None), "aliases", {}) or {}
+        if alias not in aliases and "/" not in alias:
+            alias = "embedding"
+        return self.gateway.model(alias, kind="embedding")
+
     def _embed(self, texts: List[str], purpose: str = "document") -> List[List[float]]:
         """Normalized vectors for ``texts``: passages with purpose "document", a query with "query"."""
+        from sajha.ai.llm import SajhaRequest
         out: List[List[float]] = []
         n = max(1, int(self.settings.embed_batch_size or 64))
+        model = self._embedding_model()
         for i in range(0, len(texts), n):
-            vecs = self.gateway.embed(texts[i:i + n], model=self.settings.embedding_model, purpose=purpose)
-            out.extend(normalize(v) for v in vecs)
+            resp = model.embeddings_create(input=list(texts[i:i + n]), sajha=SajhaRequest(input_purpose=purpose))
+            out.extend(normalize(v) for v in resp.vectors)
         return out
 
     # ── documents ───────────────────────────────────────────────

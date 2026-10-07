@@ -1,19 +1,40 @@
 """
-SAJHA Intelligence Layer — SAJHA-owned LLM abstractions.
+SAJHA Intelligence Layer — the public LLM API.
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
-Everything above the registry (the gateway, the intelligence service, consumers) codes only
-against these types; nothing in this package imports a vendor SDK (Bedrock's optional boto3
-is imported lazily). See docs/architecture/Intelligence Layer.md.
+Every LLM SAJHA uses is reached through this package, behind OpenAI-style signatures. All
+provider and model specifics live inside it (one module per provider under ``providers/``);
+nothing outside it imports a vendor SDK, a provider module or a private module, or constructs a
+provider or model (tests/test_llm_boundary.py enforces this).
 
-The canonical model format is OpenAI Chat Completions, typed (canonical.py): requests,
-responses, stream chunks and embeddings, with SAJHA-only data in a ``sajha`` field. Models and
-the gateway expose an OpenAI-style client surface (``chat_completions_create``,
-``chat_completions_stream``, ``achat_completions_create``, ``embeddings_create``); providers
-translate at the edge (adapter.py, providers/). The original types (types.py: ChatRequest,
-ChatResponse, stream events) remain, converted losslessly by convert.py.
+What application code may use (and nothing else):
+
+* ``llm_factory()`` — the process-wide LLMFactory (None before the intelligence layer starts);
+  ``init_llm_factory`` / ``build_llm_factory`` / ``set_llm_factory`` create or install one.
+* ``LLMFactory.model(name, context=ctx)`` — a ``GovernedModel`` for an alias (``default``,
+  ``fast``, ``reasoning``, ``embedding``, ...) or ``provider/model``: an ``LLMModel`` proxy that
+  applies role policy, budgets, the cache, retries, breakers, fallback across the alias's
+  candidates, audit, usage/cost and tracing, then delegates to the provider's model.
+  ``LLMFactory.provider(name)`` is for admin and catalog pages.
+* ``LLMModel`` and ``LLMProvider`` — the abstract classes every provider module implements:
+  ``chat_completions_create``, ``chat_completions_stream``, ``achat_completions_create``,
+  ``achat_completions_stream``, ``embeddings_create``, ``aembeddings_create``, ``info()``;
+  ``models()``, ``model()``, ``health()`` on a provider.
+* The canonical OpenAI Chat Completions / Embeddings types (``ChatMessage``,
+  ``ChatCompletionRequest``, ``ChatCompletion``, ``ChatCompletionChunk``, ``ToolDefinition``,
+  ``ToolCall``, ``EmbeddingsRequest``, ``EmbeddingsResponse``, ...) with SAJHA-only data in a
+  ``sajha`` field (``SajhaRequest`` / ``ResponseSajha``), and ``RequestContext`` (the caller's
+  identity) and ``Usage``.
+* The errors (``LLMError`` and its subclasses).
+* Catalog value types: ``ModelInfo``, ``ModelCapabilities``, ``HealthStatus``.
+
+Public submodules: ``canonical`` (the types and their helpers), ``errors``, ``settings``
+(ai.* configuration sections) and ``secrets``. Code that adds a provider or a model uses
+``sajha.ai.llm.spi``. Everything else (adapter, http, convert, legacy, registry, governed,
+providers/, mock*) is internal. See docs/architecture/Intelligence Layer.md.
 """
 
+from sajha.ai.llm.base import LLMModel, LLMProvider
 from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionChunk, ChatCompletionRequest, ChatMessage,
                                     Choice, ChoiceDelta, ChunkAccumulator, ChunkChoice, CompletionUsage, ContentPart,
                                     DeltaToolCall, EmbeddingsRequest, EmbeddingsResponse, FunctionCall,
@@ -22,27 +43,26 @@ from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionChunk, ChatCom
 from sajha.ai.llm.errors import (AuthenticationFailed, BudgetExceeded, ConfigurationError, ContentFiltered,
                                  ContextTooLong, InvalidRequest, LLMError, ModelFailed, NoModelAvailable, PolicyDenied,
                                  ProviderUnavailable, RateLimited, UnsupportedFeature)
-from sajha.ai.llm.model import (ChatModel, EmbeddingModel, HealthStatus, ModelCapabilities, ModelDescriptor,
-                                ModelInfo, Needs)
-from sajha.ai.llm.provider import LLMProvider
-from sajha.ai.llm.registry import (load_class, load_entry_points, register_model, register_provider,
-                                   registered_providers)
+from sajha.ai.llm.factory import LLMFactory, build_llm_factory, init_llm_factory, llm_factory, set_llm_factory
+from sajha.ai.llm.governed import GovernedModel
+from sajha.ai.llm.model import HealthStatus, ModelCapabilities, ModelInfo
 from sajha.ai.llm.secrets import SecretStore
-from sajha.ai.llm.settings import AISettings, ModelOverride, ProviderConfig
-from sajha.ai.llm.types import (ChatRequest, ChatResponse, Done, ImagePart, Message, Part, RequestContext,
-                                StreamEvent, TextDelta, TextPart, ToolCallDelta, ToolCallPart, ToolResultPart,
-                                ToolSpec, Usage, UsageEvent)
+from sajha.ai.llm.types import RequestContext, Usage
 
 __all__ = [
-    "AISettings", "AuthenticationFailed", "BudgetExceeded", "ChatCompletion", "ChatCompletionChunk",
-    "ChatCompletionRequest", "ChatMessage", "ChatModel", "ChatRequest", "ChatResponse", "Choice", "ChoiceDelta",
-    "ChunkAccumulator", "ChunkChoice", "CompletionUsage", "ConfigurationError", "ContentFiltered", "ContentPart",
-    "ContextTooLong", "DeltaToolCall", "Done", "EmbeddingModel", "EmbeddingsRequest", "EmbeddingsResponse",
-    "FunctionCall", "FunctionDefinition", "HealthStatus", "ImagePart", "ImageURL", "InvalidRequest", "LLMError",
-    "LLMProvider", "Message", "MessageSajha", "ModelCapabilities", "ModelDescriptor", "ModelFailed", "ModelInfo",
-    "ModelOverride", "Needs", "NoModelAvailable", "Part", "PolicyDenied", "ProviderConfig", "ProviderUnavailable",
-    "RateLimited", "RequestContext", "ResponseFormat", "ResponseSajha", "SajhaRequest", "SecretStore",
-    "StreamEvent", "StreamOptions", "TextDelta", "TextPart", "ToolCall", "ToolCallDelta", "ToolCallPart",
-    "ToolDefinition", "ToolResultPart", "ToolSpec", "UnsupportedFeature", "Usage", "UsageEvent", "load_class",
-    "load_entry_points", "register_model", "register_provider", "registered_providers",
+    # factory and proxy
+    "GovernedModel", "LLMFactory", "build_llm_factory", "init_llm_factory", "llm_factory", "set_llm_factory",
+    # abstract API
+    "LLMModel", "LLMProvider",
+    # canonical types
+    "ChatCompletion", "ChatCompletionChunk", "ChatCompletionRequest", "ChatMessage", "Choice", "ChoiceDelta",
+    "ChunkAccumulator", "ChunkChoice", "CompletionUsage", "ContentPart", "DeltaToolCall", "EmbeddingsRequest",
+    "EmbeddingsResponse", "FunctionCall", "FunctionDefinition", "ImageURL", "MessageSajha", "RequestContext",
+    "ResponseFormat", "ResponseSajha", "SajhaRequest", "StreamOptions", "ToolCall", "ToolDefinition", "Usage",
+    # catalog values
+    "HealthStatus", "ModelCapabilities", "ModelInfo", "SecretStore",
+    # errors
+    "AuthenticationFailed", "BudgetExceeded", "ConfigurationError", "ContentFiltered", "ContextTooLong",
+    "InvalidRequest", "LLMError", "ModelFailed", "NoModelAvailable", "PolicyDenied", "ProviderUnavailable",
+    "RateLimited", "UnsupportedFeature",
 ]

@@ -557,6 +557,10 @@ def derived_annotations(spec: LLMSpec, self_name: str, registry: Any) -> Dict[st
     for n in names:
         t = tools.get(n)
         if t is None:
+            # a tool the registry cannot show is not known to be read-only (fail closed); the
+            # built-in document search is read-only by construction
+            if n != "sajha_search_docs":
+                read_only = False
             continue
         ann = (getattr(t, "config", None) or {}).get("annotations") or {}
         md = (getattr(t, "config", None) or {}).get("metadata") or {}

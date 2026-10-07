@@ -1,26 +1,152 @@
 """
-SAJHA Intelligence Layer — LegacyProviderAdapter.
+SAJHA Intelligence Layer — the pre-6.x provider interface and its adapter (internal, deprecated).
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
-Wraps a provider written against the old ``sajha.ai.providers.LLMProvider`` ABC (registered
-with ``register_provider_class``) as a new-style provider, so it is served through the
-gateway's types, aliases, policy and budgets. The old interface has no tool-call parsing, so
-wrapped models declare ``tools=False`` and the gateway routes tool requests elsewhere.
+The old provider ABC (``LegacyLLMProvider``, formerly ``sajha.ai.providers.LLMProvider``), its
+registry (``register_provider_class``) and result types live here, so custom providers written
+against it keep working: the factory wraps every class registered with
+``register_provider_class`` in ``LegacyProviderAdapter`` and serves it through aliases, policy and
+budgets like any other provider. The old interface has no tool-call parsing, so wrapped models
+declare ``tools=False`` and tool requests go to the alias's next candidate.
+
+New providers subclass sajha.ai.llm.spi.ProviderBase instead; extension code imports these names
+from sajha.ai.llm.spi, not from this module.
 """
 
 from __future__ import annotations
 
+import logging
 import time
-from typing import Any, Dict, List, Optional
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import Any, Dict, Iterator, List, Optional
 
 from pydantic import Field
 
 from sajha.ai.llm.errors import ProviderUnavailable, UnsupportedFeature
 from sajha.ai.llm.model import ChatModel, EmbeddingModel, HealthStatus, ModelCapabilities, ModelDescriptor
-from sajha.ai.llm.provider import LLMProvider
+from sajha.ai.llm.provider import ProviderBase
 from sajha.ai.llm.settings import ProviderConfig
 from sajha.ai.llm.types import ChatRequest, ChatResponse, Message, TextPart
 
+logger = logging.getLogger(__name__)
+
+
+# ── the pre-6.x interface ───────────────────────────────────────
+
+@dataclass
+class LegacyModelInfo:
+    """A model as the pre-6.x interface describes it."""
+    id: str
+    name: str
+    provider: str
+    context_window: int = 0
+    input_cost_per_1k: float = 0.0
+    output_cost_per_1k: float = 0.0
+    supports_tools: bool = True
+    supports_vision: bool = False
+    supports_streaming: bool = True
+    max_output_tokens: int = 4096
+    tags: List[str] = field(default_factory=list)
+
+
+@dataclass
+class LLMResponse:
+    """A completion as the pre-6.x interface returns it."""
+    content: str
+    model: str
+    provider: str
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+    finish_reason: str = "stop"
+    latency_ms: int = 0
+    cost_usd: float = 0.0
+    raw: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class EmbeddingResponse:
+    embeddings: List[List[float]]
+    model: str
+    provider: str
+    total_tokens: int = 0
+    dimensions: int = 0
+
+
+class LegacyLLMProvider(ABC):
+    """The pre-6.x provider ABC (deprecated; subclass sajha.ai.llm.spi.ProviderBase instead)."""
+
+    provider_type: str = "unknown"
+
+    @abstractmethod
+    def complete(self, messages: List[Dict[str, str]], model: str, temperature: float = 0.7,
+                 max_tokens: int = 1024, system: str = "", tools: Optional[List[Dict]] = None,
+                 **kwargs) -> LLMResponse:
+        ...
+
+    @abstractmethod
+    def stream(self, messages: List[Dict[str, str]], model: str, temperature: float = 0.7,
+               max_tokens: int = 1024, system: str = "", **kwargs) -> Iterator[str]:
+        ...
+
+    def embed(self, texts: List[str], model: str = "") -> EmbeddingResponse:
+        raise NotImplementedError(f"{self.provider_type} does not support embeddings")
+
+    @abstractmethod
+    def list_models(self) -> List[LegacyModelInfo]:
+        ...
+
+    @abstractmethod
+    def health_check(self) -> bool:
+        ...
+
+    def get_default_model(self) -> str:
+        models = self.list_models()
+        return models[0].id if models else ""
+
+    def get_default_embedding_model(self) -> str:
+        return ""
+
+
+_legacy_classes: Dict[str, type] = {}          # provider_type -> LegacyLLMProvider subclass
+_legacy_instances: Dict[str, LegacyLLMProvider] = {}
+
+
+def register_provider_class(provider_type: str, cls: type) -> None:
+    """Register a pre-6.x provider class; the factory serves it through LegacyProviderAdapter."""
+    if not issubclass(cls, LegacyLLMProvider):
+        raise TypeError(f"{cls.__name__} must extend LegacyLLMProvider")
+    _legacy_classes[provider_type] = cls
+    logger.info(f"legacy LLM provider class registered: {provider_type} -> {cls.__name__}")
+
+
+def unregister_provider_class(provider_type: str) -> None:
+    _legacy_classes.pop(provider_type, None)
+    for k in [k for k in _legacy_instances if k.startswith(provider_type + ":")]:
+        _legacy_instances.pop(k, None)
+
+
+def get_registered_types() -> Dict[str, str]:
+    """Registered pre-6.x provider types -> class names."""
+    return {k: v.__name__ for k, v in _legacy_classes.items()}
+
+
+def create_provider(provider_type: str, **config) -> LegacyLLMProvider:
+    """A cached instance of a registered pre-6.x provider class."""
+    key = f"{provider_type}:{hash(frozenset(config.items()))}"
+    if key in _legacy_instances:
+        return _legacy_instances[key]
+    cls = _legacy_classes.get(provider_type)
+    if cls is None:
+        raise ValueError(f"Unknown legacy LLM provider '{provider_type}' "
+                         f"(registered: {sorted(_legacy_classes) or '(none)'})")
+    inst = cls(**config)
+    _legacy_instances[key] = inst
+    return inst
+
+
+# ── the adapter ─────────────────────────────────────────────────
 
 class LegacyConfig(ProviderConfig):
     legacy_type: str = ""
@@ -72,7 +198,7 @@ class LegacyEmbeddingModel(EmbeddingModel):
             raise UnsupportedFeature(f"{self.provider.name} has no embeddings", provider=self.provider.name)
 
 
-class LegacyProviderAdapter(LLMProvider):
+class LegacyProviderAdapter(ProviderBase):
     name = "legacy"
     config_model = LegacyConfig
     requires_key = False
@@ -86,7 +212,6 @@ class LegacyProviderAdapter(LLMProvider):
 
     def legacy(self):
         if self._legacy is None:
-            from sajha.ai.providers import create_provider
             kwargs = dict(self.config.legacy_kwargs or {})
             if self.api_key:
                 kwargs.setdefault("api_key", self.api_key)

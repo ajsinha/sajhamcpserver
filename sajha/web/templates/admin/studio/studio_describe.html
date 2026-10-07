@@ -82,6 +82,7 @@ Design: docs/architecture/Tool Generation.md
                         <button type="button" class="btn btn-sm btn-outline-secondary dt-example">Query table orders by region</button>
                         <button type="button" class="btn btn-sm btn-outline-secondary dt-example">Wrap this REST endpoint https://api.example.com/v1/weather/{city}</button>
                         <button type="button" class="btn btn-sm btn-outline-secondary dt-example">Mean, median and standard deviation of a list of numbers</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary dt-example">Classify a support message into billing, technical or other</button>
                     </div>
                     <div class="row g-2 mt-2 align-items-end">
                         <div class="col-sm-6 col-md-4">
@@ -93,6 +94,7 @@ Design: docs/architecture/Tool Generation.md
                                 <option value="dbquery">Database query</option>
                                 <option value="composite">Composite of existing tools</option>
                                 <option value="openapi">OpenAPI import</option>
+                                <option value="llm">LLM tool (a model does the work)</option>
                             </select>
                         </div>
                         <div class="col-sm-6 col-md-8 d-flex gap-2 flex-wrap">
@@ -189,6 +191,7 @@ Design: docs/architecture/Tool Generation.md
                         <li><strong>REST</strong> and <strong>database query</strong>: Studio's own generators, filled with checked values; no credentials are generated.</li>
                         <li><strong>Composite</strong>: existing tools run together.</li>
                         <li><strong>OpenAPI</strong>: handed to Import an API, where you pick the operations.</li>
+                        <li><strong>LLM tool</strong>: a config file only; checked by the LLM-tool loader, its tests run on the mock model.</li>
                     </ul>
                     <p class="mb-0">A deploy needs your approval of the exact version you reviewed, its tests run, and
                         the policy engine's consent to <code>studio.deploy</code>.</p>
@@ -237,6 +240,8 @@ Design: docs/architecture/Tool Generation.md
         if (p.kind === 'dbquery') rows.push(['Query', '<code>' + esc(im.query_template) + '</code>']);
         if (p.kind === 'composite') rows.push(['Tools', esc([im.master_tool].concat((im.steps || []).map(s => s.tool_name)).join(', '))]);
         if (p.kind === 'openapi') rows.push(['Spec', '<code>' + esc(im.url) + '</code>']);
+        if (p.kind === 'llm') rows.push(['LLM', 'mode <code>' + esc(im.mode) + '</code>' + (im.model ? ', model <code>' + esc(im.model) + '</code>' : '') +
+            (im.tools && (im.tools.allow || []).length ? ', may call <code>' + esc(im.tools.allow.join(', ')) + '</code>' : '')]);
         $('dtSummary').innerHTML = rows.map(([k, v]) => '<dt>' + k + '</dt><dd>' + v + '</dd>').join('');
         $('dtNotes').innerHTML = (p.notes || []).length ? '<div class="small fw-bold">Notes from the model</div><ul class="small mb-0">' +
             p.notes.map(n => '<li>' + esc(n) + '</li>').join('') + '</ul>' : '';

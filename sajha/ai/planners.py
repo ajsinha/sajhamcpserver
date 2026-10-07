@@ -49,7 +49,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionRequest, ChatMessage, MessageSajha,
                                     ResponseFormat, SajhaRequest, ToolCall, ToolDefinition)
-from sajha.ai.llm.types import RequestContext
+from sajha.ai.llm import RequestContext
 
 logger = logging.getLogger(__name__)
 

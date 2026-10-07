@@ -8,13 +8,16 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 * ``actions`` (``/admin/studio``) serves the JSON endpoints those pages post to:
   analyze / preview / deploy for each creator, and delete.
 
-Every route needs MCP Studio access: an admin, or a role with the ``studio`` permission
-(``require_studio``; the seeded ``developer`` role has it). One thing stays admin only:
-deploying a Python code or script tool while ``sandbox.enforce_for_generated_tools`` is
-off, because that code would run inside the server (``_unsandboxed_refusal``). A deploy writes the generated files (Python module
-first, JSON config last) and then loads the new tool into the live registry, so
-it is callable over MCP at once; if it fails to load, the files are removed and
-the load error is returned. Delete removes only tools Studio generated.
+Every route needs a Studio permission (Roadmap X2): each creator's pages and endpoints need
+``studio:<creator>`` (``require_creator``; ``studio:*``, the seeded ``developer`` role, opens
+them all), Studio home and delete any Studio permission; the planner editor is admin only.
+A deploy records its creator in the config's metadata (``sajha/studio/ownership.py``), and a
+non-admin may delete only tools that record them. One thing stays admin only: deploying a
+Python code or script tool while ``sandbox.enforce_for_generated_tools`` is off, because
+that code would run inside the server (``_unsandboxed_refusal``). A deploy writes the
+generated files (Python module first, JSON config last) and then loads the new tool into the
+live registry, so it is callable over MCP at once; if it fails to load, the files are
+removed and the load error is returned. Delete removes only tools Studio generated.
 """
 
 import importlib
@@ -30,7 +33,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from sajha.app import render
-from sajha.auth import AuthContext, require_studio
+from sajha.auth import AuthContext, require_creator, require_studio
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +58,7 @@ def _version() -> str:
         from sajha.core.config import get_settings
         return get_settings().app_version
     except Exception:
-        return '7.2.0'
+        return '7.3.0'
 
 
 def _registry():
@@ -159,11 +162,17 @@ def _studio_files(tool_name: str, config: Dict[str, Any]) -> Optional[List[Path]
             return files  # SharePoint creator: config only, shared implementation
         if impl == 'sajha.api_import.executor.ImportedAPITool':
             return files  # API Import: config only, shared executor
+        if impl == 'sajha.ai.llm_tools.LLMTool' and (config.get('metadata') or {}).get('studio_creator') == 'llm':
+            return files  # LLM tool creator / Describe a tool: config only, shared implementation
     return None
 
 
-def _deploy_result(tool_name: str, written: List[str], message: str, **extra) -> JSONResponse:
-    """Hot-load a freshly written tool; on failure remove its files."""
+def _deploy_result(tool_name: str, written: List[str], message: str, auth: Optional[AuthContext] = None,
+                   creator: str = '', **extra) -> JSONResponse:
+    """Record who made a freshly written tool, hot-load it; on failure remove its files."""
+    if auth is not None:
+        from sajha.studio.ownership import stamp_file
+        stamp_file(tool_name, auth.user_id or '', creator)
     loaded, err = _hot_load(tool_name)
     if not loaded:
         for f in written:
@@ -346,47 +355,47 @@ async def studio_home(request: Request, auth: AuthContext = Depends(require_stud
 
 
 @pages.get('/rest')
-async def studio_rest(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_rest(request: Request, auth: AuthContext = Depends(require_creator('rest'))):
     return render(request, 'admin/studio/studio_rest.html', _studio_ctx(auth))
 
 
 @pages.get('/dbquery')
-async def studio_dbquery(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_dbquery(request: Request, auth: AuthContext = Depends(require_creator('dbquery'))):
     return render(request, 'admin/studio/studio_dbquery.html', _studio_ctx(auth))
 
 
 @pages.get('/script')
-async def studio_script(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_script(request: Request, auth: AuthContext = Depends(require_creator('script'))):
     return render(request, 'admin/studio/studio_script.html', _studio_ctx(auth))
 
 
 @pages.get('/livelink')
-async def studio_livelink(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_livelink(request: Request, auth: AuthContext = Depends(require_creator('livelink'))):
     return render(request, 'admin/studio/studio_livelink.html', _studio_ctx(auth))
 
 
 @pages.get('/olap')
-async def studio_olap(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_olap(request: Request, auth: AuthContext = Depends(require_creator('olap'))):
     return render(request, 'admin/studio/studio_olap.html', _studio_ctx(auth))
 
 
 @pages.get('/powerbi')
-async def studio_powerbi(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_powerbi(request: Request, auth: AuthContext = Depends(require_creator('powerbi'))):
     return render(request, 'admin/studio/studio_powerbi.html', _studio_ctx(auth))
 
 
 @pages.get('/powerbidax')
-async def studio_powerbidax(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_powerbidax(request: Request, auth: AuthContext = Depends(require_creator('powerbidax'))):
     return render(request, 'admin/studio/studio_powerbidax.html', _studio_ctx(auth))
 
 
 @pages.get('/sharepoint')
-async def studio_sharepoint(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_sharepoint(request: Request, auth: AuthContext = Depends(require_creator('sharepoint'))):
     return render(request, 'admin/studio/studio_sharepoint.html', _studio_ctx(auth))
 
 
 @pages.get('/examples')
-async def studio_examples(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_examples(request: Request, auth: AuthContext = Depends(require_creator('python'))):
     return render(request, 'admin/studio/studio_examples.html', _studio_ctx(auth))
 
 
@@ -419,7 +428,7 @@ def _code_generator():
 
 
 @actions.post('/analyze')
-async def studio_analyze(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_analyze(request: Request, auth: AuthContext = Depends(require_creator('python'))):
     res = _analyze_code(await _body(request))
     if isinstance(res, JSONResponse):
         return res
@@ -449,7 +458,7 @@ async def studio_analyze(request: Request, auth: AuthContext = Depends(require_s
 
 
 @actions.post('/deploy')
-async def studio_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_deploy(request: Request, auth: AuthContext = Depends(require_creator('python'))):
     refused = _unsandboxed_refusal(auth)
     if refused:
         return refused
@@ -461,7 +470,7 @@ async def studio_deploy(request: Request, auth: AuthContext = Depends(require_st
     if not ok:
         return _fail(message)
     return _deploy_result(tool_name, [json_path, python_path], f'Tool "{tool_name}" deployed successfully!',
-                          json_path=json_path, python_path=python_path)
+                          auth=auth, creator='python', json_path=json_path, python_path=python_path)
 
 
 @actions.post('/validate-name')
@@ -486,6 +495,8 @@ async def studio_delete(request: Request, auth: AuthContext = Depends(require_st
         except Exception:
             config = {}
     if not config:
+        if not auth.is_admin:
+            return _fail(f'No tool "{tool_name}" to delete', 404)
         # Nothing registered and no config: clean up any orphaned Studio module
         orphans = [IMPL_DIR / f'{p}{tool_name}.py' for p in STUDIO_MODULE_PREFIXES]
         orphans += [IMPL_DIR / f'{tool_name}_script_tool.py'] + sorted(SCRIPTS_DIR.glob(f'{tool_name}.*'))
@@ -500,6 +511,10 @@ async def studio_delete(request: Request, auth: AuthContext = Depends(require_st
     files = _studio_files(tool_name, config)
     if files is None:
         return _fail(f'"{tool_name}" was not created by MCP Studio; delete it from Admin > Tools instead', 403)
+    from sajha.studio.ownership import creator_of, refusal
+    refused = refusal(auth, creator_of(config), tool_name)
+    if refused:
+        return _fail(refused, 403)
 
     _unload(tool_name)
     deleted, not_found = [], []
@@ -564,7 +579,7 @@ def _rest_generator():
 
 
 @actions.post('/rest/preview')
-async def studio_rest_preview(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_rest_preview(request: Request, auth: AuthContext = Depends(require_creator('rest'))):
     try:
         definition = _rest_definition(await _body(request))
         err = _check_new_name(definition.name)
@@ -580,7 +595,7 @@ async def studio_rest_preview(request: Request, auth: AuthContext = Depends(requ
 
 
 @actions.post('/rest/deploy')
-async def studio_rest_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_rest_deploy(request: Request, auth: AuthContext = Depends(require_creator('rest'))):
     try:
         definition = _rest_definition(await _body(request))
         err = _check_new_name(definition.name)
@@ -590,7 +605,7 @@ async def studio_rest_deploy(request: Request, auth: AuthContext = Depends(requi
         if not ok:
             return _fail(message)
         return _deploy_result(definition.name, [json_path, python_path],
-                              f'REST Tool "{definition.name}" deployed successfully!',
+                              f'REST Tool "{definition.name}" deployed successfully!', auth=auth, creator='rest',
                               json_path=json_path, python_path=python_path)
     except Exception as e:
         logger.error(f'Error deploying REST tool: {e}', exc_info=True)
@@ -633,7 +648,7 @@ def _dbquery_generator():
 
 
 @actions.post('/dbquery/preview')
-async def studio_dbquery_preview(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_dbquery_preview(request: Request, auth: AuthContext = Depends(require_creator('dbquery'))):
     try:
         definition = _dbquery_definition(await _body(request))
         err = _check_new_name(definition.name)
@@ -650,7 +665,7 @@ async def studio_dbquery_preview(request: Request, auth: AuthContext = Depends(r
 
 
 @actions.post('/dbquery/deploy')
-async def studio_dbquery_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_dbquery_deploy(request: Request, auth: AuthContext = Depends(require_creator('dbquery'))):
     try:
         definition = _dbquery_definition(await _body(request))
         err = _check_new_name(definition.name)
@@ -660,8 +675,8 @@ async def studio_dbquery_deploy(request: Request, auth: AuthContext = Depends(re
         if not ok:
             return _fail(message)
         return _deploy_result(definition.name, [json_path, python_path],
-                              f'DB Query Tool "{definition.name}" deployed successfully!',
-                              json_path=json_path, python_path=python_path)
+                              f'DB Query Tool "{definition.name}" deployed successfully!', auth=auth,
+                              creator='dbquery', json_path=json_path, python_path=python_path)
     except Exception as e:
         logger.error(f'Error deploying DB Query tool: {e}', exc_info=True)
         return _fail(f'Deployment error: {e}', 500)
@@ -696,7 +711,7 @@ def _script_generator():
 
 
 @actions.post('/script/preview')
-async def studio_script_preview(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_script_preview(request: Request, auth: AuthContext = Depends(require_creator('script'))):
     try:
         config = _script_config(await _body(request))
         err = _check_new_name(config.tool_name)
@@ -715,7 +730,7 @@ async def studio_script_preview(request: Request, auth: AuthContext = Depends(re
 
 
 @actions.post('/script/deploy')
-async def studio_script_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_script_deploy(request: Request, auth: AuthContext = Depends(require_creator('script'))):
     refused = _unsandboxed_refusal(auth)
     if refused:
         return refused
@@ -730,7 +745,7 @@ async def studio_script_deploy(request: Request, auth: AuthContext = Depends(req
         files = [result.get('config_path'), result.get('wrapper_path'), result.get('script_path')]
         return _deploy_result(config.tool_name, files,
                               result.get('message') or f'Script Tool "{config.tool_name}" deployed successfully!',
-                              config_path=result.get('config_path'), script_path=result.get('script_path'),
+                              auth=auth, creator='script', config_path=result.get('config_path'), script_path=result.get('script_path'),
                               wrapper_path=result.get('wrapper_path'))
     except Exception as e:
         logger.error(f'Error deploying script tool: {e}', exc_info=True)
@@ -823,7 +838,7 @@ async def _config_creator_preview(kind: str, request: Request) -> JSONResponse:
         return _fail(str(e), 500)
 
 
-async def _config_creator_deploy(kind: str, request: Request) -> JSONResponse:
+async def _config_creator_deploy(kind: str, request: Request, auth: Optional[AuthContext] = None) -> JSONResponse:
     label, build = _CONFIG_CREATORS[kind]
     try:
         config, gen = build(await _body(request))
@@ -835,40 +850,40 @@ async def _config_creator_deploy(kind: str, request: Request) -> JSONResponse:
             return _fail(result.get('message') or 'Deployment failed')
         files = list((result.get('files') or {}).values())
         return _deploy_result(config.tool_name, files, result.get('message') or f'{label} tool deployed',
-                              files=result.get('files'), config=gen.generate_tool_config(config))
+                              auth=auth, creator=kind, files=result.get('files'), config=gen.generate_tool_config(config))
     except Exception as e:
         logger.error(f'Error deploying {label} tool: {e}', exc_info=True)
         return _fail(str(e), 500)
 
 
 @actions.post('/powerbi/preview')
-async def studio_powerbi_preview(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_powerbi_preview(request: Request, auth: AuthContext = Depends(require_creator('powerbi'))):
     return await _config_creator_preview('powerbi', request)
 
 
 @actions.post('/powerbi/deploy')
-async def studio_powerbi_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
-    return await _config_creator_deploy('powerbi', request)
+async def studio_powerbi_deploy(request: Request, auth: AuthContext = Depends(require_creator('powerbi'))):
+    return await _config_creator_deploy('powerbi', request, auth)
 
 
 @actions.post('/powerbidax/preview')
-async def studio_powerbidax_preview(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_powerbidax_preview(request: Request, auth: AuthContext = Depends(require_creator('powerbidax'))):
     return await _config_creator_preview('powerbidax', request)
 
 
 @actions.post('/powerbidax/deploy')
-async def studio_powerbidax_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
-    return await _config_creator_deploy('powerbidax', request)
+async def studio_powerbidax_deploy(request: Request, auth: AuthContext = Depends(require_creator('powerbidax'))):
+    return await _config_creator_deploy('powerbidax', request, auth)
 
 
 @actions.post('/livelink/preview')
-async def studio_livelink_preview(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_livelink_preview(request: Request, auth: AuthContext = Depends(require_creator('livelink'))):
     return await _config_creator_preview('livelink', request)
 
 
 @actions.post('/livelink/deploy')
-async def studio_livelink_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
-    return await _config_creator_deploy('livelink', request)
+async def studio_livelink_deploy(request: Request, auth: AuthContext = Depends(require_creator('livelink'))):
+    return await _config_creator_deploy('livelink', request, auth)
 
 
 # ── SharePoint creator ───────────────────────────────────────────────────
@@ -908,7 +923,7 @@ def _sharepoint(data):
 
 
 @actions.post('/sharepoint/preview')
-async def studio_sharepoint_preview(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_sharepoint_preview(request: Request, auth: AuthContext = Depends(require_creator('sharepoint'))):
     try:
         config, gen = _sharepoint(await _body(request))
         err = _check_new_name(config.name)
@@ -925,7 +940,7 @@ async def studio_sharepoint_preview(request: Request, auth: AuthContext = Depend
 
 
 @actions.post('/sharepoint/deploy')
-async def deploy_sharepoint_tool(request: Request, auth: AuthContext = Depends(require_studio)):
+async def deploy_sharepoint_tool(request: Request, auth: AuthContext = Depends(require_creator('sharepoint'))):
     try:
         config, gen = _sharepoint(await _body(request))
         err = _check_new_name(config.name)
@@ -934,8 +949,8 @@ async def deploy_sharepoint_tool(request: Request, auth: AuthContext = Depends(r
             return _fail('; '.join(errors))
         output_path = gen.save(config)
         return _deploy_result(config.name, [str(output_path)],
-                              f'SharePoint tool "{config.name}" deployed successfully!',
-                              config_file=str(output_path))
+                              f'SharePoint tool "{config.name}" deployed successfully!', auth=auth,
+                              creator='sharepoint', config_file=str(output_path))
     except Exception as e:
         logger.error(f'Error deploying SharePoint tool: {e}', exc_info=True)
         return _fail(str(e), 500)
@@ -1003,7 +1018,7 @@ def _remove_olap_definitions(added: Dict[str, List[str]], still_used: Dict[str, 
 
 
 @actions.post('/olap/deploy')
-async def studio_olap_deploy(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_olap_deploy(request: Request, auth: AuthContext = Depends(require_creator('olap'))):
     data = await _body(request)
     name = (data.get('name') or '').strip()
     if not name:
@@ -1037,6 +1052,7 @@ async def studio_olap_deploy(request: Request, auth: AuthContext = Depends(requi
             'cache_ttl_seconds': 300,
             'tags': [],
             'created_by': STUDIO_MARKER,
+            'created_by_user': auth.user_id or '',
         }
         added = _add_olap_definitions(data)
         doc['datasets'][name]['studio_added'] = added
@@ -1050,7 +1066,7 @@ async def studio_olap_deploy(request: Request, auth: AuthContext = Depends(requi
 
 
 @actions.post('/olap/delete')
-async def studio_olap_delete(request: Request, auth: AuthContext = Depends(require_studio)):
+async def studio_olap_delete(request: Request, auth: AuthContext = Depends(require_creator('olap'))):
     name = ((await _body(request)).get('name') or '').strip()
     path = _olap_datasets_file()
     try:
@@ -1062,6 +1078,10 @@ async def studio_olap_delete(request: Request, auth: AuthContext = Depends(requi
         return _fail(f'Dataset "{name}" not found', 404)
     if ds.get('created_by') != STUDIO_MARKER:
         return _fail(f'Dataset "{name}" was not created by MCP Studio', 403)
+    from sajha.studio.ownership import refusal
+    refused = refusal(auth, ds.get('created_by_user') or '', name)
+    if refused:
+        return _fail(refused, 403)
     del doc['datasets'][name]
     path.write_text(json.dumps(doc, indent=4) + '\n', encoding='utf-8')
     still_used = {'dimensions': set(), 'measures': set()}
@@ -1083,3 +1103,10 @@ router.include_router(actions)
 # "Describe a tool" (sajha/routes/describe_routes.py) is served through this router too.
 from sajha.routes.describe_routes import router as _describe_router  # noqa: E402
 router.include_router(_describe_router)
+
+# The LLM tool creator and the planner editor are served through this router too
+# (sajha/routes/studio_llm_routes.py, sajha/routes/planner_editor_routes.py).
+from sajha.routes.studio_llm_routes import router as _llm_router  # noqa: E402
+from sajha.routes.planner_editor_routes import router as _planner_router  # noqa: E402
+router.include_router(_llm_router)
+router.include_router(_planner_router)

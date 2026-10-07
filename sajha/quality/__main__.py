@@ -86,9 +86,9 @@ def cmd_lint(a) -> int:
 
 
 def _cli_service():
-    from sajha.ai.gateway import build_gateway
+    from sajha.ai.llm import build_llm_factory
     from sajha.ai.intelligence import IntelligenceService
-    gw = build_gateway(None)
+    gw = build_llm_factory(None)
     return IntelligenceService(gw, _registry(), audit=lambda e: None)
 
 

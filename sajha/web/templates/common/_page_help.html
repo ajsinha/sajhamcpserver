@@ -7,8 +7,9 @@
     <summary>
         <span class="ph-title"><i class="bi bi-compass" aria-hidden="true"></i> About this page</span>
         <span class="ph-what">{{ ph.what }}</span>
-        {% if ph.guide %}<a class="ph-more" href="{{ ph.guide.url }}">Full reference: {{ ph.guide.title }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endif %}
     </summary>
+    {# the link sits outside <summary>: a link inside it is a control nested in a control (axe nested-interactive) #}
+    {% if ph.guide %}<p class="mb-2"><a class="ph-more" href="{{ ph.guide.url }}">Full reference: {{ ph.guide.title }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a></p>{% endif %}
     {% if ph.terms %}
     <div class="ph-grid ph-n{{ ph.terms|length if ph.terms|length < 5 else 'm' }}">
         {% for t in ph.terms %}

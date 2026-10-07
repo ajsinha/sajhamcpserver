@@ -352,16 +352,16 @@ def csv_rows(rep: Dict[str, Any], dimension: str) -> Iterable[List[Any]]:
 
 
 def budgets(user_ids: Iterable[str] = (), roles: Iterable[str] = ()) -> Dict[str, Any]:
-    """Today's tokens against ai.budgets, from the gateway's token tracker (the enforcing counters)."""
+    """Today's tokens against ai.budgets, from the LLM factory's token tracker (the enforcing counters)."""
     try:
-        from sajha.ai.gateway import get_gateway
-        gw = get_gateway()
+        from sajha.ai.llm import llm_factory
+        gw = llm_factory()
     except Exception:
         gw = None
     if gw is None:
         return {'enabled': False, 'available': False, 'users': [], 'roles': []}
     bs = gw.settings.budgets
-    tracker = gw._tracker
+    tracker = gw.tracker
     users = []
     for uid in sorted(set(user_ids)):
         used = tracker.daily_user_tokens(uid)

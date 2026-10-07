@@ -740,6 +740,7 @@ def deploy(data: Dict[str, Any], registry=None, user: str = '') -> Dict[str, Any
         'graphql_depth': req.graphql_depth,
         'operations': recorded, 'created_at': (p.record or {}).get('created_at') or now,
         'updated_at': now, 'updated_by': user,
+        'created_by': (p.record or {}).get('created_by') or user,
     }
     if recorded:
         store.save(record)

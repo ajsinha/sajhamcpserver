@@ -241,7 +241,7 @@ class TestCountersShared:
         assert not a.blocked("login:1.2.3.4")
 
     def test_token_budget_shared_when_store_is_shared(self, installed):
-        from sajha.ai.gateway import TokenTracker
+        from sajha.ai.llm.governed import TokenTracker
         from sajha.ai.llm.types import Usage
         a, b = TokenTracker(installed), TokenTracker(installed)
         a.record_usage("u", ["analyst"], "p", "m", Usage(10, 5, 0, 0.01))

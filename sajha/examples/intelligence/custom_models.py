@@ -15,10 +15,8 @@ under the provider's ``models:`` in application.yml (or SAJHA_AI_OPENAI_MODELS a
 
 from __future__ import annotations
 
-from sajha.ai.llm import ModelCapabilities, register_model
-from sajha.ai.llm.adapter import WireCall
-from sajha.ai.llm.canonical import ChatCompletionRequest, ChatMessage
-from sajha.ai.llm.providers.openai_compat import OpenAIChatModel
+from sajha.ai.llm import ChatCompletionRequest, ChatMessage
+from sajha.ai.llm.spi import ModelCapabilities, OpenAIChatModel, WireCall, register_model
 
 RISK_MODEL = "ft:gpt-6.1-sol:acme:risk:001"
 

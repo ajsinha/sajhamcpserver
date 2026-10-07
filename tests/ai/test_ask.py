@@ -134,14 +134,14 @@ def test_tool_results_are_passed_as_data_and_size_capped(toolbox):
     toolbox.add(FakeTool("bulk_report_fetch", "Fetch the bulk report", output={"blob": "x" * 50_000}))
     gw = make_gateway()
     seen = []
-    orig = gw.chat_completions_create
+    orig = gw._governed_create
 
     def spy(request=None, **kw):              # every model call is a canonical request through the gateway
         from sajha.ai.llm.convert import from_canonical_request
         seen.append(from_canonical_request(request))
         return orig(request, **kw)
 
-    gw.chat_completions_create = spy
+    gw._governed_create = spy
     service(toolbox, gw, max_result_chars=1000).ask("Fetch the bulk report", RequestContext(user_id="u"))
     results = [p for r in seen for m in r.messages for p in m.tool_results]
     assert results and all(len(json.dumps(p.content)) < 1200 for p in results)
@@ -213,11 +213,12 @@ def test_sajha_ask_mcp_tool(toolbox, monkeypatch):
 def client(toolbox, monkeypatch):
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-    from sajha.ai import gateway as gwmod, intelligence
+    from sajha.ai import intelligence
+    from sajha.ai.llm import factory as gwmod
     from sajha.auth import AuthContext, require_auth, require_admin
     from sajha.routes.ai_routes import router
     gw = make_gateway({"policy": {"roles": {"viewer": {"allowed": ["mock/*"], "tools": False}}}})
-    monkeypatch.setattr(gwmod, "_gateway", gw)
+    monkeypatch.setattr(gwmod, "_factory", gw)
     monkeypatch.setattr(intelligence, "_service", service(toolbox, gw))
     app = FastAPI()
     app.include_router(router)

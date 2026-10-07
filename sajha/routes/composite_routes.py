@@ -10,7 +10,7 @@ import json, logging
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from sajha.auth import AuthContext, require_auth, require_studio
+from sajha.auth import AuthContext, require_auth, require_creator
 from sajha.db.engine import get_db
 
 logger = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ async def api_get(name: str, auth: AuthContext = Depends(require_auth), db: Sess
 
 
 @router.post('/api/composite-tools')
-async def api_create(request: Request, auth: AuthContext = Depends(require_studio), db: Session = Depends(get_db)):
+async def api_create(request: Request, auth: AuthContext = Depends(require_creator('composite')), db: Session = Depends(get_db)):
     from sajha.db.dao import CompositeToolDAO
     data = await request.json()
     dao = CompositeToolDAO(db)
@@ -73,7 +73,7 @@ async def api_create(request: Request, auth: AuthContext = Depends(require_studi
 
 
 @router.put('/api/composite-tools/{name}')
-async def api_update(name: str, request: Request, auth: AuthContext = Depends(require_studio), db: Session = Depends(get_db)):
+async def api_update(name: str, request: Request, auth: AuthContext = Depends(require_creator('composite')), db: Session = Depends(get_db)):
     from sajha.db.dao import CompositeToolDAO
     data = await request.json()
     if not isinstance(data, dict):
@@ -92,7 +92,7 @@ async def api_update(name: str, request: Request, auth: AuthContext = Depends(re
 
 
 @router.delete('/api/composite-tools/{name}')
-async def api_delete(name: str, auth: AuthContext = Depends(require_studio), db: Session = Depends(get_db)):
+async def api_delete(name: str, auth: AuthContext = Depends(require_creator('composite')), db: Session = Depends(get_db)):
     from sajha.db.dao import CompositeToolDAO
     dao = CompositeToolDAO(db)
     refused = _not_owner(dao, name, auth)

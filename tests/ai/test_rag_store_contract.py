@@ -269,17 +269,24 @@ def test_pgvector_keyword_sql():
 # ── the index on sqlite_vec ──────────────────────────────────────
 
 class RecordingGateway:
-    """Wraps the mock gateway and records each embed call's size and purpose."""
+    """Wraps the mock factory and records each embeddings call's size and purpose."""
 
     def __init__(self, gw):
         self.gw, self.calls = gw, []
+        self.settings = gw.settings
 
-    def embedding_model(self, alias):
-        return self.gw.embedding_model(alias)
+    def model(self, alias, kind=""):
+        inner, calls = self.gw.model(alias, kind=kind), self.calls
 
-    def embed(self, texts, model="", purpose=None):
-        self.calls.append((len(texts), purpose))
-        return self.gw.embed(texts, model=model, purpose=purpose)
+        class Recording:
+            def info(self):
+                return inner.info()
+
+            def embeddings_create(self, request=None, /, **fields):
+                sj = fields.get("sajha")
+                calls.append((len(fields.get("input") or []), sj.input_purpose if sj else None))
+                return inner.embeddings_create(request, **fields)
+        return Recording()
 
 
 @needs_vec

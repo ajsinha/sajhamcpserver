@@ -8,6 +8,10 @@
 --
 -- Idempotent (ON CONFLICT DO NOTHING) and atomic. The admin's password is admin123
 -- and is flagged must_change_password: SAJHA makes the first sign-in change it.
+--
+-- Studio permissions (resource_type studio) name the creator they open: resource_name
+-- '*' (studio:*) opens every creator, 'llm' (studio:llm) only the LLM tool creator, and so on
+-- (docs/security/Security Model.md section 5). They are data: add rows to give a role more.
 -- Running it again re-creates any of these rows that were deleted, so do not re-run
 -- it on a database in use.
 -- ============================================================================
@@ -18,7 +22,8 @@ INSERT INTO roles (id, name, description, is_system) VALUES
     ('r-admin', 'admin', 'Full system access', TRUE),
     ('r-user', 'user', 'Standard tool access', TRUE),
     ('r-viewer', 'viewer', 'Read-only access', TRUE),
-    ('r-developer', 'developer', 'Developer access — MCP Studio', TRUE)
+    ('r-developer', 'developer', 'Developer access — MCP Studio', TRUE),
+    ('r-llm-author', 'llm_author', 'MCP Studio: LLM tools only', TRUE)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO users (id, user_id, user_name, email, password_hash, enabled, must_change_password)
@@ -34,7 +39,9 @@ INSERT INTO permissions (id, role_id, resource_type, resource_name, actions) VAL
     ('p-user-tools', 'r-user', 'tool', '*', 'execute,read'),
     ('p-viewer-read', 'r-viewer', 'tool', '*', 'read'),
     ('p-dev-studio', 'r-developer', 'studio', '*', '*'),
-    ('p-dev-tools', 'r-developer', 'tool', '*', 'execute,read,create')
+    ('p-dev-tools', 'r-developer', 'tool', '*', 'execute,read,create'),
+    ('p-llm-studio', 'r-llm-author', 'studio', 'llm', 'use'),
+    ('p-llm-tools', 'r-llm-author', 'tool', '*', 'execute,read')
 ON CONFLICT DO NOTHING;
 
 COMMIT;

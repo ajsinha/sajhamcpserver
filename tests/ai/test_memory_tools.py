@@ -185,7 +185,8 @@ def test_tool_memory_settings_resolve_from_env(monkeypatch):
 def test_conversations_api_lists_by_scope(store, monkeypatch):
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-    from sajha.ai import gateway as gwmod, intelligence
+    from sajha.ai import intelligence
+    from sajha.ai.llm import factory as gwmod
     from sajha.ai.intelligence import IntelligenceService
     from sajha.ai.llm.settings import AskSettings
     from sajha.auth import AuthContext, require_admin, require_auth
@@ -193,7 +194,7 @@ def test_conversations_api_lists_by_scope(store, monkeypatch):
     from tests.ai.conftest import ToolBox
     gw = make_gateway()
     mem = ConversationMemory(gw, MemorySettings(), store, ToolMemorySettings())
-    monkeypatch.setattr(gwmod, "_gateway", gw)
+    monkeypatch.setattr(gwmod, "_factory", gw)
     monkeypatch.setattr(intelligence, "_service", IntelligenceService(gw, ToolBox(), settings=AskSettings(audit=False),
                                                                       memory=mem))
     tool_cid = turn(mem, None)[0].conversation_id

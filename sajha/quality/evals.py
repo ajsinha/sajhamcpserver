@@ -280,7 +280,7 @@ class FilteredRegistry:
 def run_set(service: Any, es: EvalSet, model: Optional[str] = None, planner: Optional[str] = None,
             ctx: Any = None, on_question: Optional[Callable[[Dict[str, Any]], None]] = None) -> Dict[str, Any]:
     """Ask every question of ``es`` once on ``model``/``planner``; returns {set, model, planner, summary, questions}."""
-    from sajha.ai.llm.types import RequestContext
+    from sajha.ai.llm import RequestContext
     if es.tool:
         return run_tool_set(service, es, model, ctx, on_question)
     if es.tools:
@@ -329,7 +329,7 @@ def _llm_tool(service: Any, name: str):
 def run_tool_set(service: Any, es: EvalSet, model: Optional[str] = None, ctx: Any = None,
                  on_question: Optional[Callable[[Dict[str, Any]], None]] = None) -> Dict[str, Any]:
     """Call the set's LLM tool once per question (memory off, no audit record) and score each run."""
-    from sajha.ai.llm.types import RequestContext
+    from sajha.ai.llm import RequestContext
     tool = _llm_tool(service, es.tool)
     ctx = ctx or RequestContext(user_id='eval', roles=['admin'], is_admin=True)
     rows = []

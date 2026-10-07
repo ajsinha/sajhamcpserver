@@ -39,7 +39,7 @@ from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionRequest, ChatM
 from sajha.ai.llm.errors import ProviderUnavailable
 from sajha.ai.llm.http import get_json, post_json
 from sajha.ai.llm.model import EmbeddingModel, HealthStatus, ModelCapabilities, ModelDescriptor
-from sajha.ai.llm.provider import LLMProvider
+from sajha.ai.llm.provider import ProviderBase
 from sajha.ai.llm.registry import register_provider
 from sajha.ai.llm.settings import ProviderConfig
 
@@ -200,7 +200,7 @@ class OllamaEmbeddingModel(EmbeddingModel):
 
 
 @register_provider
-class OllamaProvider(LLMProvider):
+class OllamaProvider(ProviderBase):
     name = "ollama"
     config_model = OllamaConfig
     requires_key = False

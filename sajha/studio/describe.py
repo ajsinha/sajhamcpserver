@@ -37,7 +37,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
-KINDS = ('python', 'rest', 'dbquery', 'composite', 'openapi')
+KINDS = ('python', 'rest', 'dbquery', 'composite', 'openapi', 'llm')
+#: The Studio creator permission a deploy of each kind needs (sajha/auth: studio:<creator>)
+KIND_CREATOR = {'python': 'python', 'rest': 'rest', 'dbquery': 'dbquery', 'composite': 'composite',
+                'openapi': 'api_import', 'llm': 'llm'}
 NAME_RE = re.compile(r'^[a-z][a-z0-9_]{2,63}$')
 PREFIX_RE = re.compile(r'^[a-z][a-z0-9_]{1,30}$')
 DRAFT_PREFIX = 'studio.describe.draft:'
@@ -75,6 +78,8 @@ Choose "kind":
   dbquery    one read-only SELECT over a database listed in the context
   composite  existing tools (named in the context) run together
   openapi    an OpenAPI/Swagger spec URL, imported operation by operation
+  llm        an LLM tool: a language model does the work (summarise, classify, extract, judge, answer
+             questions with existing tools, or answer from document search)
 
 "implementation" by kind:
   python     {"code": "<module with one @sajhamcptool(description=...) function, typed parameters,
@@ -91,6 +96,12 @@ Choose "kind":
               "steps": [{"tool_name": "<existing tool>", "output_key": "<key>", "param_mapping": {},
                          "static_params": {}}]}
   openapi    {"url": "<spec URL>", "prefix": "<short lowercase id>"}
+  llm        the tool's "llm" block: {"mode": "complete"|"extract"|"classify"|"judge"|"answer"|"grounded",
+              "model": "fast"|"default"|"reasoning", "system_prompt": "...", "template": "... {{input.text}} ...",
+              "tools": {"allow": ["<existing tool or prefix_*>"], "deny": []} (answer only),
+              "rag": {"sources": ["sajha_docs"]} (grounded only), "limits": {...}, "memory": {"mode": ...}}
+              with input_schema / output_schema as the mode needs (classify: an output "label" enum;
+              complete: "text"; extract: the fields; answer and grounded: input "question", output "answer")
 
 "name": lowercase letters, digits, underscores, 3-64 characters. "description": one sentence for the
 catalog. "input_schema"/"output_schema": JSON Schema objects. "tests": 2-5 cases
@@ -184,9 +195,24 @@ def _registry():
         return None
 
 
+_KW_WORD = re.compile(r'[A-Za-z][A-Za-z0-9]*')
+_KW_STOP = {'what', 'is', 'the', 'a', 'an', 'of', 'to', 'from', 'for', 'and', 'or', 'in', 'on', 'at', 'by',
+            'with', 'me', 'my', 'please', 'how', 'much', 'many', 'give', 'tell', 'show', 'calculate',
+            'compute', 'find', 'get', 'between', 'value', 'values', 'using', 'use', 'do', 'does', 'it',
+            'this', 'that', 'are', 'was', 'be', 'can', 'you', 'i', 'if', 'per', 'into', 'as', 'its'}
+
+
+def _stem(w: str) -> str:
+    for suf in ('ings', 'ing', 'ies', 'es', 's'):
+        if len(w) > len(suf) + 3 and w.endswith(suf):
+            return w[: -len(suf)] + ('y' if suf == 'ies' else '')
+    return w
+
+
 def _keywords(text: str) -> set:
-    from sajha.ai.llm.mock import keywords
-    return set(keywords(text))
+    """Content words of ``text``, lower-cased and lightly stemmed (for matching tools)."""
+    return {_stem(w.lower()) for w in _KW_WORD.findall(text.replace('_', ' '))
+            if w.lower() not in _KW_STOP and len(w) > 1}
 
 
 def tool_context(description: str, registry=None, limit: Optional[int] = None) -> List[Dict[str, Any]]:
@@ -274,11 +300,12 @@ def build_prompt(description: str, kind_hint: str, tools: List[Dict[str, Any]],
 
 
 def _gateway():
-    from sajha.ai.gateway import build_gateway, get_gateway, set_gateway
-    gw = get_gateway()
+    """The process-wide LLM factory, built from application.yml when the layer has not started."""
+    from sajha.ai.llm import build_llm_factory, llm_factory, set_llm_factory
+    gw = llm_factory()
     if gw is None:
-        gw = build_gateway()
-        set_gateway(gw)
+        gw = build_llm_factory()
+        set_llm_factory(gw)
     return gw
 
 
@@ -312,18 +339,16 @@ def _parse_json(text: str) -> Dict[str, Any]:
 
 def generate(description: str, kind_hint: str = 'auto', user=None, registry=None, gateway=None) -> Dict[str, Any]:
     """Ask the toolsmith model for a raw proposal. Returns (raw proposal, model id)."""
-    from sajha.ai.llm.canonical import ChatMessage, ResponseFormat, SajhaRequest
-    from sajha.ai.llm.errors import LLMError
-    from sajha.ai.llm.types import RequestContext
+    from sajha.ai.llm import ChatMessage, LLMError, RequestContext, ResponseFormat
     gw = gateway or _gateway()
     prompt = build_prompt(description, kind_hint, tool_context(description, registry), database_context())
     ctx = RequestContext(user_id=getattr(user, 'user_id', '') or '', roles=list(getattr(user, 'roles', None) or []),
                          is_admin=True)
     try:
-        resp = gw.chat_completions_create(
-            model=_target(gw), messages=[ChatMessage.system(SYSTEM_PROMPT), ChatMessage.user(prompt)],
+        resp = gw.model(_target(gw), context=ctx).chat_completions_create(
+            messages=[ChatMessage.system(SYSTEM_PROMPT), ChatMessage.user(prompt)],
             response_format=ResponseFormat.of_schema(PROPOSAL_SCHEMA, name='tool_proposal'),
-            temperature=0.0, max_completion_tokens=6000, sajha=SajhaRequest(context=ctx))
+            temperature=0.0, max_completion_tokens=6000)
     except LLMError as e:
         raise DescribeError(f'the toolsmith model is not available: {e}', 503)
     if resp.refusal:
@@ -491,6 +516,8 @@ def _check_tests(raw: Any, kind: str, errors: List[str], warnings: List[str]) ->
             case['live'] = True               # a REST case without a canned reply calls the endpoint
         if kind in ('composite', 'openapi'):
             case['live'] = True               # they call real tools / fetch the spec
+        if kind == 'llm':
+            case['live'] = False              # an LLM tool's cases run against the mock model
         tests.append(case)
     if not tests:
         errors.append('tests: the proposal has no test cases')
@@ -525,7 +552,7 @@ def validate(raw: Dict[str, Any], description: str = '', registry=None) -> Check
         'kind': kind, 'name': name, 'description': desc,
         'category': _one_line(raw.get('category') or {'python': 'Described', 'rest': 'REST API',
                                                        'dbquery': 'Database', 'composite': 'Composite',
-                                                       'openapi': 'Imported API'}[kind], 40),
+                                                       'openapi': 'Imported API', 'llm': 'Intelligence'}[kind], 40),
         'input_schema': _schema(raw.get('input_schema'), {'type': 'object', 'properties': {}}),
         'output_schema': _schema(raw.get('output_schema'), {'type': 'object'}),
         'notes': [_one_line(n, 300) for n in (raw.get('notes') or [])[:10] if str(n).strip()]
@@ -540,6 +567,8 @@ def validate(raw: Dict[str, Any], description: str = '', registry=None) -> Check
         p['implementation'] = _check_dbquery(impl, errors, warnings)
     elif kind == 'composite':
         p['implementation'] = _check_composite(impl, name, errors, registry)
+    elif kind == 'llm':
+        p['implementation'] = _check_llm(impl, p, errors, warnings, registry)
     else:
         p['implementation'] = _check_openapi(impl, name, errors, warnings, mentioned)
     p['tests'] = _check_tests(raw.get('tests'), kind, errors, warnings)
@@ -733,6 +762,35 @@ def _check_composite(impl, name, errors, registry=None) -> Dict[str, Any]:
             'record_path': str(impl.get('record_path') or '')[:100], 'steps': steps}
 
 
+def _llm_config(p: Dict[str, Any], llm: Dict[str, Any]) -> Dict[str, Any]:
+    from sajha.ai.llm_tools.config import IMPLEMENTATION
+    return {'name': p['name'], 'implementation': IMPLEMENTATION, 'description': p['description'],
+            'version': '1.0.0', 'enabled': True, 'inputSchema': p['input_schema'], 'outputSchema': p['output_schema'],
+            'llm': llm, 'metadata': {'category': p['category'], 'tags': ['llm-tool', 'described']}}
+
+
+def _check_llm(impl, p, errors, warnings, registry=None) -> Dict[str, Any]:
+    """An LLM tool's ``llm`` block, checked by the loader itself (sajha/ai/llm_tools/config.py)."""
+    from sajha.ai.llm_tools.config import LLMConfigError, catalog_problems, parse_llm_block
+    llm = json.loads(json.dumps(impl, default=str)) if isinstance(impl, dict) else {}
+    try:
+        from sajha.core.prompts_registry import PromptsRegistry
+        prompts = PromptsRegistry._instance
+    except Exception:
+        prompts = None
+    try:
+        spec = parse_llm_block(_llm_config(p, llm), prompts)
+    except LLMConfigError as e:
+        errors.extend(f'llm: {m}' for m in e.problems)
+        return llm
+    reg = registry if registry is not None else _registry()
+    if reg is not None:
+        errors.extend(f'llm: {m}' for m in catalog_problems(spec, p['name'], reg))
+    if spec.mode == 'answer' and '*' in spec.allow:
+        warnings.append('llm: tools.allow is "*": the tool may call every tool its caller may; narrow it')
+    return llm
+
+
 def _check_openapi(impl, prefix, errors, warnings, mentioned) -> Dict[str, Any]:
     from urllib.parse import urlsplit
     url = _check_url(impl.get('url'), 'openapi: url', errors)
@@ -839,6 +897,14 @@ def artifacts(p: Dict[str, Any], draft_id: str = '') -> Dict[str, Any]:
                            'language': 'json'}],
                 'config': config, 'class_name': cls, 'module_source': module,
                 'input_schema': gen._build_input_schema(d), 'output_schema': gen._build_output_schema(d)}
+    if kind == 'llm':
+        config = _llm_config(p, copy.deepcopy(p['implementation']))
+        config['version'] = '1.0.0'
+        config['metadata'] = {**config['metadata'], **stamp, 'studio_creator': 'llm'}
+        _with_harness_cases(config, name, p['tests'])
+        return {'files': [{'path': f'config/tools/{name}.json', 'content': json.dumps(config, indent=2),
+                           'language': 'json'}],
+                'config': config, 'input_schema': config['inputSchema'], 'output_schema': config['outputSchema']}
     if kind == 'composite':
         im = p['implementation']
         definition = {'name': name, 'description': p['description'], **im, 'enabled': True}
@@ -1135,7 +1201,7 @@ class _Skip(Exception):
     pass
 
 
-def _run_case(p, art, case, run_live: bool, registry=None) -> Dict[str, Any]:
+def _run_case(p, art, case, run_live: bool, registry=None, user=None) -> Dict[str, Any]:
     kind = p['kind']
     out = {'name': case['name'], 'arguments': case['arguments'], 'live': case['live']}
     if case['live'] and not run_live:
@@ -1163,6 +1229,13 @@ def _run_case(p, art, case, run_live: bool, registry=None) -> Dict[str, Any]:
             ok, err = _outcome(result)
             if isinstance(result, dict) and isinstance(result.get('data'), list):
                 result = {**result, 'data': result['data'][:5]}
+        elif kind == 'llm':
+            from sajha.studio.llm_tool_builder import test_run
+            run = test_run(art['config'], dict(case['arguments']), user, registry)
+            result = run.get('result')
+            info = {k: run.get(k) for k in ('model', 'stopped_by', 'steps', 'duration_ms') if run.get(k) is not None}
+            ok, err = (True, '') if run.get('ok') else (False, str(run.get('error') or (result or {}).get('error')
+                                                                     or run.get('stopped_by') or 'the run failed'))
         elif kind == 'composite':
             from sajha.tools.composite_tool import CompositeTool
             reg = registry if registry is not None else _registry()
@@ -1192,7 +1265,7 @@ def run_tests(draft_id: str, run_live: bool = False, user=None, registry=None) -
         raise DescribeError('fix the errors in the proposal before running its tests')
     p = d['proposal']
     art = artifacts(p, d['id'])
-    results = [_run_case(p, art, c, run_live, registry) for c in p['tests']]
+    results = [_run_case(p, art, c, run_live, registry, user) for c in p['tests']]
     counts = {s: sum(1 for r in results if r['status'] == s) for s in ('passed', 'failed', 'skipped')}
     d['tests_run'] = {'hash': d['hash'], 'at': time.time(), 'live': run_live, 'results': results, 'counts': counts,
                       'harness': _harness_name()}
@@ -1279,6 +1352,12 @@ def deploy(draft_id: str, reviewed_hash: str, approve: bool, accept_failures: bo
     if p['kind'] == 'openapi':
         raise DescribeError('an OpenAPI proposal is deployed from Import an API, where you choose the operations',
                             409, handoff=public(d).get('handoff'))
+    creator = KIND_CREATOR.get(p['kind'], p['kind'])
+    if user is not None and hasattr(user, 'authenticated'):
+        from sajha.auth import can_use_creator
+        if not can_use_creator(user, creator):
+            raise DescribeError(f"deploying a {p['kind']} tool needs the studio:{creator} (or studio:*) permission",
+                                403)
     if reviewed_hash != d['hash']:
         raise DescribeError('the proposal changed since you reviewed it; review the current version and deploy again',
                             409, hash=d['hash'])
@@ -1298,8 +1377,10 @@ def deploy(draft_id: str, reviewed_hash: str, approve: bool, accept_failures: bo
     art = artifacts(p, d['id'])
     if p['kind'] == 'composite':
         result = _deploy_composite(p, art, user)
+    elif p['kind'] == 'llm':
+        result = _deploy_config_only(p, art, user)
     else:
-        result = _deploy_files(p, art)
+        result = _deploy_files(p, art, user)
     harness = _hand_to_harness(p['name'], p['tests'])
     d['deployed'] = {'name': p['name'], 'kind': p['kind'], 'at': time.time(), 'by': getattr(user, 'user_id', ''),
                      'hash': d['hash'], 'files': result.get('files', []), 'harness': harness,
@@ -1311,7 +1392,31 @@ def deploy(draft_id: str, reviewed_hash: str, approve: bool, accept_failures: bo
     return {**public(d), 'message': f"Deployed {p['name']} ({p['kind']}); it is callable now."}
 
 
-def _deploy_files(p: Dict[str, Any], art: Dict[str, Any]) -> Dict[str, Any]:
+def _deploy_config_only(p: Dict[str, Any], art: Dict[str, Any], user=None) -> Dict[str, Any]:
+    """An LLM tool: one config file (the implementation is the shared LLMTool)."""
+    from pathlib import Path
+    from sajha.core.storage import get_storage, write_tool_config
+    from sajha.routes.studio_routes import BASE_DIR, _hot_load, _unload
+    from sajha.studio.ownership import stamp
+    json_file = Path(BASE_DIR) / art['files'][0]['path']
+    if json_file.exists():
+        raise DescribeError(f"files for {p['name']} exist already", 409)
+    config = stamp(copy.deepcopy(art['config']), str(getattr(user, 'user_id', '') or ''), 'llm')
+    write_tool_config(json_file, json.dumps(config, indent=2))
+    loaded, err = _hot_load(p['name'])
+    if not loaded:
+        try:
+            get_storage().delete(f"config/tools/{p['name']}.json")
+        except Exception:
+            pass
+        if json_file.exists():
+            json_file.unlink()
+        _unload(p['name'])
+        raise DescribeError(f'the tool was written but failed to load, so it was removed: {err}', 500)
+    return {'files': [str(json_file)]}
+
+
+def _deploy_files(p: Dict[str, Any], art: Dict[str, Any], user=None) -> Dict[str, Any]:
     from pathlib import Path
     from sajha.core.storage import write_tool_config
     from sajha.routes.studio_routes import BASE_DIR, _hot_load, _unload
@@ -1321,7 +1426,9 @@ def _deploy_files(p: Dict[str, Any], art: Dict[str, Any]) -> Dict[str, Any]:
         raise DescribeError(f"files for {p['name']} exist already", 409)
     module_file.parent.mkdir(parents=True, exist_ok=True)
     module_file.write_text(art['module_source'], encoding='utf-8')          # module first: the watcher loads JSON
-    write_tool_config(json_file, art['files'][1]['content'])
+    from sajha.studio.ownership import stamp
+    config = stamp(json.loads(art['files'][1]['content']), str(getattr(user, 'user_id', '') or ''), p['kind'])
+    write_tool_config(json_file, json.dumps(config, indent=2))
     loaded, err = _hot_load(p['name'])
     if not loaded:
         for f in (module_file, json_file):

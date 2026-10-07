@@ -105,8 +105,9 @@ def error_for(e: Exception, model: str = "") -> APIError:
 # ── settings, identity ────────────────────────────────────────────────
 
 def gateway():
-    from sajha.ai.gateway import get_gateway
-    return get_gateway()
+    """The process-wide LLM factory (sajha.ai.llm), or None before the intelligence layer starts."""
+    from sajha.ai.llm import llm_factory
+    return llm_factory()
 
 
 def settings():
@@ -144,7 +145,7 @@ def authenticate(request: Any, db: Any) -> Optional[Any]:
 
 
 def request_context(auth: Any):
-    from sajha.ai.llm.types import RequestContext
+    from sajha.ai.llm import RequestContext
     return RequestContext(user_id=auth.user_id or "", roles=list(auth.roles or []), is_admin=bool(auth.is_admin),
                           trace_id=uuid.uuid4().hex, can_use_tool=lambda name: bool(auth.has_tool_access(name)))
 
@@ -382,11 +383,11 @@ def prepare_chat(body: Dict[str, Any], auth: Any):
 
 
 def chat_create(req) -> Any:
-    return gateway().chat_completions_create(req)
+    return gateway().model(req.model or "default").chat_completions_create(req)
 
 
 def chat_stream(req) -> Iterator[Any]:
-    return gateway().chat_completions_stream(req)
+    return gateway().model(req.model or "default").chat_completions_stream(req)
 
 
 def tool_request(body: Dict[str, Any], extra: Dict[str, Any], auth: Any):
@@ -430,7 +431,7 @@ def embeddings(body: Any, auth: Any) -> Dict[str, Any]:
     req.sajha = SajhaRequest(context=ctx, trace_id=ctx.trace_id)
     gw = gateway()
     gw.check_budget(ctx)
-    resp = gw.embeddings_create(req)
+    resp = gw.model(req.model or "embedding", kind="embedding").embeddings_create(req)
     out = resp.to_dict()
     if fmt == "base64":
         for d in out.get("data") or []:

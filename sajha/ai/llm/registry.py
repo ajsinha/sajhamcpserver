@@ -35,9 +35,14 @@ _builtins_loaded = False
 
 
 def _validate_provider(cls) -> None:
-    from sajha.ai.llm.provider import LLMProvider
+    import inspect
+    from sajha.ai.llm.base import LLMProvider
     if not isinstance(cls, type) or not issubclass(cls, LLMProvider):
-        raise ConfigurationError(f"{cls!r} is not a subclass of sajha.ai.llm.LLMProvider")
+        raise ConfigurationError(f"{cls!r} is not a subclass of sajha.ai.llm.LLMProvider "
+                                 f"(subclass sajha.ai.llm.spi.ProviderBase)")
+    if inspect.isabstract(cls):
+        missing = sorted(getattr(cls, "__abstractmethods__", ()))
+        raise ConfigurationError(f"{cls.__name__} does not implement the abstract LLMProvider methods {missing}")
     if not getattr(cls, "name", ""):
         raise ConfigurationError(f"{cls.__name__} must declare a class attribute 'name'")
     cm = getattr(cls, "config_model", None)

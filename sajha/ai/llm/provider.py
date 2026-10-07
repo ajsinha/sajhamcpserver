@@ -1,5 +1,5 @@
 """
-SAJHA Intelligence Layer — the provider base class.
+SAJHA Intelligence Layer — the shared provider implementation (ProviderBase).
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 A provider owns credentials, the HTTP clients (sync and async) and the model catalogue, and
@@ -30,10 +30,10 @@ import logging
 import threading
 import time
 import weakref
-from abc import ABC
 from contextlib import asynccontextmanager, contextmanager
 from typing import Any, ClassVar, Dict, List, Optional, Type, Union
 
+from sajha.ai.llm.base import LLMProvider
 from sajha.ai.llm.catalog import CATALOG, DEFAULT_MODELS
 from sajha.ai.llm.errors import ProviderUnavailable, UnsupportedFeature
 from sajha.ai.llm.model import (ChatModel, EmbeddingModel, HealthStatus, ModelCapabilities,
@@ -77,8 +77,10 @@ def apply_override(base: Optional[ModelDescriptor], ov: ModelOverride, default_c
                            deployment=ov.deployment or base.deployment)
 
 
-class LLMProvider(ABC):
-    """A vendor or runtime. Subclass, set ``name`` and ``config_model``, register it."""
+class ProviderBase(LLMProvider):
+    """The shared implementation of the abstract LLMProvider (sajha.ai.llm.base): credentials,
+    HTTP clients, the catalogue, model construction and health. Every provider module subclasses
+    it; set ``name`` and ``config_model``, register it."""
 
     name: ClassVar[str] = ""
     config_model: ClassVar[Type[ProviderConfig]] = ProviderConfig
@@ -115,7 +117,7 @@ class LLMProvider(ABC):
     def from_settings(cls, name: str, config: Optional[Dict[str, Any]] = None, *,
                       db: Optional[Dict[str, Any]] = None, db_models: Optional[List[ModelOverride]] = None,
                       secrets: Optional[SecretStore] = None, environ: Optional[Dict[str, str]] = None,
-                      transport: Any = None) -> "LLMProvider":
+                      transport: Any = None) -> "ProviderBase":
         cfg, sources = resolve_layers(cls.config_model, name, config, db=db, environ=environ)
         return cls(cfg, secrets, instance_name=name, sources=sources, db_models=db_models, transport=transport)
 

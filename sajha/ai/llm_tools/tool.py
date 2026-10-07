@@ -251,8 +251,8 @@ class LLMTool(BaseMCPTool):
         if self.gateway is not None:
             return self.gateway
         try:
-            from sajha.ai.gateway import get_gateway
-            gw = get_gateway()
+            from sajha.ai.llm import llm_factory
+            gw = llm_factory()
         except Exception:
             gw = None
         if gw is None and use_service:
@@ -286,7 +286,7 @@ class LLMTool(BaseMCPTool):
             remember: bool = True, audit: bool = True) -> RunInfo:
         """Run the tool. ``ctx`` (a RequestContext) replaces the caller (evals); ``model`` the tool's
         model; ``remember=False`` keeps no conversation; ``audit=False`` writes no llm_tool_run record."""
-        from sajha.ai.llm.types import RequestContext, Usage
+        from sajha.ai.llm import RequestContext, Usage
         from sajha.core import inner_calls
         from sajha.observability.caller import current
         s = _settings()
@@ -421,8 +421,11 @@ class LLMTool(BaseMCPTool):
             return None, ""
         mem = self._memory()
 
-        def sink(resp):
-            info.usage = info.usage + resp.usage
+        def sink(resp):                       # memory's own model calls (ChatCompletions) count too
+            from sajha.ai.llm import Usage
+            u = resp.usage
+            cost = float(resp.sajha.cost_usd) if resp.sajha else 0.0
+            info.usage = info.usage + Usage(u.prompt_tokens if u else 0, u.completion_tokens if u else 0, 0, cost)
 
         cid = args.get("conversation_id")
         msgs = args.get("messages")
@@ -548,8 +551,8 @@ class LLMTool(BaseMCPTool):
 
     def _chat(self, ctx, model, limits, system: str, user: str, schema: Optional[Dict[str, Any]], info,
               extra: Optional[List[Any]] = None, history: Optional[List[Any]] = None):
-        """One model call through the gateway (policy, budgets, retries, fallback, cache, audit); the
-        call is marked with the tool and mode in ``metadata``. ``history``: earlier turns (Messages)."""
+        """One model call through a GovernedModel (policy, budgets, retries, fallback, cache, audit); the
+        call is marked with the tool and mode in ``metadata``. ``history``: earlier turns (ChatMessages)."""
         from sajha.ai.llm.canonical import ChatMessage, ResponseFormat, SajhaRequest
         gw = self._gateway() if info.sampler is None else None
         msgs = [ChatMessage.system(system)] if system else []
@@ -557,7 +560,7 @@ class LLMTool(BaseMCPTool):
             msgs.append(ChatMessage.user(m.text) if m.role == "user" else ChatMessage.assistant(m.text))
         msgs.append(ChatMessage.user(user))
         msgs.extend(extra or [])
-        fields: Dict[str, Any] = dict(model=model, messages=msgs, max_completion_tokens=limits.max_output_tokens,
+        fields: Dict[str, Any] = dict(messages=msgs, max_completion_tokens=limits.max_output_tokens,
                                       metadata={"sajha_llm_tool": self.name, "sajha_llm_mode": self.spec.mode},
                                       sajha=SajhaRequest(context=ctx, trace_id=ctx.trace_id or ""))
         if self.spec.temperature is not None:
@@ -570,8 +573,8 @@ class LLMTool(BaseMCPTool):
                           max_tokens=limits.max_output_tokens, temperature=self.spec.temperature, schema=schema,
                           tool_name=self.name, ctx=ctx)
         else:
-            comp = gw.chat_completions_create(**fields)
-        from sajha.ai.llm.types import Usage
+            comp = gw.model(model).chat_completions_create(**fields)
+        from sajha.ai.llm import Usage
         u = comp.usage
         cost = float(comp.sajha.cost_usd) if comp.sajha else 0.0
         info.usage = info.usage + Usage(u.prompt_tokens if u else 0, u.completion_tokens if u else 0, 0, cost)

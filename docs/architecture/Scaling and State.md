@@ -104,8 +104,8 @@ Every piece of per-process state found in the code, with its classification:
 | Sign-in IP throttle | `sajha/security.py` (`FailureThrottle`) | Shared | Window `loginfail:<key>`. |
 | Account lockout | `sajha/auth/__init__.py` (`AuthManager.sign_in`) | Already shared (database) | The `failed_attempts` and `locked_until` columns on the user row. |
 | Web sign-in sessions | `sajha/auth/__init__.py`, `sajha/auth/jwt_handler.py` | Stateless (JWT) | The `sajha_token` cookie holds a signed JWT and the user is reloaded from the database on each request. Every worker needs the same JWT secret (§5). |
-| LLM token usage and daily budgets | `sajha/ai/gateway.py` (`TokenTracker`) | Shared | `llm:usage:<user>` and the daily counters `llm:daily:user:*` and `llm:daily:role:*`, which expire after 2 days. With the memory backend each gateway keeps private counters, as before. |
-| LLM response cache, provider health, provider circuit breakers | `sajha/ai/gateway.py` | Local | Caches and health probes. Each worker learning them on its own costs some duplicate calls, not correctness. |
+| LLM token usage and daily budgets | `sajha/ai/llm/governed.py` (`TokenTracker`) | Shared | `llm:usage:<user>` and the daily counters `llm:daily:user:*` and `llm:daily:role:*`, which expire after 2 days. With the memory backend each factory keeps private counters, as before. |
+| LLM response cache, provider health, provider circuit breakers | `sajha/ai/llm/governed.py` | Local | Caches and health probes. Each worker learning them on its own costs some duplicate calls, not correctness. |
 | Async executor queue | `sajha/core/async_executor.py` | Local | The work runs where it was submitted. |
 | Async executor task records | same | Shared | Written through to `async:task:<id>` with a shared backend, so any worker can read, list, cancel (while queued) and retry a job. Delivery headers stay in the submitting process, so a retry on another worker sends no custom headers. A queued or running job of a dead worker is reported failed. |
 | Tool output cache | `sajha/core/cache.py` | Already shared (files) | Files under `data/cache/`, shared by the workers of one host. Each host keeps its own. A miss only costs a call. A per-user tool keys its entries by caller (§4.8). |
@@ -117,7 +117,7 @@ Every piece of per-process state found in the code, with its classification:
 | WebSocket sessions | `sajha/routes/ws_routes.py` | Local | A WebSocket is one connection to one worker. The admin listing shows that worker's connections only. |
 | Tool, prompt, user and API-key configuration | `sajha/tools/tools_registry.py`, `sajha/core/prompts_registry.py`, the `users` / `api_keys` tables | Already shared (files and database) | Each worker loads and hot-reloads the files. The local tool-config poller runs every 5 s, so a tool enabled on one worker reaches the others' registries within about that time. |
 | Federation upstream connections and breakers | `sajha/federation/` | Local | Each worker opens its own connections to upstreams. The upstream list and approvals are in the federation store (storage backend), and an upstream's `max_calls_per_minute` window is in the state store. |
-| Log de-duplication sets, provider instances, glossary cache | `sajha/core/mcp_modern.py`, `sajha/core/mcp_apps.py`, `sajha/ai/providers/__init__.py`, `sajha/web/glossary.py` | Local | Process-local helpers that hold no client-visible state. |
+| Log de-duplication sets, provider instances, glossary cache | `sajha/core/mcp_modern.py`, `sajha/core/mcp_apps.py`, `sajha/ai/llm/legacy.py`, `sajha/web/glossary.py` | Local | Process-local helpers that hold no client-visible state. |
 
 ## 4. Component designs
 

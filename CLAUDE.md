@@ -158,6 +158,13 @@ the disagreement.
   SAJHA never runs DDL on PostgreSQL (an operator runs the files with psql); only SQLite
   creates tables itself. Change a model and both schema files together;
   `tests/test_db_schema.py` enforces it. App code uses SQLAlchemy, not hand-written SQL.
+- LLMs (the LLM package boundary): everything LLM lives in `sajha/ai/llm/` (one module per
+  provider under `providers/`, each implementing the abstract `LLMProvider` / `LLMModel` of
+  `base.py`). Other code uses only `sajha.ai.llm` (plus `canonical`, `errors`, `settings`,
+  `secrets`): `llm_factory().model(alias).chat_completions_create(...)` /
+  `.embeddings_create(...)` with the canonical OpenAI-style types. It never imports a vendor SDK
+  or a private module, constructs a provider or model, or uses the old `ChatRequest`/`Message`
+  types. Extension code uses `sajha.ai.llm.spi`. `tests/test_llm_boundary.py` enforces this.
 - Secrets never go in `config/application.yml`; it is tracked. Use environment
   variables. The OAuth signing key lives in `data/oauth/` (git-ignored).
 - Shared protocol state (MCP sessions, tasks, listen events, OAuth codes and refresh

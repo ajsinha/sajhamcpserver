@@ -419,8 +419,11 @@ class ToolResolver:
         prompt = f"Query: {query}\n\nTool: {tool_name}\nSchema: {json.dumps(schema, indent=2)}\n\nExtracted parameters (JSON only):"
 
         try:
-            resp = self.gateway.complete(prompt, system=system, max_tokens=200, temperature=0.0)
-            text = resp.content.strip()
+            from sajha.ai.llm import ChatMessage
+            resp = self.gateway.model('default').chat_completions_create(
+                messages=[ChatMessage.system(system), ChatMessage.user(prompt)],
+                max_completion_tokens=200, temperature=0.0)
+            text = resp.text.strip()
             if text.startswith('{'):
                 return json.loads(text)
         except Exception as e:

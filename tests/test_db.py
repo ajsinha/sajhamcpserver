@@ -56,7 +56,7 @@ class TestSQLScripts:
             engine, db = _make_db(tmp)
             from sqlalchemy import text
             roles = db.execute(text('SELECT name FROM roles ORDER BY name')).fetchall()
-            assert [r[0] for r in roles] == ['admin', 'developer', 'user', 'viewer']
+            assert [r[0] for r in roles] == ['admin', 'developer', 'llm_author', 'user', 'viewer']
             db.close()
 
     def test_seed_creates_admin_user(self):
@@ -76,7 +76,7 @@ class TestSQLScripts:
             engine, db = _make_db(tmp)
             from sqlalchemy import text
             perms = db.execute(text('SELECT COUNT(*) FROM permissions')).scalar()
-            assert perms == 5
+            assert perms == 7
             db.close()
 
     def test_seed_assigns_admin_role(self):
@@ -99,7 +99,7 @@ class TestSQLScripts:
             from sajha.db import schema
             schema.run_script(engine, schema.schema_file('sqlite'))
             schema.run_script(engine, schema.seed_file('sqlite'))
-            assert db.execute(text('SELECT COUNT(*) FROM roles')).scalar() == 4
+            assert db.execute(text('SELECT COUNT(*) FROM roles')).scalar() == 5
             assert db.execute(text('SELECT COUNT(*) FROM users')).scalar() == 1
             db.close()
 
@@ -194,7 +194,7 @@ class TestDAOs:
             db, eng = self._setup_orm_db(tmp)
             from sajha.db.dao import RoleDAO
             roles = RoleDAO(db).get_all()
-            assert sorted(r.name for r in roles) == ['admin', 'developer', 'user', 'viewer']  # seed.sql
+            assert sorted(r.name for r in roles) == ['admin', 'developer', 'llm_author', 'user', 'viewer']  # seed.sql
             db.close()
             eng._engine = None; eng._SessionLocal = None
 

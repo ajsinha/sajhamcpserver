@@ -1,6 +1,6 @@
 # MCP Studio User Guide
 
-MCP Studio is SAJHA's visual tool designer. Each creator turns a source you already have (a Python function, a REST endpoint, a SQL query, a script, a PowerBI report or dataset, an IBM LiveLink or SharePoint repository, an OLAP dataset) into an MCP tool: a JSON tool config plus, for most creators, a generated Python implementation that the tools registry loads like any built-in tool.
+MCP Studio is SAJHA's visual tool designer. Each creator turns a source you already have (a Python function, a REST endpoint, a SQL query, a script, a PowerBI report or dataset, an IBM LiveLink or SharePoint repository, an OLAP dataset) into an MCP tool: a JSON tool config plus, for most creators, a generated Python implementation that the tools registry loads like any built-in tool. The LLM tool creator writes a tool whose work a language model does, and the planner editor (administrators) edits the planner files those tools run.
 
 This guide covers what every creator has in common. The per-creator guides listed in [Creator guides](#creator-guides) cover only their own forms and options.
 
@@ -22,12 +22,14 @@ All Studio pages are server-rendered under `/studio` (see `sajha/routes/studio_r
 | IBM LiveLink | `/studio/livelink` | LiveLink Document Tool Creator |
 | SharePoint | `/studio/sharepoint` | SharePoint Tool Creator |
 | OLAP dataset | `/studio/olap` | OLAP Dataset Creator |
+| LLM tool | `/studio/llm` | LLM Tool Creator: a tool whose work a language model does ([its guide](MCP%20Studio%20LLM%20Tool%20Creator%20Guide.md)); `?edit=<tool>` opens an existing one |
+| Planner editor | `/studio/planners` | Planner files: findings, graph, dry run, new versions; administrators only ([Planner Reference](../architecture/Planner%20Reference.md#141-the-planner-editor)) |
 | Examples | `/studio/examples` | `@sajhamcptool` decorator reference and starter code for the Python creator |
 
 How to get there in the UI:
 
-- **Top navigation → MCP Studio** (shown to everyone who may use Studio; see [Permissions](#permissions)). It lists Studio home, the Python, REST, Import an API, DB query and script creators, the PowerBI, PowerBI DAX, LiveLink and OLAP creators, and the Composite builder.
-- **Studio sub-navigation**: a row of chips at the top of each Studio page (Home, Python, REST, Import an API, DB Query, Script, PowerBI, DAX, LiveLink, SharePoint, OLAP, Composite).
+- **Top navigation → MCP Studio** (shown to everyone who may use Studio; see [Permissions](#permissions)). It lists Studio home and the creators the caller's permissions open: the Python, REST, Import an API, DB query and script creators, the PowerBI, PowerBI DAX, LiveLink and OLAP creators, the LLM tool creator and (administrators) the planner editor, and the Composite builder.
+- **Studio sub-navigation**: a row of chips at the top of each Studio page (Home, Describe, Python, REST, Import an API, DB Query, Script, PowerBI, DAX, LiveLink, SharePoint, OLAP, LLM tool, Planners, Composite), again only those the caller may use.
 - **Studio home cards**: one card per creator. The SharePoint creator is not in the top navigation menu; use its card, its sub-navigation chip or the direct URL.
 - The **Dashboard** quick actions also link to `/studio`.
 
@@ -46,7 +48,7 @@ Every creator follows the same shape:
 5. **Registration.** The tools registry picks the new config up without a restart (see [Hot reload and registration](#hot-reload-and-registration)). The tool then appears under **Tools** and in MCP `tools/list`.
 6. **Test.** Run the tool from its page under **Tools** (`/tools/<tool_name>/execute`) before pointing an AI client at it.
 
-Deploy refuses a name that is already in use. To change a deployed tool, delete it (the Python creator's **Delete if Exists** button, or `POST /admin/studio/delete`) and deploy again under the same name, or edit the generated files directly.
+Deploy refuses a name that is already in use. To change a deployed tool, delete it (the Python creator's **Delete if Exists** button, or `POST /admin/studio/delete`) and deploy again under the same name, or edit the generated files directly. The LLM tool creator edits in place: it opens an existing LLM tool and saves over its config.
 
 ### Action endpoints: deploy, load and delete
 
@@ -57,12 +59,15 @@ The page buttons post JSON to endpoints under `/admin/studio/` (the `/admin` pre
 | Python code | `analyze`, `deploy`, `validate-name` |
 | REST, DB query, Script, PowerBI, PowerBI DAX, LiveLink, SharePoint | `<creator>/preview`, `<creator>/deploy` (`rest`, `dbquery`, `script`, `powerbi`, `powerbidax`, `livelink`, `sharepoint`) |
 | OLAP dataset | `olap/deploy`, `olap/delete` (body `{"name": ...}`) |
+| LLM tool | `llm/build`, `llm/check`, `llm/match`, `llm/test`, `llm/deploy` (reads under `/api/studio/llm/`) |
+| Planner editor | `planners/check`, `planners/save` (reads under `/api/studio/planners`) |
 | Any tool Studio generated | `delete` (body `{"tool_name": ...}`) |
 
-All of them need a signed-in session or bearer token for a user with Studio access ([Permissions](#permissions)); API keys do not carry it. Each answers `{"success": true, ...}` or `{"success": false, "error": "..."}`.
+All of them need a signed-in session or bearer token for a user with the permission for that creator ([Permissions](#permissions)); API keys do not carry it. Every request body and answer is in the [API Reference](../protocol/API%20Reference.md). Each answers `{"success": true, ...}` or `{"success": false, "error": "..."}`.
 
 - **Deploy** validates the name (3 to 64 characters: a lowercase letter, then lowercase letters, digits or underscores; not already a tool), writes the generated module and, last, the JSON config, then loads the tool into the running registry. The tool is in MCP `tools/list` and callable as soon as the response arrives. If the generated tool fails to load, its files are removed and the load error is returned.
-- **Delete** unregisters the tool and removes the files Studio generated for it: the JSON config, the generated module and, for script tools, the script. It refuses (HTTP 403) any tool Studio did not generate, so shipped tools cannot be deleted from here.
+- **Deploy records who made the tool**: `metadata.created_by` (the user id) and `metadata.studio_creator` in the tool config.
+- **Delete** unregisters the tool and removes the files Studio generated for it: the JSON config, the generated module and, for script tools, the script. It refuses (HTTP 403) any tool Studio did not generate, so shipped tools cannot be deleted from here, and a non-admin's request for a tool someone else made.
 - **OLAP deploy** adds the dataset to `config/olap/datasets.json`, adds any new dimension and measure definitions from the page to `dimensions.json` and `measures.json`, and re-creates the OLAP tools so they see the dataset. **OLAP delete** removes only datasets Studio created, together with the definitions it added for them.
 
 The generator classes in `sajha.studio` (`ToolCodeGenerator`, `RESTToolGenerator`, `DBQueryToolGenerator`, `ScriptToolGenerator`, `PowerBIToolGenerator`, `PowerBIDAXToolGenerator`, `LiveLinkToolGenerator`, and `SharePointToolGenerator` in `sajha.studio.sharepoint_tool_generator`) can also be called from Python; the module docstring in `sajha/studio/__init__.py` has a usage example for each. Files written that way are picked up by the registry's config watcher rather than loaded at once.
@@ -83,6 +88,8 @@ The generator classes in `sajha.studio` (`ToolCodeGenerator`, `RESTToolGenerator
 | SharePoint | `config/tools/<name>.json` | none (points at the built-in `sajha.tools.impl.sharepoint_tool` classes) | none |
 | Import an API | `config/tools/<name>.json`, one per operation | none (every tool uses `sajha.api_import.executor.ImportedAPITool`) | the import record, `config/api_imports/<api_id>.json` |
 | OLAP dataset | none | none | dataset definitions under `config/olap/` |
+| LLM tool | `config/tools/<name>.json` | none (every LLM tool uses `sajha.ai.llm_tools.LLMTool`) | none |
+| Planner editor | none | none | `config/planners/<name>.yaml`, the replaced version kept as `<name>@<version>.yaml` |
 
 Tool configs are written through the storage layer (`write_tool_config` in `sajha/core/storage`). They land at the storage key `config/tools/<name>.json` in whichever backend is configured: local disk, S3, Azure Blob or GCS. Generated `.py` files, and script files, are always written to the local filesystem of the instance that ran the generator, because Python has to import them from the package. In a multi-instance or cloud-storage deployment, every instance therefore needs those generated modules. See the [Storage Guide](../getting-started/Storage%20Guide.md).
 
@@ -138,7 +145,8 @@ walks through the petstore spec.
 "wrap this REST endpoint https://…". The model behind the `toolsmith` alias (the offline
 `mock-toolsmith` out of the box) proposes the kind (Python code, REST, DB query, composite
 of existing tools, or an OpenAPI import), the name, the schemas, the implementation and
-test cases.
+test cases, or an LLM tool (summarise, classify, extract, an assistant over named tools, or
+questions answered from document search).
 
 1. **Describe it**, and optionally pick the kind.
 2. **Read the proposal**: errors block it, warnings (a host your description does not
@@ -148,7 +156,8 @@ test cases.
 4. **Change it** if needed (the code, or the whole proposal as JSON); every change is
    checked again and needs its tests run again.
 5. **Run the tests**: Python cases in the sandbox, REST cases against canned replies, DB
-   queries read-only; live cases only when you tick "include live tests".
+   queries read-only, LLM tools on the mock model; live cases only when you tick "include
+   live tests".
 6. **Approve and deploy**: tick that you reviewed this version; failed or skipped tests
    need a second tick. An OpenAPI proposal goes on to Import an API instead.
 
@@ -165,12 +174,23 @@ How the proposal is checked, the deploy gate and the limits are in
 
 ## Permissions
 
-- **Who can use Studio:** an administrator, or a signed-in user whose role has the `studio` permission (a `permissions` row with resource type `studio` and actions `*` or `use`). The seeded `developer` role has it (`db/scripts/<dialect>/seed.sql`). Every `/studio` page, every `/admin/studio/` action endpoint (including Describe a tool and Import an API) and the `/api/studio/` reads check it (`require_studio` in `sajha/auth/__init__.py`); anyone else, `user` and `viewer` included, gets *Access Forbidden* (403). API keys never have Studio access.
-- The **MCP Studio** menu in the top navigation, and the Studio links on the Dashboard, are shown to the same people.
+Studio access is per creator (`sajha/auth/__init__.py`: `require_creator`, `can_use_creator`). A role permission with resource type `studio` names the creator it opens in its resource name; this guide writes it `studio:<creator>`:
+
+| Permission | Opens |
+|---|---|
+| `studio:*` (resource name `*`) | every creator below. The seeded `developer` role has it, and it is what the single `studio` permission always meant, so existing roles keep their access. |
+| `studio:python`, `studio:rest`, `studio:api_import`, `studio:dbquery`, `studio:script`, `studio:powerbi`, `studio:powerbidax`, `studio:livelink`, `studio:sharepoint`, `studio:olap`, `studio:composite`, `studio:describe`, `studio:llm` | that creator's page, its `/admin/studio/<creator>/…` actions and its `/api/studio/<creator>/…` reads. The seeded `llm_author` role has `studio:llm` only. |
+| none (administrators only) | the planner editor (`/studio/planners`): a planner decides how much every tool that uses it may spend ([LLM Tools](../architecture/LLM%20Tools.md) §9.10). |
+
+Permissions are data (rows in `permissions`, actions `*` or `use`): give a role more by adding rows, no migration. Studio home, the Examples page and `delete` need any Studio permission. Describe a tool needs `studio:describe` to propose and test, and its deploy also needs the permission of the kind deployed (`studio:python`, `studio:rest`, `studio:dbquery`, `studio:composite`, `studio:llm`; an OpenAPI proposal goes to Import an API, `studio:api_import`). Anyone without the permission, `user` and `viewer` included, gets *Access Forbidden* (403); API keys never have Studio access. The **MCP Studio** menu, the Studio sub-navigation and the Dashboard links show only what the caller may use.
+
+**Ownership.** Every Studio deploy records its creator (`metadata.created_by` in the tool config; `created_by` on a composite; `created_by` in an API import record; on an OLAP dataset `created_by_user`). A non-admin may change or delete only what records them; an administrator may change or delete anything Studio made. A tool that records no creator (shipped tools, tools made before creators were recorded) is the administrators'. The rules for everyone:
+
 - **Developers can deploy and delete Studio tools**, including Describe a tool proposals: the deploy gate is the same for everyone (reviewed hash, explicit approval, passing tests or `accept_failures`, and the policy engine's `studio.deploy` decision, so a policy can deny developers or `require_approval` for them). A developer sees and deploys only their own Describe drafts; an administrator sees all of them.
-- **Composite builder:** creating a composite needs Studio access; a developer can change or delete only the composites they created (`created_by`), an administrator any of them.
-- **Admin only:** deploying a Python code or script tool while `sandbox.enforce_for_generated_tools` is `false` (that code would run inside the server, so a developer gets 403), changing the sandbox policy and its `sandbox.max` limits (configuration), and deleting tools Studio did not create (refused for everyone; use Admin > Tools). Federation, data connectors, policies, approvals, audit, users and API keys stay admin only.
+- **Admin only:** the planner editor; deploying a Python code or script tool while `sandbox.enforce_for_generated_tools` is `false` (that code would run inside the server, so a developer gets 403); changing the sandbox policy and its `sandbox.max` limits (configuration); and deleting tools Studio did not create (refused for everyone; use Admin > Tools). Federation, data connectors, policies, approvals, audit, users and API keys stay admin only.
 - Deploying writes to `config/tools/`, `sajha/tools/impl/` and, for scripts, `config/scripts/`. The server process needs write access to those paths, and to the configured storage backend.
+
+The threat model behind these rules is in the [Security Model](../security/Security%20Model.md).
 
 Generated tools are ordinary tools once registered. Who can see and run them is governed by the normal tool permissions and API-key scopes.
 
@@ -191,6 +211,8 @@ Generated tools are ordinary tools once registered. Who can see and run them is 
 | IBM LiveLink | `/studio/livelink` | [LiveLink Tool Creator Guide](MCP%20Studio%20LiveLink%20Tool%20Creator%20Guide.md) |
 | SharePoint | `/studio/sharepoint` | [SharePoint Tool Creator Guide](MCP%20Studio%20SharePoint%20Tool%20Creator%20Guide.md) |
 | OLAP dataset | `/studio/olap` | [OLAP Tool Creator Guide](MCP%20Studio%20OLAP%20Tool%20Creator%20Guide.md) |
+| LLM tool | `/studio/llm` | [LLM Tool Creator Guide](MCP%20Studio%20LLM%20Tool%20Creator%20Guide.md) |
+| Planner editor (administrators) | `/studio/planners` | [Planner Reference](../architecture/Planner%20Reference.md#141-the-planner-editor) |
 
 ---
 

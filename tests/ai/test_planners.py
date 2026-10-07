@@ -283,11 +283,12 @@ def test_router_chooses_by_question_class(toolbox):
 def _client(toolbox, monkeypatch, admin=True):
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-    from sajha.ai import gateway as gwmod, intelligence
+    from sajha.ai import intelligence
+    from sajha.ai.llm import factory as gwmod
     from sajha.auth import AuthContext, require_admin, require_auth
     from sajha.routes.ai_routes import router
     gw = make_gateway()
-    monkeypatch.setattr(gwmod, "_gateway", gw)
+    monkeypatch.setattr(gwmod, "_factory", gw)
     monkeypatch.setattr(intelligence, "_service", service(toolbox, gw))
     app = FastAPI()
     app.include_router(router)

@@ -233,9 +233,9 @@ def _service():
 
 def _models() -> List[str]:
     try:
-        from sajha.ai.gateway import get_gateway
-        gw = get_gateway()
-        out = [f'{m.provider}/{m.id}' for m in gw.list_all_models() if 'embedding' not in (m.tags or [])]
+        from sajha.ai.llm import llm_factory
+        gw = llm_factory()
+        out = [m.qualified_id for m in gw.models() if m.kind != 'embedding']
         return sorted(set(out)) + sorted(a for a in (gw.settings.aliases or {}) if a != 'embedding')
     except Exception:
         return []
@@ -278,7 +278,7 @@ async def admin_evals_page(request: Request, auth: AuthContext = Depends(require
 
 
 def _start_eval(auth: AuthContext, set_name: str, model: str, planner: str) -> str:
-    from sajha.ai.llm.types import RequestContext
+    from sajha.ai.llm import RequestContext
     from sajha.quality import evals as E
     sets = E.load_sets()
     es = sets.get(set_name)

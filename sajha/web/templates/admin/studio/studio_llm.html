@@ -1,0 +1,727 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Studio "LLM tool" creator: a form for the llm block -> a config file in config/tools/.
+Guide: docs/studio/MCP Studio LLM Tool Creator Guide.md; design: docs/architecture/LLM Tools.md
+-->
+{% block title %}LLM tool - MCP Studio - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section { margin-bottom: 18px; overflow: hidden; }
+    .section-header { padding: 12px 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .section-body { padding: 16px 18px; }
+    .creator-header { padding: 22px; margin-bottom: 18px; }
+    .lt-pre { background: var(--sajha-nav-to); color: var(--sajha-on-nav); border-radius: 10px; padding: 12px;
+              font-size: .875rem; max-height: 420px; overflow: auto; white-space: pre; margin: 0; }
+    .lt-code { font-family: var(--font-mono, monospace); font-size: .875rem; }
+    .lt-row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr) minmax(0, 1.6fr) auto auto; gap: 8px;
+              align-items: center; margin-bottom: 8px; }
+    .lt-row .form-check { margin: 0; min-height: 40px; display: flex; align-items: center; gap: 6px; }
+    @media (max-width: 767.98px) { .lt-row { grid-template-columns: 1fr 1fr; } .lt-row .lt-wide { grid-column: 1 / -1; } }
+    .lt-chip { display: inline-block; border: 1px solid var(--sajha-border); border-radius: 999px; padding: 2px 10px;
+               margin: 2px 4px 2px 0; font-size: .875rem; font-family: var(--font-mono, monospace); word-break: break-all; }
+    .lt-chip.deny { border-style: dashed; }
+    .lt-kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; font-size: .95rem; }
+    .lt-kv dt { font-weight: 600; color: var(--t-muted); }
+    .lt-kv dd { margin: 0; word-break: break-word; }
+    .lt-hidden { display: none !important; }
+    #ltMessage:empty { display: none; }
+    .lt-tools-list { max-height: 260px; overflow: auto; }
+    .lt-tools-list td, .lt-tools-list th { vertical-align: middle; font-size: .9rem; }
+    .lt-tools-list .btn { min-height: 40px; }
+</style>
+{% include 'admin/studio/_studio_theme.html' %}
+{% endblock %}
+
+{% block content %}
+{% include "admin/studio/_studio_nav.html" %}
+<div class="container-fluid py-3">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('studio_home') }}">MCP Studio</a></li>
+            <li class="breadcrumb-item active" aria-current="page">LLM tool</li>
+        </ol>
+    </nav>
+
+    <div class="creator-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h1 class="h3"><i class="bi bi-chat-square-text me-2" aria-hidden="true"></i><span id="ltTitle">Create an LLM tool</span></h1>
+                <p class="subtitle mb-0">A tool whose work is done by a language model: choose its mode, model and instructions,
+                    which tools it may call and within which limits. It is checked by the loader's own rules, tried on the mock
+                    model, and saved as a config file like every other tool.</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ guide_url('MCP Studio LLM Tool Creator Guide.md') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-question-circle me-1" aria-hidden="true"></i>Guide</a>
+                <a href="{{ guide_url('LLM Tools.md') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-book me-1" aria-hidden="true"></i>Design</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="ltMessage" class="alert" role="status" aria-live="polite"></div>
+
+    <div class="row">
+        <div class="col-xl-8">
+            <details class="form-section" id="ltExisting">
+                <summary class="section-header"><i class="bi bi-list-ul" aria-hidden="true"></i>LLM tools on this server <span class="badge bg-secondary" id="ltCount"></span></summary>
+                <div class="section-body">
+                    <p class="small text-muted">Open one to change it. You may change the tools you created; an administrator may change any.</p>
+                    <div class="table-responsive lt-tools-list" tabindex="0" role="region" aria-label="LLM tools">
+                        <table class="table table-sm mb-0" data-sajha-table="false">
+                            <caption class="visually-hidden">LLM tools</caption>
+                            <thead><tr><th scope="col">Tool</th><th scope="col">Mode</th><th scope="col">Created by</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+                            <tbody id="ltTools"><tr><td colspan="4" class="text-muted small">Loading…</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </details>
+
+            <form id="ltForm" novalidate onsubmit="return false">
+            <!-- 1. Basics -->
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-card-text" aria-hidden="true"></i>1. The tool</div>
+                <div class="section-body">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" for="ltName">Name</label>
+                            <input id="ltName" class="form-control lt-code" maxlength="64" placeholder="ticket_triage" autocomplete="off"
+                                   pattern="[a-z][a-z0-9_]{2,63}" aria-describedby="ltNameHelp" required>
+                            <div class="form-text" id="ltNameHelp">Lowercase letters, digits and underscores.</div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label class="form-label fw-bold" for="ltVersion">Version</label>
+                            <input id="ltVersion" class="form-control lt-code" value="1.0.0" maxlength="40">
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label class="form-label fw-bold" for="ltCategory">Category</label>
+                            <input id="ltCategory" class="form-control" value="Intelligence" maxlength="40">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold" for="ltDescription">Description</label>
+                            <textarea id="ltDescription" class="form-control" rows="2" maxlength="1000"
+                                      placeholder="Classifies a support message into one queue, with a short reason." required></textarea>
+                            <div class="form-text">Callers and models read this to choose the tool: say what it does and when to use it.</div>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold" for="ltTags">Tags</label>
+                            <input id="ltTags" class="form-control" placeholder="llm-tool, triage">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <div class="form-check"><input class="form-check-input" type="checkbox" id="ltEnabled" checked>
+                                <label class="form-check-label" for="ltEnabled">Enabled</label></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Mode and model -->
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-diagram-2" aria-hidden="true"></i>2. Mode and model</div>
+                <div class="section-body">
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold" for="ltMode">Mode</label>
+                            <select id="ltMode" class="form-select" aria-describedby="ltModeHelp">
+                                <option value="answer">answer: questions, with tools</option>
+                                <option value="grounded">grounded: from document search, cited</option>
+                                <option value="complete">complete: fill a template (summaries, rewrites)</option>
+                                <option value="extract">extract: fields from text</option>
+                                <option value="classify">classify: one label of a list</option>
+                                <option value="judge">judge: score against a rubric</option>
+                                <option value="narrate">narrate: explain a composite or workflow result</option>
+                            </select>
+                            <div class="form-text" id="ltModeHelp">The mode decides the inputs and outputs below.</div>
+                        </div>
+                        <div class="col-md-4 col-7">
+                            <label class="form-label fw-bold" for="ltModel">Model</label>
+                            <input id="ltModel" class="form-control lt-code" list="ltModels" placeholder="{{ llm_options.default_model }}">
+                            <datalist id="ltModels">{% for a in llm_options.aliases %}<option value="{{ a }}">{% endfor %}</datalist>
+                            <div class="form-text">An alias (preferred) or provider/model.</div>
+                        </div>
+                        <div class="col-md-3 col-5">
+                            <label class="form-label fw-bold" for="ltTemperature">Temperature</label>
+                            <input id="ltTemperature" type="number" class="form-control" min="0" max="2" step="0.1" placeholder="model's">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Instructions -->
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-chat-left-text" aria-hidden="true"></i>3. Instructions</div>
+                <div class="section-body">
+                    <fieldset class="mb-2">
+                        <legend class="form-label fw-bold fs-6">Instructions come from</legend>
+                        <div class="d-flex flex-wrap gap-3">
+                            <div class="form-check"><input class="form-check-input" type="radio" name="ltInstr" id="ltInstrSystem" value="system_prompt" checked>
+                                <label class="form-check-label" for="ltInstrSystem">a system prompt written here</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="ltInstr" id="ltInstrPrompt" value="prompt">
+                                <label class="form-check-label" for="ltInstrPrompt">a prompt from the library</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="ltInstr" id="ltInstrNone" value="none">
+                                <label class="form-check-label" for="ltInstrNone">none</label></div>
+                        </div>
+                    </fieldset>
+                    <div id="ltSystemWrap">
+                        <label class="form-label fw-bold" for="ltSystem">System prompt</label>
+                        <textarea id="ltSystem" class="form-control" rows="3" placeholder="You answer questions about markets for analysts. Say when data is missing."></textarea>
+                    </div>
+                    <div id="ltPromptWrap" class="row g-2 lt-hidden">
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold" for="ltPromptName">Prompt</label>
+                            <select id="ltPromptName" class="form-select"><option value="">Choose…</option>
+                                {% for p in llm_options.prompts %}<option value="{{ p }}">{{ p }}</option>{% endfor %}</select>
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label fw-bold" for="ltPromptArgs">Its arguments (JSON)</label>
+                            <textarea id="ltPromptArgs" class="form-control lt-code" rows="2" placeholder='{"topic": "{{ '{{' }}input.topic{{ '}}' }}"}'></textarea>
+                        </div>
+                    </div>
+                    <div id="ltTemplateWrap" class="mt-2 lt-hidden">
+                        <label class="form-label fw-bold" for="ltTemplate">Template (the user message)</label>
+                        <textarea id="ltTemplate" class="form-control lt-code" rows="3" aria-describedby="ltTemplateHelp"
+                                  placeholder="Classify this support message:&#10;&#10;{{ '{{' }}input.message{{ '}}' }}"></textarea>
+                        <div class="form-text" id="ltTemplateHelp">Each <code>{{ '{{' }}input.&lt;field&gt;{{ '}}' }}</code> becomes an input of the tool.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Inputs and mode details -->
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-input-cursor-text" aria-hidden="true"></i>4. Inputs and what the mode needs</div>
+                <div class="section-body">
+                    <p class="small text-muted mb-2" id="ltAutoInputs"></p>
+                    <div class="fw-bold mb-1" id="ltInputsLabel">Other inputs</div>
+                    <div id="ltInputs" role="group" aria-labelledby="ltInputsLabel"></div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="ltAddInput"><i class="bi bi-plus" aria-hidden="true"></i> Add an input</button>
+
+                    <div id="ltClassifyWrap" class="mt-3 lt-hidden">
+                        <label class="form-label fw-bold" for="ltLabels">Labels</label>
+                        <input id="ltLabels" class="form-control lt-code" placeholder="billing, technical, account, other">
+                        <div class="form-text">The output's <code>label</code> is one of these.</div>
+                    </div>
+                    <div id="ltExtractWrap" class="mt-3 lt-hidden">
+                        <div class="fw-bold mb-1" id="ltFieldsLabel">Fields to extract</div>
+                        <div id="ltFields" role="group" aria-labelledby="ltFieldsLabel"></div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="ltAddField"><i class="bi bi-plus" aria-hidden="true"></i> Add a field</button>
+                    </div>
+                    <div id="ltJudgeWrap" class="mt-3 lt-hidden">
+                        <label class="form-label fw-bold" for="ltRubric">Rubric criteria (one per line: name | description | min | max | weight)</label>
+                        <textarea id="ltRubric" class="form-control lt-code" rows="3" placeholder="clarity | Easy to follow | 1 | 5 | 1&#10;accuracy | Facts are right | 1 | 5 | 2"></textarea>
+                        <label class="form-label fw-bold mt-2" for="ltPassScore">Pass score (on the criteria's scale)</label>
+                        <input id="ltPassScore" type="number" class="form-control" step="0.1" style="max-width: 12rem">
+                    </div>
+                    <div id="ltNarrateWrap" class="mt-3 row g-2 lt-hidden">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold" for="ltSourceKind">Source</label>
+                            <select id="ltSourceKind" class="form-select"><option value="composite">a composite</option><option value="workflow">a workflow</option></select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold" for="ltSourceName">Its name</label>
+                            <input id="ltSourceName" class="form-control lt-code">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold" for="ltSourceArgs">Its arguments (JSON, may use {{ '{{' }}input.x{{ '}}' }})</label>
+                            <textarea id="ltSourceArgs" class="form-control lt-code" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div id="ltRagWrap" class="mt-3 row g-2 lt-hidden">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold" for="ltRagSources">Document sources</label>
+                            <input id="ltRagSources" class="form-control lt-code" placeholder="sajha_docs">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold" for="ltRagTopK">Passages (1-20)</label>
+                            <input id="ltRagTopK" type="number" class="form-control" min="1" max="20" placeholder="5">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Tools (answer) -->
+            <div class="form-section lt-answer">
+                <div class="section-header"><i class="bi bi-tools" aria-hidden="true"></i>5. Tools it may call</div>
+                <div class="section-body">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" for="ltAllow">Allow (glob patterns, one per line)</label>
+                            <textarea id="ltAllow" class="form-control lt-code" rows="3" placeholder="calc_*&#10;yahoo_*"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" for="ltDeny">Deny</label>
+                            <textarea id="ltDeny" class="form-control lt-code" rows="3" placeholder="*_delete*"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" for="ltConfirm">Destructive tools</label>
+                            <select id="ltConfirm" class="form-select">
+                                <option value="ask">ask the caller to confirm (confirm: ask)</option>
+                                <option value="refuse">never run them (confirm: refuse)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check"><input class="form-check-input" type="checkbox" id="ltNesting">
+                                <label class="form-check-label" for="ltNesting">May call other LLM tools (nesting.allow)</label></div>
+                        </div>
+                    </div>
+                    <div class="mt-3" aria-live="polite">
+                        <div class="fw-bold">Matching now <span class="text-muted small" id="ltMatchCount"></span></div>
+                        <div id="ltMatch" class="small"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Planner (answer) -->
+            <div class="form-section lt-answer">
+                <div class="section-header"><i class="bi bi-signpost-split" aria-hidden="true"></i>6. Planner</div>
+                <div class="section-body">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" for="ltPlanner">Strategy</label>
+                            <select id="ltPlanner" class="form-select">
+                                <option value="">server default ({{ llm_options.planner_default }})</option>
+                                {% for p in llm_options.planners %}<option value="{{ p.name }}">{{ p.name }}</option>
+                                {% for v in p.versions %}<option value="{{ p.name }}@{{ v }}">{{ p.name }}@{{ v }} (pinned)</option>{% endfor %}{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="fw-bold mb-1" id="ltChoicesLabel">Callers may choose among (planner_choices)</div>
+                            <div id="ltChoices" class="d-flex flex-wrap gap-2" role="group" aria-labelledby="ltChoicesLabel">
+                                {% for p in llm_options.planners %}<div class="form-check"><input class="form-check-input lt-choice" type="checkbox" id="ltChoice_{{ p.name }}" value="{{ p.name }}">
+                                    <label class="form-check-label" for="ltChoice_{{ p.name }}" title="{{ p.use_when }}">{{ p.name }}</label></div>{% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <p class="form-text mb-0">Without choices the tool's owner, not the caller, decides the strategy. Planners are edited in the
+                        <a href="{{ url_for('studio_planners') if is_admin else '#' }}">planner editor</a> (administrators).</p>
+                </div>
+            </div>
+
+            <!-- 7. Limits, memory, sampling, output -->
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-speedometer" aria-hidden="true"></i>7. Limits, memory and output</div>
+                <div class="section-body">
+                    <p class="small text-muted">Limits may ask for less than the server's ceilings (<code>ai.llm_tools.limits.*</code>), never more. Empty means the ceiling.</p>
+                    <div class="row g-2" id="ltLimits">
+                        {% for k in llm_options.limit_keys %}
+                        <div class="col-md-4 col-6">
+                            <label class="form-label fw-bold small" for="ltLimit_{{ k }}">{{ k }}</label>
+                            <input id="ltLimit_{{ k }}" type="number" class="form-control lt-limit" data-key="{{ k }}" min="0"
+                                   step="{{ '0.01' if k == 'max_cost_usd' else ('0.1' if k == 'timeout_s' else '1') }}"
+                                   max="{{ llm_options.ceilings[k] }}" placeholder="≤ {{ llm_options.ceilings[k] }}">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="row g-2 mt-1 lt-memory">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold" for="ltMemory">Memory</label>
+                            <select id="ltMemory" class="form-select">
+                                <option value="none">none</option>
+                                <option value="conversation">conversation (kept by SAJHA)</option>
+                                <option value="client">client (the caller sends the history)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label class="form-label fw-bold" for="ltTtl">Idle expiry (minutes)</label>
+                            <input id="ltTtl" type="number" class="form-control" min="1">
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label class="form-label fw-bold" for="ltTurns">Turns kept</label>
+                            <input id="ltTurns" type="number" class="form-control" min="1">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="form-check"><input class="form-check-input" type="checkbox" id="ltClientHistory">
+                                <label class="form-check-label" for="ltClientHistory">accept client history</label></div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold" for="ltSampling">Sampling (the client's model)</label>
+                            <select id="ltSampling" class="form-select">
+                                <option value="never">never</option><option value="prefer">prefer</option><option value="require">require</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8 d-flex flex-wrap gap-3 align-items-end">
+                            <div class="form-check"><input class="form-check-input" type="checkbox" id="ltCitations" checked>
+                                <label class="form-check-label" for="ltCitations">citations in the result</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" id="ltSteps">
+                                <label class="form-check-label" for="ltSteps">step trace in the result</label></div>
+                            <div class="form-check lt-cache"><input class="form-check-input" type="checkbox" id="ltCache">
+                                <label class="form-check-label" for="ltCache">cache repeated calls</label></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </form>
+
+            <!-- 8. Check -->
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-check2-square" aria-hidden="true"></i>8. Check <span class="badge" id="ltValidBadge"></span></div>
+                <div class="section-body" aria-live="polite">
+                    <div id="ltProblems"></div>
+                    <dl class="lt-kv" id="ltFacts"></dl>
+                    <details class="mt-2">
+                        <summary class="fw-bold">The config file (<code id="ltFile">config/tools/…</code>)</summary>
+                        <pre class="lt-pre mt-2" id="ltConfig" tabindex="0" aria-label="Generated config"></pre>
+                    </details>
+                    <details class="mt-2" id="ltAdvanced">
+                        <summary class="fw-bold">Edit the config JSON directly</summary>
+                        <label class="form-label mt-2" for="ltJson">Config (JSON). Checking it replaces the form's values for the steps below.</label>
+                        <textarea id="ltJson" class="form-control lt-code" rows="12" spellcheck="false"></textarea>
+                        <button type="button" class="btn btn-outline-primary mt-2" id="ltCheckJson"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Check this JSON</button>
+                    </details>
+                </div>
+            </div>
+
+            <!-- 9. Test -->
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-play-circle" aria-hidden="true"></i>9. Try it on the mock model</div>
+                <div class="section-body">
+                    <p class="small text-muted">Runs once against <code>{{ llm_options.dry_run_model }}</code> (<code>ai.planners.dry_run_model</code>): no key, no cost.
+                        Tools it may call are offered; only read-only ones run unless you tick the box. Nothing is remembered.</p>
+                    <label class="form-label fw-bold" for="ltArgs">Arguments (JSON)</label>
+                    <textarea id="ltArgs" class="form-control lt-code" rows="4" spellcheck="false"></textarea>
+                    <div class="form-check mt-2"><input class="form-check-input" type="checkbox" id="ltRunAll">
+                        <label class="form-check-label" for="ltRunAll">Also run allowed tools that are not marked read-only (only those you may run yourself)</label></div>
+                    <button type="button" class="btn btn-primary mt-2" id="ltTest"><i class="bi bi-play me-1" aria-hidden="true"></i>Run</button>
+                    <div id="ltTestResult" class="mt-2" aria-live="polite"></div>
+                </div>
+            </div>
+
+            <!-- 10. Deploy -->
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-rocket-takeoff" aria-hidden="true"></i>10. <span id="ltDeployTitle">Deploy</span></div>
+                <div class="section-body">
+                    <p class="small text-muted mb-2" id="ltDeployHelp">Writes <code>config/tools/&lt;name&gt;.json</code> and loads it: it is callable over MCP at once, under the same access rules, policies and audit as every tool.</p>
+                    <button type="button" class="btn btn-success" id="ltDeploy" disabled><i class="bi bi-rocket-takeoff me-1" aria-hidden="true"></i><span id="ltDeployLabel">Deploy</span></button>
+                    <button type="button" class="btn btn-outline-secondary ms-2" id="ltNew">Start a new tool</button>
+                    <div id="ltDeployResult" class="mt-2" aria-live="polite"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-info-circle" aria-hidden="true"></i>How it works</div>
+                <div class="section-body small">
+                    <p>An LLM tool is an ordinary tool config whose <code>implementation</code> is <code>sajha.ai.llm_tools.LLMTool</code> and
+                        which carries an <code>llm</code> block. This page writes that block; the inputs and outputs each mode needs are generated.</p>
+                    <ul class="ps-3 mb-2">
+                        <li><strong>Runs as the caller</strong>: it may call only tools that both its allow list and the caller permit.</li>
+                        <li><strong>Annotations are derived</strong> from the tools it may call, never trusted from the config.</li>
+                        <li><strong>Limits</strong> are clamped to the server ceilings at every call.</li>
+                        <li>The check uses the loader's own rules, so what passes here loads.</li>
+                    </ul>
+                    <p class="mb-0">Deploying needs the <code>studio:llm</code> permission (or <code>studio:*</code>). You may change or delete only the tools you created; an administrator may change any.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="application/json" id="ltData">{{ {'options': llm_options, 'edit': edit_name, 'is_admin': is_admin}|tojson }}</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    'use strict';
+    const D = JSON.parse(document.getElementById('ltData').textContent);
+    const O = D.options;
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+    const lines = (v) => String(v || '').split(/[\n,]/).map(x => x.trim()).filter(Boolean);
+    let editing = '', last = null, timer = null, matchTimer = null, jsonMode = false;
+
+    function message(text, level) { const m = $('ltMessage'); m.className = 'alert alert-' + (level || 'info'); m.textContent = text || ''; }
+
+    async function call(method, path, body) {
+        const r = await fetch(path, {method, headers: {'Content-Type': 'application/json'}, credentials: 'same-origin',
+                                     body: body ? JSON.stringify(body) : undefined});
+        let data = {};
+        try { data = await r.json(); } catch (e) { data = {success: false, error: 'HTTP ' + r.status}; }
+        if (!r.ok && data.success === undefined) data = {success: false, error: data.detail || data.error || 'HTTP ' + r.status};
+        return data;
+    }
+
+    // ── rows of inputs / extract fields ──
+    function row(container, f, withRequired) {
+        const id = 'r' + Math.random().toString(36).slice(2, 8);
+        const div = document.createElement('div');
+        div.className = 'lt-row';
+        div.innerHTML = '<input class="form-control lt-code" aria-label="Field name" placeholder="name" data-k="name">' +
+            '<select class="form-select" aria-label="Type" data-k="type">' + O.field_types.map(t => '<option>' + t + '</option>').join('') + '</select>' +
+            '<input class="form-control lt-wide" aria-label="Description" placeholder="description" data-k="description">' +
+            '<div class="form-check"><input class="form-check-input" type="checkbox" id="' + id + '" data-k="required"' + (withRequired ? ' checked' : '') + '>' +
+            '<label class="form-check-label small" for="' + id + '">required</label></div>' +
+            '<button type="button" class="btn btn-sm btn-outline-danger" aria-label="Remove this field"><i class="bi bi-x-lg" aria-hidden="true"></i></button>';
+        if (f) {
+            div.querySelector('[data-k=name]').value = f.name || '';
+            div.querySelector('[data-k=type]').value = f.type || 'string';
+            div.querySelector('[data-k=description]').value = f.description || '';
+            div.querySelector('[data-k=required]').checked = !!f.required;
+        }
+        div.querySelector('button').addEventListener('click', () => { div.remove(); changed(); });
+        div.addEventListener('input', changed);
+        container.appendChild(div);
+    }
+    function rows(container) {
+        return Array.from(container.querySelectorAll('.lt-row')).map(r => ({
+            name: r.querySelector('[data-k=name]').value.trim(), type: r.querySelector('[data-k=type]').value,
+            description: r.querySelector('[data-k=description]').value.trim(), required: r.querySelector('[data-k=required]').checked
+        })).filter(x => x.name);
+    }
+
+    function parseJson(id, what) {
+        const v = $(id).value.trim();
+        if (!v) return {};
+        try { const o = JSON.parse(v); if (o && typeof o === 'object' && !Array.isArray(o)) return o; } catch (e) { /* below */ }
+        throw new Error(what + ' must be a JSON object');
+    }
+
+    function form() {
+        const instr = document.querySelector('input[name=ltInstr]:checked').value;
+        const limits = {};
+        document.querySelectorAll('.lt-limit').forEach(i => { if (i.value !== '') limits[i.dataset.key] = Number(i.value); });
+        const rubric = {criteria: $('ltRubric').value.split('\n').map(l => l.split('|').map(x => x.trim())).filter(p => p[0])
+            .map(p => ({name: p[0], description: p[1] || '', min: p[2] || undefined, max: p[3] || undefined, weight: p[4] || undefined})),
+            pass_score: $('ltPassScore').value};
+        return {
+            name: $('ltName').value.trim().toLowerCase(), description: $('ltDescription').value.trim(), version: $('ltVersion').value.trim() || '1.0.0',
+            category: $('ltCategory').value.trim(), tags: lines($('ltTags').value), enabled: $('ltEnabled').checked,
+            mode: $('ltMode').value, model: $('ltModel').value.trim(), temperature: $('ltTemperature').value,
+            instructions: instr, system_prompt: $('ltSystem').value, prompt_name: $('ltPromptName').value,
+            prompt_arguments: parseJson('ltPromptArgs', 'The prompt arguments'), template: $('ltTemplate').value,
+            inputs: rows($('ltInputs')), labels: lines($('ltLabels').value), fields: rows($('ltFields')), rubric,
+            source: {[$('ltSourceKind').value]: $('ltSourceName').value.trim(), arguments: parseJson('ltSourceArgs', 'The source arguments')},
+            rag_sources: lines($('ltRagSources').value), rag_top_k: $('ltRagTopK').value,
+            tools_allow: lines($('ltAllow').value), tools_deny: lines($('ltDeny').value), confirm: $('ltConfirm').value,
+            nesting_allow: $('ltNesting').checked, planner: $('ltPlanner').value,
+            planner_choices: Array.from(document.querySelectorAll('.lt-choice:checked')).map(c => c.value),
+            limits, memory: {mode: $('ltMemory').value, ttl_minutes: $('ltTtl').value, max_turns: $('ltTurns').value,
+                             accept_client_history: $('ltClientHistory').checked},
+            sampling: $('ltSampling').value, output: {citations: $('ltCitations').checked, steps: $('ltSteps').checked},
+            cache: $('ltCache').checked
+        };
+    }
+
+    function applies(key) { const m = O.mode_keys[key]; return !m || m.indexOf($('ltMode').value) >= 0; }
+
+    function modeView() {
+        const mode = $('ltMode').value;
+        const show = (id, on) => $(id).classList.toggle('lt-hidden', !on);
+        show('ltTemplateWrap', applies('template'));
+        show('ltClassifyWrap', mode === 'classify');
+        show('ltExtractWrap', mode === 'extract');
+        show('ltJudgeWrap', mode === 'judge');
+        show('ltNarrateWrap', mode === 'narrate');
+        show('ltRagWrap', mode === 'grounded');
+        document.querySelectorAll('.lt-answer').forEach(e => e.classList.toggle('lt-hidden', mode !== 'answer'));
+        document.querySelectorAll('.lt-memory').forEach(e => e.classList.toggle('lt-hidden', !(mode === 'answer' || mode === 'grounded')));
+        document.querySelectorAll('.lt-cache').forEach(e => e.classList.toggle('lt-hidden', !applies('cache')));
+        $('ltAutoInputs').textContent = (mode === 'answer' || mode === 'grounded')
+            ? 'Generated: question (and conversation_id, messages or confirm when memory or tools need them).'
+            : 'Generated: one string input for each {{ '{{' }}input.x{{ '}}' }} in the template.';
+        const instr = document.querySelector('input[name=ltInstr]:checked').value;
+        show('ltSystemWrap', instr === 'system_prompt');
+        show('ltPromptWrap', instr === 'prompt');
+    }
+
+    function changed() {
+        jsonMode = false;
+        modeView();
+        clearTimeout(timer);
+        timer = setTimeout(build, 350);
+        if ($('ltMode').value === 'answer') { clearTimeout(matchTimer); matchTimer = setTimeout(match, 300); }
+    }
+
+    async function build() {
+        let f;
+        try { f = form(); } catch (e) { message(e.message, 'warning'); return; }
+        const data = await call('POST', '/admin/studio/llm/build', {form: f, edit: !!editing});
+        if (!data.success) { message(data.error || 'Could not build the config', 'danger'); return; }
+        message('');
+        show(data.config, data.check);
+    }
+
+    function show(config, check) {
+        last = config;
+        $('ltConfig').textContent = JSON.stringify(config, null, 2);
+        if (!jsonMode) $('ltJson').value = JSON.stringify(config, null, 2);
+        $('ltFile').textContent = 'config/tools/' + (config.name || '<name>') + '.json';
+        const errs = check.errors || [], warns = check.warnings || [];
+        $('ltProblems').innerHTML = errs.map(e => '<div class="alert alert-danger py-1 small mb-2">' + esc(e) + '</div>').join('') +
+            warns.map(w => '<div class="alert alert-warning py-1 small mb-2">' + esc(w) + '</div>').join('') +
+            (check.lint || []).filter(l => l.level !== 'error').map(l => '<div class="alert alert-warning py-1 small mb-2">' + esc(l.rule) + ': ' + esc(l.message) + '</div>').join('');
+        const b = $('ltValidBadge');
+        b.className = 'badge ' + (check.valid ? 'bg-success' : 'bg-danger');
+        b.textContent = check.valid ? 'loads' : errs.length + ' problem' + (errs.length === 1 ? '' : 's');
+        const facts = [];
+        if (check.limits) facts.push(['Effective limits', Object.entries(check.limits.effective).map(([k, v]) => k + ' ' + v).join(' · ')]);
+        if (check.annotations) facts.push(['Derived annotations', Object.entries(check.annotations).map(([k, v]) => k + ': ' + v).join(' · ')]);
+        const ins = Object.keys((config.inputSchema || {}).properties || {}), outs = Object.keys((config.outputSchema || {}).properties || {});
+        facts.push(['Inputs', ins.map(esc).join(', ') || '—'], ['Outputs', outs.map(esc).join(', ') || '—']);
+        $('ltFacts').innerHTML = facts.map(([k, v]) => '<dt>' + k + '</dt><dd>' + v + '</dd>').join('');
+        if (check.matching) renderMatch(check.matching);
+        $('ltDeploy').disabled = !check.valid;
+        if (!$('ltArgs').dataset.touched) $('ltArgs').value = JSON.stringify(sampleArgs(config), null, 2);
+    }
+
+    function sampleArgs(config) {
+        const s = config.inputSchema || {}, out = {};
+        (s.required || []).forEach(k => {
+            const t = ((s.properties || {})[k] || {}).type;
+            out[k] = k === 'question' ? 'What is the percentage change from 80 to 100?' :
+                t === 'number' || t === 'integer' ? 1 : t === 'boolean' ? true : t === 'array' ? [] : t === 'object' ? {} : 'Sample ' + k.replace(/_/g, ' ') + '.';
+        });
+        return out;
+    }
+
+    function renderMatch(m) {
+        $('ltMatchCount').textContent = '(' + m.count + ' of ' + m.catalog + ' tools)';
+        const pats = (m.patterns || []).map(p => '<div><span class="lt-chip' + (p.kind === 'deny' ? ' deny' : '') + '">' + (p.kind === 'deny' ? '− ' : '+ ') + esc(p.pattern) + '</span> ' +
+            (p.matches ? p.matches + ' tool' + (p.matches === 1 ? '' : 's') + (p.sample.length ? ': ' + p.sample.map(esc).join(', ') + (p.matches > p.sample.length ? '…' : '') : '')
+                       : '<span class="text-danger">matches no tool</span>') + '</div>').join('');
+        const allowed = m.allowed.length ? '<div class="mt-1">' + m.allowed.slice(0, 60).map(n => '<span class="lt-chip">' + esc(n) + '</span>').join('') +
+            (m.allowed.length > 60 ? ' …' : '') + '</div>' : '<div class="text-muted">No tool: the model may call none.</div>';
+        const ex = (m.excluded || []).length ? '<details class="mt-1"><summary>Matched but left out (' + m.excluded.length + ')</summary>' +
+            m.excluded.map(e => '<div><code>' + esc(e.name) + '</code>: ' + esc(e.why) + '</div>').join('') + '</details>' : '';
+        $('ltMatch').innerHTML = pats + allowed + ex;
+    }
+
+    async function match() {
+        const data = await call('POST', '/admin/studio/llm/match', {allow: lines($('ltAllow').value), deny: lines($('ltDeny').value),
+            name: $('ltName').value.trim(), nesting_allow: $('ltNesting').checked, confirm: $('ltConfirm').value});
+        if (data.success) renderMatch(data.matching);
+    }
+
+    function fill(f) {
+        const set = (id, v) => { $(id).value = v == null ? '' : v; };
+        set('ltName', f.name); set('ltDescription', f.description); set('ltVersion', f.version); set('ltCategory', f.category);
+        set('ltTags', (f.tags || []).join(', ')); $('ltEnabled').checked = f.enabled !== false;
+        set('ltMode', f.mode); set('ltModel', f.model); set('ltTemperature', f.temperature);
+        const instr = f.instructions || 'system_prompt';
+        document.querySelectorAll('input[name=ltInstr]').forEach(r => { r.checked = r.value === instr; });
+        set('ltSystem', f.system_prompt); set('ltPromptName', f.prompt_name);
+        set('ltPromptArgs', f.prompt_arguments && Object.keys(f.prompt_arguments).length ? JSON.stringify(f.prompt_arguments) : '');
+        set('ltTemplate', f.template);
+        $('ltInputs').innerHTML = ''; (f.inputs || []).forEach(x => row($('ltInputs'), x));
+        $('ltFields').innerHTML = ''; (f.fields || []).forEach(x => row($('ltFields'), x));
+        set('ltLabels', (f.labels || []).join(', '));
+        const r = f.rubric || {};
+        set('ltRubric', (r.criteria || []).map(c => [c.name, c.description || '', c.min || '', c.max || '', c.weight || ''].join(' | ')).join('\n'));
+        set('ltPassScore', r.pass_score);
+        const src = f.source || {};
+        set('ltSourceKind', src.workflow ? 'workflow' : 'composite'); set('ltSourceName', src.workflow || src.composite || '');
+        set('ltSourceArgs', src.arguments ? JSON.stringify(src.arguments) : '');
+        set('ltRagSources', (f.rag_sources || []).join(', ')); set('ltRagTopK', f.rag_top_k);
+        set('ltAllow', (f.tools_allow || []).join('\n')); set('ltDeny', (f.tools_deny || []).join('\n'));
+        set('ltConfirm', f.confirm || 'ask'); $('ltNesting').checked = !!f.nesting_allow;
+        set('ltPlanner', f.planner || '');
+        document.querySelectorAll('.lt-choice').forEach(c => { c.checked = (f.planner_choices || []).indexOf(c.value) >= 0; });
+        document.querySelectorAll('.lt-limit').forEach(i => { i.value = (f.limits || {})[i.dataset.key] == null ? '' : f.limits[i.dataset.key]; });
+        const mem = f.memory || {};
+        set('ltMemory', mem.mode || 'none'); set('ltTtl', mem.ttl_minutes); set('ltTurns', mem.max_turns); $('ltClientHistory').checked = !!mem.accept_client_history;
+        set('ltSampling', f.sampling || 'never');
+        $('ltCitations').checked = (f.output || {}).citations !== false; $('ltSteps').checked = !!(f.output || {}).steps;
+        $('ltCache').checked = !!f.cache;
+        $('ltArgs').dataset.touched = '';
+        changed();
+    }
+
+    function setEditing(name, editable) {
+        editing = name || '';
+        $('ltName').readOnly = !!editing;
+        $('ltTitle').textContent = editing ? 'Change ' + editing : 'Create an LLM tool';
+        $('ltDeployTitle').textContent = editing ? 'Save the changes' : 'Deploy';
+        $('ltDeployLabel').textContent = editing ? 'Save changes' : 'Deploy';
+        $('ltDeploy').dataset.locked = editing && !editable ? '1' : '';
+    }
+
+    async function openTool(name) {
+        const data = await call('GET', '/api/studio/llm/tools/' + encodeURIComponent(name));
+        if (!data.success) { message(data.error || 'Could not open ' + name, 'danger'); return; }
+        setEditing(name, data.editable);
+        if (data.form.planner_object) message(name + ' uses an inline planner or overlay: edit it in the config JSON below.', 'warning');
+        else message(data.editable ? 'Editing ' + name + '. Saving replaces its config file.' : name + ' was created by someone else: you can read it but not save it.',
+                     data.editable ? 'info' : 'warning');
+        fill(data.form);
+        if (data.form.planner_object) { jsonMode = true; $('ltJson').value = JSON.stringify(data.config, null, 2); $('ltAdvanced').open = true; }
+        window.scrollTo({top: 0, behavior: 'auto'});
+    }
+
+    async function loadTools() {
+        const data = await call('GET', '/api/studio/llm/tools');
+        const tools = (data && data.tools) || [];
+        $('ltCount').textContent = tools.length;
+        $('ltTools').innerHTML = tools.map(t => '<tr><td><code>' + esc(t.name) + '</code>' + (t.error ? ' <span class="badge bg-danger">not loaded</span>' : '') +
+            (t.enabled === false ? ' <span class="badge bg-secondary">disabled</span>' : '') + '</td><td>' + esc(t.mode) + '</td><td>' + esc(t.created_by || '—') + '</td>' +
+            '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary lt-open" data-name="' + esc(t.name) + '">' +
+            (t.editable ? 'Edit' : 'View') + '<span class="visually-hidden"> ' + esc(t.name) + '</span></button></td></tr>').join('') ||
+            '<tr><td colspan="4" class="text-muted small">No LLM tools yet.</td></tr>';
+        $('ltTools').querySelectorAll('.lt-open').forEach(b => b.addEventListener('click', () => openTool(b.dataset.name)));
+    }
+
+    $('ltCheckJson').addEventListener('click', async () => {
+        let cfg;
+        try { cfg = JSON.parse($('ltJson').value); } catch (e) { message('The config is not valid JSON: ' + e.message, 'danger'); return; }
+        jsonMode = true;
+        const data = await call('POST', '/admin/studio/llm/check', {config: cfg, edit: !!editing});
+        if (!data.success) { message(data.error || 'Could not check', 'danger'); return; }
+        message('Checked the JSON. Deploy and Run now use it; change the form to go back to the form.', 'info');
+        show(cfg, data.check);
+    });
+
+    function body() { return jsonMode ? {config: JSON.parse($('ltJson').value)} : {form: form()}; }
+
+    $('ltArgs').addEventListener('input', () => { $('ltArgs').dataset.touched = '1'; });
+    $('ltTest').addEventListener('click', async () => {
+        let args, b;
+        try { args = JSON.parse($('ltArgs').value || '{}'); b = body(); } catch (e) { message(e.message, 'danger'); return; }
+        $('ltTest').disabled = true;
+        $('ltTestResult').innerHTML = '<span class="text-muted small">Running…</span>';
+        const data = await call('POST', '/admin/studio/llm/test', {...b, arguments: args, run_all: $('ltRunAll').checked});
+        $('ltTest').disabled = false;
+        if (!data.success) { $('ltTestResult').innerHTML = '<div class="alert alert-danger py-2 small">' + esc(data.error) + '</div>'; return; }
+        const r = data.run;
+        $('ltTestResult').innerHTML = '<div class="alert ' + (r.ok ? 'alert-success' : 'alert-warning') + ' py-2 small mb-2">' +
+            (r.ok ? 'Answered' : 'Ended') + ' (stopped_by <code>' + esc(r.stopped_by || r.error || '') + '</code>) in ' + esc(r.duration_ms) + ' ms on <code>' + esc(r.model) + '</code>' +
+            (r.planner ? ', planner <code>' + esc(r.planner) + '</code>' + (r.planner_path && r.planner_path.length ? ': ' + r.planner_path.map(esc).join(' → ') : '') : '') +
+            (r.steps && r.steps.length ? '; calls: ' + r.steps.map(x => esc(x.name) + (x.ok ? '' : ' (failed)')).join(', ') : '') + '</div>' +
+            (r.result ? '<pre class="lt-pre" tabindex="0" aria-label="Result">' + esc(JSON.stringify(r.result, null, 2)) + '</pre>' : '') +
+            (r.error ? '<div class="small text-danger">' + esc(r.error) + '</div>' : '');
+    });
+
+    $('ltDeploy').addEventListener('click', async () => {
+        if ($('ltDeploy').dataset.locked) { message('Only its creator or an administrator may save this tool.', 'warning'); return; }
+        let b;
+        try { b = body(); } catch (e) { message(e.message, 'danger'); return; }
+        const name = jsonMode ? (b.config.name || '') : b.form.name;
+        if (!confirm((editing ? 'Save the changes to ' : 'Deploy ') + name + ' now? It becomes callable at once.')) return;
+        const data = await call('POST', '/admin/studio/llm/deploy', {...b, edit: !!editing});
+        if (!data.success) {
+            $('ltDeployResult').innerHTML = '<div class="alert alert-danger py-2">' + esc(data.error) + '</div>';
+            if (data.check) show(jsonMode ? b.config : last, data.check);
+            return;
+        }
+        $('ltDeployResult').innerHTML = '<div class="alert alert-success py-2">' + esc(data.message) + ' <a href="/tools/' + encodeURIComponent(data.name) + '/execute">Run it</a>.</div>';
+        message(data.message, 'success');
+        setEditing(data.name, true);
+        loadTools();
+    });
+
+    $('ltNew').addEventListener('click', () => {
+        setEditing('', true);
+        fill({mode: 'answer', version: '1.0.0', category: 'Intelligence', tags: ['llm-tool'], enabled: true});
+        $('ltDeployResult').innerHTML = ''; message('');
+    });
+    $('ltAddInput').addEventListener('click', () => { row($('ltInputs'), null, true); });
+    $('ltAddField').addEventListener('click', () => { row($('ltFields'), null, false); });
+    $('ltForm').addEventListener('input', changed);
+    $('ltForm').addEventListener('change', changed);
+
+    modeView();
+    loadTools();
+    if (D.edit) openTool(D.edit); else build();
+})();
+</script>
+{% endblock %}

@@ -35,11 +35,11 @@ from __future__ import annotations
 
 import json
 import time
-from abc import ABC
 from dataclasses import dataclass, field, replace
 from typing import (TYPE_CHECKING, Any, AsyncIterator, Dict, FrozenSet, Iterator, List, Optional, Tuple,
                     Union)
 
+from sajha.ai.llm.base import LLMModel
 from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionChunk, ChatCompletionRequest, ChatMessage,
                                     Choice, CompletionUsage, EmbeddingData, EmbeddingsRequest, EmbeddingsResponse,
                                     EmbeddingsUsage, ResponseFormat, ResponseSajha, check_request,
@@ -48,7 +48,7 @@ from sajha.ai.llm.errors import InvalidRequest, ModelFailed, UnsupportedFeature
 from sajha.ai.llm.types import ChatRequest, ChatResponse, Done, StreamEvent, Usage
 
 if TYPE_CHECKING:   # pragma: no cover
-    from sajha.ai.llm.provider import LLMProvider
+    from sajha.ai.llm.provider import ProviderBase as LLMProvider
 
 CAPABILITY_FLAGS = ("chat", "tools", "structured_output", "vision", "streaming", "embedding")
 
@@ -236,8 +236,8 @@ def _schema_error(text: str, schema: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-class ChatModel(ABC):
-    """One chat model of one provider."""
+class ChatModel(LLMModel):
+    """One chat model of one provider (the shared implementation of LLMModel for chat)."""
 
     id: str
     provider: "LLMProvider"
@@ -313,6 +313,12 @@ class ChatModel(ABC):
                 yield out
         for out in norm.close():
             yield out
+
+    def embeddings_create(self, request: Any = None, /, **fields) -> EmbeddingsResponse:
+        raise self._unsupported("embeddings (it is a chat model)")
+
+    async def aembeddings_create(self, request: Any = None, /, **fields) -> EmbeddingsResponse:
+        raise self._unsupported("embeddings (it is a chat model)")
 
     # ── hooks a provider adapter implements ───────────────────────
     def _create(self, request: ChatCompletionRequest) -> ChatCompletion:
@@ -621,8 +627,8 @@ def _merge_samples(comps: List[ChatCompletion]) -> ChatCompletion:
     return out
 
 
-class EmbeddingModel(ABC):
-    """One embedding model. Implement ``_embed(texts, purpose, dimensions)`` (or the original
+class EmbeddingModel(LLMModel):
+    """One embedding model (the shared implementation of LLMModel for embeddings). Implement ``_embed(texts, purpose, dimensions)`` (or the original
     ``embed(texts)``); callers use ``embeddings_create``."""
 
     id: str
@@ -644,6 +650,24 @@ class EmbeddingModel(ABC):
 
     def info(self) -> ModelInfo:
         return ModelInfo(self.id, self.provider.name, "embedding", self.capabilities)
+
+    # ── chat is refused: this is an embedding model ──────────────
+    def _no_chat(self) -> UnsupportedFeature:
+        return UnsupportedFeature(f"{self.qualified_id} is an embedding model; chat is not supported",
+                                  provider=self.provider.name, model=self.id)
+
+    def chat_completions_create(self, request: Any = None, /, **fields) -> ChatCompletion:
+        raise self._no_chat()
+
+    async def achat_completions_create(self, request: Any = None, /, **fields) -> ChatCompletion:
+        raise self._no_chat()
+
+    def chat_completions_stream(self, request: Any = None, /, **fields) -> Iterator[ChatCompletionChunk]:
+        raise self._no_chat()
+
+    async def achat_completions_stream(self, request: Any = None, /, **fields) -> AsyncIterator[ChatCompletionChunk]:
+        raise self._no_chat()
+        yield  # pragma: no cover  (an async generator, like the chat twin)
 
     def embed(self, texts: List[str]) -> List[List[float]]:
         """The original interface: vectors for ``texts`` (document purpose, configured size)."""

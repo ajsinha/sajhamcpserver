@@ -33,13 +33,12 @@ from typing import Any, ClassVar, Dict, List, Literal, Optional
 
 import httpx
 
-from sajha.ai.llm import (AuthenticationFailed, ContentFiltered, ContextTooLong, EmbeddingModel, HealthStatus,
-                          LLMError, LLMProvider, ModelCapabilities, ModelDescriptor, ProviderConfig,
-                          ProviderUnavailable, RateLimited, register_provider)
-from sajha.ai.llm.adapter import HTTPChatModel, StreamTranslator, WireCall, system_text
+from sajha.ai.llm import AuthenticationFailed, ContentFiltered, ContextTooLong, LLMError, ProviderUnavailable, RateLimited
+from sajha.ai.llm.spi import (EmbeddingModel, HealthStatus, HTTPChatModel, ModelCapabilities, ModelDescriptor,
+                              ProviderBase, ProviderConfig, StreamTranslator, WireCall, get_json, post_json,
+                              register_provider, safe_json_loads, system_text)
 from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionChunk, ChatCompletionRequest, ChatMessage, Choice,
                                     CompletionUsage, ToolCall)
-from sajha.ai.llm.http import get_json, post_json, safe_json_loads
 
 
 # ── 1. Settings: one pydantic field per setting ─────────────────────────────
@@ -204,7 +203,7 @@ KNOWN_MODELS = [
 
 
 @register_provider
-class AcmeProvider(LLMProvider):
+class AcmeProvider(ProviderBase):
     name = "acme"                                          # the registry key and the config section
     config_model = AcmeConfig
     requires_key = True                                    # enabled: auto -> on when a key resolves
@@ -231,7 +230,7 @@ class AcmeProvider(LLMProvider):
                            retry_after=float(retry_in) if retry_in else None)
 
     def live_models(self) -> List[ModelDescriptor]:
-        """Merged by LLMProvider.list_models() under config `models:` overrides."""
+        """Merged by ProviderBase.list_models() under config `models:` overrides."""
         known = {d.id: d for d in KNOWN_MODELS}
         if not self.config.live_models:
             return list(known.values())
@@ -254,7 +253,7 @@ class AcmeProvider(LLMProvider):
         return list(out.values())
 
     def health(self) -> HealthStatus:
-        """The gateway caches this for ai.gateway.health_ttl_s; keep it cheap and bounded."""
+        """The factory caches this for ai.gateway.health_ttl_s; keep it cheap and bounded."""
         base = super().health()                            # disabled, not configured, no key
         if not base.ok:
             return base

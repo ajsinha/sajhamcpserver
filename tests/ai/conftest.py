@@ -62,7 +62,7 @@ def toolbox():
 
 def make_gateway(raw=None, environ=None, **kw):
     """A gateway built only from the given ai: dict (no YAML file, no DB, no process env)."""
-    from sajha.ai.gateway import build_gateway
+    from sajha.ai.llm import build_llm_factory as build_gateway
     raw = dict(raw or {})
     raw.setdefault("gateway", {"load_entry_points": False, "use_db_providers": False})
     providers = raw.setdefault("providers", [])

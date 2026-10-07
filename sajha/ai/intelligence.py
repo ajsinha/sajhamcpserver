@@ -55,7 +55,7 @@ from sajha.accounts.errors import ConnectedAccountRequired
 from sajha.ai.llm.errors import BudgetExceeded, LLMError, PolicyDenied
 from sajha.ai.llm.canonical import ChatCompletion, ChatCompletionRequest, ChatMessage, ToolCall, ToolDefinition
 from sajha.ai.llm.settings import AskSettings
-from sajha.ai.llm.types import RequestContext, Usage
+from sajha.ai.llm import RequestContext, Usage
 
 logger = logging.getLogger(__name__)
 
@@ -201,19 +201,11 @@ def _qualified(resp: ChatCompletion) -> str:
     return f"{sj.provider if sj is not None else ''}/{resp.model}"
 
 
-def _legacy_sink(count: Callable[[Any], str]) -> Callable[[Any], None]:
-    """Conversation memory reports its own model calls as pre-canonical responses (usage, provider, model)."""
+def _memory_sink(count: Callable[[Any], str]) -> Callable[[Any], None]:
+    """Conversation memory reports its own model calls (ChatCompletions) for the turn's usage."""
     def sink(resp) -> None:
         if isinstance(resp, ChatCompletion):
             count(resp)
-            return
-        from sajha.ai.llm.canonical import ResponseSajha
-        u = resp.usage
-        comp = ChatCompletion(model=resp.model, sajha=ResponseSajha(provider=resp.provider, cost_usd=u.cost_usd,
-                                                                    qualified_model=f"{resp.provider}/{resp.model}"))
-        from sajha.ai.llm.canonical import CompletionUsage
-        comp.usage = CompletionUsage.of(u.input_tokens, u.output_tokens)
-        count(comp)
     return sink
 
 
@@ -223,9 +215,8 @@ def _history_messages(history: List[Any]) -> List[ChatMessage]:
     for m in history or []:
         if isinstance(m, ChatMessage):
             out.append(m)
-            continue
-        from sajha.ai.llm.convert import message_to_canonical
-        out.extend(message_to_canonical(m))
+        elif getattr(m, "role", "") in ("user", "assistant"):
+            out.append(ChatMessage.user(m.text) if m.role == "user" else ChatMessage.assistant(m.text))
     return out
 
 
@@ -407,7 +398,7 @@ class IntelligenceService:
         if mc is None and conversation_id and ctx.user_id:
             try:
                 if self.memory.enabled:
-                    mc = self.memory.context(conversation_id, question, ctx, usage_sink=_legacy_sink(count))
+                    mc = self.memory.context(conversation_id, question, ctx, usage_sink=_memory_sink(count))
             except Exception as e:
                 from sajha.ai.memory import ConversationNotFound
                 if isinstance(e, ConversationNotFound):

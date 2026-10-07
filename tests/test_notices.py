@@ -248,12 +248,14 @@ def test_llm_source(svc, monkeypatch):
             raise NoModelAvailable("no model available for 'reasoning'")
         return None
 
+    providers = {'good': SimpleNamespace(active=True), 'bad': SimpleNamespace(active=True),
+                 'off': SimpleNamespace(active=False)}
     gw = SimpleNamespace(
-        providers={'good': SimpleNamespace(active=True), 'bad': SimpleNamespace(active=True),
-                   'off': SimpleNamespace(active=False)},
+        provider_names=lambda: list(providers), provider=providers.get,
         provider_health=lambda n: health[n], settings=SimpleNamespace(aliases={'default': [], 'reasoning': []}),
-        resolve=resolve, embedding_model=lambda a: None, _breakers={})
-    monkeypatch.setattr('sajha.ai.gateway.get_gateway', lambda: gw)
+        resolve=resolve, breaker_states=lambda: {})
+    gw.model = lambda alias: SimpleNamespace(info=lambda: gw.resolve(alias))
+    monkeypatch.setattr('sajha.ai.llm.llm_factory', lambda: gw)
     sources.check_llm()
     assert svc.get(sources.PROVIDER_PREFIX + 'bad')['state'] == 'active'
     assert svc.get(sources.PROVIDER_PREFIX + 'good') is None

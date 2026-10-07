@@ -904,6 +904,7 @@
   }
 
   // restore this tab's conversation, still; the sky shows the last answer's chain
+  function restore() {
   turns.forEach(function (t) {
     if (t.status === 'running') { t.status = 'stopped'; }
     paint(t);
@@ -920,5 +921,34 @@
     setStatus(lt.status === 'done' ? 'Answered' + (lt.confidence != null ? ' · confidence ' + lt.confidence.toFixed(2) : '') : 'Waiting for a question',
               lt.status === 'done' ? 'done' : 'idle');
     toBottom(true);
+  }
+  }
+
+  // /ask?conversation=<id> (the Conversations page's "Continue in Ask"): load that conversation's
+  // turns from the server and make it the one later questions continue
+  var wanted = null;
+  try { wanted = new URLSearchParams(window.location.search).get('conversation'); } catch (e) { wanted = null; }
+  if (wanted && /^[A-Za-z0-9_-]{6,80}$/.test(wanted)) {
+    fetch('/api/ai/conversations/' + encodeURIComponent(wanted), { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (c) {
+        if (c && Array.isArray(c.turns)) {
+          turns = c.turns.map(function (x) {
+            var t = newTurn(x.question || '', {});
+            t.status = 'done'; t.answer = x.answer || ''; t.stopped_by = x.stopped_by || '';
+            t.confidence = typeof x.confidence === 'number' ? x.confidence : null;
+            return t;
+          });
+          save(); sset(CKEY, c.id);
+          Array.prototype.forEach.call(logEl.querySelectorAll('.ask-turn'), function (a) { a.remove(); });
+          if (turns.length) emptyEl.hidden = true;
+          say('Continuing a saved conversation.');
+        }
+        try { window.history.replaceState(null, '', window.location.pathname); } catch (e) { /* keep the URL */ }
+        restore();
+      })
+      .catch(function () { restore(); });
+  } else {
+    restore();
   }
 })();

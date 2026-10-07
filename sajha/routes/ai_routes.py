@@ -21,8 +21,9 @@ router = APIRouter(tags=['ai'])
 
 
 def _get_gateway():
-    from sajha.ai.gateway import get_gateway
-    return get_gateway()
+    """The process-wide LLM factory (sajha.ai.llm), or None before the intelligence layer starts."""
+    from sajha.ai.llm import llm_factory
+    return llm_factory()
 
 
 def _get_resolver():
@@ -55,7 +56,7 @@ async def api_list_providers(auth: AuthContext = Depends(require_auth), db: Sess
                    } for m in model_dao.get_by_provider(p.provider_type, enabled_only=False)]
 
         healthy = False
-        if gw and gw.get_provider(p.provider_type) and gw.get_provider(p.provider_type).active:
+        if gw and gw.provider(p.provider_type) and gw.provider(p.provider_type).active:
             try:
                 healthy = gw.provider_health(p.provider_type).ok
             except Exception as e:
@@ -120,7 +121,7 @@ async def api_provider_health(provider_type: str, auth: AuthContext = Depends(re
     gw = _get_gateway()
     if not gw:
         return JSONResponse({'error': 'Gateway not initialized'}, status_code=503)
-    prov = gw.get_provider(provider_type)
+    prov = gw.provider(provider_type)
     if not prov:
         return JSONResponse({'error': f'Provider {provider_type} not registered'}, status_code=404)
     h = gw.provider_health(provider_type, refresh=True)
@@ -268,7 +269,7 @@ async def api_get_all_usage(auth: AuthContext = Depends(require_admin)):
     gw = _get_gateway()
     if not gw:
         return JSONResponse({'usage': {}})
-    return JSONResponse({'usage': gw.get_token_usage(), 'cache': gw._cache.stats()})
+    return JSONResponse({'usage': gw.get_token_usage(), 'cache': gw.cache_stats()})
 
 
 # ── Semantic Tool Resolution (Phase 2) ───────────────────────
@@ -319,23 +320,23 @@ async def api_complete(request: Request, auth: AuthContext = Depends(require_aut
     if not prompt:
         return JSONResponse({'error': 'prompt is required'}, status_code=400)
 
+    from sajha.ai.llm import ChatMessage, RequestContext
     try:
-        resp = gw.complete(
-            prompt=prompt,
-            user_id=auth.user_id,
-            provider=data.get('provider', ''),
-            model=data.get('model', ''),
-            system=data.get('system', ''),
-            temperature=float(data.get('temperature', 0)),
-            max_tokens=int(data.get('max_tokens', 0)),
-        )
+        ctx = RequestContext(user_id=auth.user_id or '', roles=list(auth.roles or []), is_admin=auth.is_admin)
+        model = gw.model(gw.qualify(data.get('provider', ''), data.get('model', '')), context=ctx)
+        messages = ([ChatMessage.system(data['system'])] if data.get('system') else []) + [ChatMessage.user(prompt)]
+        max_tokens = int(data.get('max_tokens', 0) or 0)
+        c = model.chat_completions_create(messages=messages, temperature=float(data.get('temperature', 0)),
+                                          max_completion_tokens=max_tokens or None)
+        u, sj = c.usage, c.sajha
         return JSONResponse({
-            'content': resp.content,
-            'model': resp.model,
-            'provider': resp.provider,
-            'tokens': {'input': resp.input_tokens, 'output': resp.output_tokens, 'total': resp.total_tokens},
-            'cost_usd': round(resp.cost_usd, 6),
-            'latency_ms': resp.latency_ms,
+            'content': c.text,
+            'model': c.model,
+            'provider': sj.provider if sj else '',
+            'tokens': {'input': u.prompt_tokens if u else 0, 'output': u.completion_tokens if u else 0,
+                       'total': u.total_tokens if u else 0},
+            'cost_usd': round(sj.cost_usd if sj else 0.0, 6),
+            'latency_ms': sj.latency_ms if sj else 0,
         })
     except Exception as e:
         return JSONResponse({'error': str(e)}, status_code=500)
@@ -436,11 +437,10 @@ async def ask_page(request: Request, auth: AuthContext = Depends(require_auth)):
 @router.get('/api/ai/registry')
 async def api_registry(auth: AuthContext = Depends(require_admin)):
     """List all registered provider classes (available to configure)."""
-    from sajha.ai.llm.registry import registered_providers
-    from sajha.ai.providers import get_registered_types
+    from sajha.ai.llm import LLMFactory
     return JSONResponse({
-        'registered_types': {n: f'{c.__module__}:{c.__name__}' for n, c in registered_providers().items()},
-        'legacy_types': get_registered_types(),
+        'registered_types': LLMFactory.provider_types(),
+        'legacy_types': LLMFactory.legacy_provider_types(),
         'info': 'Add a provider with @register_provider, a class path in ai.providers, or a '
                 "'sajha.llm_providers' entry point; see docs/architecture/Intelligence Layer.md",
     })
@@ -470,7 +470,7 @@ async def api_ask(request: Request, auth: AuthContext = Depends(require_auth)):
     from starlette.concurrency import run_in_threadpool
     from fastapi.responses import StreamingResponse
     from sajha.ai.intelligence import get_intelligence
-    from sajha.ai.llm.types import RequestContext
+    from sajha.ai.llm import RequestContext
     svc = get_intelligence()
     if svc is None:
         return JSONResponse({'error': 'Intelligence service not initialized'}, status_code=503)
@@ -655,7 +655,7 @@ async def api_planner_dry_run(request: Request, auth: AuthContext = Depends(requ
     run_tools?: [names], input?: {...}}."""
     from starlette.concurrency import run_in_threadpool
     from sajha.ai.intelligence import get_intelligence
-    from sajha.ai.llm.types import RequestContext
+    from sajha.ai.llm import RequestContext
     from sajha.ai.planners_engine.dryrun import dry_run
     svc = get_intelligence()
     if svc is None:

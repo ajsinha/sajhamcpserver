@@ -188,7 +188,8 @@ CATALOG: List[dict] = [
                'caller, conversation memory, spill to disk and the memory guard; config-driven planners (design).'),
             _g('Planner reference', 'Planner Reference.md', 'bi-signpost-split',
                'Planner files in full: keys, every stage type, transitions and bounded loops, the when '
-               'expression grammar, verify checks, validation messages, JSON Schema, shipped strategies.'),
+               'expression grammar, verify checks, validation messages, JSON Schema, shipped strategies, '
+               'and the planner editor.'),
             _g('SAJHA Net (design)', 'SAJHA Net.md', 'bi-diagram-3',
                'Design for SAJHA servers sharing tools across domains: gossip membership, automatic proxy tools, '
                'API-key identity with a synced key directory, two-sided authorization, residency, snapshots.'),
@@ -213,6 +214,7 @@ CATALOG: List[dict] = [
                                    'DB query tools', 'Script tools']),
             ('Enterprise sources', ['Power BI reports', 'Power BI DAX queries', 'IBM LiveLink',
                                     'SharePoint', 'OLAP datasets']),
+            ('Language models', ['LLM tool creator']),
         ],
         'topics': [
             _g('MCP Studio User Guide', 'MCP Studio User Guide.md', 'bi-magic',
@@ -240,6 +242,9 @@ CATALOG: List[dict] = [
                'Search and fetch SharePoint content.'),
             _g('OLAP datasets', 'MCP Studio OLAP Tool Creator Guide.md', 'bi-graph-up-arrow',
                'Slice an OLAP dataset as a tool.'),
+            _g('LLM tool creator', 'MCP Studio LLM Tool Creator Guide.md', 'bi-chat-square-text',
+               'A tool a language model runs: mode, model, allowed tools, limits and memory in a form; '
+               'tried on the mock model, deployed or edited as a config file.'),
         ],
     },
     {

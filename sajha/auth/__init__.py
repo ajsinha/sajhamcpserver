@@ -423,31 +423,108 @@ def require_admin(
     return auth
 
 
-#: The permission that opens MCP Studio to a non-admin (the seeded ``developer`` role has it):
-#: a row with resource_type ``studio`` whose actions include ``*`` or ``use``.
+#: The permission that opens MCP Studio to a non-admin: a row with resource_type ``studio``.
+#: Its resource_name names the creator it opens (``studio:rest`` is resource_type ``studio``,
+#: resource_name ``rest``); ``*`` (``studio:*``, the seeded ``developer`` role) opens every creator,
+#: which is what the single ``studio`` permission always meant. Actions ``*`` or ``use``.
 STUDIO_PERMISSION = 'studio'
 
+#: Every Studio creator a permission can name (Roadmap X2; docs/security/Security Model.md §4).
+STUDIO_CREATORS = ('python', 'rest', 'api_import', 'dbquery', 'script', 'powerbi', 'powerbidax', 'livelink',
+                   'sharepoint', 'olap', 'composite', 'describe', 'llm', 'planner')
 
-def can_use_studio(auth: Optional[AuthContext]) -> bool:
-    """MCP Studio access: an admin, or a signed-in user whose role grants the ``studio`` permission."""
+#: Creators no permission opens: administrators only (LLM Tools §9.10, decision 6).
+ADMIN_ONLY_CREATORS = ('planner',)
+
+
+def _studio_grants(auth: AuthContext) -> list:
+    """(resource_name pattern, actions) of the caller's roles' ``studio`` (and ``*``) permission rows,
+    read once per request context."""
+    cached = getattr(auth, '_studio_grants_cache', None)
+    if cached is not None:
+        return cached
+    grants = []
+    user, db = getattr(auth, '_user', None), getattr(auth, '_db', None)
+    if user is not None and db is not None:
+        from sajha.db.models import Permission
+        role_ids = [r.id for r in (user.roles or [])]
+        if role_ids:
+            for perm in db.query(Permission).filter(Permission.role_id.in_(role_ids),
+                                                    Permission.resource_type.in_([STUDIO_PERMISSION, '*'])).all():
+                grants.append((perm.resource_name or '', {a.strip() for a in (perm.actions or '').split(',')}))
+    try:
+        auth._studio_grants_cache = grants
+    except Exception:
+        pass
+    return grants
+
+
+def can_use_creator(auth: Optional[AuthContext], creator: str) -> bool:
+    """May this caller use one Studio creator? An admin may use all; a non-admin needs ``studio:<creator>``
+    or ``studio:*`` (planner: admins only)."""
+    import fnmatch
     if auth is None or not auth.authenticated:
         return False
     if auth.is_admin:
         return True
+    if creator in ADMIN_ONLY_CREATORS:
+        return False
     try:
-        return auth.has_permission(STUDIO_PERMISSION, '*', 'use')
+        return any((name == '*' or fnmatch.fnmatch(creator, name)) and ('*' in actions or 'use' in actions)
+                   for name, actions in _studio_grants(auth))
     except Exception as e:
         logger.warning(f'studio permission check failed: {e}')
         return False
 
 
+def studio_creators(auth: Optional[AuthContext]) -> list:
+    """The creators this caller may use (empty: no Studio at all)."""
+    return [c for c in STUDIO_CREATORS if can_use_creator(auth, c)]
+
+
+def can_use_studio(auth: Optional[AuthContext]) -> bool:
+    """MCP Studio access: an admin, or a signed-in user whose role grants at least one creator."""
+    if auth is None or not auth.authenticated:
+        return False
+    if auth.is_admin:
+        return True
+    return bool(studio_creators(auth))
+
+
+def is_owner(auth: Optional[AuthContext], created_by: Optional[str]) -> bool:
+    """Ownership rule for Studio-made things: an admin may change anything; anyone else only what
+    records them as its creator (a tool with no recorded creator is the admins')."""
+    if auth is None or not auth.authenticated:
+        return False
+    if auth.is_admin:
+        return True
+    return bool(created_by) and str(created_by) == str(auth.user_id or '')
+
+
 def require_studio(
     auth: AuthContext = Depends(require_auth),
 ) -> AuthContext:
-    """FastAPI dependency: MCP Studio pages and endpoints (admin, or the ``studio`` permission)."""
+    """FastAPI dependency: MCP Studio pages that every Studio user may open (any creator permission)."""
     if not can_use_studio(auth):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail='MCP Studio requires the admin role or a role with the studio permission',
+            detail='MCP Studio requires the admin role or a role with a studio permission',
         )
     return auth
+
+
+def require_creator(creator: str):
+    """FastAPI dependency factory: one Studio creator (``studio:<creator>`` or ``studio:*``; admins always)."""
+    if creator not in STUDIO_CREATORS:
+        raise ValueError(f'unknown Studio creator {creator!r}')
+
+    def dependency(auth: AuthContext = Depends(require_auth)) -> AuthContext:
+        if not can_use_creator(auth, creator):
+            detail = ('the planner editor is for administrators only' if creator in ADMIN_ONLY_CREATORS else
+                      f'this Studio creator needs the admin role or a role with the studio:{creator} '
+                      f'(or studio:*) permission')
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
+        return auth
+
+    dependency.__name__ = f'require_creator_{creator}'
+    return dependency

@@ -132,7 +132,8 @@ SAJHA = {
                             'multipart bodies not supported); REST, SQL, script, Power BI, LiveLink, '
                             'SharePoint and OLAP creators; and Describe a tool: a sentence becomes a proposed, '
                             'tested tool an admin reviews and approves (the offline mock knows a few shapes; '
-                            'real designs need an LLM).',
+                            'real designs need an LLM); an LLM tool creator and a planner editor with dry runs; '
+                            'creator permissions per role, and authors may change only what they created.',
                      ['sajha/studio', 'sajha/api_import', 'sajha/studio/describe.py'], 'MCP Studio User Guide.md'),
         'composition': _s('Yes', 'Composite tools with confidence tracking, registered as MCP tools; workflows: '
                                   'DAGs of tool, composite and Ask SAJHA steps with branches, loops, retries, '
@@ -143,13 +144,17 @@ SAJHA = {
                                 '<prefix>__<tool> registry tools under its own access policy, approval, circuit '
                                 'breakers and audit; off by default (federation.enabled).',
                          ['sajha/federation', 'sajha/routes/federation_routes.py'], 'Federation.md'),
-        'llm': _s('Yes', 'LLM providers incl. Ollama and a mock; POST /api/ai/ask and the Ask SAJHA page, with '
-                         'pluggable planners (ReAct by default; plan-and-execute, recipes, a router), per-user '
-                         'conversation memory, and search over its own and admin-supplied documents with '
-                         'citations (text formats only; no document connectors yet). Out of the box the mock '
-                         'model plans: real reasoning needs a provider and its key.',
-                  ['sajha/ai/llm', 'sajha/ai/planners.py', 'sajha/ai/memory.py', 'sajha/ai/rag',
-                   'sajha/routes/ai_routes.py'], 'Intelligence Layer.md'),
+        'llm': _s('Yes', 'One OpenAI-style interface over many providers (Ollama, Vertex AI and Entra ID '
+                         'included) behind a governed factory; LLM tools: tools whose work is done by a model, '
+                         'configured like any tool, in seven modes (answer, complete, extract, classify, '
+                         'grounded, narrate, judge) with per-tool memory and limits; configurable planners as '
+                         'files (ReAct, plan-and-execute, Reflect, self-consistency, map-reduce, an automatic '
+                         'chooser and more) with bounded loops; the Ask SAJHA page; document search over its '
+                         'own and admin documents, PDF and Word included, on a disk-based store; MCP sampling; '
+                         'and an opt-in OpenAI-compatible endpoint where LLM tools appear as models. Out of the '
+                         'box the mock model plans: real reasoning needs a provider and its key.',
+                  ['sajha/ai/llm', 'sajha/ai/llm_tools', 'sajha/ai/planners_engine', 'sajha/ai/memory.py',
+                   'sajha/ai/rag', 'sajha/ai/openai_api.py'], 'LLM Tools.md'),
         'observability': _s('Yes', 'Prometheus /metrics (protected; HTTP, MCP, tools, LLM tokens and cost), '
                             'OpenTelemetry traces and metrics over OTLP (opt-in), a usage and cost dashboard, '
                             'alert rules, health probes, and a hash-chained audit log with signed anchors, a '

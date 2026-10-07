@@ -1,0 +1,168 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Conversations: the signed-in user's own conversation memory (Ask SAJHA and each LLM tool).
+Design: docs/architecture/LLM Tools.md section 10; endpoints: docs/protocol/API Reference.md
+-->
+{% block title %}Conversations - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.cv-meta{font-size:.875rem;color:var(--t-muted)}
+.cv-list{list-style:none;padding:0;margin:0}
+.cv-list li{border-top:1px solid var(--sajha-border);padding:.6rem 0;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:space-between}
+.cv-list li:first-child{border-top:0}
+.cv-title{font-weight:600;overflow-wrap:anywhere;min-width:0;flex:1 1 16rem}
+.cv-actions{display:flex;flex-wrap:wrap;gap:.4rem}
+.cv-actions .btn{min-height:40px}
+.cv-turn{border-left:3px solid var(--sajha-border);padding:.25rem .75rem;margin:.75rem 0}
+.cv-turn .q{font-weight:600;overflow-wrap:anywhere}
+.cv-turn .a{white-space:pre-wrap;overflow-wrap:anywhere}
+.cv-filter{display:flex;flex-wrap:wrap;gap:.5rem;align-items:end}
+.cv-filter .form-select{max-width:18rem}
+#cvMessage:empty{display:none}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-chat-left-dots me-2" aria-hidden="true"></i>Conversations</h1>
+      <small class="text-muted">Your own conversations with Ask SAJHA and with LLM tools that remember: open one, continue it, delete it. Nobody else can read them.</small>
+    </div>
+    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('ask_page') }}"><i class="bi bi-stars me-1" aria-hidden="true"></i>Ask SAJHA</a>
+  </div>
+
+  <div id="cvMessage" class="alert" role="status" aria-live="polite"></div>
+  {% if not conv_data.available %}<div class="alert alert-warning" role="status">The intelligence layer is not running, so there is no conversation memory.</div>
+  {% elif not conv_data.enabled %}<div class="alert alert-warning" role="status">Conversation memory is off (<code>ai.memory.enabled: false</code>): new questions are not remembered.</div>{% endif %}
+
+  {% if conv_data.is_admin %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <h2 class="h5">Stored on this server <span class="cv-meta">(administrators see counts only)</span></h2>
+      <div class="table-responsive" tabindex="0" role="region" aria-label="Conversations per scope">
+        <table class="table table-sm mb-0" data-sajha-table="false">
+          <caption class="visually-hidden">Conversations per scope</caption>
+          <thead><tr><th scope="col">Scope</th><th scope="col">Conversations</th></tr></thead>
+          <tbody id="cvCounts"><tr><td colspan="2" class="cv-meta">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="cv-filter mb-2">
+        <div>
+          <label class="form-label fw-bold mb-1" for="cvScope">Show</label>
+          <select id="cvScope" class="form-select">
+            <option value="">Ask SAJHA</option>
+            <option value="*">Everything</option>
+            {% for t in conv_data.tools %}<option value="{{ t }}">LLM tool {{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <button type="button" class="btn btn-outline-danger" id="cvDeleteAll"><i class="bi bi-trash me-1" aria-hidden="true"></i>Delete all my conversations</button>
+      </div>
+      <p class="cv-meta mb-2" id="cvRetention"></p>
+      <ul class="cv-list" id="cvList" aria-label="Your conversations"><li class="cv-meta">Loading…</li></ul>
+    </div>
+  </div>
+
+  <div class="card mb-3" id="cvOpen" hidden>
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between gap-2 align-items-center">
+        <h2 class="h5 mb-0" id="cvOpenTitle">Conversation</h2>
+        <div class="cv-actions" id="cvOpenActions"></div>
+      </div>
+      <p class="cv-meta mb-1" id="cvOpenMeta"></p>
+      <div id="cvSummary"></div>
+      <div id="cvTurns"></div>
+    </div>
+  </div>
+</div>
+<script type="application/json" id="cvData">{{ conv_data|tojson }}</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  'use strict';
+  var D = JSON.parse(document.getElementById('cvData').textContent);
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]; }); }
+  function when(ts) { if (!ts) return ''; try { return new Date(ts * 1000).toLocaleString(); } catch (e) { return ''; } }
+  function message(t, level) { var m = $('cvMessage'); m.className = 'alert alert-' + (level || 'info'); m.textContent = t || ''; }
+  function api(method, path) {
+    return fetch(path, {method: method, credentials: 'same-origin'}).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) { j._status = r.status; return j; });
+    });
+  }
+  function scopeLabel(c) { return c.tool_name ? "LLM tool " + c.tool_name : "Ask SAJHA"; }
+
+  function load() {
+    var scope = $('cvScope').value;
+    api('GET', '/api/ai/conversations' + (scope ? '?tool=' + encodeURIComponent(scope) : '')).then(function (j) {
+      if (j.error) { $('cvList').innerHTML = '<li class="cv-meta">' + esc(j.error) + '</li>'; return; }
+      var cs = j.conversations || [];
+      $('cvRetention').textContent = j.retention_days ? 'Kept for up to ' + j.retention_days + ' days without use (ai.memory.retention_days).' : '';
+      $('cvList').innerHTML = cs.length ? cs.map(function (c) {
+        var cont = !c.tool_name ? '<a class="btn btn-sm btn-outline-primary" href="/ask?conversation=' + encodeURIComponent(c.id) + '">Continue in Ask<span class="visually-hidden"> ' + esc(c.title) + '</span></a>'
+                           : '<a class="btn btn-sm btn-outline-primary" href="/tools/' + encodeURIComponent(c.tool_name) + '/execute">Open the tool<span class="visually-hidden"> ' + esc(c.tool_name) + '</span></a>';
+        return '<li><div class="cv-title">' + esc(c.title || '(untitled)') + '<div class="cv-meta">' + esc(scopeLabel(c)) + ' · ' + esc(c.turns) + ' turn' + (c.turns === 1 ? '' : 's') +
+          ' · ' + esc(when(c.updated_ts || c.created_ts)) + '</div></div><div class="cv-actions">' +
+          '<button type="button" class="btn btn-sm btn-outline-secondary cv-view" data-id="' + esc(c.id) + '">Open<span class="visually-hidden"> ' + esc(c.title) + '</span></button>' + cont +
+          '<button type="button" class="btn btn-sm btn-outline-danger cv-del" data-id="' + esc(c.id) + '">Delete<span class="visually-hidden"> ' + esc(c.title) + '</span></button></div></li>';
+      }).join('') : '<li class="cv-meta">No conversations here yet.</li>';
+      Array.prototype.forEach.call(document.querySelectorAll('.cv-view'), function (b) { b.addEventListener('click', function () { view(b.getAttribute('data-id')); }); });
+      Array.prototype.forEach.call(document.querySelectorAll('.cv-del'), function (b) { b.addEventListener('click', function () { del(b.getAttribute('data-id')); }); });
+    });
+  }
+
+  function view(id) {
+    api('GET', '/api/ai/conversations/' + encodeURIComponent(id)).then(function (c) {
+      if (c.error) { message(c.error, 'danger'); return; }
+      $('cvOpen').hidden = false;
+      $('cvOpenTitle').textContent = c.title || 'Conversation';
+      var turns = Array.isArray(c.turns) ? c.turns : [];
+      $('cvOpenMeta').textContent = scopeLabel(c) + ' · ' + turns.length + ' turn' + (turns.length === 1 ? '' : 's') + ' kept · started ' + when(c.created_ts) + ' · id ' + c.id;
+      $('cvSummary').innerHTML = c.summary ? '<details class="mb-2"><summary>Summary of earlier turns</summary><div class="cv-meta">' + esc(c.summary) + '</div></details>' : '';
+      $('cvTurns').innerHTML = turns.map(function (t) {
+        return '<div class="cv-turn"><div class="q">' + esc(t.question) + '</div><div class="a">' + esc(t.answer) + '</div><div class="cv-meta">' +
+          (t.tools && t.tools.length ? 'tools: ' + t.tools.map(esc).join(', ') + ' · ' : '') + (t.stopped_by ? 'stopped_by ' + esc(t.stopped_by) : '') + '</div></div>';
+      }).join('') || '<p class="cv-meta">No turns.</p>';
+      $('cvOpenActions').innerHTML = (!c.tool_name ? '<a class="btn btn-sm btn-primary" href="/ask?conversation=' + encodeURIComponent(c.id) + '">Continue in Ask</a>' : '') +
+        '<button type="button" class="btn btn-sm btn-outline-danger" id="cvDelOpen">Delete</button>';
+      $('cvDelOpen').addEventListener('click', function () { del(c.id); });
+      $('cvOpen').scrollIntoView({block: 'start'});
+    });
+  }
+
+  function del(id) {
+    if (!confirm('Delete this conversation? It cannot be undone.')) return;
+    api('DELETE', '/api/ai/conversations/' + encodeURIComponent(id)).then(function (j) {
+      if (j.error) { message(j.error, 'danger'); return; }
+      message('Deleted.', 'success'); $('cvOpen').hidden = true; load(); counts();
+    });
+  }
+
+  function counts() {
+    if (!D.is_admin) return;
+    api('GET', '/api/ai/conversation-counts').then(function (j) {
+      var c = j.counts || {};
+      var keys = Object.keys(c).sort();
+      $('cvCounts').innerHTML = keys.length ? keys.map(function (k) { return '<tr><td>' + esc(k === 'ask' ? 'Ask SAJHA' : 'LLM tool ' + k) + '</td><td>' + esc(c[k]) + '</td></tr>'; }).join('') +
+        '<tr><th scope="row">Total</th><td>' + esc(j.total) + '</td></tr>' : '<tr><td colspan="2" class="cv-meta">' + esc(j.error || 'None stored.') + '</td></tr>';
+    });
+  }
+
+  $('cvScope').addEventListener('change', load);
+  $('cvDeleteAll').addEventListener('click', function () {
+    if (!confirm('Delete every conversation of yours (Ask SAJHA and every LLM tool)? It cannot be undone.')) return;
+    api('DELETE', '/api/ai/conversations').then(function (j) { message('Deleted ' + (j.deleted || 0) + ' conversation(s).', 'success'); $('cvOpen').hidden = true; load(); counts(); });
+  });
+  load(); counts();
+})();
+</script>
+{% endblock %}

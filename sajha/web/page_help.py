@@ -93,6 +93,11 @@ PAGE_HELP: dict = {
                   'destructiveHint', 'Mock provider', 'Planner', 'Plan event', 'Conversation memory',
                   'sajha_search_docs'],
         'guide': 'Intelligence Layer.md'},
+    'conversations_page': {
+        'what': 'Your own conversations with Ask SAJHA and with LLM tools that remember: open one, continue it in Ask, '
+                'delete one or all. Administrators also see how many are stored per scope, never what they say.',
+        'terms': ['Conversations page', 'Conversation memory', 'Conversation handle', 'LLM tool', 'Ask SAJHA'],
+        'guide': 'LLM Tools.md'},
     'playground_page': {
         'what': 'Run Python in your browser (Pyodide): numpy, pandas and matplotlib, with import sajha '
                 'to call this server\'s tools under your own permissions. Nothing runs on the server.',
@@ -100,7 +105,7 @@ PAGE_HELP: dict = {
         'guide': 'Python Playground.md'},
     'ai_settings_page': {
         'what': 'LLM providers, their models and the default the server uses, and how tools are found by search.',
-        'terms': ['LLM gateway', 'LLM provider', 'Mock provider', 'Semantic tool search',
+        'terms': ['LLM factory', 'Governed model', 'LLM gateway', 'LLM provider', 'Mock provider', 'Semantic tool search',
                   'Embedding', 'bm25 (embedder)', 'gateway (embedder)'],
         'guide': 'Intelligence Layer.md'},
     # ── Monitor ──────────────────────────────────────────────────────────────
@@ -284,6 +289,18 @@ PAGE_HELP: dict = {
         'what': 'Slice an OLAP dataset as a tool.',
         'terms': ['OLAP', 'DuckDB', 'Creator'],
         'guide': 'MCP Studio OLAP Tool Creator Guide.md'},
+    'studio_llm': {
+        'what': 'Create or change an LLM tool: mode, model, instructions, allowed tools (matched live), limits within '
+                'the ceilings, memory and planner; checked by the loader, tried on the mock model, deployed as a config file.',
+        'terms': ['LLM tool creator', 'LLM tool', 'Mode (LLM tool)', 'Planner', 'Conversation memory',
+                  'Sampling (LLM tools)', 'Mock provider', 'Studio permission', 'Tool creator (ownership)'],
+        'guide': 'MCP Studio LLM Tool Creator Guide.md'},
+    'studio_planners': {
+        'what': 'Edit planner files (administrators): load problems, schema and P-rule findings, the graph of stages and '
+                'bounded edges, a dry run on the mock model, and saving new versions.',
+        'terms': ['Planner editor', 'Planner file', 'Stage (planner)', 'Outcome (planner)', 'Bounded edge',
+                  'P-rule', 'Dry run (planner)', 'Last good version (planner)'],
+        'guide': 'Planner Reference.md'},
     'composite_builder': {
         'what': 'Chain tools into one composite tool, with the confidence of its result tracked.',
         'terms': ['Composite tool', 'Sibling (composite)', 'Parent-child (composite)',

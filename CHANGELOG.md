@@ -4,7 +4,56 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+Nothing yet.
+
+## v7.3.0 (October 2026) — planners, authoring and the OpenAI endpoint
+
+Wave 3 of the [Implementation Plan](docs/architecture/Implementation%20Plan.md). Planning
+strategies become configuration files with bounded loops; authors get an LLM tool creator, a
+planner editor and per-creator permissions; SAJHA can serve any OpenAI-style client; every LLM
+call in SAJHA goes through one package, one factory and one governed proxy.
+
+### Upgrading from 7.2.0
+
+- **Custom LLM providers:** `sajha/ai/gateway.py` and `sajha/ai/providers/` are gone. Build
+  providers on `ProviderBase` from `sajha.ai.llm.spi`; application code uses
+  `llm_factory().model(...)` only (enforced by `tests/test_llm_boundary.py`).
+- **Planners:** the built-in names (`react`, `plan_execute`, `recipes`, `router`) now resolve to
+  the shipped planner files in `config/planners/`, with the same behaviour; set
+  `ai.planners.python_builtins: true` to keep the Python classes. LLM tools without
+  `llm.planner` use `ai.planners.default`.
+- **Studio permissions:** permissions per creator (`studio:<creator>`, `studio:*`); an existing
+  `studio` permission still means every creator. New installs seed an `llm_author` role.
+- **OpenAI-compatible endpoint:** off unless `ai.openai_api.enabled` is set.
+
 ### Added
+
+- **Studio LLM tool creator** (`/studio/llm`, LLM Tools build step 10): a form for the `llm` block
+  (mode, model alias, system prompt or library prompt, template, allowed and denied tools with a
+  live matching preview, limits within the `ai.llm_tools.limits` ceilings, memory, planner and
+  `planner_choices`, sampling, output, cache) with input and output schemas generated per mode;
+  the config is checked by the loader's own rules (`parse_llm_block`, catalog and lint), run once
+  on the mock model, and deployed or edited as `config/tools/<name>.json`.
+  [Guide](docs/studio/MCP%20Studio%20LLM%20Tool%20Creator%20Guide.md).
+- **Planner editor** (`/studio/planners`, administrators only): the registry's planners and the
+  files it refused (with the last good version in use), a planner file checked as you type
+  (JSON Schema and P-rules, each finding with its rule and location), a graph of stages and
+  transitions with bounded edges marked, a dry run through `POST /api/ai/planners/dry-run` that
+  highlights the stage path, and saving new versions (the replaced one kept as `name@version`).
+  [Planner Reference §14.1](docs/architecture/Planner%20Reference.md#141-the-planner-editor).
+- **Describe a tool proposes LLM tools** (kind `llm`): summarise, classify, extract, an assistant
+  over named tools, or questions answered from document search; the `llm` block is checked by the
+  LLM-tool loader, its tests run on the mock model, and it goes through the same review and
+  deploy gate. [Tool Generation](docs/architecture/Tool%20Generation.md).
+- **Conversations page** (`/conversations`, **AI → Ask**): a user's own conversations with Ask
+  SAJHA and each LLM tool that remembers: open, continue in Ask (`/ask?conversation=<id>`),
+  delete one or all. Administrators also see stored conversations per scope, counts only
+  (`GET /api/ai/conversation-counts`).
+- **Console end-to-end and accessibility checks** (Roadmap X15): `scripts/check_console.py` signs
+  in, asks, builds and deploys an LLM tool, dry-runs a planner and opens the Conversations page in
+  Chromium, then scans the pages with axe-core (WCAG 2.x A and AA) or a documented rule subset.
+  Fixed what it found: the "About this page" guide link no longer sits inside its `<summary>`, the
+  table's rows-per-page select has a label, scrollable regions on the new pages take focus.
 
 - **SAJHA as an OpenAI-compatible endpoint** (opt-in, `ai.openai_api.enabled`):
   `POST /v1/chat/completions` (JSON or SSE chunks), `GET /v1/models`, `GET /v1/models/{model}` and
@@ -43,6 +92,32 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ### Changed
 
+- **Studio permissions per creator, and ownership** (Roadmap X2). A role's `studio` permission now
+  names the creator it opens (`studio:python`, `studio:rest`, `studio:api_import`, `studio:dbquery`,
+  `studio:script`, `studio:powerbi`, `studio:powerbidax`, `studio:livelink`, `studio:sharepoint`,
+  `studio:olap`, `studio:composite`, `studio:describe`, `studio:llm`); `studio:*`, which the
+  existing `studio` rows already are, keeps opening all of them. The planner editor is admin only.
+  A Describe a tool deploy also needs the permission of the kind deployed. Every Studio deploy
+  records its creator (`metadata.created_by`; composites and API imports their `created_by`), and
+  a non-admin may change or delete only what they created. The Studio menu shows only the
+  creators a caller may use. New installs also get an `llm_author` role (`studio:llm`).
+  [MCP Studio User Guide](docs/studio/MCP%20Studio%20User%20Guide.md#permissions).
+
+- **One LLM package boundary** (wave 3, phase 3.2). Every LLM is reached through `sajha.ai.llm`
+  behind OpenAI-style signatures, and all provider and model specifics live in `sajha/ai/llm/`,
+  one module per provider. `LLMProvider` and `LLMModel` are abstract base classes every provider
+  implements (the shared implementations are `ProviderBase`, `ChatModel`, `EmbeddingModel`).
+  `llm_factory()` returns the `LLMFactory`, which builds providers from `ai.providers`,
+  `ai.aliases` and the registry; `factory.model(alias)` returns a `GovernedModel` proxy that
+  applies policy, budgets, cache, retries, breakers, fallback, audit, usage and tracing (the
+  former gateway) before delegating to the provider's model; `factory.provider(name)` serves the
+  admin pages. Every caller outside the package moved to the factory and the canonical types
+  (memory, document search, embedders, the tool resolver, connectors, LLM tools, Describe a tool,
+  the OpenAI-compatible endpoint, quality evals, the AI routes); `tests/test_llm_boundary.py`
+  fails on a vendor SDK, a private module, direct construction or a pre-canonical type outside
+  the package. [Intelligence Layer](docs/architecture/Intelligence%20Layer.md), [LLM Tools §13.7](docs/architecture/LLM%20Tools.md#137-one-package-boundary).
+- LLM tools' derived `readOnlyHint` is false when a tool they may call cannot be found in the
+  registry (it was treated as read-only).
 - The `Planner` protocol (`sajha/ai/planners.py`) and `IntelligenceService` speak the canonical
   Chat Completions types: `PlanState.messages` are `ChatMessage`s, `ShortlistEntry.tool` is a
   `ToolDefinition`, `CallTools` carries `ToolCall`s (`ToolCall.of(id, name, arguments)`),
@@ -52,6 +127,28 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ### Upgrading
 
+- **Studio permissions:** nothing to do; existing `studio` rows (`resource_name` `*`) keep opening
+  every creator. To give a role one creator, add a `permissions` row (`studio`, `<creator>`, `use`).
+  Studio tools deployed before this record no creator, so only administrators may change or
+  delete them. The `llm_author` role is seeded on new databases only; add it to an existing one
+  with the two rows in `db/scripts/<dialect>/seed.sql` if you want it.
+
+- **Import paths for LLM code changed.** `sajha.ai.gateway` and `sajha.ai.providers` are gone:
+  `get_gateway()` / `init_gateway()` / `build_gateway()` are `llm_factory()` /
+  `init_llm_factory()` / `build_llm_factory()` in `sajha.ai.llm`, and a call is
+  `llm_factory().model(alias).chat_completions_create(...)` (the factory also takes
+  `model=` like an OpenAI client). The gateway's `complete`, `complete_messages` and
+  `list_all_models` are removed (use `chat_completions_create` and `models()`). `sajha.ai.llm`
+  no longer exports the pre-canonical types (`ChatRequest`, `Message`, `ToolSpec`, ...) or the
+  registry helpers.
+- **Custom providers:** subclass `ProviderBase` and import it, `ChatModel`, `EmbeddingModel`,
+  `HTTPChatModel`, `register_provider`, `register_model`, `ModelCapabilities`, `ProviderConfig`
+  and the HTTP helpers from `sajha.ai.llm.spi`. `sajha.ai.llm.LLMProvider` is now the abstract
+  base class, so a class that subclassed it for its implementation must switch to
+  `ProviderBase`; a class that leaves an abstract method unimplemented is refused at
+  registration. Pre-6.x providers import `LegacyLLMProvider` (formerly
+  `sajha.ai.providers.LLMProvider`) and `register_provider_class` from `sajha.ai.llm.spi`.
+  Class paths in `ai.providers[].class` and entry points are unchanged.
 - New configuration section `ai.openai_api` (`enabled: false`, `llm_tools`, `cookie_auth`,
   `max_body_bytes`). Nothing changes until it is turned on.
 - The policy source list gains `openai_api`.

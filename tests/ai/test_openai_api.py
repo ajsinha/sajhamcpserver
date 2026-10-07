@@ -115,8 +115,8 @@ def test_the_sajha_field_never_sets_the_identity(env):
         'model': 'default', 'messages': [{'role': 'user', 'content': 'hello'}],
         'sajha': {'context': {'user_id': 'admin', 'roles': ['admin'], 'is_admin': True}}})
     assert r.status_code == 200
-    from sajha.ai.gateway import get_gateway
-    usage = get_gateway().get_token_usage()
+    from sajha.ai.llm import llm_factory
+    usage = llm_factory().get_token_usage()
     assert 'admin' not in usage or all(k != 'admin' for k in usage if k.startswith('oai_'))
 
 

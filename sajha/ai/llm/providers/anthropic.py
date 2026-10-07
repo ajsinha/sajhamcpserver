@@ -42,7 +42,7 @@ from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionRequest, ChatM
 from sajha.ai.llm.errors import InvalidRequest, ProviderUnavailable, RateLimited
 from sajha.ai.llm.http import safe_json_loads
 from sajha.ai.llm.model import ModelCapabilities
-from sajha.ai.llm.provider import LLMProvider
+from sajha.ai.llm.provider import ProviderBase
 from sajha.ai.llm.registry import register_provider
 from sajha.ai.llm.settings import ProviderConfig
 
@@ -296,7 +296,7 @@ class AnthropicChatModel(HTTPChatModel):
 
 
 @register_provider
-class AnthropicProvider(LLMProvider):
+class AnthropicProvider(ProviderBase):
     name = "anthropic"
     config_model = AnthropicConfig
     default_base_url = "https://api.anthropic.com"

@@ -72,7 +72,7 @@ from sqlalchemy import (Column, Float, ForeignKey, Index, Integer, MetaData, Str
                         func, insert, or_, select, update)
 
 from sajha.ai.llm.settings import Layered, MemorySettings, load_ai_yaml, resolve_layers
-from sajha.ai.llm.types import ChatRequest, Message, RequestContext
+from sajha.ai.llm import ChatCompletion, ChatMessage, RequestContext, ResponseFormat
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +176,7 @@ class ConversationNotFound(LookupError):
 class MemoryContext:
     conversation_id: str
     is_new: bool
-    history: List[Message] = field(default_factory=list)   # earlier turns, oldest first
+    history: List[ChatMessage] = field(default_factory=list)   # earlier turns, oldest first
     summary: str = ""
     standalone: str = ""
     turn: int = 1                                           # the number of this turn
@@ -520,10 +520,10 @@ class ConversationMemory:
                 self.store.set_summary(cid, ctx.user_id, summary, older[-1]["seq"])
         elif not s.summarize:
             summary = ""
-        history: List[Message] = []
+        history: List[ChatMessage] = []
         for t in recent:
-            history.append(Message.user(t["question"]))
-            history.append(Message.assistant(_clip(t.get("answer") or "", s.max_turn_chars)))
+            history.append(ChatMessage.user(t["question"]))
+            history.append(ChatMessage.assistant(_clip(t.get("answer") or "", s.max_turn_chars)))
         standalone = question
         if s.condense and (history or summary):
             standalone = self._condense(question, history, summary, ctx, usage_sink) or question
@@ -637,20 +637,21 @@ class ConversationMemory:
             logger.debug(f"conversation memory purge: {e}")
 
     # model calls (through the gateway: policy, budgets, fallback; the mock answers both)
-    def _call(self, system: str, messages: List[Message], schema: Dict[str, Any], key: str, ctx, usage_sink):
+    def _call(self, system: str, messages: List[ChatMessage], schema: Dict[str, Any], key: str, ctx, usage_sink):
         if self.gateway is None:
             return ""
-        req = ChatRequest(messages, system=system, response_schema=schema, tool_choice="none",
-                          temperature=0.0, metadata=ctx)
+        model = self.gateway.model(self.settings.model, context=ctx, needs="structured_output")
         try:
-            resp = self.gateway.chat(req, model=self.settings.model, needs="structured_output")
+            resp: ChatCompletion = model.chat_completions_create(
+                messages=[ChatMessage.system(system)] + list(messages),
+                response_format=ResponseFormat.of_schema(schema), temperature=0.0)
         except Exception as e:
             logger.info(f"conversation memory: {key} call failed ({e})")
             return ""
         if usage_sink is not None:
             usage_sink(resp)
         try:
-            return str((resp.json() or {}).get(key) or "").strip()
+            return str((resp.parsed() or {}).get(key) or "").strip()
         except Exception:
             return ""
 
@@ -662,27 +663,27 @@ class ConversationMemory:
         for t in turns:
             lines.append(f"User: {t['question']}")
             lines.append(f"SAJHA: {_clip(t.get('answer') or '', 1200)}")
-        text = self._call(SUMMARY_PROMPT.format(n=n), [Message.user("\n".join(lines))], SUMMARY_SCHEMA,
+        text = self._call(SUMMARY_PROMPT.format(n=n), [ChatMessage.user("\n".join(lines))], SUMMARY_SCHEMA,
                           "summary", ctx, usage_sink)
         return _clip(text, n)
 
-    def _condense(self, question: str, history: List[Message], summary: str, ctx, usage_sink) -> str:
+    def _condense(self, question: str, history: List[ChatMessage], summary: str, ctx, usage_sink) -> str:
         system = CONDENSE_PROMPT + (f"\nEarlier in the conversation (summary): {summary}" if summary else "")
-        return self._call(system, list(history) + [Message.user(question)], CONDENSE_SCHEMA,
+        return self._call(system, list(history) + [ChatMessage.user(question)], CONDENSE_SCHEMA,
                           "standalone_question", ctx, usage_sink)
 
 
 # ── memory.mode: client ───────────────────────────────────────────
 
-def client_history(messages: Any, max_turns: int = 6, max_chars: int = 2000) -> List[Message]:
-    """The caller's ``[{role: user|assistant, content: str}]`` as Messages: the last ``max_turns``
+def client_history(messages: Any, max_turns: int = 6, max_chars: int = 2000) -> List[ChatMessage]:
+    """The caller's ``[{role: user|assistant, content: str}]`` as ChatMessages: the last ``max_turns``
     exchanges (``2 * max_turns`` messages), each clipped to ``max_chars``. ``system`` and other roles
     are not accepted (a caller cannot replace the tool's instructions). Raises ValueError."""
     if messages is None:
         return []
     if not isinstance(messages, list):
         raise ValueError("messages must be a list of {role, content}")
-    out: List[Message] = []
+    out: List[ChatMessage] = []
     for i, m in enumerate(messages):
         if not isinstance(m, dict) or not isinstance(m.get("content"), str):
             raise ValueError(f"messages[{i}] must be an object with a string content")
@@ -690,7 +691,7 @@ def client_history(messages: Any, max_turns: int = 6, max_chars: int = 2000) -> 
         if role not in ("user", "assistant"):
             raise ValueError(f"messages[{i}].role must be user or assistant")
         text = _clip(m["content"], max_chars)
-        out.append(Message.user(text) if role == "user" else Message.assistant(text))
+        out.append(ChatMessage.user(text) if role == "user" else ChatMessage.assistant(text))
     keep = 2 * max(0, int(max_turns))
     return out[-keep:] if keep else []
 
@@ -774,8 +775,8 @@ def start_purge(memory: Optional[ConversationMemory] = None) -> bool:
     """Start the scheduled purge (app start-up). False when memory or the schedule is off."""
     global _purger
     if memory is None:
-        from sajha.ai.gateway import get_gateway
-        gw = get_gateway()
+        from sajha.ai.llm import llm_factory
+        gw = llm_factory()
         memory = ConversationMemory(None, getattr(getattr(gw, "settings", None), "memory", None))
     minutes = int(memory.tool_settings.purge_interval_minutes or 0)
     if not memory.enabled or minutes <= 0:

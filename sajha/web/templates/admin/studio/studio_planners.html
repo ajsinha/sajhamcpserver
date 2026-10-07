@@ -1,0 +1,354 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Studio planner editor (administrators): planner files in config/planners, checked, drawn, dry-run, versioned.
+Reference: docs/architecture/Planner Reference.md §14
+-->
+{% block title %}Planner editor - MCP Studio - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section { margin-bottom: 18px; overflow: hidden; }
+    .section-header { padding: 12px 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .section-body { padding: 16px 18px; }
+    .creator-header { padding: 22px; margin-bottom: 18px; }
+    .pe-code { font-family: var(--font-mono, monospace); font-size: .875rem; }
+    .pe-editor { min-height: 360px; tab-size: 2; white-space: pre; }
+    .pe-list { list-style: none; padding: 0; margin: 0; }
+    .pe-list li + li { border-top: 1px solid var(--sajha-border); }
+    .pe-item { display: flex; width: 100%; text-align: left; gap: 8px; align-items: center; justify-content: space-between;
+               padding: 10px 6px; min-height: 44px; background: none; border: 0; color: var(--sajha-ink); flex-wrap: wrap; }
+    .pe-item:hover, .pe-item:focus-visible { background: var(--sajha-crimson-tint); }
+    .pe-item.active { background: var(--sajha-crimson-tint); font-weight: 700; }
+    .pe-item small { color: var(--t-muted); }
+    .pe-diag td, .pe-diag th { font-size: .875rem; vertical-align: top; }
+    .pe-graph-wrap { overflow-x: auto; border: 1px solid var(--sajha-border); border-radius: 10px; background: var(--sajha-surface); }
+    .pe-graph text { fill: var(--sajha-ink); font-size: 13px; font-family: var(--font-mono, monospace); }
+    .pe-graph .node rect { fill: var(--sajha-surface); stroke: var(--sajha-border); stroke-width: 1.5; }
+    .pe-graph .node.start rect { stroke: var(--sajha-crimson); stroke-width: 2.5; }
+    .pe-graph .node.terminal rect { fill: var(--sajha-crimson-tint); }
+    .pe-graph .node.unreachable rect { stroke-dasharray: 4 3; }
+    .pe-graph .node .type { fill: var(--t-muted); font-size: 11px; }
+    .pe-graph .edge { fill: none; stroke: var(--t-muted); stroke-width: 1.4; }
+    .pe-graph .edge.bounded { stroke: var(--sajha-crimson); stroke-dasharray: 6 3; stroke-width: 1.8; }
+    .pe-graph .edge.exhausted { stroke-dasharray: 2 3; }
+    .pe-graph .edge.path { stroke: var(--sajha-ok, #198754); stroke-width: 3; }
+    .pe-graph .elabel { font-size: 11px; fill: var(--t-muted); }
+    .pe-graph .elabel.bounded { fill: var(--sajha-crimson); font-weight: 700; }
+    .pe-path { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .pe-path code { border: 1px solid var(--sajha-border); border-radius: 999px; padding: 2px 10px; }
+    #peMessage:empty { display: none; }
+</style>
+{% include 'admin/studio/_studio_theme.html' %}
+{% endblock %}
+
+{% block content %}
+{% include "admin/studio/_studio_nav.html" %}
+<div class="container-fluid py-3">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('studio_home') }}">MCP Studio</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Planner editor</li>
+        </ol>
+    </nav>
+
+    <div class="creator-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h1 class="h3"><i class="bi bi-signpost-split me-2" aria-hidden="true"></i>Planner editor</h1>
+                <p class="subtitle mb-0">Planners decide how an LLM tool answers: which stages run, how often a loop may repeat and what it may
+                    spend. Edit a planner file, check it against the schema and the P-rules, see its graph, dry-run it on the mock model,
+                    and save it as a new version. Administrators only.</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ guide_url('Planner Reference.md') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-book me-1" aria-hidden="true"></i>Planner reference</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="peMessage" class="alert" role="status" aria-live="polite"></div>
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-list-ul" aria-hidden="true"></i>Planners <span class="badge bg-secondary" id="peCount"></span></div>
+                <div class="section-body">
+                    <ul class="pe-list" id="peList" aria-label="Planners"></ul>
+                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="peNew"><i class="bi bi-plus" aria-hidden="true"></i> New planner</button>
+                </div>
+            </div>
+            <div class="form-section" id="peRefusedWrap">
+                <div class="section-header"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i>Load problems</div>
+                <div class="section-body small" id="peRefused"></div>
+            </div>
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-info-circle" aria-hidden="true"></i>Versions and the last good file</div>
+                <div class="section-body small">
+                    <p><code>{{ planner_data.dir }}/&lt;name&gt;.yaml</code> holds the newest version; saving a new version keeps the one it replaces as
+                        <code>&lt;name&gt;@&lt;version&gt;.yaml</code>, so tools that pin <code>name@version</code> keep what they were tested with.
+                        A version cannot be saved twice with different content: change <code>version</code>.</p>
+                    <p class="mb-0">The editor never writes a file that fails validation. If a file edited elsewhere fails, the registry keeps
+                        the <strong>last good version</strong> of that <code>name@version</code> in use, logs the error and counts it
+                        (<code>sajha_planner_load_errors_total</code>); running tools keep working, and the problem is listed above.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-file-earmark-code" aria-hidden="true"></i>
+                    <span id="peFile">New planner</span> <span class="badge" id="peBadge"></span></div>
+                <div class="section-body">
+                    <div class="d-flex flex-wrap gap-2 align-items-end mb-2">
+                        <div>
+                            <label class="form-label fw-bold small mb-1" for="peVersion">Version</label>
+                            <select id="peVersion" class="form-select form-select-sm" style="min-width: 10rem"></select>
+                        </div>
+                    </div>
+                    <label class="form-label fw-bold" for="peText">Planner file (YAML)</label>
+                    <textarea id="peText" class="form-control pe-code pe-editor" rows="18" spellcheck="false" aria-describedby="peTextHelp"></textarea>
+                    <div class="form-text" id="peTextHelp">Checked as you type. Keys and stage types: the Planner Reference.</div>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <button type="button" class="btn btn-outline-primary" id="peCheck"><i class="bi bi-check2-square me-1" aria-hidden="true"></i>Check</button>
+                        <button type="button" class="btn btn-success" id="peSave" disabled><i class="bi bi-save me-1" aria-hidden="true"></i>Save as a new version</button>
+                    </div>
+                    <div class="table-responsive mt-3" tabindex="0" role="region" aria-label="Validation findings">
+                        <table class="table table-sm pe-diag mb-0" data-sajha-table="false">
+                            <caption class="visually-hidden">Validation findings</caption>
+                            <thead><tr><th scope="col">Rule</th><th scope="col">Level</th><th scope="col">Where</th><th scope="col">Message</th></tr></thead>
+                            <tbody id="peDiag"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-bezier2" aria-hidden="true"></i>Graph</div>
+                <div class="section-body">
+                    <p class="small text-muted">Stages left to right from <code>start</code>. A bounded edge (<code>max_visits</code>) is dashed in the accent colour with
+                        its bound; dotted edges go where an exhausted bound leads. A dry run highlights the stages it took.</p>
+                    <div class="pe-graph-wrap" tabindex="0" role="region" aria-label="Planner graph, scrollable"><svg class="pe-graph" id="peGraph" role="img" aria-labelledby="peGraphTitle"><title id="peGraphTitle">Planner graph</title></svg></div>
+                    <details class="mt-2">
+                        <summary class="fw-bold">Transitions as a table</summary>
+                        <div class="table-responsive" tabindex="0" role="region" aria-label="Transitions">
+                            <table class="table table-sm pe-diag mb-0 mt-2" data-sajha-table="false">
+                                <caption class="visually-hidden">Transitions</caption>
+                                <thead><tr><th scope="col">From</th><th scope="col">On</th><th scope="col">To</th><th scope="col">Bound</th><th scope="col">When</th></tr></thead>
+                                <tbody id="peEdges"></tbody>
+                            </table>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-header"><i class="bi bi-play-circle" aria-hidden="true"></i>Dry run</div>
+                <div class="section-body">
+                    <p class="small text-muted">Runs the planner in the editor (saved or not) against <code>{{ planner_data.dry_run_model }}</code>
+                        (<code>ai.planners.dry_run_model</code>) through <code>POST /api/ai/planners/dry-run</code>. Only read-only tools run; others answer "not run".</p>
+                    <label class="form-label fw-bold" for="peQuestion">Question</label>
+                    <input id="peQuestion" class="form-control" value="What is the percentage change from 80 to 100?">
+                    <button type="button" class="btn btn-primary mt-2" id="peDry"><i class="bi bi-play me-1" aria-hidden="true"></i>Dry run</button>
+                    <div id="peDryResult" class="mt-2" aria-live="polite"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="application/json" id="peData">{{ {'listing': planner_data, 'open': open_ref}|tojson }}</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    'use strict';
+    const D = JSON.parse(document.getElementById('peData').textContent);
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+    const SVG = 'http://www.w3.org/2000/svg';
+    let current = {name: null, version: null}, lastCheck = null, timer = null;
+    const NEW = 'name: my_planner\nversion: 1.0.0\ndescription: Calls tools until it can answer, then answers.\n' +
+        'use_when: Questions one or two tool calls answer.\nmodels: { act: default }\nstart: act\nstages:\n  act:\n    type: act\n    model: act\n' +
+        '    outcomes:\n      called:   { next: act, max_visits: 4, on_exhausted: answer }\n      answered: { next: answer }\n  answer:\n    type: answer\n';
+
+    function message(text, level) { const m = $('peMessage'); m.className = 'alert alert-' + (level || 'info'); m.textContent = text || ''; }
+    async function call(method, path, body) {
+        const r = await fetch(path, {method, headers: {'Content-Type': 'application/json'}, credentials: 'same-origin',
+                                     body: body ? JSON.stringify(body) : undefined});
+        let data = {};
+        try { data = await r.json(); } catch (e) { data = {error: 'HTTP ' + r.status}; }
+        if (!r.ok && data.success === undefined) data = {success: false, ...data, error: data.error || data.detail || 'HTTP ' + r.status};
+        return data;
+    }
+
+    function renderList(listing) {
+        const ps = listing.planners || [];
+        $('peCount').textContent = ps.length;
+        $('peList').innerHTML = ps.map(p => '<li><button type="button" class="pe-item" data-name="' + esc(p.name) + '"' + (p.source === 'python' ? ' data-python="1"' : '') + '>' +
+            '<span><code>' + esc(p.name) + '</code> <small>' + esc(p.version) + (p.versions && p.versions.length > 1 ? ' · ' + p.versions.length + ' versions' : '') +
+            (p.source === 'python' ? ' · Python' : '') + '</small></span>' +
+            ((p.warnings || []).length ? '<span class="badge bg-warning text-dark">' + p.warnings.length + ' warning' + (p.warnings.length === 1 ? '' : 's') + '</span>' : '') +
+            '<small class="w-100">' + esc(p.use_when || p.description || '') + '</small></button></li>').join('');
+        $('peList').querySelectorAll('.pe-item').forEach(b => b.addEventListener('click', () => {
+            if (b.dataset.python) { message(b.dataset.name + ' is a Python planner: it has no file to edit here.', 'warning'); return; }
+            open(b.dataset.name);
+        }));
+        const ref = listing.refused || [];
+        $('peRefused').innerHTML = ref.length ? ref.map(r => '<div class="mb-2"><div><code>' + esc(r.file) + '</code> ' +
+            (r.in_use ? '<span class="badge bg-info text-dark">last good ' + esc(r.last_good.join(', ')) + ' in use</span>' : '<span class="badge bg-danger">not loaded</span>') +
+            '</div><ul class="mb-0 ps-3">' + r.errors.map(e => '<li>' + esc(e.code) + ' ' + esc(e.location ? e.location + ': ' : '') + esc(e.message) + '</li>').join('') + '</ul>' +
+            '<button type="button" class="btn btn-sm btn-outline-secondary mt-1 pe-open-file" data-name="' + esc(r.name) + '">Open ' + esc(r.file) + '</button></div>').join('')
+            : '<span class="text-muted">Every planner file loads.</span>';
+        $('peRefused').querySelectorAll('.pe-open-file').forEach(b => b.addEventListener('click', () => open(b.dataset.name)));
+    }
+
+    function mark() {
+        document.querySelectorAll('.pe-item').forEach(b => b.classList.toggle('active', b.dataset.name === current.name));
+    }
+
+    async function open(ref) {
+        const data = await call('GET', '/api/studio/planners/' + encodeURIComponent(ref));
+        if (!data.success) { message(data.error || 'Could not open ' + ref, 'danger'); return; }
+        current = {name: data.name, version: data.version};
+        $('peFile').textContent = data.file;
+        $('peVersion').innerHTML = (data.versions || []).slice().reverse().map(v => '<option value="' + esc(data.name + '@' + v) + '"' +
+            (v === data.version ? ' selected' : '') + '>' + esc(v) + '</option>').join('') || '<option>' + esc(data.version || '') + '</option>';
+        $('peText').value = data.text;
+        message((data.load_errors || []).length ? data.file + ' does not load as it is on disk; the registry runs the last good version. Fix it and save a new version.'
+                                                 : 'Opened ' + data.file + '.', (data.load_errors || []).length ? 'warning' : 'info');
+        show(data);
+        mark();
+    }
+
+    function show(chk) {
+        lastCheck = chk;
+        const diags = (chk.errors || []).concat(chk.warnings || []);
+        $('peDiag').innerHTML = diags.map(d => '<tr><td><code>' + esc(d.code) + '</code></td><td>' + (d.level === 'error' ? '<span class="text-danger fw-bold">error</span>' : 'warning') +
+            '</td><td><code>' + esc(d.location || '') + '</code></td><td>' + esc(d.message) + '</td></tr>').join('') ||
+            '<tr><td colspan="4" class="text-muted">No findings: this file loads.</td></tr>';
+        const b = $('peBadge');
+        b.className = 'badge ' + (chk.valid ? 'bg-success' : 'bg-danger');
+        b.textContent = chk.valid ? 'valid' : (chk.errors || []).length + ' error' + ((chk.errors || []).length === 1 ? '' : 's');
+        $('peSave').disabled = !chk.valid;
+        drawGraph(chk.graph || {nodes: [], edges: []}, []);
+    }
+
+    function drawGraph(g, path) {
+        const svg = $('peGraph');
+        Array.from(svg.childNodes).forEach(n => { if (n.nodeName !== 'title') svg.removeChild(n); });
+        $('peGraphTitle').textContent = g.nodes.length ? 'Planner graph: ' + g.nodes.length + ' stages, start ' + (g.start || '?') +
+            '. The transitions table below lists every edge.' : 'No graph (a Python planner, or the file does not parse).';
+        const W = 150, H = 46, GX = 70, GY = 26;
+        const byLevel = {};
+        g.nodes.forEach(n => { (byLevel[n.level] = byLevel[n.level] || []).push(n); });
+        const pos = {};
+        let maxRows = 1;
+        Object.keys(byLevel).forEach(l => { byLevel[l].forEach((n, i) => { pos[n.id] = {x: 20 + l * (W + GX), y: 30 + i * (H + GY)}; }); maxRows = Math.max(maxRows, byLevel[l].length); });
+        const levels = Object.keys(byLevel).length;
+        const width = Math.max(320, 40 + levels * (W + GX)), height = 60 + maxRows * (H + GY) + 60;
+        svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+        svg.setAttribute('width', width); svg.setAttribute('height', height);
+        const defs = document.createElementNS(SVG, 'defs');
+        defs.innerHTML = '<marker id="peArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path></marker>';
+        svg.appendChild(defs);
+        const onPath = new Set();
+        for (let i = 0; i + 1 < path.length; i++) onPath.add(path[i] + '>' + path[i + 1]);
+        const pairCount = {};
+        g.edges.forEach(e => {
+            const a = pos[e.from], b = pos[e.to];
+            if (!a || !b) return;
+            const key = e.from + '>' + e.to;
+            const k = pairCount[key] = (pairCount[key] || 0) + 1;
+            const p = document.createElementNS(SVG, 'path');
+            let d, lx, ly;
+            if (e.from === e.to) {
+                d = 'M' + (a.x + W - 30) + ',' + a.y + ' C' + (a.x + W + 30) + ',' + (a.y - 40 - k * 8) + ' ' + (a.x + W + 40) + ',' + (a.y + 10) + ' ' + (a.x + W) + ',' + (a.y + 14);
+                lx = a.x + W + 6; ly = a.y - 22 - k * 8;
+            } else if (e.back) {
+                const y = Math.max(a.y, b.y) + H + 18 + k * 12;
+                d = 'M' + (a.x + W / 2) + ',' + (a.y + H) + ' C' + (a.x + W / 2) + ',' + y + ' ' + (b.x + W / 2) + ',' + y + ' ' + (b.x + W / 2) + ',' + (b.y + H);
+                lx = (a.x + b.x + W) / 2; ly = y - 2;
+            } else {
+                const off = (k - 1) * 10;
+                d = 'M' + (a.x + W) + ',' + (a.y + H / 2 + off) + ' C' + (a.x + W + GX / 2) + ',' + (a.y + H / 2 + off) + ' ' + (b.x - GX / 2) + ',' + (b.y + H / 2 + off) + ' ' + b.x + ',' + (b.y + H / 2 + off);
+                lx = (a.x + W + b.x) / 2 - 20; ly = (a.y + b.y) / 2 + H / 2 - 4 + off;
+            }
+            p.setAttribute('d', d);
+            p.setAttribute('class', 'edge' + (e.bounded ? ' bounded' : '') + (e.kind === 'exhausted' ? ' exhausted' : '') + (onPath.has(key) ? ' path' : ''));
+            p.setAttribute('marker-end', 'url(#peArrow)');
+            svg.appendChild(p);
+            const t = document.createElementNS(SVG, 'text');
+            t.setAttribute('x', lx); t.setAttribute('y', ly);
+            t.setAttribute('class', 'elabel' + (e.bounded ? ' bounded' : ''));
+            t.textContent = e.label + (e.bounded ? ' ≤' + e.max_visits : '');
+            svg.appendChild(t);
+        });
+        const visited = new Set(path);
+        g.nodes.forEach(n => {
+            const q = pos[n.id];
+            const grp = document.createElementNS(SVG, 'g');
+            grp.setAttribute('class', 'node' + (n.start ? ' start' : '') + (n.terminal ? ' terminal' : '') + (n.reachable ? '' : ' unreachable'));
+            const r = document.createElementNS(SVG, 'rect');
+            r.setAttribute('x', q.x); r.setAttribute('y', q.y); r.setAttribute('width', W); r.setAttribute('height', H); r.setAttribute('rx', 10);
+            if (visited.has(n.id)) r.setAttribute('style', 'stroke: var(--sajha-ok, #198754); stroke-width: 3');
+            grp.appendChild(r);
+            const t1 = document.createElementNS(SVG, 'text'); t1.setAttribute('x', q.x + 10); t1.setAttribute('y', q.y + 19); t1.textContent = n.id; grp.appendChild(t1);
+            const t2 = document.createElementNS(SVG, 'text'); t2.setAttribute('x', q.x + 10); t2.setAttribute('y', q.y + 36); t2.setAttribute('class', 'type');
+            t2.textContent = n.type + (n.start ? ' · start' : '') + (n.reachable ? '' : ' · unreachable'); grp.appendChild(t2);
+            svg.appendChild(grp);
+        });
+        $('peEdges').innerHTML = g.edges.map(e => '<tr><td><code>' + esc(e.from) + '</code></td><td>' + esc(e.label) + '</td><td><code>' + esc(e.to) + '</code>' +
+            (e.dangling ? ' <span class="text-danger">(no such stage)</span>' : '') + '</td><td>' + (e.bounded ? 'max_visits ' + esc(e.max_visits) +
+            (e.on_exhausted ? ', then ' + esc(e.on_exhausted) : '') : '—') + '</td><td><code>' + esc(e.when || '') + '</code></td></tr>').join('') ||
+            '<tr><td colspan="5" class="text-muted">No transitions.</td></tr>';
+    }
+
+    async function check() {
+        const data = await call('POST', '/admin/studio/planners/check', {text: $('peText').value});
+        if (data.success === false && !data.errors) { message(data.error || 'Could not check', 'danger'); return null; }
+        show(data);
+        return data;
+    }
+
+    $('peText').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(check, 500); });
+    $('peCheck').addEventListener('click', async () => { const c = await check(); if (c) message(c.valid ? 'The file is valid.' : 'Fix the errors listed below.', c.valid ? 'success' : 'warning'); });
+    $('peVersion').addEventListener('change', () => open($('peVersion').value));
+    $('peNew').addEventListener('click', () => {
+        current = {name: null, version: null}; $('peFile').textContent = 'New planner'; $('peVersion').innerHTML = '';
+        $('peText').value = NEW; check(); mark(); message('A new planner: rename it, then save.', 'info');
+    });
+    $('peSave').addEventListener('click', async () => {
+        const c = await check();
+        if (!c || !c.valid) return;
+        if (!confirm('Save ' + c.name + '@' + c.version + '? Tools that name ' + c.name + ' without a version use it at once.')) return;
+        const data = await call('POST', '/admin/studio/planners/save', {text: $('peText').value});
+        if (!data.success) { message(data.error || 'Not saved', 'danger'); return; }
+        message(data.message + ((data.load_errors || []).length ? ' (but it reports load errors: see the list)' : ''), (data.load_errors || []).length ? 'warning' : 'success');
+        const listing = await call('GET', '/api/studio/planners');
+        if (listing.success) renderList(listing);
+        open(data.name + '@' + data.version);
+    });
+    $('peDry').addEventListener('click', async () => {
+        const c = await check();
+        if (!c || !c.valid) { message('Fix the errors before a dry run.', 'warning'); return; }
+        $('peDry').disabled = true;
+        $('peDryResult').innerHTML = '<span class="text-muted small">Running…</span>';
+        const data = await call('POST', '/api/ai/planners/dry-run', {planner: c.doc, question: $('peQuestion').value});
+        $('peDry').disabled = false;
+        if (data.error && !data.path) { $('peDryResult').innerHTML = '<div class="alert alert-danger py-2 small">' + esc(data.error) + '</div>'; return; }
+        drawGraph(c.graph, data.path || []);
+        $('peDryResult').innerHTML = '<div class="small mb-1">Stage path (' + esc((data.path || []).length) + ' stages, stopped_by <code>' + esc(data.stopped_by) + '</code>):</div>' +
+            '<div class="pe-path" aria-label="Stage path">' + (data.path || []).map(s => '<code>' + esc(s) + '</code>').join('<span aria-hidden="true">→</span>') + '</div>' +
+            ((data.loops_exhausted || []).length ? '<div class="small mt-1 text-warning">Bounds reached: ' + data.loops_exhausted.map(esc).join(', ') + '</div>' : '') +
+            ((data.tool_calls || []).length ? '<div class="small mt-1">Tool calls: ' + data.tool_calls.map(t => '<code>' + esc(t.name) + '</code>' + (t.run ? '' : ' (not run)')).join(', ') + '</div>' : '') +
+            '<div class="small mt-2 fw-bold">Answer</div><div class="small">' + esc(data.answer || '') + '</div>' +
+            (data.error ? '<div class="small text-danger mt-1">' + esc(data.error) + '</div>' : '');
+    });
+
+    renderList(D.listing);
+    const first = D.open || ((D.listing.planners || []).find(p => p.source === 'file') || {}).name;
+    if (first) open(first); else $('peNew').click();
+})();
+</script>
+{% endblock %}

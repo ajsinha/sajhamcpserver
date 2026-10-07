@@ -29,7 +29,7 @@ from sajha.ai.llm.errors import (AuthenticationFailed, ConfigurationError, Conte
                                  InvalidRequest, LLMError, ProviderUnavailable, RateLimited, UnsupportedFeature)
 from sajha.ai.llm.http import CONTEXT_MARKERS
 from sajha.ai.llm.model import ChatModel, EmbeddingModel, HealthStatus, ModelCapabilities
-from sajha.ai.llm.provider import LLMProvider
+from sajha.ai.llm.provider import ProviderBase
 from sajha.ai.llm.registry import register_provider
 from sajha.ai.llm.settings import ProviderConfig
 from sajha.ai.llm.adapter import StreamTranslator, assistant_text, system_text
@@ -306,7 +306,7 @@ class BedrockEmbeddingModel(EmbeddingModel):
 
 
 @register_provider
-class BedrockProvider(LLMProvider):
+class BedrockProvider(ProviderBase):
     name = "bedrock"
     config_model = BedrockConfig
     requires_key = False            # boto3's credential chain

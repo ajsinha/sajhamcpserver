@@ -19,32 +19,37 @@
       + ([(url_for('monitoring_users'), 'people', 'User activity', 'Who called what, and when')] if is_admin else []))]),
   ('AI', 'cpu', [
     ('Ask', [
-      (url_for('ask_page'), 'stars', 'Ask SAJHA', 'Ask a question; SAJHA picks the tools, runs them and answers')]),
+      (url_for('ask_page'), 'stars', 'Ask SAJHA', 'Ask a question; SAJHA picks the tools, runs them and answers'),
+      (url_for('conversations_page'), 'chat-left-dots', 'Conversations', 'Your conversations with Ask SAJHA and LLM tools')]),
     ('Models & prompts', [
       (url_for('ai_settings'), 'cloud', 'LLM', 'Providers, models and the default'),
       (url_for('prompts_list'), 'chat-square-text', 'Prompts', 'The prompt library, tested and versioned')])])] %}
 {% endif %}
 {% set show_studio = is_admin or (can_studio is defined and can_studio) %}
 {% if session.token and show_studio %}
+{# Only the creators the caller's permissions open (studio:<creator>; admins all) #}
+{% set SC = studio_creators if studio_creators is defined else [] %}
+{% set code_items = [(url_for('studio_home'), 'house', 'Studio home', 'Everything you can build here')]
+  + ([(url_for('studio_describe'), 'chat-square-text', 'Describe a tool', 'Say what it should do; review, test and approve')] if is_admin or 'describe' in SC else [])
+  + ([(url_for('studio_home') ~ '#python-creator', 'code-slash', 'Python code tool', 'Turn a Python function into a tool (on Studio home)')] if is_admin or 'python' in SC else [])
+  + ([(url_for('studio_rest'), 'cloud-arrow-up', 'REST service tool', 'Wrap an HTTP endpoint as a tool')] if is_admin or 'rest' in SC else [])
+  + ([(url_for('studio_api_import'), 'filetype-json', 'Import an API', 'OpenAPI, Swagger or GraphQL: one tool per operation')] if is_admin or 'api_import' in SC else [])
+  + ([(url_for('studio_dbquery'), 'database', 'DB query tool', 'A parameterised SQL query as a tool')] if is_admin or 'dbquery' in SC else [])
+  + ([(url_for('studio_script'), 'terminal', 'Script tool', 'Run a shell or Python script as a tool')] if is_admin or 'script' in SC else []) %}
+{% set source_items = ([(url_for('studio_powerbi'), 'bar-chart-fill', 'PowerBI report', 'Export a report page as a tool')] if is_admin or 'powerbi' in SC else [])
+  + ([(url_for('studio_powerbidax'), 'braces', 'PowerBI DAX query', 'A DAX query against a dataset')] if is_admin or 'powerbidax' in SC else [])
+  + ([(url_for('studio_livelink'), 'folder2-open', 'IBM LiveLink', 'Search and fetch documents')] if is_admin or 'livelink' in SC else [])
+  + ([(url_for('studio_sharepoint'), 'microsoft', 'SharePoint', 'Documents, lists or search on a SharePoint site')] if is_admin or 'sharepoint' in SC else [])
+  + ([(url_for('studio_olap'), 'graph-up-arrow', 'OLAP dataset', 'Slice a cube as a tool')] if is_admin or 'olap' in SC else []) %}
+{% set ai_items = ([(url_for('studio_llm'), 'chat-square-text', 'LLM tool', 'A tool whose work a language model does: mode, model, tools, limits')] if is_admin or 'llm' in SC else [])
+  + ([(url_for('studio_planners'), 'signpost-split', 'Planner editor', 'Planner files: check, graph, dry run, versions (admins)')] if is_admin else []) %}
+{% set compose_items = ([(url_for('composite_builder'), 'boxes', 'Composite builder', 'Chain tools into one')] if is_admin or 'composite' in SC else [])
+  + [(url_for('workflows_page'), 'diagram-3', 'Workflows', 'Steps, branches and loops on a schedule or trigger')] %}
 {% set MENU = MENU + [
-  ('MCP Studio', 'magic', [
-    ('Code & services', [
-      (url_for('studio_home'), 'house', 'Studio home', 'Everything you can build here'),
-      (url_for('studio_describe'), 'chat-square-text', 'Describe a tool', 'Say what it should do; review, test and approve'),
-      (url_for('studio_home') ~ '#python-creator', 'code-slash', 'Python code tool', 'Turn a Python function into a tool (on Studio home)'),
-      (url_for('studio_rest'), 'cloud-arrow-up', 'REST service tool', 'Wrap an HTTP endpoint as a tool'),
-      (url_for('studio_api_import'), 'filetype-json', 'Import an API', 'OpenAPI, Swagger or GraphQL: one tool per operation'),
-      (url_for('studio_dbquery'), 'database', 'DB query tool', 'A parameterised SQL query as a tool'),
-      (url_for('studio_script'), 'terminal', 'Script tool', 'Run a shell or Python script as a tool')]),
-    ('Enterprise sources', [
-      (url_for('studio_powerbi'), 'bar-chart-fill', 'PowerBI report', 'Export a report page as a tool'),
-      (url_for('studio_powerbidax'), 'braces', 'PowerBI DAX query', 'A DAX query against a dataset'),
-      (url_for('studio_livelink'), 'folder2-open', 'IBM LiveLink', 'Search and fetch documents'),
-      (url_for('studio_sharepoint'), 'microsoft', 'SharePoint', 'Documents, lists or search on a SharePoint site'),
-      (url_for('studio_olap'), 'graph-up-arrow', 'OLAP dataset', 'Slice a cube as a tool')]),
-    ('Compose', [
-      (url_for('composite_builder'), 'boxes', 'Composite builder', 'Chain tools into one'),
-      (url_for('workflows_page'), 'diagram-3', 'Workflows', 'Steps, branches and loops on a schedule or trigger')])])] %}
+  ('MCP Studio', 'magic', [('Code & services', code_items)]
+    + ([('Enterprise sources', source_items)] if source_items else [])
+    + ([('Language models', ai_items)] if ai_items else [])
+    + [('Compose', compose_items)])] %}
 {% endif %}
 {% if session.token and is_admin %}
 {% set MENU = MENU + [

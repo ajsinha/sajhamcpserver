@@ -11,6 +11,21 @@ What the layer is and why it is built this way is the
 in the [Configuration Reference](../getting-started/Configuration%20Reference.md#ai). This
 guide does not repeat them; it shows how to build on them, step by step.
 
+**Where the code goes.** Every provider and model specific lives in `sajha/ai/llm/`: a
+built-in provider is one module in `sajha/ai/llm/providers/`; an out-of-tree one is a module of
+your own package, loaded by class path or entry point (section 2.7). Either way it implements
+the two abstract classes of `sajha/ai/llm/base.py`: `LLMProvider` (a factory for its models,
+its catalogue, health, configuration) and `LLMModel` (`chat_completions_create`,
+`chat_completions_stream`, `achat_completions_create`, `achat_completions_stream`,
+`embeddings_create`, `aembeddings_create`, `info`). You rarely implement them from scratch:
+subclass the shared implementations `ProviderBase`, `ChatModel` / `HTTPChatModel` and
+`EmbeddingModel`. Extension code imports them, and everything else it needs, from the provider
+SPI, `sajha.ai.llm.spi`; the canonical types and errors come from `sajha.ai.llm`. Application
+code never sees your classes: `llm_factory().model(alias)` returns a `GovernedModel` proxy that
+delegates to your model after policy, budgets, cache, retries and fallback
+(`tests/test_llm_boundary.py` checks that nothing outside the package constructs a provider or
+model, and that every registered provider implements the abstract classes).
+
 Every code block below that starts with a `# sajha/examples/intelligence/...` line is an
 excerpt of a file in `sajha/examples/intelligence/` (`# ...` marks skipped lines).
 `tests/ai/test_extension_examples.py` runs those files through the provider contract suite
@@ -35,16 +50,16 @@ and through `IntelligenceService.ask`, and fails if an excerpt here stops matchi
  IntelligenceService.stream_ask (sajha/ai/intelligence.py)
    1 shortlist   ToolResolver ranks tools; RBAC and policy filter them      (not pluggable)
    2 loop        for each step: the PLANNER (ai.ask.planner, section 4.5) decides; the default,
-                 react, calls the gateway with model=ai.ask.model
+                 react, calls llm_factory().model(ai.ask.model)
                    │                                      ▲
                    │                                      │ ChatCompletion: text and/or tool_calls
                    ▼                                      │
-                 LLMGateway.chat_completions_create: alias → candidates → policy, budget,
-                   │                                   retries, fallback, cache
-                   ▼
+                 GovernedModel.chat_completions_create (the proxy): alias → candidates → policy,
+                   │                                   budget, retries, fallback, cache, audit
+                   ▼  delegates to
                  ChatModel.chat_completions_create  ◄── a MODEL (section 3); under react it plans too (section 4)
                    │  prepare (refusals, capabilities) → _create → wire / parse at the edge
-                 LLMProvider: credentials, httpx clients, catalogue, health   ◄── a PROVIDER (section 2)
+                 ProviderBase: credentials, httpx clients, catalogue, health   ◄── a PROVIDER (section 2)
                  the loop runs each tool call (offered? destructive? execute_with_tracking)
                  and feeds the results back as role "tool" messages
    3 synthesis   one more call with response_format json_schema → {answer, citations, caveats}
@@ -53,7 +68,7 @@ and through `IntelligenceService.ask`, and fails if an excerpt here stops matchi
 
 | You want | You write | Registered by | Section |
 |---|---|---|---|
-| SAJHA to talk to a new LLM service | an `LLMProvider` subclass with a pydantic `config_model`, plus a `ChatModel` that translates the canonical (OpenAI Chat Completions) format to the service (and optionally an `EmbeddingModel`) | `@register_provider`, `ai.providers[].class`, or a `sajha.llm_providers` entry point | 2 |
+| SAJHA to talk to a new LLM service | a `ProviderBase` subclass (an `LLMProvider`) with a pydantic `config_model`, plus a `ChatModel` that translates the canonical (OpenAI Chat Completions) format to the service (and optionally an `EmbeddingModel`) | `@register_provider`, `ai.providers[].class`, or a `sajha.llm_providers` entry point | 2 |
 | A model id the provider does not know, with different capabilities or prices | nothing: a `models:` entry in the provider's config | configuration | 3.6 |
 | A model with its own behaviour on an existing provider | a `ChatModel` subclass (usually of that provider's model class) | `@register_model(provider=..., model_id=...)` | 3.6 |
 | Real planning in Ask SAJHA | nothing: enable a tool-capable provider and point the `default` alias at it | configuration | 4.3 |
@@ -69,7 +84,8 @@ each step of an ask whether to answer or which tools to call.
 
 ## 2. Writing a provider
 
-A provider is a subclass of `LLMProvider` (`sajha/ai/llm/provider.py`). The class
+A provider is a subclass of `ProviderBase` (`sajha/ai/llm/provider.py`, imported from
+`sajha.ai.llm.spi`), the shared implementation of the abstract `LLMProvider`. The class
 attributes are the whole declaration:
 
 | Attribute | Meaning | Acme |
@@ -89,8 +105,8 @@ attributes are the whole declaration:
 Its OpenAI-style face: `provider.models()` returns `ModelInfo` objects (like
 `GET /v1/models`) and `provider.model(name)` the model object.
 
-The provider is a factory: the gateway calls `chat_model(model_id)` (or
-`embedding_model(model_id)`) and then works only with the model object. Steps 2.1 to 2.8
+The provider is a factory: the governed model calls `chat_model(model_id)` (or
+`embedding_model(model_id)`) on it and then delegates only to the model object. Steps 2.1 to 2.8
 build the Acme provider in that order.
 
 ### 2.1 Settings: the `config_model`
@@ -155,7 +171,7 @@ settings page). Put the key into headers in `auth_headers()`:
 ```
 
 `auth_headers()` is read once, when the HTTP clients are first built, so a rotated key takes
-effect when the gateway is rebuilt (at the next start). If your service uses short-lived
+effect when the factory is rebuilt (at the next start). If your service uses short-lived
 tokens, return them from `request_headers()` (and `arequest_headers()` for the async path),
 which `HTTPChatModel` calls on every request. `sajha/ai/llm/cloud_auth.py` has cached,
 refresh-before-expiry token sources for Google (service-account files, workload identity)
@@ -186,10 +202,10 @@ without calling the helpers itself. The helpers do the error handling for you:
 
 ### 2.4 Errors: map onto the taxonomy
 
-The gateway decides whether to retry, fall back or give up by the **type** of the error, so
+The governed model decides whether to retry, fall back or give up by the **type** of the error, so
 every failure a model or provider raises must be one of SAJHA's (`sajha/ai/llm/errors.py`).
-An exception that is not an `LLMError` is not caught by the gateway's fallback: it escapes
-the gateway and ends the ask with an error instead of trying the next candidate.
+An exception that is not an `LLMError` is not caught by the governed model's fallback: it escapes
+the governed model and ends the ask with an error instead of trying the next candidate.
 
 `map_http_error` handles the common cases by status. Give the helpers a `classify` callable
 for what only your service's body says:
@@ -234,7 +250,7 @@ def fault_error(fault: Dict[str, Any], provider: str, model: str = "", status: O
 
 Rules: set `provider=` (and `model=` where known) on every error; set `retry_after` when the
 service says how long to wait; never raise `RateLimited` or `ProviderUnavailable` for a
-request that can never succeed (it would be retried). Inside a stream, the gateway falls back
+request that can never succeed (it would be retried). Inside a stream, the governed model falls back
 only before the first event; an error after that reaches the caller, so map mid-stream faults
 too (the `fault` event in `AcmeStreamTranslator.feed`).
 
@@ -253,14 +269,14 @@ overriding the earlier for the same id:
    add a model, change its capabilities and prices, or hide it with `enabled: false`.
 
 The result is cached for `live_models_ttl_s`. A model id found nowhere gets
-`unknown_model_capabilities`. When an alias names only the provider (`acme`), the gateway
+`unknown_model_capabilities`. When an alias names only the provider (`acme`), the factory
 uses `default_chat_model_id()`: `config.default_model`, else the catalogue's default, else the
 first chat model listed.
 
 ```python
 # sajha/examples/intelligence/acme_provider.py
     def live_models(self) -> List[ModelDescriptor]:
-        """Merged by LLMProvider.list_models() under config `models:` overrides."""
+        """Merged by ProviderBase.list_models() under config `models:` overrides."""
         known = {d.id: d for d in KNOWN_MODELS}
         if not self.config.live_models:
             return list(known.values())
@@ -279,12 +295,12 @@ first chat model listed.
 ```
 
 If some listed models may be absent at run time (Ollama lists only pulled models), also
-define `model_available(model_id) -> bool`; the gateway skips a candidate for which it
+define `model_available(model_id) -> bool`; the governed model skips a candidate for which it
 returns `False`.
 
 ### 2.6 Health and lifecycle
 
-`health()` returns a `HealthStatus` (`ok`, `degraded` or `down`). The gateway calls it when
+`health()` returns a `HealthStatus` (`ok`, `degraded` or `down`). The governed model calls it when
 choosing candidates and caches the answer for `ai.gateway.health_ttl_s`, so keep it bounded
 by `health_timeout_s`. The base implementation reports disabled, not configured and missing
 key without any I/O; call it first:
@@ -292,7 +308,7 @@ key without any I/O; call it first:
 ```python
 # sajha/examples/intelligence/acme_provider.py
     def health(self) -> HealthStatus:
-        """The gateway caches this for ai.gateway.health_ttl_s; keep it cheap and bounded."""
+        """The factory caches this for ai.gateway.health_ttl_s; keep it cheap and bounded."""
         base = super().health()                            # disabled, not configured, no key
         if not base.ok:
             return base
@@ -307,22 +323,23 @@ key without any I/O; call it first:
 A cloud API with no health endpoint can keep the default (configured or not); a probe that
 costs tokens is never a good health check. `close()` closes `self.http`; override it (and
 call `super().close()`) if the provider holds anything else, such as a session or a thread.
-The gateway closes every provider when it is rebuilt.
+The factory closes every provider when it is rebuilt.
 
 ### 2.7 Registration: three ways
 
-All three validate the class (an `LLMProvider` subclass with a `name` and a pydantic
-`config_model`) and fail at startup with a clear message. `GET /api/ai/registry` (admin)
+All three validate the class (a concrete `LLMProvider` subclass, usually of `ProviderBase`,
+with a `name` and a pydantic `config_model`; a class that leaves an abstract method
+unimplemented is refused) and fail at startup with a clear message. `GET /api/ai/registry` (admin)
 lists what is registered.
 
-**1. The decorator**, on a class in a module that is imported before the gateway is built.
+**1. The decorator**, on a class in a module that is imported before the factory is built.
 This is how the built-in providers register (`sajha/ai/llm/providers/__init__.py` imports each
 one); for your own code it needs one of the other two ways to get imported.
 
 ```python
 # sajha/examples/intelligence/acme_provider.py
 @register_provider
-class AcmeProvider(LLMProvider):
+class AcmeProvider(ProviderBase):
     name = "acme"                                          # the registry key and the config section
     config_model = AcmeConfig
     requires_key = True                                    # enabled: auto -> on when a key resolves
@@ -377,7 +394,8 @@ name in an alias means its default model; `acme/acme-small` names one model.
 
 ## 3. Writing a model
 
-A model is a subclass of `ChatModel` or `EmbeddingModel` (`sajha/ai/llm/model.py`). The
+A model is a subclass of `ChatModel` or `EmbeddingModel` (`sajha/ai/llm/model.py`, imported
+from `sajha.ai.llm.spi`), the shared implementations of the abstract `LLMModel`. The
 provider creates it with `(provider, model_id, capabilities, **options)`; the model reads its
 provider's config and client through `self.provider`.
 
@@ -399,7 +417,7 @@ the hooks underneath them.
 | `chat_completions_create(request=None, **fields) -> ChatCompletion` | base class | `prepare` (below), then `_create`, then SAJHA's markers on `sajha` (provider, qualified model, cost from the declared prices, latency, `ignored`, `usage_estimated`, `structured_output`). Makes `n` calls and merges the choices when the model has no native `n`. |
 | `chat_completions_stream(...) -> Iterator[ChatCompletionChunk]` | base class | `_stream`, with one id and `created` on every chunk and a usage chunk (empty `choices`) last, estimated and marked when the vendor sends none. A model without streaming answers in one content chunk. |
 | `achat_completions_create` / `achat_completions_stream` | base class | The async twins: `_acreate` / `_astream`. |
-| `prepare(request) -> Prepared` | base class | The refusals of §13.6 (`InvalidRequest` naming the field), then the model's declared capabilities: an undeclared feature raises `UnsupportedFeature` (the gateway's next candidate); `temperature`/`top_p` on a model without sampling controls are left out and listed in `sajha.ignored`; `json_schema` on a model with JSON mode but no schema output is emulated (JSON mode, the schema in the instructions, validation, one retry). |
+| `prepare(request) -> Prepared` | base class | The refusals of §13.6 (`InvalidRequest` naming the field), then the model's declared capabilities: an undeclared feature raises `UnsupportedFeature` (the governed model's next candidate); `temperature`/`top_p` on a model without sampling controls are left out and listed in `sajha.ignored`; `json_schema` on a model with JSON mode but no schema output is emulated (JSON mode, the schema in the instructions, validation, one retry). |
 | `_create(request) -> ChatCompletion` | **you** | One call, one choice (or `n` when the model declares native `n`). Raise only SAJHA errors. |
 | `_stream(request) -> Iterator[ChatCompletionChunk]` | you, optional | Default: the answer of `_create` replayed as chunks. |
 | `_acreate` / `_astream` | you, optional | Default: `_create` / `_stream` on a worker thread. |
@@ -488,17 +506,17 @@ yielding `TextDelta`/`ToolCallDelta`/`UsageEvent`/`Done`, and `embed(texts)`) ke
 the base class converts at the boundary (`sajha/ai/llm/convert.py`, lossless for everything
 the old types express).
 
-### 3.2 Capabilities and how the gateway uses them
+### 3.2 Capabilities and how the governed model uses them
 
 `ModelCapabilities` is a frozen dataclass declared per model (in a catalogue row, a
 `ModelDescriptor`, a registered class or a `models:` override); `ModelInfo` (what
-`provider.models()` and `gateway.models()` return, like `GET /v1/models`) carries it. The
-gateway trusts it: a request a model cannot honour is refused by that model and goes to the
+`provider.models()` and `llm_factory().models()` return, like `GET /v1/models`) carries it. The
+governed model trusts it: a request a model cannot honour is refused by that model and goes to the
 alias's next candidate, never sent with the feature quietly dropped.
 
 | Field | Used for |
 |---|---|
-| `tools`, `vision` | Capability matching: `LLMGateway.request_needs` skips a candidate that lacks one ("lacks [...]" in the `NoModelAvailable` message). |
+| `tools`, `vision` | Capability matching: the governed model's `request_needs` skips a candidate that lacks one ("lacks [...]" in the `NoModelAvailable` message). |
 | `structured_output` | Native `response_format: json_schema`. |
 | `json_mode` | `response_format: json_object`; with `structured_output` false, `json_schema` is emulated. Default: same as `structured_output`. |
 | `forced_tool_choice` | `tool_choice: "required"`. `false`: refused (Ollama has no tool choice at all). |
@@ -564,10 +582,10 @@ if it has no JSON mode (structured-output requests go to another candidate).
 
 Return the service's token counts as `usage` (`CompletionUsage.of(prompt, completion,
 cached, reasoning)`); the base class applies the model's prices to `sajha.cost_usd`. The
-gateway records usage per user, role, provider and model, enforces `ai.budgets` and each
+governed model records usage per user, role, provider and model, enforces `ai.budgets` and each
 role's `daily_tokens` from it, and Ask SAJHA enforces `ai.ask.max_tokens` per question from
 it. When the service reports none, leave `usage` unset: the base class estimates it and sets
-`sajha.usage_estimated`. Responses served from the gateway cache report zero usage.
+`sajha.usage_estimated`. Responses served from the response cache report zero usage.
 
 ### 3.6 Adding a model to an existing provider
 
@@ -648,7 +666,7 @@ forbids tools, the shortlist is empty. The model never sees any other tool.
 | `temperature` | `ai.ask.temperature` (default 0) |
 | `metadata` | the `RequestContext`: user, roles, trace id, RBAC check |
 
-through `gateway.chat(request, model=ai.ask.model)`, so aliases, fallback, role policy,
+through `llm_factory().model(ai.ask.model)` (a governed model), so aliases, fallback, role policy,
 budgets, retries and the cache all apply to every step.
 
 **3. Acting.** A response without tool calls ends the loop (`stopped_by: answer`). Otherwise
@@ -749,7 +767,7 @@ What to watch:
 | Tool-call reliability | Calls to tools not offered are refused; bad arguments come back as tool errors the model may correct within the step and call limits; a model that answers from recall scores 0.5 | Prefer models tagged for tool use; keep `max_steps` small; watch `stopped_by` and the `ai_ask` audit entries |
 | Cost | Every step resends the system prompt, all shortlisted schemas and the history; synthesis is one more call | Tune `ai.ask.shortlist`, `max_result_chars`, `max_steps`, `max_tokens`; set `ai.budgets`; put a `fast`/`cheap` model in `default` and a `reasoning` one behind `ai.ask.model` only where needed |
 | Latency | Steps and the tool calls inside a step run one after another; the answer is shown after synthesis, not token by token | A fast model for `default`; fewer steps; `synthesize: false` saves a call (citations become every successful call) |
-| The response cache | Ask calls run at temperature 0, so the gateway caches each step for `ai.cache.ttl_seconds`; an identical question with identical tool results replays the cached decisions at zero token cost | Expected; disable `ai.cache` while comparing prompts or models |
+| The response cache | Ask calls run at temperature 0, so the governed model caches each step for `ai.cache.ttl_seconds`; an identical question with identical tool results replays the cached decisions at zero token cost | Expected; disable `ai.cache` while comparing prompts or models |
 | Prompt injection | A real model reads tool results, which may contain instructions. The system prompt says results are data; only shortlisted tools run; destructive tools wait for confirmation; RBAC filters the shortlist | Mark every write tool `destructiveHint: true`; keep tool permissions tight per role; keep `ai.ask.mcp_allowed_tools` narrow; review the tool-call chips and the audit log |
 | Timeout | `timeout_s` is checked between steps, so one slow call can overrun it | Bound each call with the provider's `read_timeout_s` |
 
@@ -760,7 +778,7 @@ Because the loop only asks the model "answer, or call which tools?", a strategy 
 `RecipePlannerModel` implements `_create` on the canonical request and answers known
 question shapes with fixed recipes: a regular expression
 over the question, a tool, and arguments from the expression's named groups. A question no
-recipe matches raises `UnsupportedFeature`, which the gateway treats as "try the next
+recipe matches raises `UnsupportedFeature`, which the governed model treats as "try the next
 candidate", so a real LLM behind it handles everything else:
 
 ```python
@@ -833,11 +851,11 @@ decides.
 | `Emit(event)` | publish an event (a `plan`) and ask again |
 | `PlanState` | `question` (the standalone question), `ctx`, `shortlist` (`ShortlistEntry`: name, `tool` as an OpenAI-style `ToolDefinition`, score), `messages` (canonical `ChatMessage`s: earlier turns, the question, every call and result), `steps` (the `AskStep`s so far), `remaining` (`Limits`: steps, tool calls, tokens, seconds), `system`, `temperature`, `chat`, `emit`, `data` (scratch space) |
 | `state.request(messages=None, tools=None, schema=None, ...)` | a canonical `ChatCompletionRequest` with the system text first (tools as functions, structured output as `response_format: json_schema`) |
-| `state.chat(request, needs=None, model=None)` | sends a canonical request through the gateway bound to the caller (`chat_completions_create`): aliases, role policy, budgets, fallback and the cache apply, tokens count toward the ask, each call emits a `model` event, and the reply is a `ChatCompletion` |
+| `state.chat(request, needs=None, model=None)` | sends a canonical request through a governed model bound to the caller (`chat_completions_create`): aliases, role policy, budgets, fallback and the cache apply, tokens count toward the ask, each call emits a `model` event, and the reply is a `ChatCompletion` |
 | `state.emit(event)` | queue an event; it is sent, in order, before the step's tool calls |
 | `DelegatingPlanner.hand_to(name, state)` | give the rest of the ask to another planner (fallbacks, routing); the chain is reported as `planner` (`router>plan_execute`) |
 
-The planner never touches a tool or the gateway directly: the service validates every
+The planner never touches a tool or a model directly: the service validates every
 `CallTools` against the shortlist exactly as for a model's tool calls. A `plan` event has
 `planner`, `revision` and `steps` (`id`, `tool`, `arguments`, `depends_on`, `why`, `status`,
 `call_id`); give each step the id its `tool_call` will carry, and Ask SAJHA ticks the step off
@@ -950,7 +968,7 @@ class Escalate(StageType):
 built-in slots through `frame.slots`; a stage that needs tool calls is a generator that yields
 from `sajha.ai.planners_engine.runtime.run_calls(...)`, and one that needs a model calls
 `sajha.ai.planners_engine.stages.model_call` or `structured` (canonical Chat Completions requests
-through the gateway bound to the caller). Custom verify checks register with
+through a governed model bound to the caller). Custom verify checks register with
 `register_check(name)` (`sajha/ai/planners_engine/checks.py`) and are then usable in a `verify`
 stage's `checks`. Register stage types and checks in a module imported at startup, before the
 planner files that use them load.
@@ -1019,11 +1037,11 @@ question and tool (`calc_percentage_change` with `{"old_value": 80, "new_value":
 ### 5.2 Offline fakes
 
 - **`httpx.MockTransport`.** `from_settings(..., transport=fake.transport)` for one
-  provider, `build_gateway(raw, transports={"acme": fake.transport})` for a gateway. The
+  provider, `build_llm_factory(raw, transports={"acme": fake.transport})` for a factory. The
   handler sees every request (path, headers, JSON body), so a test can assert on the wire
   format; `tests/ai/fakes.py` and `sajha/examples/intelligence/acme_fake_server.py` are
   working examples.
-- **`make_gateway`** in `tests/ai/conftest.py` builds a gateway from an `ai:` dictionary
+- **`make_gateway`** in `tests/ai/conftest.py` builds a factory from an `ai:` dictionary
   alone (no YAML, no database, no process environment) with the mock enabled and retries'
   sleeps recorded instead of slept.
 - **`mock-scripted`** plays a fixed sequence of replies, tool calls and errors
@@ -1174,6 +1192,9 @@ mode). Add your store to its `make_store` and `STORES` (or copy the cases), and 
 - [ ] `health()` is cheap, bounded by `health_timeout_s`, and never spends tokens.
 - [ ] `list_models()` declares honest capabilities and prices for each model.
 - [ ] It ships disabled; a key alone does not enable it.
+- [ ] It implements the abstract `LLMProvider` / `LLMModel` (subclass `ProviderBase`,
+      `ChatModel`, `EmbeddingModel` from `sajha.ai.llm.spi`) and imports nothing private;
+      `tests/test_llm_boundary.py` passes.
 - [ ] It passes the provider contract suite offline; a live test exists, gated on its key.
 
 **Model**

@@ -323,8 +323,8 @@ async def api_admin_revoke_sessions(uid: str, auth: AuthContext = Depends(requir
 def _llm_provider_count() -> int:
     """Registered LLM provider types (sajha/ai/llm/registry.py), not counting the offline mock."""
     try:
-        from sajha.ai.llm.registry import registered_providers
-        return len([n for n in registered_providers() if n != 'mock'])
+        from sajha.ai.llm import LLMFactory
+        return len([n for n in LLMFactory.provider_types() if n != 'mock'])
     except Exception:
         return 0
 

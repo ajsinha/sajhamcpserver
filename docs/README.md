@@ -91,7 +91,8 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
   [Power BI DAX](studio/MCP%20Studio%20PowerBI%20DAX%20Tool%20Creator%20Guide.md) ·
   [LiveLink](studio/MCP%20Studio%20LiveLink%20Tool%20Creator%20Guide.md) ·
   [SharePoint](studio/MCP%20Studio%20SharePoint%20Tool%20Creator%20Guide.md) ·
-  [OLAP](studio/MCP%20Studio%20OLAP%20Tool%20Creator%20Guide.md);
+  [OLAP](studio/MCP%20Studio%20OLAP%20Tool%20Creator%20Guide.md) ·
+  [LLM tool](studio/MCP%20Studio%20LLM%20Tool%20Creator%20Guide.md);
   Import an API is [API Import](architecture/API%20Import.md) and Describe a tool is
   [Tool Generation](architecture/Tool%20Generation.md)
 

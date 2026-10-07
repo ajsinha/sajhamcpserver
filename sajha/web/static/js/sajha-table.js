@@ -47,7 +47,7 @@
                     <span class="text-muted small" id="${uid}_count">${allRows.length} rows</span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <label class="form-label mb-0 small text-muted">Show</label>
+                    <label class="form-label mb-0 small text-muted" for="${uid}_rpp">Show</label>
                     <select class="form-select form-select-sm" id="${uid}_rpp" style="width:auto">
                         ${ROWS_OPTIONS.map(n => `<option value="${n}" ${n===DEFAULT_ROWS_PER_PAGE?'selected':''}>${n}</option>`).join('')}
                         <option value="all">All</option>

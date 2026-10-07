@@ -10,7 +10,7 @@ Three adapters, none needing an extra Python package:
 * ``elasticsearch`` / ``opensearch``: the REST API (``_cat/indices``, ``_mapping``, ``_search``),
   full-text ``simple_query_string``, plus k-NN when ``vector.vector_field`` is set.
 
-The caller sends a query text (embedded through the intelligence layer's gateway) or a
+The caller sends a query text (embedded through the intelligence layer's LLM factory) or a
 vector, ``top_k`` and equality ``filters`` on metadata; SAJHA writes the request, so no query
 DSL comes from the caller. Results are ``{id, score, text, metadata}`` with masking applied.
 Design: docs/architecture/Data Connectors.md, section 9.
@@ -216,12 +216,13 @@ ADAPTERS: Dict[str, VectorAdapter] = {'qdrant': QdrantAdapter(), 'elasticsearch'
 # ── shared ──────────────────────────────────────────────────────────────
 
 def _embed(conn: Connection, text: str) -> List[float]:
-    from sajha.ai.gateway import get_gateway
-    gw = get_gateway()
-    if gw is None:
-        raise ConnectorError('no LLM gateway is running to embed the query; pass "vector" instead')
+    from sajha.ai.llm import SajhaRequest, llm_factory
+    f = llm_factory()
+    if f is None:
+        raise ConnectorError('no LLM factory is running to embed the query; pass "vector" instead')
     try:
-        vecs = gw.embed([text], model=str(conn.vector.get('embedding_model') or 'embedding'), purpose='query')
+        model = f.model(str(conn.vector.get('embedding_model') or 'embedding'), kind='embedding')
+        vecs = model.embeddings_create(input=[text], sajha=SajhaRequest(input_purpose='query')).vectors
     except Exception as e:
         raise ConnectorError(f'embedding the query failed: {e.__class__.__name__}: {e}') from None
     return [float(x) for x in vecs[0]]

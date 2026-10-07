@@ -561,7 +561,7 @@ class RunExecutor:
             svc = get_intelligence()
             if svc is None:
                 raise StepError('Ask SAJHA is not available on this server (no LLM provider configured)')
-            from sajha.ai.llm.types import RequestContext
+            from sajha.ai.llm import RequestContext
             rc = RequestContext(user_id=self.ident.user_id, roles=list(self.ident.roles), is_admin=self.ident.is_admin,
                                 trace_id=uuid.uuid4().hex, can_use_tool=self.ident.can_execute)
             res = svc.ask(str(used['question']), rc, model=used.get('model'))

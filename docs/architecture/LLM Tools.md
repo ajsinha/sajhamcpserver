@@ -10,8 +10,9 @@
 > example tools with eval sets; in wave 3, sampling for `complete`, `extract`, `classify` and
 > `judge` (section 12, step 11), SAJHA as an OpenAI-compatible endpoint (section 13.4, step 12)
 > and configurable planners (section 9, steps 4 and 5: `sajha/ai/planners_engine/`, the shipped
-> files in `config/planners/`). **Design, not built:** sampling for the other
-> modes, the Studio creator and the conversations page (step 10). Sections say *Built* or *Not built yet* where it matters. A
+> files in `config/planners/`), and step 10: the Studio LLM tool creator, the planner editor with
+> dry run, Describe-a-tool LLM proposals and the Conversations page. **Design, not built:**
+> sampling for the other modes. Sections say *Built* or *Not built yet* where it matters. A
 > walk-through is [Tutorial 26](../tutorials/TUTORIAL_26_build_an_llm_tool.md).
 
 > **Across SAJHA servers.** [SAJHA Net](SAJHA%20Net.md) builds on this design: LLM tools are
@@ -175,8 +176,9 @@ Server-wide settings live under a new `ai.llm_tools.*` section (section 19). The
 (settings, the `llm` block, validation, derived annotations, lint), `tool.py` (`LLMTool` and the
 modes) and `runtime.py` (resource safety). Annotations are derived each time the tool is listed
 (`to_mcp_format`), because the tools an LLM tool may call can load after it; a tool with no
-catalog yet reports read-only for the modes that call no tools. The Studio creator, Describe
-proposals are not built (step 10); planner files are (section 9). `sajha_ask` uses a subclass,
+catalog yet reports read-only for the modes that call no tools. The Studio creator
+([its guide](../studio/MCP%20Studio%20LLM%20Tool%20Creator%20Guide.md)) and Describe proposals
+([Tool Generation](Tool%20Generation.md)) are built (step 10), and so are planner files (section 9). `sajha_ask` uses a subclass,
 `sajha.ai.ask_tool.SajhaAskTool`, which lint accepts as an LLM-tool implementation.
 
 ---
@@ -700,8 +702,8 @@ administrator-only and both still inside the service's enforcement:
   `sajha_planner_loops_exhausted_total{planner,edge}`, run duration per planner.
 - **Dry run.** An admin endpoint runs a planner against the mock model and returns the stage
   path, without running tools that are not read-only. *Built* as `POST /api/ai/planners/dry-run`
-  ([API Reference](../protocol/API%20Reference.md)); a planner editor page with a button for it
-  is not built.
+  ([API Reference](../protocol/API%20Reference.md)); the planner editor (`/studio/planners`,
+  [Planner Reference](Planner%20Reference.md#141-the-planner-editor) §14.1) runs it from a button.
 - **Tests.** The mock model gets scripted replies per stage type; each shipped strategy has
   path tests (question → expected stage path) and bound tests (a critic that never passes
   exhausts at `max_visits` and still answers); eval sets compare strategies on the same
@@ -953,8 +955,9 @@ size)*, and worst case spool is `spool.max_mb`: numbers an operator can compute 
 
 - Metrics: stored conversations and turns per tool, purged per run, summarisations
   (`sajha_llm_tool_conversations`, `sajha_llm_tool_turns_total`, `sajha_llm_tool_purged_total`).
-  *Built:* these three (`tool="ask"` labels the Ask SAJHA page). `GET /api/ai/conversations?tool=<name>` lists one tool's conversations; the page is
-  step 10.
+  *Built:* these three (`tool="ask"` labels the Ask SAJHA page). `GET /api/ai/conversations?tool=<name>` lists one tool's conversations; the Conversations
+  page (`/conversations`) lists, opens, continues in Ask and deletes a user's own, and shows
+  administrators the counts per scope only (`GET /api/ai/conversation-counts`).
 - Resource metrics: working-set bytes and spills per run (`sajha_llm_tool_spilled_total`), spool
   bytes in use (`sajha_llm_tool_spool_bytes`), hot-cache bytes and evictions, queued and refused
   runs (`sajha_llm_tool_runs_refused_total{reason}`), and the memory guard's state (`ok`, `soft`,
@@ -1060,8 +1063,9 @@ accept or emulate. Code written against SAJHA's provider and model abstraction t
 code written against any OpenAI-compatible SDK, and moves between providers, and in and out of
 SAJHA, without rewriting.
 
-*Status: built (Implementation Plan wave 2); 13.4, the outward endpoint, in wave 3.* The
-canonical types are `sajha/ai/llm/canonical.py`; the model and gateway interfaces, the
+*Status: built (Implementation Plan wave 2); 13.4, the outward endpoint, and 13.7, the package
+boundary, in wave 3.* The canonical types are `sajha/ai/llm/canonical.py`; the model,
+provider and factory interfaces, the
 adapters and the credentials for Vertex AI and Entra ID are described as built in the
 [Intelligence Layer](Intelligence%20Layer.md#2-core-abstractions), and writing a provider or
 model against them in [Extending the Intelligence Layer](Extending%20the%20Intelligence%20Layer.md#3-writing-a-model).
@@ -1131,10 +1135,10 @@ class LLMProvider(Protocol):                    # a vendor or server, with its c
     def model(self, name: str) -> LLMModel: ...
 ```
 
-- **The gateway exposes the same interface.** `gateway.chat_completions_create(model="reasoning",
-  messages=[...], tools=[...])` resolves the alias, applies policy, budgets, cache, retries,
-  breakers and fallback, and returns a `ChatCompletion`. Planner stages and LLM tools call only
-  the gateway.
+- **The governed model exposes the same interface.** `llm_factory().model("reasoning")
+  .chat_completions_create(messages=[...], tools=[...])` resolves the alias, applies policy,
+  budgets, cache, retries, breakers and fallback, and returns a `ChatCompletion`. Planner stages
+  and LLM tools call only governed models (13.7).
 - **Providers translate at the edge, once.** Each provider adapter converts the canonical format to
   its vendor's API and back (Anthropic Messages, Gemini, Bedrock Converse, Cohere v2 Chat,
   Ollama's native chat API). For every OpenAI-compatible server (OpenAI, Azure OpenAI,
@@ -1151,13 +1155,15 @@ class LLMProvider(Protocol):                    # a vendor or server, with its c
 - **The mock follows the same format.** The mock provider and its scripted replies speak Chat
   Completions, so tests and the offline default exercise exactly the shapes real providers return.
 
-*Built as above.* The model methods are `chat_completions_create`, `chat_completions_stream`,
-`achat_completions_create`, `achat_completions_stream` and `embeddings_create`; the
-provider's are `models()` and `model(name)`; the gateway has the same methods plus
-`models(ctx)`. Native async is built for every HTTP provider (Bedrock's boto3 runs in a
+*Built as above,* with `LLMModel` and `LLMProvider` as abstract base classes
+(`sajha/ai/llm/base.py`) rather than protocols. The model methods are `chat_completions_create`,
+`chat_completions_stream`, `achat_completions_create`, `achat_completions_stream`,
+`embeddings_create`, `aembeddings_create` and `info()`; the provider's are `models()`,
+`model(name)`, `chat_model`, `embedding_model` and `health()`; the factory hands out
+`GovernedModel` proxies with the model methods and has `models(ctx)`. Native async is built for every HTTP provider (Bedrock's boto3 runs in a
 worker thread). The declared fallbacks built are JSON-mode emulation of `json_schema`, `n`
 calls for `n` on models without native `n`, and `sajha.ignored` for sampling controls; a
-vendor's error finish raises `ModelFailed`, which sends the gateway to the next candidate.
+vendor's error finish raises `ModelFailed`, which sends the governed model to the next candidate.
 
 ### 13.4 SAJHA as an OpenAI-compatible endpoint
 
@@ -1231,15 +1237,15 @@ Tested with the official `openai` Python SDK (`tests/ai/test_openai_api.py`).
 - `docs/architecture/Extending the Intelligence Layer.md` is rewritten around the new interfaces,
   so a custom provider is written against the format its author already knows.
 
-*Built:* the converters (`sajha/ai/llm/convert.py`); every built-in provider and the mock
-moved to the canonical format, with the original `generate` / `stream` / `embed` kept as
-shims on every model and `chat` / `stream` / `achat` / `embed` on the gateway; Studio's
-Describe a tool and query-side embeddings (tool search, vector connectors) moved; the
-golden tests (`tests/ai/test_golden_translation.py`, recorded payloads in
-`tests/ai/golden/`) and the portability suite (`tests/ai/test_portability.py`); the guide
-rewritten. Not yet moved: the planners and the ask service (they reach the canonical
-gateway through the converters), and document search, whose query embeddings still use the
-document purpose until it passes `purpose="query"`.
+*Built:* the converters (`sajha/ai/llm/convert.py`, now internal); every built-in provider and
+the mock moved to the canonical format, with the original `generate` / `stream` / `embed` kept
+as shims on every model for models written against them; the golden tests
+(`tests/ai/test_golden_translation.py`, recorded payloads in `tests/ai/golden/`) and the
+portability suite (`tests/ai/test_portability.py`); the guide rewritten. In wave 3 every caller
+outside `sajha/ai/llm/` moved to the factory and the canonical types (13.7): the ask service and
+planners, conversation memory, document search (query embeddings with `purpose="query"`), LLM
+tools, Describe a tool, the OpenAI-compatible endpoint, the tool resolver and embedders, vector
+connectors, quality evals and the AI routes. The original types remain only inside the package.
 
 ### 13.6 Field coverage
 
@@ -1403,6 +1409,43 @@ the request), neither is cached (today the cache keeps only `stop` and `tool_cal
 are audited.
 
 ---
+
+
+### 13.7 One package boundary
+
+*Status: built (Implementation Plan wave 3, phase 3.2).* SAJHA reaches every LLM through
+OpenAI-style signatures, and all provider and model specifics are confined to one package,
+`sajha/ai/llm/`:
+
+- **Abstract classes.** `LLMProvider` and `LLMModel` (`sajha/ai/llm/base.py`) are the common
+  API every provider module implements. Each provider has its own module in
+  `sajha/ai/llm/providers/` (out-of-tree providers are modules of their own package, loaded
+  by class path or entry point) and builds on the shared implementations `ProviderBase`,
+  `ChatModel`, `HTTPChatModel` and `EmbeddingModel`; delegation inside a provider stays as
+  built (the adapter base plus per-provider request, parse and stream functions).
+- **Factory.** `LLMFactory` (`sajha/ai/llm/factory.py`, reached as `llm_factory()`) builds the
+  providers from `ai.providers` and `ai.aliases` and the registry (built-ins,
+  `package.module:Class`, entry points), resolves secrets and caches the instances.
+  `provider(name)` serves admin and catalog pages.
+- **Proxy.** `factory.model(alias_or_provider/model)` returns a `GovernedModel`
+  (`sajha/ai/llm/governed.py`) implementing `LLMModel`. It applies role policy, budgets, the
+  cache, retries, breakers, fallback across the alias's candidates, audit, usage and cost, and
+  tracing (the former gateway, now its engine), then delegates to the provider's model. The
+  calling code never knows what is behind the instance.
+- **Public API.** `sajha.ai.llm` exports the canonical types, `RequestContext` and `Usage`,
+  the abstract classes, the factory and proxy, the errors and the catalog value types; its
+  public submodules are `canonical`, `errors`, `settings` and `secrets`. Extension code uses
+  the provider SPI, `sajha.ai.llm.spi`. Everything else is internal (`adapter`, `http`,
+  `convert`, `legacy`, `registry`, `governed`, `providers/`, the mocks).
+- **Enforced.** `tests/test_llm_boundary.py` fails when a module outside `sajha/ai/llm/`
+  imports a vendor SDK (OpenAI, Anthropic, Google GenAI, Vertex AI, Cohere, Mistral, Ollama,
+  Bedrock runtime clients, ...), imports a provider module or another private module,
+  constructs a provider or model class, or uses the pre-canonical types; and it checks that
+  every registered provider implements the abstract classes.
+
+The former `sajha.ai.gateway` module moved into the package (as `factory.py` and `governed.py`) and the
+pre-6.x `sajha.ai.providers` layer was retired: its provider interface lives on, deprecated,
+in `sajha.ai.llm.spi` (`LegacyLLMProvider`, `register_provider_class`).
 
 ## 14. Safety
 

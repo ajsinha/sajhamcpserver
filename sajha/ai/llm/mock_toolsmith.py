@@ -15,6 +15,8 @@ It recognises a few shapes and otherwise writes an honest skeleton:
     two or more existing tools named, or "combine"    -> kind composite (sibling)
     a treasury / FRED series and "change over N days" -> kind python (FRED CSV, sandboxed)
     mean / median / standard deviation of numbers     -> kind python (statistics module)
+    summarise / classify into ... / extract ... from  -> kind llm (an LLM tool: complete, classify,
+    / answer questions using <tools> / from the docs     extract, answer or grounded mode)
     anything else                                     -> kind python skeleton, with a note
 
 A real model behind the ``toolsmith`` alias does the same job from the same prompt.
@@ -391,12 +393,133 @@ def _skeleton(desc: str) -> Dict[str, Any]:
     }
 
 
+# ── LLM tools (kind llm): the model does the work ───────────────────
+
+_LLM_WORDS = re.compile(r"\b(summari[sz]e|summari[sz]es|summary of|classif(y|ies)|categori[sz]e|triage|route .* to|"
+                        r"sentiment|extract(s)? .{1,80} from|answer(s)? questions?|an? (llm|language model)|"
+                        r"assistant)\b", re.I)
+
+
+def _labels(desc: str) -> List[str]:
+    m = re.search(r"\b(?:into|as|among|between)\s+(?:one of\s+)?([A-Za-z][\w -]*(?:,\s*[\w -]+)*(?:,?\s+(?:or|and)\s+[\w -]+))",
+                  desc, re.I)
+    if not m:
+        return []
+    parts = re.split(r"\s*,\s*|\s+(?:or|and)\s+", m.group(1).strip().rstrip("."))
+    out = []
+    for x in parts:
+        w = re.sub(r"[^a-z0-9_]", "_", x.strip().lower()).strip("_")
+        w = re.sub(r"_+", "_", w)
+        if w and w[0].isalpha() and w not in out and len(w) <= 40:
+            out.append(w)
+    return out[:12] if len(out) >= 2 else []
+
+
+def _llm(desc: str, ctx: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    low = desc.lower()
+    first = _first_sentence(desc, 200)
+    text_in = {"type": "object", "properties": {"text": {"type": "string", "description": "The text to work on."}},
+               "required": ["text"]}
+    note = "An LLM tool: review the instructions and the limits; tests run against the mock model."
+    labels = _labels(desc)
+    if re.search(r"\b(classif|categori|triage|sentiment|route)", low) and (labels or "sentiment" in low):
+        labels = labels or ["positive", "negative", "neutral"]
+        name = _slug(["classify"] + [w for w in _WORD.findall(desc) if w.lower() not in ("classify", "into")], 3)
+        return {
+            "kind": "llm", "name": name, "description": first, "category": "Intelligence",
+            "input_schema": text_in,
+            "output_schema": {"type": "object", "properties": {
+                "label": {"type": "string", "enum": labels}, "reason": {"type": "string"},
+                "confidence": {"type": "number"}, "stopped_by": {"type": "string"}},
+                "required": ["label", "stopped_by"]},
+            "implementation": {"mode": "classify", "model": "fast",
+                               "system_prompt": "Choose exactly one label: " + ", ".join(labels) + ".",
+                               "template": "Classify this text:\n\n{{input.text}}", "cache": True},
+            "tests": [{"name": f"labels a {labels[0]} text", "arguments": {"text": f"This is about {labels[0]}."},
+                       "expect": {"ok": True, "equals": {"label": labels[0]}}},
+                      {"name": f"labels a {labels[1]} text", "arguments": {"text": f"This is about {labels[1]}."},
+                       "expect": {"ok": True, "equals": {"label": labels[1]}}}],
+            "notes": [note, "Describe each label in the system prompt so the model can tell them apart."],
+        }
+    m = re.search(r"\bextract(?:s)?\s+(?:the\s+)?(.{1,120}?)\s+from\b", desc, re.I)
+    if m:
+        fields = [re.sub(r"[^a-z0-9_]", "_", f.strip().lower()).strip("_")
+                  for f in re.split(r"\s*,\s*|\s+and\s+", m.group(1))]
+        fields = [re.sub(r"_+", "_", f) for f in fields if f and f[0].isalpha()][:10]
+        if fields:
+            return {
+                "kind": "llm", "name": _slug(["extract"] + fields, 4), "description": first, "category": "Intelligence",
+                "input_schema": text_in,
+                "output_schema": {"type": "object", "properties": {
+                    **{f: {"type": "string"} for f in fields}, "stopped_by": {"type": "string"}},
+                    "required": ["stopped_by"]},
+                "implementation": {"mode": "extract", "model": "fast",
+                                   "template": "Extract the fields from this text:\n\n{{input.text}}", "cache": True},
+                "tests": [{"name": "reads labelled fields", "arguments":
+                           {"text": "\n".join(f"{f.replace('_', ' ')}: sample {i + 1}" for i, f in enumerate(fields))},
+                           "expect": {"ok": True, "keys": fields}}],
+                "notes": [note, "Give each field a description and a type in the output schema."],
+            }
+    if re.search(r"\bsummari[sz]e|\bsummary of\b", low):
+        n = re.search(r"\b(\d{1,2})\s+sentences?\b", low)
+        k = int(n.group(1)) if n else 3
+        return {
+            "kind": "llm", "name": _slug(["summarise"] + _WORD.findall(desc)[1:], 3), "description": first,
+            "category": "Intelligence", "input_schema": text_in,
+            "output_schema": {"type": "object", "properties": {"text": {"type": "string"},
+                                                               "stopped_by": {"type": "string"}},
+                              "required": ["text", "stopped_by"]},
+            "implementation": {"mode": "complete", "model": "fast",
+                               "system_prompt": "You write short, faithful summaries. Keep names and numbers exactly.",
+                               "template": f"Summarise the following text in at most {k} sentences.\n\n{{{{input.text}}}}",
+                               "cache": True},
+            "tests": [{"name": "summarises a short text", "arguments": {"text": "SAJHA serves tools. It runs them "
+                                                                                  "as the caller. It audits each call."},
+                       "expect": {"ok": True, "keys": ["text"]}}],
+            "notes": [note],
+        }
+    if re.search(r"\banswer(s)? questions?\b|\bassistant\b", low):
+        tools = [t["name"] for t in ctx.get("existing_tools") or [] if isinstance(t, dict) and t.get("name")]
+        prefixes = sorted({n.split("_")[0] for n in tools if re.search(rf"\b{re.escape(n.split('_')[0])}\b", low)})
+        named = [n for n in tools if re.search(rf"\b{re.escape(n)}\b", low)]
+        allow = named + [f"{p}_*" for p in prefixes if not any(n.startswith(p + "_") for n in named)]
+        q = {"type": "object", "properties": {
+            "question": {"type": "string", "description": "The question, in plain words."},
+            "conversation_id": {"type": "string", "description": "From a previous answer, to continue."}},
+            "required": ["question"]}
+        out = {"type": "object", "properties": {"answer": {"type": "string"}, "confidence": {"type": "number"},
+                                                "citations": {"type": "array", "items": {"type": "string"}},
+                                                "conversation_id": {"type": "string"},
+                                                "stopped_by": {"type": "string"}},
+               "required": ["answer", "stopped_by"]}
+        memory = {"mode": "conversation", "ttl_minutes": 240, "max_turns": 10}
+        tests = [{"name": "answers a question", "arguments": {"question": "What can you tell me?"},
+                  "expect": {"ok": True, "keys": ["answer"]}}]
+        if not allow:
+            return {"kind": "llm", "name": _slug(["docs", "qa"] + _WORD.findall(desc), 3), "description": first,
+                    "category": "Intelligence", "input_schema": q, "output_schema": out,
+                    "implementation": {"mode": "grounded", "model": "default", "rag": {"sources": ["sajha_docs"], "top_k": 4},
+                                       "memory": memory},
+                    "tests": tests,
+                    "notes": [note, "No tools were named, so it answers from document search (mode grounded); "
+                                    "name tools or tool prefixes to make it an assistant that calls them."]}
+        return {"kind": "llm", "name": _slug(["assistant"] + prefixes + _WORD.findall(desc), 3), "description": first,
+                "category": "Intelligence", "input_schema": q, "output_schema": out,
+                "implementation": {"mode": "answer", "model": "reasoning",
+                                   "system_prompt": "Answer with figures from tool results; say when data is missing.",
+                                   "tools": {"allow": allow, "deny": ["*_delete*"]},
+                                   "limits": {"max_steps": 6, "max_tool_calls": 10, "max_cost_usd": 0.2},
+                                   "memory": memory},
+                "tests": tests, "notes": [note, "Check that tools.allow matches only the tools it should call."]}
+    return None
+
+
 def design(user_text: str) -> Dict[str, Any]:
     """The proposal for the generator's prompt (the toolsmith schema)."""
     desc, ctx, prefer = parse_request(user_text)
     urls = _URL.findall(desc)
     low = desc.lower()
-    order = ["openapi", "rest", "dbquery", "composite", "python"]
+    order = ["openapi", "rest", "llm", "dbquery", "composite", "python"]
     if prefer in order:
         order.remove(prefer)
         order.insert(0, prefer)
@@ -414,6 +537,10 @@ def design(user_text: str) -> Dict[str, Any]:
             c = _composite(desc, ctx)
             if c:
                 return c
+        if kind == "llm" and (prefer == "llm" or _LLM_WORDS.search(desc)):
+            p = _llm(desc, ctx)
+            if p:
+                return p
         if kind == "python":
             for recipe in (_fred, _stats):
                 p = recipe(desc)

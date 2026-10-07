@@ -44,7 +44,7 @@ DB_CTX = {'databases': [{'db_type': 'duckdb', 'connection_string': '/x/a.db', 't
 # ── the mock toolsmith ──────────────────────────────────────────────────
 
 def test_mock_toolsmith_is_registered_and_deterministic():
-    from sajha.ai.gateway import build_gateway
+    from sajha.ai.llm import build_llm_factory as build_gateway
     from sajha.ai.llm.types import ChatRequest, Message
     from sajha.studio.describe import PROPOSAL_SCHEMA, build_prompt
     gw = build_gateway({'providers': [{'name': 'mock', 'config': {'enabled': True}}]}, environ={})

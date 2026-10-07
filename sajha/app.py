@@ -46,9 +46,11 @@ def render(request: Request, template_name: str, context: dict = None, status_co
     if 'session' not in ctx:
         ctx['session'] = {'token': request.cookies.get('sajha_token', '')}
     if 'can_studio' not in ctx:
-        # The navigation shows MCP Studio to admins and to roles with the studio permission
-        from sajha.auth import can_use_studio
-        ctx['can_studio'] = can_use_studio(getattr(request.state, 'auth', None))
+        # The navigation shows MCP Studio to admins and to roles with a studio permission, and in
+        # it only the creators the caller may use (studio:<creator>)
+        from sajha.auth import studio_creators
+        ctx['studio_creators'] = studio_creators(getattr(request.state, 'auth', None))
+        ctx['can_studio'] = bool(ctx['studio_creators'])
     return templates.TemplateResponse(request, template_name, ctx, status_code=status_code)
 
 
@@ -217,6 +219,7 @@ class SajhaMCPServerWebApp:
         from sajha.routes.connectors_routes import router as connectors_router
         from sajha.routes.notices_routes import router as notices_router
         from sajha.routes.openai_routes import router as openai_router
+        from sajha.routes.conversations_routes import router as conversations_router
 
         routers = [
             auth_router, dashboard_router, api_router, tools_router,
@@ -241,6 +244,7 @@ class SajhaMCPServerWebApp:
             connectors_router,
             notices_router,
             openai_router,
+            conversations_router,
         ]
 
         for router in routers:
@@ -618,25 +622,25 @@ class SajhaMCPServerWebApp:
         except Exception as e:
             logger.info(f"  Plugins: {e}")
 
-        # 4. LLM Gateway + Semantic Tool Resolver
+        # 4. LLM factory (sajha.ai.llm) + Semantic Tool Resolver
         try:
-            from sajha.ai.gateway import init_gateway, get_gateway
+            from sajha.ai.llm import init_llm_factory, llm_factory
             from sajha.ai.tool_resolver import init_resolver
             from sajha.db.engine import get_db_session
             from sajha.core.config import _CFG
 
-            ai_config = _CFG  # Pass full flattened YAML config — gateway reads 'ai.*' keys
+            ai_config = _CFG  # the factory reads 'ai.*' from the YAML
 
             db = get_db_session()
             try:
-                gw = init_gateway(ai_config, db_session=db)
-                logger.info(f'  LLM Gateway: {len(gw._providers)} providers registered')
+                gw = init_llm_factory(ai_config, db_session=db)
+                logger.info(f'  LLM factory: {len(gw.active_provider_names())} providers active')
             finally:
                 db.close()
 
             # Build semantic tool index (non-blocking — logs warning if no embedding provider)
-            if gw and gw._providers:
-                logger.info(f'  LLM Gateway: {len(gw._providers)} provider(s) ready')
+            if gw and gw.active_provider_names():
+                logger.info(f'  LLM factory: {len(gw.active_provider_names())} provider(s) ready')
             else:
                 logger.info('  LLM Gateway: no providers configured (set API keys in Admin > AI)')
         except ImportError:
@@ -651,7 +655,7 @@ class SajhaMCPServerWebApp:
                 from sajha.ai.embedders import get_embedder
                 from sajha.ai.tool_resolver import init_resolver, get_resolver
                 try:
-                    gw_for_extract = get_gateway()
+                    gw_for_extract = llm_factory()
                 except Exception:
                     gw_for_extract = None
                 embedder = get_embedder(_CFG, gateway=gw_for_extract)
@@ -675,7 +679,7 @@ class SajhaMCPServerWebApp:
 
         # 4c. Intelligence service (POST /api/ai/ask) + the optional sajha_ask MCP tool
         try:
-            from sajha.ai.gateway import get_gateway as _get_gw
+            from sajha.ai.llm import llm_factory as _get_gw
             from sajha.ai.intelligence import init_intelligence
             from sajha.ai.ask_tool import register_if_enabled, TOOL_NAME
             if _get_gw() is not None:
@@ -694,7 +698,7 @@ class SajhaMCPServerWebApp:
 
         # 4d. Document index behind sajha_search_docs and "Ask the docs" (ai.rag)
         try:
-            from sajha.ai.gateway import get_gateway as _get_gw2
+            from sajha.ai.llm import llm_factory as _get_gw2
             from sajha.ai.rag.index import init_doc_index
             _gw2 = _get_gw2()
             _rag = init_doc_index(getattr(getattr(_gw2, 'settings', None), 'rag', None), _gw2)
@@ -743,10 +747,10 @@ class SajhaMCPServerWebApp:
         logger.info(f'  Prompts: {len(prompts_registry.prompts)}')
         logger.info(f'  DB: {s.db_type} → {s.db_path if s.db_type == "sqlite" else s.db_host}')
         try:
-            from sajha.ai.gateway import get_gateway
-            gw = get_gateway()
+            from sajha.ai.llm import llm_factory
+            gw = llm_factory()
             if gw:
-                logger.info(f'  AI Gateway: {len(gw._providers)} providers, default={gw.config.default_provider}/{gw.config.default_model}')
+                logger.info(f'  LLM factory: {len(gw.active_provider_names())} providers, default={gw.config.default_provider}/{gw.config.default_model}')
         except Exception as e:
             logger.error(f"Unexpected error: {e}", exc_info=True)
             pass

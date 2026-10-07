@@ -45,7 +45,7 @@ from pydantic import Field
 from sajha.ai.llm.errors import ERROR_BY_NAME, InvalidRequest, RateLimited
 from sajha.ai.llm.model import (ChatModel, EmbeddingModel, HealthStatus, ModelCapabilities,
                                 ModelDescriptor, estimate_tokens)
-from sajha.ai.llm.provider import LLMProvider
+from sajha.ai.llm.provider import ProviderBase
 from sajha.ai.llm.registry import register_provider
 from sajha.ai.llm.settings import ProviderConfig
 from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionChunk, ChatCompletionRequest, ChatMessage,
@@ -147,7 +147,7 @@ class _Script:
 
 
 @register_provider
-class MockProvider(LLMProvider):
+class MockProvider(ProviderBase):
     name = "mock"
     config_model = MockConfig
     requires_key = False

@@ -31,7 +31,7 @@ from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionRequest, ChatM
 from sajha.ai.llm.errors import ModelFailed
 from sajha.ai.llm.http import post_json, safe_json_loads
 from sajha.ai.llm.model import EmbeddingModel, ModelCapabilities
-from sajha.ai.llm.provider import LLMProvider
+from sajha.ai.llm.provider import ProviderBase
 from sajha.ai.llm.registry import register_provider
 from sajha.ai.llm.settings import ProviderConfig
 
@@ -199,7 +199,7 @@ class CohereEmbeddingModel(EmbeddingModel):
 
 
 @register_provider
-class CohereProvider(LLMProvider):
+class CohereProvider(ProviderBase):
     name = "cohere"
     config_model = CohereConfig
     default_base_url = "https://api.cohere.com"

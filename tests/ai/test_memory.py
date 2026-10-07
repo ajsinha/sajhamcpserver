@@ -31,12 +31,12 @@ def spy(gw):
     """Every model call (canonical requests through the gateway), seen in the pre-canonical shape."""
     from sajha.ai.llm.convert import from_canonical_request
     seen = []
-    orig = gw.chat_completions_create
+    orig = gw._governed_create
 
     def chat(request=None, **kw):
         seen.append(from_canonical_request(request))
         return orig(request, **kw)
-    gw.chat_completions_create = chat
+    gw._governed_create = chat
     return seen
 
 
@@ -128,11 +128,12 @@ def test_memory_can_be_switched_off(toolbox, store):
 def _client(toolbox, store, monkeypatch, user="alice"):
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-    from sajha.ai import gateway as gwmod, intelligence
+    from sajha.ai import intelligence
+    from sajha.ai.llm import factory as gwmod
     from sajha.auth import AuthContext, require_admin, require_auth
     from sajha.routes.ai_routes import router
     gw = make_gateway()
-    monkeypatch.setattr(gwmod, "_gateway", gw)
+    monkeypatch.setattr(gwmod, "_factory", gw)
     monkeypatch.setattr(intelligence, "_service", service(toolbox, store, gw))
     app = FastAPI()
     app.include_router(router)

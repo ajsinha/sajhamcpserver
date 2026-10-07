@@ -12,9 +12,10 @@ import os
 
 import pytest
 
-from sajha.ai.llm import (AuthenticationFailed, ChatRequest, ContentFiltered, ContextTooLong, Done, Message,
-                          ProviderUnavailable, RateLimited, TextDelta, ToolCallDelta, ToolCallPart, ToolSpec,
-                          UnsupportedFeature, UsageEvent)
+from sajha.ai.llm import (AuthenticationFailed, ContentFiltered, ContextTooLong, ProviderUnavailable, RateLimited,
+                          UnsupportedFeature)
+from sajha.ai.llm.types import (ChatRequest, Done, Message, TextDelta, ToolCallDelta, ToolCallPart, ToolSpec,
+                                UsageEvent)
 from sajha.ai.llm import registry
 from tests.ai.fakes import TOOL_ARGS, TOOL_NAME, FakeBedrockClient, FakeVendor
 
@@ -320,7 +321,7 @@ def test_model_overrides_from_config_add_a_model_without_code():
 
 
 def test_register_model_injects_a_custom_model_class():
-    from sajha.ai.llm import register_model
+    from sajha.ai.llm.spi import register_model
     from sajha.ai.llm.providers.openai_compat import OpenAIChatModel
     from sajha.ai.llm.registry import unregister_model
     from sajha.ai.llm.model import ModelCapabilities

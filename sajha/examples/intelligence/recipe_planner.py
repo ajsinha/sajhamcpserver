@@ -26,10 +26,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import Field
 
-from sajha.ai.llm import (ChatModel, ConfigurationError, HealthStatus, LLMProvider, ModelCapabilities,
-                          ModelDescriptor, ProviderConfig, UnsupportedFeature, register_provider)
-from sajha.ai.llm.model import estimate_tokens
-from sajha.ai.llm.settings import Layered
+from sajha.ai.llm import ConfigurationError, UnsupportedFeature
+from sajha.ai.llm.spi import (ChatModel, HealthStatus, Layered, ModelCapabilities, ModelDescriptor, ProviderBase,
+                              ProviderConfig, estimate_tokens, register_provider)
 from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionRequest, ChatMessage, Choice, CompletionUsage,
                                     ToolCall)
 
@@ -131,7 +130,7 @@ class RecipePlannerModel(ChatModel):
 
 
 @register_provider
-class RecipeProvider(LLMProvider):
+class RecipeProvider(ProviderBase):
     """A keyless, in-process provider whose one model is the recipe planner."""
     name = "recipes"
     config_model = RecipeConfig

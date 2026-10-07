@@ -3,7 +3,8 @@
 The intelligence layer lets SAJHA answer a question itself: it picks tools from its own
 catalog, runs them under the caller's permissions, and returns an answer with the tool
 calls it relied on and a confidence score. This document describes the layer as built:
-the abstractions, the providers, the gateway, the ask loop and its event stream. Every
+the public LLM API, the providers, the factory and its governed models, the ask loop and its
+event stream. Every
 configuration key and its default is in the
 [Configuration Reference](../getting-started/Configuration%20Reference.md#ai); endpoint
 summaries are in the [API Reference](../protocol/API%20Reference.md); the confidence
@@ -16,38 +17,82 @@ layer (a new provider, model or planner, step by step, with tested examples) is
 ## 1. Shape
 
 ```
- consumers      POST /api/ai/ask (and the Ask SAJHA page, /ask) · sajha_ask MCP tool · /api/ai/*
+ consumers      POST /api/ai/ask (and the Ask SAJHA page, /ask) · sajha_ask MCP tool · /api/ai/* ·
+                LLM tools · memory · RAG · Describe a tool · /v1 (OpenAI-compatible endpoint) · ...
                                    │
  service        IntelligenceService (sajha/ai/intelligence.py): memory → shortlist → planner → synthesis
                 planners (config/planners files: react, plan_execute, router, auto, ...) · memory · RAG index
                                    │
- gateway        LLMGateway (sajha/ai/gateway.py): aliases, capability match, policy, budgets,
-                retries + fallback, circuit breaker, response cache, OpenTelemetry span
+ ══════════════ the boundary: sajha.ai.llm (public API) ═══════════════════════════════════════════
                                    │
- abstractions   sajha/ai/llm/: the canonical format (OpenAI Chat Completions, typed), ChatModel,
-                EmbeddingModel, LLMProvider + pydantic config_model, registry, SecretStore, errors
+ factory        LLMFactory (sajha/ai/llm/factory.py): builds providers from ai.providers / ai.aliases
+                and the registry, resolves secrets, caches instances; model(name) → GovernedModel
                                    │
- adapters       each provider translates the canonical format to its vendor at the edge
+ proxy          GovernedModel (sajha/ai/llm/governed.py), an LLMModel: aliases, capability match,
+                policy, budgets, retries + fallback, circuit breaker, response cache, audit, usage,
+                OpenTelemetry span; then delegates to a provider's model
                                    │
- providers      native: anthropic, openai, azure_openai, gemini, bedrock, mistral, cohere,
-                ollama, OpenAI-compatible presets · mock · LegacyProviderAdapter
+ abstractions   LLMProvider and LLMModel (sajha/ai/llm/base.py, abstract) and their shared
+                implementations ProviderBase, ChatModel, EmbeddingModel; the canonical format
+                (OpenAI Chat Completions, typed); registry, SecretStore, errors
+                                   │
+ adapters       each provider module translates the canonical format to its vendor at the edge
+                                   │
+ providers      sajha/ai/llm/providers/: anthropic, openai, azure_openai, gemini, bedrock, mistral,
+                cohere, ollama, OpenAI-compatible presets · mock · LegacyProviderAdapter
 ```
 
-Everything above the adapter row codes only against the canonical format, so adding or
-swapping a provider never touches the gateway, the service or its consumers. Nothing in
-`sajha/ai/llm/` imports a vendor SDK: the native providers speak each vendor's REST API with
-`httpx`; Bedrock alone needs SigV4 signing and imports `boto3` lazily (an optional
-dependency; without it the Bedrock provider reports itself down with an install hint).
+Every LLM is reached through OpenAI-style signatures, and every provider and model specific
+lives inside `sajha/ai/llm/`, one module per provider, each implementing the same abstract
+classes. Code outside the package uses only the public API (below); it never imports a vendor
+SDK, a provider module or another private module, never constructs a provider or model, and
+never sees which provider is behind a model. `tests/test_llm_boundary.py` enforces all of this
+and checks that every registered provider implements the abstract classes. Adding or swapping
+a provider never touches the factory, the service or its consumers. Nothing in `sajha/ai/llm/`
+imports a vendor SDK either: the native providers speak each vendor's REST API with `httpx`;
+Bedrock alone needs SigV4 signing and imports `boto3` lazily (an optional dependency; without
+it the Bedrock provider reports itself down with an install hint).
+
+**The public API** is what `sajha.ai.llm` exports (its package docstring lists it):
+
+| Name | What |
+|---|---|
+| `llm_factory()` | the process-wide `LLMFactory`, or `None` before the intelligence layer starts; `init_llm_factory`, `build_llm_factory`, `set_llm_factory` create or install one |
+| `LLMFactory.model(name, context=, needs=)` | a `GovernedModel` for an alias or `provider/model` |
+| `LLMFactory.provider(name)` | a provider, for admin and catalog pages (health, configuration, models) |
+| `LLMModel`, `LLMProvider` | the abstract classes every provider module implements |
+| canonical types | `ChatMessage`, `ChatCompletionRequest`, `ChatCompletion`, `ChatCompletionChunk`, `ToolDefinition`, `ToolCall`, `ResponseFormat`, `EmbeddingsRequest`, `EmbeddingsResponse`, `SajhaRequest`, `ResponseSajha`, ...; `RequestContext` (the caller) and `Usage` |
+| errors | `LLMError` and its subclasses (table in section 2) |
+| catalog values | `ModelInfo`, `ModelCapabilities`, `HealthStatus` |
+
+Public submodules: `canonical` (the types and their helpers), `errors`, `settings` (the
+`ai.*` sections) and `secrets`. Code that adds a provider or a model outside the package uses
+the provider SPI, `sajha.ai.llm.spi` (section 3). Everything else is internal.
+
+```python
+from sajha.ai.llm import ChatMessage, RequestContext, llm_factory
+
+ctx = RequestContext(user_id="alice", roles=["analyst"])
+m = llm_factory().model("reasoning", context=ctx)               # a GovernedModel
+c = m.chat_completions_create(messages=[ChatMessage.user("Summarise Q3")])
+c.text, c.sajha.provider, c.sajha.cost_usd                      # which provider answered, what it cost
+v = llm_factory().model("embedding").embeddings_create(input=["a", "b"]).vectors
+```
 
 | Code | What |
 |---|---|
+| `sajha/ai/llm/__init__.py` | the public API (above) |
+| `sajha/ai/llm/base.py` | the abstract classes `LLMModel` and `LLMProvider` |
+| `sajha/ai/llm/factory.py` | `LLMFactory` (construction from configuration and the registry, `model()`, `provider()`), `build_llm_factory`, `init_llm_factory`, `llm_factory`, `set_llm_factory` |
+| `sajha/ai/llm/governed.py` | `GovernedModel` (the proxy) and `Governor`, its engine: resolution, policy, budgets, cache, retries, breakers, fallback, audit, usage, tracing; `TokenTracker`, `ResponseCache` |
+| `sajha/ai/llm/spi.py` | the provider SPI for extension code: `ProviderBase`, `ChatModel`, `EmbeddingModel`, `HTTPChatModel`, `register_provider`, `register_model`, the HTTP helpers, the legacy interface |
 | `sajha/ai/llm/canonical.py` | the canonical format: `ChatCompletionRequest`, `ChatMessage`, `ToolDefinition`, `ResponseFormat`, `ChatCompletion`, `ChatCompletionChunk`, `ChunkAccumulator`, `EmbeddingsRequest`, `EmbeddingsResponse`, the `sajha` fields, and the provider-independent refusals (`check_request`) |
-| `sajha/ai/llm/convert.py` | lossless converters between the original types and the canonical ones |
+| `sajha/ai/llm/convert.py` | internal: lossless converters between the original types and the canonical ones |
 | `sajha/ai/llm/adapter.py` | `HTTPChatModel` (sync and native async I/O over `wire` / `parse` / `translator`) and `StreamTranslator` |
 | `sajha/ai/llm/cloud_auth.py` | short-lived credentials: `GoogleTokenSource` (Vertex AI), `EntraTokenSource` (Azure OpenAI) |
-| `sajha/ai/llm/types.py` | the original types: `Message` and its parts (`TextPart`, `ImagePart`, `ToolCallPart`, `ToolResultPart`), `ToolSpec`, `ChatRequest`, `ChatResponse`, `Usage`, `RequestContext`, stream events (`TextDelta`, `ToolCallDelta`, `UsageEvent`, `Done`) |
+| `sajha/ai/llm/types.py` | `RequestContext` and `Usage` (public through the package), and the original types used only inside the package: `Message` and its parts (`TextPart`, `ImagePart`, `ToolCallPart`, `ToolResultPart`), `ToolSpec`, `ChatRequest`, `ChatResponse`, `Usage`, `RequestContext`, stream events (`TextDelta`, `ToolCallDelta`, `UsageEvent`, `Done`) |
 | `sajha/ai/llm/model.py` | `ModelCapabilities`, `ModelInfo`, `ChatModel`, `EmbeddingModel`, `ModelDescriptor`, `HealthStatus`, `Needs` |
-| `sajha/ai/llm/provider.py` | `LLMProvider`: credentials, HTTP client, catalogue, model factory, health |
+| `sajha/ai/llm/provider.py` | `ProviderBase`, the shared implementation of `LLMProvider`: credentials, HTTP client, catalogue, model construction, health |
 | `sajha/ai/llm/settings.py` | every config model, the layered resolution, effective-config description |
 | `sajha/ai/llm/registry.py` | `register_provider`, `register_model`, class paths, entry points |
 | `sajha/ai/llm/catalog.py` | curated model ids, context windows and list prices (data only) |
@@ -55,8 +100,7 @@ dependency; without it the Bedrock provider reports itself down with an install 
 | `sajha/ai/llm/http.py` | httpx client construction (sync and async), error mapping, SSE and NDJSON parsing |
 | `sajha/ai/llm/providers/` | the native providers |
 | `sajha/ai/llm/mock.py` | `MockProvider` and its models |
-| `sajha/ai/llm/legacy.py` | `LegacyProviderAdapter` for providers written against the old ABC |
-| `sajha/ai/gateway.py` | `LLMGateway`, `build_gateway`, `init_gateway`, `get_gateway` |
+| `sajha/ai/llm/legacy.py` | internal: the pre-6.x provider interface (`LegacyLLMProvider`, `register_provider_class`) and `LegacyProviderAdapter`, which serves it |
 | `sajha/ai/intelligence.py` | `IntelligenceService`, `AskResult`, `AskStep`, the event stream |
 | `sajha/ai/planners.py` | the Python `Planner` protocol (`PlanState`, `CallTools`, `Answer`, `Emit`, on canonical types), its registry, and the Python classes of `react`, `plan_execute`, `recipes` and `router` |
 | `sajha/ai/planners_engine/` | planner files (`config/planners/*.yaml`): validation, the stage library, the expression language, the graph runtime, the registry and the dry run ([Planner Reference](Planner%20Reference.md)) |
@@ -95,19 +139,22 @@ never logged. `user` and `metadata` are recorded in the audit record and never s
 vendor.
 
 The original types (`ChatRequest`, `ChatResponse` with `refusal` and `notes`, the stream
-events `TextDelta`, `ToolCallDelta`, `UsageEvent`, `Done`) remain for existing callers;
-`sajha/ai/llm/convert.py` converts both ways without loss for everything they can express.
-The planners (the Python `Planner` protocol and planner files) and the ask service use the
-canonical types; Studio's Describe a tool does too.
+events `TextDelta`, `ToolCallDelta`, `UsageEvent`, `Done`) remain inside the package only,
+for models written against the original interface; `sajha/ai/llm/convert.py` converts both
+ways without loss for everything they can express. Every caller outside the package (the ask
+service, planners, memory, RAG, LLM tools, Describe a tool, the OpenAI-compatible endpoint,
+the tool resolver, connectors, quality evals, the AI routes) uses the canonical types.
 
-**Models** are objects: one `ChatModel` or `EmbeddingModel` per configured model, carrying
+**Models** implement the abstract `LLMModel` (`sajha/ai/llm/base.py`): one `ChatModel` or
+`EmbeddingModel` per configured model (the shared implementations), carrying
 `ModelCapabilities` (chat, tools, structured output, vision, streaming, embedding, context
 window, output cap, per-million-token prices, sampling controls, forced and named tool
 choice, JSON mode, strict tools, parallel-call control, seed, stop sequences, reasoning
 effort, native `n`, variable embedding size, and tags such as `fast`, `reasoning`,
 `local`, `deterministic`). Their interface is shaped like an OpenAI-style client:
 `chat_completions_create`, `chat_completions_stream`, `achat_completions_create`,
-`achat_completions_stream`, and `embeddings_create` on embedding models; `info()` returns
+`achat_completions_stream`, `embeddings_create` and `aembeddings_create` (a chat model
+refuses embeddings and an embedding model refuses chat with `UnsupportedFeature`); `info()` returns
 the `ModelInfo` (id, provider, kind, capabilities) that `provider.models()` lists like
 `GET /v1/models`. Every call first runs `prepare`: the provider-independent refusals
 (`InvalidRequest` naming the field), then the declared capabilities — an undeclared feature
@@ -118,7 +165,9 @@ retry). Nothing is downgraded silently. `n` > 1 on a model without native `n` be
 calls with the choices merged. Models written against the original interface (`generate`,
 `stream`, `embed`) keep working through the converters.
 
-**Providers** are factories. `LLMProvider` declares a registry `name` and a pydantic
+**Providers** implement the abstract `LLMProvider`: `from_settings`, `active`, `models`,
+`model`, `chat_model`, `embedding_model`, `health`, `describe_config`, `close`. The shared
+implementation, `ProviderBase`, declares a registry `name` and a pydantic
 `config_model`; it owns the API key, the `httpx` client (base URL, headers, proxy, TLS,
 timeouts) and a concurrency limit, lists its models (curated catalogue, live discovery
 where the vendor offers it, `@register_model` classes, then database and config
@@ -126,9 +175,9 @@ overrides), and creates `ChatModel`/`EmbeddingModel` objects (`provider.models()
 `provider.model(name)` are the OpenAI-style face). Credentials that expire are served per
 request (`request_headers()`), from cached token sources that refresh before expiry.
 
-**Errors** are SAJHA's, so the gateway can react without knowing the vendor:
+**Errors** are SAJHA's, so the governed model can react without knowing the vendor:
 
-| Error | Meaning | Gateway reaction |
+| Error | Meaning | Reaction |
 |---|---|---|
 | `RateLimited(retry_after)` | 429 or quota | retry after the delay, then fall back |
 | `ProviderUnavailable` | 5xx, timeout, connection | retry with backoff, then fall back |
@@ -198,15 +247,19 @@ token file as client assertion) or by managed identity (the App Service identity
 else IMDS); `entra_mode: auto` picks the first that is configured. Tokens are cached and
 refreshed five minutes before they expire (`sajha/ai/llm/cloud_auth.py`).
 
-**Legacy providers.** A class written against the pre-6.x ABC in `sajha/ai/providers/` and
-registered with `register_provider_class()` is wrapped by `LegacyProviderAdapter` and served
-like any other provider (text only: the old interface parsed no tool calls). The six old
-vendor modules were removed; the native providers replace them.
+**Legacy providers.** A class written against the pre-6.x ABC (`LegacyLLMProvider`, formerly
+`sajha.ai.providers.LLMProvider`; import it and `register_provider_class` from
+`sajha.ai.llm.spi`) is wrapped by `LegacyProviderAdapter` and served like any other provider
+(text only: the old interface parsed no tool calls). The `sajha.ai.providers` package is
+gone; the native providers replaced its vendor modules. New providers subclass
+`ProviderBase`.
 
 ### Adding a provider or a model
 
-A provider is a subclass of `LLMProvider` with `name` and `config_model` (a subclass of
-`ProviderConfig`), and one registration, validated at startup:
+A provider is a module with a subclass of `ProviderBase` (from `sajha.ai.llm.spi`; it
+implements the abstract `LLMProvider`) with `name` and `config_model` (a subclass of
+`ProviderConfig`), and one registration, validated at startup (a class that leaves an abstract
+method unimplemented is refused):
 
 1. the `@register_provider` decorator on a class imported at startup;
 2. a class path in `ai.providers[].class` (`package.module:Class`);
@@ -221,14 +274,14 @@ planning strategy and the tests they pass, is
 
 ## 4. Configuration
 
-Each provider's settings are its pydantic `config_model`; the gateway sections (`aliases`,
+Each provider's settings are its pydantic `config_model`; the factory's sections (`aliases`,
 `policy`, `budgets`, `cache`, `retry`, `breaker`, `gateway`, `ask`) are pydantic models too.
 Unknown keys fail at startup with the list of valid ones. A value is taken from the first
 of:
 
 1. `SAJHA_AI_<SECTION>_<FIELD>`, where `<SECTION>` is the provider's name upper-cased with
    non-alphanumerics as `_` (`SAJHA_AI_OPENAI_BASE_URL`, `SAJHA_AI_AZURE_OPENAI_API_VERSION`,
-   `SAJHA_AI_OLLAMA_NUM_CTX`) or a gateway section (`SAJHA_AI_ASK_MAX_STEPS`,
+   `SAJHA_AI_OLLAMA_NUM_CTX`) or a factory section (`SAJHA_AI_ASK_MAX_STEPS`,
    `SAJHA_AI_RETRY_MAX_RETRIES`, `SAJHA_AI_ALIASES_DEFAULT`). Lists take JSON or a comma
    list; dictionaries and lists of objects take JSON;
 2. the vendor's own variable (`OPENAI_API_KEY`, `OLLAMA_HOST`, `AWS_REGION`, ...);
@@ -256,24 +309,30 @@ provider and section, each value with its source (`default`, `config`, `env:NAME
 `ref:...`), the alias each name resolves to now, and `mock_active: true` with a note while
 the mock is serving every alias.
 
-## 5. The gateway
+## 5. The factory and governed models
 
-`LLMGateway` is the only thing consumers call. Its interface is shaped like an OpenAI-style
-client over the canonical format:
+`LLMFactory` is the only way consumers reach a model. It builds every provider once, from
+`ai.providers` (a built-in name, a `type`, or a `class: package.module:Class`), the legacy
+per-vendor keys, the registry (built-ins, class paths, `sajha.llm_providers` entry points),
+the `llm_providers` / `llm_models` tables and the secret store, and keeps the instances.
+`model(name)` returns a `GovernedModel`: a proxy implementing `LLMModel` that runs the
+governance below and then delegates to the provider's own model object (which delegates the
+wire work to its adapter functions). The factory is also an OpenAI-style client, with the
+model as a field:
 
 ```python
-gw.chat_completions_create(model="reasoning", messages=[...], tools=[...],
-                           sajha=SajhaRequest(context=ctx))   # -> ChatCompletion
-gw.chat_completions_stream(...)        # -> chat.completion.chunk objects
-await gw.achat_completions_create(...) # native async
-gw.achat_completions_stream(...)       # async iterator of chunks
-gw.embeddings_create(model="embedding", input=[...], sajha=SajhaRequest(input_purpose="query"))
-gw.models(ctx)                         # -> ModelInfo the caller's role may use
+f = llm_factory()
+m = f.model("reasoning", context=ctx)      # GovernedModel; context binds the caller
+m.chat_completions_create(messages=[...], tools=[...])          # -> ChatCompletion
+m.chat_completions_stream(...)             # -> chat.completion.chunk objects
+await m.achat_completions_create(...)      # native async
+m.achat_completions_stream(...)            # async iterator of chunks
+f.model("embedding").embeddings_create(input=[...], sajha=SajhaRequest(input_purpose="query"))
+m.info()                                   # the ModelInfo that would answer now for this caller
+f.chat_completions_create(model="fast", messages=[...], sajha=SajhaRequest(context=ctx))   # same, client style
+f.models(ctx)                              # -> ModelInfo the caller's role may use
+f.provider("openai")                       # admin and catalog pages only
 ```
-
-`resolve(model, needs, ctx)` returns the model a call would use. The original methods
-(`chat(request, model=)`, `stream`, `achat`, `embed(texts, model=, purpose=)`) are shims
-over these.
 
 - **Resolution.** `model` is an alias (ordered candidates), `provider/model`, or a bare
   provider. A user's saved preference goes first, then the system default set from the
@@ -308,10 +367,12 @@ over these.
   `ai.gateway.trace_prompts`. The tracer is the observability module's when its SDK is
   installed, otherwise the OpenTelemetry API's (a no-op without an SDK).
 
-The pre-6.x API remains as shims over `chat()`/`embed()`: `complete`,
-`complete_messages`, `embed(texts, provider=, model=)` (its result is a list of vectors that
-also has `.embeddings`), `list_all_models`, `health_check_all`, the user-preference
-methods, `get_stats`, `get_token_usage` and `get_total_cost`.
+Admin and catalog pages use the factory's own methods: `qualify(provider, model)` (a target
+from a provider/model pair, as `/api/ai/complete` takes them), `provider_health`,
+`describe_config`, the user-preference methods, `set_system_default`, `get_stats`,
+`cache_stats`, `get_token_usage`, `get_total_cost`, `breaker_states` and
+`LLMFactory.provider_types()`. The pre-6.x `complete`, `complete_messages` and
+`list_all_models` are gone (use `model(...).chat_completions_create` and `models()`).
 
 ## 6. The intelligence service
 
@@ -347,7 +408,7 @@ The planner decides only what happens next: answer, or which calls to make. Ever
 protects the caller stays in the service and applies to every planner: the RBAC-filtered
 shortlist, refusing calls to tools that were not offered, destructive-tool confirmation,
 running tools through `execute_with_tracking`, result caps, the limits, synthesis, confidence,
-audit and the event schema. A planner reaches a model only through the gateway (so policy,
+audit and the event schema. A planner reaches a model only through a governed model (so policy,
 budgets, fallback and the `model` event apply) and never touches a tool.
 
 | Planner | What it does | Model calls for a two-tool question |
@@ -391,7 +452,7 @@ nothing is kept. For a turn of a conversation the service:
    user's id, an LLM tool's, or an expired one, is "not found": the route answers 404);
 2. sends the last `ai.memory.history_turns` turns (question and answer) as earlier messages,
    and a summary of the older ones in the system prompt; the summary is written through the
-   gateway (`ai.memory.model`) once turns leave the verbatim window, and kept. Only the
+   factory (`ai.memory.model`) once turns leave the verbatim window, and kept. Only the
    window's rows (and any turns that just left it, for the summary) are read, never the
    whole conversation;
 3. rewrites the question as a standalone question (`ai.memory.condense`), so "and from 100 to
@@ -451,7 +512,7 @@ index (`sajha/ai/rag/`):
   reported as having no text (there is no OCR).
 - **Passages.** Markdown is split at headings (each passage keeps its section path and anchor),
   then into passages of about `ai.rag.chunk_chars` characters at paragraph boundaries.
-- **Embeddings** come from the gateway's `ai.rag.embedding_model` alias (`embedding`, which is
+- **Embeddings** come from the factory's `ai.rag.embedding_model` alias (`embedding`, which is
   `mock/mock-embed` out of the box); `none` means lexical search only. Passages are embedded
   with the `document` purpose and the query with the `query` purpose (models that embed the
   two differently get the right one), `ai.rag.embed_batch_size` passages per call.
@@ -557,7 +618,7 @@ shares with the landing page).
 - **Asking.** Type a question and press Enter (Shift+Enter for a new line), or pick an
   example chip. The page keeps a conversation: the first question sends
   `conversation_id: "new"` and later ones the id the server returned, so a follow-up ("and
-  from 100 to 150?") is answered with the earlier turns as context. The model picker sends `model`: admins see the gateway's aliases
+  from 100 to 150?") is answered with the earlier turns as context. The model picker sends `model`: admins see the factory's aliases
   (from `GET /api/ai/config`), other users the enabled tool-capable models from
   `GET /api/ai/models`; "default" sends none.
 - **Streaming.** The page posts with `Accept: text/event-stream` and reads the stream with
@@ -617,7 +678,7 @@ name, ticker symbols) and answers from the results, planning only from the quest
 never from tool output; `mock-toolsmith` designs a tool for Studio's Describe a tool from
 the description and the context it is sent ([Tool Generation](Tool%20Generation.md));
 `mock-embed` hashes word n-grams into normalised vectors. Fault
-injection (`latency_ms`, `fail_every`, `fail_with`, `seed`) exercises the gateway's
+injection (`latency_ms`, `fail_every`, `fail_with`, `seed`) exercises the governed model's
 reliability paths. Calls are priced at zero but report token usage.
 
 ## 8. Tests
@@ -630,9 +691,10 @@ vendor replies and stream events back, against stored expectations in `tests/ai/
 a portability suite (`test_portability.py`: canonical requests through the mock and every
 adapter, well-formed Chat Completions, declared capabilities honoured, native async);
 `test_canonical.py` for the converters, the refusals, the behaviours that used to be silent,
-the gateway's canonical interface, Vertex AI and Entra ID credentials; gateway tests for resolution, retries, fallback,
+the governed interface, Vertex AI and Entra ID credentials; factory tests for resolution, retries, fallback,
 breaker, budgets, policy, cache, configuration precedence, registry loading, secrets and
-the legacy shims; ask-loop tests over the real offline `calc_*` tools, including step
+the catalog methods; `tests/test_llm_boundary.py` for the package boundary and the abstract-class
+contract of every registered provider; ask-loop tests over the real offline `calc_*` tools, including step
 limits, confirmation, injected instructions in tool output, RBAC and the event order; and
 the HTTP route in JSON and SSE. `tests/ai/test_planners.py` runs every built-in planner through
 the same safety tests (RBAC, tools not offered, confirmation, limits, injection, event order)
@@ -649,8 +711,7 @@ tool registered by any path is shortlisted without a reload.
 
 - Native async for Bedrock (boto3 is synchronous; it runs in a worker thread) and for
   embeddings (a worker thread).
-- The planners and the ask service still call the original `chat()` interface (through the
-  converters); `reasoning_effort` on Bedrock (`additionalModelRequestFields` per model).
+- `reasoning_effort` on Bedrock (`additionalModelRequestFields` per model).
 - Over MCP 2026-07-28, destructive-tool confirmation inside `sajha_ask` as a Multi
   Round-Trip Request (it is returned as `needs_confirmation` today).
 - Freshness and agreement in the confidence score; trimming history on `ContextTooLong`.
