@@ -1,7 +1,8 @@
 # LLM Tools
 
 > **Status: design, not built.** This note is the design for LLM tools: tools whose work is
-> done by a language model, defined and governed like every other SAJHA tool. When it is
+> done by a language model, defined and governed like every other SAJHA tool, the
+> configuration-driven planners they run, and the memory tiers that keep them within bounds. When it is
 > built, this file becomes the as-built owner and the [Roadmap](Roadmap.md) item X7
 > (Ask SAJHA over MCP, finished) is closed by it.
 
@@ -30,18 +31,19 @@ versions as any other tool.
 6. [Modes](#6-modes)
 7. [What happens on a call](#7-what-happens-on-a-call)
 8. [Identity and access](#8-identity-and-access)
-9. [Conversation memory](#9-conversation-memory)
-10. [Recursion and composition](#10-recursion-and-composition)
-11. [Models, sampling, budgets and limits](#11-models-sampling-budgets-and-limits)
-12. [Safety](#12-safety)
-13. [Results and errors](#13-results-and-errors)
-14. [Observability and audit](#14-observability-and-audit)
-15. [Testing and quality](#15-testing-and-quality)
-16. [Moving `sajha_ask` onto the new type](#16-moving-sajha_ask-onto-the-new-type)
-17. [Schema and configuration changes](#17-schema-and-configuration-changes)
-18. [Build plan](#18-build-plan)
-19. [Decisions for the owner](#19-decisions-for-the-owner)
-20. [Alternatives considered](#20-alternatives-considered)
+9. [Planners](#9-planners)
+10. [Conversation memory](#10-conversation-memory)
+11. [Recursion and composition](#11-recursion-and-composition)
+12. [Models, sampling, budgets and limits](#12-models-sampling-budgets-and-limits)
+13. [Safety](#13-safety)
+14. [Results and errors](#14-results-and-errors)
+15. [Observability and audit](#15-observability-and-audit)
+16. [Testing and quality](#16-testing-and-quality)
+17. [Moving `sajha_ask` onto the new type](#17-moving-sajha_ask-onto-the-new-type)
+18. [Schema and configuration changes](#18-schema-and-configuration-changes)
+19. [Build plan](#19-build-plan)
+20. [Decisions for the owner](#20-decisions-for-the-owner)
+21. [Alternatives considered](#21-alternatives-considered)
 
 ---
 
@@ -92,6 +94,10 @@ tool planning at all.
   tamper-evident audit, budgets, metrics, tool quality tests, evals, versions and canary.
 - G6. Works offline on the mock model, so tests and demos need no key.
 - G7. Works on both protocol eras and for non-MCP callers (REST, CLI, workflows, A2A).
+- G8. Planners are configuration: ReAct, Reflect, plan-and-execute, self-consistency, map-reduce,
+  routing and loops are expressed as bounded graphs of stages, not code.
+- G9. No load can take the process down: memory is bounded per call and per process, large data
+  spills to disk, and excess work is queued or refused.
 
 **Non-goals**
 
@@ -118,6 +124,11 @@ definitions live).
 | Client history | Earlier turns the caller sends in the `messages` argument instead of a handle. |
 | Sampling | MCP's mechanism for a server to ask the client's model for a completion. |
 | Depth | How many LLM tools are nested in the current call chain. |
+| Planner | The strategy an LLM tool follows: a bounded graph of stages defined in configuration (section 9). |
+| Stage | One unit of planner work from a fixed library (act, plan, critique, verify, ...), ending in a typed outcome. |
+| Bounded edge | A planner transition that may loop back, with a maximum number of visits and a destination when it is reached. |
+| Spool | Per-run files on local disk that hold large in-flight payloads instead of process memory. |
+| Memory guard | The watchdog that slows, refuses or ends LLM-tool runs before the process runs out of memory. |
 
 ---
 
@@ -134,12 +145,13 @@ An LLM tool is a normal entry in the tool registry:
 | Registry and reload | Loaded by `ToolsRegistry`; hot reload picks up edits; a broken `llm` block fails that tool's load only. |
 | Access | Visible and callable under the same rules as any tool (roles, API-key tool patterns, `mcp.anonymous.*`). |
 | Policy engine | Every call to the LLM tool and every inner call is evaluated (allow, deny, redact, require approval, rate limit). |
-| Audit and metrics | The LLM tool call is one record; each inner call is its own record linked to it (section 14). |
+| Audit and metrics | The LLM tool call is one record; each inner call is its own record linked to it (section 15). |
 | Tool quality | Test cases, cassettes, lint, probes, evals, versions and canary apply unchanged ([Tool Quality](Tool%20Quality.md)). |
 | Studio | A new creator, "LLM tool", writes the config file; Describe a tool can propose one ([Tool Generation](Tool%20Generation.md)). |
-| Composition and workflows | Composites and workflow steps can call an LLM tool like any other tool, subject to the depth rule (section 10). |
+| Planners | A planner registry loads planner files from `config/planners/<name>.yaml` with the same loading, reload, lint and versioning as tools (section 9). |
+| Composition and workflows | Composites and workflow steps can call an LLM tool like any other tool, subject to the depth rule (section 11). |
 
-Server-wide settings live under a new `ai.llm_tools.*` section (section 17). They are
+Server-wide settings live under a new `ai.llm_tools.*` section (section 18). They are
 **ceilings**: a tool config can ask for less, never more.
 
 ---
@@ -197,7 +209,7 @@ A complete example, an assistant over market and macro tools with memory:
 |---|---|---|---|
 | `mode` | string | required | `answer`, `complete`, `extract`, `classify`, `grounded`, `narrate`, `judge` (section 6). |
 | `model` | string | `ai.llm_tools.default_model` | A gateway alias (`default`, `fast`, `reasoning`, ...) or `provider/model`. Aliases are preferred so operators can re-point them. |
-| `planner` | string | `ai.ask.planner` | `answer` mode only: `react`, `plan_execute`, `recipes`, `router`. |
+| `planner` | string or object | `ai.planners.default` | `answer` and `grounded` modes: a planner from the planner registry (`name` or `name@version`, section 9), or an inline planner definition. |
 | `system_prompt` | string | none | Instructions for the model. Mutually exclusive with `prompt`. |
 | `prompt` | object | none | `{ "name": "<prompt in the prompts registry>", "arguments": { "<arg>": "{{input.field}}" } }`. Reuses SAJHA prompts instead of inline text. |
 | `template` | string | none | `complete`, `extract`, `classify`, `judge`: the user message, with `{{input.<field>}}` placeholders filled from validated arguments. |
@@ -205,7 +217,7 @@ A complete example, an assistant over market and macro tools with memory:
 | `rag.sources` | string[] | none | `grounded` mode (optional elsewhere): document-search sources to read. |
 | `limits.*` | numbers | `ai.llm_tools.*` | `max_steps`, `max_tool_calls`, `timeout_s`, `max_input_chars`, `max_output_tokens`, `max_cost_usd`. Clamped to the server ceilings. |
 | `memory.*` | object | `{ "mode": "none" }` | Section 9. |
-| `sampling` | string | `never` | `never`, `prefer`, `require` (section 11). |
+| `sampling` | string | `never` | `never`, `prefer`, `require` (section 12). |
 | `output.citations` / `output.steps` | bool | `true` / `false` | Whether the result carries citations and a step trace. |
 | `confirm` | string | `ask` | `ask` (stop and request confirmation for destructive inner calls) or `refuse` (never run them). |
 | `nesting` | object | `{ "allow": false }` | Section 10. |
@@ -232,7 +244,7 @@ Each mode is a small, testable strategy. All share the pipeline in section 7.
 ### 6.1 `answer`: plan, call tools, compose
 
 The general assistant. The question is condensed with conversation context (if any), tools are
-shortlisted from those allowed, the configured planner decides calls, results are composed
+shortlisted from those allowed, the configured planner (section 9) decides calls, results are composed
 into an answer with confidence and citations. This is what `sajha_ask` does today.
 
 - Input: `question` (required), `conversation_id`, `messages`, `confirm`.
@@ -293,7 +305,7 @@ calls tools.
 caller ── tools/call markets_assistant {question, conversation_id?}
    │
    ├─ 1. Normal tool path: access check, policy (call), argument validation
-   ├─ 2. Resolve the caller (sajha/observability/caller.py) and the depth (section 10)
+   ├─ 2. Resolve the caller (sajha/observability/caller.py) and the depth (section 11)
    ├─ 3. Load context: conversation (by handle, owned by caller) or client messages
    ├─ 4. Budget pre-check: caller's token budget, tool's max_cost_usd
    ├─ 5. Mode strategy:
@@ -329,7 +341,7 @@ An LLM tool can therefore never give a caller more than the caller already has. 
 today's fixed `mcp:sajha_ask` identity.
 
 **Anonymous callers.** Allowed only if the anonymous policy lets them see the LLM tool. They
-get no stored memory (section 9) and the tightest limits (`ai.llm_tools.anonymous.*`).
+get no stored memory (section 10) and the tightest limits (`ai.llm_tools.anonymous.*`).
 
 **Destructive inner calls.** With `confirm: ask`, a destructive call stops the run and returns
 `stopped_by: needs_confirmation` with the call's fingerprint. On the 2026-07-28 path this is an
@@ -339,9 +351,239 @@ With `confirm: refuse`, destructive tools are removed from the allowed set entir
 
 ---
 
-## 9. Conversation memory
+## 9. Planners
 
-### 9.1 Modes
+A planner is the *strategy* an LLM tool follows: how many model calls, in what order, when to
+call tools, when to check its own work, when to loop and when to stop. The model does the
+reasoning inside each step; the planner decides the shape of the steps. This section makes
+planners configuration, so a new strategy (ReAct, Reflect, plan-and-execute, self-consistency,
+map-reduce, routing, a domain-specific flow) is a file, not code.
+
+### 9.1 What a planner is, and what it is not
+
+The division of responsibility that exists today (`sajha/ai/planners.py`) stays:
+
+- **The planner proposes.** Before each step it decides the next move: call these tools,
+  answer with this text, publish an event, or (new) ask the user.
+- **The service enforces.** `IntelligenceService` owns everything that protects the caller:
+  the access-filtered shortlist, refusing tools that were not offered, destructive-call
+  confirmation, running every call through the normal tool path as the caller, result caps,
+  limits and budgets, synthesis, confidence, audit and the event stream.
+
+A planner reaches a model only through the gateway bound to the caller and never touches a
+tool directly. Nothing in a planner file can widen what the caller may do, raise a limit above
+its ceiling, or remove the safety instructions (section 9.6). That is what makes it safe to let
+configuration, rather than reviewed code, define strategies.
+
+**Today.** Four strategies exist as Python classes: `react`, `plan_execute`, `recipes` and
+`router`. They are chosen by name in `ai.ask.planner`, and some take settings
+(`ai.ask.planner_config.<name>`: recipes, routing rules). A new strategy needs a Python class
+registered with `@register_planner`. This design keeps that escape hatch (section 9.10) and adds
+a declarative form that covers the common strategies.
+
+### 9.2 The model: a bounded graph of stages
+
+A planner is a **directed graph of stages** with named **state**, defined in
+`config/planners/<name>.yaml`:
+
+- a **stage** is one unit of work from a fixed library (section 9.3): a model call with tools,
+  a structured plan, a critique, a deterministic check, a fixed tool call, a vote;
+- every stage ends with a typed **outcome** (for example `act` ends `called` or `answered`,
+  `critique` ends `pass` or `revise`), and **transitions** map outcomes to the next stage;
+- **state** is a set of named slots the stages read and write (`question`, `plan`, `results`,
+  `draft`, `critique`, `candidates`, counters), all bounded in size (section 10.4);
+- **loops are allowed and always bounded**: any edge that can return to an earlier stage must
+  declare `max_visits`, and an `on_exhausted` target for when the bound is reached (section 9.5).
+
+```yaml
+# config/planners/<name>.yaml — the shape every planner file has
+name: reflect_analyst
+version: 1.0.0
+description: ReAct to gather data, then check numbers and self-critique before answering.
+models:                      # aliases used by stages; operators re-point aliases, not files
+  act: reasoning
+  critic: fast
+limits:                      # clamped to ai.planners.limits and the tool's own limits
+  max_stages_run: 30
+start: act
+stages:
+  act:
+    type: act                # one model call with the offered tools (a ReAct step)
+    model: act
+    on:
+      called:   { next: act, max_visits: 6, on_exhausted: draft }   # the ReAct loop
+      answered: { next: verify }
+  draft:
+    type: draft              # compose an answer from the results gathered so far
+    on: { done: { next: verify } }
+  verify:
+    type: verify             # deterministic: every number in the draft appears in a result
+    checks: [numbers_in_results, citations_present]
+    on:
+      ok:       { next: critique }
+      mismatch: { next: revise, max_visits: 2, on_exhausted: answer }
+  critique:
+    type: critique           # a model reviews the draft against the question and results
+    model: critic
+    rubric: [answers every part of the question, no unsupported claims, says what is missing]
+    on:
+      pass:   { next: answer }
+      revise: { next: revise, max_visits: 2, on_exhausted: answer }
+  revise:
+    type: revise             # rewrite the draft using the critique or verify findings
+    model: act
+    on: { done: { next: verify } }
+  answer:
+    type: answer             # finish; the service synthesises confidence and citations
+```
+
+### 9.3 The stage library
+
+Stages are implemented in code once, tested once, and combined in configuration. Each declares
+its inputs, its outputs (state slots it writes) and its outcomes, which the loader checks.
+
+| Stage | What it does | Outcomes |
+|---|---|---|
+| `act` | One model call with the offered tools; the model either requests tool calls (the service runs them as the caller) or answers. A ReAct step. | `called`, `answered` |
+| `plan` | One structured-output call that returns a plan (steps, tools, arguments, dependencies), validated against the plan schema. | `planned`, `invalid` |
+| `execute` | Runs the plan's steps through the service, independent steps in parallel up to `max_parallel`; failed steps are recorded, not fatal. | `done`, `failed_steps` |
+| `call` | One fixed tool call with arguments templated from state (`{{question.groups.ticker}}`); a recipe. | `done`, `error` |
+| `match` | Deterministic: regular expressions or keywords over the question, setting named groups in state. | one outcome per rule, `none` |
+| `classify` | A label for the question from a fixed set, by rules first and a model call only if no rule matches. | one outcome per label |
+| `draft` | Compose an answer from the gathered results (model call, no tools). | `done` |
+| `critique` | A model reviews the draft against the question, the results and a rubric; returns `pass` or a list of issues. | `pass`, `revise` |
+| `revise` | Rewrite the draft to address the critique or verification findings. | `done` |
+| `verify` | Deterministic checks, no model: numbers in the draft appear in tool results, every claim has a citation, structured output validates, required parts of the question are answered. | `ok`, `mismatch` |
+| `sample` | Run a sub-step (a draft, a plan) `n` times in parallel with varied temperature. | `done` |
+| `vote` | Pick among samples: majority on a normalised answer (self-consistency) or a judge model with a rubric. | `done`, `tie` |
+| `foreach` | Map a sub-graph over a list in state (for example each holding), with bounded concurrency, collecting results; then continue (reduce). | `done`, `partial` |
+| `planner` | Run another planner as a sub-graph (section 9.7). | the sub-planner's end |
+| `ask_user` | Ask the caller for missing information or a choice: MRTR input on 2026-07-28, `stopped_by: needs_input` elsewhere. | `answered`, `declined` |
+| `condense` | Rewrite a follow-up into a standalone question using conversation memory (today done implicitly; made explicit so a planner can skip it). | `done` |
+| `answer` | Finish with the current draft or the model's answer. | terminal |
+| `fail` | Finish with a stated reason. | terminal |
+
+Transitions can also carry a `when` condition over state, written in a small expression
+language with no code execution: comparisons, `and`/`or`/`not`, `len()`, `in`, and JSONPath
+lookups (the same JSONPath the tool-quality assertions use). Example:
+`when: "len(results) == 0"`.
+
+### 9.4 Strategies are configurations
+
+Every common strategy is a short graph. SAJHA ships these as files (`config/planners/<name>.yaml`),
+so they double as examples:
+
+| Strategy | Graph | Use when |
+|---|---|---|
+| **ReAct** | `act` ⟲ (`called` → `act`, bounded) → `answer` | general questions; the default |
+| **Plan-and-execute** | `plan` → `execute` → `draft` → `answer`; on `failed_steps` → `plan` once | multi-part questions; independent calls in parallel |
+| **ReWOO** | `plan` (no observations) → `execute` → `draft` | fewer model calls; predictable cost |
+| **Reflect** (self-refine, Reflexion-style) | … → `draft` → `critique` ⟲ `revise` (bounded) → `answer` | high-stakes answers; quality over latency |
+| **Verify-then-answer** | … → `draft` → `verify` ⟲ `revise` (bounded) → `answer` | numeric answers that must match the data |
+| **Self-consistency** | `sample`(n × `act` or `draft`) → `vote` → `answer` | ambiguous questions where agreement signals correctness |
+| **Branch and judge** (tree-of-thought, one level) | `sample`(n × `plan`) → `vote`(judge) → `execute` → `draft` | several plausible approaches; pick the best before spending on tools |
+| **Map-reduce** | `act` (list the items) → `foreach` (sub-graph per item) → `draft` | per-item analysis: each holding, each filing, each region |
+| **Router** | `match`/`classify` → `planner`(chosen strategy) | mixed traffic; cheap path for easy questions |
+| **Recipes** | `match` → `call` → `answer`; `none` → `planner`(fallback) | known questions answered with no model call |
+| **Human in the loop** | … → `ask_user` (when ambiguous or before a costly branch) → … | questions that need the caller's choice |
+
+The four built-in planners are re-expressed as configuration files with the same behaviour, and
+their existing tests run against both forms during the transition; the Python classes remain as
+the implementation of the `act`, `plan`, `match` and routing stages.
+
+### 9.5 Loops and bounds
+
+Looping is what makes ReAct and Reflect work, and what can make a planner run away. The rules:
+
+1. **Every cycle has a bounded edge.** At load time the graph's cycles are found; each must
+   contain at least one transition with `max_visits`. A planner with an unbounded cycle does not
+   load.
+2. **Exhaustion has a destination.** A bounded edge names `on_exhausted` (usually `draft` or
+   `answer`), so reaching the bound ends with the best result so far, never an error loop.
+3. **Global ceilings apply on top.** `limits.max_stages_run` for the whole graph, and the
+   tool's and caller's step, tool-call, time and cost limits (section 12) end the run with the
+   matching `stopped_by` whatever the graph says.
+4. **Sub-planners share the budget.** A `planner` stage spends from the parent's remaining
+   limits; depth is limited by `ai.planners.limits.max_subplanner_depth`, and a planner cannot
+   include itself, directly or through others.
+5. **Fan-out is bounded.** `sample.n`, `foreach` item count and concurrency, and `execute`
+   parallelism are capped by `ai.planners.limits`.
+
+### 9.6 Models and prompts per stage
+
+- Each model-using stage names a model *role* (`act`, `critic`, `planner`), mapped in the file's
+  `models` block to gateway aliases. Cheap aliases for classification and critique, a reasoning
+  alias for planning and acting: cost-aware strategies without code.
+- Prompts come from the prompts registry (`prompt: {name: ...}`) or inline text, with
+  `{{state.slot}}` placeholders. Structured stages (`plan`, `critique`, `vote`, `classify`)
+  validate the model's reply against their schema and retry once with the errors.
+- **SAJHA's safety preamble is always prepended** to every model call (tool results are data,
+  not instructions; only offered tools may be called; say when data is missing). A planner file
+  cannot remove or override it.
+- Temperature, max output tokens and stop sequences may be set per stage, within the tool's
+  limits.
+
+### 9.7 Composition with tools and memory
+
+- An LLM tool names its planner: `llm.planner: reflect_analyst` (optionally `name@version`), or
+  defines one inline for a one-off strategy. Without one, `ai.planners.default` applies.
+- A `planner` stage runs another planner as a sub-graph, which is how the router works and how
+  a strategy reuses another (map-reduce whose per-item step is ReAct).
+- Conversation memory is loaded before the graph starts (section 10); the `condense` stage
+  decides whether the follow-up is rewritten.
+- Non-`answer` modes (section 6) use fixed internal graphs; only `answer` and `grounded` accept a
+  configurable planner.
+
+### 9.8 Validation at load
+
+A planner file is refused (and `python -m sajha.quality lint` reports it) when:
+
+- a stage type is unknown, or a stage's settings do not match its schema;
+- `start` is missing, a stage is unreachable, or a declared outcome has no transition;
+- a cycle has no bounded edge, or a bounded edge has no `on_exhausted`;
+- a referenced model role, alias, prompt, sub-planner or tool pattern does not exist;
+- sub-planners form a cycle or exceed the depth limit;
+- a limit exceeds its ceiling (it is clamped, with a warning, rather than refused).
+
+### 9.9 Registry, reload and versions
+
+- A planner registry loads `config/planners/<name>.yaml` (through the storage backend, like
+  tool configs), reloads on change, and keeps the previous good version if a new file fails
+  validation.
+- Each planner has a `version`. A tool can pin `name@version`; tool versions and canaries
+  (section 16) can compare two planners on live traffic, and eval sets can compare them offline
+  (`python -m sajha.quality eval`, per model and planner, already exists).
+- The audit record of every LLM-tool call names the planner, its version and the path of stages
+  taken.
+
+### 9.10 The code escape hatch
+
+For a strategy the stage library cannot express, two extension points remain, both
+administrator-only and both still inside the service's enforcement:
+
+- `kind: python` with `class: package.module:Class`, the existing planner interface;
+- a custom **stage type** registered in code, which then becomes usable in planner files. A
+  stage type declares its schema, inputs, outputs and outcomes, so planner files that use it are
+  validated like any other.
+
+### 9.11 Observability and testing
+
+- **Events.** Every stage emits start and end events on the ask event stream, so the Ask SAJHA
+  animation shows the path (act → act → verify → critique → revise → answer).
+- **Metrics.** `sajha_planner_stages_total{planner,stage,outcome}`,
+  `sajha_planner_loops_exhausted_total{planner,edge}`, run duration per planner.
+- **Dry run.** A new admin endpoint and a button in the planner editor run a planner against the mock model and
+  returns the stage path, without calling tools that are not read-only.
+- **Tests.** The mock model gets scripted replies per stage type; each shipped strategy has
+  path tests (question → expected stage path) and bound tests (a critic that never passes
+  exhausts at `max_visits` and still answers); eval sets compare strategies on the same
+  questions.
+
+---
+
+## 10. Conversation memory
+
+### 10.1 Modes
 
 | `memory.mode` | Who keeps the context | Use for |
 |---|---|---|
@@ -352,7 +594,7 @@ With `confirm: refuse`, destructive tools are removed from the allowed set entir
 `conversation` and `client` can both be enabled (`accept_client_history: true`); if a call
 carries both, the stored conversation wins and `messages` is ignored, with a note in the result.
 
-### 9.2 The handle
+### 10.2 The handle
 
 - No `conversation_id` in the call: SAJHA creates a conversation and returns its id.
 - A valid id the caller owns: SAJHA continues it.
@@ -366,29 +608,70 @@ Why a handle and not the MCP session: the 2026-07-28 era has no sessions, sessio
 survive several workers without shared state, and REST, CLI, workflow and A2A callers have no
 MCP session at all. An explicit argument works for all of them.
 
-### 9.3 Where it is stored
+### 10.3 Where it is stored: four tiers
 
-The existing conversation store (`sajha/ai/memory.py`), used today by the Ask SAJHA page:
+**Today.** The conversation store (`sajha/ai/memory.py`, used by the Ask SAJHA page) is already
+on disk: every conversation and turn is a row in the database, which is a SQLite file under
+`data/` by default, or PostgreSQL. Nothing is cached in process memory between calls:
 
 - `ai_conversations`: one row per conversation: owner, title, running summary, turn count,
   timestamps;
 - `ai_conversation_turns`: one row per turn: question, standalone rewrite, answer (clipped),
   tool *names* used, `stopped_by`, confidence.
 
+What *does* live in RAM is the working set of each running call (the summary and recent turns
+it loaded, the tool shortlist, tool results, plans and drafts), and that is what can hurt the
+process under load: many concurrent runs, a planner that fans out, or a tool that returns a very
+large result. LLM tools and configurable planners make that more likely, so the design defines
+four tiers with an explicit bound and an explicit spill path for each:
+
+| Tier | Where | Holds | Bound | Under pressure |
+|---|---|---|---|---|
+| **T0 working set** | process RAM, one running call | context being assembled: summary, recent turns, shortlist, tool results, plan, drafts, samples | per-call byte budget (`working_set_max_kb`) | large items spill to T3; the run keeps a reference and a clipped preview |
+| **T1 hot cache** (optional, off by default) | process RAM, shared by calls | recently used conversations' summary and recent turns, to save a database read | `cache.max_mb` per process, LRU by measured size, TTL | evicted; emptied under memory pressure; write-through, so eviction never loses data |
+| **T2 durable store** | database on disk (SQLite file or PostgreSQL) | conversations and turns: the source of truth | section 10.5 | not applicable |
+| **T3 spool** | local disk, one folder per run under `data/spool/llm_tools/` (or the storage backend) | large in-flight payloads: big tool results, `foreach` partial results, plan artefacts, samples | `spool.max_mb` in total and a per-run cap | when full, a payload is truncated with a marker instead of spooled; the run continues |
+
 Each call builds the model's context from the summary plus the last `ai.memory.history_turns`
 turns verbatim, and condenses a follow-up into a standalone question so tool shortlisting
-works. LLM tools add a `tool_name` and an `expires_ts` to the conversation row (section 17), so
+works. LLM tools add a `tool_name` and an `expires_ts` to the conversation row (section 18), so
 each tool's conversations are separate and each can expire on its own schedule.
 
-### 9.4 Bounding RAM
+### 10.4 Bounding RAM and protecting the process
 
-Nothing is held in process memory between calls. A call reads one conversation row and at most
-`history_turns` turn rows, uses them, writes one turn row, and lets them go. Memory use is per
-request and bounded by the clip sizes below; it does not grow with the number of users or
-conversations. With the database as the store, several workers and restarts see the same
-conversations.
+The goal is that no amount of traffic, conversation length or tool output can take the SAJHA
+process down: under pressure, work slows down or is refused, it does not crash.
 
-### 9.5 Bounding disk
+1. **Load only the window.** A call reads the conversation row and at most `history_turns` turn
+   rows; older turns are represented by the summary and never loaded.
+2. **Per-call working-set budget.** Every item a run holds is measured when added. A tool result
+   larger than `spill_threshold_kb` is written to the run's spool folder (T3) at once; the run
+   keeps a reference and a preview of `ai.ask.max_result_chars` characters, which is all a model
+   ever sees of a result anyway. Stages that need the full result (`verify`, `foreach`, `narrate`)
+   stream it back from the spool. If the run's total still exceeds `working_set_max_kb`, the
+   oldest spillable items go to T3 next.
+3. **Bounded fan-out.** `sample`, `foreach` and parallel `execute` are capped (section 9.5), so a
+   planner cannot multiply the working set without limit.
+4. **Bounded concurrency.** At most `max_concurrent_runs` LLM-tool runs execute per process;
+   up to `max_queued` more wait at most `queue_timeout_s`. Beyond that a call ends with
+   `stopped_by: busy` (an error result; REST answers 503 with `Retry-After`).
+5. **Memory guard.** A watchdog samples the process's resident memory every `interval_s`
+   (the standard library on Linux, `psutil` if installed). Limits default to percentages of the
+   container's memory limit (cgroup) when one is set, or to absolute values:
+   - **soft limit** (default 70%): empty the hot cache, spill every spillable working-set item,
+     stop admitting queued runs;
+   - **hard limit** (default 85%): refuse new runs (`busy`), and end running ones at their next
+     stage boundary with their best partial answer (`stopped_by: memory_pressure`). Running
+     calls are never killed mid-step.
+6. **Hot cache stays small and optional.** T1 is off by default; when on, it is bounded by
+   measured bytes, has a TTL, and is the first thing given up under pressure.
+7. **State store.** Short-lived shared state (MRTR request state, Describe drafts, approvals,
+   tasks) lives in the state store. Production with several workers uses `state.backend:
+   database` or `redis`, which keep it out of process memory; the design adds a count and byte
+   cap per kind to the `memory` backend so that even a single-worker setup cannot grow without
+   bound.
+
+### 10.5 Bounding disk
 
 | Bound | Where it is set | Status |
 |---|---|---|
@@ -400,16 +683,23 @@ conversations.
 | Conversations per user (oldest deleted first) | `ai.memory.max_conversations_per_user` | today |
 | Conversations per user per tool | `ai.llm_tools.memory.max_conversations_per_tool` | new |
 | Scheduled purge: expired conversations deleted by a periodic job that fires once across workers (the same claim mechanism workflow cron and probes use), instead of only opportunistically when someone writes | `ai.llm_tools.memory.purge_interval_minutes` | new (today: at most hourly, on write) |
+| Spool: a run's folder is deleted when the run ends; a janitor deletes folders older than `spool.orphan_minutes` (crashed runs) at start-up and periodically; total size capped by `spool.max_mb` | `ai.llm_tools.memory.spool.*` | new |
+| SQLite file size: deleted rows' pages are reused; an optional `VACUUM` in the purge window returns space to the file system. PostgreSQL relies on autovacuum (operator) | `ai.llm_tools.memory.sqlite_vacuum` | new |
 | No storage for anonymous callers | design rule | new |
 | Users delete their own history | `DELETE /api/ai/conversations` | today |
 
 Worst case per user is therefore *conversations per user × (summary + max_turns × 2 × clip
-size)*, a number an operator can compute from config.
+size)*, and worst case spool is `spool.max_mb`: numbers an operator can compute from config.
 
-### 9.6 Visibility
+### 10.6 Visibility
 
 - Metrics: stored conversations and turns per tool, purged per run, summarisations
   (`sajha_llm_tool_conversations`, `sajha_llm_tool_turns_total`, `sajha_llm_tool_purged_total`).
+- Resource metrics: working-set bytes and spills per run (`sajha_llm_tool_spilled_total`), spool
+  bytes in use (`sajha_llm_tool_spool_bytes`), hot-cache bytes and evictions, queued and refused
+  runs (`sajha_llm_tool_runs_refused_total{reason}`), and the memory guard's state (`ok`, `soft`,
+  `hard`) with the resident memory it measured. An alert rule on `soft` gives operators warning
+  before refusals start.
 - The existing conversations API and a page listing a user's own conversations per tool
   (roadmap X7 asks for that page).
 - Retention appears in the Configuration Reference; the Security Model records that stored
@@ -417,7 +707,7 @@ size)*, a number an operator can compute from config.
 
 ---
 
-## 10. Recursion and composition
+## 11. Recursion and composition
 
 An LLM tool may call another LLM tool only if both allow it:
 
@@ -432,12 +722,12 @@ from the outer call's remaining cost and time, never a fresh allowance.
 
 ---
 
-## 11. Models, sampling, budgets and limits
+## 12. Models, sampling, budgets and limits
 
 **Model choice.** Through the gateway only, so provider policy (`ai.policy`), per-user daily
 token budgets (`ai.budgets`), retries, circuit breakers, fallback across an alias's candidates
 and the response cache all apply. Per-tool `model` picks an alias; the mock model answers every
-mode offline (it needs scripted replies for each mode, section 15).
+mode offline (it needs scripted replies for each mode, section 16).
 
 **Sampling.** `sampling: prefer` uses the client's model when the client declared the sampling
 capability, and SAJHA's own model otherwise; `require` refuses callers without it; `never`
@@ -459,7 +749,7 @@ limits still apply.
 
 ---
 
-## 12. Safety
+## 13. Safety
 
 - **Prompt injection through tool results.** Tool results are data, inserted in delimited
   blocks and screened with the same injection markers federation uses; a flagged result is
@@ -477,7 +767,7 @@ limits still apply.
 
 ---
 
-## 13. Results and errors
+## 14. Results and errors
 
 A successful call returns `structuredContent` matching the output schema, plus a text block
 for clients on older protocol versions. `stopped_by` says how the run ended:
@@ -497,7 +787,7 @@ Argument validation errors and access denials are ordinary tool errors, as for a
 
 ---
 
-## 14. Observability and audit
+## 15. Observability and audit
 
 - **Audit.** The LLM tool call is one record; every inner call is its own record carrying the
   outer call's id, so an answer can be traced to each tool it used. Conversation turns carry the
@@ -505,14 +795,14 @@ Argument validation errors and access denials are ordinary tool errors, as for a
 - **Metrics.** Calls, latency and errors per LLM tool (as for every tool), plus
   `sajha_llm_tool_steps`, `sajha_llm_tool_inner_calls_total`, `sajha_llm_tool_tokens_total`,
   `sajha_llm_tool_cost_usd_total`, `sajha_llm_tool_stopped_total{reason}`, and the memory
-  metrics in section 9.6.
+  metrics in section 10.6.
 - **Usage ledger.** Tokens and cost per caller, per LLM tool, per model, in the existing usage
   and cost pages.
 - **Tracing.** One span per call with child spans per model call and inner tool call (OTLP).
 
 ---
 
-## 15. Testing and quality
+## 16. Testing and quality
 
 - **Mock scripts per mode.** The mock model gets scripted replies for each mode (plan steps,
   extraction JSON, labels, rubric scores), so every mode is tested offline and in CI.
@@ -531,7 +821,7 @@ Argument validation errors and access denials are ordinary tool errors, as for a
 
 ---
 
-## 16. Moving `sajha_ask` onto the new type
+## 17. Moving `sajha_ask` onto the new type
 
 `sajha_ask` becomes a config file in `config/tools/` (to be added) with `mode: answer`, the current input and
 output fields, and `memory.mode: conversation`. `sajha/ai/ask_tool.py` is reduced to a
@@ -549,7 +839,7 @@ the same pipeline.
 
 ---
 
-## 17. Schema and configuration changes
+## 18. Schema and configuration changes
 
 **Database** (no migrations: both schema files change together, `tests/test_db_schema.py`
 enforces it; SAJHA runs no DDL on PostgreSQL):
@@ -585,11 +875,34 @@ ai:
       max_turns: 50
       max_conversations_per_tool: 50
       purge_interval_minutes: 15
+      working_set_max_kb: 2048    # per running call; larger items spill to the spool
+      spill_threshold_kb: 256     # a tool result larger than this is spooled at once
+      cache: { enabled: false, max_mb: 64, ttl_s: 300 }   # optional write-through hot cache
+      spool: { dir: data/spool/llm_tools, max_mb: 1024, per_run_mb: 128, orphan_minutes: 60 }
+      sqlite_vacuum: false        # VACUUM the SQLite file in the purge window
+    runtime:
+      max_concurrent_runs: 8      # per process
+      max_queued: 32
+      queue_timeout_s: 30
+      memory_guard: { soft_pct: 70, hard_pct: 85, soft_mb: 0, hard_mb: 0, interval_s: 2 }
+  planners:
+    default: react                # used when an LLM tool names none
+    limits:                       # ceilings for every planner file
+      max_stages_run: 40
+      max_visits_per_edge: 10
+      max_subplanner_depth: 2
+      max_parallel: 4
+      max_samples: 5
+      max_foreach_items: 50
 ```
+
+Planner files live in `config/planners/<name>.yaml` (section 9.2); the built-in strategies ship
+there. `ai.ask.planner` and `ai.ask.planner_config` keep working for the Ask SAJHA page and map
+onto the registry.
 
 ---
 
-## 18. Build plan
+## 19. Build plan
 
 Each step ends green: full suite, both conformance suites, mobile check for any page.
 
@@ -597,35 +910,45 @@ Each step ends green: full suite, both conformance suites, mobile check for any 
 |---|---|---|
 | 1 | Caller identity for inner calls and the depth context; `sajha_ask` runs as the caller | identity and recursion tests |
 | 2 | `LLMTool`, config validation, modes `answer`, `complete`, `extract`, `classify`; derived annotations; lint rules | mode tests on the mock |
-| 3 | Memory: handle, `tool_name`/`expires_ts` columns in both schema files, turn folding, scheduled purge, `client` history, metrics | memory tests incl. two workers |
-| 4 | Modes `grounded`, `narrate`, `judge`; caching for deterministic modes | mode tests |
-| 5 | `sajha_ask` moved onto the type; shipped examples (an assistant, a summariser, a classifier, a grounded docs Q&A); eval sets | evals pass on the mock |
-| 6 | Studio "LLM tool" creator and Describe-a-tool proposals; conversations page | page tests, mobile check |
-| 7 | Sampling (`prefer`, `require`) on both eras, starting with non-planner modes | protocol tests, conformance |
-| 8 | Docs: this note becomes as-built; glossary terms; tutorial; Configuration and API Reference; Security Model; help card; CHANGELOG | doc-rot tests |
+| 3 | Planner engine: stage library, graph validation (reachability, outcomes, bounded cycles), state slots, `when` expressions, registry and reload; the four built-ins re-expressed as files with their existing tests passing against both forms | path and bound tests |
+| 4 | Strategies shipped as files: Reflect, verify-then-answer, self-consistency, branch and judge, map-reduce, human in the loop; dry run; per-stage events and metrics; eval sets comparing strategies | evals on the mock |
+| 5 | Memory: handle, `tool_name`/`expires_ts` columns in both schema files, turn folding, scheduled purge, `client` history | memory tests incl. two workers |
+| 6 | Resource safety: working-set budget, spool and janitor, concurrency limit and queue, memory guard, optional hot cache, state-store caps; load test that drives the process to its soft and hard limits without a crash | soak and pressure tests |
+| 7 | Modes `grounded`, `narrate`, `judge`; caching for deterministic modes | mode tests |
+| 8 | `sajha_ask` moved onto the type; shipped examples (an assistant, a summariser, a classifier, a grounded docs Q&A); eval sets | evals pass on the mock |
+| 9 | Studio "LLM tool" creator and a planner editor with validation and dry run; Describe-a-tool proposals; conversations page | page tests, mobile check |
+| 10 | Sampling (`prefer`, `require`) on both eras, starting with non-planner modes | protocol tests, conformance |
+| 11 | Docs: this note becomes as-built; glossary terms; tutorials (an LLM tool, a custom planner); Configuration and API Reference; Security Model; help card; CHANGELOG | doc-rot tests |
 
 ---
 
-## 19. Decisions for the owner
+## 20. Decisions for the owner
 
 1. **Default state.** Ship the type enabled with no LLM tools except `sajha_ask` (still off by
    default), or ship the examples enabled? Recommended: type on, examples off.
 2. **Anonymous access.** Off by default (recommended), since every call spends model budget.
-3. **Sampling.** In this build (step 7) or later?
+3. **Sampling.** In this build (step 10) or later?
 4. **Modes.** The seven in section 6, or others to add (for example a `translate` preset of
    `complete`, or a `compare` preset of `judge`)?
 5. **Who may create LLM tools.** Studio users (the `studio` permission), or administrators only,
    given they spend model budget?
+6. **Who may author planners.** Administrators only (recommended): a planner decides how much a
+   tool spends and how it loops, so it is closer to policy than to a tool definition.
+7. **Default strategy.** `react` for `answer` tools (recommended), with Reflect or
+   verify-then-answer chosen per tool where accuracy matters more than latency.
 
 ---
 
-## 20. Alternatives considered
+## 21. Alternatives considered
 
 | Alternative | Why not |
 |---|---|
 | One `sajha_ask` tool with many optional parameters | Every caller re-specifies the prompt, tools and limits; nothing is governed or tested per use; the schema becomes vague. |
 | A Python class per LLM tool | Contradicts the config-driven framework; every change needs a deploy; Studio cannot create them. |
 | Memory keyed by the MCP session | No sessions on 2026-07-28; breaks across workers; useless to REST, CLI, workflow and A2A callers. |
-| Memory held in process RAM | Lost on restart, wrong with several workers, unbounded under load. |
+| Memory held only in process RAM | Lost on restart, wrong with several workers, unbounded under load. RAM is used only as a bounded working set and an optional write-through cache in front of the disk store. |
+| Planners only as Python classes | Every new strategy needs a deploy and code review; strategies cannot be compared or canaried as configuration; non-developers cannot adjust them. |
+| Unbounded agent loops ("until done") | Cost and latency without limit, and runaway loops under prompt injection; every loop here has a bounded edge and global ceilings. |
+| A general-purpose workflow language for planners | Workflows already exist for long-running processes; planners need a small, validated stage library that the service can enforce, not arbitrary code or expressions. |
 | Store full tool results with each turn | Disk grows with data volume; results may hold data the audit log already records under its own retention. |
 | Always use the client's model (sampling only) | Thin callers have no model; servers cannot rely on clients declaring sampling; governance of the model choice is lost. |
