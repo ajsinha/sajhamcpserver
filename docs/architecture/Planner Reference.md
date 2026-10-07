@@ -17,8 +17,9 @@ file for each shipped strategy. It is meant to be precise enough to build the lo
 library and the evaluator from, and to write a planner without reading code.
 
 Where the design said nothing, this reference decides; every such decision is listed in
-[section 15](#15-decisions-made-in-this-reference). Places where the design disagrees with
-itself or with today's code are listed in [section 16](#16-where-the-design-disagrees-with-itself-or-the-code).
+[section 15](#15-decisions-made-in-this-reference). Places where the design disagreed with
+itself or with today's code, and how each was resolved, are listed in
+[section 16](#16-where-the-design-disagrees-with-itself-or-the-code).
 
 ---
 
@@ -87,11 +88,15 @@ config/planners/
   pin are kept as `config/planners/<name>@<version>.yaml`. The registry indexes every file by
   the `name` and `version` *inside* it; the file name must agree (`name` equals the stem, and for
   the `@` form, `version` equals the suffix), or the file is refused (P002).
-- Files are **YAML 1.2, core schema**: only `true` and `false` are booleans. Under YAML 1.1 (the
-  rules `yaml.safe_load` applies, which SAJHA uses for its other YAML files) the key `on`, used
-  by every transition map, would load as the boolean `true`, and `yes`/`no`/`off` likewise. The
-  planner loader therefore uses a resolver without the YAML 1.1 boolean words; quoting
-  (`"on":`) is never needed.
+- Files are read with plain `yaml.safe_load`, like SAJHA's other YAML files, so standard YAML
+  tools and editors read them the same way the loader does. That loader follows YAML 1.1, where
+  the bare words `yes`, `no`, `on`, `off`, `true` and `false` (lower, Title or UPPER case) load
+  as booleans. The format is shaped around it:
+  - The transition map of a stage is the key `outcomes`, never `on` (a bare `on:` key would load
+    as the boolean `true`).
+  - An outcome name, rule `name` or `classify` label that is one of those words, or a number,
+    must be quoted (`"yes": { next: run }`, `labels: ["yes", "no"]`). The loader never guesses: any
+    key, rule name or label that did not load as a string is refused (P006).
 - Files are read through the storage backend, like tool configs, so the directory is wherever
   the backend puts `config/`.
 - The registry reloads on change. A changed file that fails validation does not replace the last
@@ -212,7 +217,7 @@ values it will run with.
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `max_stages_run` | integer ≥ 1 | `ai.planners.limits.max_stages_run` | Stage executions in the whole run, sub-runs included. Exceeding it ends the run with `stopped_by: max_stages`. |
+| `max_stages_run` | integer ≥ 1 | `ai.planners.limits.max_stages_run` | Stage executions in the whole run, sub-runs included. Exceeding it ends the run with `stopped_by: stage_limit`. |
 | `max_steps` | integer ≥ 1 | the tool's | May only tighten the tool's `llm.limits.max_steps`. |
 | `max_tool_calls` | integer ≥ 1 | the tool's | May only tighten. |
 | `timeout_s` | number > 0 | the tool's | May only tighten. |
@@ -448,8 +453,8 @@ to the planner that declares it: a sub-run's custom slots are fresh and invisibl
 | `description` | string | none | ≤ 300 characters; shown in the editor and in stage events. |
 | `when` | expr | none | **Guard.** Evaluated before the stage runs. True: the stage runs. False: it does not run, and the `else` transition is taken. |
 | `else` | transition | required with `when` | Section 7. |
-| `next` | stage | none | Shorthand for `on: { "*": { next: <stage> } }`. Not with `on`. |
-| `on` | `map<outcome, transition or list<transition>>` | required for non-terminal stages unless `next` | Section 7. |
+| `next` | stage | none | Shorthand for `outcomes: { "*": { next: <stage> } }`. Not with `outcomes`. |
+| `outcomes` | `map<outcome, transition or list<transition>>` | required for non-terminal stages unless `next` | Section 7. |
 | `set` | `map<custom slot, expr>` | none | Section 7.6. |
 
 Model-using stages (`act`, `plan`, `classify`, `draft`, `critique`, `revise`, `vote` with
@@ -466,8 +471,9 @@ Model-using stages (`act`, `plan`, `classify`, `draft`, `critique`, `revise`, `v
 
 Every model call goes through the gateway bound to the caller, so role policy, per-user
 budgets, fallback, the response cache and a `model` event per call apply to every stage. A
-model error that is not a schema mismatch ends the run (`model_unavailable`,
-`budget_exhausted`) unless the stage says otherwise below.
+model error that is not a schema mismatch ends the run unless the stage says otherwise below:
+`stopped_by: refused` for a refusal or content filter (LLM Tools 13.6), `budget` when a token
+budget is used up, otherwise `error` with the gateway's error code.
 
 Each stage subsection gives: settings, reads, writes, outcomes, model calls, how it meets the
 service's enforcement, and errors.
@@ -493,7 +499,7 @@ service runs as the caller. A ReAct step; today's `ReactPlanner.next_action`.
   result; destructive calls without confirmation, and calls the policy engine sends for approval
   by the caller, end the run with `needs_confirmation`; a call needing a connected account that
   is not linked ends it with `needs_connection`; calls beyond `max_tool_calls` are not run and end
-  the run with `max_tool_calls`; each `called` visit is one step against `max_steps`. All exactly
+  the run with `tool_limit`; each `called` visit is one step against `max_steps`. All exactly
   as today.
 - **Errors:** invalid tool-call arguments become an `error` result (the outcome is still
   `called`).
@@ -718,7 +724,7 @@ Run one sub-step `n` times in parallel at varied temperature, collecting candida
 
 | Setting | Type | Default | Meaning |
 |---|---|---|---|
-| `of` | inline stage | required | One stage of type `draft`, `plan`, `classify`, or `planner` (no `on`, `next`, `when` or `set`). |
+| `of` | inline stage | required | One stage of type `draft`, `plan`, `classify`, or `planner` (no `outcomes`, `next`, `when` or `set`). |
 | `n` | integer ≥ 2 | 3 | Clamped to `ai.planners.limits.max_samples`. |
 | `temperature` | `{from, to}` | `{from: 0.2, to: 1.0}` | Sample *i* of *n* uses `from + (to − from) × i / (n − 1)`. |
 | `concurrency` | integer ≥ 1 | `ai.planners.limits.max_parallel` | Clamped to it. |
@@ -849,7 +855,7 @@ Finish with the current draft.
 | `template_from` | string | none | `rule`: use the matched rule's `answer` field with today's recipe semantics (single-brace `{field}` placeholders over `groups` and the last result's top-level and `result` fields), only when the last call succeeded and the field is not empty. |
 | `caveats_from_findings` | boolean | `true` | Unresolved `findings` become caveats. |
 
-- **At the top level:** the run ends `stopped_by: answered`; the service then (as today)
+- **At the top level:** the run ends `stopped_by: answer`; the service then (as today)
   synthesises if required, computes confidence and citations, records memory, writes the audit
   record and streams the answer.
 - **In a sub-run:** ends the sub-run with outcome `answered`. No synthesis happens there; the
@@ -877,14 +883,14 @@ Finish with a stated reason.
 ### 7.1 Forms
 
 ```yaml
-on:
+outcomes:
   answered: { next: verify }                                   # one transition
   called:   { next: act, max_visits: 6, on_exhausted: draft }  # a bounded edge
   mismatch:                                                    # conditional alternatives, tried in order
     - { next: split,   when: "'parts_answered' in $.findings[*].check", max_visits: 1, on_exhausted: answer }
     - { next: reflect, max_visits: 1, on_exhausted: answer }
   "*":      { next: answer }                                   # every other outcome
-next: answer                                                   # shorthand: on: { "*": { next: answer } }
+next: answer                                                   # shorthand: outcomes: { "*": { next: answer } }
 ```
 
 A **transition** has:
@@ -896,19 +902,19 @@ A **transition** has:
 | `max_visits` | integer 0 to `max_visits_per_edge`, `"steps"`, or a settings reference | none (unbounded) | How many times this edge may be taken in one run or sub-run (section 7.3). |
 | `on_exhausted` | stage | required with an integer `max_visits` | Where to go instead once the edge has been taken `max_visits` times. |
 
-The `on` key is an outcome name or `*`. Its value is one transition or a list of 1 to 10
+Each key under `outcomes` is an outcome name or `*`. Its value is one transition or a list of 1 to 10
 transitions.
 
 ### 7.2 Choosing the transition
 
 After a stage ends with outcome *o* (or its guard was false, which uses `else` directly):
 
-1. Let *L* be `on[o]` if present, otherwise `on["*"]`. A one-transition value is a list of one.
+1. Let *L* be `outcomes[o]` if present, otherwise `outcomes["*"]`. A one-transition value is a list of one.
 2. Take the first transition in *L* whose `when` is absent or evaluates to `true`. An
    expression error counts as `false` (section 8.8).
-3. If none applies and *L* was `on[o]`, repeat step 2 with `on["*"]` if present.
-4. If still none applies, the run ends with `stopped_by: planner_error` ("no transition for
-   outcome *o* at stage *s*"); lint warns of any outcome whose alternatives all carry `when` and
+3. If none applies and *L* was `outcomes[o]`, repeat step 2 with `outcomes["*"]` if present.
+4. If still none applies, the run ends with `stopped_by: error`, error code `no_transition` ("no
+   transition for outcome *o* at stage *s*"); lint warns of any outcome whose alternatives all carry `when` and
    that has no unconditional `*` (P016).
 5. Apply the bound of the chosen transition (section 7.3), then run `set` (section 7.6), then
    move.
@@ -926,7 +932,7 @@ After a stage ends with outcome *o* (or its guard was false, which uses `else` d
 - `max_visits: "steps"` is a bound by the step limit rather than a count: it is allowed only on
   an `act` stage's `called` outcome and an `execute` stage's outcomes, where every traversal has
   just spent at least one step, so `max_steps` is guaranteed to end the loop. It needs no
-  `on_exhausted`; the run ends with `stopped_by: max_steps` as today's step limit does. This is
+  `on_exhausted`; the run ends with `stopped_by: step_limit` as today's step limit does. This is
   how the shipped `react` keeps today's behaviour exactly (section 13.1).
 - `on_exhausted` is an ordinary edge for cycle analysis and is not itself bounded.
 
@@ -943,8 +949,8 @@ rule 1, made exact: every cycle crosses at least one bounded edge.
 - From every stage, some terminal stage (`answer` or `fail`) must be reachable (P063). With
   bounded cycles, every run then ends: each loop can only repeat a bounded number of times, and
   `max_stages_run` ends it regardless.
-- Terminal stages have no `on` or `next` (P017). A non-terminal stage needs `on` or `next`
-  (P014).
+- Terminal stages have no `outcomes` or `next` (P017). A non-terminal stage needs `outcomes` or
+  `next` (P014).
 
 ### 7.6 `set`
 
@@ -952,7 +958,7 @@ rule 1, made exact: every cycle crosses at least one bounded edge.
 plan:
   type: plan
   set: { plan_size: "len(plan)" }
-  on: { planned: { next: gate } }
+  outcomes: { planned: { next: gate } }
 ```
 
 `set` maps custom slots to expressions. After the stage ends (or its guard fails) and before the
@@ -1190,11 +1196,11 @@ run(planner, call):
     else:
         outcome <- stage.run(state)                        # may ask the service to call tools or models
         if the service stopped the run (needs_confirmation, needs_connection, needs_input, cancelled,
-           budget_exhausted, model_unavailable):
+           budget, refused, error):
             finish(stopped_by = that reason)
         emit stage_end {stage, outcome, ms}
-        if stage is terminal: finish(answered | failed)    # in a sub-run: return to the parent
-        transition <- choose(stage.on, outcome)            # 7.2
+        if stage is terminal: finish(answer | failed)      # in a sub-run: return to the parent
+        transition <- choose(stage.outcomes, outcome)      # 7.2
     apply bound, set, then stage <- transition target       # 7.3, 7.6
     recompute state.confidence
 ```
@@ -1213,20 +1219,30 @@ When the run ends for any reason other than `answer`/`fail`, the service finishe
 answer so far, as today: if `draft_source` is `draft`, `revise`, `vote` or `template`, the draft
 is the answer; otherwise synthesis runs over the transcript when there are results (and
 `ai.ask.synthesize` is on); without synthesis the answer is the draft, or, if that is empty, the
-successful results' summaries joined (today's `plan_execute` fallback text). `stopped_by` values:
+successful results' summaries joined (today's `plan_execute` fallback text).
 
-| `stopped_by` | Set when | `isError` |
-|---|---|---|
-| `answered` | An `answer` stage ended the run | false |
-| `failed` | A `fail` stage ended the run | true |
-| `needs_confirmation`, `needs_connection` | As today (destructive or approval-gated call; account not linked) | false |
-| `needs_input` | `ask_user` cannot ask in-band (section 6.15) | false |
-| `max_steps`, `max_tool_calls`, `max_stages`, `timeout`, `max_cost` | A limit ended the run | false |
-| `budget_exhausted` | The caller's token budget, or the run's token cap (`ai.ask.max_tokens` on the Ask page) | true |
-| `model_unavailable` | Every candidate for an alias failed | true |
-| `memory_pressure`, `busy` | The memory guard (LLM Tools 10.4) | true |
-| `cancelled` | The client cancelled | true |
-| `planner_error` | No transition applied (7.2), or a stage failed unexpectedly | true |
+`stopped_by` takes only the values listed in [LLM Tools](LLM%20Tools.md) section 15, which owns
+the list, their `isError` and which are new; today's names (`STOP_REASONS` in
+`sajha/ai/intelligence.py`) are kept. A planner run sets them as follows:
+
+| `stopped_by` | Set when |
+|---|---|
+| `answer` | An `answer` stage ended the run (section 6.17) |
+| `failed` (new) | A `fail` stage ended the run (section 6.18) |
+| `needs_confirmation`, `needs_connection` | As today (destructive or approval-gated call; account not linked) |
+| `needs_input` (new) | `ask_user` cannot ask in-band (section 6.15) |
+| `step_limit`, `tool_limit`, `timeout` | As today: `max_steps`, `max_tool_calls` or `timeout_s` reached (section 11) |
+| `stage_limit` (new), `cost_limit` (new) | `max_stages_run` or `max_cost_usd` reached (section 11) |
+| `budget` | As today: the run's token cap (`ai.ask.max_tokens` on the Ask page) or the caller's token budget |
+| `refused` (new) | A model call was refused or filtered and the stage has no fallback for it (section 6.0) |
+| `memory_pressure` (new), `busy` (new) | The memory guard (LLM Tools 10.4) |
+| `cancelled` (new) | The client cancelled |
+| `error` | As today: a model error that is not a schema mismatch, or a stage failed unexpectedly (code `planner_error`, as today), or no transition applied (code `no_transition`, section 7.2) |
+
+A sub-run's own end is not a `stopped_by` of the run: it is the `planner` stage's outcome
+(`answered`, `failed` or `stopped`), and `subrun.stopped_by` names the sub-budget limit for
+`stopped` with the same names (`step_limit`, `tool_limit`, `timeout`, `stage_limit`,
+`cost_limit`).
 
 ### 10.4 Events, audit and metrics
 
@@ -1254,13 +1270,13 @@ value is clamped with a warning (P060).
 
 | Ceiling | Default | What it caps | Where it bites |
 |---|---|---|---|
-| `ai.planners.limits.max_stages_run` | 40 | `limits.max_stages_run` | Run-wide stage executions, sub-runs included; `stopped_by: max_stages`. |
+| `ai.planners.limits.max_stages_run` | 40 | `limits.max_stages_run` | Run-wide stage executions, sub-runs included; `stopped_by: stage_limit`. |
 | `ai.planners.limits.max_visits_per_edge` | 10 | Every integer `max_visits` | At load (clamp). |
 | `ai.planners.limits.max_subplanner_depth` | 2 | Nesting of `planner` stages, `sample` of `planner`, `foreach` (`do` or `planner`) | At load (P035). Depth 0 is the top planner. |
 | `ai.planners.limits.max_parallel` | 4 | `execute.max_parallel`, `sample.concurrency`, `foreach.concurrency` | At load (clamp). |
 | `ai.planners.limits.max_samples` | 5 | `sample.n` | At load (clamp). |
 | `ai.planners.limits.max_foreach_items` | 50 | `foreach.max_items` | At load (clamp) and at run time (items beyond are dropped; outcome `partial`). |
-| `ai.llm_tools.limits.max_steps` | 8 | `limits.max_steps`, sub-run `limits.max_steps` | Run-wide; `stopped_by: max_steps`. |
+| `ai.llm_tools.limits.max_steps` | 8 | `limits.max_steps`, sub-run `limits.max_steps` | Run-wide; `stopped_by: step_limit`. |
 | `ai.llm_tools.limits.max_tool_calls` | 16 | `limits.max_tool_calls` | Run-wide. |
 | `ai.llm_tools.limits.timeout_s` | 120 | `limits.timeout_s`, stage `timeout_s` | Run-wide. |
 | `ai.llm_tools.limits.max_cost_usd` | 1.00 | `limits.max_cost_usd` | Run-wide; estimated from model prices. |
@@ -1281,7 +1297,7 @@ On the Ask SAJHA page, which is not a tool, `ai.ask.max_steps`, `ai.ask.max_tool
 A planner file is validated when it loads, when a tool referencing it loads, and by
 `python -m sajha.quality lint`. Every message has the form
 `planner <name>@<version>: <location>: <message>`, where `<location>` is a key path such as
-`stages.verify.on.mismatch[0].next`. Errors refuse the file (the last good version stays in
+`stages.verify.outcomes.mismatch[0].next`. Errors refuse the file (the last good version stays in
 use, section 2.1); warnings load it.
 
 | Code | Level | Rule | Message |
@@ -1291,14 +1307,15 @@ use, section 2.1); warnings load it.
 | P003 | error | `version` is SemVer | `version "<v>" is not MAJOR.MINOR.PATCH` |
 | P004 | error | No unknown top-level key | `unknown key "<k>" (allowed: name, version, ...)` |
 | P005 | error | `name@version` is unique | `<name>@<version> is also defined in <file>` |
+| P006 | error | Every key in a planner file, and every rule name and label, loaded as a string (section 2.1) | `stage "<s>": <location> loaded as <type> <value>; quote it` / `stage "<s>": key true is not allowed (a bare on: loads as true; transitions go under "outcomes")` |
 | P010 | error | Stage type exists | `stage "<s>": unknown type "<t>"` |
 | P011 | error | Stage settings match the type's schema | `stage "<s>": <JSON Schema error at path>` |
 | P012 | error | `start` names a stage | `start "<s>" is not a stage` |
 | P013 | error | Every stage is reachable from `start` | `stage "<s>" is unreachable from "<start>"` |
 | P014 | error | Every outcome a stage can produce has a transition (or `*`) | `stage "<s>": outcome "<o>" has no transition (add it or "*")` |
 | P015 | error | Every `next`, `else` and `on_exhausted` names a stage | `stage "<s>": "<target>" is not a stage` |
-| P016 | warning / error | An `on` key the stage cannot produce (error); alternatives all conditional with no `*` (warning) | `stage "<s>": "<o>" is not an outcome of <type> (outcomes: ...)` / `stage "<s>": outcome "<o>" may find no transition` |
-| P017 | error | Terminal stages have no `on`/`next`; `next` and `on` are not both given | `stage "<s>": <type> is terminal and takes no transitions` / `stage "<s>": give "next" or "on", not both` |
+| P016 | warning / error | An `outcomes` key the stage cannot produce (error); alternatives all conditional with no `*` (warning) | `stage "<s>": "<o>" is not an outcome of <type> (outcomes: ...)` / `stage "<s>": outcome "<o>" may find no transition` |
+| P017 | error | Terminal stages have no `outcomes`/`next`; `next` and `outcomes` are not both given | `stage "<s>": <type> is terminal and takes no transitions` / `stage "<s>": give "next" or "outcomes", not both` |
 | P020 | error | Every cycle has a bounded edge | `unbounded cycle: <a> -> <b> -> <a> (add max_visits to an edge of it)` |
 | P021 | error | An integer `max_visits` has `on_exhausted` | `stage "<s>": bounded edge "<o>" has no on_exhausted` |
 | P022 | error | `max_visits: steps` only where every traversal spends a step | `stage "<s>": max_visits "steps" is allowed only on act.called and execute outcomes` |
@@ -1350,7 +1367,7 @@ start: act
 stages:
   act:
     type: act                                   # today's ReactPlanner.next_action
-    on:
+    outcomes:
       called:   { next: act, max_visits: steps }   # bounded by max_steps, exactly as today
       answered: { next: answer }
   answer:
@@ -1384,7 +1401,7 @@ stages:
     else: { next: fallback }
     max_plan_steps: "{{settings.max_plan_steps}}"
     retry: 0                       # today's planner does not re-ask on an invalid plan
-    on:
+    outcomes:
       planned: { next: execute }
       invalid:
         - { next: fallback, when: "len(plan) == 0" }   # first plan unusable -> fallback
@@ -1392,7 +1409,7 @@ stages:
   execute:
     type: execute
     max_parallel: "{{settings.max_parallel}}"
-    on:
+    outcomes:
       done:         { next: answer }
       failed_steps: { next: plan, max_visits: "{{settings.max_replans}}", on_exhausted: answer }
   fallback:
@@ -1425,7 +1442,7 @@ stages:
     when: "len(shortlist) > 0"
     else: { next: fallback }
     max_plan_steps: "{{settings.max_plan_steps}}"
-    on:
+    outcomes:
       planned: { next: execute }
       invalid: { next: fallback }
   execute:
@@ -1458,7 +1475,7 @@ stages:
   act:
     type: act
     model: act
-    on:
+    outcomes:
       called:   { next: act, max_visits: 6, on_exhausted: draft }
       answered: { next: draft }
   draft:
@@ -1472,7 +1489,7 @@ stages:
       - answers every part of the question
       - no claim without a tool result
       - says what is missing
-    on:
+    outcomes:
       pass:   { next: answer }
       revise: { next: revise, max_visits: 2, on_exhausted: answer }
   revise:
@@ -1495,7 +1512,7 @@ start: act
 stages:
   act:
     type: act
-    on:
+    outcomes:
       called:   { next: act, max_visits: 6, on_exhausted: draft }
       answered: { next: draft }
   draft:
@@ -1504,7 +1521,7 @@ stages:
   verify:
     type: verify
     checks: [numbers_in_results, citations_present, no_failed_citations]
-    on:
+    outcomes:
       ok:       { next: answer }
       mismatch: { next: revise, max_visits: 2, on_exhausted: answer }
   revise:
@@ -1529,7 +1546,7 @@ start: act
 stages:
   act:
     type: act
-    on:
+    outcomes:
       called:   { next: act, max_visits: 6, on_exhausted: drafts }
       answered: { next: drafts }
   drafts:
@@ -1544,7 +1561,7 @@ stages:
     normalise: numbers             # use "text" for questions without figures
     tie_break: judge
     model: judge
-    on:
+    outcomes:
       done: { next: answer }
       tie:  { next: answer }       # no successful draft: the act answer is synthesised
   answer:
@@ -1578,7 +1595,7 @@ stages:
       - uses the fewest tool calls that fully answer the question
       - covers every part of the question
       - calls only tools whose descriptions fit the step
-    on:
+    outcomes:
       done: { next: execute }      # the winning plan is now "plan"; a plan event is emitted
       tie:  { next: fallback }
   execute:
@@ -1612,7 +1629,7 @@ stages:
   gather:
     type: act
     prompt: { text: "First find the list of items the question is about, using the tools offered. Reply with the list when you have it." }
-    on:
+    outcomes:
       called:   { next: gather, max_visits: 3, on_exhausted: list }
       answered: { next: list }
   list:
@@ -1624,7 +1641,7 @@ stages:
       required: [items]
       additionalProperties: false
     into: listed
-    on:
+    outcomes:
       done:    { next: each, when: "len(listed.items) > 0" }
       "*":     { next: direct }    # no list (invalid reply, or empty): answer directly
   each:
@@ -1634,7 +1651,7 @@ stages:
     question: "{{original_question}} Answer only for: {{item}}"
     max_items: "{{settings.max_items}}"
     concurrency: "{{settings.concurrency}}"
-    on:
+    outcomes:
       done:    { next: reduce }
       partial: { next: reduce }
   reduce:
@@ -1668,7 +1685,7 @@ stages:
   rules:
     type: match
     rules: "{{settings.rules}}"
-    on:
+    outcomes:
       none: { next: recipes_check }
       "*":  { next: routed }
   routed:
@@ -1681,7 +1698,7 @@ stages:
     when: "settings.use_recipes"
     else: { next: shape }
     rules_from: recipes.match      # the recipes planner's rules: a recipe whose tool is offered
-    on:
+    outcomes:
       none: { next: shape }
       "*":  { next: to_recipes }
   to_recipes:
@@ -1693,7 +1710,7 @@ stages:
     dotall: true
     rules:
       - { name: multi_step, pattern: "{{settings.multi_step_pattern}}" }
-    on:
+    outcomes:
       multi_step: { next: multi }
       none:       { next: simple }
   multi:
@@ -1724,7 +1741,7 @@ stages:
   match:
     type: match
     rules: "{{settings.recipes}}"  # a recipe matches only if its tool is offered (rule.tool)
-    on:
+    outcomes:
       none: { next: fallback }
       "*":  { next: call }
   call:
@@ -1773,14 +1790,14 @@ stages:
     default: clear
     min_confidence: 0.7
     prompt: { text: "Label the question ambiguous only if it cannot be answered without a choice the user must make (which entity, which period, which measure); otherwise clear." }
-    on:
+    outcomes:
       clear:     { next: plan }
       ambiguous: { next: clarify }
   clarify:
     type: ask_user
     kind: text
     message: "Your question could mean several things. Which entity, period or measure should I use?"
-    on:
+    outcomes:
       answered: { next: plan }     # the reply is appended to the question
       declined: { next: plan }
   plan:
@@ -1788,7 +1805,7 @@ stages:
     when: "len(shortlist) > 0"
     else: { next: fallback }
     set: { plan_size: "len(plan)" }
-    on:
+    outcomes:
       planned: { next: run_small }
       invalid: { next: fallback }
   run_small:
@@ -1800,7 +1817,7 @@ stages:
     type: ask_user
     kind: confirm
     message: "Answering needs {{plan_size}} tool calls. Run them?"
-    on:
+    outcomes:
       answered:
         - { next: run, when: "user_reply == true" }
         - { next: stopped }
@@ -1846,7 +1863,7 @@ stages:
   known:
     type: match
     rules_from: recipes.match      # recipes and known patterns: no model call
-    on:
+    outcomes:
       none: { next: choose }
       "*":  { next: recipe }
   recipe:
@@ -1860,25 +1877,25 @@ stages:
     menu: planners                 # labels are planner names; the model sees each use_when
     default: "{{settings.default}}"
     min_confidence: "{{settings.min_label_confidence}}"
-    on: { "*": { next: run } }
+    outcomes: { "*": { next: run } }
   run:
     type: planner
     planner: "{{chosen}}"
     choices: "{{settings.candidates}}"
     model: act                     # every role of the first try runs on the fast alias
     limits: "{{settings.first_try}}"
-    on: { "*": { next: verify } }
+    outcomes: { "*": { next: verify } }
   verify:
     type: verify
     checks: [numbers_in_results, parts_answered]
-    on:
+    outcomes:
       ok: { next: gate }
       mismatch:
         - { next: split,   when: "'parts_answered' in $.findings[*].check", max_visits: 1, on_exhausted: answer }
         - { next: reflect, max_visits: 1, on_exhausted: answer }
   gate:
     type: answer
-    when: "confidence >= settings.escalate_below and subrun.stopped_by != 'max_steps'"
+    when: "confidence >= settings.escalate_below and subrun.stopped_by != 'step_limit'"
     else: { next: deeper, max_visits: 1, on_exhausted: answer }
   reflect:
     type: planner
@@ -1919,7 +1936,7 @@ handled:
 | all | `Emit(event)` lets a planner publish any event | Stages publish fixed events only | Python planners keep `Emit`; files get `stage_*` and `plan` events. |
 | all | `ai.ask.planner` accepts `package.module:Class`; entry points in `sajha.planners` register classes | Same, as `kind: python` planners in the registry | A name defined both by a file and by a Python registration is P005. |
 | all | The alias `model` means `react` | Kept as a registry alias | None needed. |
-| `react` | Ends `step_limit` when `max_steps` is reached | `max_visits: steps` ends `max_steps` | Only the label changes, per LLM Tools section 15 (section 16, item 1). |
+| `react` | Ends `step_limit` when `max_steps` is reached | `max_visits: steps` ends `step_limit` | Identical (section 16, item 1). |
 | `plan_execute` | No retry on an unusable plan | `retry: 0` in the file | Identical. |
 | `plan_execute` | When synthesis is off and no step succeeded, the answer is "The plan's tool calls returned no usable result." | The answer is empty | Accepted; synthesis is on by default. |
 | `recipes` | A recipe with neither `match` nor `keywords` silently never matches | Refused at load (P011) | Lint finds it before deploy. |
@@ -1954,14 +1971,14 @@ stages:
       - name: price
         pattern: '\b(?:price|quote) (?:of|for) (?P<symbol>[A-Z]{1,5})\b'
         tool: av_stock_quote              # matches only if the caller may use this tool
-    on:
+    outcomes:
       price: { next: quote }
       none:  { next: general }
   quote:
     type: call
     tool: av_stock_quote
     arguments: { symbol: "{{groups.symbol}}" }
-    on:
+    outcomes:
       done:  { next: answer }
       error: { next: general }            # the quote failed: let ReAct try
   general:
@@ -1971,7 +1988,7 @@ stages:
   check:
     type: verify
     checks: [numbers_in_results]
-    on:
+    outcomes:
       ok:       { next: answer }
       mismatch: { next: fix, max_visits: 1, on_exhausted: answer }
   fix:
@@ -2037,7 +2054,8 @@ the build.
 11. **Stage guards**: `when` and `else` on a stage (the shape LLM Tools 9.13's `gate` uses), in
     addition to `when` on transitions; a guarded-out stage counts as a stage run (section 7.7).
 12. **Transition selection**: a list of conditional alternatives per outcome, falling through to
-    `*`; no applicable transition ends the run with `planner_error` (section 7.2).
+    `*`; no applicable transition ends the run with `stopped_by: error`, code `no_transition`
+    (section 7.2).
 13. **Edge counters** per (stage, outcome, position), per run or sub-run; `max_visits: 0` is
     allowed (section 7.3).
 14. **`max_visits: steps`**, a bound by the step limit for `act` and `execute` loops, so `react`
@@ -2072,8 +2090,9 @@ the build.
 26. **`vote`** normalisations and tie-breaking (section 6.12).
 27. **`foreach`** outputs, the transcript data message, and `partial` (section 6.13).
 28. **Sub-budgets**: a `planner` stage may give its sub-run `limits`; exhausting them ends the
-    sub-run with outcome `stopped`, which is how `auto` can escalate when "the run hit
-    `max_steps`" (section 6.14).
+    sub-run with outcome `stopped`, which is how `auto` can escalate when its first try hit its
+    step budget (`subrun.stopped_by == 'step_limit'`) while the run still has steps left
+    (section 6.14).
 29. **`ask_user`** uses MRTR form elicitation on 2026-07-28 and `needs_input` everywhere else;
     replies are appended to the question; at most 3 per run (section 6.15).
 30. **Implicit condensing** stays unless a graph contains a `condense` stage, which then also
@@ -2081,9 +2100,11 @@ the build.
 31. **Synthesis**: `answer.synthesize: auto` synthesises only undrafted answers with results;
     nested `answer` stages never synthesise (section 6.17).
 32. **`fail`** ends with `stopped_by: failed` and `isError: true` (section 6.18).
-33. **`stopped_by` values** follow LLM Tools section 15 and add `failed`, `needs_input`,
-    `needs_connection`, `max_stages`, `memory_pressure`, `busy` and `planner_error`
-    (section 10.3).
+33. **`stopped_by` values** are the one list in LLM Tools section 15: today's names from
+    `STOP_REASONS` (`answer`, `step_limit`, `tool_limit`, `budget`, `timeout`,
+    `needs_confirmation`, `needs_connection`, `error`) are kept, and planners add `failed`,
+    `needs_input`, `stage_limit` and `cost_limit`; a missing transition is `error` with code
+    `no_transition` rather than a new value (section 10.3).
 34. **Events and metrics** added: `stage_start`, `stage_end`, `loop_exhausted`,
     `expression_error`, `planner_chosen`; `sajha_planner_expression_errors_total`,
     `sajha_planner_load_errors_total`, `sajha_planner_chosen_total` (section 10.4).
@@ -2092,7 +2113,11 @@ the build.
 36. **Shipped names**: the Reflect strategy ships as `reflect` (LLM Tools uses `reflect_analyst`
     as an example name); `auto` handles recipes in its first `match` stage instead of listing
     `recipes` as a candidate, and does not list `router` (it would exceed the default depth).
-37. **YAML 1.2 booleans** for planner files, so the `on` key is a string (section 2.1).
+37. **Plain `yaml.safe_load`, and `outcomes` instead of `on`.** Planner files load with the same
+    YAML 1.1 loader as SAJHA's other YAML, so operators can edit them with standard tools; the
+    transition map is named `outcomes` because YAML 1.1 reads a bare `on:` key as `true`; outcome
+    keys, rule names and labels that YAML 1.1 would load as booleans or numbers must be quoted,
+    and are refused otherwise (P006) (section 2.1).
 38. **No glossary rows yet.** Like LLM Tools section 3, the new terms (stage, outcome, bounded
     edge, guard, sub-run, overlay) go into `GLOSSARY.md` when the feature is built.
 
@@ -2100,47 +2125,75 @@ the build.
 
 ## 16. Where the design disagrees with itself or the code
 
-Recorded here, not silently fixed in [LLM Tools](LLM%20Tools.md), which owns the design:
+These are the disagreements found while writing this reference, between
+[LLM Tools](LLM%20Tools.md) section 9 (which owns the design) and itself or today's code. Each is
+now resolved; the resolution is stated here so the history of the decision is not lost.
 
-1. **`stopped_by` names.** LLM Tools section 15 uses `answered`, `max_steps`, `max_tool_calls`,
-   `max_cost`, `budget_exhausted`; today's code (`STOP_REASONS` in `sajha/ai/intelligence.py`)
-   uses `answer`, `step_limit`, `tool_limit`, `budget` (the per-ask token cap), `timeout`,
-   `needs_connection`, `error`. Section 15 also lacks `needs_connection` (exists today),
-   `needs_input` (section 9.3's `ask_user`), and `memory_pressure` and `busy` (section 10.4). This
-   reference uses section 15's names plus those (decision 33); the mapping from today's names
-   needs a CHANGELOG note when built.
-2. **Template namespaces.** Section 9.3 writes `{{question.groups.ticker}}` (but `question` is a
-   string), 9.6 writes `{{state.slot}}` and 9.13 `{{state.chosen}}`. This reference uses
-   `{{groups.ticker}}` with `state.` optional.
-3. **Where `when` goes.** Section 9.3 puts `when` on transitions; the 9.13 `auto` example puts
-   `when` and `else` on a terminal `answer` stage. This reference supports both (decision 11).
-4. **Escalation on `max_steps` cannot fire.** 9.13 escalates when "the run hit `max_steps`",
-   but 9.5 rule 3 says global limits end the run whatever the graph says. Resolved by sub-budgets
-   (decision 28).
-5. **The `auto` example is unsafe as written.** Its `run` stage takes `planner:
-   "{{state.chosen}}"` with no list of allowed values to validate at load; this reference requires
-   `choices`. Its candidates name `reflect_analyst` (the 9.2 example, not a shipped planner) and
-   `recipes` (which 9.13's text says the first `match` stage handles), and `model: strong` on a
-   `planner` stage has no defined meaning (decision 4 defines it).
-6. **The 9.2 example always revises once.** `act` `answered` goes straight to `verify` with
-   `citations_present`, but an `act` answer carries no citations, so whenever tools were called
-   the first check fails. A `draft` stage between them (as `verify_then_answer` has) avoids it.
-7. **`sample` of `act`.** 9.4's self-consistency samples "`act` or `draft`", but one `act` call
-   may request tools, which a sample cannot complete in one call. This reference samples `draft`,
-   or whole `planner` runs (decision 25).
-8. **Map-reduce's list.** 9.4 has `act` "list the items" feed `foreach`, but `act` produces free
-   text. This reference uses `draft` with a schema into a slot (section 13.8).
-9. **Retry on invalid structured replies.** 9.6 says structured stages retry once; today's
-   `plan_execute` does not. The shipped `plan_execute` sets `retry: 0` to stay faithful.
-10. **9.8's list of refusals** includes "a limit exceeds its ceiling", then says it is clamped
-    rather than refused. This reference treats it as a warning (P060).
-11. **`on:` under YAML 1.1.** Every YAML example in LLM Tools section 9 uses `on:` as a key; the
-    YAML loader SAJHA uses elsewhere (`yaml.safe_load`, YAML 1.1 rules) reads it as `true`, so
-    those files would fail. Resolved by decision 37.
-12. **Python classes as stage implementations.** 9.4 says the Python classes "remain as the
-    implementation of the `act`, `plan`, `match` and routing stages"; their boundaries do not
-    line up (`PlanExecutePlanner` plans, executes and re-plans). The stages reuse the classes'
-    functions (`resolve_references`, `match_recipe`, `PLAN_SCHEMA`), not the classes.
+1. **`stopped_by` names.** LLM Tools section 15 used `answered`, `max_steps`, `max_tool_calls`,
+   `max_cost`, `budget_exhausted` and `model_unavailable`, while today's code (`STOP_REASONS` in
+   `sajha/ai/intelligence.py`) reports `answer`, `step_limit`, `tool_limit`, `budget`, `timeout`,
+   `needs_confirmation`, `needs_connection` and `error`, and the list lacked `needs_connection`.
+   **Resolved in LLM Tools.md:** section 15 is now the one list; it keeps every name the code
+   reports today, marks the rest new (`failed`, `needs_input`, `stage_limit`, `cost_limit`,
+   `no_sources`, `refused`, `invalid_output`, `busy`, `memory_pressure`, `cancelled`), and folds
+   `model_unavailable` and `planner_error` into today's `error` with a code. Sections 9.5 and
+   15 and this reference (sections 3.4, 6.0, 6.1, 7.2, 7.3, 10.3, 11, 13) use only that list, so no
+   rename note is needed when it is built (decision 33).
+2. **Template namespaces.** Section 9.3 wrote `{{question.groups.ticker}}` (but `question` is a
+   string), 9.6 `{{state.slot}}` and 9.13 `{{state.chosen}}`. **Resolved in LLM Tools.md:**
+   9.3 writes `{{groups.ticker}}`, 9.6 `{{slot}}` with `state.` optional, 9.13 `{{chosen}}`,
+   as in section 4.1.
+3. **Where `when` goes.** Section 9.3 put `when` only on transitions, while the 9.13 `auto`
+   example put `when` and `else` on a terminal `answer` stage. **Resolved in LLM Tools.md:** 9.3
+   now describes both places, a condition on a transition and a guard (`when` with `else`) on a
+   stage, as sections 7.1 and 7.7 do (decision 11).
+4. **Escalation on `max_steps` could not fire.** 9.13 escalated when "the run hit `max_steps`",
+   but 9.5 rule 3 says global limits end the run whatever the graph says. **Resolved in LLM
+   Tools.md:** 9.5 rule 4 introduces sub-budgets, and 9.13 escalates when the first try used up
+   its *step sub-budget* (`subrun.stopped_by` is `step_limit`) while the run still has steps
+   (decision 28, section 13.12).
+5. **The `auto` example was unsafe as written.** Its `run` stage took `planner:
+   "{{state.chosen}}"` with no `choices` to validate at load; its candidates named
+   `reflect_analyst` (the 9.2 example, not a shipped planner) and `recipes` (which 9.13's text
+   says the first `match` stage handles); and `model: strong` on a `planner` stage had no stated
+   meaning. **Resolved in LLM Tools.md:** the abridged example now follows section 13.12: a
+   `known` `match` stage first, candidates `react`, `plan_execute`, `reflect` and `map_reduce`,
+   `choices` on the templated `planner` stage, and a paragraph stating that `model` on a
+   `planner` stage re-binds every role of the sub-run (decision 4).
+6. **The 9.2 example always revised once.** `act` `answered` went straight to `verify` with
+   `citations_present`, but an `act` answer carries no citations, so the first check failed
+   whenever tools were called. **Resolved in LLM Tools.md:** `answered` now goes to a `draft`
+   stage first, as `reflect` and `verify_then_answer` do, with a sentence saying why.
+7. **`sample` of `act`.** 9.4's self-consistency sampled "`act` or `draft`", but one `act` call
+   may request tools, which a sample cannot complete in one call. **Resolved in LLM Tools.md:**
+   9.3's `sample` row and 9.4's self-consistency row sample `draft` (after an `act` loop gathers
+   data) or whole sub-planner runs, and say why a single `act` is not allowed (decision 25).
+8. **Map-reduce's list.** 9.4 had `act` "list the items" feed `foreach`, but `act` produces free
+   text. **Resolved in LLM Tools.md:** the map-reduce row is now `act` (find the items) →
+   `draft` (the list, structured, into a slot) → `foreach` → `draft`, as in section 13.8.
+9. **Retry on invalid structured replies.** 9.6 said structured stages retry once, but today's
+   `plan_execute` does not. **Resolved in LLM Tools.md:** 9.6 says they retry once *by default*,
+   that a stage's `retry` (0 to 2) changes it, and that the shipped `plan_execute` sets
+   `retry: 0` to stay faithful to today (section 6.0, section 13.2).
+10. **9.8's list of refusals** included "a limit exceeds its ceiling", then said it is clamped
+    rather than refused. **Resolved in LLM Tools.md:** the item is out of the refusal list; 9.8
+    and 9.5 rule 3 say a limit above its ceiling is clamped with a lint warning (P060).
+11. **`on:` under YAML 1.1.** Every YAML example used `on:` as the transition key, which
+    `yaml.safe_load` (YAML 1.1 rules, used for SAJHA's other YAML files) loads as the boolean
+    `true`, so those files would fail. An earlier draft of this reference required a YAML 1.2
+    resolver instead. **Resolved in both documents by renaming the key to `outcomes`**, so plain
+    `yaml.safe_load` and standard YAML tools read planner files correctly; outcome names and
+    labels that YAML 1.1 reads as booleans or numbers must be quoted and are otherwise refused
+    (P006). Every example, the stage keys (section 6.0), the transition rules (section 7), the
+    validation messages (section 12) and the JSON Schema (Appendix A) use `outcomes`
+    (decision 37; section 2.1). The `next` shorthand and the `on_exhausted` transition key are
+    unaffected.
+12. **Python classes as stage implementations.** 9.4 said the Python classes "remain as the
+    implementation of the `act`, `plan`, `match` and routing stages", but their boundaries do not
+    line up (`PlanExecutePlanner` plans, executes and re-plans). **Resolved in LLM Tools.md:**
+    9.4 now says the stages reuse the classes' functions (`resolve_references`, `match_recipe`,
+    `PLAN_SCHEMA`, `PLAN_PROMPT`), not the classes, and points to section 13.13 for the few
+    behaviour differences.
 
 ---
 
@@ -2232,16 +2285,16 @@ validation rules of section 12.
         "when":        { "$ref": "#/$defs/expr" },
         "else":        { "$ref": "#/$defs/transition" },
         "next":        { "$ref": "#/$defs/identifier" },
-        "on":          { "type": "object", "propertyNames": { "$ref": "#/$defs/outcome" },
+        "outcomes":    { "type": "object", "propertyNames": { "$ref": "#/$defs/outcome" },
                          "additionalProperties": { "$ref": "#/$defs/transitions" } },
         "set":         { "type": "object", "propertyNames": { "$ref": "#/$defs/identifier" },
                          "additionalProperties": { "$ref": "#/$defs/expr" } }
       },
       "dependentRequired": { "when": ["else"], "else": ["when"] },
-      "not": { "required": ["next", "on"] }
+      "not": { "required": ["next", "outcomes"] }
     },
-    "flows": { "anyOf": [ { "required": ["on"] }, { "required": ["next"] } ] },
-    "terminal": { "not": { "anyOf": [ { "required": ["on"] }, { "required": ["next"] } ] } },
+    "flows": { "anyOf": [ { "required": ["outcomes"] }, { "required": ["next"] } ] },
+    "terminal": { "not": { "anyOf": [ { "required": ["outcomes"] }, { "required": ["next"] } ] } },
     "modelCommon": {
       "type": "object",
       "properties": {
@@ -2374,7 +2427,7 @@ validation rules of section 12.
       "properties": { "type": { "const": "sample" },
                       "of": { "type": "object", "required": ["type"],
                               "properties": { "type": { "enum": ["draft", "plan", "classify", "planner"] } },
-                              "not": { "anyOf": [ { "required": ["on"] }, { "required": ["next"] }, { "required": ["when"] }, { "required": ["set"] } ] } },
+                              "not": { "anyOf": [ { "required": ["outcomes"] }, { "required": ["next"] }, { "required": ["when"] }, { "required": ["set"] } ] } },
                       "n": { "oneOf": [ { "type": "integer", "minimum": 2 }, { "$ref": "#/$defs/settingsRef" } ] },
                       "temperature": { "type": "object", "additionalProperties": false, "required": ["from", "to"],
                                        "properties": { "from": { "type": "number", "minimum": 0, "maximum": 2 }, "to": { "type": "number", "minimum": 0, "maximum": 2 } } },

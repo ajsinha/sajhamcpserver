@@ -405,7 +405,9 @@ A planner is a **directed graph of stages** with named **state**, defined in
 - a **stage** is one unit of work from a fixed library (section 9.3): a model call with tools,
   a structured plan, a critique, a deterministic check, a fixed tool call, a vote;
 - every stage ends with a typed **outcome** (for example `act` ends `called` or `answered`,
-  `critique` ends `pass` or `revise`), and **transitions** map outcomes to the next stage;
+  `critique` ends `pass` or `revise`), and **transitions**, under the stage's `outcomes` key, map
+  outcomes to the next stage (the key is not `on`, which the YAML 1.1 rules of `yaml.safe_load`
+  read as `true`, so planner files load with the same plain loader as SAJHA's other YAML);
 - **state** is a set of named slots the stages read and write (`question`, `plan`, `results`,
   `draft`, `critique`, `candidates`, counters), all bounded in size (section 10.4);
 - **loops are allowed and always bounded**: any edge that can return to an earlier stage must
@@ -417,8 +419,8 @@ name: reflect_analyst
 version: 1.0.0
 description: ReAct to gather data, then check numbers and self-critique before answering.
 use_when: Numeric or high-stakes questions where every figure must match the data.   # read by automatic selection (9.13)
-models:                      # aliases used by stages; operators re-point aliases, not files
-  act: reasoning
+models:                      # roles used by stages, each mapped to a gateway alias;
+  act: reasoning             # operators re-point aliases, not files
   critic: fast
 limits:                      # clamped to ai.planners.limits and the tool's own limits
   max_stages_run: 30
@@ -427,32 +429,36 @@ stages:
   act:
     type: act                # one model call with the offered tools (a ReAct step)
     model: act
-    on:
+    outcomes:
       called:   { next: act, max_visits: 6, on_exhausted: draft }   # the ReAct loop
-      answered: { next: verify }
+      answered: { next: draft }
   draft:
-    type: draft              # compose an answer from the results gathered so far
-    on: { done: { next: verify } }
+    type: draft              # compose an answer from the results, citing the calls it used
+    model: act
+    outcomes: { done: { next: verify } }
   verify:
     type: verify             # deterministic: every number in the draft appears in a result
     checks: [numbers_in_results, citations_present]
-    on:
+    outcomes:
       ok:       { next: critique }
       mismatch: { next: revise, max_visits: 2, on_exhausted: answer }
   critique:
     type: critique           # a model reviews the draft against the question and results
     model: critic
     rubric: [answers every part of the question, no unsupported claims, says what is missing]
-    on:
+    outcomes:
       pass:   { next: answer }
       revise: { next: revise, max_visits: 2, on_exhausted: answer }
   revise:
     type: revise             # rewrite the draft using the critique or verify findings
     model: act
-    on: { done: { next: verify } }
+    outcomes: { done: { next: verify } }
   answer:
-    type: answer             # finish; the service synthesises confidence and citations
+    type: answer             # finish; the service computes confidence and records the run
 ```
+
+The `draft` stage between `act` and `verify` is needed: an `act` answer carries no citations, so
+`citations_present` would fail, and force a revision, on every run that called tools.
 
 ### 9.3 The stage library
 
@@ -464,14 +470,14 @@ its inputs, its outputs (state slots it writes) and its outcomes, which the load
 | `act` | One model call with the offered tools; the model either requests tool calls (the service runs them as the caller) or answers. A ReAct step. | `called`, `answered` |
 | `plan` | One structured-output call that returns a plan (steps, tools, arguments, dependencies), validated against the plan schema. | `planned`, `invalid` |
 | `execute` | Runs the plan's steps through the service, independent steps in parallel up to `max_parallel`; failed steps are recorded, not fatal. | `done`, `failed_steps` |
-| `call` | One fixed tool call with arguments templated from state (`{{question.groups.ticker}}`); a recipe. | `done`, `error` |
+| `call` | One fixed tool call with arguments templated from state (`{{groups.ticker}}`, a named group set by `match`); a recipe. | `done`, `error` |
 | `match` | Deterministic: regular expressions or keywords over the question, setting named groups in state. | one outcome per rule, `none` |
 | `classify` | A label for the question from a fixed set, by rules first and a model call only if no rule matches. | one outcome per label |
 | `draft` | Compose an answer from the gathered results (model call, no tools). | `done` |
 | `critique` | A model reviews the draft against the question, the results and a rubric; returns `pass` or a list of issues. | `pass`, `revise` |
 | `revise` | Rewrite the draft to address the critique or verification findings. | `done` |
 | `verify` | Deterministic checks, no model: numbers in the draft appear in tool results, every claim has a citation, structured output validates, required parts of the question are answered. | `ok`, `mismatch` |
-| `sample` | Run a sub-step (a draft, a plan) `n` times in parallel with varied temperature. | `done` |
+| `sample` | Run a sub-step (a draft, a plan, a label, or a whole sub-planner run) `n` times in parallel with varied temperature. Not a single `act`: its tool calls need further steps. | `done` |
 | `vote` | Pick among samples: majority on a normalised answer (self-consistency) or a judge model with a rubric. | `done`, `tie` |
 | `foreach` | Map a sub-graph over a list in state (for example each holding), with bounded concurrency, collecting results; then continue (reduce). | `done`, `partial` |
 | `planner` | Run another planner as a sub-graph (section 9.7). | the sub-planner's end |
@@ -480,11 +486,15 @@ its inputs, its outputs (state slots it writes) and its outcomes, which the load
 | `answer` | Finish with the current draft or the model's answer. | terminal |
 | `fail` | Finish with a stated reason. | terminal |
 
-Transitions can also carry a `when` condition over state, written in a small expression
-language with no code execution: comparisons, `and`/`or`/`not`, `len()`, `in`, and JSONPath
-lookups (the same JSONPath the tool-quality assertions use). Example:
-`when: "len(results) == 0"`. Each stage's settings, inputs, outputs and outcomes, and the
-expression grammar, are in the [Planner Reference](Planner%20Reference.md) (sections 6 and 8).
+Conditions over state are written in a small expression language with no code execution:
+comparisons, `and`/`or`/`not`, `len()`, `in`, and JSONPath lookups (the same JSONPath the
+tool-quality assertions use), for example `when: "len(results) == 0"`. A `when` goes in one of
+two places: on a **transition**, which then applies only if the condition holds; or on a
+**stage**, as a guard with an `else` transition, where a false condition skips the stage and
+follows `else` (the `gate` stage in section 9.13 answers only if confident enough). Each stage's
+settings, inputs, outputs and outcomes, templates (`{{slot}}`, with an optional `state.` prefix)
+and the expression grammar are in the [Planner Reference](Planner%20Reference.md) (sections 4,
+6, 7 and 8).
 
 ### 9.4 Strategies are configurations
 
@@ -498,16 +508,19 @@ so they double as examples (each in full in the [Planner Reference](Planner%20Re
 | **ReWOO** | `plan` (no observations) → `execute` → `draft` | fewer model calls; predictable cost |
 | **Reflect** (self-refine, Reflexion-style) | … → `draft` → `critique` ⟲ `revise` (bounded) → `answer` | high-stakes answers; quality over latency |
 | **Verify-then-answer** | … → `draft` → `verify` ⟲ `revise` (bounded) → `answer` | numeric answers that must match the data |
-| **Self-consistency** | `sample`(n × `act` or `draft`) → `vote` → `answer` | ambiguous questions where agreement signals correctness |
+| **Self-consistency** | `act` ⟲ (gather data) → `sample`(n × `draft`, or n whole `react` runs) → `vote` → `answer` | ambiguous questions where agreement signals correctness |
 | **Branch and judge** (tree-of-thought, one level) | `sample`(n × `plan`) → `vote`(judge) → `execute` → `draft` | several plausible approaches; pick the best before spending on tools |
-| **Map-reduce** | `act` (list the items) → `foreach` (sub-graph per item) → `draft` | per-item analysis: each holding, each filing, each region |
+| **Map-reduce** | `act` ⟲ (find the items) → `draft` (the item list, structured, into a slot) → `foreach` (a `react` run per item) → `draft` (reduce) | per-item analysis: each holding, each filing, each region |
 | **Router** | `match`/`classify` → `planner`(chosen strategy) | mixed traffic; cheap path for easy questions |
 | **Recipes** | `match` → `call` → `answer`; `none` → `planner`(fallback) | known questions answered with no model call |
 | **Human in the loop** | … → `ask_user` (when ambiguous or before a costly branch) → … | questions that need the caller's choice |
 
-The four built-in planners are re-expressed as configuration files with the same behaviour, and
-their existing tests run against both forms during the transition; the Python classes remain as
-the implementation of the `act`, `plan`, `match` and routing stages.
+The four built-in planners are re-expressed as configuration files with the same behaviour
+(the few differences are listed in the Planner Reference, section 13.13), and their existing
+tests run against both forms during the transition. The stages reuse the functions today's
+classes are built from (`resolve_references`, `match_recipe`, `PLAN_SCHEMA`, `PLAN_PROMPT` in
+`sajha/ai/planners.py`), not the classes themselves, whose boundaries do not match the stages:
+`PlanExecutePlanner`, for example, plans, executes and re-plans in one class.
 
 ### 9.5 Loops and bounds
 
@@ -520,9 +533,14 @@ Looping is what makes ReAct and Reflect work, and what can make a planner run aw
    `answer`), so reaching the bound ends with the best result so far, never an error loop.
 3. **Global ceilings apply on top.** `limits.max_stages_run` for the whole graph, and the
    tool's and caller's step, tool-call, time and cost limits (section 12) end the run with the
-   matching `stopped_by` whatever the graph says.
+   matching `stopped_by` (`stage_limit`, `step_limit`, `tool_limit`, `timeout`, `cost_limit`,
+   section 15) whatever the graph says. A file can only tighten a limit: a value above its
+   ceiling is clamped to the ceiling, with a lint warning, not refused.
 4. **Sub-planners share the budget.** A `planner` stage spends from the parent's remaining
-   limits; depth is limited by `ai.planners.limits.max_subplanner_depth`, and a planner cannot
+   limits, and may give its sub-run a smaller **sub-budget** (`limits` on the stage). Running out
+   of a sub-budget ends only the sub-run (the stage's outcome is `stopped`), so the parent can
+   react, for example by escalating (section 9.13); running out of the run's own limits ends the
+   run. Depth is limited by `ai.planners.limits.max_subplanner_depth`, and a planner cannot
    include itself, directly or through others.
 5. **Fan-out is bounded.** `sample.n`, `foreach` item count and concurrency, and `execute`
    parallelism are capped by `ai.planners.limits`.
@@ -533,8 +551,11 @@ Looping is what makes ReAct and Reflect work, and what can make a planner run aw
   `models` block to gateway aliases. Cheap aliases for classification and critique, a reasoning
   alias for planning and acting: cost-aware strategies without code.
 - Prompts come from the prompts registry (`prompt: {name: ...}`) or inline text, with
-  `{{state.slot}}` placeholders. Structured stages (`plan`, `critique`, `vote`, `classify`)
-  validate the model's reply against their schema and retry once with the errors.
+  `{{slot}}` placeholders (`{{state.slot}}` means the same). Structured stages (`plan`,
+  `classify`, `draft`, `critique`, `revise`, a judging `vote`) validate the model's reply against
+  their schema and by default retry once with the errors; a stage's `retry` (0 to 2) changes
+  that. The shipped `plan_execute` sets `retry: 0` on its `plan` stage, because today's planner
+  does not re-ask on an invalid plan.
 - **SAJHA's safety preamble is always prepended** to every model call (tool results are data,
   not instructions; only offered tools may be called; say when data is missing). A planner file
   cannot remove or override it.
@@ -561,7 +582,10 @@ A planner file is refused (and `python -m sajha.quality lint` reports it) when:
 - a cycle has no bounded edge, or a bounded edge has no `on_exhausted`;
 - a referenced model role, alias, prompt, sub-planner or tool pattern does not exist;
 - sub-planners form a cycle or exceed the depth limit;
-- a limit exceeds its ceiling (it is clamped, with a warning, rather than refused).
+- a key, outcome name or label did not load as a string (for example a bare `on:` or `yes:`).
+
+A limit above its ceiling is not a reason to refuse a file: it is clamped to the ceiling and
+lint warns.
 
 ### 9.9 Registry, reload and versions
 
@@ -636,34 +660,56 @@ tool's *allowed* planners (their names and `use_when` lines) and must return one
 reply is an enum: a question that says "use the expensive planner" cannot reach anything
 outside the list. Below a confidence threshold, the tool's default planner runs.
 
-**Escalation on evidence.** The chosen strategy starts as cheaply as it can (recipes, or `react`
-on a fast alias). Bounded edges then upgrade the run only when a check says so:
+**Escalation on evidence.** The chosen strategy starts as cheaply as it can: a matched recipe
+answers with no model call, and anything else runs on the fast alias with a small step
+sub-budget (section 9.5, rule 4), so a first try that runs out of steps ends only itself and the
+run still has steps left to escalate. Bounded edges then upgrade the run only when a check says
+so:
 
 | Trigger | Escalates to |
 |---|---|
 | `verify` finds a figure in the draft that no tool result contains | Reflect (critique and revise) |
-| confidence below `escalate_below`, or the run hit `max_steps` | `plan_execute` on the reasoning alias |
-| the question has several parts that the draft does not all answer | `plan_execute` or map-reduce |
+| the question has several parts that the draft does not all answer | `plan_execute` on the reasoning alias |
+| confidence below `escalate_below`, or the first try used up its step sub-budget (`subrun.stopped_by` is `step_limit`) | `plan_execute` on the reasoning alias |
 | otherwise | answer |
 
 ```yaml
-# config/planners/<name>.yaml for the shipped "auto" planner (abridged)
+# config/planners/auto.yaml, the shipped "auto" planner (abridged: version, description and
+# some settings left out; the full file is in the Planner Reference, section 13.12)
 name: auto
 use_when: Mixed traffic; pick a strategy per question and upgrade only when checks fail.
 models: { chooser: fast, act: fast, strong: reasoning }
-settings: { candidates: [recipes, react, plan_execute, reflect_analyst], escalate_below: 0.6 }
-start: choose
+settings: { candidates: [react, plan_execute, reflect, map_reduce], default: react,
+            escalate_below: 0.6, first_try: { max_steps: 4 } }
+start: known
 stages:
-  choose:   { type: classify, model: chooser, from: candidates, on: { "*": { next: run } } }
-  run:      { type: planner, planner: "{{state.chosen}}", on: { "*": { next: verify } } }
+  known:    { type: match, rules_from: recipes.match,           # recipes first: no model call
+              outcomes: { none: { next: choose }, "*": { next: recipe } } }
+  recipe:   { type: planner, planner: recipes, next: answer }
+  choose:   { type: classify, model: chooser, from: settings.candidates, menu: planners,
+              default: "{{settings.default}}", outcomes: { "*": { next: run } } }
+  run:      { type: planner, planner: "{{chosen}}", choices: "{{settings.candidates}}",
+              model: act, limits: "{{settings.first_try}}", outcomes: { "*": { next: verify } } }
   verify:   { type: verify, checks: [numbers_in_results, parts_answered],
-              on: { ok: { next: gate }, mismatch: { next: reflect, max_visits: 1, on_exhausted: answer } } }
-  gate:     { type: answer, when: "confidence >= settings.escalate_below",
+              outcomes: { ok: { next: gate },
+                          mismatch: [ { next: split, when: "'parts_answered' in $.findings[*].check",
+                                        max_visits: 1, on_exhausted: answer },
+                                      { next: reflect, max_visits: 1, on_exhausted: answer } ] } }
+  gate:     { type: answer, when: "confidence >= settings.escalate_below and subrun.stopped_by != 'step_limit'",
               else: { next: deeper, max_visits: 1, on_exhausted: answer } }
-  reflect:  { type: planner, planner: reflect_analyst, on: { "*": { next: answer } } }
-  deeper:   { type: planner, planner: plan_execute, model: strong, on: { "*": { next: answer } } }
+  reflect:  { type: planner, planner: reflect, model: strong, next: answer }
+  split:    { type: planner, planner: plan_execute, model: strong, next: answer }
+  deeper:   { type: planner, planner: plan_execute, model: strong, next: answer }
   answer:   { type: answer }
 ```
+
+Three things make this safe to load. A planner chosen at run time (`"{{chosen}}"`) must list every
+value it may take in `choices`, each resolved and validated at load, and a value outside it
+fails the stage instead of running. The candidates are shipped planners (`reflect` is the
+shipped Reflect strategy; `reflect_analyst` in section 9.2 is only an example), and recipes are
+not a candidate because the first `match` stage already handles them. And `model` on a
+`planner` stage re-binds every model role of the sub-run to that role's alias, so `model: act`
+runs the first try on the fast alias and `model: strong` the escalations on the reasoning alias.
 
 Rules that keep automatic selection safe and predictable:
 
@@ -1156,21 +1202,31 @@ are audited.
 ## 15. Results and errors
 
 A successful call returns `structuredContent` matching the output schema, plus a text block
-for clients on older protocol versions. `stopped_by` says how the run ended:
+for clients on older protocol versions. `stopped_by` says how the run ended. This is the one
+list of values: the Ask SAJHA page, every mode and every planner use it, and the
+[Planner Reference](Planner%20Reference.md) section 10.3 says when a planner run sets each.
+Values marked *today* are the ones the Ask SAJHA service already reports (`STOP_REASONS` in
+`sajha/ai/intelligence.py`), with the same meaning; values marked **new** come with this design.
 
-| `stopped_by` | Meaning | `isError` |
-|---|---|---|
-| `answered` | Finished normally | false |
-| `needs_confirmation` | A destructive inner call waits for confirmation (fingerprints in the result, or an MRTR request) | false |
-| `max_steps`, `max_tool_calls`, `timeout`, `max_cost` | A limit ended the run; a partial answer is returned | false |
-| `no_sources` | `grounded` found nothing to answer from | false |
-| `needs_input` | An `ask_user` stage waits for the caller's answer, on paths without MRTR (section 9.3) | false |
-| `refused` | The model refused or the provider's filter blocked the request; the refusal text is returned (section 13.6). In `extract`, `classify` and `judge` it is `invalid_output` instead | false |
-| `busy`, `memory_pressure` | The process refused or ended the run to protect itself (section 10.4); REST answers 503 with `Retry-After` for `busy` | true |
-| `invalid_output` | `extract`, `classify` or `judge` could not produce valid output after the retry | true |
-| `budget_exhausted` | The caller's token budget is used up | true |
-| `model_unavailable` | Every candidate for the alias failed | true |
-| `cancelled` | The client cancelled the request | true |
+| `stopped_by` | | Meaning | `isError` |
+|---|---|---|---|
+| `answer` | today | Finished normally (in a planner, an `answer` stage ended the run) | false |
+| `failed` | **new** | A planner's `fail` stage ended the run; its reason is the answer text | true |
+| `needs_confirmation` | today | A destructive or approval-gated inner call waits for confirmation (fingerprints in the result, or an MRTR request) | false |
+| `needs_connection` | today | An inner call needs a connected account the caller has not linked | false |
+| `needs_input` | **new** | An `ask_user` stage waits for the caller's answer, on paths without MRTR (section 9.3) | false |
+| `step_limit`, `tool_limit`, `timeout` | today | The step, tool-call or time limit ended the run; a partial answer is returned | false |
+| `stage_limit`, `cost_limit` | **new** | The planner's stage-run limit or the run's cost limit ended the run; a partial answer is returned | false |
+| `budget` | today | The caller's token budget (`ai.budgets`) is used up | true |
+| `token_limit` | **new** | The run's own token cap is reached; the best partial answer is returned, like `step_limit` (today this case is reported as `budget`) | false |
+| `no_sources` | **new** | `grounded` found nothing to answer from | false |
+| `refused` | **new** | The model refused or the provider's filter blocked the request; the refusal text is returned (section 13.6). In `extract`, `classify` and `judge` it is `invalid_output` instead | false |
+| `invalid_output` | **new** | `extract`, `classify` or `judge` could not produce valid output after the retry | true |
+| `busy`, `memory_pressure` | **new** | The process refused or ended the run to protect itself (section 10.4); REST answers 503 with `Retry-After` for `busy` | true |
+| `cancelled` | **new** | The client cancelled the request | true |
+| `error` | today | The run failed unexpectedly. The `error` event and the result's `error` field carry the code: the gateway's error codes (for example `no_model_available` when every candidate for the alias failed) or `planner_error` as today, and the new `no_transition` (Planner Reference section 7.2) | true |
+
+Renaming a today value is out of scope: clients and the Ask SAJHA page already read them.
 
 Argument validation errors and access denials are ordinary tool errors, as for any tool.
 
