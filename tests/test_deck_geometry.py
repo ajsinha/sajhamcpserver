@@ -76,7 +76,7 @@ def test_the_deck_has_the_slides_and_sections_the_guide_claims():
     dividers = [s for s in prs.slides if _is_divider(s)]
     assert len(dividers) == SECTIONS
     numerals = [next(sh for sh in s.shapes if sh.name == SECTION_SHAPE).text_frame.text for s in dividers]
-    assert numerals == [str(n) for n in range(1, SECTIONS + 1)]
+    assert numerals == [f"{n:02d}" for n in range(1, SECTIONS + 1)]  # watermark numerals: 01, 02, ...
 
 
 def test_every_content_slide_names_its_source_in_its_notes():
