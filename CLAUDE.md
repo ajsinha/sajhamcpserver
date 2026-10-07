@@ -36,6 +36,7 @@ the same thing, merge them and leave a link.
 
 | Topic | Owner |
 |---|---|
+| Not built yet and what comes next (roadmap) | `docs/architecture/Roadmap.md` |
 | Database schema (SQLite and PostgreSQL schema files, manual setup) | `docs/getting-started/Database Setup.md` |
 | Policy engine, approvals, tamper-evident audit, SIEM export | `docs/architecture/Policy and Audit.md` |
 | Web console (pages, navigation, page help, small screens) | `docs/architecture/Architecture.md` §10 |
@@ -78,7 +79,7 @@ docs/getting-started/  map, quick start, configuration, storage, database setup,
 docs/protocol/       MCP guide, compliance reports, API, OAuth, Apps/headers
 docs/architecture/   architecture and one design/as-built guide per subsystem (composition, intelligence,
                      federation, sandbox, scaling, observability, accounts, API import, policy and
-                     audit, workflows, tool quality, tool generation, data connectors)
+                     audit, workflows, tool quality, tool generation, data connectors, roadmap)
 docs/studio/         MCP Studio guide + one guide per creator
 docs/tools/<category>/  one "<Provider> Tool Reference Guide.md" per provider; prompts/
 docs/tutorials/      TUTORIAL_NN_<slug>.md, numbered in reading order

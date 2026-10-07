@@ -464,7 +464,8 @@ def _future(F: dict[str, Any]) -> list[dict[str, Any]]:
             "is Python only. Weaviate, Chroma: docs/architecture/Data Connectors.md §14. Document sources, async, "
             "Vertex, Entra: docs/architecture/Intelligence Layer.md §9. Push reload: docs/getting-started/Storage "
             "Guide.md 'Planned'. Right column: bold heads of 'Known limitations', parsed at build time and filtered "
-            "by name. Built features are on the capability slides, not here.",
+            "by name. Built features are on the capability slides, not here. Every item, with size and dependencies: "
+            "docs/architecture/Roadmap.md.",
         },
         {
             "kind": "table",

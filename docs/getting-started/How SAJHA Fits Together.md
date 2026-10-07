@@ -135,6 +135,7 @@ whose job it is holds the content, and the other links to it.
 | **Comparison** | How SAJHA compares with other MCP products: one verdict, note, source and date per cell | `/comparison`, rendered from `sajha/web/competitive.py` (the only copy) |
 | **Glossary** | One definition per term | [`GLOSSARY.md`](../../GLOSSARY.md) |
 | **Release log** | What changed, version by version | [`CHANGELOG.md`](../../CHANGELOG.md) |
+| **Roadmap** | What is not built yet and what should come next; one line per item, linking to the guide that records the limit | [Roadmap](../architecture/Roadmap.md) |
 | **Version** | The one version number | `app.version` in `config/application.yml` |
 | **Archive** | Point-in-time reports, not maintained | `docs/archive/` |
 | **README** | First contact: what it is, install, first run | repository root |

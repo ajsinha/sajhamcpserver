@@ -233,7 +233,7 @@ All limiters are sliding windows in `sajha/security.py`, keyed by client IP and 
 | Every password sign-in (same three) | account lockout: `auth.login.max_failed_attempts` consecutive failures (default 5) lock the account for `auth.login.lockout_minutes` (default 15), then 423 |
 | OAuth consent sign-in (`POST /oauth/authorize`) and `POST /oauth/register` | also 5 attempts per minute per IP (`check_auth_rate_limit`) |
 | `GET /oauth/authorize` | 100 per minute per IP |
-| `/mcp`, REST tool execution, WebSocket | **none** |
+| `/mcp`, REST tool execution, WebSocket | **none built in**; a policy `rate_limit` rule (per `tool`, `user`, `api_key`, `caller` or `global`) limits tool calls on every path ([Policy and Audit](../architecture/Policy%20and%20Audit.md)); the shipped default policy has no rules |
 
 Limits that are defined but not applied: the per-user and per-key limits `check_user_rate_limit` (100/min) and `check_key_rate_limit` (200/min) exist but are not called anywhere.
 

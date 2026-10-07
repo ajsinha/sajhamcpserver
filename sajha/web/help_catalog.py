@@ -179,6 +179,9 @@ CATALOG: List[dict] = [
             _g('Data Connectors', 'Data Connectors.md', 'bi-database-gear',
                'Enterprise databases, warehouses, vector stores and search clusters as governed, read-only '
                'tools: drivers, the statement guard, limits, masking, curated views, per-user credentials.'),
+            _g('Roadmap', 'Roadmap.md', 'bi-signpost-2',
+               'What is not built yet and what should come next: release hygiene, the gaps the guides record, '
+               'and recommended enhancements, each with its size, dependencies and the guide that owns it.'),
         ],
     },
     {

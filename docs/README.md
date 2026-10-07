@@ -27,7 +27,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 |---|---|
 | `getting-started/` | The map, quick start, configuration reference, database setup, storage, Kubernetes |
 | `protocol/` | MCP protocol guide, the two compliance reports, API reference, OAuth, MCP Apps and headers |
-| `architecture/` | How the server is built, and one design guide per subsystem: composition, the intelligence layer, federation, connected accounts, API import, tool generation, data connectors, policy and audit, sandbox, scaling, observability, workflows, tool quality |
+| `architecture/` | How the server is built, and one design guide per subsystem: composition, the intelligence layer, federation, connected accounts, API import, tool generation, data connectors, policy and audit, sandbox, scaling, observability, workflows, tool quality; the roadmap |
 | `studio/` | MCP Studio and its creators |
 | `tools/` | One reference guide per tool provider, by category; prompts |
 | `tutorials/` | Step-by-step walkthroughs, numbered |
@@ -72,6 +72,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Workflows](architecture/Workflows.md): DAGs of tools, composites and Ask SAJHA steps; cron, webhook, file and event triggers; durable runs that resume after a crash; re-run from a step; publish as a tool
 - [Tool Quality](architecture/Tool%20Quality.md): test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, rollback and sunset dates
 - [Policy and Audit](architecture/Policy%20and%20Audit.md): declarative rules on every tool call (deny, approval, argument constraints, rate limits, quotas, redaction, injection screening); the hash-chained, signed audit and SIEM export
+- [Roadmap](architecture/Roadmap.md): what is not built yet and what should come next, by horizon (now, next, later), each item linked to the guide that records the gap
 
 ## MCP Studio
 
