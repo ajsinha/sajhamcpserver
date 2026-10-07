@@ -512,9 +512,9 @@ async def api_ask(request: Request, auth: AuthContext = Depends(require_auth)):
     if planner is not None:
         if not auth.is_admin:
             return JSONResponse({'error': 'only administrators may choose the planner'}, status_code=403)
-        from sajha.ai.planners import planner_class
+        from sajha.ai.planners_engine import get_registry
         try:
-            planner_class(str(planner))
+            get_registry().compiled(planner if isinstance(planner, dict) else str(planner))
         except Exception as e:
             return JSONResponse({'error': str(e)[:300]}, status_code=400)
 
@@ -623,13 +623,73 @@ async def api_delete_my_history(auth: AuthContext = Depends(require_auth)):
 
 @router.get('/api/ai/planners')
 async def api_planners(auth: AuthContext = Depends(require_auth)):
-    """The registered planning strategies and the configured default (ai.ask.planner)."""
+    """Every planner (files in config/planners and Python registrations), the Ask SAJHA default
+    (ai.ask.planner), the LLM-tool default (ai.planners.default) and, for admins, load problems."""
     from sajha.ai.intelligence import get_intelligence
-    from sajha.ai.planners import describe_planners
+    from sajha.ai.planners_engine import get_registry
+    reg = get_registry()
     svc = get_intelligence()
-    return JSONResponse({'planners': describe_planners(),
-                         'default': svc.settings.planner if svc is not None else None,
-                         'aliases': {'model': 'react'}})
+    body = {'planners': reg.describe(), 'default': svc.settings.planner if svc is not None else None,
+            'tool_default': reg.settings.default, 'aliases': {'model': 'react'}}
+    if auth.is_admin:
+        body['problems'] = reg.problems()
+    return JSONResponse(body)
+
+
+@router.get('/api/ai/planners/{name}')
+async def api_planner(name: str, auth: AuthContext = Depends(require_auth)):
+    """One planner (``name`` or ``name@version``): its stages, settings, roles and warnings."""
+    from sajha.ai.planners_engine import get_registry
+    try:
+        pdef = get_registry().compiled(name)
+    except Exception as e:
+        return JSONResponse({'error': str(e)[:300]}, status_code=404)
+    return JSONResponse(pdef.describe())
+
+
+@router.post('/api/ai/planners/dry-run')
+async def api_planner_dry_run(request: Request, auth: AuthContext = Depends(require_admin)):
+    """Admins: run a planner against the mock model (ai.planners.dry_run_model) and return the stage
+    path. Only read-only tools (and those named in run_tools) run; other calls return "not run".
+    Body: {planner: name | name@version | inline object | overlay, question, tools?: [names],
+    run_tools?: [names], input?: {...}}."""
+    from starlette.concurrency import run_in_threadpool
+    from sajha.ai.intelligence import get_intelligence
+    from sajha.ai.llm.types import RequestContext
+    from sajha.ai.planners_engine.dryrun import dry_run
+    svc = get_intelligence()
+    if svc is None:
+        return JSONResponse({'error': 'Intelligence service not initialized'}, status_code=503)
+    try:
+        data = await request.json()
+    except Exception:
+        data = None
+    if not isinstance(data, dict) or not str(data.get('question') or '').strip():
+        return JSONResponse({'error': 'body must be {"planner": ..., "question": "..."}'}, status_code=400)
+    planner = data.get('planner') or None
+    if planner is not None and not isinstance(planner, (str, dict)):
+        return JSONResponse({'error': 'planner must be a reference or an object'}, status_code=400)
+    from sajha.ai.planners_engine import get_registry
+    try:
+        if isinstance(planner, dict) and 'use' not in planner:
+            get_registry().inline(planner, {'name': 'dry_run__inline', 'version': '0.0.0'})
+        elif planner is not None:
+            get_registry().compiled(planner)
+    except Exception as e:
+        return JSONResponse({'error': str(e)[:1000]}, status_code=400)
+    tools, run_tools = data.get('tools'), data.get('run_tools')
+    for k, v in (('tools', tools), ('run_tools', run_tools)):
+        if v is not None and not (isinstance(v, list) and all(isinstance(t, str) for t in v)):
+            return JSONResponse({'error': f'{k} must be a list of tool names'}, status_code=400)
+    ctx = RequestContext(user_id=auth.user_id or '', roles=list(auth.roles or []), is_admin=True,
+                         can_use_tool=lambda n: bool(auth.has_tool_access(n)))
+    try:
+        out = await run_in_threadpool(lambda: dry_run(svc, planner, str(data['question'])[:8000], ctx, tools=tools,
+                                                      run_tools=run_tools,
+                                                      input=data.get('input') if isinstance(data.get('input'), dict) else None))
+    except Exception as e:
+        return JSONResponse({'error': f'{e.__class__.__name__}: {e}'[:1000]}, status_code=400)
+    return JSONResponse(out)
 
 
 # ── Documents (RAG, sajha/ai/rag): search, status, uploads ────────

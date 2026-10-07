@@ -186,7 +186,7 @@ CATALOG: List[dict] = [
             _g('LLM tools', 'LLM Tools.md', 'bi-chat-square-text',
                'Tools whose work is done by a model, configured like any tool: seven modes, running as the '
                'caller, conversation memory, spill to disk and the memory guard; config-driven planners (design).'),
-            _g('Planner reference (design)', 'Planner Reference.md', 'bi-signpost-split',
+            _g('Planner reference', 'Planner Reference.md', 'bi-signpost-split',
                'Planner files in full: keys, every stage type, transitions and bounded loops, the when '
                'expression grammar, verify checks, validation messages, JSON Schema, shipped strategies.'),
             _g('SAJHA Net (design)', 'SAJHA Net.md', 'bi-diagram-3',
@@ -370,6 +370,9 @@ CATALOG: List[dict] = [
             _g('26. Build an LLM tool', 'TUTORIAL_26_build_an_llm_tool.md', 'bi-chat-square-text',
                'Write a classifier and a summariser as config files, call them on the mock model, add memory to '
                'an assistant, watch it run as the caller, and evaluate it before enabling it.'),
+            _g('27. Write a planner', 'TUTORIAL_27_write_a_planner.md', 'bi-signpost-split',
+               'Write a planner file for a desk: match a known question shape, call one tool, check the figures, '
+               'loop a bounded number of times, dry-run it on the mock model, pin it in an LLM tool and version it.'),
         ],
     },
     {

@@ -32,6 +32,8 @@ FastAPI also serves its generated docs: `GET /api/docs` (Swagger UI, with its OA
 
 An API key with an owner authenticates as that user, with the user's roles, and its `tool_access_mode` and tool list narrow what it may see and run; a key without an owner authenticates as `apikey:<key name>` with the single role `api_consumer`, and its mode and list alone decide, on REST, MCP and A2A alike ([API keys](../security/Security%20Model.md#api-keys)). SAJHA JWTs carry the user's roles and can be revoked ([Revocable sign-in](../security/Security%20Model.md#revocable-sign-in)). JWT lifetime is `auth.jwt.expiry_minutes` (env `JWT_EXPIRY`, default 60); the web cookie has a one-hour `max_age`.
 
+The OpenAI-compatible routes (`/v1/*`, section 4.23) authenticate on their own: an API key as `Authorization: Bearer sja_...` (the form OpenAI SDKs send), and the cookie only when `ai.openai_api.cookie_auth` is on.
+
 **OAuth access tokens are not accepted on the REST API.** They are minted for the MCP resource and are validated only on the MCP endpoints (`sajha/auth/oauth/resource_server.py`); see [OAuth Guide](OAuth%20Guide.md).
 
 ```bash
@@ -364,9 +366,11 @@ curl -X POST http://localhost:3002/api/composite-tools \
 | POST | `/api/ai/complete` | user | LLM completion: `prompt` (required), `provider`, `model`, `system`, `temperature`, `max_tokens`. |
 | GET | `/api/ai/stats` | admin | Gateway and resolver statistics. |
 | GET | `/api/ai/registry` | admin | Registered provider classes. |
-| POST | `/api/ai/ask` | user | Answer a question with SAJHA's tools: `question` (required), `model`, `confirm`, `conversation_id` (`"new"` or an id of the caller's; another user's or an expired id is 404), `planner` (admins; 403 otherwise). JSON `AskResult`, or an SSE step stream with `Accept: text/event-stream` or `?stream=1`. Event schema: [Intelligence Layer](../architecture/Intelligence%20Layer.md#post-apiaiask). |
+| POST | `/api/ai/ask` | user | Answer a question with SAJHA's tools: `question` (required), `model`, `confirm`, `conversation_id` (`"new"` or an id of the caller's; another user's or an expired id is 404), `planner` (admins; 403 otherwise: a planner reference, an inline definition or an overlay). JSON `AskResult`, or an SSE step stream with `Accept: text/event-stream` or `?stream=1`. Event schema: [Intelligence Layer](../architecture/Intelligence%20Layer.md#post-apiaiask). |
 | GET | `/api/ai/config` | admin | Effective `ai.*` configuration, each value with its source; secrets redacted. |
-| GET | `/api/ai/planners` | user | Registered planners and the configured default (`ai.ask.planner`). |
+| GET | `/api/ai/planners` | user | Every planner (files in `ai.planners.dir` and Python registrations) with version, kind, `use_when` and kept versions; the Ask SAJHA default (`ai.ask.planner`) and the LLM-tool default (`ai.planners.default`); for admins, `problems` (each file's validation errors and warnings, [Planner Reference](../architecture/Planner%20Reference.md) §12). |
+| GET | `/api/ai/planners/{name}` | user | One planner (`name` or `name@version`): its stages with their outcomes, settings, model roles and warnings. 404 when unknown. |
+| POST | `/api/ai/planners/dry-run` | admin | Run a planner against the mock model (`ai.planners.dry_run_model`). Tools are offered as usual, but only those annotated `readOnlyHint: true` and those named in `run_tools` run; any other call returns an error result "not run in a dry run". Body `{planner: name \| name@version \| inline object \| overlay, question, tools?: [names], run_tools?: [names], input?: {}}`. Returns `{planner, version, path (the top planner's stages), trace (every stage, sub-runs as chain/stage), stopped_by, answer, loops_exhausted, tools_offered, tool_calls: [{name, ok, run}], events}`; 400 for a planner that does not validate. |
 | GET | `/api/ai/conversations` | user | The caller's conversations, most recent first: the Ask SAJHA page's by default, `?tool=<name>` one LLM tool's, `?tool=*` all. Each carries `tool_name` and `expires_ts`. |
 | GET | `/api/ai/conversations/{conversation_id}` | user | One of the caller's conversations with its turns and summary; 404 for anyone else's. |
 | DELETE | `/api/ai/conversations/{conversation_id}` | user | Delete one of the caller's conversations. |
@@ -738,6 +742,46 @@ lifecycle and sources: [System Notices](../architecture/System%20Notices.md).
 | GET | `/api/admin/notices` | admin | `{enabled, notices}`: `?state=open` (default), `cleared` or `all`; `?source=`. 400 for another state. |
 | POST | `/api/admin/notices/{id}/acknowledge` | admin (CSRF) | Acknowledge an active notice → `{notice}`; 404 unknown id. |
 | POST | `/api/admin/notices/{id}/clear` | admin (CSRF) | Clear it now (reason `admin`) → `{notice}`; a source whose condition still holds raises it again. 404 unknown id. |
+
+### 4.23 OpenAI-compatible endpoint (`openai_routes.py`)
+
+SAJHA's gateway in the OpenAI wire format, so an OpenAI SDK or tool uses it by changing only its
+base URL (`http://host:3002/v1`) and key. Off by default: with `ai.openai_api.enabled: false`
+every route here answers 404. Behaviour, identity and governance:
+[LLM Tools](../architecture/LLM%20Tools.md#134-sajha-as-an-openai-compatible-endpoint) section 13.4.
+
+**Auth.** A SAJHA API key as the bearer token (`Authorization: Bearer sja_...`; an owned key acts
+as its owner), or `X-API-Key`, or a SAJHA JWT as the bearer; the console's session cookie only
+with `ai.openai_api.cookie_auth: true`. A missing or bad credential is 401 with code
+`invalid_api_key`.
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| POST | `/v1/chat/completions` | key | A Chat Completions request; `stream: true` answers server-sent `chat.completion.chunk` events ending with `data: [DONE]` (`stream_options.include_usage` adds the usage chunk). `model` is an alias (`default`, `fast`, ...), `provider/model`, or `sajha:<tool>` for an LLM tool. The optional `sajha` object (`extra_body={"sajha": {...}}` in the SDKs) takes `conversation_id` (`"new"` or an id) and `arguments` for an LLM tool; it never sets the caller. The response carries SAJHA's details in `sajha` (provider, cost, cache, and for a tool `stopped_by`, `conversation_id`). |
+| GET | `/v1/models` | key | The models the caller's role may use: the gateway's aliases, every allowed `provider/model`, and `sajha:<tool>` for each enabled LLM tool the caller may execute (`ai.openai_api.llm_tools`). |
+| GET | `/v1/models/{model}` | key | One of those models; 404 `model_not_found` otherwise. |
+| POST | `/v1/embeddings` | key | `{model, input, encoding_format?}` (`float` or `base64`, the SDKs' default) through the embedding alias's candidates. |
+
+Errors use OpenAI's shape, `{"error": {"message", "type", "param", "code"}}`: 400
+`invalid_request_error`, 401 `invalid_api_key`, 403 `permission_error` (a policy denial), 404
+`model_not_found` (an unknown model and one the caller may not use look the same), 413 a body over
+`ai.openai_api.max_body_bytes`, 429 `rate_limit_error` (a policy rate limit, with `Retry-After`)
+or `insufficient_quota` (a token budget), 502/503 `server_error` (no model available, a provider
+failure, an LLM tool that ended `busy` or `failed`). An error after streaming began arrives as a
+`data: {"error": ...}` event before `data: [DONE]`.
+
+```bash
+curl http://localhost:3002/v1/chat/completions -H "Authorization: Bearer sja_key" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "default", "messages": [{"role": "user", "content": "Hello"}]}'
+```
+
+```python
+from openai import OpenAI
+client = OpenAI(base_url="http://localhost:3002/v1", api_key="sja_key")
+client.chat.completions.create(model="sajha:llm_docs_qa", messages=[{"role": "user", "content": "How do I enable OAuth?"}],
+                               extra_body={"sajha": {"conversation_id": "new"}})
+```
 
 ---
 

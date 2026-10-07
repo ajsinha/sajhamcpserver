@@ -1,0 +1,56 @@
+# The shipped "router" planner (docs/architecture/Planner Reference.md §13).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# router@<old version>.yaml while tools still pin it.
+name: router
+version: 1.0.0
+description: Chooses a strategy per question - configured rules, then recipes, then plan_execute for questions with several parts, otherwise react.
+use_when: Mixed traffic where cheap deterministic rules can route most questions.
+settings:                          # today's RouterConfig: same keys, same defaults
+  rules: []                        # [{match: <regex>, planner: <name>}], checked first, in order
+  use_recipes: true
+  multi_step: plan_execute
+  default: react
+  multi_step_pattern: '\b(and then|then|after that|compare|comparison|versus|vs\.?|both|each of|as well as|respectively)\b|\?.+\?'
+start: rules
+stages:
+  rules:
+    type: match
+    rules: "{{settings.rules}}"
+    outcomes:
+      none: { next: recipes_check }
+      "*":  { next: routed }
+  routed:
+    type: planner
+    planner: "{{rule.planner}}"
+    choices: "{{settings.rules[*].planner}}"
+    next: answer
+  recipes_check:
+    type: match
+    when: "settings.use_recipes"
+    else: { next: shape }
+    rules_from: recipes.match      # the recipes planner's rules: a recipe whose tool is offered
+    outcomes:
+      none: { next: shape }
+      "*":  { next: to_recipes }
+  to_recipes:
+    type: planner
+    planner: recipes
+    next: answer
+  shape:
+    type: match
+    dotall: true
+    rules:
+      - { name: multi_step, pattern: "{{settings.multi_step_pattern}}" }
+    outcomes:
+      multi_step: { next: multi }
+      none:       { next: simple }
+  multi:
+    type: planner
+    planner: "{{settings.multi_step}}"
+    next: answer
+  simple:
+    type: planner
+    planner: "{{settings.default}}"
+    next: answer
+  answer:
+    type: answer

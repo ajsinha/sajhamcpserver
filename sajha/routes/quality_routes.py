@@ -243,8 +243,8 @@ def _models() -> List[str]:
 
 def _planners() -> List[str]:
     try:
-        from sajha.ai.planners import registered_planners
-        return sorted(registered_planners())
+        from sajha.ai.planners_engine import get_registry
+        return get_registry().names()
     except Exception:
         return []
 

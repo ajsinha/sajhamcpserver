@@ -216,6 +216,7 @@ class SajhaMCPServerWebApp:
         from sajha.routes.workflow_routes import router as workflow_router
         from sajha.routes.connectors_routes import router as connectors_router
         from sajha.routes.notices_routes import router as notices_router
+        from sajha.routes.openai_routes import router as openai_router
 
         routers = [
             auth_router, dashboard_router, api_router, tools_router,
@@ -239,6 +240,7 @@ class SajhaMCPServerWebApp:
             workflow_router,
             connectors_router,
             notices_router,
+            openai_router,
         ]
 
         for router in routers:

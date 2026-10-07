@@ -58,7 +58,7 @@ streams, what each phase waits for, and its status.
 |---|---|---|---|---|---|
 | 1 | 7.1.0 | Foundations | Caller identity in tools, API keys owned by users with a default key each, tool calls audited, renewing lease, system notices, release hygiene, CI | none | done (7.1.0) |
 | 2 | 7.2.0 | Model interface and LLM tools | OpenAI-style canonical interface and providers, the LLM tool type and its modes, conversation memory and resource safety, `sajha_ask` moved onto the type | 1 | done (7.2.0) |
-| 3 | 7.3.0 | Planners and authoring | Configurable planners and every shipped strategy, `auto`, Studio LLM tool creator and planner editor, sampling, the OpenAI-compatible endpoint | 2 | in progress, phase 3.1 |
+| 3 | 7.3.0 | Planners and authoring | Configurable planners and every shipped strategy, `auto`, Studio LLM tool creator and planner editor, sampling, the OpenAI-compatible endpoint | 2 | in progress, phase 3.2 |
 | 4 | 8.0.0 | SAJHA Net core | Named nets (several per server), membership with required seeds, CA, signed requests on one port, catalogs and proxy tools, resolution order and preferences, offline removal, one name one contract, waterfall fallback, identity across instances, blocks, the Instances page | 1 (3 for remote LLM tools) | pending |
 | 5 | 8.1.0 | Sovereignty, console, other MCP servers | Residency, locality-aware planners, re-export, the full SAJHA Net console, sponsored servers, the agent and library, the extension's conformance suite | 4 | pending |
 Wave 4 is a major version because it adds a new table (`sajhanet_api_keys`), new columns on
@@ -150,8 +150,8 @@ SAJHA becomes usable from any OpenAI-style client.
 
 | Phase | Streams, in parallel | Depends on | Status |
 |---|---|---|---|
-| 3.1 | A planner engine and shipped strategies ‖ B OpenAI-compatible endpoint and MCP sampling | wave 2 | B done, A finishing |
-| 3.2 | C authoring: Studio LLM tool creator, planner editor with dry run, Describe-a-tool proposals, conversations page, Studio permissions per creator (X2), console end-to-end and accessibility checks (X15) ‖ D LLM package boundary: factory, governed model proxy, old types retired from callers, architecture test | 3.1 | pending |
+| 3.1 | A planner engine and shipped strategies ‖ B OpenAI-compatible endpoint and MCP sampling | wave 2 | done |
+| 3.2 | C authoring: Studio LLM tool creator, planner editor with dry run, Describe-a-tool proposals, conversations page, Studio permissions per creator (X2), console end-to-end and accessibility checks (X15) ‖ D LLM package boundary: factory, governed model proxy, old types retired from callers, architecture test | 3.1 | in progress |
 | 3.3 | Comparison page update, docs as-built and tutorials, combined gate (suite, conformance, mobile, evals), release 7.3.0, drill | 3.2 | pending |
 
 **Exit:** gates of section 9; every shipped strategy has path and bound tests; an OpenAI SDK

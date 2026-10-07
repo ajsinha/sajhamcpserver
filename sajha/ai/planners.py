@@ -7,13 +7,16 @@ refusing calls to tools that were not offered, destructive-tool confirmation, ru
 through ``execute_with_tracking``, result caps, the limits, synthesis, confidence, audit and the
 event stream). A ``Planner`` only decides, before every step, what to do next:
 
-    CallTools(calls)        run these calls (the service validates each against the shortlist)
+    CallTools(calls)        run these canonical ToolCalls (the service validates each against the shortlist)
     Answer(text)            stop; synthesise the final answer (or use ``text`` as it is)
     Emit(event)             publish an optional event (a ``plan``) and ask again
 
-The planner reaches a model only through ``state.chat`` (the gateway bound to the caller:
-aliases, role policy, budgets, fallback, the cache, and a ``model`` event per call) and never
-touches a tool. Built-in strategies:
+The planner reaches a model only through ``state.chat`` (a canonical ChatCompletionRequest to the
+gateway bound to the caller: aliases, role policy, budgets, fallback, the cache, and a ``model``
+event per call) and never touches a tool. Messages, tools and calls are the OpenAI-style
+canonical types of sajha/ai/llm/canonical.py. The Python classes of the built-in strategies
+(the shipped planner files in config/planners re-express them, sajha/ai/planners_engine; these
+classes run instead when ``ai.planners.python_builtins`` is true or a class path names them):
 
     react          one model call per step: answer, or call which offered tools (the default;
                    "model" is an alias)
@@ -24,8 +27,9 @@ touches a tool. Built-in strategies:
                    the fallback planner
     router         picks a strategy by question class (rules, recipes, multi-part questions)
 
-Configuration: ``ai.ask.planner`` (``SAJHA_AI_ASK_PLANNER``) names the strategy, a registered
-name or ``package.module:Class``; ``ai.ask.planner_config.<name>`` holds each planner's
+Configuration: ``ai.ask.planner`` (``SAJHA_AI_ASK_PLANNER``) names the strategy, resolved by the
+planner registry (sajha/ai/planners_engine/registry.py): a planner file, a registered name or
+``package.module:Class``; ``ai.ask.planner_config.<name>`` holds each planner's
 settings, validated by its ``config_model``. Registration: ``@register_planner``, a class path,
 or an entry point in the ``sajha.planners`` group.
 Guide: docs/architecture/Extending the Intelligence Layer.md §4.5
@@ -43,7 +47,9 @@ from typing import Any, Callable, ClassVar, Dict, List, Optional, Type, Union
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from sajha.ai.llm.types import ChatRequest, ChatResponse, Message, RequestContext, ToolCallPart, ToolSpec
+from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionRequest, ChatMessage, MessageSajha,
+                                    ResponseFormat, SajhaRequest, ToolCall, ToolDefinition)
+from sajha.ai.llm.types import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +62,7 @@ ALIASES = {"model": "react"}
 @dataclass
 class ShortlistEntry:
     name: str
-    spec: ToolSpec
+    tool: ToolDefinition                  # the offered tool as an OpenAI-style function definition
     score: float
     description: str = ""
 
@@ -71,47 +77,96 @@ class Limits:
 
 @dataclass
 class PlanState:
-    """The ask as the planner sees it. The service owns it and updates it between steps."""
+    """The ask as the planner sees it. The service owns it and updates it between steps. Every
+    message is a canonical (OpenAI-style) ``ChatMessage``; ``chat`` takes a canonical
+    ``ChatCompletionRequest`` and returns a ``ChatCompletion`` through the gateway."""
     question: str                         # what to answer (a follow-up rewritten as a standalone question)
     ctx: RequestContext
     shortlist: List[ShortlistEntry]
-    messages: List[Message]               # earlier turns, the question, then every call and result so far
+    messages: List[ChatMessage]           # earlier turns, the question, then every call and result so far
     steps: List[Any]                      # AskStep records: what ran, with status and summaries
     remaining: Limits
     system: str                           # the system prompt (with the conversation summary, if any)
     temperature: float
-    chat: Callable[..., ChatResponse]     # chat(request, needs=None) through the gateway
+    chat: Callable[..., ChatCompletion]   # chat(request, needs=None, model=None) through the gateway
     emit: Callable[[Dict[str, Any]], None]
     original_question: str = ""
     history_turns: int = 0                # earlier turns of the conversation in ``messages``
     data: Dict[str, Any] = field(default_factory=dict)   # scratch space for the planner
 
     @property
-    def specs(self) -> List[ToolSpec]:
-        return [e.spec for e in self.shortlist]
+    def tools(self) -> List[ToolDefinition]:
+        return [e.tool for e in self.shortlist]
 
     @property
     def offered(self) -> Dict[str, ShortlistEntry]:
         return {e.name: e for e in self.shortlist}
 
-    def results(self) -> Dict[str, Any]:
-        """call id -> ToolResultPart, for every result in the history of this ask."""
-        out = {}
-        for m in self.messages:
-            for r in m.tool_results:
-                out[r.call_id] = r
-        return out
+    def results(self) -> Dict[str, ChatMessage]:
+        """call id -> the tool message, for every result in the history of this ask."""
+        return {m.tool_call_id: m for m in self.messages if m.role == "tool" and m.tool_call_id}
 
     def step(self, call_id: str):
         return next((s for s in self.steps if s.id == call_id), None)
+
+    def request(self, messages: Optional[List[ChatMessage]] = None, *, system: Optional[str] = None,
+                tools: Optional[List[ToolDefinition]] = None, tool_choice: Optional[str] = None,
+                schema: Optional[Dict[str, Any]] = None, schema_name: str = "response",
+                temperature: Optional[float] = None, max_tokens: Optional[int] = None,
+                stop: Optional[List[str]] = None) -> ChatCompletionRequest:
+        """A canonical request over ``messages`` (default: the transcript) with the system text first."""
+        msgs = [system_message(self.system if system is None else system)]
+        msgs += list(self.messages if messages is None else messages)
+        return build_request(msgs, ctx=self.ctx, tools=tools, tool_choice=tool_choice, schema=schema,
+                             schema_name=schema_name,
+                             temperature=self.temperature if temperature is None else temperature,
+                             max_tokens=max_tokens, stop=stop)
+
+
+def system_message(text: str) -> ChatMessage:
+    """The system text of a request (marked as the request's system field, as every adapter expects)."""
+    return ChatMessage(role="system", content=text, sajha=MessageSajha(system_field=True))
+
+
+def build_request(messages: List[ChatMessage], *, ctx: Any = None, tools: Optional[List[ToolDefinition]] = None,
+                  tool_choice: Optional[str] = None, schema: Optional[Dict[str, Any]] = None,
+                  schema_name: str = "response", temperature: Optional[float] = None,
+                  max_tokens: Optional[int] = None, stop: Optional[List[str]] = None) -> ChatCompletionRequest:
+    """A canonical Chat Completions request (tools as functions, structured output as json_schema)."""
+    fields: Dict[str, Any] = {"messages": list(messages), "sajha": SajhaRequest(context=ctx)}
+    if tools:
+        fields["tools"] = list(tools)
+        fields["tool_choice"] = tool_choice or "auto"
+    if schema is not None:
+        fields["response_format"] = ResponseFormat.of_schema(schema, name=schema_name)
+    if temperature is not None:
+        fields["temperature"] = temperature
+    if max_tokens:
+        fields["max_completion_tokens"] = int(max_tokens)
+    if stop:
+        fields["stop"] = list(stop)
+    return ChatCompletionRequest(**fields)
+
+
+def as_tool_call(call: Any) -> ToolCall:
+    """A canonical ToolCall from a ToolCall or a pre-canonical call object (id, name, arguments)."""
+    if isinstance(call, ToolCall):
+        return call
+    return ToolCall.of(str(getattr(call, "id", "")), str(getattr(call, "name", "")),
+                       dict(getattr(call, "arguments", None) or {}))
+
+
+def call_args(call: ToolCall) -> Dict[str, Any]:
+    args = call.function.args()
+    return args if isinstance(args, dict) else {}
 
 
 # ── what a planner returns ────────────────────────────────────────
 
 @dataclass
 class CallTools:
-    calls: List[ToolCallPart]
-    message: Optional[Message] = None     # the assistant message carrying the calls (built if None)
+    calls: List[ToolCall]
+    message: Optional[ChatMessage] = None  # the assistant message carrying the calls (built if None)
     parallel: bool = False                # the calls are independent: the service may run them together
 
 
@@ -119,7 +174,12 @@ class CallTools:
 class Answer:
     text: str = ""
     synthesize: bool = True               # False: ``text`` is the final answer as it is
-    message: Optional[Message] = None     # the assistant message to keep in the history
+    message: Optional[ChatMessage] = None  # the assistant message to keep in the history
+    stopped_by: str = "answer"            # graph planners: answer | failed | needs_input | stage_limit | ...
+    citations: Optional[List[str]] = None  # call ids the text relies on (None: every successful call)
+    caveats: List[str] = field(default_factory=list)
+    error: str = ""
+    input_request: Optional[Dict[str, Any]] = None   # needs_input: {message, kind, options}
 
 
 @dataclass
@@ -276,11 +336,7 @@ class ReactPlanner(Planner):
     description = "One model call per step: answer, or call which offered tools (reason + act)."
 
     def next_action(self, state: PlanState) -> Action:
-        specs = state.specs
-        req = ChatRequest(list(state.messages), system=state.system, tools=specs,
-                          tool_choice="auto" if specs else "none", temperature=state.temperature,
-                          metadata=state.ctx)
-        resp = state.chat(req)
+        resp = state.chat(state.request(tools=state.tools))
         if not resp.tool_calls:
             return Answer(resp.text, message=resp.message)
         return CallTools(list(resp.tool_calls), resp.message)
@@ -365,6 +421,7 @@ def _parse_args(raw: Any) -> Dict[str, Any]:
 
 
 def _content_data(part) -> Any:
+    """A tool message's content as data (JSON parsed when it is JSON text)."""
     c = getattr(part, "content", None)
     if isinstance(c, str):
         try:
@@ -427,12 +484,12 @@ class PlanExecutePlanner(DelegatingPlanner):
     def _request_plan(self, state: PlanState, replan: bool) -> List[_PlanStep]:
         msgs = list(state.messages)
         if replan:
-            msgs.append(Message.user(f"{REPLAN_NOTE}\nOriginal question: {state.question}"))
-        req = ChatRequest(msgs, system=PLAN_PROMPT, tools=state.specs, tool_choice="none",
-                          response_schema=PLAN_SCHEMA, temperature=state.temperature, metadata=state.ctx)
+            msgs.append(ChatMessage.user(f"{REPLAN_NOTE}\nOriginal question: {state.question}"))
+        req = state.request(msgs, system=PLAN_PROMPT, tools=state.tools, tool_choice="none", schema=PLAN_SCHEMA,
+                            schema_name="plan")
         resp = state.chat(req, needs="structured_output", model=self.config.model)
         try:
-            data = resp.json()
+            data = resp.parsed()
         except Exception:
             data = {}
         prefix = f"r{self.revision}_" if replan else ""
@@ -514,10 +571,10 @@ class PlanExecutePlanner(DelegatingPlanner):
                 s.status = "skipped"
                 continue
             s.status = "running"
-            calls.append(ToolCallPart(s.call_id, s.tool, args))
+            calls.append(ToolCall.of(s.call_id, s.tool, args))
         if not calls:
             return self.next_action(state)
-        return CallTools(calls, Message.assistant("", calls), parallel=len(calls) > 1)
+        return CallTools(calls, ChatMessage.assistant(None, calls), parallel=len(calls) > 1)
 
     def _fallback_text(self, state: PlanState) -> str:
         """The answer when synthesis is off or fails: the step summaries."""
@@ -596,15 +653,14 @@ class RecipesPlanner(DelegatingPlanner):
         super().__init__(*a, **kw)
         self.recipe: Optional[Recipe] = None
         self.groups: Dict[str, Any] = {}
-        self.call: Optional[ToolCallPart] = None
+        self.call: Optional[ToolCall] = None
 
     def start(self, state: PlanState) -> None:
         self.recipe, self.groups = match_recipe(self.config.recipes, state.question, state.offered)
         if self.recipe is None:
             self.hand_to(self.config.fallback, state)
             return
-        spec = state.offered[self.recipe.tool].spec
-        props = (spec.input_schema or {}).get("properties") or {}
+        props = (state.offered[self.recipe.tool].tool.parameters_or_default or {}).get("properties") or {}
         if self.recipe.arguments:
             args = {k: (v.format_map(_SafeDict(self.groups)) if isinstance(v, str) else v)
                     for k, v in self.recipe.arguments.items()}
@@ -612,7 +668,7 @@ class RecipesPlanner(DelegatingPlanner):
             args = {k: v for k, v in self.groups.items() if k in props}
         args = {k: _coerce(v, props.get(k) or {}) for k, v in args.items()}
         digest = hashlib.sha1(json.dumps(args, sort_keys=True, default=str).encode()).hexdigest()[:8]
-        self.call = ToolCallPart(f"recipe_{self.recipe.name}_{digest}", self.recipe.tool, args)
+        self.call = ToolCall.of(f"recipe_{self.recipe.name}_{digest}", self.recipe.tool, args)
         state.data["plan"] = [{"id": "s1", "tool": self.recipe.tool, "arguments": args, "depends_on": [],
                                "why": f"recipe {self.recipe.name}", "status": "pending", "call_id": self.call.id}]
         state.emit({"type": "plan", "planner": self.name, "revision": 0, "recipe": self.recipe.name,
@@ -623,7 +679,7 @@ class RecipesPlanner(DelegatingPlanner):
             return self.delegate.next_action(state)
         rec = state.step(self.call.id)
         if rec is None:
-            return CallTools([self.call], Message.assistant("", [self.call]))
+            return CallTools([self.call], ChatMessage.assistant(None, [self.call]))
         if rec.ok and self.recipe.answer:
             data = _content_data(state.results().get(self.call.id))
             fields = dict(self.groups)

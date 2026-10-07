@@ -1,0 +1,16 @@
+# The shipped "react" planner (docs/architecture/Planner Reference.md §13).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# react@<old version>.yaml while tools still pin it.
+name: react
+version: 1.0.0
+description: One model call per step; the model answers or calls offered tools, and the results feed the next step.
+use_when: General questions that need one or a few tool calls; the default.
+start: act
+stages:
+  act:
+    type: act                                   # today's ReactPlanner.next_action
+    outcomes:
+      called:   { next: act, max_visits: steps }   # bounded by max_steps, exactly as today
+      answered: { next: answer }
+  answer:
+    type: answer                                # synthesize: auto -> synthesised when tools were called

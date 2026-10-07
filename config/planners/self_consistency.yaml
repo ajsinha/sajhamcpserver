@@ -1,0 +1,33 @@
+# The shipped "self_consistency" planner (docs/architecture/Planner Reference.md §13).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# self_consistency@<old version>.yaml while tools still pin it.
+name: self_consistency
+version: 1.0.0
+description: Gathers data once, drafts several answers at different temperatures, and keeps the one most drafts agree on.
+use_when: Ambiguous or reasoning-heavy questions where agreement between independent drafts signals the right answer.
+models: { judge: fast }
+settings: { samples: 5 }
+start: act
+stages:
+  act:
+    type: act
+    outcomes:
+      called:   { next: act, max_visits: 6, on_exhausted: drafts }
+      answered: { next: drafts }
+  drafts:
+    type: sample
+    n: "{{settings.samples}}"
+    temperature: { from: 0.3, to: 1.0 }
+    of: { type: draft }            # or { type: planner, planner: react } to sample whole runs
+    next: pick
+  pick:
+    type: vote
+    method: majority
+    normalise: numbers             # use "text" for questions without figures
+    tie_break: judge
+    model: judge
+    outcomes:
+      done: { next: answer }
+      tie:  { next: answer }       # no successful draft: the act answer is synthesised
+  answer:
+    type: answer

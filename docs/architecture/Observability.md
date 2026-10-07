@@ -71,7 +71,7 @@ units). The live list is the endpoint itself; each family carries `# HELP` and `
 | `sajha_llm_call_duration_seconds` | histogram | `provider`, `model` |
 | `sajha_llm_tokens_total` | counter | `provider`, `model`, `direction` (`input`, `output`) |
 | `sajha_llm_cost_usd_total` | counter | `provider`, `model` |
-| `sajha_ask_runs_total` | counter | `stopped_by` (`answer`, `step_limit`, `tool_limit`, `timeout`, `budget`, `error`, `needs_confirmation`) |
+| `sajha_ask_runs_total` | counter | `stopped_by` (`answer`, `step_limit`, `tool_limit`, `timeout`, `budget`, `error`, `needs_confirmation`, and from planner files `failed`, `needs_input`, `stage_limit`, `cost_limit`, `refused`) |
 | `sajha_llm_tool_conversations` | gauge | `tool` (`ask` = the Ask SAJHA page); stored conversations, set by each purge |
 | `sajha_llm_tool_turns_total` | counter | `tool` (`ask` = the Ask SAJHA page) |
 | `sajha_llm_tool_purged_total` | counter | none; conversations deleted by the purge |
@@ -87,6 +87,12 @@ units). The live list is the endpoint itself; each family carries `# HELP` and `
 | `sajha_llm_tool_cache_bytes` / `sajha_llm_tool_cache_evictions_total` | gauge / counter | `cache` (`result`, `conversation`) |
 | `sajha_llm_tool_memory_guard_state` | gauge | none; `0` ok, `1` soft, `2` hard (an alert rule on `>= 1` warns before refusals start) |
 | `sajha_llm_tool_memory_resident_bytes` | gauge | none; the resident memory the guard last measured |
+| `sajha_planner_stages_total` | counter | `planner`, `stage`, `outcome` (`skipped` for a guarded-out stage) ([Planner Reference](Planner%20Reference.md) §10.4) |
+| `sajha_planner_loops_exhausted_total` | counter | `planner`, `edge` (`<stage>:<outcome>[<n>]`); bounded edges that reached their bound |
+| `sajha_planner_run_seconds` | histogram | `planner`; one planner run, sub-runs included |
+| `sajha_planner_expression_errors_total` | counter | `planner`; `when` expressions that failed at run time (the condition counted as false) |
+| `sajha_planner_load_errors_total` | counter | `planner`; planner files refused at load (the last good version stays in use) |
+| `sajha_planner_chosen_total` | counter | `tool` (`ask` = the Ask SAJHA page), `planner`, `by` (`version`, `caller`, `tool`, `server`, `label`, `rule`, `default`, `escalation`, `stage`) |
 | `sajha_auth_failures_total` | counter | `method` (`password`, `bearer`, `apikey`, `session`) |
 | `sajha_auth_lockouts_total` | counter | none |
 | `sajha_sandbox_runs_total` | counter | `backend`, `outcome` (`ok`, `error`, `timeout`, `output_limit`, `runner_error`) |

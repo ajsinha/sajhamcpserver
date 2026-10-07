@@ -434,7 +434,27 @@ ai:
     shortlist: 12
     max_result_chars: 4000
     mcp_tool_enabled: false            # register the sajha_ask MCP tool
-    planner: react                     # react | plan_execute | recipes | router (sajha/ai/planners.py)
+    planner: react                     # a planner in config/planners (react, plan_execute, router, auto, ...)
+  # Planners: config/planners/<name>.yaml, bounded graphs of stages (docs/architecture/Planner
+  # Reference.md). The limits are CEILINGS a planner file may tighten, never raise.
+  # Env: SAJHA_AI_PLANNERS_<FIELD>, SAJHA_AI_PLANNERS_LIMITS_<FIELD>.
+  planners:
+    dir: config/planners               # read through the storage backend; reloaded on change
+    default: react                     # an LLM tool's planner when it names none
+    python_builtins: false             # true: react/plan_execute/recipes/router run the Python classes
+    limits:
+      max_stages_run: 40
+      max_visits_per_edge: 10
+      max_subplanner_depth: 2
+      max_parallel: 4
+      max_samples: 5
+      max_foreach_items: 50
+  # SAJHA as an OpenAI-compatible endpoint: POST /v1/chat/completions, GET /v1/models,
+  # POST /v1/embeddings, authenticated with a SAJHA API key as the bearer token (docs/architecture/
+  # LLM Tools.md §13.4). Off by default. Env: SAJHA_AI_OPENAI_API_<FIELD>.
+  openai_api:
+    enabled: false
+    llm_tools: true                    # enabled LLM tools appear as models sajha:<tool>
   # LLM tools: tools whose work a model does (docs/architecture/LLM Tools.md). Every value is a
   # CEILING: a tool's own llm.limits may ask for less, never more. Env: SAJHA_AI_LLM_TOOLS_<SECTION>_<FIELD>.
   llm_tools:

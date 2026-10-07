@@ -1,0 +1,70 @@
+# The shipped "auto" planner (docs/architecture/Planner Reference.md §13).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# auto@<old version>.yaml while tools still pin it.
+name: auto
+version: 1.0.0
+description: Picks a strategy per question (known patterns first, then a cheap classifier over the allowed planners), checks the answer, and escalates once only when a check fails.
+use_when: Mixed traffic; pick a strategy per question and upgrade only when checks fail.
+models: { chooser: fast, act: fast, strong: reasoning }
+settings:
+  candidates: [react, plan_execute, reflect, map_reduce]
+  default: react
+  min_label_confidence: 0.5
+  escalate_below: 0.6
+  first_try: { max_steps: 4 }      # sub-budget of the first attempt
+start: known
+stages:
+  known:
+    type: match
+    rules_from: recipes.match      # recipes and known patterns: no model call
+    outcomes:
+      none: { next: choose }
+      "*":  { next: recipe }
+  recipe:
+    type: planner
+    planner: recipes
+    next: answer                   # deterministic answers are not re-checked
+  choose:
+    type: classify
+    model: chooser
+    from: settings.candidates
+    menu: planners                 # labels are planner names; the model sees each use_when
+    default: "{{settings.default}}"
+    min_confidence: "{{settings.min_label_confidence}}"
+    outcomes: { "*": { next: run } }
+  run:
+    type: planner
+    planner: "{{chosen}}"
+    choices: "{{settings.candidates}}"
+    model: act                     # every role of the first try runs on the fast alias
+    limits: "{{settings.first_try}}"
+    outcomes: { "*": { next: verify } }
+  verify:
+    type: verify
+    checks: [numbers_in_results, parts_answered]
+    outcomes:
+      ok: { next: gate }
+      mismatch:
+        - { next: split,   when: "'parts_answered' in $.findings[*].check", max_visits: 1, on_exhausted: answer }
+        - { next: reflect, max_visits: 1, on_exhausted: answer }
+  gate:
+    type: answer
+    when: "confidence >= settings.escalate_below and subrun.stopped_by != 'step_limit'"
+    else: { next: deeper, max_visits: 1, on_exhausted: answer }
+  reflect:
+    type: planner
+    planner: reflect
+    model: strong
+    next: answer
+  split:
+    type: planner
+    planner: plan_execute
+    model: strong
+    next: answer
+  deeper:
+    type: planner
+    planner: plan_execute
+    model: strong
+    next: answer
+  answer:
+    type: answer

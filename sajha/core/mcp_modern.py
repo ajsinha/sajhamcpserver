@@ -982,6 +982,8 @@ class ModernMCPServer:
         if refusal is not None:
             return refusal
 
+        tool_ctx.tool_name = name if isinstance(name, str) else None   # sampling: only the called tool asks
+
         def work():
             token = tool_ctx.activate()
             try:

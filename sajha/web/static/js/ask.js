@@ -5,7 +5,9 @@
  * The answer arrives as a Server-Sent Events stream (docs/architecture/Intelligence Layer.md,
  * "POST /api/ai/ask"): shortlist, model, plan, tool_call, tool_result, needs_confirmation, needs_connection,
  * answer_delta, answer, confidence, error, done. A planner that plans ahead (plan_execute, recipes)
- * sends a plan event, shown as a collapsible list whose steps tick off as their calls return. EventSource cannot POST, so the stream is
+ * sends a plan event, shown as a collapsible list whose steps tick off as their calls return. A planner
+ * file (config/planners) also sends planner_chosen, stage_start, stage_end and loop_exhausted: the
+ * stages taken are shown as a path line above the plan. EventSource cannot POST, so the stream is
  * read with fetch + ReadableStream. The events are played through a short queue so each step
  * is visible (the mock planner answers in milliseconds); the conversation bubble and the sky
  * (static/js/constellation.js) change together. With prefers-reduced-motion nothing moves: each
@@ -393,8 +395,21 @@
     d.appendChild(ul);
     s.appendChild(d);
   }
+  function paintPath(t, p) {
+    // planner files (config/planners): the stages taken, e.g. act → draft → critique → answer
+    if (!t.path || !t.path.length) return;
+    var line = el('div', 'ask-path');
+    line.style.fontSize = '.78rem'; line.style.opacity = '.8'; line.style.margin = '0 0 .25rem';
+    line.appendChild(icon('signpost-split'));
+    var shown = t.path.slice(-24).map(function (x) { return x.stage + (x.sub ? ' (' + x.planner + ')' : ''); });
+    line.appendChild(document.createTextNode(' ' + (t.chosen ? t.chosen + ': ' : '') + (t.path.length > 24 ? '… → ' : '') +
+      shown.join(' → ')));
+    if (t.exhausted) line.title = 'loop bound reached: ' + t.exhausted.join(', ');
+    p.appendChild(line);
+  }
   function paintPlan(t) {
     var p = part(t, 'plan'); p.textContent = '';
+    paintPath(t, p);
     if (!t.plan || !(t.plan.steps || []).length) return;
     var d = el('details', 'ask-shortlist ask-plan');
     if (t.open.plan) d.open = true;
@@ -599,6 +614,20 @@
         if (/^mock\//.test(ev.model || '')) mockPill.hidden = false;
         paint(t, ['head']);
         setStatus('Planning with ' + ev.model, 'busy');
+        break;
+      case 'planner_chosen':
+        if (!t.chosen) t.chosen = ev.planner;
+        else setStatus('Chose ' + ev.planner + (ev.by ? ': ' + ev.by : ''), 'busy');
+        t.top = t.top || ev.planner;
+        break;
+      case 'stage_start':
+        t.path = t.path || [];
+        t.path.push({ stage: ev.stage, planner: ev.planner, sub: !!(t.top && ev.planner !== t.top) });
+        paint(t, ['plan']);
+        setStatus('Stage ' + ev.stage + ' (' + (ev.stage_type || '') + ')', 'busy');
+        break;
+      case 'loop_exhausted':
+        t.exhausted = (t.exhausted || []).concat([ev.edge]);
         break;
       case 'plan':
         t.plan = { planner: ev.planner || '', revision: ev.revision || 0, steps: ev.steps || [] };

@@ -1,0 +1,41 @@
+# The shipped "plan_execute" planner (docs/architecture/Planner Reference.md §13).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# plan_execute@<old version>.yaml while tools still pin it.
+name: plan_execute
+version: 1.0.0
+description: One structured-output call plans the tool steps with dependencies; independent steps run together; one re-plan after a failure.
+use_when: Questions with several parts or several independent lookups that can run in parallel.
+settings:                          # today's PlanExecuteConfig: same keys, same defaults
+  max_replans: 1
+  max_parallel: 4
+  max_plan_steps: 8
+  fallback: react
+  model: null                      # null: the tool's (or the ask's) model
+models:
+  planner: "{{settings.model}}"
+start: plan
+stages:
+  plan:
+    type: plan
+    model: planner
+    when: "len(shortlist) > 0"     # today: no tools offered -> hand the ask to the fallback
+    else: { next: fallback }
+    max_plan_steps: "{{settings.max_plan_steps}}"
+    retry: 0                       # today's planner does not re-ask on an invalid plan
+    outcomes:
+      planned: { next: execute }
+      invalid:
+        - { next: fallback, when: "len(plan) == 0" }   # first plan unusable -> fallback
+        - { next: answer }                              # a re-plan added nothing -> answer
+  execute:
+    type: execute
+    max_parallel: "{{settings.max_parallel}}"
+    outcomes:
+      done:         { next: answer }
+      failed_steps: { next: plan, max_visits: "{{settings.max_replans}}", on_exhausted: answer }
+  fallback:
+    type: planner
+    planner: "{{settings.fallback}}"
+    next: answer
+  answer:
+    type: answer                   # synthesised over the results, as today

@@ -1,0 +1,41 @@
+# The shipped "branch_and_judge" planner (docs/architecture/Planner Reference.md §13).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# branch_and_judge@<old version>.yaml while tools still pin it.
+name: branch_and_judge
+version: 1.0.0
+description: Drafts several plans, has a judge pick the best before any tool runs, then executes it and writes the answer.
+use_when: Questions with several plausible approaches, where choosing well before spending on tools matters.
+models: { planner: reasoning, judge: reasoning }
+settings: { branches: 3 }
+start: branch
+stages:
+  branch:
+    type: sample
+    when: "len(shortlist) > 0"
+    else: { next: fallback }
+    n: "{{settings.branches}}"
+    of: { type: plan, model: planner }
+    next: judge
+  judge:
+    type: vote
+    method: judge
+    model: judge
+    rubric:
+      - uses the fewest tool calls that fully answer the question
+      - covers every part of the question
+      - calls only tools whose descriptions fit the step
+    outcomes:
+      done: { next: execute }      # the winning plan is now "plan"; a plan event is emitted
+      tie:  { next: fallback }
+  execute:
+    type: execute
+    next: draft
+  draft:
+    type: draft
+    next: answer
+  fallback:
+    type: planner
+    planner: react
+    next: answer
+  answer:
+    type: answer

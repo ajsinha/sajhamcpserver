@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import re
 
-from sajha.ai.llm.types import ToolCallPart
+from sajha.ai.llm.canonical import ToolCall
 from sajha.ai.planners import CallTools, DelegatingPlanner, PlanState, PlannerConfig, register_planner
 
 SEARCH_TOOL = "sajha_search_docs"
@@ -48,9 +48,10 @@ class DocsFirstPlanner(DelegatingPlanner):
             return self.delegate.next_action(state)
         if not self.searched:
             self.searched = True
-            call = ToolCallPart("docs_1", SEARCH_TOOL, {"query": state.question, "top_k": self.config.top_k})
+            args = {"query": state.question, "top_k": self.config.top_k}
+            call = ToolCall.of("docs_1", SEARCH_TOOL, args)
             state.emit({"type": "plan", "planner": self.name, "revision": 0, "steps": [
-                {"id": "s1", "tool": SEARCH_TOOL, "arguments": call.arguments, "depends_on": [],
+                {"id": "s1", "tool": SEARCH_TOOL, "arguments": args, "depends_on": [],
                  "why": "look it up in the guides", "status": "pending", "call_id": call.id}]})
             return CallTools([call])
         self.hand_to(self.config.then, state)            # the passages are in state.messages now

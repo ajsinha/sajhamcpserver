@@ -65,6 +65,14 @@ class SajhaAskTool(LLMTool):
     def unrecorded_access(self, name: str) -> bool:
         return inner_access(self._ask_settings())(name)
 
+    def _planner_for(self, args: Dict[str, Any]):
+        """sajha_ask is Ask SAJHA over MCP: with no llm.planner it follows ai.ask.planner (and its
+        planner_config), not ai.planners.default."""
+        ref, info = super()._planner_for(args)
+        if self.spec.planner is None and info.get("by") == "server default":
+            ref, info["by"] = None, "server default"
+        return ref, info
+
     def run(self, arguments: Dict[str, Any], *, ctx: Any = None, model: Optional[str] = None, remember: bool = True,
             audit: bool = True):
         return super().run(arguments, ctx=ctx, model=model or (arguments or {}).get("model") or None,

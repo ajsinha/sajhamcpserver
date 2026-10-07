@@ -1,0 +1,68 @@
+# The shipped "human_in_the_loop" planner (docs/architecture/Planner Reference.md §13).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# human_in_the_loop@<old version>.yaml while tools still pin it.
+name: human_in_the_loop
+version: 1.0.0
+description: Asks the caller to clarify an ambiguous question, and to approve a large plan before running it.
+use_when: Questions that may need the caller's choice, or where many tool calls should be approved first.
+models: { chooser: fast }
+settings: { confirm_above_steps: 4 }
+state:
+  plan_size: { type: integer, default: 0 }
+start: clarity
+stages:
+  clarity:
+    type: classify
+    model: chooser
+    labels: [clear, ambiguous]
+    default: clear
+    min_confidence: 0.7
+    prompt: { text: "Label the question ambiguous only if it cannot be answered without a choice the user must make (which entity, which period, which measure); otherwise clear." }
+    outcomes:
+      clear:     { next: plan }
+      ambiguous: { next: clarify }
+  clarify:
+    type: ask_user
+    kind: text
+    message: "Your question could mean several things. Which entity, period or measure should I use?"
+    outcomes:
+      answered: { next: plan }     # the reply is appended to the question
+      declined: { next: plan }
+  plan:
+    type: plan
+    when: "len(shortlist) > 0"
+    else: { next: fallback }
+    set: { plan_size: "len(plan)" }
+    outcomes:
+      planned: { next: run_small }
+      invalid: { next: fallback }
+  run_small:
+    type: execute
+    when: "plan_size <= settings.confirm_above_steps"
+    else: { next: approve }
+    next: draft
+  approve:
+    type: ask_user
+    kind: confirm
+    message: "Answering needs {{plan_size}} tool calls. Run them?"
+    outcomes:
+      answered:
+        - { next: run, when: "user_reply == true" }
+        - { next: stopped }
+      declined: { next: stopped }
+  run:
+    type: execute
+    next: draft
+  draft:
+    type: draft
+    next: answer
+  fallback:
+    type: planner
+    planner: react
+    next: answer
+  stopped:
+    type: answer
+    template: "Stopped before running {{plan_size}} tool calls, as you asked."
+    synthesize: never
+  answer:
+    type: answer

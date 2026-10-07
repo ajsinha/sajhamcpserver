@@ -801,8 +801,13 @@ cannot add events of its own. Those are what 4.5 adds.
 
 ### 4.5 A `Planner` extension point
 
-`ai.ask.planner` names the strategy that decides each step of an ask; `sajha/ai/planners.py`
-holds the protocol, the registry and the four built-in strategies (their behaviour is in the
+`ai.ask.planner` names the strategy that decides each step of an ask. Most strategies are
+**planner files** (`config/planners/<name>.yaml`, a bounded graph of stages, section 4.6 and the
+[Planner Reference](Planner%20Reference.md)); a strategy the stage library cannot express is a
+Python `Planner`, described here. `sajha/ai/planners.py` holds the protocol and the Python
+registry; `sajha/ai/planners_engine/registry.py` resolves a name to a file or a Python planner.
+The four built-in strategies ship as files; their Python classes stay in `sajha/ai/planners.py`
+and run instead when `ai.planners.python_builtins` is true (their behaviour is in the
 [Intelligence Layer](Intelligence%20Layer.md#planners)).
 
 **The split.** The service keeps everything that protects the caller; the planner only
@@ -823,11 +828,12 @@ decides.
 |---|---|
 | `Planner.start(state)` | called once before the first step; may plan up front |
 | `Planner.next_action(state)` | called before every step; returns an action |
-| `CallTools(calls, message=None, parallel=False)` | run these `ToolCallPart`s; `parallel=True` says they are independent, so the service runs them together |
-| `Answer(text, synthesize=True, message=None)` | stop; synthesise the answer from the history, or use `text` as it is |
+| `CallTools(calls, message=None, parallel=False)` | run these canonical `ToolCall`s (`ToolCall.of(id, name, arguments)`); `parallel=True` says they are independent, so the service runs them together |
+| `Answer(text, synthesize=True, message=None, stopped_by="answer", citations=None, caveats=[])` | stop; synthesise the answer from the history, or use `text` as it is |
 | `Emit(event)` | publish an event (a `plan`) and ask again |
-| `PlanState` | `question` (the standalone question), `ctx`, `shortlist` (`ShortlistEntry`: name, `ToolSpec`, score), `messages` (earlier turns, the question, every call and result), `steps` (the `AskStep`s so far), `remaining` (`Limits`: steps, tool calls, tokens, seconds), `system`, `temperature`, `chat`, `emit`, `data` (scratch space) |
-| `state.chat(request, needs=None, model=None)` | the gateway bound to the caller: aliases, role policy, budgets, fallback and the cache apply, tokens count toward the ask, and each call emits a `model` event |
+| `PlanState` | `question` (the standalone question), `ctx`, `shortlist` (`ShortlistEntry`: name, `tool` as an OpenAI-style `ToolDefinition`, score), `messages` (canonical `ChatMessage`s: earlier turns, the question, every call and result), `steps` (the `AskStep`s so far), `remaining` (`Limits`: steps, tool calls, tokens, seconds), `system`, `temperature`, `chat`, `emit`, `data` (scratch space) |
+| `state.request(messages=None, tools=None, schema=None, ...)` | a canonical `ChatCompletionRequest` with the system text first (tools as functions, structured output as `response_format: json_schema`) |
+| `state.chat(request, needs=None, model=None)` | sends a canonical request through the gateway bound to the caller (`chat_completions_create`): aliases, role policy, budgets, fallback and the cache apply, tokens count toward the ask, each call emits a `model` event, and the reply is a `ChatCompletion` |
 | `state.emit(event)` | queue an event; it is sent, in order, before the step's tool calls |
 | `DelegatingPlanner.hand_to(name, state)` | give the rest of the ask to another planner (fallbacks, routing); the chain is reported as `planner` (`router>plan_execute`) |
 
@@ -866,7 +872,8 @@ class DocsFirstPlanner(DelegatingPlanner):
 # sajha/examples/intelligence/docs_first_planner.py
         if not self.searched:
             self.searched = True
-            call = ToolCallPart("docs_1", SEARCH_TOOL, {"query": state.question, "top_k": self.config.top_k})
+            args = {"query": state.question, "top_k": self.config.top_k}
+            call = ToolCall.of("docs_1", SEARCH_TOOL, args)
             # ...
             return CallTools([call])
         self.hand_to(self.config.then, state)            # the passages are in state.messages now
@@ -882,8 +889,8 @@ tools that were not offered.
 ```yaml
 ai:
   ask:
-    planner: router                # a registered name, or package.module:Class
-    planner_config:                # per planner, validated by its config_model
+    planner: router                # a planner file or registered name, or package.module:Class
+    planner_config:                # per planner: a file's settings (overlay), or a class's config_model
       recipes:
         recipes:
           - name: pct
@@ -899,12 +906,54 @@ settings. An unknown planner or an invalid setting fails at startup. Registratio
 providers: the `@register_planner` decorator on a class imported at startup, a class path in
 `ai.ask.planner`, or an entry point in the `sajha.planners` group. An admin can try a planner
 on one ask with `"planner": "<name>"` in the `POST /api/ai/ask` body; `GET /api/ai/planners`
-lists what is registered.
+lists every planner file and registration. A name defined both by a file and by a Python
+registration is refused (P005), except the four built-ins, whose files win unless
+`ai.planners.python_builtins` is true.
 
 **Tests.** `tests/ai/test_planners.py` runs every built-in planner through the same safety
 tests (`test_contract_*`: answers and event order, RBAC, tools not offered, destructive
 confirmation, injected instructions, limits). Add yours to `BUILT_IN` there, or copy the
 pattern; the example above is tested in `tests/ai/test_extension_examples.py`.
+
+### 4.6 Planner files and custom stage types
+
+A new strategy is usually a file, not code: write `config/planners/<name>.yaml` from the stage
+library (the [Planner Reference](Planner%20Reference.md) owns the format, and
+[Tutorial 27](../tutorials/TUTORIAL_27_write_a_planner.md) walks through one), and name it in
+`ai.ask.planner` or an LLM tool's `llm.planner`. Two code escape hatches remain, both for
+whoever deploys SAJHA (an administrator), both inside the service's enforcement:
+
+- **`kind: python`**: a planner file with `class: package.module:Class` names a Python `Planner`
+  (section 4.5), so it gets a version and can be pinned, overlaid and used as a sub-planner.
+- **A custom stage type**: a `StageType` subclass registered with `register_stage_type`
+  (`sajha/ai/planners_engine/stages.py`). It declares its `name`, its outcomes, the JSON Schema
+  of its own settings and whether it calls a model; planner files then use it like a built-in
+  type and are validated the same way (P010, P011, P014, P016).
+
+```python
+from sajha.ai.planners_engine import StageType, register_stage_type
+
+
+@register_stage_type
+class Escalate(StageType):
+    """Ends ``low`` when the provisional confidence is below a threshold, ``ok`` otherwise."""
+    name = "confidence_gate"
+    fixed_outcomes = ("ok", "low")
+    settings_schema = {"type": "object", "properties": {"below": {"type": "number", "minimum": 0, "maximum": 1}}}
+
+    def run(self, rc, frame, st):
+        value = rc.lookup(frame)("confidence")
+        return "low" if value < float(st.cfg.get("below", 0.6)) else "ok"
+```
+
+`run(rc, frame, st)` returns the outcome. It reads state through `rc.lookup(frame)` and writes
+built-in slots through `frame.slots`; a stage that needs tool calls is a generator that yields
+from `sajha.ai.planners_engine.runtime.run_calls(...)`, and one that needs a model calls
+`sajha.ai.planners_engine.stages.model_call` or `structured` (canonical Chat Completions requests
+through the gateway bound to the caller). Custom verify checks register with
+`register_check(name)` (`sajha/ai/planners_engine/checks.py`) and are then usable in a `verify`
+stage's `checks`. Register stage types and checks in a module imported at startup, before the
+planner files that use them load.
 
 ---
 

@@ -1,0 +1,35 @@
+# The shipped "rewoo" planner (docs/architecture/Planner Reference.md §13).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# rewoo@<old version>.yaml while tools still pin it.
+name: rewoo
+version: 1.0.0
+description: Plans every tool call up front from the question alone, runs the plan, then writes the answer in one call.
+use_when: Questions whose lookups are clear from the wording, where a predictable number of model calls matters.
+models: { planner: reasoning, solver: null }
+settings: { max_parallel: 4, max_plan_steps: 8 }
+start: plan
+stages:
+  plan:
+    type: plan
+    model: planner
+    context: question              # no observations: the planner sees only the question and the tools
+    when: "len(shortlist) > 0"
+    else: { next: fallback }
+    max_plan_steps: "{{settings.max_plan_steps}}"
+    outcomes:
+      planned: { next: execute }
+      invalid: { next: fallback }
+  execute:
+    type: execute
+    max_parallel: "{{settings.max_parallel}}"
+    next: solve                    # failed steps are reported as caveats, not re-planned
+  solve:
+    type: draft
+    model: solver
+    next: answer
+  fallback:
+    type: planner
+    planner: react
+    next: answer
+  answer:
+    type: answer

@@ -332,10 +332,11 @@ class AskSettings(Layered):
     # sajha_ask has no caller identity for its inner calls: it may run what an anonymous MCP
     # caller may run (mcp.anonymous.*) plus these fnmatch patterns
     mcp_allowed_tools: List[str] = Field(default_factory=list)
-    # the planning strategy (sajha/ai/planners.py): a registered name (react, plan_execute,
-    # recipes, router; "model" is an alias of react) or package.module:Class
+    # the planning strategy: a planner in the registry (sajha/ai/planners_engine: config/planners
+    # files and Python registrations; "model" is an alias of react), name@version, or package.module:Class
     planner: str = "react"
-    # per-planner settings, keyed by planner name, each validated by that planner's config model
+    # per-planner settings, keyed by planner name: an overlay on a planner file's settings, or a
+    # Python planner's config model
     planner_config: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
 
 
@@ -384,12 +385,20 @@ class RagSettings(Layered):
     build_on_start: bool = True                # build in a background thread at start-up
 
 
+class OpenAIAPISettings(Layered):
+    """SAJHA as an OpenAI-compatible endpoint (/v1/*, sajha/ai/openai_api.py). Off by default."""
+    enabled: bool = False
+    llm_tools: bool = True                     # list enabled LLM tools as models sajha:<tool>
+    cookie_auth: bool = False                  # also accept the web console's session cookie
+    max_body_bytes: int = 4_000_000            # larger request bodies are refused (413)
+
+
 SECTION_MODELS: Dict[str, Type[Layered]] = {
     "policy": PolicySettings, "budgets": BudgetSettings, "cache": CacheSettings,
     "retry": RetrySettings, "breaker": BreakerSettings, "gateway": GatewaySettings,
-    "ask": AskSettings, "memory": MemorySettings, "rag": RagSettings,
+    "ask": AskSettings, "memory": MemorySettings, "rag": RagSettings, "openai_api": OpenAIAPISettings,
 }
-RESERVED_SECTIONS = set(SECTION_MODELS) | {"aliases", "providers", "tool_search", "llm_tools"}
+RESERVED_SECTIONS = set(SECTION_MODELS) | {"aliases", "providers", "tool_search", "llm_tools", "planners"}
 
 
 class AISettings:

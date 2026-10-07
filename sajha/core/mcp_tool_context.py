@@ -55,6 +55,7 @@ class ModernToolContext:
         self.input_responses: Dict[str, Any] = dict(input_responses or {})
         self.state: Dict[str, Any] = dict(state or {})
         self.state_verified = state_verified    # the retry carried a valid requestState
+        self.tool_name: Optional[str] = None    # the tools/call target (LLM-tool sampling asks only for it)
         self._cancelled = threading.Event()
 
     # -- binding ----------------------------------------------------

@@ -19,7 +19,7 @@ layer (a new provider, model or planner, step by step, with tested examples) is
  consumers      POST /api/ai/ask (and the Ask SAJHA page, /ask) · sajha_ask MCP tool · /api/ai/*
                                    │
  service        IntelligenceService (sajha/ai/intelligence.py): memory → shortlist → planner → synthesis
-                planners (react | plan_execute | recipes | router) · conversation memory · RAG index
+                planners (config/planners files: react, plan_execute, router, auto, ...) · memory · RAG index
                                    │
  gateway        LLMGateway (sajha/ai/gateway.py): aliases, capability match, policy, budgets,
                 retries + fallback, circuit breaker, response cache, OpenTelemetry span
@@ -58,7 +58,8 @@ dependency; without it the Bedrock provider reports itself down with an install 
 | `sajha/ai/llm/legacy.py` | `LegacyProviderAdapter` for providers written against the old ABC |
 | `sajha/ai/gateway.py` | `LLMGateway`, `build_gateway`, `init_gateway`, `get_gateway` |
 | `sajha/ai/intelligence.py` | `IntelligenceService`, `AskResult`, `AskStep`, the event stream |
-| `sajha/ai/planners.py` | the `Planner` protocol (`PlanState`, `CallTools`, `Answer`, `Emit`), its registry, and the `react`, `plan_execute`, `recipes` and `router` strategies |
+| `sajha/ai/planners.py` | the Python `Planner` protocol (`PlanState`, `CallTools`, `Answer`, `Emit`, on canonical types), its registry, and the Python classes of `react`, `plan_execute`, `recipes` and `router` |
+| `sajha/ai/planners_engine/` | planner files (`config/planners/*.yaml`): validation, the stage library, the expression language, the graph runtime, the registry and the dry run ([Planner Reference](Planner%20Reference.md)) |
 | `sajha/ai/memory.py` | conversation memory: `ConversationStore` (tables `ai_conversations`, `ai_conversation_turns`), `ConversationMemory`, the scheduled purge |
 | `sajha/ai/rag/` | document retrieval: `chunking.py`, `extract.py` (PDF, Word), `stores.py` (the store contract, the memory and pgvector stores), `sqlite_vec.py` (the default store), `registry.py` (`ai.rag.store` selection), `index.py` (`DocIndex`), `tool.py` (`sajha_search_docs`) |
 | `sajha/ai/ask_tool.py` | the optional `sajha_ask` MCP tool: a shim over the LLM-tool type ([LLM Tools](LLM%20Tools.md)), defined in `config/tools/sajha_ask.json` |
@@ -96,8 +97,8 @@ vendor.
 The original types (`ChatRequest`, `ChatResponse` with `refusal` and `notes`, the stream
 events `TextDelta`, `ToolCallDelta`, `UsageEvent`, `Done`) remain for existing callers;
 `sajha/ai/llm/convert.py` converts both ways without loss for everything they can express.
-The planners and the ask service still use them; Studio's Describe a tool uses the canonical
-interface.
+The planners (the Python `Planner` protocol and planner files) and the ask service use the
+canonical types; Studio's Describe a tool does too.
 
 **Models** are objects: one `ChatModel` or `EmbeddingModel` per configured model, carrying
 `ModelCapabilities` (chat, tools, structured output, vision, streaming, embedding, context
@@ -356,10 +357,15 @@ budgets, fallback and the `model` event apply) and never touches a tool.
 | `recipes` | regular-expression or keyword recipes from config (`ai.ask.planner_config.recipes`) map a question to a tool and its arguments, and optionally an answer template; anything else goes to `fallback` | none when the recipe has an answer template |
 | `router` | chooses per question: configured `rules`, then `recipes` when one matches, then `plan_execute` for questions with several parts (compare, and then, versus, two questions), else `react` | as the chosen planner |
 
-`ai.ask.planner` sets the default; an admin may pass `planner` on one `POST /api/ai/ask`. The
-chosen chain is reported as `planner` in the result (`router>plan_execute`). `GET /api/ai/planners`
-lists the registered planners. Writing one, the protocol and its tests:
-[Extending the Intelligence Layer §4.5](Extending%20the%20Intelligence%20Layer.md#45-a-planner-extension-point).
+These four ship as planner files in `config/planners/` (with the same settings and behaviour as
+their Python classes, which `ai.planners.python_builtins: true` brings back), next to eight more
+strategies (`rewoo`, `reflect`, `verify_then_answer`, `self_consistency`, `branch_and_judge`,
+`map_reduce`, `human_in_the_loop`, `auto`); the [Planner Reference](Planner%20Reference.md) owns
+the file format and every shipped file. `ai.ask.planner` sets the default; an admin may pass
+`planner` on one `POST /api/ai/ask`. The chosen chain is reported as `planner` in the result
+(`router>plan_execute`), the stages taken as `planner_path`. `GET /api/ai/planners` lists every
+planner. Writing one: a file ([Tutorial 27](../tutorials/TUTORIAL_27_write_a_planner.md)), or in
+Python, [Extending the Intelligence Layer §4.5](Extending%20the%20Intelligence%20Layer.md#45-a-planner-extension-point).
 
 **Limits**: `max_steps`, `max_tool_calls`, `max_tokens` (all model calls of one ask) and
 `timeout_s`; the reason the loop stopped is reported as `stopped_by`: `answer`,
@@ -527,6 +533,9 @@ its `tool_result`, all tool results before the answer.
 | `answer_delta` | `text` (display chunks; their concatenation is the answer) |
 | `answer` | `text` |
 | `confidence` | `value` (0..1), `basis` |
+| `planner_chosen` | `planner`, `version`, `by` (`server default`, `caller choice`, `tool config`, `version route`, `label <confidence>`, `rule`, `default`, `escalation`, `stage <id>`), `reason` |
+| `stage_start` / `stage_end` (planner files) | `stage`, `stage_type`, `visit`, `planner` / `stage`, `outcome`, `ms`, `planner` |
+| `loop_exhausted` / `expression_error` (planner files) | `stage`, `edge`, `to` / `stage`, `expression`, `message` |
 | `error` | `code`, `message` (followed by `done`) |
 | `done` | `result`: the `AskResult` |
 
@@ -534,8 +543,9 @@ its `tool_result`, all tool results before the answer.
 `ok`, `status`, `summary`, `latency_ms`, `confidence`, `fingerprint`), `citations`,
 `caveats`, `usage`, `models`, `stopped_by`, `shortlist`, `pending`, `connections`,
 `duration_ms`, `error`, `planner`, `plan` (the last plan, each step with its final status),
-`conversation_id` and `turn` (for a turn of a conversation) and `standalone_question` (when the
-question was rewritten).
+`conversation_id` and `turn` (for a turn of a conversation), `standalone_question` (when the
+question was rewritten), and from planner files `planner_version`, `planner_path`,
+`loops_exhausted`, `planner_by` and `input_request` (`stopped_by: needs_input`).
 
 ### Using Ask SAJHA
 
@@ -637,8 +647,6 @@ tool registered by any path is shortlisted without a reload.
 
 ## 9. Not built yet
 
-- SAJHA as an OpenAI-compatible endpoint (`/v1/chat/completions`, `/v1/models`,
-  `/v1/embeddings`; [LLM Tools §13.4](LLM%20Tools.md#134-sajha-as-an-openai-compatible-endpoint)).
 - Native async for Bedrock (boto3 is synchronous; it runs in a worker thread) and for
   embeddings (a worker thread).
 - The planners and the ask service still call the original `chat()` interface (through the

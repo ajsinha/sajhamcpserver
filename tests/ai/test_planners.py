@@ -1,4 +1,4 @@
-"""Planners (sajha/ai/planners.py): the registry and configuration, a contract suite that runs every
+"""Planners (sajha/ai/planners.py, sajha/ai/planners_engine): the registry and configuration, a contract suite that runs every
 built-in strategy through the ask loop's safety guarantees (RBAC, tools not offered, destructive
 confirmation, limits, injected instructions, event order), and each strategy's own behaviour:
 plan_execute (parallel steps, dependencies, re-planning, fallback), recipes and router."""
@@ -20,6 +20,18 @@ RECIPES = {"recipes": [{"name": "pct", "tool": "calc_percentage_change",
                         "match": r"percentage change from (?P<old_value>[\d.,]+) to (?P<new_value>[\d.,]+)",
                         "answer": "From {old_value} to {new_value} is a change of {percentage_change}%."}]}
 BUILT_IN = ["react", "plan_execute", "recipes", "router"]
+PLANNER_EVENTS = ("stage_start", "stage_end", "planner_chosen", "loop_exhausted", "expression_error")
+
+
+@pytest.fixture(autouse=True, params=["files", "python"])
+def form(request):
+    """Every test runs against both forms of the four built-ins: the shipped planner files
+    (config/planners, the default) and the Python classes (ai.planners.python_builtins: true)."""
+    from sajha.ai.planners_engine import PlannerRegistry, set_registry
+    from sajha.ai.planners_engine.settings import PlannerSettings
+    set_registry(PlannerRegistry(settings=PlannerSettings(python_builtins=request.param == "python")))
+    yield request.param
+    set_registry(None)
 
 
 def service(toolbox, gw=None, planner="react", planner_config=None, **ask):
@@ -50,7 +62,7 @@ def test_register_planner_decorator_and_class_path(toolbox):
     class AlwaysPct(P.Planner):
         def next_action(self, state):
             if not state.steps:
-                return P.CallTools([P.ToolCallPart("x1", "calc_percentage_change", {"old_value": 1, "new_value": 2})])
+                return P.CallTools([P.ToolCall.of("x1", "calc_percentage_change", {"old_value": 1, "new_value": 2})])
             return P.Answer("done", synthesize=False)
 
     r = service(toolbox, planner="always_pct").ask(PCT, ctx())
@@ -182,7 +194,7 @@ def test_plan_execute_runs_independent_steps_together(toolbox):
     events = list(service(toolbox, gw, planner="plan_execute", synthesize=False)
                   .stream_ask("Fetch the alpha quote and the beta quote", ctx()))
     assert peak[0] == 2 and time.time() - t0 < 0.45
-    types = [e["type"] for e in events]
+    types = [e["type"] for e in events if e["type"] not in PLANNER_EVENTS]     # stage events of planner files
     assert types[types.index("plan") + 1: types.index("plan") + 5] == ["tool_call", "tool_call", "tool_result",
                                                                          "tool_result"]
     r = events[-1]["result"]
@@ -295,3 +307,9 @@ def test_route_planner_is_for_admins(toolbox, monkeypatch):
     assert set(BUILT_IN) <= names
     c = _client(toolbox, monkeypatch, admin=False)
     assert c.post("/api/ai/ask", json={"question": PCT, "planner": "plan_execute"}).status_code == 403
+
+
+def test_the_form_in_use(form):
+    from sajha.ai.planners_engine import get_registry
+    entry = get_registry().entry("plan_execute")
+    assert entry.kind == ("graph" if form == "files" else "python")

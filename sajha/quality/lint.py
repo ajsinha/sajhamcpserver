@@ -208,7 +208,19 @@ def lint_registry(registry: Any, tool_glob: str = '', suite: Any = None) -> List
         if tool_glob and not any(fnmatch.fnmatchcase(name, g.strip()) for g in tool_glob.split(',') if g.strip()):
             continue
         findings.extend(_lint_llm(name, cfg, registry, None))
+    # planner files (config/planners): rules P001-P071 (docs/architecture/Planner Reference.md §12)
+    if not tool_glob or any(fnmatch.fnmatchcase('planner:x', g.strip()) for g in tool_glob.split(',')):
+        findings.extend(_lint_planners())
     return findings
+
+
+def _lint_planners() -> List[Finding]:
+    try:
+        from sajha.ai.planners_engine.registry import lint_findings as planner_findings
+        return [Finding(f'planner:{who}', level, code, message, where) for who, level, code, message, where in
+                planner_findings()]
+    except Exception as e:
+        return [Finding('planner:*', 'error', 'planner-load', f'the planner registry could not load: {e}')]
 
 
 def _lint_llm(name: str, cfg: Dict[str, Any], registry: Any, declared: Any) -> List[Finding]:

@@ -139,7 +139,28 @@ SAJHA signs `requestState` with HMAC-SHA256 (`mcp.mrtr.*`) and binds it to the m
 target, arguments and caller, so no server memory is needed between rounds.
 
 Built on MRTR: optional confirmation before running a tool annotated
-`destructiveHint: true` (`mcp.confirm_destructive_tools`, off by default).
+`destructiveHint: true` (`mcp.confirm_destructive_tools`, off by default), and sampling by
+LLM tools (below).
+
+### Sampling by LLM tools
+
+An LLM tool whose config sets `llm.sampling: prefer` or `require` (modes `complete`,
+`extract`, `classify`, `judge`) sends its model call to the client when the client declared
+the `sampling` capability and the tool is the call's own target:
+
+- **2026-07-28:** the first `tools/call` answers `input_required` with one
+  `sampling/createMessage` request keyed `sajha_sample_1`; the retry carrying the answer
+  runs the tool again from the start and uses it. A structured mode whose first reply does
+  not validate asks once more (`sajha_sample_2`).
+- **2025-11-25:** with an `Accept` that includes `text/event-stream`, the `tools/call`
+  response is an SSE stream that carries the `sampling/createMessage` request; the client
+  POSTs its JSON-RPC response to `/mcp` and the result follows on the stream.
+
+The request has the tool's rendered prompt as `messages`, its system text as `systemPrompt`
+(with the JSON Schema spelled out for structured modes), `maxTokens` from the tool's limits
+and `metadata.sajha_llm_tool`. Without a capable client `prefer` uses SAJHA's own model and
+`require` returns a tool error (`code: sampling_required`). Configuration and the rules:
+[LLM Tools](../architecture/LLM%20Tools.md#12-models-sampling-budgets-and-limits) section 12.
 
 ### The tasks extension
 
@@ -187,8 +208,9 @@ curl -s http://localhost:3002/mcp -H 'Content-Type: application/json' \
   default. After a restart a client then gets 404 and re-initializes. `DELETE /mcp` ends a session.
 - Requests without a session header are still accepted, which keeps simple scripts
   working.
-- Tools that talk to the client while running (sampling, elicitation) answer with an
-  SSE stream on the POST; the client POSTs its JSON-RPC responses back.
+- Tools that talk to the client while running (sampling, elicitation; LLM tools with
+  `llm.sampling`, section 2) answer with an SSE stream on the POST; the client POSTs its
+  JSON-RPC responses back.
 - `ping`, `logging/setLevel`, `resources/subscribe` are available here.
 
 ---

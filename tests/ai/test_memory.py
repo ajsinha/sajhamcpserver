@@ -28,13 +28,15 @@ def service(toolbox, store, gw=None, planner="react", **mem):
 
 
 def spy(gw):
+    """Every model call (canonical requests through the gateway), seen in the pre-canonical shape."""
+    from sajha.ai.llm.convert import from_canonical_request
     seen = []
-    orig = gw.chat
+    orig = gw.chat_completions_create
 
-    def chat(request, **kw):
-        seen.append(request)
+    def chat(request=None, **kw):
+        seen.append(from_canonical_request(request))
         return orig(request, **kw)
-    gw.chat = chat
+    gw.chat_completions_create = chat
     return seen
 
 

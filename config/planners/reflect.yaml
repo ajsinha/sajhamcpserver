@@ -1,0 +1,36 @@
+# The shipped "reflect" planner (docs/architecture/Planner Reference.md §13).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# reflect@<old version>.yaml while tools still pin it.
+name: reflect
+version: 1.0.0
+description: Gathers data with ReAct, drafts an answer, then a critic reviews the draft and it is revised until it passes or the bound is reached.
+use_when: High-stakes answers where quality matters more than latency.
+models: { act: reasoning, critic: fast }
+start: act
+stages:
+  act:
+    type: act
+    model: act
+    outcomes:
+      called:   { next: act, max_visits: 6, on_exhausted: draft }
+      answered: { next: draft }
+  draft:
+    type: draft
+    model: act
+    next: critique
+  critique:
+    type: critique
+    model: critic
+    rubric:
+      - answers every part of the question
+      - no claim without a tool result
+      - says what is missing
+    outcomes:
+      pass:   { next: answer }
+      revise: { next: revise, max_visits: 2, on_exhausted: answer }
+  revise:
+    type: revise
+    model: act
+    next: critique
+  answer:
+    type: answer                   # the draft is final: no second synthesis

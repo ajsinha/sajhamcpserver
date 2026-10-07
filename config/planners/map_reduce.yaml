@@ -1,0 +1,51 @@
+# The shipped "map_reduce" planner (docs/architecture/Planner Reference.md §13).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# map_reduce@<old version>.yaml while tools still pin it.
+name: map_reduce
+version: 1.0.0
+description: Finds the list of items a question is about, answers for each item with its own ReAct run, then writes one answer from the per-item answers.
+use_when: Per-item analysis over a list the tools can produce, such as each holding, each filing or each region.
+models: { reduce: reasoning }
+settings: { max_items: 20, concurrency: 2 }
+state:
+  listed: { type: object, default: { items: [] } }
+start: gather
+stages:
+  gather:
+    type: act
+    prompt: { text: "First find the list of items the question is about, using the tools offered. Reply with the list when you have it." }
+    outcomes:
+      called:   { next: gather, max_visits: 3, on_exhausted: list }
+      answered: { next: list }
+  list:
+    type: draft
+    prompt: { text: "Return the items the question should be answered for. Use only items that appear in the tool results." }
+    schema:
+      type: object
+      properties: { items: { type: array, items: { type: string }, maxItems: 50 } }
+      required: [items]
+      additionalProperties: false
+    into: listed
+    outcomes:
+      done:    { next: each, when: "len(listed.items) > 0" }
+      "*":     { next: direct }    # no list (invalid reply, or empty): answer directly
+  each:
+    type: foreach
+    items: listed.items
+    planner: react
+    question: "{{original_question}} Answer only for: {{item}}"
+    max_items: "{{settings.max_items}}"
+    concurrency: "{{settings.concurrency}}"
+    outcomes:
+      done:    { next: reduce }
+      partial: { next: reduce }
+  reduce:
+    type: draft
+    model: reduce
+    prompt: { text: "Combine the per-item answers above into one answer. Keep each item's figures as given and say which items are missing." }
+    next: answer
+  direct:
+    type: draft
+    next: answer
+  answer:
+    type: answer

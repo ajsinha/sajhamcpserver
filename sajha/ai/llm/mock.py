@@ -126,10 +126,12 @@ class _Script:
         self.cursor = 0
         self.lock = threading.Lock()
 
-    def next_step(self, last_user: str) -> Dict[str, Any]:
+    def next_step(self, last_user: str, stage: str = "") -> Dict[str, Any]:
         with self.lock:
             if self.mode == "rules":
                 for st in self.steps:
+                    if st.get("stage") and st["stage"] != stage:
+                        continue          # a reply for one planner stage type (sajha/ai/planners_engine)
                     pat = st.get("match")
                     if pat is None or re.search(pat, last_user or "", re.I):
                         return st
@@ -349,7 +351,7 @@ class EchoModel(_MockChat):
 class ScriptedModel(_MockChat):
     def _reply(self, request):
         name = self.id.split(":", 1)[1] if ":" in self.id else "default"
-        step = self.provider.script(name).next_step(_last_user_text(request))
+        step = self.provider.script(name).next_step(_last_user_text(request), stage_of(request))
         if step.get("error"):
             cls = ERROR_BY_NAME.get(step["error"], InvalidRequest)
             msg = step.get("message") or f"mock-scripted: {step['error']}"
@@ -398,12 +400,15 @@ class PlannerModel(_MockChat):
             return json.dumps({"standalone_question": self._standalone(request)}), [], "stop"
         if "summary" in props and "answer" not in props:   # conversation memory: summarise older turns
             return json.dumps({"summary": self._summary(request)}), [], "stop"
+        stage = stage_of(request)
+        if stage in STAGE_REPLIES:                 # a planner stage (sajha/ai/planners_engine)
+            return STAGE_REPLIES[stage](self, request), [], "stop"
         question = _last_user_text(request)
         made_calls, results = self._conversation_state(request)
         if made_calls:
             return self._answer(request, question, made_calls, results)
         if request.tools and request.tool_choice != "none":
-            calls = self._plan(question, request.tools, request.tool_choice)
+            calls = self._plan(_item_question(question), request.tools, request.tool_choice)
             if calls:
                 return "", calls, "tool_calls"
         return self._answer(request, question, [], {})
@@ -531,6 +536,148 @@ class PlannerModel(_MockChat):
         if request.response_schema:
             return json.dumps({"answer": answer, "citations": cites, "caveats": caveats}), [], "stop"
         return answer, [], "stop"
+
+
+# ── planner stages (sajha/ai/planners_engine/stages.py): one deterministic reply per stage type ──
+
+def stage_of(request: ChatRequest) -> str:
+    """The planner stage type a request comes from: the response schema's ``sajha.<stage>`` title,
+    else its shape (plan, condense, draft), else act (tools offered) or complete."""
+    schema = request.response_schema or {}
+    title = str(schema.get("title") or "")
+    if title.startswith("sajha."):
+        return title[len("sajha."):]
+    props = schema.get("properties") or {}
+    if "steps" in props:
+        return "plan"
+    if "standalone_question" in props:
+        return "condense"
+    if "answer" in props and "citations" in props:
+        return "synthesis"
+    if schema:
+        return "extract"
+    return "act" if request.tools and request.tool_choice != "none" else "complete"
+
+
+def _item_question(question: str) -> str:
+    """A map-reduce item's question ("... Answer only for: AAPL"): plan for that item only."""
+    head, sep, item = question.partition("Answer only for:")
+    if not sep:
+        return question
+    for sym in extract_symbols(head):
+        head = re.sub(r"\b" + re.escape(sym) + r"\b", "", head)
+    return f"{head.strip()} {item.strip()}"
+
+
+def _all_calls(request: ChatRequest):
+    calls, results = [], {}
+    for m in request.messages:
+        calls.extend(m.tool_calls)
+        for r in m.tool_results:
+            results[r.call_id] = r
+    return calls, results
+
+
+def _question_of(request: ChatRequest) -> str:
+    """The last user message that is the question (not a stage's review or per-item data message)."""
+    q = ""
+    for m in request.messages:
+        if m.role == "user" and m.text and not m.text.startswith(("Per-item answers", "Question:")):
+            q = m.text
+    return q or _last_user_text(request)
+
+
+def _reply_classify(model, request) -> str:
+    """Rules first: a label named in the question, a multi-part question for plan_execute, the
+    label whose menu line shares most words with the question; else the first label."""
+    schema = request.response_schema or {}
+    labels = [str(x) for x in (((schema.get("properties") or {}).get("label") or {}).get("enum") or [])]
+    q = _last_user_text(request)
+    low = q.lower()
+    label, conf = (labels[0] if labels else ""), 0.55
+    named = [lab for lab in labels if re.search(r"\b" + re.escape(lab.lower()) + r"\b", low)]
+    if named:
+        label, conf = named[0], 0.9
+    elif "plan_execute" in labels and re.search(r"\b(and then|then|compare|versus|vs\.?|both|each of|as well as)\b"
+                                                r"|\?.+\?", q, re.I | re.S):
+        label, conf = "plan_execute", 0.8
+    else:
+        system = request.system or ""
+        terms = set(keywords(q))
+        best = 0
+        for lab in labels:
+            m = re.search(r"^" + re.escape(lab) + r": (.*)$", system, re.M)
+            score = len(terms & set(keywords(m.group(1)))) if m else 0
+            if score > best:
+                label, conf, best = lab, 0.6, score
+    return json.dumps({"label": label, "confidence": conf, "reason": f"mock: {label}"})
+
+
+def _reply_critique(model, request) -> str:
+    text = _last_user_text(request)
+    m = re.search(r"Draft answer:\n(.*?)\n\n", text, re.S)
+    draft = m.group(1).strip() if m else ""
+    if draft:
+        return json.dumps({"verdict": "pass", "issues": []})
+    return json.dumps({"verdict": "revise", "issues": [{"criterion": "answers every part of the question",
+                                                        "problem": "the draft is empty",
+                                                        "suggestion": "answer from the tool results"}]})
+
+
+def _reply_judge(model, request) -> str:
+    ids = [str(x) for x in ((((request.response_schema or {}).get("properties") or {}).get("winner") or {})
+                            .get("enum") or [])]
+    return json.dumps({"winner": ids[0] if ids else "", "reason": "mock: the first candidate"})
+
+
+def _reply_draft(model, request) -> str:
+    """Compose from every result in the transcript, plus per-item answers when a foreach ran."""
+    calls, results = _all_calls(request)
+    text, _c, _f = model._answer(request, _question_of(request), calls, results)
+    data = json.loads(text) if text.startswith("{") else {"answer": text, "citations": [], "caveats": []}
+    items = [m.text for m in request.messages if m.role == "user" and (m.text or "").startswith("Per-item answers")]
+    if items:
+        lines = [ln[2:] for ln in items[-1].splitlines()[1:] if ln.startswith("- ")]
+        data["answer"] = "; ".join(lines) if lines else data["answer"]
+    return json.dumps(data)
+
+
+def _reply_revise(model, request) -> str:
+    text = _last_user_text(request)
+    m = re.search(r"Draft answer:\n(.*?)\n\nTool results", text, re.S)
+    calls, results = _all_calls(request)
+    cites = [c.id for c in calls if c.id in results and not results[c.id].is_error]
+    return json.dumps({"answer": (m.group(1).strip() if m else text), "citations": cites, "caveats": []})
+
+
+def _reply_extract(model, request) -> str:
+    """A custom draft schema: a list of items (symbols in the question, else words from the results)."""
+    props = (request.response_schema or {}).get("properties") or {}
+    q = _question_of(request)
+    out: Dict[str, Any] = {}
+    for k, p in props.items():
+        t = (p or {}).get("type")
+        if t == "array":
+            out[k] = extract_symbols(q)[: int((p or {}).get("maxItems") or 50)]
+        elif t == "string":
+            out[k] = q[:200]
+        elif t in ("number", "integer"):
+            nums = extract_numbers(q)
+            out[k] = nums[0] if nums else 0
+        elif t == "boolean":
+            out[k] = False
+        else:
+            out[k] = None
+    return json.dumps(out)
+
+
+def _reply_condense(model, request) -> str:
+    return json.dumps({"standalone_question": model._standalone(request)})
+
+
+STAGE_REPLIES = {"classify": _reply_classify, "critique": _reply_critique, "judge": _reply_judge,
+                 "draft": _reply_draft, "revise": _reply_revise, "extract": _reply_extract,
+                 "condense": _reply_condense}
 
 
 def _short(s: str, n: int) -> str:

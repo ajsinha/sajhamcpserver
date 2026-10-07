@@ -214,7 +214,8 @@ class LLMSpec:
     system_prompt: str = ""
     prompt: Optional[Dict[str, Any]] = None
     template: str = ""
-    planner: Optional[str] = None
+    planner: Any = None                   # a planner reference, an inline definition or an overlay (§9.12)
+    planner_choices: List[str] = field(default_factory=list)
     allow: List[str] = field(default_factory=list)
     deny: List[str] = field(default_factory=list)
     rag_sources: List[str] = field(default_factory=list)
@@ -318,21 +319,24 @@ def parse_llm_block(config: Dict[str, Any], prompts_registry: Any = None) -> LLM
         problems.append(f"mode {mode} needs llm.template (the user message, with {{{{input.<field>}}}} placeholders)")
 
     planner = llm.get("planner")
-    if planner is not None:
-        if isinstance(planner, dict):
-            problems.append("llm.planner: inline planner definitions come with the planner engine "
-                            "(Implementation Plan wave 3); name a planner")
-        elif not isinstance(planner, str) or not planner:
-            problems.append("llm.planner must be a planner name")
+    if planner is not None:            # a reference, name@version, an inline definition or an overlay (§9.12)
+        try:
+            from sajha.ai.planners_engine.registry import check_tool_planner
+            spec.planner = check_tool_planner(planner, str(config.get("name") or "tool"), config.get("version"))
+        except Exception as e:
+            problems.append(f"llm.planner: {e}")
+    if "planner_choices" in llm:       # the caller may choose among these (an enum on the planner argument)
+        choices = llm["planner_choices"]
+        if not isinstance(choices, list) or not choices or not all(isinstance(c, str) and c for c in choices):
+            problems.append("llm.planner_choices must be a non-empty list of planner references")
         else:
             try:
-                from sajha.ai.planners import validate_planner
-                validate_planner(planner.split("@", 1)[0], None)
-                spec.planner = planner.split("@", 1)[0]
+                from sajha.ai.planners_engine.registry import check_tool_planner
+                for c in choices:
+                    check_tool_planner(c, str(config.get("name") or "tool"), config.get("version"))
+                spec.planner_choices = list(dict.fromkeys(choices))
             except Exception as e:
-                problems.append(f"llm.planner: {e}")
-    if "planner_choices" in llm:
-        problems.append("llm.planner_choices comes with the planner engine (Implementation Plan wave 3)")
+                problems.append(f"llm.planner_choices: {e}")
 
     tools = llm.get("tools")
     if tools is not None:
@@ -398,9 +402,12 @@ def parse_llm_block(config: Dict[str, Any], prompts_registry: Any = None) -> LLM
     sampling = llm.get("sampling", "never")
     if sampling not in ("never", "prefer", "require"):
         problems.append("llm.sampling must be never, prefer or require")
-    elif sampling != "never":
-        problems.append("llm.sampling prefer/require comes with build step 11 (sampling); use never")
-    spec.sampling = "never"
+    elif sampling != "never" and mode not in ("complete", "extract", "classify", "judge"):
+        # sajha/ai/llm_tools/sampling.py: one model call per answer; planner-heavy modes come later (§12)
+        problems.append(f"llm.sampling {sampling} is built for modes complete, extract, classify and judge, "
+                        f"not {mode}; use never")
+    else:
+        spec.sampling = sampling
 
     out = llm.get("output")
     if out is not None:
@@ -458,7 +465,7 @@ def parse_llm_block(config: Dict[str, Any], prompts_registry: Any = None) -> LLM
     if mode == "extract" and not [k for k in outs if k not in META_FIELDS]:
         problems.append("mode extract needs outputSchema properties for the fields to extract")
     if mode == "grounded" and spec.planner:
-        problems.append("llm.planner on grounded comes with the planner engine (wave 3)")
+        problems.append("llm.planner applies to mode answer only")
     if mode == "narrate":
         src = llm.get("source")
         if not isinstance(src, dict) or len([k for k in ("composite", "workflow") if src.get(k)]) != 1 \
@@ -592,6 +599,12 @@ def catalog_problems(spec: LLMSpec, self_name: str, registry: Any, strict: bool 
             out.extend(f"llm.tools.allow pattern {p!r} matches no tool" for p in unmatched)
         elif len(unmatched) == len(spec.allow):
             out.append(f"llm.tools.allow ({', '.join(spec.allow)}) matches no tool")
+    if spec.mode == "answer" and spec.planner is not None and tools:      # P036: the planner's tool names
+        try:
+            from sajha.ai.planners_engine.registry import tool_name_problems
+            out.extend(tool_name_problems(spec.planner, allowed_names(spec, self_name, registry), self_name))
+        except Exception as e:
+            logger.debug(f"{self_name}: planner tool check skipped: {e}")
     if spec.mode == "narrate" and tools and source_tool_name(spec, registry) not in tools:
         what = f"composite {spec.source.get('composite')!r}" if spec.source.get("composite") else \
             f"workflow {spec.source.get('workflow')!r} (published as a tool)"

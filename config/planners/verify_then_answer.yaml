@@ -1,0 +1,29 @@
+# The shipped "verify_then_answer" planner (docs/architecture/Planner Reference.md §13).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# verify_then_answer@<old version>.yaml while tools still pin it.
+name: verify_then_answer
+version: 1.0.0
+description: Gathers data with ReAct, drafts an answer, checks every figure and citation against the tool results, and revises on a mismatch.
+use_when: Numeric answers where every figure must match the data.
+start: act
+stages:
+  act:
+    type: act
+    outcomes:
+      called:   { next: act, max_visits: 6, on_exhausted: draft }
+      answered: { next: draft }
+  draft:
+    type: draft
+    next: verify
+  verify:
+    type: verify
+    checks: [numbers_in_results, citations_present, no_failed_citations]
+    outcomes:
+      ok:       { next: answer }
+      mismatch: { next: revise, max_visits: 2, on_exhausted: answer }
+  revise:
+    type: revise
+    address: findings
+    next: verify
+  answer:
+    type: answer                   # unresolved findings become caveats

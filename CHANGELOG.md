@@ -4,7 +4,68 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
-Nothing yet.
+### Added
+
+- **SAJHA as an OpenAI-compatible endpoint** (opt-in, `ai.openai_api.enabled`):
+  `POST /v1/chat/completions` (JSON or SSE chunks), `GET /v1/models`, `GET /v1/models/{model}` and
+  `POST /v1/embeddings`, authenticated with a SAJHA API key as the bearer token. Calls run as the
+  key's owner through the gateway (role policy, budgets, cache, fallback, usage and cost), the
+  policy engine sees them as `openai_api.chat_completions` / `openai_api.embeddings` (source
+  `openai_api`) so rules can rate-limit them, errors are OpenAI-shaped, and each enabled LLM tool
+  the caller may run is the model `sajha:<tool>` (conversation handle in the `sajha` field).
+  Tested with the official `openai` SDK. [LLM Tools §13.4](docs/architecture/LLM%20Tools.md#134-sajha-as-an-openai-compatible-endpoint).
+- **MCP sampling for LLM tools:** `llm.sampling: prefer | require` on `complete`, `extract`,
+  `classify` and `judge` tools sends the model call to a client that declared sampling: an MRTR
+  input request on 2026-07-28, a server request on the session's SSE stream on 2025-11-25.
+  Without one, `prefer` uses SAJHA's model and `require` refuses (`code: sampling_required`).
+  Sampled calls cost SAJHA nothing (usage ledger provider `client`) and skip the result cache.
+  [LLM Tools §12](docs/architecture/LLM%20Tools.md#12-models-sampling-budgets-and-limits).
+- **Configurable planners** (LLM Tools build steps 4 and 5): a planner is a file,
+  `config/planners/<name>.yaml`, a versioned graph of stages from a fixed library (`act`, `plan`,
+  `execute`, `call`, `match`, `classify`, `draft`, `critique`, `revise`, `verify`, `sample`,
+  `vote`, `foreach`, `planner`, `ask_user`, `condense`, `answer`, `fail`) with conditional and
+  bounded transitions and a small `when` expression language. Files load with plain
+  `yaml.safe_load`, are validated against rules P001–P071 and the JSON Schema of the Planner
+  Reference, reload on change and keep their last good version when an edit fails. The service
+  still enforces everything; planners only propose. Twelve strategies ship as files: the four
+  built-ins (`react`, `plan_execute`, `recipes`, `router`, behaving as before) plus `rewoo`,
+  `reflect`, `verify_then_answer`, `self_consistency`, `branch_and_judge`, `map_reduce`,
+  `human_in_the_loop` and `auto` (a cheap classifier over the allowed planners that escalates
+  once when a check fails). LLM tools take `llm.planner` as `name`, `name@version`, an inline
+  definition or an overlay, and `llm.planner_choices` (an enum on an optional `planner`
+  argument); resolution is version route, caller choice, tool config, `ai.planners.default`.
+  `ask_user` asks over MRTR on 2026-07-28 and ends `needs_input` elsewhere; new `stopped_by`
+  values `failed`, `needs_input` and `stage_limit`. Per-stage events on the ask stream (the Ask
+  SAJHA page shows the path), metrics `sajha_planner_*`, the planner, version and stage path in the
+  audit record, `kind: python` files and custom stage types registered in code, and an admin dry
+  run on the mock model (`POST /api/ai/planners/dry-run`). Lint reports planner files.
+  [Planner Reference](docs/architecture/Planner%20Reference.md), [Tutorial 27](docs/tutorials/TUTORIAL_27_write_a_planner.md).
+
+### Changed
+
+- The `Planner` protocol (`sajha/ai/planners.py`) and `IntelligenceService` speak the canonical
+  Chat Completions types: `PlanState.messages` are `ChatMessage`s, `ShortlistEntry.tool` is a
+  `ToolDefinition`, `CallTools` carries `ToolCall`s (`ToolCall.of(id, name, arguments)`),
+  `state.chat` takes a `ChatCompletionRequest` (`state.request(...)` builds one) and returns a
+  `ChatCompletion`. A Python planner written against the old types needs those edits;
+  `CallTools` still accepts objects with `id`, `name` and `arguments`.
+
+### Upgrading
+
+- New configuration section `ai.openai_api` (`enabled: false`, `llm_tools`, `cookie_auth`,
+  `max_body_bytes`). Nothing changes until it is turned on.
+- The policy source list gains `openai_api`.
+- New configuration section `ai.planners` (`dir`, `default`, `python_builtins`, `limits.*`, ...).
+  `ai.ask.planner` and `ai.ask.planner_config` keep working: the names resolve to the shipped
+  files, whose settings have the same keys and defaults. `ai.planners.python_builtins: true`
+  runs the four built-ins' Python classes instead.
+- An `answer`-mode LLM tool that names no `llm.planner` now runs `ai.planners.default` (`react`)
+  rather than `ai.ask.planner`, as LLM Tools §9.12 specifies; `sajha_ask` still follows
+  `ai.ask.planner`.
+- The ask event stream gains `planner_chosen`, `stage_start`, `stage_end`, `loop_exhausted` and
+  `expression_error` events; clients that switch on event types and ignore unknown ones are
+  unaffected. The `AskResult` gains `planner_version`, `planner_path`, `loops_exhausted`,
+  `planner_by` and `input_request`.
 
 ## v7.2.0 (October 2026) — the model interface and LLM tools
 

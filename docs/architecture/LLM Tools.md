@@ -7,10 +7,11 @@
 > modes, load-time validation, derived annotations and lint rules; running as the caller with
 > depth and shared budgets; conversation memory; resource safety (working set, spool, admission,
 > memory guard, caches); caching of deterministic modes; `sajha_ask` on the type; four shipped
-> example tools with eval sets. **Design, not built:** configurable planners (section 9, wave 3;
-> `answer` mode uses the existing planners of `sajha/ai/planners.py`), sampling (section 12, step
-> 11), SAJHA as an OpenAI-compatible endpoint (section 13.4, wave 3), the Studio creator and the
-> conversations page (step 10). Sections say *Built* or *Not built yet* where it matters. A
+> example tools with eval sets; in wave 3, sampling for `complete`, `extract`, `classify` and
+> `judge` (section 12, step 11), SAJHA as an OpenAI-compatible endpoint (section 13.4, step 12)
+> and configurable planners (section 9, steps 4 and 5: `sajha/ai/planners_engine/`, the shipped
+> files in `config/planners/`). **Design, not built:** sampling for the other
+> modes, the Studio creator and the conversations page (step 10). Sections say *Built* or *Not built yet* where it matters. A
 > walk-through is [Tutorial 26](../tutorials/TUTORIAL_26_build_an_llm_tool.md).
 
 > **Across SAJHA servers.** [SAJHA Net](SAJHA%20Net.md) builds on this design: LLM tools are
@@ -175,7 +176,7 @@ Server-wide settings live under a new `ai.llm_tools.*` section (section 19). The
 modes) and `runtime.py` (resource safety). Annotations are derived each time the tool is listed
 (`to_mcp_format`), because the tools an LLM tool may call can load after it; a tool with no
 catalog yet reports read-only for the modes that call no tools. The Studio creator, Describe
-proposals and planner files are not built (steps 4, 5 and 10). `sajha_ask` uses a subclass,
+proposals are not built (step 10); planner files are (section 9). `sajha_ask` uses a subclass,
 `sajha.ai.ask_tool.SajhaAskTool`, which lint accepts as an LLM-tool implementation.
 
 ---
@@ -233,7 +234,7 @@ A complete example, an assistant over market and macro tools with memory:
 |---|---|---|---|
 | `mode` | string | required | `answer`, `complete`, `extract`, `classify`, `grounded`, `narrate`, `judge` (section 6). |
 | `model` | string | `ai.llm_tools.default_model` | A gateway alias (`default`, `fast`, `reasoning`, ...) or `provider/model`. Aliases are preferred so operators can re-point them. |
-| `planner` | string or object | `ai.planners.default` | `answer` and `grounded` modes: a planner from the planner registry (`name` or `name@version`, section 9), or an inline planner definition. |
+| `planner` | string or object | `ai.planners.default` | `answer` mode: a planner from the planner registry (`name` or `name@version`, section 9), an inline planner definition, or an overlay `{use, settings, models, planners}` ([Planner Reference](Planner%20Reference.md) §2.5). *Built.* (`grounded` runs a fixed retrieval graph and refuses a planner.) |
 | `system_prompt` | string | none | Instructions for the model. Mutually exclusive with `prompt`. |
 | `prompt` | object | none | `{ "name": "<prompt in the prompts registry>", "arguments": { "<arg>": "{{input.field}}" } }`. Reuses SAJHA prompts instead of inline text. |
 | `template` | string | none | `complete`, `extract`, `classify`, `judge`: the user message, with `{{input.<field>}}` placeholders filled from validated arguments. |
@@ -241,19 +242,20 @@ A complete example, an assistant over market and macro tools with memory:
 | `rag.sources` | string[] | none | `grounded` mode (optional elsewhere): document-search sources to read. |
 | `limits.*` | numbers | `ai.llm_tools.*` | `max_steps`, `max_tool_calls`, `timeout_s`, `max_input_chars`, `max_output_tokens`, `max_cost_usd`. Clamped to the server ceilings. |
 | `memory.*` | object | `{ "mode": "none" }` | Section 10. |
-| `sampling` | string | `never` | `never`, `prefer`, `require` (section 12). |
+| `sampling` | string | `never` | `never`, `prefer`, `require` (section 12); `prefer`/`require` on `complete`, `extract`, `classify`, `judge`. *Built.* |
 | `output.citations` / `output.steps` | bool | `true` / `false` | Whether the result carries citations and a step trace. |
 | `confirm` | string | `ask` | `ask` (stop and request confirmation for destructive inner calls) or `refuse` (never run them). |
 | `nesting` | object | `{ "allow": false }` | Section 11. |
-| `planner_choices` | string[] | none | Planners a caller may pick per call (section 9.12). Adds an optional `planner` enum to the input schema; absent means the caller cannot choose. *Not built (wave 3): the loader refuses it.* |
+| `planner_choices` | string[] | none | Planners a caller may pick per call (section 9.12). Adds an optional `planner` enum to the input schema; absent means the caller cannot choose. *Built.* |
 | `source` | object | none | `narrate`: `{"composite": "<name>"}` or `{"workflow": "<name>"}`, optionally with `"arguments"` (values may be `{{input.<field>}}`; exactly one placeholder keeps the argument's type). *Built.* |
 | `rubric` | object | none | `judge`: `{"criteria": [{"name", "description", "min" (1), "max" (5), "weight" (1)}], "pass_score": n}`; `pass_score` is on the criteria's own scale (default their midpoint). *Built.* |
 | `rag.top_k` | integer | `5` | `grounded`: passages retrieved (1–20). *Built.* |
 | `cache` | bool | `false` | `complete`, `extract`, `classify`, `judge`: answer a repeated call from the result cache (section 12). *Built.* |
 | `temperature` | number | the model's | Sampling temperature of the tool's own model calls (0–2). *Built.* |
 
-*Built:* every key above except `planner` as an object, `planner_choices` and `sampling` other
-than `never`, which the loader refuses with a message naming the wave that brings them.
+*Built:* every key above except `planner` as an object and `planner_choices`, which the loader
+refuses with a message naming the wave that brings them; `sampling` other than `never` is refused
+on `answer`, `grounded` and `narrate` (section 12).
 `planner` takes the names of the existing planners (`react`, `plan_execute`, `recipes`,
 `router`); `name@version` is accepted and the version ignored until planner files exist.
 `confirm` and `tools` apply to `answer` only; `rag` to `grounded`; `memory` modes other than
@@ -297,7 +299,7 @@ into an answer with confidence and citations. This is what `sajha_ask` does toda
 *Built* on the intelligence service: `IntelligenceService.ask` with the tool's system prompt
 (after SAJHA's own), its limits, the allowed set as the shortlist pool (all of it offered when it
 is no larger than `ai.ask.shortlist`), its planner, and a stop check before each step (memory
-pressure, cancellation, time, cost). Planners are today's four; configurable planners are wave 3.
+pressure, cancellation, time, cost). The planner is resolved as section 9.12 says.
 
 - Input: `question` (required), `conversation_id`, `messages`, `confirm`.
 - Output: `answer`, `confidence`, `citations`, `stopped_by`, `conversation_id`, optional `steps`.
@@ -343,8 +345,8 @@ passage means `stopped_by: no_sources`.
 *Built.* Retrieval is the document index's search (`sajha/ai/rag/index.py`, the index behind
 `sajha_search_docs`), and the caller must be allowed to execute `sajha_search_docs`. Confidence is
 0.4 + 0.6 × the share of sentences carrying a `[n]` marker, 0.3 when no passage is cited, and 0
-for "Not found in the sources."; `citations` are `"[n] <link or document>"`. Configurable
-planners for `grounded` are wave 3.
+for "Not found in the sources."; `citations` are `"[n] <link or document>"`. `grounded` runs its
+fixed retrieval graph; it does not take a configurable planner.
 
 ### 6.6 `narrate`: fixed data, model-written prose
 
@@ -440,8 +442,12 @@ plus `ai.ask.mcp_allowed_tools`).
 
 ## 9. Planners
 
-*Status: design, not built (Implementation Plan wave 3).* Until it is, an `answer` tool's
-`planner` names one of the existing code planners (`sajha/ai/planners.py`).
+*Status: built (Implementation Plan wave 3, build steps 4 and 5).* The engine is
+`sajha/ai/planners_engine/` and the shipped strategies are files in `config/planners/`; the
+[Planner Reference](Planner%20Reference.md) is the as-built reference, and its section 17 lists
+where the code settles what this design left open. Every model call a stage makes is a canonical
+Chat Completions request through the gateway bound to the caller (section 13). A walk-through
+is [Tutorial 27](../tutorials/TUTORIAL_27_write_a_planner.md).
 
 A planner is the *strategy* an LLM tool follows: how many model calls, in what order, when to
 call tools, when to check its own work, when to loop and when to stop. The model does the
@@ -692,12 +698,15 @@ administrator-only and both still inside the service's enforcement:
   animation shows the path (act → act → verify → critique → revise → answer).
 - **Metrics.** `sajha_planner_stages_total{planner,stage,outcome}`,
   `sajha_planner_loops_exhausted_total{planner,edge}`, run duration per planner.
-- **Dry run.** A new admin endpoint and a button in the planner editor run a planner against the mock model and
-  returns the stage path, without calling tools that are not read-only.
+- **Dry run.** An admin endpoint runs a planner against the mock model and returns the stage
+  path, without running tools that are not read-only. *Built* as `POST /api/ai/planners/dry-run`
+  ([API Reference](../protocol/API%20Reference.md)); a planner editor page with a button for it
+  is not built.
 - **Tests.** The mock model gets scripted replies per stage type; each shipped strategy has
   path tests (question → expected stage path) and bound tests (a critic that never passes
   exhausts at `max_visits` and still answers); eval sets compare strategies on the same
-  questions.
+  questions. *Built:* `tests/ai/test_planner_engine.py`; the mock-planner model answers every
+  stage type deterministically and `mock-scripted` rules may name the `stage` they reply to.
 
 
 ### 9.12 Which planner runs
@@ -1012,8 +1021,33 @@ limits still apply.
 *Built:* limits, cost tracking (from the gateway's per-response cost) and caching. The result
 cache is in process, bounded by `ai.llm_tools.result_cache.max_entries` and `ttl_s`, keyed also
 by the caller (so one caller's cached result never answers another), filled only by runs that
-ended with `answer`, and emptied under memory pressure. *Not built yet:* sampling (step 11);
-the loader accepts only `sampling: never`.
+ended with `answer`, and emptied under memory pressure.
+
+*Built: sampling* (`sajha/ai/llm_tools/sampling.py`) for `complete`, `extract`, `classify` and
+`judge`; the loader refuses `prefer`/`require` on the other modes. The client's model answers only
+when the LLM tool is the MCP call's own target (the `tools/call` name; never an inner call of a
+composite, a workflow or another LLM tool) and the client declared `sampling`:
+
+- **2026-07-28.** The run raises an MRTR input request keyed `sajha_sample_<n>` (`n` counts the
+  run's model calls); the client answers in `inputResponses` and calls again, and the run, started
+  from scratch, finds each answer under its key. A structured mode whose first reply does not
+  validate asks for `sajha_sample_2`, so the one retry is one more round.
+- **2025-11-25.** When the session declared `sampling` and the request accepts
+  `text/event-stream`, `POST /mcp` streams the call (`_stream_sampled_call` in
+  `sajha/routes/mcp_routes.py`): the tool runs in a worker thread, its `sampling/createMessage`
+  request goes out on the stream, and the client's JSON-RPC response (a separate POST) resumes it.
+  An error from the client, or no answer within 120 seconds, ends the run with `stopped_by:
+  error`, `code: sampling_failed`.
+
+The request carries the tool's messages, its system text as `systemPrompt` (with the JSON Schema
+spelled out, since sampling has no response format, for `extract`, `classify` and `judge`),
+`maxTokens` from `limits.max_output_tokens`, the tool's `temperature` and
+`metadata.sajha_llm_tool`. The reply is parsed and validated exactly like a gateway reply;
+`stopReason: maxTokens` maps to `token_limit` and `refusal` to `refused`. Without a channel,
+`prefer` uses SAJHA's model and `require` ends the call with `stopped_by: error`,
+`code: sampling_required` (`isError: true`). A sampled call is recorded in the usage ledger
+under provider `client` at no cost, appears in the run's `models` as `client/<model>`, marks the
+`llm_tool_run` audit record `sampled: mrtr | session`, and never reads or fills the result cache.
 
 ---
 
@@ -1026,7 +1060,7 @@ accept or emulate. Code written against SAJHA's provider and model abstraction t
 code written against any OpenAI-compatible SDK, and moves between providers, and in and out of
 SAJHA, without rewriting.
 
-*Status: built (Implementation Plan wave 2), except 13.4, the outward endpoint (wave 3).* The
+*Status: built (Implementation Plan wave 2); 13.4, the outward endpoint, in wave 3.* The
 canonical types are `sajha/ai/llm/canonical.py`; the model and gateway interfaces, the
 adapters and the credentials for Vertex AI and Entra ID are described as built in the
 [Intelligence Layer](Intelligence%20Layer.md#2-core-abstractions), and writing a provider or
@@ -1141,6 +1175,46 @@ Because SAJHA speaks the format internally, it can also offer it outward, opt-in
   governed SAJHA assistant without knowing MCP.
 - These endpoints follow the same access rules as everything else: a caller sees only the models
   and LLM tools their role allows.
+
+*Built* (`sajha/ai/openai_api.py`, routes in `sajha/routes/openai_routes.py`; rows in the
+[API Reference](../protocol/API%20Reference.md#423-openai-compatible-endpoint-openai_routespy)),
+off by default (`ai.openai_api.enabled`; turned off, every `/v1` route answers 404):
+
+- **Identity.** An API key as `Authorization: Bearer sja_...` (an owned key acts as its owner, its
+  tool list a ceiling), or `X-API-Key`, or a SAJHA JWT as the bearer; the session cookie only with
+  `ai.openai_api.cookie_auth`. The RequestContext comes from that AuthContext alone: a `sajha`
+  object in the request may carry `conversation_id` and `arguments`, never an identity.
+- **Governance.** Chat and embedding calls go through `chat_completions_create`,
+  `chat_completions_stream` and `embeddings_create` with the caller's context, so role policy,
+  budgets (checked for embeddings too), the response cache, retries, fallback, the usage ledger
+  and cost apply. The policy engine sees each request as the pseudo-tool
+  `openai_api.chat_completions` or `openai_api.embeddings` (arguments `{"model": ...}`, source
+  `openai_api`), so a rule can deny or rate-limit the surface (429 with `Retry-After`). Each
+  request writes an `openai_api.request` audit record.
+- **Models.** `GET /v1/models` lists the aliases with at least one candidate the caller's role
+  allows, every allowed `provider/model` (`gateway.models(ctx)`), and `sajha:<tool>` for each
+  enabled LLM tool the caller may execute (`ai.openai_api.llm_tools`). An unknown model and a
+  forbidden one both answer 404 `model_not_found`.
+- **LLM tools as models.** A completion addressed to `sajha:<tool>` runs the tool through
+  `execute_with_tracking` as the caller (tool access, policy, planner, limits, memory, audit).
+  Its arguments are `sajha.arguments` when given; else the last user message: as `question` for
+  `answer` and `grounded` tools, as the arguments when it is a JSON object of the tool's input
+  properties, or as the tool's one required (or only) string input. A tool with `memory.mode:
+  client` also gets the earlier user and assistant messages; `sajha.conversation_id` (`"new"` or
+  an id) continues a stored conversation. The answer (`answer`, `text` or `label`; otherwise the
+  structured result as JSON) is the assistant message; the response's `sajha` field carries
+  `stopped_by`, `conversation_id`, `models`, cost and the run's other details, and usage is the
+  run's tokens. A tool error is an OpenAI error (`busy` 503 with `Retry-After`, `budget` 429,
+  `failed`/`invalid_output` 502). `tools`, `n` > 1 and `response_format` are refused for a tool
+  model; sampling controls are ignored and listed in `sajha.ignored`. With `stream: true` the
+  finished answer is replayed as chunks.
+- **Streaming** answers `chat.completion.chunk` events and `data: [DONE]`; errors before the first
+  chunk are ordinary HTTP errors, later ones a `data: {"error": ...}` event.
+- **Embeddings** accept `encoding_format` `float` or `base64` (the OpenAI SDKs' default).
+- **Not yet:** provider thinking state (13.6) is not returned on the outward endpoint, so a
+  multi-turn tool loop through `/v1` sends earlier turns as plain history.
+
+Tested with the official `openai` Python SDK (`tests/ai/test_openai_api.py`).
 
 ### 13.5 Moving to the new format
 
@@ -1377,8 +1451,8 @@ Values marked *today* are the ones the Ask SAJHA service already reports (`STOP_
 
 Renaming a today value is out of scope: clients and the Ask SAJHA page already read them.
 
-*Built:* LLM tools report every value above except `failed`, `needs_input` and `stage_limit`,
-which need the planner engine (wave 3). The error values come back with `isError: true` over MCP
+*Built:* LLM tools report every value above; `failed`, `needs_input` and `stage_limit` come from
+planner files (a `fail` stage, an `ask_user` stage that cannot ask in-band, the stage ceiling). The error values come back with `isError: true` over MCP
 (the result's `stopped_by`, `error` and, for errors, `code`), and over REST as `success: false`;
 `busy` answers 503 with `Retry-After` (`ai.llm_tools.runtime.retry_after_s`).
 
@@ -1533,7 +1607,7 @@ Planner files live in `config/planners/<name>.yaml` (section 9.2); the built-in 
 there. `ai.ask.planner` and `ai.ask.planner_config` keep working for the Ask SAJHA page and map
 onto the registry.
 
-*Built:* the `ai.llm_tools` keys above (not `ai.planners`, wave 3), plus
+*Built:* the `ai.llm_tools` and `ai.planners` keys above, plus
 `runtime.retry_after_s` (`5`), `runtime.memory_guard.enabled` (`true`) and
 `result_cache: { max_entries: 1000, ttl_s: 3600 }`. Each is documented in the
 [Configuration Reference](../getting-started/Configuration%20Reference.md).
@@ -1561,8 +1635,9 @@ Each step ends green: full suite, both conformance suites, mobile check for any 
 | 13 | Docs: this note becomes as-built, and `Intelligence Layer.md` and `Extending the Intelligence Layer.md` describe the new interfaces; glossary terms; tutorials (an LLM tool, a custom planner); Configuration and API Reference; Security Model; help card; CHANGELOG | doc-rot tests |
 
 *Status:* steps 1, 2, 3, 6, 7, 8 and 9 are built (step 3's `answer` mode on today's planners);
-step 13 is done for them (Tutorial 26 is the LLM-tool tutorial). Steps 4, 5 and 12 are wave 3;
-10 and 11 come later.
+step 13 is done for them (Tutorial 26 is the LLM-tool tutorial). Wave 3 built step 11 (sampling,
+for the non-planner modes), step 12 (the OpenAI-compatible endpoint) and steps 4 and 5 (the planner
+engine and the shipped planner files; Tutorial 27 is the planner tutorial); 10 comes later.
 
 ---
 
@@ -1574,7 +1649,8 @@ All decided by the owner:
    administrator enables them. `sajha_ask` stays off by default as today.
 2. **Anonymous access.** Off (`ai.llm_tools.anonymous.enabled: false`): every call spends model
    budget.
-3. **Sampling.** Later: build step 11, after the core, planners and memory work.
+3. **Sampling.** Build step 11, in wave 3: `complete`, `extract`, `classify` and `judge` first
+   (section 12); `answer` after measuring the round-trip cost.
 4. **Modes.** The seven in section 6; presets such as `translate` (of `complete`) or `compare`
    (of `judge`) only when asked for.
 5. **Who may create LLM tools.** Users with the `studio` permission; limits and budgets bound

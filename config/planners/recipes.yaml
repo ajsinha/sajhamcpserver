@@ -1,0 +1,32 @@
+# The shipped "recipes" planner (docs/architecture/Planner Reference.md §13).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# recipes@<old version>.yaml while tools still pin it.
+name: recipes
+version: 1.0.0
+description: Deterministic regex or keyword recipes answer known question shapes with one tool call and no model; anything else goes to the fallback planner.
+use_when: Known, frequent questions that map to one tool call.
+settings:                          # today's RecipesConfig: same keys, same defaults
+  recipes: []                      # [{name, tool, match, keywords, arguments, answer}]
+  fallback: react
+start: match
+stages:
+  match:
+    type: match
+    rules: "{{settings.recipes}}"  # a recipe matches only if its tool is offered (rule.tool)
+    outcomes:
+      none: { next: fallback }
+      "*":  { next: call }
+  call:
+    type: call
+    from_rule: true                # tool, arguments, {group} filling and coercion as today
+    emit_plan: true
+    next: finish
+  finish:
+    type: answer
+    template_from: rule            # the recipe's answer template, when the call succeeded
+  fallback:
+    type: planner
+    planner: "{{settings.fallback}}"
+    next: done
+  done:
+    type: answer

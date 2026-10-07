@@ -1,13 +1,12 @@
 # Planner Reference
 
-> **Status: design, not built.** This is the file-format reference for the configurable
-> planners designed in [LLM Tools](LLM%20Tools.md) section 9. Nothing here exists in the code
-> yet: there is no `config/planners/<name>.yaml` loader, no stage library and no expression
-> evaluator. What exists today is the four Python planners in `sajha/ai/planners.py`
-> (`react`, `plan_execute`, `recipes`, `router`), chosen by `ai.ask.planner`; the
-> [Intelligence Layer](Intelligence%20Layer.md) and
-> [Extending the Intelligence Layer](Extending%20the%20Intelligence%20Layer.md) own them.
-> When the planner registry is built, this file becomes the as-built reference.
+> **Status: built.** This is the as-built reference for planner files. The engine is
+> `sajha/ai/planners_engine/` (the loader and validation in `model.py`, the stage library in
+> `stages.py`, the expression language in `expr.py`, the verify checks in `checks.py`, the graph
+> runtime in `runtime.py`, the registry in `registry.py`); the shipped files are in
+> `config/planners/`. The few places where the code departs from the design, or settles what the
+> design left open, are listed in [section 17](#17-as-built-where-the-code-departs-from-this-reference).
+> A walk-through is [Tutorial 27](../tutorials/TUTORIAL_27_write_a_planner.md).
 
 [LLM Tools](LLM%20Tools.md) section 9 owns *why* planners are configuration and how they fit LLM
 tools (what a planner is, the stage library in outline, loops and bounds, resolution, automatic
@@ -41,7 +40,8 @@ itself or with today's code, and how each was resolved, are listed in
 14. [Writing your own planner](#14-writing-your-own-planner)
 15. [Decisions made in this reference](#15-decisions-made-in-this-reference)
 16. [Where the design disagrees with itself or the code](#16-where-the-design-disagrees-with-itself-or-the-code)
-17. [Appendix A: JSON Schema for planner files](#appendix-a-json-schema-for-planner-files)
+17. [As built: where the code departs from this reference](#17-as-built-where-the-code-departs-from-this-reference)
+18. [Appendix A: JSON Schema for planner files](#appendix-a-json-schema-for-planner-files)
 
 ---
 
@@ -916,8 +916,8 @@ After a stage ends with outcome *o* (or its guard was false, which uses `else` d
 4. If still none applies, the run ends with `stopped_by: error`, error code `no_transition` ("no
    transition for outcome *o* at stage *s*"); lint warns of any outcome whose alternatives all carry `when` and
    that has no unconditional `*` (P016).
-5. Apply the bound of the chosen transition (section 7.3), then run `set` (section 7.6), then
-   move.
+5. Apply the bound of the chosen transition (section 7.3), then move. `set` (section 7.6) has
+   already run, before step 1, so a transition's `when` sees the values it assigned.
 
 ### 7.3 Bounded edges
 
@@ -1247,8 +1247,8 @@ A sub-run's own end is not a `stopped_by` of the run: it is the `planner` stage'
 ### 10.4 Events, audit and metrics
 
 - **Events** on the ask event stream, in addition to today's (`shortlist`, `model`, `plan`,
-  `tool_call`, `tool_result`, `answer`, `confidence`, ...): `stage_start {stage, type, visit,
-  planner}`, `stage_end {stage, outcome, ms, planner}`, `loop_exhausted {stage, edge, to}`,
+  `tool_call`, `tool_result`, `answer`, `confidence`, ...): `stage_start {stage, stage_type, visit,
+  planner}` (the stage's type is `stage_type`, because `type` is the event's own type), `stage_end {stage, outcome, ms, planner}`, `loop_exhausted {stage, edge, to}`,
   `expression_error {stage, expression, message}`, `planner_chosen {planner, version, by,
   reason}` (by `version route`, `caller choice`, `tool config`, `server default`, `rule`,
   `label <confidence>`, `default`, `escalation`).
@@ -2118,8 +2118,8 @@ the build.
     transition map is named `outcomes` because YAML 1.1 reads a bare `on:` key as `true`; outcome
     keys, rule names and labels that YAML 1.1 would load as booleans or numbers must be quoted,
     and are refused otherwise (P006) (section 2.1).
-38. **No glossary rows yet.** Like LLM Tools section 3, the new terms (stage, outcome, bounded
-    edge, guard, sub-run, overlay) go into `GLOSSARY.md` when the feature is built.
+38. **Glossary rows.** The new terms (planner file, stage, outcome, bounded edge, guard, sub-run,
+    overlay, dry run) are in `GLOSSARY.md`.
 
 ---
 
@@ -2194,6 +2194,58 @@ now resolved; the resolution is stated here so the history of the decision is no
     9.4 now says the stages reuse the classes' functions (`resolve_references`, `match_recipe`,
     `PLAN_SCHEMA`, `PLAN_PROMPT`), not the classes, and points to section 13.13 for the few
     behaviour differences.
+
+---
+
+## 17. As built: where the code departs from this reference
+
+What the build settled, and where it differs from the sections above:
+
+1. **Python built-ins.** The four built-ins ship as files, and the names `react`, `plan_execute`,
+   `recipes` and `router` resolve to them; the Python classes in `sajha/ai/planners.py` stay, are
+   reachable as `package.module:Class`, and run for those names instead when
+   `ai.planners.python_builtins` is true (a rollback switch). The P005 rule of section 2.4 applies
+   to every other Python registration. `tests/ai/test_planners.py` runs every built-in test against
+   both forms.
+2. **Canonical model interface.** Every model call a stage makes is a canonical Chat Completions
+   request (OpenAI-style messages, tools as functions, `response_format: json_schema` for
+   structured stages) sent through `PlanState.chat`, which is the gateway's
+   `chat_completions_create` bound to the caller. The Python `Planner` protocol uses the same
+   canonical types (`ChatMessage`, `ToolCall`, `ToolDefinition`).
+3. **`set` runs before the transition is chosen** (section 7.6 wins over the order once given in
+   7.2): a transition's `when` sees the values `set` assigned.
+4. **`stage_start` carries `stage_type`**, not `type` (section 10.4).
+5. **Implicit condensing** stays with conversation memory: the service always condenses a
+   follow-up before the graph starts, as today. A `condense` stage rewrites `original_question`
+   again from `history` (and refreshes the shortlist when the service offers that); it does not
+   switch the implicit condensing off.
+6. **`ask_user` over MRTR** works for a stage of the top-level graph: the run's state (slots, edge
+   counters, transcript, tool results) is saved in the state store for `ai.planners.resume_ttl_s`
+   and the client's retry resumes at that stage's outcome. An `ask_user` stage inside a sub-run or
+   a fork ends the run with `needs_input`, as it does wherever form elicitation is not available.
+   A resumed run's service-side step and tool-call counters start again from zero; the planner's
+   own counters (stages, edges) carry over.
+7. **Forks** (`sample`, `foreach`) run together in rounds: each round every active fork advances
+   to its next tool round, and all their calls go to the service as one parallel step, so a round
+   counts once against `max_steps`. Call ids that two forks happen to share are made unique.
+8. **Eval filtering** (section 6.6.1): an eval set has no pass threshold of its own, so a candidate
+   is dropped when the latest recorded eval run of that planner, on an eval set for the tool,
+   passed fewer than `ai.planners.menu_min_pass_rate` of its questions.
+9. **P036** (a planner's tool names) is checked with the rest of an LLM tool's catalog checks: when
+   the tool runs and by `python -m sajha.quality lint`, which also reports every planner file's
+   P-codes as `planner:<file>`.
+10. **P070** (content changed without a version change) compares a file with what this process
+    loaded before, so it fires on a reload, not across restarts.
+11. **The path.** `planner_path` in the result and the audit record lists every stage run, sub-run
+    stages as `<chain>/<stage>` (for example `router>recipes/call`); the dry run also returns the
+    top planner's own stages as `path`.
+12. **The dry run** is the admin endpoint `POST /api/ai/planners/dry-run` (there is no planner
+    editor page yet). Every model call goes to `ai.planners.dry_run_model`. Tools are offered as
+    usual, but only those annotated `readOnlyHint: true`, and those the admin names in
+    `run_tools`, actually run; any other call returns an error result ("not run in a dry run"),
+    so the path still shows where the planner goes.
+13. **The JSON Schema** of Appendix A ships as `sajha/ai/planners_engine/planner.schema.json`; a test
+    keeps the two identical.
 
 ---
 

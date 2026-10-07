@@ -134,13 +134,14 @@ def test_tool_results_are_passed_as_data_and_size_capped(toolbox):
     toolbox.add(FakeTool("bulk_report_fetch", "Fetch the bulk report", output={"blob": "x" * 50_000}))
     gw = make_gateway()
     seen = []
-    orig = gw.chat
+    orig = gw.chat_completions_create
 
-    def spy(request, **kw):
-        seen.append(request)
+    def spy(request=None, **kw):              # every model call is a canonical request through the gateway
+        from sajha.ai.llm.convert import from_canonical_request
+        seen.append(from_canonical_request(request))
         return orig(request, **kw)
 
-    gw.chat = spy
+    gw.chat_completions_create = spy
     service(toolbox, gw, max_result_chars=1000).ask("Fetch the bulk report", RequestContext(user_id="u"))
     results = [p for r in seen for m in r.messages for p in m.tool_results]
     assert results and all(len(json.dumps(p.content)) < 1200 for p in results)

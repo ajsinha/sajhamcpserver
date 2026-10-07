@@ -211,6 +211,12 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
         fixtures = get_conformance_fixtures()
         if fixtures and fixtures.is_async_tool(params.get('name', '')):
             return await _stream_tool_call(request, body, params, fixtures, mcp_session)
+        # An LLM tool with llm.sampling prefer|require: its model call goes to the client as a
+        # sampling/createMessage request on this call's SSE stream (docs/architecture/LLM Tools.md §12)
+        if (mcp_session is not None and mcp_session.supports('sampling')
+                and 'text/event-stream' in request.headers.get('accept', '')
+                and _samples(mcp_handler, params.get('name'))):
+            return await _stream_sampled_call(body, params, session_data, mcp_session, mcp_handler)
 
     response = await run_in_threadpool(mcp_handler.handle_request, body, session_data)
 
@@ -297,6 +303,63 @@ async def _stream_tool_call(request: Request, body: dict, params: dict, fixtures
                 result = task.result()
                 yield {'id': next_id(), 'event': 'message',
                        'data': json.dumps({'jsonrpc': '2.0', 'id': rid, 'result': result})}
+                return
+        finally:
+            if not task.done():
+                task.cancel()
+
+    return EventSourceResponse(events())
+
+
+def _samples(handler, name) -> bool:
+    """Is ``name`` an LLM tool that sends its model call to a client that can sample?"""
+    registry = getattr(handler, 'tools_registry', None)
+    tool = registry.get_tool(name) if registry is not None and isinstance(name, str) else None
+    if tool is None:
+        return False
+    from sajha.ai.llm_tools.sampling import wants_sampling
+    return wants_sampling(tool)
+
+
+async def _stream_sampled_call(body: dict, params: dict, session_data: dict, mcp_session, handler):
+    """tools/call over SSE with the 2025-11-25 sampling channel bound: the tool runs in a worker
+    thread; its sampling/createMessage requests and the final response travel on this stream, and
+    the client's answers arrive as JSON-RPC responses on POST /mcp."""
+    from sajha.core.mcp_sessions import ToolCallContext
+    from sajha.ai.llm_tools.sampling import SessionSampler, bound
+
+    queue: asyncio.Queue = asyncio.Queue()
+    meta = params.get('_meta') or {}
+    ctx = ToolCallContext(mcp_session, queue, meta.get('progressToken'))
+    sampler = SessionSampler(ctx, asyncio.get_running_loop())
+    name = params.get('name')
+    stream_id = uuid.uuid4().hex[:12]
+
+    def work():
+        with bound(sampler, name):
+            return handler.handle_request(body, session_data)
+
+    async def events():
+        counter = 0
+
+        def next_id():
+            nonlocal counter
+            counter += 1
+            return f"{stream_id}:{counter}"
+
+        yield {'id': next_id(), 'data': ''}      # priming event (SEP-1699)
+        task = asyncio.ensure_future(run_in_threadpool(work))
+        try:
+            while True:
+                getter = asyncio.ensure_future(queue.get())
+                done, _ = await asyncio.wait({getter, task}, return_when=asyncio.FIRST_COMPLETED)
+                if getter in done:
+                    yield {'id': next_id(), 'event': 'message', 'data': json.dumps(getter.result())}
+                    continue
+                getter.cancel()
+                while not queue.empty():
+                    yield {'id': next_id(), 'event': 'message', 'data': json.dumps(queue.get_nowait())}
+                yield {'id': next_id(), 'event': 'message', 'data': json.dumps(task.result())}
                 return
         finally:
             if not task.done():

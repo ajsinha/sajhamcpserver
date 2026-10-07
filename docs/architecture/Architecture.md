@@ -220,7 +220,8 @@ parameters between steps; `EntropyGuard` tracks cumulative confidence
   aliases to models with policy, budgets, retries, fallback and caching;
   `sajha/ai/intelligence.py` (`IntelligenceService`) is the ask loop behind
   `POST /api/ai/ask`, the Ask SAJHA page (`/ask`) and the optional `sajha_ask` MCP tool,
-  with pluggable planners (`sajha/ai/planners.py`), per-user conversation memory
+  with pluggable planners (planner files in `config/planners/` run by `sajha/ai/planners_engine/`,
+  and the Python `Planner` protocol in `sajha/ai/planners.py`), per-user conversation memory
   (`sajha/ai/memory.py`) and the document index behind `sajha_search_docs`
   (`sajha/ai/rag/`).
   `sajha/ai/tool_resolver.py` answers natural-language tool searches: a lexical BM25 index
