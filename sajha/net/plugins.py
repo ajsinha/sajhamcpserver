@@ -160,6 +160,7 @@ class KeyDirectoryStore(Plugin):
 class Decision:
     allow: bool
     reason: str = ''
+    value: Any = None          # residency: the arguments or result to send instead (redacted), or None
 
 
 class RuleEvaluator(Plugin):

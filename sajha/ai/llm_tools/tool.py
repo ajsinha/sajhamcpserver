@@ -447,12 +447,13 @@ class LLMTool(BaseMCPTool):
             return mem.from_client(msgs, question, ctx, usage_sink=sink), ""
         return None, ""
 
-    def _record(self, mc, ctx, question, result, tools, remember):
+    def _record(self, mc, ctx, question, result, tools, remember, steps=None):
         if mc is None or not remember:
             return
         try:
             self._memory().record(mc, ctx, question, answer=str(result.get("answer") or ""), tools=tools,
-                                  stopped_by=result.get("stopped_by"), confidence=result.get("confidence"))
+                                  stopped_by=result.get("stopped_by"), confidence=result.get("confidence"),
+                                  steps=steps)   # lets memory mask remote results by data class
         except Exception as e:
             logger.warning(f"{self.name}: could not store the turn: {e}")
         if mc.stored and mc.conversation_id:
@@ -506,7 +507,7 @@ class LLMTool(BaseMCPTool):
         if self.spec.steps:
             out.update(steps=[st.to_dict() for st in res.steps], models=list(res.models),
                        shortlist=list(res.shortlist), planner=res.planner)
-        self._record(mc, ctx, question, out, [st.name for st in res.steps], remember)
+        self._record(mc, ctx, question, out, [st.name for st in res.steps], remember, steps=list(res.steps))
         info.result = self._fit(out, error=res.stopped_by in ERROR_STOPS)
 
     def _planner_for(self, args: Dict[str, Any]):

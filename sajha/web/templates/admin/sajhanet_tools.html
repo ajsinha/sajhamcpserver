@@ -77,6 +77,7 @@
       <thead><tr><th scope="col">Qualified name</th><th scope="col">State</th><th scope="col">Host</th>
         <th scope="col" class="opt">Alias</th><th scope="col" class="opt">Net</th><th scope="col" class="opt">Version</th>
         <th scope="col" class="opt">Contract hash</th><th scope="col" class="opt">Trust</th>
+        <th scope="col" class="opt">Data classes</th>
         <th scope="col" class="opt">Resolution</th><th scope="col" class="opt">Last seen</th><th scope="col">Review</th></tr></thead>
       <tbody>
       {% for r in table.rows %}
@@ -90,6 +91,7 @@
           <td class="opt">{{ r.version or '—' }}</td>
           <td class="opt"><span class="rt-hash">{{ r.contract_hash }}</span></td>
           <td class="opt">{{ r.trust }}</td>
+          <td class="opt">{% for k, cs in (r.data_classes or {}).items() %}<div class="rt-meta">{{ k }}: {{ cs|join(', ') }}</div>{% else %}—{% endfor %}</td>
           <td class="opt">{{ r.resolution or '—' }}</td>
           <td class="opt">{{ r.last_seen or '—' }}</td>
           <td>{% if r.state == 'held' %}<button class="btn btn-sm btn-success" type="button" data-act="approve" data-net="{{ r.net }}" data-peer="{{ r.host_instance }}" data-tool="{{ r.host_tool }}">Approve</button>
@@ -97,7 +99,7 @@
               {% else %}<span class="rt-meta">—</span>{% endif %}</td>
         </tr>
       {% else %}
-        <tr><td colspan="11" class="rt-meta">No remote tools.</td></tr>
+        <tr><td colspan="12" class="rt-meta">No remote tools.</td></tr>
       {% endfor %}
       </tbody>
     </table>

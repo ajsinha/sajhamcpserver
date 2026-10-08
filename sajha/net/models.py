@@ -52,6 +52,8 @@ class CASettings:
     cert_validity_days: float = 30
     enrollment_token_minutes: float = 30
     enrollments_per_minute: int = 10
+    # a net of one creates its CA at first start (owner decision); default: sajhanet.ca_auto_init
+    auto_init: Optional[bool] = None
 
 
 @dataclass

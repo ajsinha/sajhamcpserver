@@ -293,7 +293,8 @@ Python entry-point group (`sajha.net.plugins`), as planners already can.
 
 Wave 4, phase 4.1 built membership; phase 4.2 built catalogs and routing (sections 7 to 9, 14 and 15)
 alongside identity and authorization; phase 4.3 built the first console pages, the net of one and the
-three-instance test net. What is not listed here is still design.
+three-instance test net. Wave 5, phase 5.1 adds locality-aware planners, remote LLM tools and the
+combined hop and depth limit (sections 13 and 14). What is not listed here is still design.
 
 - **The protocol core** is `sajha/net/` and imports nothing from the rest of SAJHA
   (`tests/net/test_net_plugins.py` checks it): names (`names.py`), RFC 8785 canonical JSON
@@ -319,7 +320,12 @@ three-instance test net. What is not listed here is still design.
   `name_conflict` refusals; the CA per net (init, tokens refused for held names, enrollment,
   renewal with a new key, revocation by name or serial, the signed list spread by gossip digests);
   manual mode with pinned thumbprints (in configuration, `identity.pins`, or added with
-  `sajha net pin`); SWIM gossip with suspicion, refutation, dissemination, anti-entropy, leave
+  `sajha net pin`); open mode (`admission: open`, owner decision for now, the shipped setting): no CA,
+  self-signed certificates accepted on first use and then held to their name, the remembered keys
+  kept on disk (`first_use.json`) and forgettable by an administrator. Open mode trusts whoever
+  first claims a name: any server that can reach a member and knows the net's name can join under an
+  unused name and then receives forwarded calls (with the test admin key while that is on). Switch
+  to `builtin_ca` before a net spans machines you do not control; SWIM gossip with suspicion, refutation, dissemination, anti-entropy, leave
   and dead probing; required seeds and `founder`; restarts through seeds, then the saved peer list,
   then a discovery plug-in, with back-off; adding a peer by address (admin API, console, CLI) with
   an optional runtime seed; one gossip agent per net through the renewing lease; and these notice
@@ -390,13 +396,80 @@ three-instance test net. What is not listed here is still design.
   quarantined and re-activated, a restart) and as containers (`deployment/sajhanet-demo/`, with a smoke
   script). A forwarded call now runs at the host with the local account's roles and permissions from
   the host's database.
+- **Built of sections 13 and 14: planners, LLM tools and the combined limit** (wave 5, phase 5.1;
+  `sajha/ai/locality.py`, `sajha/core/inner_calls.py`, and the hop handling in `sajha/net/routing.py`
+  and `sajha/net/integration/catalogs.py`; tests in `tests/net/test_net_planners_llm.py`). **Locality-aware
+  shortlists:** every shortlist entry (Ask SAJHA, and LLM tools in `answer` mode) records where the tool
+  runs (`local`, `remote` with its net and host, or `federated`) and why it ranked where it did; local
+  tools rank first, then remote hosts named in `sajhanet.preferences` for the tool, in this server's
+  region in that net, healthy, and with a lower indicative latency (small nudges of the resolver's score,
+  so a remote tool that is the right tool is still offered; a shortlist of local tools only keeps the
+  resolver's order). Proxies of a host that is not `active`, or that reports itself down, are left out. A
+  **locality restriction** (`any`, `local`, or `net:<name>`, which keeps this server's own tools and that
+  net's) comes from the ask (`locality` on `POST /api/ai/ask`), else the planner's `settings.locality`
+  (a graph planner file or a `planner_config` overlay), else `ai.ask.locality`; the `shortlist` event
+  names the restriction and where it came from. **Remote LLM tools:** an LLM tool is exported with
+  `llm_tool: true` unless `sajhanet.allow_remote_llm_tools` is false; called from another instance it runs
+  on its host as the mapped user, on the host's models and budgets, and the host reports the run's spend in
+  the result's `_meta["io.sajha/net"].usage` (`tokens`, `cost_usd`, `models`, `charged_by: "host"`), which
+  the home records in its `net.call_attempt` audit record and never charges again. **The combined
+  limit:** a forwarded call carries, besides `Sajha-Net-Hop` and `Sajha-Net-Visited`, the nesting depth it
+  had (`params._meta["io.sajha/net"].depth`: tools running inside one another, such as composites, LLM tools
+  and `sajha_ask`, on every instance passed); the host runs the tool with that chain, so a call its tool
+  makes onward continues the hop count and visited list (protocol §16), and hops plus depth may not exceed
+  `sajhanet.max_call_chain` (default 8, at most 32). The home refuses before sending (`-32016`, `loop`
+  when the host is already in the visited list, `hop_limit`, `chain_limit` with `hops`, `depth` and
+  `limit`), the host refuses on receipt (`chain_limit`), and a tool entered inside a forwarded call past
+  the budget is refused with the key named. `ai.llm_tools.max_depth` and `tools.max_call_depth` stay
+  per instance; the combined budget is what bounds a chain end to end.
+- **Built of section 12: residency** (wave 5, phase 5.1; `sajha/net/residency.py` in the core, and in
+  SAJHA `sajha/net/integration/residency.py`, the residency conditions of `sajha/policy/model.py` and
+  `PolicyEngine.residency`; tests in `tests/net/test_net_residency.py`). **Data classes** come from
+  `x-sajha-data-class` marks on `inputSchema` and `outputSchema` properties (nested objects and array items
+  too; the marks are part of the contract hash), a tool's own `data_classes: {arguments, results}` (the
+  whole tool), and `sajhanet.data_classes.tools` (classification by configuration, by tool name or glob,
+  without editing the tool). Each exported tool carries the summary in its net metadata
+  (`data_classes.arguments`, `data_classes.results`); at a home, a class in that summary with no field mark
+  in the schema counts for the whole value. **Residency rules** are policy rules with the new conditions
+  `data_classes`, `flow` (`arguments` or `results`) and `destination` (`net`, `instance`, `region`,
+  `labels.<key>`, `here`, `differs_from_here`), evaluated deny-overrides among residency rules only
+  ([Policy and Audit](Policy%20and%20Audit.md) 3.5); `sajhanet.residency.default_effect: deny` makes
+  classified data need an `allow` rule. **Arguments** (step 4): before a call leaves, the home checks the
+  classes of the fields present against the host's region and labels from its member record; a deny is
+  `-32012 residency_arguments` with `executed: false`, and the words tell a planner to use a tool where
+  the data may go; a call by plain name then moves to the next host (a home residency refusal is not that
+  host's answer, unlike every other refusal); `redact: {data_classes: [...]}` sends the call with those
+  fields replaced by `[REDACTED:<class>]` instead. **Results** (step 14, the protocol's §15.4 step 12):
+  the host checks the classes of the fields present in its result against the home's region and labels;
+  a deny is `-32012 residency_result` with `executed: true`; a redaction replaces the fields in
+  `structuredContent`, in JSON text blocks and wherever a removed value is quoted in text, and lists them
+  in `_meta["io.sajha/net"].redacted`; the answer carries `data_classes.results` (the classes it still
+  holds). A class marked for the whole result cannot be redacted field by field and is refused. **As
+  results arrive** the home applies its own residency rules (`flow: results`, `destination: {here:
+  true}`): it may redact or refuse (`residency_result`, side `home`); a check that fails withholds the
+  result. **Residency-aware shortlists:** a remote tool whose host may not receive the classes every call
+  sends (whole-tool argument classes and those of required fields) is not eligible there
+  (`not_eligible: residency rule` in the resolution order and on the Remote tools page); the plain name
+  resolves to the hosts that may, and a tool no host may receive is left out of `tools/list` and of Ask
+  SAJHA's shortlist for that caller. **Audit:** every decision on classified data (allowed, redacted,
+  refused, on either side and on arrival) is one `net.residency` record with net, other instance, tool,
+  flow, classes, rule, side, the redacted field paths and the trace id (never values); counted in
+  `sajha_net_residency_decisions_total{flow, outcome}`. **Memory:** an answer that used remote results is
+  kept as written, with every figure replaced by `[remote figure]`, or as a placeholder, by the classes of
+  those results (`sajhanet.memory.remote_results`, and `sajhanet.memory.by_class` per class, where the
+  strictest wins; the design put the per-class choice in rules, the build keeps it in configuration
+  beside the default). RAG collections are built from documents only; no tool result enters them. The
+  extension advertises the feature `residency`. **Console:** data classes on the Tools page's net badges
+  and in a column of the Remote tools page. Not built: memory handling for LLM tools that record their own
+  turns (they pass an answer without its steps; `ConversationMemory.record` accepts `steps=` for them), and an approval flow for residency (`require_approval` on
+  a residency rule refuses).
 - **Conformance** (protocol §20, the ids whose targets include S). Covered by tests under `tests/net/`
   (and `tests/test_sajhanet_groundwork.py` for CAP-01 to CAP-03): NAME-01 to NAME-11; NET-01 to NET-04
   and NET-06; CAP-01 to CAP-05; SIG-01 to SIG-15; REC-01, REC-02; GOS-01 to GOS-14; CAT-01 to CAT-04 and
   CAT-06 to CAT-08; CON-01 to CON-06; KEY-01 to KEY-05; BLK-01; REV-01; CA-01 to CA-03; CALL-01 to
-  CALL-05 and CALL-08 to CALL-10; FB-01 to FB-06; ERR-01; LIM-01. Remaining: NET-05 and CALL-13
-  (re-export is not built); CAT-05 (the `visibility` feature is not built); CALL-07 (residency
-  is not built); CALL-11 and FB-07 (progress, cancellation, input requests and tasks are not
+  CALL-05, CALL-07 (`tests/net/test_net_residency.py`, which also covers FB-01's `residency_result`) and
+  CALL-08 to CALL-10; FB-01 to FB-06; ERR-01; LIM-01. Remaining: NET-05 and CALL-13
+  (re-export is not built); CAT-05 (the `visibility` feature is not built); CALL-11 and FB-07 (progress, cancellation, input requests and tasks are not
   relayed on forwarded calls); CALL-12 (forwarded calls use the 2026-07-28 era only, so there is no
   2025-11-25 session to share); CALL-06 is covered step by step across the files (each refusal, its code
   and `executed`) but not yet by one test that walks every step of §15.4 in order.
@@ -551,7 +624,8 @@ The certificate authority is part of SAJHA; no external PKI is needed.
 
 - **One CA instance per net.** An administrator designates one instance as the net's CA instance
   (`ca.enabled: true` in that net's entry, on that instance only) and initialises it once
-  (`sajha net ca init --net acme-net`), which creates the net's CA key pair. One server may be the CA
+  (`sajha net ca init --net acme-net`), which creates the net's CA key pair. A net of one (no seeds)
+  does this by itself at first start unless `ca.auto_init` is false. One server may be the CA
   instance of several nets, with a separate CA key for each. The private key is a secret reference
   (the net's `ca.key_ref`), stored with owner-only permissions and never sent anywhere; the
   administrator is prompted to back it up.
@@ -592,9 +666,11 @@ its nets, separately, it tries in this order:
    it joins at once alone: no "not joined" notice, no join retries and no gossip traffic, since there
    is nobody to talk to. It accepts a peer later without a restart: an instance that enrolls with
    its CA and joins with this server as its seed, or a peer an administrator adds by address. Until
-   it holds a certificate (an initialised CA, `sajha net ca init`, which a net of one may run without
-   `ca.enabled`; or enrollment with another net's CA) it is not networked, and an info notice says
-   how to give it one. `founder: true` is for the first server that also lists seeds: when they are
+   it holds a certificate it is not networked. By default it creates its own CA at first start
+   (`sajhanet.ca_auto_init`, owner decision; audited, with a warning notice to back up the CA key), so
+   peers can enroll at once; with `ca.auto_init: false` an administrator runs `sajha net ca init` (which
+   a net of one may run without `ca.enabled`) or enrolls with another net's CA, and an info notice says
+   how. `founder: true` is for the first server that also lists seeds: when they are
    all down it starts alone instead of retrying. Malformed seeds are still refused.
 2. **Saved peers.** If no seed answers, the peers in its last saved peer list for that net, most
    recently seen first. Each server saves the peers it knows, per net, to **local disk**: on every
@@ -1274,6 +1350,10 @@ whom, and why) while each block is still enforced only by the instance that set 
 
 Residency is about where data flows, in both directions.
 
+Built in wave 5, phase 5.1: what was built, and where the build differs from this design, is in
+section 5.5 ("Built of section 12: residency"); the rule conditions are in
+[Policy and Audit](Policy%20and%20Audit.md) 3.5.
+
 - **Data classes.** A tool's schema can mark arguments and result fields with
   `x-sajha-data-class` (for example `eu-personal`, `confidential`, `public`); a whole tool can
   declare classes for its results. Instances declare their jurisdiction labels.
@@ -1339,8 +1419,14 @@ Residency is about where data flows, in both directions.
 - **When re-export is enabled**, each call carries a hop count and the list of instances it has
   visited (in signed headers). An instance refuses a call that would exceed
   `sajhanet.max_hops` or revisit an instance, so A → B → A loops cannot form.
-- **Remote LLM tools** count toward both the LLM-tool depth limit (`ai.llm_tools.max_depth` in
-  the LLM Tools design) and the hop limit.
+- **Remote LLM tools** count toward the hop limit: calls a remote LLM tool or planner makes for its own
+  work carry the incoming hop count and visited list onward (protocol §16).
+- **One combined budget.** A chain that crosses instances and nests planners, LLM tools and composites
+  is bounded end to end by `sajhanet.max_call_chain` (default 8): hops plus tools nested in one another
+  on every instance passed. The nesting depth travels with each forwarded call, the home refuses a call
+  over the budget before sending it and the host refuses one on receipt (`-32016 chain_limit`), and the
+  home also refuses to send a chain back to an instance it already passed (`loop`). The per-instance
+  limits (`tools.max_call_depth`, `ai.llm_tools.max_depth`) still apply on each instance.
 
 ---
 
@@ -1583,6 +1669,7 @@ sajhanet:
   bare_aliases: on                  # on | preferences_only | off (section 8.2)
   reexport: false                   # per net; never bridges nets unless on for the receiving net (section 14)
   max_hops: 1
+  max_call_chain: 8                 # hops plus tools nested in one another on every instance passed (section 14)
   allow_remote_llm_tools: true     # LLM tools are shared like plain tools (owner decision)
   default_trust: auto               # auto | review | pinned, for newly joined peers (owner decision)
   anonymous_may_call_remote: false
@@ -1599,7 +1686,7 @@ backend, like federation's upstream records.
 `founder`, `seeds`, `identity`, `ca`, `static_peers`, `export` and `import` (`peer_cache` may also be
 set once as a shared default, with `<net>` in its path). Server-wide only:
 `enabled`, `nets`, `preferences`, `max_fallbacks`, `default_keys`, `persistent_keys`, `snapshots`,
-`memory` and `plugins`. Every other key is a shared default that a net entry may override for its
+`memory`, `plugins`, `max_call_chain` and `allow_remote_llm_tools`. Every other key is a shared default that a net entry may override for its
 own net. There is no `unhealthy_grace_seconds`: tools of an offline host are removed or marked at
 once (section 8.5).
 

@@ -428,6 +428,8 @@ class NetAuthz:
                                       sync=st.settings.key_sync).install()
         st.pub = nblocks.BlockPublication(node, lambda st=st: (st.blocks_version(), st.blocks()), skip=skip).install()
         node.observers.append(lambda kind, data, st=st: self._observe(st, kind, data))
+        if 'residency' not in node.extra_features:
+            node.extra_features.append('residency')                 # honours x-sajha-data-class (protocol §5)
         return st
 
     def detach(self, net: str) -> None:
@@ -683,6 +685,9 @@ class NetAuthz:
             u = s.get('user') if isinstance(s.get('user'), dict) else None
             roles = list(u.get('roles') or []) if u else None
             return import_decision(st.settings.import_, host, str(s.get('tool') or ''), roles)
+        if rule in ('residency_offer', 'residency_arguments', 'residency_result'):
+            from sajha.net.integration.residency import decide as residency_decide
+            return residency_decide(st.node, rule, s, registry=getattr(self.svc, 'tools_registry', None))               # design §12 (data classes, residency rules)
         return plugins.Decision(True, rule)
 
     # ── administration (local administrators only, design §11.3) ───

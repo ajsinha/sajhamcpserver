@@ -22,6 +22,7 @@ x-sajha: &sajha
 
 x-env: &env
   SAJHA_SAJHANET_ENABLED: "true"
+  SAJHA_SAJHANET_PLUGINS_ADMISSION: builtin_ca     # this demo exercises the CA (the shipped default is open)
   SAJHA_SAJHANET_REQUIRE_HTTPS: "false"
   SAJHA_SAJHANET_ALLOWED_NETWORKS: '["172.29.0.0/16"]'
   SAJHA_SAJHANET_TEST_ADMIN_KEY_ENABLED: "true"

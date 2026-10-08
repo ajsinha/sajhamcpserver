@@ -51,7 +51,11 @@ JSON_TYPES = ('string', 'number', 'integer', 'boolean', 'array', 'object', 'null
 POLICY_KEYS = {'name', 'description', 'enabled', 'rules', 'version'}
 RULE_KEYS = {'id', 'description', 'match', 'effect', 'reason', 'approval', 'constraints', 'rate_limit',
              'quota', 'redact', 'screen_output', 'enabled'}
-MATCH_KEYS = {'tools', 'exclude_tools', 'groups', 'annotations', 'callers', 'sources', 'time', 'arguments'}
+MATCH_KEYS = {'tools', 'exclude_tools', 'groups', 'annotations', 'callers', 'sources', 'time', 'arguments',
+              'data_classes', 'flow', 'destination'}
+FLOWS = ('arguments', 'results')
+#: facts of a destination (SAJHA Net residency): net, instance, region, labels.<key>, here
+DESTINATION_FACTS = ('net', 'instance', 'region', 'labels', 'here')
 CALLER_KEYS = {'anonymous', 'users', 'roles', 'api_keys', 'auth_types'}
 
 
@@ -297,6 +301,15 @@ class Match:
     sources: List[str] = field(default_factory=list)
     time: Optional[TimeWindow] = None
     arguments: List[Condition] = field(default_factory=list)
+    data_classes: List[str] = field(default_factory=list)
+    flow: List[str] = field(default_factory=list)
+    destination: List[Condition] = field(default_factory=list)
+    differs_from_here: List[str] = field(default_factory=list)
+
+    @property
+    def residency(self) -> bool:
+        """A residency rule: it names data classes, a flow or a destination (SAJHA Net, design §12)."""
+        return bool(self.data_classes or self.flow or self.destination or self.differs_from_here)
 
     @classmethod
     def parse(cls, raw: Any, where: str) -> 'Match':
@@ -333,6 +346,22 @@ class Match:
         if raw.get('time') is not None:
             m.time = TimeWindow.parse(raw['time'], f'{where}.time')
         m.arguments = parse_conditions(raw.get('arguments'), f'{where}.arguments')
+        m.data_classes = _str_list(raw.get('data_classes'), f'{where}.data_classes')
+        m.flow = [f.lower() for f in _str_list(raw.get('flow'), f'{where}.flow')]
+        bad = [f for f in m.flow if f not in FLOWS]
+        if bad:
+            raise PolicyParseError(f'{where}.flow: unknown flow {", ".join(bad)} (one of {", ".join(FLOWS)})')
+        dest = raw.get('destination')
+        if dest is not None:
+            if not isinstance(dest, dict):
+                raise PolicyParseError(f'{where}.destination: expected a mapping of conditions')
+            dest = dict(dest)
+            m.differs_from_here = _str_list(dest.pop('differs_from_here', None), f'{where}.destination.differs_from_here')
+            for path in list(dest) + m.differs_from_here:
+                if str(path).split('.')[0] not in DESTINATION_FACTS or (path.startswith('labels') and path.count('.') != 1):
+                    raise PolicyParseError(f'{where}.destination: unknown fact {path!r} (net, instance, region, '
+                                           f'labels.<key>, here, differs_from_here)')
+            m.destination = parse_conditions(dest, f'{where}.destination')
         return m
 
     def matches(self, call) -> bool:
@@ -365,6 +394,23 @@ class Match:
         for cond in self.arguments:
             if cond.failure(call.arguments, absent_ok=False) is not None:
                 return False
+        if self.data_classes:
+            have = getattr(call, 'data_classes', None) or ()
+            if not any(fnmatch.fnmatchcase(c, p) for c in have for p in self.data_classes):
+                return False
+        if self.flow and getattr(call, 'flow', None) not in self.flow:
+            return False
+        if self.destination or self.differs_from_here:
+            dest = getattr(call, 'destination', None)
+            if not isinstance(dest, dict):
+                return False                                  # not a call that sends data elsewhere
+            for cond in self.destination:
+                if cond.failure(dest, absent_ok=False) is not None:
+                    return False
+            if self.differs_from_here:
+                here = getattr(call, 'here', None) or {}
+                if not any(get_path(dest, p) != get_path(here, p) for p in self.differs_from_here):
+                    return False
         return True
 
 
@@ -410,6 +456,7 @@ class RedactSpec:
     kinds: Tuple[str, ...] = ()                 # emails, phones, cards, and national id kinds
     custom: Tuple[CustomPattern, ...] = ()
     mode: str = 'redact'
+    data_classes: Tuple[str, ...] = ()          # fields marked with these classes (x-sajha-data-class)
 
     @classmethod
     def parse(cls, raw: Any, where: str) -> 'RedactSpec':
@@ -417,7 +464,7 @@ class RedactSpec:
             raw = {'emails': True, 'phones': True, 'cards': True, 'national_ids': True}
         if not isinstance(raw, dict):
             raise PolicyParseError(f'{where}: expected a mapping or true')
-        _unknown(raw, {'emails', 'phones', 'cards', 'national_ids', 'custom', 'mode'}, where)
+        _unknown(raw, {'emails', 'phones', 'cards', 'national_ids', 'custom', 'mode', 'data_classes'}, where)
         kinds = [k for k in ('emails', 'phones', 'cards') if raw.get(k)]
         ids = raw.get('national_ids')
         if ids is True:
@@ -444,15 +491,16 @@ class RedactSpec:
         mode = str(raw.get('mode') or 'redact').lower()
         if mode not in REDACT_MODES:
             raise PolicyParseError(f'{where}.mode: one of {", ".join(REDACT_MODES)}')
-        return cls(tuple(kinds), tuple(custom), mode)
+        return cls(tuple(kinds), tuple(custom), mode, tuple(_str_list(raw.get('data_classes'), f'{where}.data_classes')))
 
     def merge(self, other: 'RedactSpec') -> 'RedactSpec':
         kinds = tuple(dict.fromkeys(self.kinds + other.kinds))
         mode = 'redact' if 'redact' in (self.mode, other.mode) else 'mask'
-        return RedactSpec(kinds, self.custom + other.custom, mode)
+        return RedactSpec(kinds, self.custom + other.custom, mode,
+                          tuple(dict.fromkeys(self.data_classes + other.data_classes)))
 
     def empty(self) -> bool:
-        return not self.kinds and not self.custom
+        return not self.kinds and not self.custom and not self.data_classes
 
 
 @dataclass
@@ -531,7 +579,8 @@ class Rule:
         if self.quota:
             ob.append(f'quota {self.quota.limit}/{self.quota.period}')
         if self.redact:
-            ob.append('redact ' + ','.join(list(self.redact.kinds) + [c.name for c in self.redact.custom]))
+            ob.append('redact ' + ','.join(list(self.redact.kinds) + [c.name for c in self.redact.custom]
+                                           + [f'class:{c}' for c in self.redact.data_classes]))
         if self.screen_output:
             ob.append(f'screen {self.screen_output}')
         return {'id': self.id, 'key': self.key, 'description': self.description, 'effect': self.effect,

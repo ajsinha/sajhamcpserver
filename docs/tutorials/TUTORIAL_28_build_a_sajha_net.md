@@ -63,9 +63,17 @@ page (**Admin > SAJHA Net**) says how to enroll.
 Every server is listed on its own Instances page, even with SAJHA Net off: a SAJHA that is in no net is
 a net of one too.
 
+**With or without a CA.** This compose file sets `sajhanet.plugins.admission: builtin_ca`, so steps 3
+and 4 show the CA. The shipped configuration uses **open mode** instead (`admission: open`, no CA): each
+server makes its own self-signed certificate, `cust-na` and `treasury-na` join through their seed at
+start, and you skip to step 5. In open mode the first server to claim a name keeps it; another server
+claiming the same name later is refused with `name_conflict`.
+
 ### 3. Make risk-eu the net's CA
 
-The CA's key never leaves the CA instance. Create it once, on `risk-eu`:
+The CA's key never leaves the CA instance. `risk-eu` has no seeds, so it is a net of one and created
+its CA at first start (`sajhanet.ca_auto_init`, on by default); the console shows a notice asking you to
+back up the key. Only if you turned that off, create it once, on `risk-eu`:
 
 ```bash
 sajha -s http://127.0.0.1:3201 -k sja_test_admin_dev_key_0001 net ca init --net demo-net

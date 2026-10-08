@@ -50,6 +50,35 @@ class PinnedTrust(Trust):
         return None
 
 
+class FirstUseTrust(Trust):
+    """``admission: open`` (owner decision, for now): no CA. A peer's self-signed certificate for this
+    net is accepted the first time its instance name is seen, and that key is then remembered against
+    the name (``remember``/``known``), so another server claiming the name later is refused loudly."""
+
+    def __init__(self, net: str, known: Callable[[], Dict[str, str]], remember: Callable[[str, str], None]):
+        self.net = net
+        self._known = known
+        self._remember = remember
+
+    def check_chain(self, chain, now):
+        if len(chain) != 1:
+            raise crypto.CryptoError('certificate_invalid', 'open mode expects one self-signed certificate')
+        crypto.verify_self_signed(chain[0], now)
+        o, cn = crypto.subject_of(chain[0])
+        if o != self.net or not cn:
+            raise crypto.CryptoError('certificate_invalid', f'the certificate is for {o}, not {self.net}')
+        tp = crypto.thumbprint(crypto.cert_der(chain[0]))
+        seen = (self._known() or {}).get(cn)
+        if seen is None:
+            self._remember(cn, tp)
+        elif seen != tp:
+            raise crypto.CryptoError('name_conflict', f'{cn} is already a member of {self.net} with another key '
+                                     f'({seen[:16]}…); an administrator can forget the old key if it was replaced')
+
+    def revocation(self, serial, instance):
+        return None
+
+
 def revocation_reason(rl: Optional[Dict[str, Any]], serial: str, instance: str) -> Optional[str]:
     if not rl:
         return None
@@ -81,6 +110,19 @@ class BuiltinCA(AdmissionProvider):
 
     def trust(self, net, cfg, ca_certificate, revocations, pins):
         return CATrust(net, ca_certificate, revocations)
+
+
+@register('admission')
+class OpenAdmission(AdmissionProvider):
+    """No CA: self-signed certificates, accepted on first use and then held to their name."""
+    name = 'open'
+    manual = True                      # self-signed identity, no CA, no revocation lists
+
+    def trust(self, net, cfg, ca_certificate, revocations, pins, known=None, remember=None):
+        if known is None or remember is None:            # no store given: remember in memory
+            mem: Dict[str, str] = {}
+            known, remember = (lambda: mem), mem.__setitem__
+        return FirstUseTrust(net, known, remember)
 
 
 @register('admission')

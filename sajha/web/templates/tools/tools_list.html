@@ -211,7 +211,9 @@ function netBadge(t) {
     const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
     return `<span class="badge ${cls}" title="SAJHA Net: hosted by ${esc(t.net.instance)} in ${esc(t.net.net)}; ${esc(st)}">` +
            `<i class="bi bi-diagram-3 me-1"></i>${esc(t.net.net)} · ${esc(t.net.instance)}${st !== 'active' ? ' · ' + esc(st) : ''}</span>` +
-           (t.net.alias && t.net.resolution ? ` <span class="badge bg-light text-dark" title="plain name: ${esc(t.net.resolution.join(', '))}">alias</span>` : '');
+           (t.net.alias && t.net.resolution ? ` <span class="badge bg-light text-dark" title="plain name: ${esc(t.net.resolution.join(', '))}">alias</span>` : '') +
+           (t.net.data_classes ? ['arguments', 'results'].filter(k => (t.net.data_classes[k] || []).length).map(k =>
+               ` <span class="badge bg-light text-dark" title="Data classes of its ${k} (residency rules apply)">${k}: ${esc(t.net.data_classes[k].join(', '))}</span>`).join('') : '');
 }
 
 function applyFilters() {

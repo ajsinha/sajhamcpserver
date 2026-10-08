@@ -1583,7 +1583,8 @@ chosen by §6.4, in the net the chosen host was learned in, with `params.name` s
 own tool name (not the qualified name or the tool part) and the arguments unchanged after the home's
 own checks. The home SHOULD add
 `params._meta["io.sajha/net"] = {"home": "<home>", "qualified_name": "<net>__<prefix>__<tool part>"}`
-for the host's audit, and, on the second and later attempts of one call (§15.8), `"attempt": <n>`. Arguments travel in the body, covered by `Content-Digest`; any `Mcp-Param-*` headers
+for the host's audit, on the second and later attempts of one call (§15.8), `"attempt": <n>`, and, when
+the call is made from inside tools running one inside another, `"depth": <n>` (§16). Arguments travel in the body, covered by `Content-Digest`; any `Mcp-Param-*` headers
 mirroring them are covered by the signature (§8.5).
 
 ### 15.2 Headers
@@ -1783,6 +1784,13 @@ A host never needs to know whether a call is a fallback; it handles every attemp
   the hop count or its last element is not `<Sajha-Net-Name>/<Sajha-Net-From>`.
 - Calls made by a remote LLM tool for its own work start a new call chain at the host, but MUST carry
   the incoming hop count and visited list forward, so that remote LLM tools count toward the hop limit.
+- **Depth.** `params._meta["io.sajha/net"].depth` (a non-negative integer, absent meaning 0) is the number
+  of tools running one inside another (planners' tools, LLM tools, composites) on every participant the
+  call has passed, up to the call; a participant forwarding a call made inside a forwarded call adds its
+  own nesting to the depth it received. A receiver refuses with `-32016 chain_limit` when hop plus depth
+  exceeds its maximum (SAJHA: `sajhanet.max_call_chain`, default 8), and `hop_inconsistent` when `depth`
+  is not a non-negative integer. A home SHOULD refuse before sending a call that would exceed its own
+  maximum (`chain_limit`), or that would go to a participant already in the visited list (`loop`).
 
 ## 17. Error model
 
@@ -1799,7 +1807,7 @@ already and never emits `-32002` on the modern path):
 | `-32013` | Identity refused | `key_unknown`, `key_disabled`, `key_expired`, `key_revoked`, `key_not_from_home`, `no_account`, `assertion_invalid`, `https_required`, `anonymous`, `ambiguous_credentials` | host (home for `https_required`, `anonymous`) | 200 |
 | `-32014` | Peer refused | the 401 and 403 reasons of §7.4 that apply to authentication and revocation | host | 401 or 403 as in §7.4 |
 | `-32015` | Blocked | `instance`, `inbound`, `outbound`, `tool`, `user` | either | 200 |
-| `-32016` | Hop refused | `hop_limit`, `loop`, `hop_inconsistent` | host | 200 |
+| `-32016` | Hop refused | `hop_limit`, `loop`, `hop_inconsistent`, `chain_limit` | host (home too, §16) | 200 |
 | `-32017` | Version unsupported | `unsupported_version` | host | 400 |
 | `-32018` | Import refused | `import`, `contract_conflict` (the tool is quarantined, §10.7; `data` adds `conflict`) | home only; never sent between participants | — |
 | `-32019` | Instance unavailable | host: `draining`, `overloaded`, `rate_limited`; home: `unreachable`, `timeout`, `circuit_open`, `unavailable` (host `suspect`), `response_invalid`, `no_host` (no eligible host left after fallback, §15.8) | host (sent only before execution, §15.4) or home | host: 503, or 429 for `rate_limited`; home: — |
@@ -1832,6 +1840,7 @@ because other implementations may use the same range for other things:
 | `executed` | REQUIRED on every refusal of a forwarded `tools/call` (and of the `tasks/*` and MRTR follow-ups of §15.6): `false` when the host guarantees the tool was not invoked and no effect of the call happened, `true` when it was invoked. A host MUST set `false` only when that is certain. Absent means unknown and is treated as possibly executed (§15.8) |
 | `retryable` | true only when the same request may succeed later unchanged (`timeout`, `unreachable`, `rate_limited`, `draining`, `overloaded`) |
 | `attempt` | on a home-side refusal of a call that made several attempts, the number of attempts made |
+| `hops`, `depth`, `limit` | on a home-side `-32016`, the hop count and depth the call would have had and the maximum it exceeded |
 | `conflict` | for `contract_conflict`: `{"tool", "offers": [{"instance", "contract_hash"}, ...]}`, every host offering the tool and its hash |
 | `supported_versions` | for `-32017` |
 | `response_signature` | §8.9, when the error ends a stream |
@@ -2042,7 +2051,7 @@ vectors for SIG-01, SIG-12 and REC-01.
 | CALL-05 | S A | A net-signed request also carrying `Authorization` or the ordinary API-key header → `-32013 ambiguous_credentials`; a request with `Sajha-Net-*` headers and a bad signature is never served. |
 | CALL-06 | S A | Each step of §15.4 refuses with its code and reason, in order, with `data["io.sajha/net"]` complete. |
 | CALL-07 | S A (`residency`) | Arguments of a class the host may not receive are refused at the home (`residency_arguments`); results the home may not receive are refused or redacted at the host (`residency_result`). |
-| CALL-08 | S A | `hop_limit`, `loop` (including the receiver's identity in another of its nets) and `hop_inconsistent` (a last `Sajha-Net-Visited` entry other than `<Sajha-Net-Name>/<Sajha-Net-From>`) are refused with `-32016`. |
+| CALL-08 | S A | `hop_limit`, `loop` (including the receiver's identity in another of its nets), `hop_inconsistent` (a last `Sajha-Net-Visited` entry other than `<Sajha-Net-Name>/<Sajha-Net-From>`) and `chain_limit` (hop plus `depth` over the maximum) are refused with `-32016`. |
 | CALL-09 | S | A refusal reaches the home's caller as `isError: true` with `_meta["io.sajha/net"].refusal`. |
 | CALL-10 | S A | The raw key appears in no log, audit record, trace attribute, metric label or stored row on either side. |
 | CALL-11 | S A (`progress`, `cancellation`) | Progress reaches the caller; the caller's cancellation reaches the host. |

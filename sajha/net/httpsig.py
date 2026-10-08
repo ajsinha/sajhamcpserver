@@ -320,7 +320,7 @@ def _chain_checks(h: Dict[str, str], trust: Trust, net: str, now: float) -> List
     try:
         trust.check_chain(chain, now)
     except crypto.CryptoError as e:
-        raise NetError('certificate_invalid', e.detail)
+        raise NetError('name_conflict' if e.reason == 'name_conflict' else 'certificate_invalid', e.detail)
     o, cn = crypto.subject_of(chain[0])
     if o != net:
         raise NetError('net_mismatch', 'the certificate names another net')

@@ -428,6 +428,19 @@ the file format and every shipped file. `ai.ask.planner` sets the default; an ad
 planner. Writing one: a file ([Tutorial 27](../tutorials/TUTORIAL_27_write_a_planner.md)), or in
 Python, [Extending the Intelligence Layer §4.5](Extending%20the%20Intelligence%20Layer.md#45-a-planner-extension-point).
 
+**Planners across SAJHA Net.** The shortlist holds this server's own tools, SAJHA Net proxies and
+federated tools together, and records for each where it runs and why it ranked there
+(`sajha/ai/locality.py`; the `locality` field of each `shortlist` event entry): local tools first,
+then remote hosts by `sajhanet.preferences`, same region, health and indicative latency, as small
+nudges of the resolver's score. A **locality restriction** keeps a planner to `local` tools or to
+one net (`net:<name>`, this server's tools plus that net's): `locality` on `POST /api/ai/ask`, else
+the planner's `settings.locality` (in a planner file or a `planner_config` overlay), else
+`ai.ask.locality` (default `any`). A remote tool, including another instance's LLM tool, runs on its
+host as the user with the host's models and budgets; it counts here as one tool call, and its model
+spend is reported back but charged only there. A chain that crosses instances and nests planners'
+tools, LLM tools and composites is bounded by `sajhanet.max_call_chain`. [SAJHA Net](SAJHA%20Net.md)
+sections 13 and 14 own the rules.
+
 **Limits**: `max_steps`, `max_tool_calls`, `max_tokens` (all model calls of one ask) and
 `timeout_s`; the reason the loop stopped is reported as `stopped_by`: `answer`,
 `step_limit`, `tool_limit`, `budget`, `timeout`, `needs_confirmation` or `error`.
@@ -576,8 +589,8 @@ corpus in memory; only the memory store keeps it, by design.
 
 Authentication as for the other `/api` routes (session cookie, JWT or API key). Body:
 `{"question": "...", "model": "<alias or provider/model>", "confirm": ["<fingerprint>"],
-"conversation_id": "new" | "<id>", "planner": "<name>"}` (only `question` is required;
-`planner` is for admins). The response is the `AskResult` as JSON, or, when the
+"conversation_id": "new" | "<id>", "planner": "<name>", "locality": "any" | "local" | "net:<name>"}`
+(only `question` is required; `planner` is for admins). The response is the `AskResult` as JSON, or, when the
 request sends `Accept: text/event-stream` or `?stream=1`, a Server-Sent Events stream: each
 event is `event: <type>` with `data:` the JSON below. Every event has `type` and an
 increasing `seq`; the order is fixed: `shortlist` first, `done` last, a `tool_call` before
@@ -585,7 +598,7 @@ its `tool_result`, all tool results before the answer.
 
 | `type` | Fields |
 |---|---|
-| `shortlist` | `tools: [{name, description, score}]` |
+| `shortlist` | `tools: [{name, description, score, locality}]` (`locality`: `where` (`local`, `remote`, `federated`), for a remote tool its `net`, `instance`, `region`, `latency_ms_p50`, `health`, and `why` in words); `locality: {restrict, by}` when the ask is restricted |
 | `model` | `model` (`provider/model`), `step` |
 | `plan` (optional) | `planner`, `revision`, `steps: [{id, tool, arguments, depends_on, why, status, call_id}]`: sent by planners that plan ahead, after the `model` event of the call that made the plan and before the `tool_call`s it schedules; `call_id` is the id of the step's `tool_call` |
 | `tool_call` | `id`, `name`, `arguments`, `step` |

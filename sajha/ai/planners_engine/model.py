@@ -40,6 +40,9 @@ READ_ONLY = {"input", "original_question", "history", "summary", "shortlist", "i
              "counters", "remaining", "settings", "planner"}
 SLOT_TYPES = ("string", "number", "integer", "boolean", "array", "object", "any")
 MAX_STAGES = 100
+# settings every planner accepts without declaring them: ``locality`` (any | local | net:<name>) restricts
+# where the tools offered to it run (sajha/ai/locality.py; docs/architecture/SAJHA Net.md §13)
+RESERVED_SETTINGS = ("locality",)
 MAX_CUSTOM_SLOTS = 32
 MAX_ALTERNATIVES = 10
 MAX_RULES = 200
@@ -286,6 +289,11 @@ def _digest(doc: Any) -> str:
     return hashlib.sha256(json.dumps(doc, sort_keys=True, default=str).encode()).hexdigest()[:16]
 
 
+def own_settings(settings: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """A planner's settings without the reserved ones (what a Python planner's config model sees)."""
+    return {k: v for k, v in (settings or {}).items() if k not in RESERVED_SETTINGS}
+
+
 def apply_overlay(doc: Dict[str, Any], overlay: Optional[Dict[str, Any]], where: str) -> Dict[str, Any]:
     """Replace top-level ``settings`` keys and re-point ``models`` roles (§2.5). Unknown settings
     keys and roles are refused: an overlay cannot add what the file does not declare."""
@@ -296,7 +304,13 @@ def apply_overlay(doc: Dict[str, Any], overlay: Optional[Dict[str, Any]], where:
     if not isinstance(sets, dict):
         raise ValueError(f"{where}: settings must be an object")
     declared = out.get("settings") or {}
-    unknown = sorted(k for k in sets if k not in declared)
+    unknown = sorted(k for k in sets if k not in declared and k not in RESERVED_SETTINGS)
+    if "locality" in sets:
+        from sajha.ai.locality import parse
+        try:
+            parse(sets["locality"])
+        except ValueError as e:
+            raise ValueError(f"{where}: settings.{e}")
     if unknown:
         raise ValueError(f"{where}: unknown setting(s) {unknown} (the planner declares: {sorted(declared)})")
     out["settings"] = {**declared, **copy.deepcopy(sets)}
@@ -360,6 +374,13 @@ def compile_planner(doc: Any, *, file_stem: Optional[str] = None, ceilings: Opti
     pdef = PlannerDef(name=name, version=version, kind=kind, description=str(doc.get("description") or ""),
                       use_when=str(doc.get("use_when") or ""), settings=dict(doc.get("settings") or {}),
                       file=file, raw=doc, digest=_digest(doc))
+    if isinstance(doc.get("settings"), dict) and "locality" in doc["settings"]:
+        from sajha.ai.locality import LocalityError, parse
+        try:
+            parse(doc["settings"]["locality"])
+        except LocalityError as e:
+            cx.err("P011", "settings.locality", str(e))
+            raise PlannerError(who, cx.diags)
     if kind == "python":
         for msg in schema_errors(doc, "pythonPlanner"):
             cx.err("P011", "", msg)
@@ -392,7 +413,7 @@ def _python_kind(doc, pdef: PlannerDef, cx: _Ctx, python_class) -> None:
             cls = getattr(importlib.import_module(mod), attr)
             if not (isinstance(cls, type) and issubclass(cls, Planner)):
                 raise TypeError("not a subclass of sajha.ai.planners.Planner")
-        cls.config_model(**(doc.get("settings") or {}))
+        cls.config_model(**own_settings(doc.get("settings")))
         pdef.cls = cls
     except ValidationError as e:
         cx.err("P061", "settings", f'class "{cls_path}": {e}'.replace("\n", " ")[:400])

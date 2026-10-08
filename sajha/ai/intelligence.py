@@ -96,7 +96,20 @@ def _net_of(out: Any) -> Optional[Dict[str, str]]:
             isinstance(out.get("_meta"), dict) else None)
     if not isinstance(meta, dict) or not meta.get("instance") or not meta.get("net"):
         return None
-    return {k: str(meta[k]) for k in ("net", "instance", "qualified_name") if meta.get(k)}
+    out: Dict[str, Any] = {k: str(meta[k]) for k in ("net", "instance", "qualified_name") if meta.get(k)}
+    dc = meta.get("data_classes") if isinstance(meta.get("data_classes"), dict) else {}
+    if dc.get("results"):
+        out["data_classes"] = [str(c) for c in dc["results"]]    # what conversation memory may keep (residency)
+    return out
+
+
+def _residency_offered(name: str) -> bool:
+    """False for a remote tool residency rules refuse wherever it is hosted (SAJHA Net design §13)."""
+    try:
+        from sajha.net.integration.residency import offered
+        return offered(name)
+    except Exception:
+        return True
 
 
 @dataclass
@@ -274,12 +287,17 @@ class IntelligenceService:
                 self._resolver.refresh_lexical()
         return self._resolver
 
-    def shortlist(self, question: str, ctx: RequestContext, among: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    def shortlist(self, question: str, ctx: RequestContext, among: Optional[List[str]] = None,
+                  locality: Any = None) -> List[Dict[str, Any]]:
         """The tools offered for ``question``. ``among`` (an LLM tool's allowed set) ranks only those
-        tools, and offers them all when there are no more than the shortlist size."""
+        tools, and offers them all when there are no more than the shortlist size. ``locality``
+        (``any`` | ``local`` | ``net:<name>``, or a parsed ``(kind, net)``) restricts where they run;
+        local tools rank before remote ones either way (sajha/ai/locality.py)."""
+        from sajha.ai import locality as loc
+        kind, net = locality if isinstance(locality, tuple) else loc.parse(locality)
         n = max(1, self.settings.shortlist)
         if among is not None:
-            return self._shortlist_among(question, ctx, among, n)
+            return loc.rank(self._shortlist_among(question, ctx, among, None), kind, net)[:n]
         try:
             matches = self.resolver.resolve(question, top_k=n * 3)
         except Exception as e:
@@ -294,14 +312,17 @@ class IntelligenceService:
                 continue
             if ctx.can_use_tool is not None and not ctx.can_use_tool(m.tool_name):
                 continue
+            if not _residency_offered(m.tool_name):
+                continue
             out.append({"name": m.tool_name, "description": (tool.description or "")[:300],
                         "score": round(float(m.confidence), 4), "tool": tool})
-            if len(out) >= n:
-                break
-        return out
+        return loc.rank(out, kind, net)[:n]
 
-    def _shortlist_among(self, question: str, ctx: RequestContext, among: List[str], n: int) -> List[Dict[str, Any]]:
-        names = [a for a in dict.fromkeys(among) if ctx.can_use_tool is None or ctx.can_use_tool(a)]
+    def _shortlist_among(self, question: str, ctx: RequestContext, among: List[str],
+                         n: Optional[int]) -> List[Dict[str, Any]]:
+        n = n if n is not None else max(1, self.settings.shortlist)
+        names = [a for a in dict.fromkeys(among) if (ctx.can_use_tool is None or ctx.can_use_tool(a))
+                 and _residency_offered(a)]
         scores: Dict[str, float] = {}
         if len(names) > n:
             try:
@@ -318,9 +339,28 @@ class IntelligenceService:
                 continue
             out.append({"name": name, "description": (tool.description or "")[:300],
                         "score": round(scores.get(name, 0.0), 4), "tool": tool})
-            if len(out) >= n:
-                break
         return out
+
+    def _locality(self, explicit: Any, planner: Any, info: Dict[str, Any]):
+        """(kind, net, source) of the locality restriction for this ask (sajha/ai/locality.py)."""
+        from sajha.ai import locality as loc
+        settings = None
+        if explicit in (None, ""):
+            try:
+                from sajha.ai.planners_engine import ask_overlays, get_registry
+                ref = planner if planner is not None else self.settings.planner
+                if not (isinstance(ref, dict) and "use" not in ref):            # not an inline definition
+                    overlays = dict(info.get("overlays") or {})
+                    if not info or planner is None:
+                        overlays = {**ask_overlays(self.settings.planner_config), **overlays}
+                    settings = get_registry().compiled(ref, overlays).settings
+            except Exception:
+                settings = None                    # the planner's own errors surface when it is built
+        try:
+            return loc.resolve_spec(explicit, settings, getattr(self.settings, "locality", "any"))
+        except loc.LocalityError as e:
+            logger.warning(f"ask: {e}; offering tools from anywhere")
+            return "any", "", "default"
 
     # ── ask ────────────────────────────────────────────────────
     def ask(self, question: str, ctx: Optional[RequestContext] = None, *, model: Optional[str] = None,
@@ -353,7 +393,7 @@ class IntelligenceService:
                    limits: Optional[Dict[str, Any]] = None, memory_context: Any = None,
                    tools: Optional[List[str]] = None, should_stop: Optional[Callable[[AskResult], Optional[str]]] = None,
                    token_stop: str = "budget", audit: bool = True,
-                   planner_info: Optional[Dict[str, Any]] = None) -> Iterator[Dict[str, Any]]:
+                   planner_info: Optional[Dict[str, Any]] = None, locality: Any = None) -> Iterator[Dict[str, Any]]:
         """The ask as events. ``conversation_id`` ("new" or an id this user owns) adds conversation
         memory; ``planner`` overrides ``ai.ask.planner`` for this ask: a planner reference
         (``name``, ``name@version``, ``package.module:Class``), an inline definition or an overlay
@@ -367,7 +407,10 @@ class IntelligenceService:
         cancellation, cost), ``token_stop`` (the stop reason when ``max_tokens`` is reached),
         ``audit`` (False: the tool writes its own audit record) and ``planner_info`` (``by``,
         ``tool``, ``choices``, ``input``, ``overlays``, ``inline_defaults``, ``output_schema``,
-        ``force_model``: how the tool resolved its planner, LLM Tools §9.12)."""
+        ``force_model``: how the tool resolved its planner, LLM Tools §9.12).
+
+        ``locality`` (``any`` | ``local`` | ``net:<name>``) restricts where offered tools run; unset, the
+        planner's ``settings.locality`` and then ``ai.ask.locality`` decide (sajha/ai/locality.py)."""
         from sajha.ai.planners import Answer, CallTools, Emit, Limits, PlanState, ShortlistEntry, as_tool_call
         from sajha.ai.planners_engine import ask_overlays, get_registry
         s = self.settings
@@ -425,12 +468,15 @@ class IntelligenceService:
                 res.standalone_question = asked
 
         tools_ok = self.gateway.policy_allows_tools(ctx)
-        sl = self.shortlist(asked, ctx, among=tools) if tools_ok and (tools is None or tools) else []
+        where = self._locality(locality, planner, info)
+        sl = self.shortlist(asked, ctx, among=tools, locality=where[:2]) if tools_ok and (tools is None or tools) else []
         offered = {t["name"]: t["tool"] for t in sl}
         entries = [ShortlistEntry(t["name"], _tool_definition(t["name"], t["tool"]), t["score"], t["description"])
                    for t in sl]
         res.shortlist = [t["name"] for t in sl]
-        yield ev("shortlist", tools=[{k: v for k, v in t.items() if k != "tool"} for t in sl])
+        yield ev("shortlist", tools=[{k: v for k, v in t.items() if k != "tool"} for t in sl],
+                 **({"locality": {"restrict": where[0] if where[0] != "net" else f"net:{where[1]}", "by": where[2]}}
+                    if where[0] != "any" else {}))
 
         system = SYSTEM_PROMPT
         if instructions:

@@ -518,6 +518,15 @@ async def api_ask(request: Request, auth: AuthContext = Depends(require_auth)):
         except Exception as e:
             return JSONResponse({'error': str(e)[:300]}, status_code=400)
 
+    # where the offered tools may run (any signed-in or anonymous caller may narrow it)
+    locality = data.get('locality') or None
+    if locality is not None:
+        from sajha.ai.locality import LocalityError, parse as parse_locality
+        try:
+            parse_locality(locality if isinstance(locality, str) else '?')
+        except LocalityError as e:
+            return JSONResponse({'error': str(e)}, status_code=400)
+
     access_cache: dict = {}
 
     def can_use_tool(name: str) -> bool:
@@ -532,11 +541,12 @@ async def api_ask(request: Request, auth: AuthContext = Depends(require_auth)):
                    or request.query_params.get('stream', '').lower() in ('1', 'true', 'yes'))
     if not want_stream:
         result = await run_in_threadpool(lambda: svc.ask(question, ctx, model=model, confirm=confirm,
-                                                         conversation_id=conversation_id, planner=planner))
+                                                         conversation_id=conversation_id, planner=planner,
+                                                         locality=locality))
         return JSONResponse(result.to_dict())
 
     gen = svc.stream_ask(question, ctx, model=model, confirm=confirm, conversation_id=conversation_id,
-                         planner=planner)
+                         planner=planner, locality=locality)
     # The shortlist (the only step that consults RBAC) runs now, while the request's DB session is open.
     first = await run_in_threadpool(next, gen)
 

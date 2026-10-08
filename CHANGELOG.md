@@ -4,7 +4,55 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
-Nothing yet.
+- Added: open mode, `sajhanet.plugins.admission: open` (owner decision, the shipped setting for now):
+  SAJHA Net without a CA. Self-signed certificates are accepted the first time a name is seen and each
+  name is then held to its key (an impostor is refused with `name_conflict`); remembered keys are kept
+  on disk and can be listed and forgotten (`/api/sajhanet/nets/{net}/first-use`). Set `builtin_ca` to
+  use the CA. Fixed: a trust refusal for a held name now reports `name_conflict`, not
+  `certificate_invalid`.
+- Added: a net of one creates its CA at first start (`sajhanet.ca_auto_init`, default on; per net
+  `ca.auto_init`; owner decision): audited, with a warning notice to back up the CA key. Peers can
+  enroll without running `sajha net ca init` first.
+
+### SAJHA Net: residency (wave 5, phase 5.1)
+
+- Added: **data classes**: `x-sajha-data-class` marks on schema fields (nested and array items too), a
+  tool's own `data_classes`, and classification by configuration (`sajhanet.data_classes.tools`); each
+  exported tool carries the summary in its net metadata.
+- Added: **residency rules**, the policy conditions `data_classes`, `flow` and `destination` (net,
+  instance, region, labels, here, `differs_from_here`), and `redact: {data_classes: [...]}` for
+  field-level redaction ([Policy and Audit](docs/architecture/Policy%20and%20Audit.md) 3.5). Checked at
+  the home before arguments leave (`-32012 residency_arguments`, executed false; a plain name falls back
+  to a host that may receive the data), at the host before results leave (`-32012 residency_result`,
+  executed true) and at the home as results arrive; `sajhanet.residency.enabled` and
+  `sajhanet.residency.default_effect`.
+- Added: **residency-aware shortlists**: a remote tool whose host may not receive the data every call
+  sends is not eligible there (resolution order, `tools/list`, Ask SAJHA's shortlist).
+- Added: **memory of remote results** by data class: `sajhanet.memory.remote_results` and
+  `sajhanet.memory.by_class` (`store`, `summary` without figures, `none`).
+- Added: the `net.residency` audit record for every decision on classified data, the metric
+  `sajha_net_residency_decisions_total`, the feature `residency` in the extension, data classes on the
+  Tools page and the Remote tools page. Conformance CALL-07 is covered.
+
+### SAJHA Net: planners, LLM tools and the combined limit (wave 5, phase 5.1)
+
+- Added: **locality-aware shortlists** (`sajha/ai/locality.py`): planners see local, remote and federated
+  tools in one shortlist, local first, then remote hosts by `sajhanet.preferences`, same region, health
+  and indicative latency; each `shortlist` event entry records `locality` with the reason in words;
+  proxies of an unavailable host are not offered.
+- Added: a **locality restriction** (`any`, `local`, `net:<name>`): `locality` on `POST /api/ai/ask`, the
+  reserved planner setting `settings.locality` (accepted by every planner, in a file or a
+  `planner_config` overlay), and `ai.ask.locality` (default `any`).
+- Added: **remote LLM tools**: exported with `llm_tool: true` unless `sajhanet.allow_remote_llm_tools` is
+  false (now read); they run on their host as the user with the host's models and budgets, and the host
+  reports the spend in `_meta["io.sajha/net"].usage`, which the home records in `net.call_attempt` and
+  never charges again.
+- Added: the **combined hop and depth limit** `sajhanet.max_call_chain` (default 8, at most 32): hops plus
+  tools nested in one another on every instance passed. Forwarded calls carry their nesting depth
+  (`params._meta["io.sajha/net"].depth`); the host runs the tool with the incoming chain, so calls it
+  makes onward carry the hop count and visited list (protocol §16); the home refuses before sending
+  (`-32016` `loop`, `hop_limit`, `chain_limit` with `hops`, `depth` and `limit`) and the host on receipt
+  (`chain_limit`, a new reason of `-32016`; CALL-08 extended).
 
 ## v8.0.0 (October 2026) — SAJHA Net core
 

@@ -213,6 +213,13 @@ resolved at load (section 4.2), and `settings.<key>` in expressions and template
 replace top-level keys of `settings` before validation, so a planner is always validated with the
 values it will run with.
 
+One key is reserved and accepted by every planner, declared or not, in a file or an overlay:
+`locality` (`any`, `local` or `net:<name>`), which restricts where the tools offered to the planner
+run: `local` keeps this server's own tools, `net:<name>` adds that SAJHA Net net's remote tools. An
+ask's own `locality` wins over it, and it wins over `ai.ask.locality`
+([SAJHA Net](SAJHA%20Net.md) §13). Another value is refused at load (P011); a Python planner's
+`config_model` never sees it.
+
 ### 3.4 `limits`
 
 | Key | Type | Default | Meaning |

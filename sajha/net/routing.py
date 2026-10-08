@@ -21,8 +21,10 @@ design §8.2, §8.4, §9, §9.1, §14, §15).
 Rule names asked of the :class:`~sajha.net.plugins.RuleEvaluator` (stream D implements them; the
 shipped ``allow_all`` allows everything): ``import`` (net, host, tool, user), ``block_peer`` (net, peer,
 direction), ``service_call`` (net, peer), ``block_user`` (net, peer, user), ``block_tool`` (net, peer,
-tool), ``export`` (net, peer, tool, user), ``residency_arguments`` and ``residency_result`` (net, host,
-tool, user). A decision's ``reason`` becomes the refusal reason when it is a protocol reason.
+tool), ``export`` (net, peer, tool, user), ``residency_offer`` (net, host, tool, user, definition: may the
+tool be offered at all), ``residency_arguments`` and ``residency_result`` (net, host, tool, user, and the
+arguments or result; a decision's ``value`` replaces them, redacted). A decision's ``reason`` becomes the
+refusal reason when it is a protocol reason.
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
@@ -49,6 +51,7 @@ logger = logging.getLogger(__name__)
 
 MODERN = '2026-07-28'
 MAX_HOPS_CAP = 8
+MAX_CHAIN_CAP = 32                 # hops plus nesting depth, end to end (§16)
 MAX_MCP_BODY = 8 * 1024 * 1024
 AVAILABILITY = ('unreachable', 'circuit_open', 'unavailable', 'rate_limited', 'draining', 'overloaded', 'no_host')
 RETRYABLE = ('timeout', 'unreachable', 'rate_limited', 'draining', 'overloaded')
@@ -61,7 +64,7 @@ for _c, _rs in ((RPC_AUTHORIZATION, ('export', 'access', 'policy', 'approval_req
                                 'no_account', 'assertion_invalid', 'https_required', 'anonymous',
                                 'ambiguous_credentials')),
                 (RPC_BLOCKED, ('instance', 'inbound', 'outbound', 'tool', 'user')),
-                (RPC_HOP, ('hop_limit', 'loop', 'hop_inconsistent')),
+                (RPC_HOP, ('hop_limit', 'loop', 'hop_inconsistent', 'chain_limit')),
                 (RPC_VERSION, ('unsupported_version',)),
                 (RPC_IMPORT, ('import',)),
                 (RPC_UNAVAILABLE, ('draining', 'overloaded', 'rate_limited', 'unreachable', 'timeout', 'circuit_open',
@@ -75,12 +78,16 @@ SAFE_WORDS = {
     'contract_conflict': 'the tool is quarantined because its hosts disagree on its contract',
     'import': 'this server does not import the tool for you', 'no_account': 'you have no account there',
     'hop_limit': 'the call passed through too many servers', 'loop': 'the call would loop between servers',
+    'chain_limit': 'the call chain is too long (servers passed plus tools nested in one another)',
     'unreachable': 'the server could not be reached', 'timeout': 'the server did not answer in time',
     'circuit_open': 'the server is failing and calls to it are paused', 'unavailable': 'the server is unavailable',
     'no_host': 'no server offering the tool is available', 'rate_limited': 'too many calls; try again shortly',
     'draining': 'the server is shutting down', 'overloaded': 'the server is overloaded',
     'response_invalid': 'the server\'s answer could not be verified', 'anonymous': 'the call needs a signed-in user',
     'https_required': 'your key may travel only over HTTPS',
+    'residency_arguments': 'the arguments carry data that may not go to that server (data residency); '
+                           'use a tool on a server where the data may go',
+    'residency_result': 'the result carries data that may not come to this server (data residency)',
 }
 
 
@@ -111,6 +118,16 @@ def refusal(code: int, reason: str, side: str, net: str, instance: str, tool: st
             data[k] = v
     return {'code': code, 'message': message or f'Refused by {instance}: {SAFE_WORDS.get(reason, reason)}',
             'data': {EXTENSION_ID: data}}
+
+
+def _decide(rules: RuleEvaluator, rule: str, subject: Dict[str, Any]):
+    """The rule evaluator's whole decision (residency may carry a redacted ``value``); refuse on error."""
+    try:
+        return rules.decide(rule, subject)
+    except Exception as e:
+        logger.warning(f'SAJHA Net rule {rule}: {e}')
+        from sajha.net.plugins import Decision
+        return Decision(False, rule)
 
 
 def new_traceparent(trace_id: Optional[str] = None) -> str:
@@ -248,7 +265,7 @@ class Router:
                  peer: Optional[PeerSettings] = None, clock: Callable[[], float] = time.time,
                  audit: Optional[Callable[[str, Dict[str, Any]], None]] = None,
                  screen_result: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
-                 max_hops: int = 1):
+                 max_hops: int = 1, max_chain: int = 8):
         self.books = list(books)
         self.local_tools = local_tools
         self.preferences = {str(k): [str(x) for x in (v or [])] for k, v in (preferences or {}).items()}
@@ -264,6 +281,7 @@ class Router:
         self.audit = audit
         self.screen_result = screen_result
         self.max_hops = max(1, min(MAX_HOPS_CAP, int(max_hops)))
+        self.max_chain = max(1, min(MAX_CHAIN_CAP, int(max_chain)))
         self._breakers: Dict[Tuple[str, str], PeerBreaker] = {}
         self._windows: Dict[Tuple[str, str], PeerWindow] = {}
         self._latency: Dict[Tuple[str, str], List[float]] = {}
@@ -371,6 +389,11 @@ class Router:
         ok, _ = self._allowed('import', {'net': c.net, 'host': c.host, 'tool': c.host_tool, 'user': user})
         if not ok:
             return 'import rule'
+        ok, _ = self._allowed('residency_offer', {'net': c.net, 'host': c.host, 'tool': c.host_tool, 'user': user,
+                                                  'qualified_name': c.qualified_name,
+                                                  'entry': c.row.get('entry')})
+        if not ok:
+            return 'residency rule'                      # the data every call sends may not go there (§13)
         return ''
 
     def _resolve_qualified(self, name: str, q: Tuple[str, str, str], user) -> Resolution:
@@ -391,6 +414,8 @@ class Router:
                                                               f'on its contract')
             elif why == 'suspect':
                 res.error = (RPC_UNAVAILABLE, 'unavailable', f'{c.host} is unavailable')
+            elif why == 'residency rule':
+                res.error = (RPC_RESIDENCY, 'residency_arguments', f'{name}: the data it needs may not go to {c.host}')
             elif why in ('import rule', 'blocked', 'pinned trust', 'held', 'invalid'):
                 res.error = (RPC_IMPORT, 'import', f'{name} is not available to you on this server')
             if why:
@@ -471,6 +496,9 @@ class Router:
                                                               f'contract')
             elif any(c.why_not == 'suspect' for c in res.skipped):
                 res.error = (RPC_UNAVAILABLE, 'no_host', f'no host offering {name} is available')
+            elif any(c.why_not == 'residency rule' for c in res.skipped):
+                res.error = (RPC_RESIDENCY, 'residency_arguments', f'{name}: the data it needs may not go to any '
+                                                                    f'host offering it')
             elif quarantined is not None:
                 res.conflict = quarantined
                 res.error = (RPC_IMPORT, 'contract_conflict', f'{name} is quarantined: its hosts disagree on its '
@@ -505,8 +533,10 @@ class Router:
 
     def call(self, name: str, arguments: Dict[str, Any], *, user: Optional[Dict[str, Any]] = None,
              traceparent: Optional[str] = None, timeout: Optional[float] = None,
-             hop_in: Optional[Tuple[int, List[str]]] = None) -> Dict[str, Any]:
-        """Call ``name`` (qualified or plain) at its host(s); always returns a CallToolResult."""
+             hop_in: Optional[Tuple[int, List[str]]] = None, depth: int = 0) -> Dict[str, Any]:
+        """Call ``name`` (qualified or plain) at its host(s); always returns a CallToolResult. ``hop_in``
+        is the chain a call made while serving a forwarded call arrived on (hop count, visited list);
+        ``depth`` the tools nested in one another so far on every instance passed (§16)."""
         res = self.resolve(name, user)
         tp = traceparent if trace_of(traceparent) else new_traceparent()
         trace_id = trace_of(tp)
@@ -526,14 +556,15 @@ class Router:
         for i, c in enumerate(tries, start=1):
             if i > 1 and self.clock() >= deadline:
                 break
-            outcome = self._attempt(c, arguments, user, tp, trace_id, i, deadline, hop_in)
+            outcome = self._attempt(c, arguments, user, tp, trace_id, i, deadline, hop_in, depth)
             outcome['attempt'] = i
             attempts.append({k: outcome[k] for k in ('attempt', 'net', 'host', 'qualified_name', 'outcome', 'executed')
                              if k in outcome})
             self._audit('net.call_attempt', {'name': name, 'trace_id': trace_id, 'attempt': i, 'net': c.net,
                                              'host': c.host, 'qualified_name': c.qualified_name,
                                              'reason': c.reason, 'outcome': outcome['outcome'],
-                                             'executed': outcome.get('executed')})
+                                             'executed': outcome.get('executed'),
+                                             'remote_usage': _remote_usage(outcome.get('result'))})
             if outcome['outcome'] == 'answered':
                 self.count('calls', 'answered')
                 if i > 1:
@@ -553,7 +584,11 @@ class Router:
                 break
             availability = outcome['outcome'] in AVAILABILITY and outcome.get('executed') is False
             maybe = outcome.get('executed') is not False
-            if i == 1 and not availability and not maybe:
+            home_residency = outcome['outcome'] == 'residency_arguments' and \
+                (outcome.get('refusal') or {}).get('side') == 'home'   # the next host may receive the data
+            if outcome['outcome'] == 'loop' and (outcome.get('refusal') or {}).get('side') == 'home':
+                continue                                   # that host already served this chain: the next may not
+            if i == 1 and not availability and not maybe and not home_residency:
                 break                                      # a refusal by the first host is its answer (§15.8 rule 2)
             if maybe and not is_safe_to_repeat(c.annotations):
                 break                                      # may have run: never repeat a destructive tool (rule 3)
@@ -571,7 +606,7 @@ class Router:
                 logger.debug(f'SAJHA Net audit {what}: {e}')
 
     def _attempt(self, c: Candidate, arguments, user, tp: str, trace_id: str, attempt: int, deadline: float,
-                 hop_in) -> Dict[str, Any]:
+                 hop_in, depth: int = 0) -> Dict[str, Any]:
         book = c.book
         node = book.node
         out: Dict[str, Any] = {'net': c.net, 'host': c.host, 'qualified_name': c.qualified_name}
@@ -584,10 +619,14 @@ class Router:
         m = node.member(c.host)
         if m is None or m['state'] not in ('alive',):
             return home('unavailable')
-        ok, why = self._allowed('residency_arguments', {'net': c.net, 'host': c.host, 'tool': c.host_tool,
-                                                        'user': user, 'arguments': arguments})
-        if not ok:
+        d = _decide(self.rules, 'residency_arguments', {'net': c.net, 'host': c.host, 'tool': c.host_tool, 'user': user,
+                                                         'arguments': arguments, 'qualified_name': c.qualified_name,
+                                                         'entry': c.row.get('entry'),
+                                                         'trace_id': trace_id})
+        if not d.allow:
             return home('residency_arguments')
+        if isinstance(d.value, dict):
+            arguments = d.value                              # fields of a class that may not go there, redacted
         br = self.breaker(c.net, c.host)
         if not br.allow():
             return home('circuit_open')
@@ -597,8 +636,13 @@ class Router:
         if hop_in:
             hop, visited = int(hop_in[0]) + 1, list(hop_in[1])
         visited.append(f'{c.net}/{node.name}')
+        depth = max(0, int(depth or 0))
+        if f'{c.net}/{c.host}' in visited:               # the host already served this chain: A -> B -> A
+            return home('loop', hops=hop)
         if hop > self.max_hops and hop_in:
-            return home('hop_limit')
+            return home('hop_limit', hops=hop, limit=self.max_hops)
+        if hop + depth > self.max_chain:
+            return home('chain_limit', hops=hop, depth=depth, limit=self.max_chain)
         url = m['record']['url'].rstrip('/')
         try:
             if isinstance(user, dict):
@@ -616,6 +660,8 @@ class Router:
         meta = {'home': node.name, 'qualified_name': c.qualified_name}
         if attempt > 1:
             meta['attempt'] = attempt
+        if depth:
+            meta['depth'] = depth
         body = {'jsonrpc': '2.0', 'id': rid, 'method': 'tools/call',
                 'params': {'name': c.host_tool, 'arguments': arguments,
                            '_meta': {'io.modelcontextprotocol/protocolVersion': MODERN, 'traceparent': my_tp,
@@ -685,6 +731,14 @@ class Router:
         return out
 
 
+def _remote_usage(result: Any) -> Optional[Dict[str, Any]]:
+    """The model spend a host reported for a remote LLM tool (charged there, recorded here for audit)."""
+    if not isinstance(result, dict) or not isinstance(result.get('_meta'), dict):
+        return None
+    u = (result['_meta'].get(EXTENSION_ID) or {}).get('usage')
+    return u if isinstance(u, dict) else None
+
+
 def _ordinal(n: int) -> str:
     return f'{n}{"th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")}'
 
@@ -705,6 +759,7 @@ class CallContext:
     qualified_name: str = ''
     attempt: int = 1
     key_id: str = ''
+    depth: int = 0                 # tools nested in one another on the instances before this one (§16)
 
 
 class HostServer:
@@ -712,7 +767,7 @@ class HostServer:
 
     def __init__(self, book: CatalogBook, *, execute: Callable[[CallContext, Dict[str, Any]], Dict[str, Any]],
                  identity: Optional[IdentityResolver] = None, rules: Optional[RuleEvaluator] = None,
-                 max_hops: int = 1, own_identities: Callable[[], List[str]] = lambda: [],
+                 max_hops: int = 1, own_identities: Callable[[], List[str]] = lambda: [], max_chain: int = 8,
                  other: Optional[Callable[[Dict[str, Any], Any], Dict[str, Any]]] = None,
                  calls_per_minute: int = 600, audit: Optional[Callable[[str, Dict[str, Any]], None]] = None):
         self.book = book
@@ -721,6 +776,7 @@ class HostServer:
         self.identity = identity or NoIdentity()
         self.rules = rules or AllowAll()
         self.max_hops = max(1, min(MAX_HOPS_CAP, int(max_hops)))
+        self.max_chain = max(1, min(MAX_CHAIN_CAP, int(max_chain)))
         self.own_identities = own_identities
         self.other = other
         self.calls_per_minute = calls_per_minute
@@ -839,6 +895,11 @@ class HostServer:
             return no('loop')
         if hop < 1 or len(visited) != hop or visited[-1] != f'{net}/{v.sender}':
             return no('hop_inconsistent')
+        depth = nmeta.get('depth', 0) if isinstance(nmeta, dict) else 0
+        if isinstance(depth, bool) or not isinstance(depth, int) or depth < 0:
+            return no('hop_inconsistent')
+        if hop + depth > self.max_chain:
+            return no('chain_limit')
         # 5: identity (§15.3, §15.5)
         if 'authorization' in h or 'x-api-key' in h:
             return no('ambiguous_credentials')
@@ -878,18 +939,18 @@ class HostServer:
                           visited=visited, home=str(nmeta.get('home') or ''),
                           qualified_name=str(nmeta.get('qualified_name') or ''),
                           attempt=int(nmeta.get('attempt') or 1) if str(nmeta.get('attempt') or 1).isdigit() else 1,
-                          key_id=str((user or {}).get('key_id') or ''))
+                          key_id=str((user or {}).get('key_id') or ''), depth=depth)
         # 10, 11: the host's own access, policy and approvals; execution
         try:
             result = self.execute(ctx, arguments)
         except HostRefusal as e:
             return no(e.reason, executed=e.executed)
         # 12: residency of the result
-        ok, _ = self._allowed('residency_result', {'net': net, 'host': me, 'peer': v.sender, 'tool': tool,
-                                                   'user': user, 'result': result})
-        if not ok:
+        d = _decide(self.rules, 'residency_result', {'net': net, 'host': me, 'peer': v.sender, 'tool': tool,
+                                                      'user': user, 'result': result, 'trace_id': trace_id})
+        if not d.allow:
             return no('residency_result', executed=True)
-        result = dict(result or {})
+        result = dict(d.value if isinstance(d.value, dict) else (result or {}))
         rm = dict((result.get('_meta') or {}).get(EXTENSION_ID) or {})
         rm.setdefault('instance', me)
         result['_meta'] = dict(result.get('_meta') or {}, **{EXTENSION_ID: rm})

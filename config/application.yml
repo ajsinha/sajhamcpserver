@@ -447,6 +447,8 @@ ai:
     max_result_chars: 4000
     mcp_tool_enabled: false            # register the sajha_ask MCP tool
     planner: react                     # a planner in config/planners (react, plan_execute, router, auto, ...)
+    locality: any                      # where offered tools may run: any | local (this server's own) | net:<name>
+                                       # (own tools and that SAJHA Net net's); a planner's settings.locality narrows it
   # Planners: config/planners/<name>.yaml, bounded graphs of stages (docs/architecture/Planner
   # Reference.md). The limits are CEILINGS a planner file may tighten, never raise.
   # Env: SAJHA_AI_PLANNERS_<FIELD>, SAJHA_AI_PLANNERS_LIMITS_<FIELD>.
@@ -851,6 +853,9 @@ sajhanet:
   # Test admin: records marked "test_admin" in config/apikeys.json and config/users.json sign in as an
   # administrator, and SAJHA Net calls between servers carry the test admin key, while this is on.
   # Development and testing only: a critical notice shows on every page while it is active.
+  # A net with no seeds (a net of one) creates its CA at first start, so peers can enroll without
+  # running `sajha net ca init` first; a warning notice asks to back up the CA key. Per net: ca.auto_init.
+  ca_auto_init: true
   test_admin_key:
     enabled: true
   # API keys this server uses toward particular members (local to this server; never shared):
@@ -879,7 +884,8 @@ sajhanet:
   agent_lease_seconds: 15          # the gossip agent's state-store lease (one agent per net across workers)
   plugins:
     membership: gossip             # gossip | static (static_peers in a net entry) | package.module:Class
-    admission: builtin_ca          # builtin_ca | manual (pinned self-signed certificates)
+    admission: open                # open (no CA: self-signed, accepted on first use, then held to the name;
+                                   # owner decision, for now) | builtin_ca (the net's CA) | manual (pinned)
     connector: sajha_native
     key_directory_store: database  # database (sajhanet_api_keys) | memory | package.module:Class
     routing: local_first           # order of the hosts of one tool within a net: local_first | lowest_latency | pinned
@@ -891,6 +897,9 @@ sajhanet:
   refresh_interval_seconds: 300    # re-pull a peer's catalog at least this often, even with no new digest
   default_timeout_seconds: 30      # one forwarded call, and the shared deadline of its fallbacks
   max_hops: 1                      # forwarded calls accepted at most this many hops from their home (at most 8)
+  max_call_chain: 8                # one budget for a whole call chain: hops plus tools nested in one another on every
+                                   # instance passed (planners' tools, LLM tools, composites); at most 32 (§14)
+  allow_remote_llm_tools: true     # export LLM tools like plain tools; they run on this server's models and budgets
   limits:
     max_tools_per_peer: 2000
     max_catalog_bytes: 5242880
@@ -912,6 +921,14 @@ sajhanet:
   role_maps: {}                    # {instance: {remote role: [local roles]}}, for unknown: map_roles
   service_calls: false             # accept forwarded calls that carry no user
   anonymous_may_call_remote: false
+  residency:                       # data classes and residency rules on forwarded calls (SAJHA Net §12)
+    enabled: true
+    default_effect: allow          # deny: classified data crosses only when a residency rule allows it
+  data_classes:
+    tools: {}                      # {<tool or glob>: {arguments: {<path>: <class>}, results: {<path>: <class>}}}
+  memory:
+    remote_results: store          # store | summary | none: what memory keeps of answers using remote results
+    by_class: {}                   # {<class or glob>: store | summary | none}; the strictest wins
   # a net entry may also set export: and import: rules (see the Configuration Reference)
   peer_cache:
     interval_minutes: 10           # the saved peer list is written on change and at least this often

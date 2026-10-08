@@ -72,6 +72,12 @@ class Call:
     annotations: Dict[str, Any] = field(default_factory=dict)
     now: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     confirmed: bool = False
+    # data classes (x-sajha-data-class) and, on a SAJHA Net residency decision, where the data goes
+    data_classes: List[str] = field(default_factory=list)
+    flow: Optional[str] = None                       # arguments | results (residency decisions only)
+    destination: Optional[Dict[str, Any]] = None     # {net, instance, region, labels, here}
+    here: Optional[Dict[str, Any]] = None            # the same facts of this instance
+    result_marks: Optional[Dict[str, List[str]]] = None   # outputSchema marks, for field redaction
 
     @property
     def group(self) -> str:
@@ -127,7 +133,16 @@ class Enforcement:
                                        tool=self.call.tool, rule=_rule_of(d, 'screen'),
                                        reason='output blocked: prompt injection markers')
                 result = screened
-        if d.redact and not d.redact.empty():
+        if d.redact and d.redact.data_classes and self.call.result_marks:
+            from sajha.net import residency as NR
+            if isinstance(result, dict) and isinstance(result.get('content'), list):
+                result, touched = NR.redact_result(result, self.call.result_marks, d.redact.data_classes)
+            else:
+                result, touched, _ = NR.redact_fields(result, self.call.result_marks, d.redact.data_classes)
+            if touched:
+                REDACTIONS.inc(('data_class',), len(touched))
+                _audit('policy.redacted', self.call, outcome='redacted', details={'fields': touched})
+        if d.redact and (d.redact.kinds or d.redact.custom):
             result, counts = R.redact(result, d.redact)
             if counts:
                 for kind, n in counts.items():
@@ -225,6 +240,30 @@ class PolicyEngine:
                 d.screen = r.screen_output
         return d
 
+    def residency(self, call: Call) -> Decision:
+        """A residency decision (SAJHA Net, design §12): only residency rules (those naming data classes,
+        a flow or a destination) take part; deny overrides; ``require_approval`` refuses (a net call cannot
+        wait for an approval); ``redact.data_classes`` of the matching rules are collected. With
+        ``default_effect: deny``, classified data needs a matching ``allow`` rule. Pure: no counters."""
+        rules = [r for r in self.rules() if r.match.residency and r.match.matches(call)]
+        d = Decision(effect='allow', matched=rules)
+        stop = next((r for r in rules if r.effect in ('deny', 'require_approval')), None)
+        if stop is not None:
+            d.effect, d.kind, d.rule = 'deny', 'deny', stop.key
+            d.reason = stop.reason or f'refused by residency rule {stop.key}'
+            return d
+        allow = next((r for r in rules if r.effect == 'allow'), None)
+        if call.data_classes and allow is None and \
+                (_cfg('sajhanet.residency.default_effect', 'allow') or 'allow').strip().lower() == 'deny':
+            d.effect, d.kind, d.rule = 'deny', 'default_deny', 'sajhanet.residency.default_effect'
+            d.reason = f'no residency rule allows {", ".join(call.data_classes)} to go there'
+            return d
+        d.rule = allow.key if allow else ''
+        for r in rules:
+            if r.redact and r.redact.data_classes:
+                d.redact = r.redact if d.redact is None else d.redact.merge(r.redact)
+        return d
+
     # -- enforcement ---------------------------------------------------------
 
     def active(self) -> bool:
@@ -248,6 +287,12 @@ class PolicyEngine:
         ann = cfg.get('annotations') if isinstance(cfg, dict) else None
         call = Call(name, arguments if isinstance(arguments, dict) else {}, current(), context.source(),
                     ann if isinstance(ann, dict) else {}, confirmed=context.confirmed())
+        if any(r.match.data_classes or (r.redact and r.redact.data_classes) for r in self.rules()):
+            try:
+                from sajha.net.integration.residency import tool_classes
+                call.data_classes, call.result_marks = tool_classes(tool, call.arguments)
+            except Exception as e:
+                logger.debug(f'policy: data classes of {name}: {e}')
         try:
             d = self.evaluate(call)
         except Exception as e:

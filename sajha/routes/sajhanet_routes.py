@@ -148,6 +148,26 @@ async def sajhanet_ca_init(net: str, request: Request, auth: AuthContext = Depen
     return await _call(svc.ca_init, net, auth.user_id, str(b.get('alg') or 'ed25519'))
 
 
+@router.get('/api/sajhanet/nets/{net}/first-use')
+async def sajhanet_first_use(net: str, auth: AuthContext = Depends(require_admin)):
+    """``admission: open``: every instance name and the key first seen for it."""
+    svc = _svc()
+    if svc is None or not svc.shared.enabled:
+        return _off()
+    return {'net': net, 'keys': svc.first_use_keys(net)}
+
+
+@router.delete('/api/sajhanet/nets/{net}/first-use/{instance}')
+async def sajhanet_forget_first_use(net: str, instance: str, auth: AuthContext = Depends(require_admin)):
+    """``admission: open``: forget the key remembered for ``instance`` (it was replaced on purpose)."""
+    svc = _svc()
+    if svc is None or not svc.shared.enabled:
+        return _off()
+    if not svc.forget_peer_key(net, instance, by=auth.user_id):
+        return JSONResponse({'error': f'no key remembered for {instance} in {net}'}, status_code=404)
+    return {'net': net, 'forgotten': instance}
+
+
 @router.get('/api/sajhanet/nets/{net}/ca')
 async def sajhanet_ca_view(net: str, auth: AuthContext = Depends(require_admin)):
     svc = _svc()

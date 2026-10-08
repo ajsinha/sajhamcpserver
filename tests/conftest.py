@@ -26,6 +26,10 @@ os.environ.setdefault('SAJHA_AUTH_USERS_FILE_PATH', str(_DUCKDB_TMP / 'users.jso
 os.environ.setdefault('SAJHA_AUTH_API_KEYS_DB_DUMP_PATH', str(_DUCKDB_TMP / 'apikeys_db.json'))
 os.environ.setdefault('SAJHA_CONFIG_APIKEYS_PATH', str(_DUCKDB_TMP / 'apikeys.json'))
 os.environ.setdefault('SAJHA_SAJHANET_TEST_ADMIN_KEY_ENABLED', 'false')
+# Tests create SAJHA Net CAs explicitly; the automatic CA of a net of one is tested on its own.
+os.environ.setdefault('SAJHA_SAJHANET_CA_AUTO_INIT', 'false')
+# The suite exercises the CA through the shipped config; open mode (the shipped admission) has its own tests.
+os.environ.setdefault('SAJHA_SAJHANET_PLUGINS_ADMISSION', 'builtin_ca')
 
 
 import pytest

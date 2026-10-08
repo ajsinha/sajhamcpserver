@@ -29,7 +29,7 @@ import yaml
 
 from sajha.ai.planners_engine import metrics
 from sajha.ai.planners_engine.model import (Diagnostic, PlannerDef, PlannerError, apply_overlay, compile_planner,
-                                            parse_ref, semver_key)
+                                            own_settings, parse_ref, semver_key)
 from sajha.ai.planners_engine.settings import PlannerSettings, planner_settings
 
 logger = logging.getLogger(__name__)
@@ -303,7 +303,7 @@ class PlannerRegistry:
         if e.kind == "python" and e.pdef is None:
             settings = dict(ov.get("settings") or {})
             try:
-                e.cls.config_model(**settings)
+                e.cls.config_model(**own_settings(settings))
             except Exception as ex:
                 raise ValueError(f"settings for the Python planner {e.name}: {ex}".replace("\n", " "))
             return PlannerDef(name=e.name, version=e.version, kind="python", cls=e.cls, settings=settings,
@@ -404,9 +404,9 @@ class PlannerRegistry:
             cls = pdef.cls
             if pdef.name in PY_BUILTINS and cls.__module__ == "sajha.ai.planners":
                 from sajha.ai.planners import build_planner
-                raw = {k: dict((v or {}).get("settings") or {}) for k, v in (overlays or {}).items()}
+                raw = {k: own_settings((v or {}).get("settings")) for k, v in (overlays or {}).items()}
                 return build_planner(cls.name, raw)
-            return cls(cls.config_model(**(pdef.settings or {})), factory=lambda n: self.build(n, overlays=overlays))
+            return cls(cls.config_model(**own_settings(pdef.settings)), factory=lambda n: self.build(n, overlays=overlays))
         return GraphPlanner(pdef, self, overlays=overlays, tool=tool, choices=choices, input=input,
                             force_model=force_model, by=by, output_schema=output_schema)
 

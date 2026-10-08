@@ -221,8 +221,8 @@ to servers that are not SAJHA.
 
 | Phase | Streams, in parallel | Depends on | Status |
 |---|---|---|---|
-| 5.1 | A residency (data classes, policy conditions, field redaction, shortlists, memory handling) ‖ B locality-aware planners, remote LLM tools, combined hop and depth limits | wave 4 | pending |
-| 5.2 | C re-export and the assertion and token-exchange resolvers ‖ D the full SAJHA Net console | 5.1 | pending |
+| 5.1 | A residency (data classes, policy conditions, field redaction, shortlists, memory handling) ‖ B locality-aware planners, remote LLM tools, combined hop and depth limits | wave 4 | done |
+| 5.2 | C re-export and the assertion and token-exchange resolvers ‖ D the full SAJHA Net console | 5.1 | in progress |
 | 5.3 | E sponsored servers, the agent and library, the extension's full conformance suite ‖ F console single sign-on (X5), browser and transport hardening (X6) | 5.2 | pending |
 | 5.4 | Comparison page update, full documentation pass and deck, combined gate, release 8.1.0, drill | 5.3 | pending |
 

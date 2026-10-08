@@ -424,6 +424,18 @@ class ConversationStore:
 
 # ── memory: context for the next ask, and recording its turn ──────
 
+def _remote_safe(answer: str, steps) -> str:
+    """SAJHA Net residency (design §12): an answer that used results from other instances is stored as
+    written, without its figures, or not at all, by the data classes of those results
+    (``sajhanet.memory.remote_results`` and ``sajhanet.memory.by_class``)."""
+    try:
+        from sajha.net.integration.residency import memory_answer
+        return memory_answer(answer, steps)[0]
+    except Exception as e:
+        logger.debug(f"conversation memory: residency of remote results: {e}")
+        return answer
+
+
 def _clip(text: str, n: int) -> str:
     text = text or ""
     return text if n <= 0 or len(text) <= n else text[: n - 1] + "…"
@@ -532,7 +544,7 @@ class ConversationMemory:
 
     def record(self, mc: MemoryContext, ctx: RequestContext, question: str, result=None, *,
                answer: Optional[str] = None, tools: Optional[List[str]] = None, stopped_by: Optional[str] = None,
-               confidence: Optional[float] = None, usage_sink=None) -> Optional[int]:
+               confidence: Optional[float] = None, usage_sink=None, steps: Optional[List[Any]] = None) -> Optional[int]:
         """Store the turn; returns its number, or None when nothing was stored (anonymous caller,
         client mode, or a storage error, which is logged). ``result`` is an AskResult (the Ask
         SAJHA page); LLM tools pass ``answer``/``tools``/``stopped_by``/``confidence`` instead."""
@@ -544,6 +556,9 @@ class ConversationMemory:
             tools = [st.name for st in result.steps] if tools is None else tools
             stopped_by = result.stopped_by if stopped_by is None else stopped_by
             confidence = result.confidence if confidence is None else confidence
+            steps = getattr(result, "steps", None) if steps is None else steps
+        if steps:
+            answer = _remote_safe(answer or "", steps)       # ``steps``: what the answer rests on (AskStep-like)
         expires = None
         if mc.tool_name and mc.ttl_minutes and int(mc.ttl_minutes) > 0:
             minutes = int(mc.ttl_minutes)

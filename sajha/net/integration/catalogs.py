@@ -17,7 +17,7 @@ SAJHA Net catalogs and routing inside SAJHA (design §7, §8, §9, §15, §17.2,
 
 Configuration (design §19): ``sajhanet.preferences``, ``max_fallbacks``, ``bare_aliases``,
 ``default_trust``, ``refresh_interval_seconds``, ``default_timeout_seconds``, ``max_hops``,
-``reexport``, ``limits.*``, ``peer.*`` and ``plugins.routing``; ``default_trust``, ``reexport``,
+``max_call_chain``, ``allow_remote_llm_tools``, ``reexport``, ``limits.*``, ``peer.*`` and ``plugins.routing``; ``default_trust``, ``reexport``,
 ``max_hops`` and ``refresh_interval_seconds`` may also be set in a net entry. Trust levels and
 approvals set at runtime live in the storage backend (``<data_dir>/<net>/trust.json``).
 
@@ -73,6 +73,8 @@ class CatalogSettings:
     refresh_interval_seconds: float = 300
     default_timeout_seconds: float = 30
     max_hops: int = 1
+    max_call_chain: int = 8            # hops plus nesting depth across the net, one budget (design §14)
+    allow_remote_llm_tools: bool = True
     reexport: bool = False
     routing: str = 'local_first'
     limits: Limits = field(default_factory=Limits)
@@ -105,6 +107,8 @@ def load_settings() -> CatalogSettings:
     s.refresh_interval_seconds = max(5.0, _num(_g('refresh_interval_seconds', 300), 300))
     s.default_timeout_seconds = max(1.0, _num(_g('default_timeout_seconds', 30), 30))
     s.max_hops = max(1, min(8, int(_num(_g('max_hops', 1), 1))))
+    s.max_call_chain = max(1, min(32, int(_num(_g('max_call_chain', 8), 8))))
+    s.allow_remote_llm_tools = parse_bool(_g('allow_remote_llm_tools', 'true'), True)
     s.reexport = parse_bool(_g('reexport', 'false'), False)
     s.routing = str(_g('plugins.routing', 'local_first'))
     s.limits = Limits(max_tools_per_peer=int(_num(_g('limits.max_tools_per_peer', 2000), 2000)),
@@ -145,8 +149,9 @@ class NativeCatalog(CatalogSource):
     """This server's own registry tools as MCP Tool objects, with their versions."""
     name = 'native'
 
-    def __init__(self, registry=None):
+    def __init__(self, registry=None, allow_llm_tools: Any = True):
         self._registry = registry
+        self._allow_llm = allow_llm_tools          # bool, or a callable (sajhanet.allow_remote_llm_tools)
 
     def tools(self, net, peer=None):
         reg = self._registry or _registry()
@@ -163,7 +168,14 @@ class NativeCatalog(CatalogSource):
             meta_cat = str(((cfg.get('metadata') or {}).get('category')) or '')
             extra: Dict[str, Any] = {'version': str(getattr(tool, 'version', '') or cfg.get('version') or '')}
             if meta_cat == 'llm' or cfg.get('llm') or cfg.get('type') == 'llm':
+                allow = self._allow_llm() if callable(self._allow_llm) else self._allow_llm
+                if not allow:
+                    continue                          # sajhanet.allow_remote_llm_tools: false
                 extra['llm_tool'] = True
+            from sajha.net.integration.residency import catalog_summary
+            dc = catalog_summary(tool)                     # residency: the classes of its arguments and results
+            if dc:
+                extra['data_classes'] = dc
             d['_net'] = {k: v for k, v in extra.items() if v not in ('', None)}
             out.append(d)
         return out
@@ -292,7 +304,9 @@ class NetCatalogs:
         identity, rules = self._authz_parts()
         from sajha.federation.security import schema_problem, screen_text
         s = self.settings
-        book = CatalogBook(node, NativeCatalog(self._registry), rules=rules,
+        book = CatalogBook(node, NativeCatalog(self._registry,
+                                               allow_llm_tools=lambda: self.settings.allow_remote_llm_tools),
+                           rules=rules,
                            trust_of=lambda peer, net=net: self.trust_of(net, peer),
                            approvals=lambda peer, net=net: self.approvals(net, peer),
                            screen_text=screen_text, schema_problem=schema_problem, limits=s.limits,
@@ -304,7 +318,7 @@ class NetCatalogs:
         book.start()
         self.books[net] = book
         host = HostServer(book, execute=self._execute, identity=identity, rules=rules,
-                          max_hops=int(s.for_net(net, 'max_hops')),
+                          max_hops=int(s.for_net(net, 'max_hops')), max_chain=s.max_call_chain,
                           own_identities=lambda: [f'{n}/{b.node.name}' for n, b in self.books.items()],
                           other=lambda msg, v, net=net: self._other(net, msg, v),
                           calls_per_minute=s.host_calls_per_minute, audit=self._audit).attach()
@@ -331,7 +345,8 @@ class NetCatalogs:
                              bare_aliases=self.settings.bare_aliases, max_fallbacks=self.settings.max_fallbacks,
                              default_timeout=self.settings.default_timeout_seconds, identity=identity, rules=rules,
                              peer=self.settings.peer, clock=self.svc.clock, audit=self._audit,
-                             screen_result=_screen_result, max_hops=self.settings.max_hops)
+                             screen_result=_screen_result, max_hops=self.settings.max_hops,
+                             max_chain=self.settings.max_call_chain)
 
     def _local_names(self) -> List[str]:
         reg = self.registry
@@ -517,7 +532,25 @@ class NetCatalogs:
             tp = tracing.current_traceparent()
         except Exception:
             tp = None
-        return self.router.call(name, arguments, user=user, traceparent=tp)
+        from sajha.core import inner_calls
+        hop_in, depth = inner_calls.outgoing()      # a call made while serving a forwarded one continues its chain
+        out = self.router.call(name, arguments, user=user, traceparent=tp, hop_in=hop_in, depth=depth)
+        return self._arrived(name, out, user)
+
+    def _arrived(self, name: str, out: Dict[str, Any], user: Dict[str, Any]) -> Dict[str, Any]:
+        """Residency on a result as it arrives (design §12): this server's own rules, redaction and classes."""
+        try:
+            from sajha.net.integration.residency import on_arrival
+            meta = ((out or {}).get('_meta') or {}).get(EXTENSION_ID) or {}
+            book = self.books.get(str(meta.get('net') or ''))
+            proxy = self._proxies.get(name)
+            if book is not None and proxy is not None and not (out or {}).get('isError'):
+                return on_arrival(book.node, proxy, out, user)
+        except Exception as e:
+            logger.warning(f'SAJHA Net residency on arrival for {name}: {e}; the result is withheld')
+            return {'content': [{'type': 'text', 'text': f'This server could not check the residency of the result '
+                                                         f'of {name}; it is withheld.'}], 'isError': True}
+        return out
 
     def local_quarantine(self, name: str) -> Optional[Dict[str, Any]]:
         if self.router is None or not self.books:
@@ -567,26 +600,41 @@ class NetCatalogs:
             if not access(ctx.tool):
                 raise HostRefusal('access')
         token = set_caller(Caller(uid, '', roles, 'sajhanet', access, 'admin' in roles))
+        from sajha.core import inner_calls
         try:
-            from sajha.core.mcp_mrtr import InputRequired
-            from sajha.policy.errors import PolicyError
-            from sajha.tools.base_mcp_tool import ToolArgumentError
-            try:
-                result = tool.execute_with_tracking(arguments)
-            except PolicyError as e:
-                raise HostRefusal('approval_required' if e.kind == 'approval_required' else 'policy')
-            except PermissionError:
-                raise HostRefusal('access')
-            except ToolArgumentError as e:
-                return {'content': [{'type': 'text', 'text': str(e)}], 'isError': True}
-            except InputRequired:
-                return {'content': [{'type': 'text', 'text': f'{ctx.tool} needs input that a forwarded call '
-                                                             f'cannot relay yet'}], 'isError': True}
-            except Exception as e:
-                return {'content': [{'type': 'text', 'text': f'Tool execution failed: {e}'}], 'isError': True}
-            return _format_result(tool, result)
+            last = _llm_last_run()
+            if last is not None:
+                last.set(None)
+            with inner_calls.net_entered(ctx.hop, ctx.visited, ctx.depth):
+                out = self._run_tool(tool, ctx, arguments)
+            info = last.get() if last is not None else None
+            if info is not None and getattr(info, 'usage', None) is not None and isinstance(out, dict):
+                out = _with_remote_usage(out, info)
+            return out
         finally:
             reset(token)
+
+    def _run_tool(self, tool, ctx: CallContext, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from sajha.core.inner_calls import CallTooDeep
+        from sajha.core.mcp_mrtr import InputRequired
+        from sajha.policy.errors import PolicyError
+        from sajha.tools.base_mcp_tool import ToolArgumentError
+        try:
+            result = tool.execute_with_tracking(arguments)
+        except PolicyError as e:
+            raise HostRefusal('approval_required' if e.kind == 'approval_required' else 'policy')
+        except CallTooDeep as e:                # the combined budget (sajhanet.max_call_chain) ran out here
+            raise HostRefusal('chain_limit', str(e), executed=not str(e).startswith(f'calling {tool.name} '))
+        except PermissionError:
+            raise HostRefusal('access')
+        except ToolArgumentError as e:
+            return {'content': [{'type': 'text', 'text': str(e)}], 'isError': True}
+        except InputRequired:
+            return {'content': [{'type': 'text', 'text': f'{ctx.tool} needs input that a forwarded call '
+                                                         f'cannot relay yet'}], 'isError': True}
+        except Exception as e:
+            return {'content': [{'type': 'text', 'text': f'Tool execution failed: {e}'}], 'isError': True}
+        return _format_result(tool, result)
 
     def _other(self, net: str, msg: Dict[str, Any], v) -> Dict[str, Any]:
         """``server/discover``, ``initialize``, ``ping`` from a participant: the extension object of that
@@ -698,7 +746,13 @@ class NetCatalogs:
         for r in router.rows():
             if net and r['net'] != net:
                 continue
-            rows.append({k: v for k, v in r.items() if k not in ('entry', 'member')})
+            row = {k: v for k, v in r.items() if k not in ('entry', 'member')}
+            try:
+                from sajha.net.integration.residency import _entry_classes
+                row['data_classes'] = _entry_classes(r.get('entry'), r['host_tool'], r['qualified_name']).summary()
+            except Exception:
+                row['data_classes'] = {}
+            rows.append(row)
         resolution = {}
         local = set(self._local_names())
         for part in sorted({r['part'] for r in rows}):
@@ -745,6 +799,26 @@ class NetCatalogs:
 
     def status(self) -> Dict[str, Any]:
         return {n: b.status() for n, b in self.books.items()}
+
+
+def _llm_last_run():
+    """The context variable holding an LLM tool's last top-level run (its usage), when LLM tools load."""
+    try:
+        from sajha.ai.llm_tools.tool import LAST_RUN
+        return LAST_RUN
+    except Exception:
+        return None
+
+
+def _with_remote_usage(result: Dict[str, Any], info: Any) -> Dict[str, Any]:
+    """An LLM tool's model spend on this server, reported to the home in ``_meta["io.sajha/net"].usage``
+    (design §13): charged here, to this server's budgets, never again at the home."""
+    u = info.usage
+    usage = {'tokens': int(getattr(u, 'total_tokens', 0) or 0), 'cost_usd': round(float(getattr(u, 'cost_usd', 0) or 0), 6),
+             'models': [str(m) for m in (getattr(info, 'models', None) or [])][:8], 'charged_by': 'host'}
+    meta = dict((result.get('_meta') or {}).get(EXTENSION_ID) or {})
+    meta['usage'] = usage
+    return dict(result, _meta=dict(result.get('_meta') or {}, **{EXTENSION_ID: meta}))
 
 
 def _fp(want: Tuple[Dict[str, Any], Dict[str, Any], bool]) -> str:
@@ -844,5 +918,8 @@ def listed(tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     c = get_catalogs()
     if c is None or not c.books:
         return tools
+    from sajha.net.integration.residency import offered
     return [t for t in tools if isinstance(t, dict) and (
-        ((t.get('_meta') or {}).get(EXTENSION_ID) or {}).get('locality') == 'remote' or not c.local_quarantine(t.get('name', '')))]
+        (((t.get('_meta') or {}).get(EXTENSION_ID) or {}).get('locality') == 'remote' and offered(t.get('name', '')))
+        or (((t.get('_meta') or {}).get(EXTENSION_ID) or {}).get('locality') != 'remote'
+            and not c.local_quarantine(t.get('name', ''))))]

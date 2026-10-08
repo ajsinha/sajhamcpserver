@@ -26,6 +26,14 @@ NET_ONLY = ('name', 'instance_name', 'advertise_address', 'founder', 'seeds', 'i
             'export', 'import')
 
 
+def _ca_auto_default() -> bool:
+    """``sajhanet.ca_auto_init`` (default true, owner decision): a net of one creates its CA at first
+    start unless its net entry says ``ca.auto_init: false``."""
+    from sajha.core.config import _get
+    v = _get('sajhanet.ca_auto_init', True)
+    return str(v).strip().lower() not in ('false', '0', 'no', 'off') if v is not None else True
+
+
 def _raw() -> Dict[str, Any]:
     """The ``sajhanet`` section of the YAML as written (lists and maps intact)."""
     path = Path(os.environ.get('SAJHA_CONFIG_FILE', 'config/application.yml'))
@@ -163,7 +171,8 @@ def net_configs(s: Optional[Shared] = None, bind_host: str = '0.0.0.0', port: in
                           cert_ref=_file_ref(str(ca.get('cert_ref') or ''), os.path.join(d, 'ca.pem')),
                           cert_validity_days=_num(ca.get('cert_validity_days'), 30),
                           enrollment_token_minutes=_num(ca.get('enrollment_token_minutes'), 30),
-                          enrollments_per_minute=int(_num(ca.get('enrollments_per_minute'), 10))),
+                          enrollments_per_minute=int(_num(ca.get('enrollments_per_minute'), 10)),
+                          auto_init=(None if ca.get('auto_init') is None else _bool(ca.get('auto_init'), True))),
             peer_cache=PeerCacheSettings(
                 path=str(pc.get('path') or (s.peer_cache.path.replace('<net>', nm) if s.peer_cache.path
                                             else os.path.join(d, 'peers.json'))),

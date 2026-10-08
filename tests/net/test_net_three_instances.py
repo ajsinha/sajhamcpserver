@@ -284,3 +284,70 @@ def test_a_net_of_one_grows_without_a_restart(tmp_path, isolate):
     assert 'acme-net__solo-na__lookup' in a.reg.tools
     for i in (a, b):
         i.svc.stop()
+
+
+def test_a_net_of_one_creates_its_ca_at_first_start(tmp_path, isolate, monkeypatch):
+    """Owner decision (sajhanet.ca_auto_init, default on): a net of one creates its CA at first start,
+    audited, with a warning notice to back up the key; a peer can enroll at once; restart reuses it."""
+    from sajha import notices
+    monkeypatch.setenv('SAJHA_SAJHANET_CA_AUTO_INIT', 'true')
+    conn = ClientConnector()
+    a = Instance(tmp_path, 'auto-eu', conn, [Who('var_calc', owner='auto-eu')], founder=False, seeds=[])
+    a.svc.start(run_agents=False)
+    assert (tmp_path / 'auto-eu' / 'ca.key').exists() and a.svc.status()['nets'][0]['error'] in ('', None)
+    assert a.node is not None and a.node.try_join() and a.node.status()['single_member']
+    ids = {n['id']: n for n in notices.list_notices(state='all')}
+    assert ids[f'sajhanet.ca_created.{NET}']['severity'] == 'warning'
+    key_before = (tmp_path / 'auto-eu' / 'ca.key').read_bytes()
+    b = Instance(tmp_path, 'auto-na', conn, [Who('lookup', owner='auto-na')], seeds=['https://auto-eu.test'])
+    b.svc.start(run_agents=False)
+    b.svc.enroll(NET, 'https://auto-eu.test', a.svc.ca_token(NET, 'auto-na')['token'], by='test')
+    assert b.node.try_join()
+    settle([a, b], 4)
+    assert 'acme-net__auto-na__lookup' in a.reg.tools
+    a.svc.stop()
+    a.svc.start(run_agents=False)                          # restart: the same CA, not a new one
+    assert (tmp_path / 'auto-eu' / 'ca.key').read_bytes() == key_before and a.svc.runtimes[NET].ca is not None
+    for i in (a, b):
+        i.svc.stop()
+
+
+def _open(inst):
+    inst.svc.runtimes[NET].cfg.admission = 'open'
+    return inst
+
+
+def test_open_admission_needs_no_ca_and_holds_names_to_their_first_key(tmp_path, isolate):
+    """admission: open (owner decision, for now): no CA, no tokens; self-signed certificates are
+    accepted on first use, then each name is held to its key (an impostor is refused), across restarts."""
+    conn = ClientConnector()
+    a = _open(Instance(tmp_path, 'open-eu', conn, [Who('var_calc', owner='open-eu')], seeds=[]))
+    b = _open(Instance(tmp_path, 'open-na', conn, [Who('lookup', owner='open-na')], seeds=['https://open-eu.test']))
+    c = _open(Instance(tmp_path, 'open-ap', conn, [Who('lookup2', owner='open-ap')], seeds=['https://open-eu.test']))
+    for i in (a, b, c):
+        i.svc.start(run_agents=False)
+        assert i.node is not None, i.svc.status()['nets'][0]['error']
+    assert not (tmp_path / 'open-eu' / 'ca.key').exists()
+    assert a.node.try_join() and b.node.try_join() and c.node.try_join()
+    settle([a, b, c], 4)
+    assert {m['name'] for m in a.node.members()} == {'open-na', 'open-ap'}
+    assert 'acme-net__open-na__lookup' in a.reg.tools
+    known = a.svc.first_use_keys(NET)
+    assert set(known) >= {'open-na', 'open-ap'}
+    # an impostor: another server with the name open-na (a different key) is refused by open-eu
+    imp_dir = tmp_path / 'imp'
+    imp_dir.mkdir()
+    imp = _open(Instance(imp_dir, 'open-na', ClientConnector(), [], seeds=['https://open-eu.test']))
+    imp_conn = imp.svc.connector
+    imp_conn.clients['https://open-eu.test'] = conn.clients['https://open-eu.test']
+    imp.svc.start(run_agents=False)
+    assert not imp.node.try_join()
+    assert imp.node.refused() or 'name_conflict' in str(imp.node.status()), imp.node.status()
+    assert a.svc.first_use_keys(NET)['open-na'] == known['open-na']
+    # restart: the remembered keys are on disk
+    a.svc.stop()
+    a.svc.start(run_agents=False)
+    assert a.svc.first_use_keys(NET) == known
+    assert a.svc.forget_peer_key(NET, 'open-ap', by='test') and 'open-ap' not in a.svc.first_use_keys(NET)
+    for i in (a, b, c, imp):
+        i.svc.stop()

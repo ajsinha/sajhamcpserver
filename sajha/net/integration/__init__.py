@@ -35,7 +35,7 @@ from sajha.net.membership import PeerCache
 from sajha.net.models import DocumentKV, KV, NetConfig, PrefixKV
 from sajha.net.node import NetNode, Participant, PeerRefused, ResponseInvalid
 from sajha.net.plugins import PeerUnreachable
-from sajha.net.integration.config import Shared, net_configs, ref_path, shared as load_shared
+from sajha.net.integration.config import Shared, _ca_auto_default, net_configs, ref_path, shared as load_shared
 
 logger = logging.getLogger(__name__)
 
@@ -285,6 +285,11 @@ class SajhaNetService:
     def runtime_seeds(self, net: str) -> List[Dict[str, Any]]:
         return self._list_doc(net, 'runtime_seeds')
 
+    def first_use_keys(self, net: str) -> Dict[str, str]:
+        """``admission: open``: instance name -> the key thumbprint first seen for it (kept on disk)."""
+        return {x['instance']: x['thumbprint'] for x in self._list_doc(net, 'first_use')
+                if x.get('instance') and x.get('thumbprint')}
+
     def runtime_pins(self, net: str) -> List[str]:
         return [p['thumbprint'] for p in self._list_doc(net, 'pins') if p.get('thumbprint')]
 
@@ -313,6 +318,34 @@ class SajhaNetService:
                 return
         if not cfg.seeds and not adm.manual and not cfg.ca.enabled and read_ref(cfg.ca.key_ref):
             cfg.ca.enabled = True                        # a net of one whose CA was initialised here
+        auto = cfg.ca.auto_init if cfg.ca.auto_init is not None else _ca_auto_default()
+        if (not cfg.seeds and not adm.manual and auto and not read_ref(cfg.ca.key_ref)
+                and not read_ref(cfg.identity.cert_ref)):
+            # Owner decision: a net of one creates its CA at first start, so it can accept peers without
+            # an administrator running `sajha net ca init` (ca.auto_init; audited, warning notice to back up).
+            try:
+                key, cert = init_ca(net, now=self.clock())
+                write_file(cfg.ca.key_ref, crypto.key_to_pem(key), private=True)
+                write_file(cfg.ca.cert_ref, crypto.cert_pem(cert), private=False)
+                if ref_path(cfg.identity.ca_ref) and ref_path(cfg.identity.ca_ref) != ref_path(cfg.ca.cert_ref):
+                    write_file(cfg.identity.ca_ref, crypto.cert_pem(cert), private=False)
+                cfg.ca.enabled = True
+                ca_cert = cert
+                tp = crypto.thumbprint(crypto.cert_der(cert))
+                _audit('ca_initialised', 'system', {'net': net, 'thumbprint': tp, 'automatic': True})
+                logger.warning(f'SAJHA Net {net}: net of one, CA created automatically ({tp}); '
+                               f'back up {cfg.ca.key_ref} (it never leaves this server)')
+                try:
+                    from sajha.notices import raise_notice
+                    raise_notice(f'sajhanet.ca_created.{net}', 'warning', 'sajhanet',
+                                 f'SAJHA Net {net}: CA created; back up its key',
+                                 f'This server is the founder of {net} and created its CA automatically. Back up '
+                                 f'{cfg.ca.key_ref}: it is the only copy, and every member certificate depends on it.',
+                                 link='/admin/sajhanet', audience='admin', ttl_minutes=7 * 24 * 60)
+                except Exception:
+                    pass
+            except Exception as e:
+                logger.error(f'SAJHA Net {net}: automatic CA creation failed: {e}')
         if cfg.ca.enabled and not adm.manual:
             ck, cc = read_ref(cfg.ca.key_ref), read_ref(cfg.ca.cert_ref)
             if ck and cc:
@@ -362,8 +395,16 @@ class SajhaNetService:
             rt.error = f'no CA certificate for {net} at {cfg.identity.ca_ref}'
             return
         kv = PrefixKV(self.store, f'sajhanet:{net}:')
-        trust = adm.trust(net, cfg, ca_cert, lambda kv=kv: kv.get('rl'),
-                          lambda c=cfg, n=net: list(c.identity.pins) + self.runtime_pins(n))
+        if adm.name == 'open':
+            def _remember(name, tp, net=net):
+                items = [x for x in self._list_doc(net, 'first_use') if x.get('instance') != name]
+                self._save_list_doc(net, 'first_use', items + [{'instance': name, 'thumbprint': tp}])
+                _audit('peer_key_remembered', 'system', {'net': net, 'instance': name, 'thumbprint': tp})
+            trust = adm.trust(net, cfg, ca_cert, None, None, known=lambda net=net: self.first_use_keys(net),
+                              remember=_remember)
+        else:
+            trust = adm.trust(net, cfg, ca_cert, lambda kv=kv: kv.get('rl'),
+                              lambda c=cfg, n=net: list(c.identity.pins) + self.runtime_pins(n))
 
         def write_identity(k, c, cfg=cfg):
             write_file(cfg.identity.key_ref, crypto.key_to_pem(k), private=True)
@@ -602,6 +643,16 @@ class SajhaNetService:
             return False
         self._save_list_doc(net, 'runtime_seeds', keep)
         _audit('runtime_seed_removed', by, {'net': net, 'url': url})
+        return True
+
+    def forget_peer_key(self, net: str, instance: str, by: str = '') -> bool:
+        """``admission: open``: forget the key remembered for ``instance`` (it was replaced on purpose)."""
+        items = self._list_doc(net, 'first_use')
+        keep = [x for x in items if x.get('instance') != instance]
+        if len(keep) == len(items):
+            return False
+        self._save_list_doc(net, 'first_use', keep)
+        _audit('peer_key_forgotten', by, {'net': net, 'instance': instance})
         return True
 
     def ca_init(self, net: str, by: str = '', alg: str = crypto.ED25519) -> Dict[str, Any]:

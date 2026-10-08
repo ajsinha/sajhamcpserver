@@ -338,6 +338,9 @@ class AskSettings(Layered):
     # per-planner settings, keyed by planner name: an overlay on a planner file's settings, or a
     # Python planner's config model
     planner_config: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    # where the offered tools may run (sajha/ai/locality.py): any | local | net:<name>; a planner's
+    # settings.locality and an ask's own locality narrow it, and remote tools rank after local ones
+    locality: str = "any"
 
 
 class MemorySettings(Layered):

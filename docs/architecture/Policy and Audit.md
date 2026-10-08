@@ -136,6 +136,9 @@ Every key is optional; all given keys must hold (AND); list values are alternati
 | `sources` | the call came in through one of the sources in section 2 |
 | `time` | `{days: [mon, tue, ...], hours: "09:00-17:00", timezone: Europe/London}`; hours may wrap midnight |
 | `arguments` | each named argument (dotted path for nested ones) satisfies its condition (3.3) |
+| `data_classes` | the data carries one of the classes (globs allowed): on an ordinary call, the classes of the arguments sent; on a residency decision, the classes of the arguments or result crossing (3.5) |
+| `flow` | `arguments` or `results`: only residency decisions on that flow (3.5) |
+| `destination` | conditions (3.3) on the instance the data goes to: `net`, `instance`, `region`, `labels.<key>`, `here` (true when it is this instance); `differs_from_here: [labels.entity, region]` holds when any listed fact differs from this instance's (3.5) |
 
 A rule without `match` matches every call.
 
@@ -189,6 +192,40 @@ The loader rechecks the directory at most every `policy.reload_seconds` (default
 next call and reloads when a file was added, removed or changed; the Policies page has a
 "Reload now" button.
 
+### 3.5 Residency rules (SAJHA Net)
+
+A rule whose match names `data_classes`, `flow` or `destination` is a **residency rule**. Residency
+rules are evaluated where data crosses to another SAJHA Net instance
+(`PolicyEngine.residency`): at the home before a call's arguments leave (`flow: arguments`, the
+destination is the host), at the host before its result leaves (`flow: results`, the destination is
+the home), and at the home again as a result arrives (`flow: results`, `here: true`). Only residency
+rules take part, deny-overrides; `require_approval` refuses (a forwarded call cannot wait for an
+approval); `redact: {data_classes: [...]}` replaces the fields of those classes with
+`[REDACTED:<class>]` instead of refusing. With `sajhanet.residency.default_effect: deny`, data that
+carries any class needs a matching `allow` rule. Rate limits, quotas and approvals of residency rules
+are not applied there; `callers` matches the home's caller at the home and the mapped net user at the
+host. In `destination`, an absent fact (an unlabelled instance) fails every condition except `ne` and
+`not_in`, so `labels.jurisdiction: {ne: EU}` also refuses an instance with no jurisdiction label.
+
+```yaml
+rules:
+  - id: eu-personal-stays-in-eu
+    match: {data_classes: [eu-personal], flow: arguments, destination: {labels.jurisdiction: {ne: EU}}}
+    effect: deny
+    reason: EU personal data stays in the EU
+  - id: confidential-stays-in-the-entity
+    match: {data_classes: [confidential], flow: results, destination: {differs_from_here: [labels.entity]}}
+    effect: deny
+  - id: names-masked-outside-eu
+    match: {data_classes: [eu-personal], flow: results, destination: {labels.jurisdiction: {ne: EU}}}
+    redact: {data_classes: [eu-personal]}
+```
+
+Where data classes come from, how a refusal reaches the caller, the shortlists and conversation
+memory are in [SAJHA Net](SAJHA%20Net.md#12-data-sovereignty-and-residency) section 12. A rule with
+only `data_classes` (no flow, no destination) also applies to this server's own calls: it matches the
+classes of the arguments sent, and its `redact.data_classes` replaces the marked fields of the result.
+
 ---
 
 ## 4. Output governance
@@ -208,6 +245,12 @@ next call and reloads when a file was added, removed or changed; the Policies pa
 characters (`************4242`, `j***@example.com`). Each redaction is counted
 (`sajha_policy_redactions_total{kind}`) and the call is audited once with the counts, never
 the values.
+
+**Field redaction by data class** (`redact: {data_classes: [eu-personal]}`) replaces the values of the
+fields the tool's output schema marks with `x-sajha-data-class` of those classes with
+`[REDACTED:<class>]`, in `structuredContent`, in text blocks that hold JSON, and where a removed value is
+quoted in other text. It is counted as `sajha_policy_redactions_total{kind="data_class"}` and audited
+with the field paths. On SAJHA Net residency decisions it also applies to arguments (3.5).
 
 **Injection screening** runs the result's strings through the same markers federation uses
 for upstream descriptions (`sajha/federation/security.py::INJECTION_MARKERS`):
@@ -508,6 +551,8 @@ contents, chain, signature, tamper detection, rotation, one writer, the CLI and 
 `tests/test_tool_call_audit.py` covers section 13: the record's fields, each argument mode,
 the volume rules, deferred storage with a verified chain, SIEM export, the overhead bound,
 trace continuation and the per-user cache key.
+`tests/net/test_net_residency.py` covers 3.5 and field redaction by data class: parsing, decisions,
+redaction of arguments and results, and the end-to-end residency tests on three instances.
 
 ---
 
