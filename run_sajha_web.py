@@ -39,7 +39,15 @@ def setup_logging(level: str = 'INFO'):
     logging.getLogger('uvicorn.access').setLevel(logging.WARNING)
 
 
-def print_banner():
+def print_banner(settings):
+    """The banner. The version is app.version from the configuration (the only authority); the
+    MCP protocol versions are the ones the protocol code negotiates (sajha/core/mcp_modern.py and
+    sajha/core/mcp_2025_11_25.py), so the banner can never claim a version SAJHA does not speak."""
+    from sajha.core.mcp_modern import MODERN_PROTOCOL_VERSIONS
+    from sajha.core.mcp_2025_11_25 import SUPPORTED_PROTOCOL_VERSIONS
+    title = f'{settings.app_description}  v{settings.app_version}'
+    protocols = 'MCP ' + ' + '.join([MODERN_PROTOCOL_VERSIONS[0] + ' (stateless)',
+                                     SUPPORTED_PROTOCOL_VERSIONS[0] + ' (sessions)'])
     print(r"""
 ================================================================================
    ███████╗ █████╗      ██╗██╗  ██╗ █████╗     ███╗   ███╗ ██████╗██████╗
@@ -49,10 +57,12 @@ def print_banner():
    ███████║██║  ██║╚█████╔╝██║  ██║██║  ██║    ██║ ╚═╝ ██║╚██████╗██║
    ╚══════╝╚═╝  ╚═╝ ╚════╝ ╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝     ╚═╝ ╚═════╝╚═╝
 
-              Model Context Protocol Server  v8.0.0
-         FastAPI · SQLAlchemy · MCP 2025-11-25 · SSE · A2A
-================================================================================
-""")
+""" + title.center(80).rstrip() + "\n"
+          + protocols.center(80).rstrip() + "\n"
+          + "Streamable HTTP · SSE · WebSocket · REST · stdio · A2A".center(80).rstrip() + "\n"
+          + "SAJHA Net · Proxied MCP servers · Policy and audit · Workflows".center(80).rstrip() + "\n"
+          + "Ask SAJHA · Planners · LLM tools · RAG · OpenAI-compatible API".center(80).rstrip() + "\n"
+          + "=" * 80 + "\n")
 
 
 def signal_handler(signum, frame):
@@ -67,7 +77,7 @@ def main():
         from sajha.cli.stdio import main as stdio_main
         sys.exit(stdio_main([a for a in sys.argv[1:] if a != '--stdio']))
 
-    parser = argparse.ArgumentParser(description='SAJHA MCP Server v8.0.0')
+    parser = argparse.ArgumentParser(description='SAJHA MCP Server (version: app.version in the configuration)')
     parser.add_argument('--config', default=None, help='Path to YAML config file (default: config/application.yml)')
     parser.add_argument('--host', default=None, help='Host to bind to')
     parser.add_argument('--port', type=int, default=None, help='Port to listen on')
@@ -97,7 +107,7 @@ def main():
     setup_logging(log_level)
     logger = logging.getLogger(__name__)
 
-    print_banner()
+    print_banner(settings)
     logger.info(f'  Python:  {sys.version.split()[0]}')
     logger.info(f'  CWD:     {os.getcwd()}')
     logger.info(f'  Config:  {settings.config_source}')

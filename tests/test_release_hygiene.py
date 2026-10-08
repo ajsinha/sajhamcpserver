@@ -75,3 +75,12 @@ def test_schema_check_raises_and_clears_the_notice(tmp_path, monkeypatch):
     kind, nid, kw = calls[-1]
     assert (kind, nid, kw['severity'], kw['source']) == ('raise', 'db.schema', 'error', 'db')
     assert 'ALTER TABLE users ADD COLUMN must_change_password' in kw['detail']
+
+
+def test_start_script_states_no_version():
+    """The banner reads app.version from the configuration and the MCP versions from the protocol
+    code; the start script itself carries neither (one authority, nothing to rot)."""
+    text = (ROOT / 'run_sajha_web.py').read_text(encoding='utf-8')
+    version = yaml.safe_load((ROOT / 'config/application.yml').read_text(encoding='utf-8'))['app']['version']
+    assert f'v{version}' not in text and f"'{version}'" not in text
+    assert not re.search(r'\d{4}-\d{2}-\d{2}', text), 'a protocol version is hard-coded in run_sajha_web.py'
