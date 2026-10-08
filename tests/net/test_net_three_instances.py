@@ -388,3 +388,113 @@ def test_a_per_member_key_issued_by_the_host_is_used_toward_it(tmp_path, isolate
     assert r.get('isError'), r
     for i in (a, b):
         i.svc.stop()
+
+
+def test_a_rest_caller_with_x_api_key_reaches_the_host_as_that_user(tmp_path, isolate, monkeypatch):
+    """A caller who signs in at the home with X-API-Key (REST) forwards the key they presented, never the
+    key's name (``Caller.api_key``), and runs on the host as the same user."""
+    from fastapi import FastAPI
+    from sajha.db.engine import get_db
+    from sajha.routes import api_routes
+    conn = ClientConnector()
+    a = Instance(tmp_path, 'risk-eu', conn, [Who('var_calc', owner='risk-eu')], founder=True)
+    a.svc.start(run_agents=False)
+    a.svc.ca_init(NET)
+    assert a.node.try_join()
+    b = Instance(tmp_path, 'cust-na', conn, [Who('lookup', owner='cust-na')])
+    b.svc.start(run_agents=False)
+    b.svc.enroll(NET, 'https://risk-eu.test', a.svc.ca_token(NET, 'cust-na')['token'], by='test')
+    assert b.node.try_join()
+    a.user('alice', tools='lookup,var_calc,acme-net__cust-na__lookup')
+    b.user('alice', roles=('analyst',))
+    _kid, raw = a.key('alice')                     # alice has no default key: only the presented key can travel
+    settle([a, b], 6)
+    set_service(a.svc)
+    monkeypatch.setattr('sajha.app.tools_registry', a.reg, raising=False)
+    app = FastAPI()
+    app.include_router(api_routes.router)
+
+    def db():
+        s = a.Session()
+        try:
+            yield s
+        finally:
+            s.close()
+    app.dependency_overrides[get_db] = db
+    forget()
+    r = TestClient(app).post('/api/tools/execute', headers={'X-API-Key': raw},
+                             json={'tool': 'acme-net__cust-na__lookup', 'arguments': {'x': 5}})
+    assert r.status_code == 200, r.text
+    res = r.json()['result']
+    assert res['content'][0]['text'] == 'cust-na:lookup:5:as alice', res
+    for i in (a, b):
+        i.svc.stop()
+
+
+def test_open_mode_a_replaced_server_rejoins_after_the_members_forget_its_old_key(tmp_path, isolate):
+    """admission: open: a server rebuilt under its name (a new key) is refused; once the members forget the
+    old key, forgetting also drops the member record they held (so the old key is not learned again from
+    it), and the rebuilt server's administrator retries (or restarts) and joins with the new key."""
+    conn = ClientConnector()
+    a = _open(Instance(tmp_path, 'open-eu', conn, [Who('var_calc', owner='open-eu')], seeds=[]))
+    b = _open(Instance(tmp_path, 'open-na', conn, [Who('lookup', owner='open-na')], seeds=['https://open-eu.test']))
+    c = _open(Instance(tmp_path, 'open-ap', conn, [Who('lookup2', owner='open-ap')], seeds=['https://open-eu.test']))
+    for i in (a, b, c):
+        i.svc.start(run_agents=False)
+        assert i.node.try_join()
+    settle([a, b, c], 4)
+    old = a.svc.first_use_keys(NET)['open-na']
+    b.node.leave()                                 # the old server leaves and is rebuilt
+    b.svc.stop()
+    rebuilt_dir = tmp_path / 'rebuilt'
+    rebuilt_dir.mkdir()
+    b2 = _open(Instance(rebuilt_dir, 'open-na', conn, [Who('lookup', owner='open-na-2')], seeds=['https://open-eu.test']))
+    b2.svc.start(run_agents=False)
+    assert not b2.node.try_join() and b2.node.refused()
+    assert a.node.member('open-na') is not None
+    # open-eu's administrator forgets the old key: the held member record goes with it, and the departed
+    # record open-ap still holds does not teach the old key again
+    assert a.svc.forget_peer_key(NET, 'open-na', by='test')
+    assert a.node.member('open-na') is None and 'open-na' not in a.svc.first_use_keys(NET)
+    assert c.node.member('open-na')['state'] == 'left'
+    settle([a, c], 4)
+    assert 'open-na' not in a.svc.first_use_keys(NET) and a.node.member('open-na') is None
+    assert c.svc.forget_peer_key(NET, 'open-na', by='test') and c.node.member('open-na') is None
+    settle([a, c], 4)
+    assert 'open-na' not in a.svc.first_use_keys(NET) and 'open-na' not in c.svc.first_use_keys(NET)
+    # a restart of the refused server tries once more (open mode) and joins with the new key
+    b2.svc.stop()
+    b2.svc.start(run_agents=False)
+    assert b2.node.refused() and b2.node.try_join(), b2.node.status()
+    assert not b2.node.refused()
+    new = a.svc.first_use_keys(NET)['open-na']
+    assert new != old and new == b2.node.signer.keyid
+    settle([a, b2, c], 4)
+    assert c.svc.first_use_keys(NET)['open-na'] == new
+    assert a.node.member('open-na')['state'] == 'alive'
+    for i in (a, b2, c):
+        i.svc.stop()
+
+
+def test_open_mode_retry_join_clears_a_held_refusal(tmp_path, isolate):
+    conn = ClientConnector()
+    a = _open(Instance(tmp_path, 'open-eu', conn, [], seeds=[]))
+    b = _open(Instance(tmp_path, 'open-na', conn, [], seeds=['https://open-eu.test']))
+    for i in (a, b):
+        i.svc.start(run_agents=False)
+        assert i.node.try_join()
+    settle([a, b], 3)
+    b.svc.stop()
+    d = tmp_path / 'rebuilt'
+    d.mkdir()
+    b2 = _open(Instance(d, 'open-na', conn, [], seeds=['https://open-eu.test']))
+    b2.svc.start(run_agents=False)
+    assert not b2.node.try_join() and b2.node.refused()
+    assert not b2.svc.retry_join(NET, by='test')['joined']              # the holder still remembers: refused again
+    assert b2.node.refused()
+    assert a.svc.forget_peer_key(NET, 'open-na', by='test')
+    r = b2.svc.retry_join(NET, by='test')
+    assert r['joined'] and r['had_refusal'] and not r['refused'], r
+    assert not b2.node.refused()
+    for i in (a, b2):
+        i.svc.stop()

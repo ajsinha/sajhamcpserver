@@ -112,6 +112,27 @@ def _residency_offered(name: str) -> bool:
         return True
 
 
+def _one_slot_per_tool(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """One shortlist slot per tool: a SAJHA Net tool's plain alias and its qualified copies
+    (``<net>__<instance>__<tool>``, which carry the alias in their net metadata) are one tool. The bare
+    alias is kept where it is listed (it resolves across the hosts, with fallback), else the best-placed
+    copy; the slot stays where the group first appears. A local tool is never merged with remote ones."""
+    groups: Dict[Any, int] = {}
+    out: List[Dict[str, Any]] = []
+    for it in items:
+        tool = it.get("tool")
+        meta = getattr(tool, "meta", None) if getattr(tool, "namespaced_name", False) else None
+        alias = str(meta.get("alias") or "") if isinstance(meta, dict) else ""
+        key = ("net", alias) if alias else ("tool", it.get("name"))
+        if key not in groups:
+            groups[key] = len(out)
+            out.append(it)
+        elif alias and it.get("name") == alias:
+            out[groups[key]] = dict(it, score=max(float(it.get("score") or 0.0),
+                                                  float(out[groups[key]].get("score") or 0.0)))
+    return out
+
+
 @dataclass
 class AskStep:
     id: str
@@ -297,7 +318,7 @@ class IntelligenceService:
         kind, net = locality if isinstance(locality, tuple) else loc.parse(locality)
         n = max(1, self.settings.shortlist)
         if among is not None:
-            return loc.rank(self._shortlist_among(question, ctx, among, None), kind, net)[:n]
+            return _one_slot_per_tool(loc.rank(self._shortlist_among(question, ctx, among, None), kind, net))[:n]
         try:
             matches = self.resolver.resolve(question, top_k=n * 3)
         except Exception as e:
@@ -316,7 +337,7 @@ class IntelligenceService:
                 continue
             out.append({"name": m.tool_name, "description": (tool.description or "")[:300],
                         "score": round(float(m.confidence), 4), "tool": tool})
-        return loc.rank(out, kind, net)[:n]
+        return _one_slot_per_tool(loc.rank(out, kind, net))[:n]
 
     def _shortlist_among(self, question: str, ctx: RequestContext, among: List[str],
                          n: Optional[int]) -> List[Dict[str, Any]]:

@@ -50,6 +50,9 @@ instance name, governed by this server), sponsor it ([SAJHA Net](SAJHA%20Net.md#
  upstreams           Streamable HTTP (2026-07-28 or 2025-11-25) · legacy SSE · stdio
 ```
 
+Federation needs the official MCP SDK (`mcp`, pinned in `requirements.txt`) at run time: every
+upstream connection is an SDK `Client` (`sajha/federation/connection.py`).
+
 | Code | What |
 |---|---|
 | `sajha/federation/config.py` | `FederationSettings`, `UpstreamConfig` (parse and validate), the name rules |
@@ -182,8 +185,11 @@ check the same rule up front, so the message appears in the form.
 
 A prefix is **unique on an instance**, across federation upstreams (wherever defined: `federation.upstreams`,
 the mcpServers file, the console) and external servers, and is never a local tool's name. A clash is a
-configuration error naming both sources (in the federation status and the `federation.mcp_servers` or
-`sajhanet.external_servers` notice); the second definition is not loaded.
+configuration error naming both sources (in the federation status, and the error notice
+`federation.prefix_clash` for two upstreams, or the `sajhanet.external_servers` notice for an external
+server); the second definition is not loaded and exposes no tools. The prefix defaults to the vendor, so
+an internal and an external entry of the same vendor clash unless one is given its own `prefix`. The
+notice clears when the clash is gone (for the mcpServers file, on the reload that removes it).
 
 ### Proxies all the way down
 

@@ -13,5 +13,5 @@ python-pptx>=1.0.2,<2.0.0
 # fallback path; CI installs them so every path runs.
 fakeredis[lua]>=2.20,<3.0          # the redis state backend, without a server
 redis>=5.0.0,<9.0.0                # imported by the redis backend under test
-mcp>=2.3,<3                        # the official MCP SDK: clientsdk tests and SDK interop tests
+# the official MCP SDK (mcp>=2.3,<3) is in requirements.txt: federation needs it at run time
 sqlglot>=25,<31                    # the connector statement guard's syntax-tree parser

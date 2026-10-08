@@ -288,6 +288,8 @@ async def authorize_mcp(request: Request, db, method: Optional[str] = None):
     from sajha.auth import AuthManager, AuthContext
     from sajha.auth.access import anonymous_enabled
     ctx = AuthManager.authenticate_request(request, db)
+    from sajha.auth.presented_key import bind
+    bind(ctx)                       # the API key this request presented (SAJHA Net forwards it), or none
     mode = settings.auth_mode()
     if ctx.authenticated:
         return ctx, None

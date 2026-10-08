@@ -13,6 +13,9 @@ pip install -r requirements.txt
 python run_sajha_web.py
 ```
 
+`requirements.txt` includes the official MCP SDK (`mcp`), which federation needs at run time to
+connect to proxied MCP servers ([Federation](../architecture/Federation.md)).
+
 Use the Python version the Dockerfile and CI use (`PYTHON_VERSION` in the `Dockerfile`,
 `python-version` in `.github/workflows/tests.yml`). The server listens on
 `http://localhost:3002` (`server.host` / `server.port`).

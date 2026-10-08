@@ -90,6 +90,12 @@ class StorageBackend(ABC):
         """Write dict as formatted JSON."""
         self.write_text(path, json.dumps(data, indent=indent, ensure_ascii=False))
 
+    def write_json_atomic(self, path: str, data: Dict[str, Any], indent: int = 2) -> None:
+        """Write dict as JSON so that a reader sees the old document or the new one, never a mix of two
+        writes. An object store replaces an object whole, so the plain write already is; the local
+        backend writes a temporary file beside it and renames it over the old one."""
+        self.write_json(path, data, indent=indent)
+
 
 # ── Local Filesystem Backend ─────────────────────────────────
 
@@ -132,6 +138,30 @@ class LocalStorageBackend(StorageBackend):
         fp = self._resolve(path)
         fp.parent.mkdir(parents=True, exist_ok=True)
         fp.write_text(content, encoding=encoding)
+
+    def write_json_atomic(self, path: str, data: Dict[str, Any], indent: int = 2) -> None:
+        import os
+        import tempfile
+        fp = self._resolve(path)
+        fp.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=str(fp.parent), prefix='.' + fp.name + '.', suffix='.tmp')
+        try:
+            with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                f.write(json.dumps(data, indent=indent, ensure_ascii=False))
+            if fp.exists():
+                try:
+                    os.chmod(tmp, fp.stat().st_mode & 0o777)
+                except OSError:
+                    pass
+            else:
+                os.chmod(tmp, 0o644)
+            os.replace(tmp, str(fp))
+        except Exception:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
 
     def exists(self, path: str) -> bool:
         return self._resolve(path).exists()

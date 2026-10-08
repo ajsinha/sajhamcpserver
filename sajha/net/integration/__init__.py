@@ -137,7 +137,9 @@ def on_event(kind: str, data: Dict[str, Any]) -> None:
                 f'Every member refuses this server under the name {data.get("instance")}: it is held by '
                 f'{data.get("holder_url") or "another participant"} (certificate {data.get("holder_thumbprint")}, '
                 f'{data.get("holder_state")}). This server does not join {net} until its configuration or '
-                f'certificate changes; its local tools keep working.', ttl=0)
+                f'certificate changes, or, if it was replaced on purpose, the members forget the old key and an '
+                f'administrator retries here (POST /api/sajhanet/nets/{net}/rejoin, or a restart in open mode); '
+                f'its local tools keep working.', ttl=0)
         _audit('name_conflict', details=data)
     elif kind == 'self_seen':                            # §9.4: a record that is this server under another name
         _notice(f'sajhanet.self_seen:{net}', 'warning', f'A member record in {net} is this server',
@@ -247,6 +249,7 @@ class SajhaNetService:
         self.runtimes: Dict[str, Runtime] = {c.name: Runtime(cfg=c) for c in configs}
         self.participant = Participant({}, enabled=s.enabled)
         self._lock = threading.RLock()
+        self._docs_lock = threading.RLock()            # read-modify-write of the per-net list documents
 
     # ── stores ─────────────────────────────────────────────────────
 
@@ -269,12 +272,13 @@ class SajhaNetService:
                 logger.warning(f'SAJHA Net: cannot read {path}: {e}')
                 return {}
 
-        def write(doc):
-            if self.documents is not None:
-                self.documents.write_json(path, doc)
-                return
-            from sajha.core.storage import get_storage
-            get_storage().write_json(path, doc)
+        def write(doc):                                  # atomic: a reader never sees two writes mixed
+            st = self.documents
+            if st is None:
+                from sajha.core.storage import get_storage
+                st = get_storage()
+            atomic = getattr(st, 'write_json_atomic', None)
+            (atomic if callable(atomic) else st.write_json)(path, doc)
         return read, write
 
     def _ca_kv(self, net: str) -> KV:
@@ -286,8 +290,21 @@ class SajhaNetService:
         return list((r() or {}).get('items') or [])
 
     def _save_list_doc(self, net: str, what: str, items: List[Dict[str, Any]]) -> None:
-        _, w = self._doc_io(f'{self.shared.data_dir}/{net}/{what}.json')
-        w({'items': items})
+        with self._docs_lock:
+            _, w = self._doc_io(f'{self.shared.data_dir}/{net}/{what}.json')
+            w({'items': items})
+
+    def _update_list_doc(self, net: str, what: str,
+                         fn: Callable[[List[Dict[str, Any]]], Optional[List[Dict[str, Any]]]]) -> bool:
+        """Read-modify-write one list document under a lock, written atomically (temporary file and
+        rename). ``fn`` returns the new items, or None to leave the document as it is. True when written."""
+        with self._docs_lock:
+            items = self._list_doc(net, what)
+            new = fn(list(items))
+            if new is None:
+                return False
+            self._save_list_doc(net, what, new)
+            return True
 
     def runtime_seeds(self, net: str) -> List[Dict[str, Any]]:
         return self._list_doc(net, 'runtime_seeds')
@@ -404,9 +421,12 @@ class SajhaNetService:
         kv = PrefixKV(self.store, f'sajhanet:{net}:')
         if adm.name == 'open':
             def _remember(name, tp, net=net):
-                items = [x for x in self._list_doc(net, 'first_use') if x.get('instance') != name]
-                self._save_list_doc(net, 'first_use', items + [{'instance': name, 'thumbprint': tp}])
-                _audit('peer_key_remembered', 'system', {'net': net, 'instance': name, 'thumbprint': tp})
+                def add(items):
+                    if any(x.get('instance') == name and x.get('thumbprint') for x in items):
+                        return None                      # another request remembered the name first
+                    return [x for x in items if x.get('instance') != name] + [{'instance': name, 'thumbprint': tp}]
+                if self._update_list_doc(net, 'first_use', add):
+                    _audit('peer_key_remembered', 'system', {'net': net, 'instance': name, 'thumbprint': tp})
             trust = adm.trust(net, cfg, ca_cert, None, None, known=lambda net=net: self.first_use_keys(net),
                               remember=_remember)
         else:
@@ -695,14 +715,33 @@ class SajhaNetService:
         return True
 
     def forget_peer_key(self, net: str, instance: str, by: str = '') -> bool:
-        """``admission: open``: forget the key remembered for ``instance`` (it was replaced on purpose)."""
-        items = self._list_doc(net, 'first_use')
-        keep = [x for x in items if x.get('instance') != instance]
-        if len(keep) == len(items):
+        """``admission: open``: forget the key remembered for ``instance`` (it was replaced on purpose), and
+        everything this server holds for the name (its member record, lineage, cached certificates), so the
+        old key is not learned again from a held record. The replacement is accepted on its next contact."""
+        def drop(items):
+            keep = [x for x in items if x.get('instance') != instance]
+            return keep if len(keep) != len(items) else None
+        forgot = self._update_list_doc(net, 'first_use', drop)
+        node = self.runtimes[net].node if net in self.runtimes else None
+        held = bool(node is not None and node.forget_name(instance))
+        if not (forgot or held):
             return False
-        self._save_list_doc(net, 'first_use', keep)
-        _audit('peer_key_forgotten', by, {'net': net, 'instance': instance})
+        _audit('peer_key_forgotten', by, {'net': net, 'instance': instance, 'member_record_dropped': held})
         return True
+
+    def retry_join(self, net: str, by: str = '') -> Dict[str, Any]:
+        """Clear this server's held ``name_conflict`` refusal and try to join now (after the holder's
+        administrators forgot the old key). A new refusal is held again."""
+        rt = self._rt(net)
+        node = rt.node
+        if node is None:
+            raise ServiceError(409, rt.error or f'{net} is not running on this server')
+        had = node.clear_refusal()
+        ok = node.try_join()
+        _audit('rejoin', by, {'net': net, 'had_refusal': had, 'joined': ok})
+        if ok:
+            _clear(f'sajhanet.name_conflict:{net}')
+        return {'net': net, 'joined': bool(ok), 'had_refusal': had, 'refused': node.refused()}
 
     def ca_init(self, net: str, by: str = '', alg: str = crypto.ED25519) -> Dict[str, Any]:
         rt = self._rt(net)

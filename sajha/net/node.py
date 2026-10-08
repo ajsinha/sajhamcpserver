@@ -164,6 +164,7 @@ class NetNode:
         self.mcp_server: Optional[Callable[..., PeerResponse]] = None      # signed requests to the MCP endpoint
         self.catalog: Any = None                                            # the CatalogBook, once attached
         self.tick_hooks: List[Callable[[], None]] = []        # run at the end of every joined tick (key directory, blocks)
+        self._retry_refusal = False                           # one join attempt despite a held refusal (open mode)
 
     # ── events, status ──────────────────────────────────────────────
 
@@ -252,6 +253,9 @@ class NetNode:
         self._resign(incarnation=inc)
         self.started = True
         self._set_status(started_at=self.clock(), joined=False)
+        # admission: open — a refusal is only as permanent as the holder's memory: an administrator there can
+        # forget the old key, so a restart tries once more (a new refusal is held again, loudly)
+        self._retry_refusal = bool(getattr(self.trust, 'first_use', False)) and self.refused() is not None
 
     def _fingerprint(self) -> str:
         cfg = {'name': self.net, 'instance': self.name, 'seeds': list(self.cfg.seeds), 'founder': self.cfg.founder,
@@ -266,6 +270,38 @@ class NetNode:
         if r and r.get('fingerprint') == self._fingerprint():
             return r
         return None
+
+    def clear_refusal(self) -> bool:
+        """Drop a held ``name_conflict`` refusal (an administrator retries after the holder forgot the old
+        key, or a retry joined). True when there was one."""
+        had = self.refused() is not None
+        self._set_status(refused=None)
+        if self.peer_cache is not None and self.peer_cache.load().get('refused') is not None:
+            self.peer_cache.update(refused=None)
+        return had
+
+    def forget_name(self, name: str) -> bool:
+        """Drop everything this node holds for ``name``: its member record, queued update, name lineage and
+        cached certificates (admission: open, after an administrator forgot the name's key), so the old
+        key is not learned again from a record this node still holds. True when anything was held."""
+        if not name or name == self.name:
+            return False
+        held = self.kv.get('m:' + name) or {}
+        reg = self.kv.get('names:' + name) or {}
+        keyids = set(reg.get('thumbprints') or [])
+        if (held.get('signature') or {}).get('keyid'):
+            keyids.add(held['signature']['keyid'])
+        found = bool(held or reg)
+        self.kv.delete('m:' + name)
+        self.kv.delete('dq:' + name)
+        self.kv.delete('names:' + name)
+        for k in keyids:
+            self.kv.delete('cert:' + k)
+        if found:
+            self._mark_dirty()
+            self.save_peers(force=True)
+            self.event('member_removed', member=name, reason='forgotten')
+        return found
 
     def _refuse(self, err: PeerRefused) -> None:
         body = err.body
@@ -336,8 +372,11 @@ class NetNode:
 
     def try_join(self) -> bool:
         """One join attempt (§9.7). True when joined."""
-        if self.refused():
-            return False
+        held_refusal = self.refused() is not None
+        if held_refusal:
+            if not self._retry_refusal:
+                return False
+            self._retry_refusal = False                  # one attempt; a new name_conflict is held again
         # A net with no seeds is a net of one (owner decision; protocol §9.7): this participant is its
         # founder and only member until a peer contacts it, is added by address, or is learnt otherwise.
         alone_ok = self.cfg.founder or not self.cfg.seeds
@@ -345,6 +384,8 @@ class NetNode:
         for kind, url, name in self.join_sources():
             try:
                 self.sync(url, name, reason='join')
+                if held_refusal:
+                    self.clear_refusal()
                 self._set_status(joined=True, joined_at=self.clock(), joined_via=url, backoff=0, next_join_at=0,
                                  config_error=None)
                 self.event('joined', via=url, source=kind)
@@ -501,6 +542,11 @@ class NetNode:
                     self._self_seen(rec, 'own_key')
             except Exception:
                 pass
+            return False
+        knows = getattr(self.trust, 'knows', None)
+        if callable(knows) and entry.get('state') in ('dead', 'left') and not knows(name):
+            # admission: open — a name is learnt only from a live record, so a departed record another
+            # member still holds never re-teaches a key an administrator forgot here
             return False
         try:
             cert = self._verify_entry(entry, via_net)
@@ -760,7 +806,7 @@ class NetNode:
         """One protocol period of the gossip agent (run by one worker per instance and net)."""
         if not self.started:
             self.start()
-        if self.refused():
+        if self.refused() and not self._retry_refusal:
             return
         st = self.status()
         if not st.get('joined'):

@@ -155,6 +155,8 @@ def bind_caller(auth: Any) -> None:
     from sajha.observability.caller import from_auth, set_caller
     from sajha.policy.context import set_source
     set_caller(from_auth(auth))
+    from sajha.auth.presented_key import bind as _bind_key
+    _bind_key(auth)
     set_source("openai_api")
 
 

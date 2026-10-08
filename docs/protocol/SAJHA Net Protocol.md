@@ -1682,9 +1682,9 @@ mirroring them are covered by the signature (§8.5).
 | `Sajha-Net-Hop` | 1 for a direct call; +1 at each re-export step (§16) | yes |
 | `Sajha-Net-Visited` | the participants already passed, as `<net>/<instance>`, home first; length equals `Sajha-Net-Hop` | yes |
 | `traceparent` (and `tracestate` if any) | W3C Trace Context; the same trace id on every hop; also mirrored in `params._meta.traceparent` | yes |
-| `Sajha-Net-Api-Key` | the user's raw API key (§15.3) | with `api_key` identity on hop 1 |
-| `Sajha-Net-User-Assertion` | a home-signed user assertion (§15.5) | with `assertion` identity, or on hop > 1 |
-| `Sajha-Net-User-Token` | a host-scoped token (§15.9) | with `token_exchange` identity, on hop 1 only |
+| `Sajha-Net-Api-Key` | the user's raw API key (§15.3) | with `api_key` identity on hop 1, or on a bridge's call into another net (§16) |
+| `Sajha-Net-User-Assertion` | a home-signed user assertion (§15.5) | with `assertion` identity, or on a call to a re-exported tool (§16) |
+| `Sajha-Net-User-Token` | a host-scoped token (§15.9) | with `token_exchange` identity, on hop 1 or on a bridge's call into another net (§16) |
 | `Sajha-Net-Certificate`, `Signature-Input`, `Signature`, `Content-Digest` | §8 | yes |
 
 A net-signed request MUST NOT also carry `Authorization` or the host's ordinary API-key header
@@ -1776,8 +1776,12 @@ iss` is usable (§15.3 checks other than possession). The user is `user`, which 
 The issuer is the sender on hop 1; on a later hop `<net>/<iss>` MUST be in `Sajha-Net-Visited` (it
 passed the chain), else `assertion_invalid`. A request carries at most one of `Sajha-Net-Api-Key`,
 `Sajha-Net-User-Assertion` and `Sajha-Net-User-Token` (`ambiguous_credentials`). A host MUST accept an
-assertion on a call to a re-exported tool and on hop > 1 even when it does not list `assertion`, since
-§16 requires one there; otherwise it accepts only the resolvers it lists. A home names a key of the user
+assertion on a call to a re-exported tool within one net even when it does not list `assertion`, since
+§16 requires one there: at the intermediary (`aud` is the tool's origin, not the host) and at the origin
+(a later hop, the assertion issued by a participant other than the sender). Otherwise it accepts only the
+resolvers it lists, and refuses an unlisted one with its identity reason (`assertion_invalid` for an
+assertion); a bridge's call into another net (§16) is issued by the sender itself and is not the
+exception. A home names a key of the user
 that it publishes in the net key directory (`key_id`), never a key of another participant.
 
 ### 15.6 Progress, cancellation, input and tasks
@@ -1890,8 +1894,12 @@ each call in `Sajha-Net-User-Token` instead of a key or an assertion.
   the bridge's own (no `origin`: nothing in N can verify anything signed in M). A home in N calls the
   bridge as it would call any host. The bridge authorizes and maps the caller like any host (§15.4),
   then calls into M **as the local user it mapped the caller to**: as the home of a new identity
-  chain in M, with an assertion it signs in M (`iss` = its name in M, `key_id` = that local user's
-  key, normally the default key), never with the caller's raw key. `Sajha-Net-Hop` and
+  chain in M, with the identity resolver M lists and the host advertises (§6), exactly as for a call
+  of its own: an assertion it signs in M (`iss` = its name in M, `key_id` = that local user's key,
+  normally the default key) where M lists `assertion`, a token exchanged with such an assertion where M
+  lists `token_exchange`, that local user's key where M lists only `api_key`; never the caller's raw key
+  or anything from N. A host in M MUST refuse an assertion from a bridge when M does not list
+  `assertion` (§15.5). `Sajha-Net-Hop` and
   `Sajha-Net-Visited` continue across the bridge (the request into M carries hop + 1 and the whole
   list with `M/<its name in M>` appended), so hop limits and loop detection hold end to end. A
   host in M sees and authorizes the bridge's user, never the caller from N.
@@ -2111,7 +2119,7 @@ needs the target's insides). A sponsored participant is tested as target S, thro
 | NET-02 | S A | A participant in nets M and N verifies a request for M only with M's CA, revocation list and nonce store: a certificate from N's CA in a request naming M → `certificate_invalid`; a certificate with `O=N` in a request naming M → `net_mismatch`; the same nonce used once in M and once in N is not a replay. |
 | NET-03 | S A L | A member record, key record, blocks document, conflicts document, revocation list or assertion whose `net` differs from the net it arrived through is dropped. |
 | NET-04 | S A | A signed `server/discover` or `initialize` in net M shows only M's `net` and `instance`; an unsigned one from a participant in two nets shows only `protocol_versions` and `endpoint`. |
-| NET-05 | S | A participant in M and N never lists in N a tool imported from M, and its catalog for N never contains one, unless re-export is enabled for N; with it enabled the tool is offered as the bridge's own, and the call into M is made as the bridge's mapped local user with an assertion signed in M, never with the caller's key. |
+| NET-05 | S | A participant in M and N never lists in N a tool imported from M, and its catalog for N never contains one, unless re-export is enabled for N; with it enabled the tool is offered as the bridge's own, and the call into M is made as the bridge's mapped local user with the identity resolver M lists (an assertion signed in M only where M lists `assertion`), never with the caller's key. |
 | NET-06 | S A | A participant publishes its key records in each of its nets with that net's `net`, its name there as `home_instance` and that net's certificate; a user's key verifies in both nets, and a record from M presented in N is ignored. |
 | CAP-01 | S A | `server/discover` carries `capabilities.extensions["io.sajha/net"]`, valid against `extension`. |
 | CAP-02 | S A | A 2025-11-25 `initialize` result carries the same object under `capabilities.experimental`. |
@@ -2459,8 +2467,8 @@ The design leaves these open or states them loosely; this specification decides 
     did or did not run; host-side availability refusals use `-32019` before execution only (§15.4,
     §15.8, §17).
 31. **A bridge between nets is a host in one and a home in the other**: it calls into the second net
-    as its own mapped local user with an assertion signed there; hop count and the net-qualified
-    visited list run end to end (§16).
+    as its own mapped local user with the identity resolver that net lists; hop count and the
+    net-qualified visited list run end to end (§16).
 32. **Withdrawal is immediate** on `left` and `dead`; `suspect` keeps tools listed as unavailable; a
     stored catalog never lists tools after a restart (owner decision; §10.6).
 33. **A join to an address names no recipient.** A seed or operator-given address is a URL, so the

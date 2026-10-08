@@ -290,14 +290,21 @@ def test_assertion_refusals_on_a_reexported_call(tmp_path, isolate):
 
 # ── a bridge between two nets (NET-05) ──────────────────────────────
 
-def test_bridge_offers_another_nets_tool_as_its_own_and_calls_as_its_user(tmp_path, isolate):
+def bridge(tmp_path, m_ids='assertion,api_key'):
+    """desk-ap (beta-net) -> cust-na (in both nets, the bridge) -> treasury-na (acme-net, listing ``m_ids``)."""
     conn = Capture()
     c = Peer(tmp_path, 'treasury-na', conn, [Who('ledger', owner='treasury-na')], [(M, True, [])],
-             cat=CatalogSettings(max_hops=2))
+             cat=CatalogSettings(max_hops=2), auth={M: {'user_identity': m_ids}})
     d = Peer(tmp_path, 'desk-ap', conn, [Who('var_calc', owner='desk-ap')], [(N, True, [])])
     b = Peer(tmp_path, 'cust-na', conn, [Who('lookup', owner='cust-na')],
              [(M, False, ['https://treasury-na.test']), (N, False, ['https://desk-ap.test'])],
-             cat=CatalogSettings(max_hops=2, per_net={N: {'reexport': True, 'reexport_rules': [{'tools': ['ledger']}]}}))
+             cat=CatalogSettings(max_hops=2, per_net={N: {'reexport': True, 'reexport_rules': [{'tools': ['ledger']}]}}),
+             auth={M: {'user_identity': m_ids}})
+    return conn, b, c, d
+
+
+def test_bridge_offers_another_nets_tool_as_its_own_and_calls_as_its_user(tmp_path, isolate):
+    conn, b, c, d = bridge(tmp_path)              # acme-net lists assertion: the bridge signs one there
     start(c, d, b)
     join(c, [b], M)
     join(d, [b], N)
@@ -327,6 +334,39 @@ def test_bridge_offers_another_nets_tool_as_its_own_and_calls_as_its_user(tmp_pa
     b.svc.catalogs.books[N].reexport = False
     b.svc.catalogs.books[N].invalidate()
     assert all(t['name'] != 'ledger' for t in b.svc.catalogs.books[N].exports('desk-ap'))
+    for p in (b, c, d):
+        p.svc.stop()
+
+
+def test_a_bridge_uses_what_the_target_net_lists_and_a_host_refuses_an_unlisted_assertion(tmp_path, isolate):
+    """A bridge's call into another net is an ordinary call there: where that net lists only
+    token_exchange, the bridge exchanges a token; a host refuses an assertion its net does not list, except
+    in the re-export relay case within one net."""
+    conn, b, c, d = bridge(tmp_path, m_ids='token_exchange')
+    start(c, d, b)
+    join(c, [b], M)
+    join(d, [b], N)
+    for p in (b, c, d):
+        p.user('alice', roles=('analyst',), tools=PERMS)
+    kid, raw = d.key('alice')
+    b.key('alice')
+    settle([b, c, d])
+    set_service(d.svc)
+    r = as_user('alice', raw, kid, lambda: d.reg.get_tool('ledger').execute_with_tracking({'x': 8}))
+    assert r['content'][0]['text'] == 'treasury-na:ledger:8:as alice', r
+    h = conn.to('treasury-na')[-1]
+    assert h['sajha-net-hop'] == '2' and h['sajha-net-user-token'] and 'sajha-net-user-assertion' not in h
+    assert {x['user']: x['identity'] for x in c.svc.authz.users_view(M)['seen']} == {'alice@cust-na': 'token_exchange'}
+    # an assertion the bridge signs itself (hop 2, issued by the sender) is not the relay case: refused
+    st = b.svc.authz.nets[M]
+    bkid = next(r['key_id'] for r in st.keys.own_records())
+    user = {'user_id': 'alice', 'roles': ['analyst'], 'key_id': bkid}
+    value = ni.make_assertion(b.svc.authz, M, user, 'treasury-na', 'a' * 32)
+    with pytest.raises(Exception) as e:
+        c.svc.authz.identity.resolve({'sajha-net-name': M, 'sajha-net-user-assertion': value}, 'cust-na',
+                                     audience='treasury-na', hop=2, visited=[f'{N}/desk-ap', f'{M}/cust-na'],
+                                     trace_id='a' * 32)
+    assert getattr(e.value, 'reason', '') == 'assertion_invalid' and 'token_exchange' in str(e.value)
     for p in (b, c, d):
         p.svc.stop()
 

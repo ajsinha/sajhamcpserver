@@ -34,6 +34,10 @@ bcrypt>=4.0.0,<5.0.0
 # ── MCP Transport (SSE) ─────────────────────────────────────
 sse-starlette>=1.8.0,<3.0.0
 
+# ── The official MCP SDK (federation: proxied MCP servers, SAJHA Net external servers) ──
+# sajha/federation/connection.py imports it at run time to connect to every upstream MCP server.
+mcp>=2.3,<3
+
 # ── HTTP Clients ─────────────────────────────────────────────
 httpx>=0.26.0,<1.0.0
 requests>=2.31.0,<3.0.0

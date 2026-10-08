@@ -267,3 +267,26 @@ def test_effective_config_endpoint(client):
     assert d["mock_active"] is True and d["resolved_aliases"]["default"] == "mock/mock-planner"
     assert d["providers"]["anthropic"]["settings"]["enabled"]["source"] in ("default", "config")
     assert d["sections"]["policy"]["roles"]["value"]["viewer"]["tools"] is False
+
+
+def test_one_tool_takes_one_shortlist_slot():
+    """A SAJHA Net tool's bare alias and its qualified copies are one tool: one slot, the alias kept (it
+    resolves across hosts); a local tool is never merged with remote ones."""
+    from sajha.ai.intelligence import _one_slot_per_tool
+
+    class Proxy:
+        namespaced_name = True
+
+        def __init__(self, alias):
+            self.meta = {'alias': alias} if alias else {}
+
+    class Local:
+        pass
+    items = [{'name': 'acme-net__cust-na__lookup', 'score': 0.9, 'tool': Proxy('lookup')},
+             {'name': 'calc_npv', 'score': 0.8, 'tool': Local()},
+             {'name': 'lookup', 'score': 0.7, 'tool': Proxy('lookup')},
+             {'name': 'acme-net__treasury-na__lookup', 'score': 0.6, 'tool': Proxy('lookup')},
+             {'name': 'acme-net__cust-na__ledger', 'score': 0.5, 'tool': Proxy('')}]
+    out = _one_slot_per_tool(items)
+    assert [x['name'] for x in out] == ['lookup', 'calc_npv', 'acme-net__cust-na__ledger']
+    assert out[0]['score'] == 0.9                       # the slot keeps the best placement

@@ -1,6 +1,6 @@
 # Implementation Plan
 
-> **Status: waves 1 to 4 done; wave 5 in progress; wave 6 pending** (the Status column of
+> **Status: waves 1 to 5 done (8.1.0); wave 6 in progress** (the Status column of
 > section 2 is the per-wave record). This is the build order for the two features,
 > [LLM Tools](LLM%20Tools.md) (with the [Planner Reference](Planner%20Reference.md)) and
 > [SAJHA Net](SAJHA%20Net.md) (with the [SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md)),
@@ -61,7 +61,7 @@ streams, what each phase waits for, and its status.
 | 2 | 7.2.0 | Model interface and LLM tools | OpenAI-style canonical interface and providers, the LLM tool type and its modes, conversation memory and resource safety, `sajha_ask` moved onto the type | 1 | done (7.2.0) |
 | 3 | 7.3.0 | Planners and authoring | Configurable planners and every shipped strategy, `auto`, Studio LLM tool creator and planner editor, sampling, the OpenAI-compatible endpoint | 2 | done (7.3.0) |
 | 4 | 8.0.0 | SAJHA Net core | Named nets (several per server), membership with required seeds, CA, signed requests on one port, catalogs and proxy tools, resolution order and preferences, offline removal, one name one contract, waterfall fallback, identity across instances, blocks, the Instances page | 1 (3 for remote LLM tools) | done (8.0.0) |
-| 5 | 8.1.0 | Sovereignty, console, other MCP servers | Residency, locality-aware planners, re-export, the full SAJHA Net console, sponsored servers, the agent and library, the extension's conformance suite | 4 | in progress |
+| 5 | 8.1.0 | Sovereignty, console, other MCP servers | Residency, locality-aware planners, re-export, the full SAJHA Net console, sponsored servers, the agent and library, the extension's conformance suite | 4 | done (8.1.0) |
 | 6 | 8.2.0 | Protocol uniformity between servers, and its security | Server to server on the same streaming MCP as client to server: progress, partial results, cancellation, input requests and tasks relayed to the client on its own transport (Roadmap L17a), with security per event: signing, replay protection, residency on partial results (L17b) | 5 | pending |
 Wave 4 is a major version because it adds a new table (`sajhanet_api_keys`), new columns on
 `api_keys` and a new signed protocol surface; operators must apply schema changes on PostgreSQL by
@@ -227,9 +227,9 @@ to servers that are not SAJHA.
 | 5.2 | C re-export and the assertion and token-exchange resolvers ‖ D the full SAJHA Net console | 5.1 | done |
 | 5.3 | E sponsored servers, the agent and library, the extension's full conformance suite ‖ F console single sign-on (X5), browser and transport hardening (X6) | 5.2 | done |
 | 5.4a | Vendors and external servers (an external server is never a member: the SAJHA that defines it proxies its tools as `vendor__tool`); self-recognition by key and URL (owner design) | 5.3 | done |
-| 5.4b | Full documentation review and rewrite against the code, consolidating overlapping documents (owner request) | 5.4a | in progress |
-| 5.4c | New tutorials for every wave 4 and 5 capability, including the local test lab (Ollama, Qwen, three instances on one host) with its launcher script | 5.4a | in progress |
-| 5.4d | Comparison page update, deck, combined gate, release 8.1.0, drill | 5.4b, 5.4c | pending |
+| 5.4b | Full documentation review and rewrite against the code, consolidating overlapping documents (owner request) | 5.4a | done |
+| 5.4c | New tutorials for every wave 4 and 5 capability, including the local test lab (Ollama, Qwen, three instances on one host) with its launcher script | 5.4a | done |
+| 5.4d | Comparison page update, deck, combined gate, release 8.1.0, drill | 5.4b, 5.4c | done |
 
 **Exit:** gates of section 9; a mixed net (SAJHA instances, an agent-fronted server, a sponsored
 server) passes the conformance suite and the end-to-end residency tests.

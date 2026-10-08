@@ -25,16 +25,26 @@ sys.path.insert(0, str(project_root))
 os.chdir(project_root)
 
 
-def setup_logging(level: str = 'INFO'):
-    os.makedirs('logs', exist_ok=True)
+def log_file_path(log_dir: str = './logs', log_file: str = '') -> str:
+    """The log file of ``logging.dir`` and ``logging.file`` ('' when ``logging.file`` is empty: stdout only).
+    An absolute ``logging.file`` is used as it is."""
+    name = str(log_file or '').strip()
+    if not name:
+        return ''
+    return name if os.path.isabs(name) else os.path.join(str(log_dir or '.').strip() or '.', name)
+
+
+def setup_logging(level: str = 'INFO', log_dir: str = './logs', log_file: str = ''):
+    handlers = [logging.StreamHandler(sys.stdout)]
+    path = log_file_path(log_dir, log_file)
+    if path:
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        handlers.append(logging.FileHandler(path, encoding='utf-8'))
     logging.basicConfig(
         level=getattr(logging, level.upper(), logging.INFO),
         format='%(asctime)s | %(levelname)-8s | %(name)-30s | %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler('logs/server.log', encoding='utf-8'),
-        ],
+        handlers=handlers,
     )
     logging.getLogger('uvicorn.access').setLevel(logging.WARNING)
 
@@ -104,7 +114,7 @@ def main():
     port = args.port or settings.server_port
     log_level = args.log_level or settings.logging_level
 
-    setup_logging(log_level)
+    setup_logging(log_level, settings.log_dir, settings.log_file)      # logging.dir, logging.file
     logger = logging.getLogger(__name__)
 
     print_banner(settings)

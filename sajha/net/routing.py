@@ -611,6 +611,13 @@ class Router:
             res.error = (RPC_UNAVAILABLE, 'no_host', f'no host offers {name} now')
         if res.error and not res.candidates:
             code, reason, message = res.error
+            if reason == 'residency_arguments':
+                for c in res.skipped:                      # a call refused by residency is audited (§13)
+                    if c.why_not == 'residency rule':
+                        _decide(self.rules, 'residency_offer', {
+                            'net': c.net, 'host': c.host, 'tool': c.host_tool, 'user': user,
+                            'qualified_name': c.qualified_name, 'entry': c.row.get('entry'),
+                            'arguments': arguments, 'trace_id': trace_id, 'audit_refusal': True})
             self.count('calls', reason)
             self._audit('net.call', {'name': name, 'trace_id': trace_id, 'outcome': reason, 'resolution': res.public()})
             return self._home_result(res, code, reason, message, trace_id)

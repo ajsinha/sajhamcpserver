@@ -328,9 +328,12 @@ def decide(node, rule: str, s: Dict[str, Any], registry=None) -> plugins.Decisio
                       facts(node, host), here)
         if d is None:
             return plugins.Decision(True, rule)
-        if rule == 'residency_offer':
-            return plugins.Decision(d.effect == 'allow', 'residency_arguments' if d.effect != 'allow' else rule)
         tool = str(s.get('qualified_name') or s.get('tool') or '')
+        if rule == 'residency_offer':
+            if d.effect != 'allow' and s.get('audit_refusal'):      # a call refused before any host was tried
+                _audit(node.net, host, tool, 'arguments', classes, 'refused', d.rule,
+                       trace_id=str(s.get('trace_id') or ''), user=user)
+            return plugins.Decision(d.effect == 'allow', 'residency_arguments' if d.effect != 'allow' else rule)
         if d.effect != 'allow':
             _audit(node.net, host, tool, 'arguments', classes, 'refused', d.rule, trace_id=str(s.get('trace_id') or ''),
                    user=user)

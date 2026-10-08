@@ -14,8 +14,8 @@ decide. Decisions are SAJHA's (``sajha/net/integration/residency.py``) or anothe
   marks on required top-level properties), used for residency-aware shortlists.
 * :func:`redact_fields` replaces the values of fields of the given classes with
   ``[REDACTED:<class>]`` and returns the paths it touched; :func:`redact_result` does that to a
-  ``CallToolResult``: ``structuredContent``, and text blocks that hold JSON (re-serialised) or
-  that quote a removed value (the value replaced in the text).
+  ``CallToolResult``: ``structuredContent``, JSON text blocks (re-serialised) and removed values
+  quoted in prose (whole tokens only).
 
 It imports nothing from the rest of SAJHA.
 
@@ -27,6 +27,7 @@ from __future__ import annotations
 import copy
 import fnmatch
 import json
+import re
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 MARK = 'x-sajha-data-class'
@@ -202,17 +203,37 @@ def _scalars(values: List[Any]) -> List[str]:
     return sorted(set(out), key=len, reverse=True)
 
 
+def _replace_token(text: str, value: str, with_: str) -> str:
+    """Replace ``value`` in prose only where it stands as a whole token: never inside a longer number
+    or word (``30`` is not replaced inside ``3045`` or ``30.5``, nor ``Ana`` inside ``Anaconda``)."""
+    if not value:
+        return text
+    pre = r'(?<![0-9A-Za-z_.])' if (value[0].isalnum() or value[0] == '_') else ''
+    if value[-1].isdigit():
+        post = r'(?![0-9A-Za-z_]|\.[0-9])'
+    elif value[-1].isalnum() or value[-1] == '_':
+        post = r'(?![0-9A-Za-z_])'
+    else:
+        post = ''
+    return re.sub(pre + re.escape(value) + post, lambda _m: with_, text)
+
+
 def redact_result(result: Dict[str, Any], marks: Marks, classes: Iterable[str]) -> Tuple[Dict[str, Any], List[str]]:
-    """A ``CallToolResult`` with the fields of ``classes`` replaced (see the module docstring)."""
+    """A ``CallToolResult`` with the fields of ``classes`` replaced (see the module docstring). A text block
+    that is the JSON of the result is re-serialised from the redacted value (from the redacted
+    ``structuredContent`` when it is that value), never edited as a string; a removed value quoted in
+    prose is replaced only where it stands as a whole token."""
     pats = list(classes)
     out = dict(result or {})
     touched: List[str] = []
     removed: List[Any] = []
-    if isinstance(out.get('structuredContent'), (dict, list)):
-        out['structuredContent'], t, r = redact_fields(out['structuredContent'], marks, pats)
+    original = out.get('structuredContent')
+    if isinstance(original, (dict, list)):
+        out['structuredContent'], t, r = redact_fields(original, marks, pats)
         touched += t
         removed += r
     blocks = []
+    prose: List[int] = []                                # indexes of text blocks that are not JSON
     for b in out.get('content') or []:
         if isinstance(b, dict) and b.get('type') == 'text' and isinstance(b.get('text'), str):
             text = b['text']
@@ -221,23 +242,29 @@ def redact_result(result: Dict[str, Any], marks: Marks, classes: Iterable[str]) 
             except ValueError:
                 parsed = None
             if isinstance(parsed, (dict, list)):
-                red, t, r = redact_fields(parsed, marks, pats)
-                if t:
-                    touched += [p for p in t if p not in touched]
-                    removed += r
-                    b = dict(b, text=json.dumps(red, indent=2, ensure_ascii=False))
+                if isinstance(original, (dict, list)) and parsed == original:
+                    if touched:                              # the JSON of the result: the redacted value, re-serialised
+                        b = dict(b, text=json.dumps(out['structuredContent'], indent=2, ensure_ascii=False))
+                else:
+                    red, t, r = redact_fields(parsed, marks, pats)
+                    if t:
+                        touched += [p for p in t if p not in touched]
+                        removed += r
+                        b = dict(b, text=json.dumps(red, indent=2, ensure_ascii=False))
+            else:
+                prose.append(len(blocks))
             blocks.append(b)
         else:
             blocks.append(b)
-    hidden = _scalars(removed)
-    if hidden:
+    hidden = sorted(set(_scalars(removed)), key=len, reverse=True)       # longer values first
+    if hidden and prose:
         hit = next((c for cls in marks.values() for c in cls if matches_class(c, pats)), 'data')
-        for i, b in enumerate(blocks):
-            if isinstance(b, dict) and b.get('type') == 'text' and isinstance(b.get('text'), str):
-                text = b['text']
-                for s in hidden:
-                    text = text.replace(s, placeholder(hit))
-                blocks[i] = dict(b, text=text)
+        for i in prose:
+            b = blocks[i]
+            text = b['text']
+            for v in hidden:
+                text = _replace_token(text, v, placeholder(hit))
+            blocks[i] = dict(b, text=text)
     if 'content' in out:
         out['content'] = blocks
     return out, sorted(set(touched))

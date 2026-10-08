@@ -63,6 +63,8 @@ async def api_tool_execute(
     start = time.time()
     from sajha.observability.caller import from_auth, set_caller
     set_caller(from_auth(auth))      # the usage ledger's caller (this request's context only)
+    from sajha.auth.presented_key import bind as _bind_key
+    _bind_key(auth)                  # the key this caller presented, for SAJHA Net (this request only)
     from sajha.policy.context import set_source      # policy rules can match the source
     set_source('playground' if request.headers.get('X-SAJHA-Client') == 'playground' else 'rest')
     from sajha.quality import versions as _versions    # a versioned tool says which version ran

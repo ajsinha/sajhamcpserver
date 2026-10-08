@@ -455,10 +455,24 @@ server (every net of a server uses the same mode). The code default is `builtin_
 member and knows the net's name can join under an unused name, see what is exported to it, and receive
 forwarded calls; with the test admin key on (the shipped setting, section 10.2) those calls carry an
 administrator's key. A name taken by the wrong server first stays taken until an administrator forgets
-its key. The remembered keys are in the storage backend (`<data_dir>/<net>/first_use.json`), each
+its key. The remembered keys are in the storage backend (`<data_dir>/<net>/first_use.json`, read and
+written under a lock and replaced atomically, so concurrent first contacts lose nothing), each
 remembered key is audited (`peer_key_remembered`, and `peer_key_forgotten` when forgotten), and the
 admission panel lists them. Switch to `builtin_ca` before a net spans machines you do not control
 (section 21.3).
+
+**A server replaced on purpose (open mode).** A rebuilt server keeps its name but has a new key, so the
+members refuse it (`name_conflict`) and it holds that refusal (in its saved peer list) instead of
+knocking again. To let it in:
+
+1. On every member that remembers the old key, **Forget** it (Net overview or SAJHA Net admin page;
+   `DELETE /api/sajhanet/nets/{net}/first-use/{instance}`). Forgetting also drops the member record, the
+   name's lineage and the cached certificates that member holds for the name, so the old key is not
+   learned again from them; and in open mode a name is learnt only from a live record, so a departed
+   record another member still holds does not teach it again either.
+2. On the rebuilt server, retry: `POST /api/sajhanet/nets/{net}/rejoin`, or restart it (in open mode a
+   restart tries once more despite a held refusal). It joins with its new key, which the members now
+   remember; a member that still holds the old key refuses it again, and the refusal is held again.
 
 Whatever the mode, every request between participants is signed (section 6.7), names are held to a key,
 and the host still authorizes every user it is sent (sections 10 and 11).
@@ -817,8 +831,11 @@ The host must know which user a call is for; otherwise it could authorize only "
 of A would get whatever A may do. How the user travels is an **identity resolver**, chosen per net by
 `user_identity` (a net entry's, else `sajhanet.user_identity`, default `api_key`). It names one resolver
 or several: as a home a server sends the first that the host's member record also lists; as a host it
-accepts every one it lists, and advertises them. A call to a re-exported tool and a bridge's call always
-use `assertion` (section 14).
+accepts every one it lists, and advertises them. A host refuses an identity its net does not list
+(`assertion_invalid`, `token_invalid` or `key_unknown`), with one exception within one net: a call to a
+re-exported tool always uses `assertion`, and the intermediary and the origin accept it even where the
+net lists only `api_key` or `token_exchange` (section 14). A bridge's call into another net is an
+ordinary call there: it uses what that net lists.
 
 **`api_key`: an API key travels and the host verifies it.** The home sends a key in
 `Sajha-Net-Api-Key`, only over HTTPS and only on the first hop; the host hashes it, finds its record in
@@ -846,7 +863,10 @@ then maps the user to its own account (section 11.3). The home chooses the key i
    the original caller and that the test admin key was used; the host's records identity
    `test_admin_key`. A critical notice (`auth.test_admin_key`) shows on every page while it is active
    ([Security Model](../security/Security%20Model.md#test-admin-key)).
-3. **The key the caller presented** on this request (an API key caller).
+3. **The key the caller presented** on this request (an API key caller, `X-API-Key` on REST, MCP, A2A or
+   the OpenAI-compatible API, a key with an owner or a service key). It is held in memory for that
+   request only (`sajha/auth/presented_key.py`); the key's *name*, which the usage ledger records, is
+   never sent as a key.
 4. **The user's default key**, decrypted from the vault, for a caller signed in another way (a console
    session, Ask SAJHA, a workflow or an LLM tool acting for them). Every user has a default key
    ([Security Model](../security/Security%20Model.md#api-keys)), kept encrypted with the connected-accounts
@@ -1027,8 +1047,9 @@ Residency decides where classified data may flow between instances, in both dire
   `[REDACTED:<class>]` instead.
 - **Results.** The host checks the classes of the fields in its result against the home's region and
   labels. A deny is `-32012 residency_result` with `executed: true`; a redaction replaces the fields in
-  `structuredContent`, in JSON text blocks and wherever a removed value is quoted in text, and lists them
-  in `_meta["io.sajha/net"].redacted`. A class marked for the whole result cannot be redacted field by
+  `structuredContent`, in JSON text blocks (re-serialised from the redacted value, never edited as a
+  string) and wherever a removed value is quoted in prose (only where it stands as a whole token, never
+  inside a longer number or word), and lists them in `_meta["io.sajha/net"].redacted`. A class marked for the whole result cannot be redacted field by
   field and is refused.
 - **On arrival** the home applies its own rules (`flow: results`, `destination: {here: true}`): it may
   redact or refuse (`residency_result`, side `home`); a check that fails withholds the result.
@@ -1038,7 +1059,9 @@ Residency decides where classified data may flow between instances, in both dire
   may receive is left out of `tools/list` and of Ask SAJHA's shortlist for that caller.
 - **Audit.** Every decision on classified data, on either side, is one `net.residency` record (net,
   other instance, tool, flow, classes, rule, side, redacted field paths, trace id; never values), counted
-  in `sajha_net_residency_decisions_total{flow, outcome}`.
+  in `sajha_net_residency_decisions_total{flow, outcome}`. That includes a call the home refuses before
+  any host is tried (every host offering the tool is excluded by a residency rule): one `refused` record
+  per excluded host. Listing and shortlisting record nothing.
 - **Memory.** Conversation memory keeps an answer that used remote results as written, with every
   figure replaced by `[remote figure]`, or as a placeholder (`sajhanet.memory.remote_results`:
   `store`, `summary`, `none`; `sajhanet.memory.by_class` per class, the strictest wins). RAG collections
@@ -1104,9 +1127,12 @@ Residency decides where classified data may flow between instances, in both dire
 - **Bridges between nets.** A server in two nets never offers one net's tools in the other unless
   `reexport` is on for **the net it offers into**. Then a tool imported in net M is offered in net N as
   this server's own (no origin: nothing signed in M can be checked in N). A call from N runs as the local
-  account the caller maps to, which calls into M with an assertion this server signs there (a guest
-  mapping cannot cross a bridge); hops and the visited list continue, so loops through several nets are
-  caught too.
+  account the caller maps to, which calls into M as an ordinary call by that user from this server (a guest
+  mapping cannot cross a bridge): with the resolver M lists and the host advertises, so an assertion this
+  server signs where M lists `assertion`, a host-scoped token where M lists `token_exchange`, that user's
+  key where M lists only `api_key`. A host in M refuses an assertion M does not list
+  (`assertion_invalid`): the bridge's assertion is issued by the sender itself, which is not the re-export
+  relay case. Hops and the visited list continue, so loops through several nets are caught too.
 - **Every instance on a chain must accept the extra hop**: raise `max_hops` to 2 for one intermediary, on
   the intermediary and the origin.
 

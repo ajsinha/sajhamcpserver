@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 8.0.0
+  version: 8.1.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   author_email: ajsinha@gmail.com       # shown with the copyright notice; SAJHA is proprietary (see LICENSE)
@@ -338,7 +338,7 @@ features:
 logging:
   level: ${LOG_LEVEL:INFO}
   dir: ./logs                              # Log directory (created if missing)
-  file: ""                                 # Log file name (empty = stdout only, e.g. "sajha.log")
+  file: server.log                         # Log file name in logging.dir (empty = stdout only)
 
 # ── Data Directories ────────────────────────────────────────────────────────
 

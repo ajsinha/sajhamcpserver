@@ -107,6 +107,14 @@ def test_overview_and_access_of_an_open_net(tmp_path, isolate, web):
         assert tools['lookup']['alias'] == 'lookup'
         assert [h['order'] for h in tools['lookup']['hosts']] == [0, 1]
         assert access_view(None)['nets'][0]['usable'] == 0                       # nobody signed in: nothing
+        # a disabled local tool that still holds the plain name: the plain name is not offered as an alias
+        off = Who('lookup', owner='open-eu')
+        off._enabled = False
+        a.reg.register_tool(off)
+        tools = {t['name']: t for t in access_view(_User())['nets'][0]['tools']}
+        assert tools['lookup']['alias'] == '' and tools['lookup'].get('held_by_disabled')
+        assert not tools['lookup']['local']
+        a.reg.unregister_tool('lookup')
 
         # the pages and the pins view on the running net
         c, admin = web

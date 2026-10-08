@@ -75,6 +75,9 @@ def _write(path: str, data: bytes, private: bool) -> None:
     os.replace(tmp, path)
 
 
+_FIRST_USE_LOCK = threading.RLock()
+
+
 class IdentityFiles:
     """One participant's key, certificate, CA certificate and first-use keys in a directory
     (``instance.key`` is private; nothing here leaves the machine except the certificate)."""
@@ -119,16 +122,18 @@ class IdentityFiles:
             return {}
 
     def remember(self, name: str, thumbprint: str) -> None:
-        cur = self.known()
-        cur[name] = thumbprint
-        _write(self.first_use_path, json.dumps(cur, indent=1, sort_keys=True).encode(), private=False)
+        with _FIRST_USE_LOCK:                            # read-modify-write; the write is atomic (_write)
+            cur = self.known()
+            cur[name] = thumbprint
+            _write(self.first_use_path, json.dumps(cur, indent=1, sort_keys=True).encode(), private=False)
 
     def forget(self, name: str) -> bool:
-        cur = self.known()
-        if cur.pop(name, None) is None:
-            return False
-        _write(self.first_use_path, json.dumps(cur, indent=1, sort_keys=True).encode(), private=False)
-        return True
+        with _FIRST_USE_LOCK:
+            cur = self.known()
+            if cur.pop(name, None) is None:
+                return False
+            _write(self.first_use_path, json.dumps(cur, indent=1, sort_keys=True).encode(), private=False)
+            return True
 
 
 def self_signed(net: str, instance: str, host: str, alg: str = crypto.ED25519, now: Optional[float] = None):

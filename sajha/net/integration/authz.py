@@ -531,9 +531,8 @@ class NetAuthz:
             if isinstance(user, dict):
                 user['test_admin_key'] = True            # recorded in the home's audit with the original caller
             return str(t['key']), str(t.get('id') or 'test-admin')
-        if user.get('api_key'):
-            raw = str(user['api_key'])
-            return raw, str(user.get('api_key_id') or '')
+        # 3. the key the caller presented on this request (X-API-Key on REST or MCP), held in memory for
+        #    this request only; never a key name (sajha/auth/presented_key.py)
         uid = str(user.get('user_id') or '')
         from sajha.auth.presented_key import presented
         p = presented()

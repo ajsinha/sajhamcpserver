@@ -141,6 +141,9 @@ def test_duplicates_prefix_clashes_and_reload(tmp_path):
         assert m.get_config('acme').source == 'file'
         assert m.get_config('acme2') is None and 'prefix acme is already used by upstream acme' in m.config_errors['acme2']
         assert [x['upstream'] for x in m.external_servers()] == ['acme']
+        from sajha import notices
+        n = next(x for x in notices.list_notices(state='all') if x['id'] == 'federation.prefix_clash')
+        assert n['severity'] == 'error' and 'acme2' in n['detail'] and '"prefix"' in n['detail']   # never a silent zero
         assert not m.reload_file()                                         # unchanged: nothing re-read
         time.sleep(0.01)
         f.write_text(json.dumps({'mcpServers': {'globex': {'url': 'https://x.example/mcp', 'external': False},
@@ -150,6 +153,8 @@ def test_duplicates_prefix_clashes_and_reload(tmp_path):
         assert m.get_config('globex').source == 'file' and m.get_config('acme').url == 'https://a.example/v2/mcp'
         assert [x['upstream'] for x in m.external_servers()] == ['acme']
         assert 'acme2' not in m.upstream_ids() and 'github' in m.upstream_ids()
+        assert 'acme2' not in m.config_errors
+        assert not any(x['id'] == 'federation.prefix_clash' for x in notices.list_notices(state='open'))
     finally:
         m.stop()
 

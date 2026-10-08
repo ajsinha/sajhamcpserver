@@ -20,9 +20,11 @@ SAJHA Net user identity beyond API keys (design §10.2, §14; protocol §15.5, �
   ``-32013 token_invalid``, after which the home exchanges again once.
 * :class:`NetIdentity`: the resolver the router and the hosts use. Per net it sends the first resolver of
   ``user_identity`` (a net entry's, else ``sajhanet.user_identity``) that the host advertises, and accepts
-  the resolvers it lists; a call to a re-exported tool (an ``origin``) and a bridge's call into another net
-  always use ``assertion``, and a host always accepts an assertion on such a call (hop > 1, or an audience
-  other than itself). Per-member keys (``sajhanet.peer_keys``) and the test admin key stay features of
+  the resolvers it lists. One exception, within one net: a call to a re-exported tool (an ``origin``)
+  always uses ``assertion``, and a host accepts that assertion even where the net does not list it, at the
+  intermediary (an audience other than itself) and at the origin (a later hop, issued by an instance other
+  than the sender). A bridge's call into another net is an ordinary call there by the bridge's own user:
+  it uses the resolvers the target net lists, and a host refuses an assertion its net does not list. Per-member keys (``sajhanet.peer_keys``) and the test admin key stay features of
   ``api_key`` (:class:`~sajha.net.integration.authz.ApiKeyIdentity`); an assertion names a key of the user
   in the key directory, never either of them.
 
@@ -81,6 +83,23 @@ def _lower(headers) -> Dict[str, str]:
 
 # ── assertions: the home signs, the host verifies ───────────────────
 
+def _reexport_relay(h: Dict[str, str], sender: str, me: str, kw: Dict[str, Any]) -> bool:
+    """Is this call the documented re-export case within one net (§16), where an assertion is accepted
+    even if the net does not list ``assertion``: the intermediary of a re-exported tool (the assertion is
+    for its origin, not for this host), or the origin receiving the caller's assertion relayed unchanged
+    (a later hop, issued by an instance other than the sender). A bridge's call into another net is issued
+    by the sender itself, so it is not this case."""
+    if kw.get('audience') not in (None, '', me):
+        return True
+    if int(kw.get('hop') or 1) <= 1:
+        return False
+    try:
+        doc = json.loads(crypto.unb64url(str(h.get(ASSERTION_HEADER) or '')).decode('utf-8'))
+    except Exception:
+        return False
+    return isinstance(doc, dict) and bool(doc.get('iss')) and doc.get('iss') != sender
+
+
 def own_record(st, key_id: str) -> Optional[Dict[str, Any]]:
     """This home's published key record ``key_id`` in the net of ``st``."""
     if not key_id or st.keys is None:
@@ -115,11 +134,6 @@ def key_id_for(a, st, user: Dict[str, Any]) -> str:
     p = presented()
     if p is not None and p.key_id and (not uid or p.user_id == uid) and usable(p.key_id):
         return p.key_id
-    if user.get('api_key'):
-        kh = keydir.key_hash(str(user['api_key']))
-        hit = next((k for k, r in own.items() if r.get('key_hash') == kh), '')
-        if hit and usable(hit):
-            return hit
     if not uid or uid.startswith('apikey:'):
         return ''
     db = a.db()
@@ -439,8 +453,10 @@ class NetIdentity(plugins.IdentityResolver):
     def outbound_headers(self, user):
         target = (user or {}).get('_target') if isinstance(user, dict) else None
         net, host = target or ('', '')
-        if isinstance(user, dict) and (user.get('_origin') or user.get('_bridge')):
-            return self.resolvers['assertion'].outbound_headers(user)      # §16: re-export and bridges
+        if isinstance(user, dict) and user.get('_origin'):
+            return self.resolvers['assertion'].outbound_headers(user)      # §16: a re-exported tool, within one net
+        # a bridge's call into another net is an ordinary call there, by the bridge's own user: the
+        # target net's listed resolvers apply (assertion only where that net lists it)
         mine = self.listed(net)
         choice = mine[0] if mine else 'api_key'
         st = self._authz.nets.get(net)
@@ -472,9 +488,9 @@ class NetIdentity(plugins.IdentityResolver):
                 return self.resolver(custom[0]).resolve(headers, sender, **kw)
             return None
         which = present[0]
-        relayed = int(kw.get('hop') or 1) > 1 or (kw.get('audience') not in (None, '', me))
-        if which == 'assertion' and 'assertion' not in listed and not relayed:
-            raise NetError('assertion_invalid', 'this host does not accept the assertion identity in this net')
+        if which == 'assertion' and 'assertion' not in listed and not _reexport_relay(h, sender, me, kw):
+            raise NetError('assertion_invalid', f'this host does not accept the assertion identity in {net or "this net"} '
+                                                f'(it lists {", ".join(listed) or "none"})')
         if which == 'token_exchange' and 'token_exchange' not in listed:
             raise NetError('token_invalid', 'this host does not accept the token_exchange identity in this net')
         if which == 'api_key' and 'api_key' not in listed:

@@ -168,6 +168,16 @@ async def sajhanet_forget_first_use(net: str, instance: str, auth: AuthContext =
     return {'net': net, 'forgotten': instance}
 
 
+@router.post('/api/sajhanet/nets/{net}/rejoin')
+async def sajhanet_rejoin(net: str, auth: AuthContext = Depends(require_admin)):
+    """Clear this server's held ``name_conflict`` refusal and try to join now (after the members forgot
+    the old key of this server's name)."""
+    svc = _svc()
+    if svc is None or not svc.shared.enabled:
+        return _off()
+    return await _call(svc.retry_join, net, auth.user_id)
+
+
 @router.get('/api/sajhanet/nets/{net}/ca')
 async def sajhanet_ca_view(net: str, auth: AuthContext = Depends(require_admin)):
     svc = _svc()

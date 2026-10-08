@@ -4,6 +4,75 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+Nothing yet.
+
+## v8.1.0 (October 2026) — sovereignty, the console and other MCP servers
+
+Wave 5 of the [Implementation Plan](docs/architecture/Implementation%20Plan.md). SAJHA Net becomes
+something a regulated organisation can adopt and other MCP servers can join: data residency with
+redaction, planners and LLM tools across the net with one call-chain budget, re-export and bridges,
+assertion and token-exchange identity, the full SAJHA Net console with a topology map, sponsored
+members, the standalone SAJHA Net agent and conformance runner, third-party plug-ins, vendors and
+proxied MCP servers (external ones are never members: the defining instance offers their tools as
+`vendor__tool`), the standard mcpServers file with templates, console single sign-on and browser and
+transport hardening. Open admission (no CA) is the shipped default; the docs were reviewed and
+rewritten against the code, with eleven new tutorials and a local test lab; the deck redrawn with
+native diagrams. SAJHA is proprietary software (see LICENSE).
+
+### Upgrading from 8.0.0
+
+- **Start script:** `run_server.py` is now `run_sajha_web.py` (same options).
+- **Admission:** the shipped `sajhanet.plugins.admission` is `open` (no CA). Set `builtin_ca` to keep
+  a CA; a net of one creates its CA at first start (`sajhanet.ca_auto_init`).
+- **Tool names:** names containing `__` are refused unless the tool is namespaced (federated, external,
+  SAJHA Net, connector). Rename any such local tool.
+- **Dependencies:** `mcp>=2.3,<3` moved into `requirements.txt` (proxied MCP servers need it at run time).
+- **Logging:** `logging.dir` and `logging.file` are honoured by the start script (shipped:
+  `logs/server.log`).
+- **Database:** no schema change since 8.0.0.
+
+- Fixed: `sajhanet.peer_keys` written in `config/application.yml` is honoured (the loader flattens
+  mappings, so only the `SAJHA_SAJHANET_PEER_KEYS` JSON worked). An instance name containing dots (an
+  address name) must still use the environment variable.
+- Fixed: raw-key records of `config/apikeys.json` reach the net key directory (by hash); test admin
+  records are never published, so a host honours the test admin key only from its own file and switch.
+
+- Fixed: an API-key caller's SAJHA Net calls were refused at the host (`key_unknown`): the home sent the
+  key's name (`Caller.api_key`) as the key, and on REST the key presented with `X-API-Key` was lost
+  because FastAPI authenticates in a worker thread. The home now forwards the key the caller presented
+  (REST, MCP, A2A, the OpenAI-compatible API; owned and service keys), held in memory for the request
+  only, else the user's default key; never a key name.
+- Fixed: open mode, a server replaced on purpose could not rejoin. Forgetting a first-use key now also
+  drops the member record, name lineage and cached certificates this server holds for the name; a name
+  is learnt only from a live record, so a departed record another member holds no longer re-teaches the
+  old key; and the refused server can retry (`POST /api/sajhanet/nets/{net}/rejoin`, or a restart in open
+  mode) instead of holding its `name_conflict` refusal for ever. Recovery steps in
+  [SAJHA Net](docs/architecture/SAJHA%20Net.md) §6.4 and Tutorial 31.
+- Fixed: `first_use.json` (and the other per-net list documents) could be corrupted by concurrent first
+  contacts ("Extra data"): they are read-modify-written under a lock and written atomically
+  (`StorageBackend.write_json_atomic`: a temporary file renamed over the old one).
+- Fixed: residency redaction corrupted text blocks by replacing a removed value inside other numbers
+  (`"total_paid": 30[REDACTED…]`). A JSON text block is re-serialised from the redacted value; a value
+  quoted in prose is replaced only as a whole token.
+- Fixed: a call the home refused for residency before trying any host (every host excluded by a
+  residency rule) wrote no `net.residency` record; it is now audited as `refused`, like the allows.
+- Fixed: a bridge's call into another net always carried a user assertion and the host accepted it even
+  where that net lists only `token_exchange` (or `api_key`). A bridge now uses the resolver the target
+  net lists, and a host refuses an identity its net does not list, except the documented re-export relay
+  within one net. Protocol §15.5, §15.2 and §16 say so.
+- Fixed: Ask SAJHA's shortlist spent a slot on a SAJHA Net tool's plain alias and one on every qualified
+  copy of it; one tool now takes one slot (the plain alias, which resolves across hosts).
+- Fixed: a proxied MCP server whose prefix (by default its vendor) another upstream already used exposed
+  no tools without saying so on the console; the clash is now an error notice `federation.prefix_clash`
+  naming both and telling to set a `prefix`.
+- Fixed: `run_sajha_web.py` always wrote `logs/server.log`, ignoring `logging.dir` and `logging.file`; it
+  now honours them (empty `logging.file`: stdout only). The shipped `config/application.yml` sets
+  `logging.file: server.log`, so the default log is unchanged.
+- Fixed: "Your net access" offered a plain name that a disabled local tool still holds; it is no longer
+  shown as an alias there.
+- Changed: the official MCP SDK (`mcp>=2.3,<3`) moved from `requirements-dev.txt` to `requirements.txt`:
+  federation imports it at run time.
+
 - Fixed: tools of internal proxied MCP servers (`external: false`) are now offered into a member's nets
   under their federation names, like its own tools, as designed (one name, one contract applies to them);
   they were left out of the net catalog. External servers' tools are still offered only as

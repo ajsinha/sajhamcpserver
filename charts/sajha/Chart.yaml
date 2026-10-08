@@ -6,7 +6,7 @@ type: application
 version: 0.1.0
 # The application version is app.version in config/application.yml (the only authority);
 # tests/test_k8s_deployment.py fails when this copy drifts from it.
-appVersion: "8.0.0"
+appVersion: "8.1.0"
 keywords: [mcp, model-context-protocol, fastapi, llm]
 home: https://github.com/ajsinha/sajhamcpserver
 sources: [https://github.com/ajsinha/sajhamcpserver]

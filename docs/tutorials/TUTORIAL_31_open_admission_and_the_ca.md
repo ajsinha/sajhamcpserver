@@ -12,7 +12,7 @@ section 6; [Tutorial 28](TUTORIAL_28_build_a_sajha_net.md) does the CA with cont
 ## What you'll learn
 
 - What open admission trusts, where the first-use keys are kept and how a `name_conflict` looks
-- How to forget a remembered key when a server was replaced on purpose, and what else that takes
+- How to let a server that was replaced on purpose back in: forget its old key, then retry
 - How to switch a net to its CA, issue enrollment tokens, enroll and revoke
 - Why every member of a net uses the same admission mode
 
@@ -59,13 +59,14 @@ curl -s http://127.0.0.2:3003/api/sajhanet/status -H 'X-API-Key: sja_test_admin_
 cust-na is already a member of lab-net with another key (Q0ZighvO...); an administrator can forget the old key if it was replaced
 ```
 
-A refused server does not keep knocking: it stays out until its configuration or certificate changes.
+A refused server does not keep knocking: it holds the refusal (in its saved peer list) and stays out
+until an administrator retries, it restarts, or its configuration or certificate changes.
 This is what open admission protects: once a name is known, nobody else can take it. What it does not
 protect is the first claim: any server that can reach a member and knows the net's name can join under an
 unused name, and then receives forwarded calls (with the test admin key, while that is on). Use the CA
 before a net spans machines you do not control.
 
-### 3. Forget the old key
+### 3. Forget the old key, then retry
 
 The rebuild was deliberate, so tell the members to forget the old key: **Forget** next to `cust-na` on
 the Net overview of `risk-eu` and of `treasury-eu`, or:
@@ -76,21 +77,18 @@ for h in 127.0.0.1:3002 127.0.0.3:3004; do
 done
 ```
 
-Each answers `{"net":"lab-net","forgotten":"cust-na"}` and audits `peer_key_forgotten`. On the build
-this tutorial was checked against, forgetting was not enough by itself: the members still held the old
-`cust-na` as a member record (state `left`, kept for `sajhanet.gossip.dead_retention_minutes`), and
-learned the old key again from it. What worked was to forget the key on every member, restart them so
-they drop the old record, clear the refusal the new server remembers (it is kept in its saved peer list,
-`peers.json` in the net's folder), and start it:
+Each answers `{"net":"lab-net","forgotten":"cust-na"}` and audits `peer_key_forgotten`. Forgetting also
+drops the old `cust-na` member record each of them held, so the old key is not learned again from it.
+Then let the rebuilt `cust-na` try again:
 
 ```bash
-deployment/local-lab/lab.sh stop
-rm deployment/local-lab/run/cust-na/data/sajhanet/lab-net/peers.json
-deployment/local-lab/lab.sh start
+curl -s -X POST http://127.0.0.2:3003/api/sajhanet/nets/lab-net/rejoin -H 'X-API-Key: sja_test_admin_dev_key_0001'; echo
 ```
 
-`cust-na` joins with its new key, and `first-use` on `risk-eu` now lists the new thumbprint. In a lab,
-`lab.sh reset` (a new net) is the short way.
+It answers with `"joined": true` and `"had_refusal": true`, and `first-use` on `risk-eu` now lists the new
+thumbprint. (Restarting `cust-na` does the same: in open mode a restart tries once more despite a held
+refusal.) If a member was missed, it refuses again and `cust-na` holds the new refusal: forget the key
+there and retry.
 
 ### 4. Switch the lab to the CA
 
@@ -167,8 +165,8 @@ describes it.
 
 - Open admission accepts a self-signed certificate the first time a name is seen and holds the name to
   that key; a second key for the name is a loud `name_conflict`
-- Forgetting a key is an administrator's deliberate act; a refused server waits until its configuration
-  or certificate changes
+- Forgetting a key is an administrator's deliberate act, on every member that remembers it; the refused
+  server then retries (or restarts) and joins with its new key
 - The CA issues certificates against single-use tokens, renews them and revokes them; its key never
   leaves the CA instance
 - One net, one admission mode

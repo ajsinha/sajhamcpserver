@@ -67,7 +67,8 @@
         <tr class="na-row" data-use="{{ 'yes' if t.usable_hosts else 'no' }}"
             data-text="{{ t.name|lower }} {% for h in t.hosts %}{{ h.instance|lower }} {% endfor %}">
           <td><code>{{ t.name }}</code>{% if t.alias %}<div class="na-meta">plain name <code>{{ t.alias }}</code></div>{% endif %}
-            {% if t.local %}<div class="na-meta">this server has its own {{ t.name }}; the plain name calls it</div>{% endif %}</td>
+            {% if t.local %}<div class="na-meta">this server has its own {{ t.name }}; the plain name calls it</div>{% endif %}
+            {% if t.held_by_disabled %}<div class="na-meta">a disabled tool of this server holds the plain name {{ t.name }}; use a qualified name</div>{% endif %}</td>
           <td>{% if t.usable_hosts %}<span class="st st-yes">may use</span> <span class="na-meta">{{ t.usable_hosts }} of {{ t.hosts|length }} hosts</span>
               {% else %}<span class="st st-no">may not use</span>{% endif %}</td>
           <td><ul class="na-hosts">{% for h in t.hosts %}

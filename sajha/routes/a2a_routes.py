@@ -151,6 +151,8 @@ async def _tasks_send(params: dict, auth: AuthContext, db: Session) -> dict:
     from sajha.observability.caller import from_auth, set_caller
     from sajha.policy.context import set_source
     set_caller(from_auth(auth))
+    from sajha.auth.presented_key import bind as _bind_key
+    _bind_key(auth)
     set_source('a2a')
 
     message = params.get('message', {})

@@ -8,6 +8,7 @@ The end-to-end test runs three instances in one process (as tests/net/test_net_t
 risk-eu (the home, EU, entity acme-eu), cust-eu (EU, acme-eu) and cust-na (US, acme-us).
 """
 
+import json
 import textwrap
 
 import pytest
@@ -340,6 +341,9 @@ def test_residency_three_instances_end_to_end(tmp_path, monkeypatch, isolate):  
         assert r['isError'] and ref['reason'] == 'residency_arguments' and ref['side'] == 'home'
         assert ref['executed'] is False and 'residency' in r['content'][0]['text']
         assert len(n.reg.get_tool('customer_lookup').received) == before
+        assert any(ev == 'net.residency' and d['side'] == 'home' and d['flow'] == 'arguments'
+                   and d['outcome'] == 'refused' and d['instance'] == 'cust-na'
+                   and d['rule'].endswith('eu-personal-stays-in-eu') for ev, d in audits), audits    # refusals are audited
         # by plain name it goes to cust-eu (EU): allowed, audited
         r = call('customer_lookup', {'customer_id': 'C-991'})
         assert not r.get('isError') and r['structuredContent']['host'] == 'cust-eu', r
@@ -392,3 +396,24 @@ def test_residency_three_instances_end_to_end(tmp_path, monkeypatch, isolate):  
     finally:
         for i in locals().get('insts') or []:
             i.svc.stop()
+
+
+def test_result_redaction_never_edits_inside_other_numbers():
+    """A removed value that shares digits with other values (304 inside 304566, 304.5, 1304) is replaced only
+    where it stands: the JSON text block is re-serialised from the redacted value, prose by whole token."""
+    marks = {'age': ['eu-personal'], 'name': ['eu-personal']}
+    value = {'name': 'Ana', 'age': 304, 'total_paid': 30456, 'rate': 304.5, 'count': 1304, 'note': 'Anaconda'}
+    result = {'content': [{'type': 'text', 'text': json.dumps(value)},
+                          {'type': 'text', 'text': '{"name": "Ana", "age": 304, "other": 304304}'},
+                          {'type': 'text', 'text': 'Ana is 304; paid 30456 at 304.5 over 1304 days (Anaconda).'}],
+              'structuredContent': value}
+    out, touched = R.redact_result(result, marks, ['eu-personal'])
+    assert touched == ['age', 'name']
+    sc = out['structuredContent']
+    assert sc['age'] == '[REDACTED:eu-personal]' and sc['total_paid'] == 30456 and sc['rate'] == 304.5
+    assert json.loads(out['content'][0]['text']) == sc                    # the JSON of the result, re-serialised
+    other = json.loads(out['content'][1]['text'])
+    assert other == {'name': '[REDACTED:eu-personal]', 'age': '[REDACTED:eu-personal]', 'other': 304304}
+    prose = out['content'][2]['text']
+    assert prose == ('[REDACTED:eu-personal] is [REDACTED:eu-personal]; paid 30456 at 304.5 over 1304 days '
+                     '(Anaconda).'), prose

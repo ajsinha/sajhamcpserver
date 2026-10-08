@@ -29,10 +29,14 @@ _apikey_header = APIKeyHeader(name='X-API-Key', auto_error=False)
 
 
 def _owned_key(ctx: 'AuthContext', raw_key: str) -> 'AuthContext':
-    """An owned key authenticated: remember it for this request only, so SAJHA Net can forward it
-    to the instance hosting a remote tool (sajha/auth/presented_key.py). Never logged or stored."""
+    """An API key authenticated: remember it for this request only, so SAJHA Net can forward it
+    to the instance hosting a remote tool (sajha/auth/presented_key.py). Never logged or stored.
+    The key is also held on the AuthContext (never in its repr), because a synchronous FastAPI
+    dependency authenticates in a worker thread whose context does not flow back to the endpoint;
+    the endpoint re-binds it with :func:`sajha.auth.presented_key.bind`."""
     try:
-        from sajha.auth.presented_key import remember
+        from sajha.auth.presented_key import PresentedKey, remember
+        ctx._presented = PresentedKey(str(ctx.api_key_id or ''), str(ctx.user_id or ''), raw_key)
         remember(raw_key, ctx.api_key_id or '', ctx.user_id or '')
     except Exception:
         pass
@@ -62,6 +66,7 @@ class AuthContext:
     # Internal references (not serialized)
     _user: Optional[User] = field(default=None, repr=False)
     _db: Optional[Session] = field(default=None, repr=False)
+    _presented: Optional[Any] = field(default=None, repr=False, compare=False)  # the raw API key (this request)
 
     def has_tool_access(self, tool_name: str) -> bool:
         """May this caller execute the tool?  (sajha/auth/access.py: roles, API key lists.)"""
@@ -285,7 +290,7 @@ class AuthManager:
                     api_key_tools=api_key.tool_access_list, api_key_id=api_key.id, api_key_owned=True,
                     _user=owner, _db=db,
                 ), raw_key)
-            return AuthContext(
+            return _owned_key(AuthContext(
                 authenticated=True,
                 user_id=f'apikey:{api_key.name}',
                 user_name=api_key.name,
@@ -297,7 +302,7 @@ class AuthManager:
                 api_key_tools=api_key.tool_access_list,
                 api_key_id=api_key.id,
                 _db=db,
-            )
+            ), raw_key)
         # 3. the database dump (config/apikeys_db.json): the database does not know the key, or is down
         try:
             rec = get_dump_keys().lookup(key_hash)
@@ -362,10 +367,10 @@ class AuthManager:
                                           api_key_mode=rec.get('tool_access_mode') or 'all', api_key_tools=tools,
                                           api_key_id=rec.get('id'), api_key_owned=True,
                                           _db=db if db_ok else None), raw_key)
-        return AuthContext(authenticated=True, user_id=f'apikey:{name}', user_name=name, roles=['api_consumer'],
-                           auth_type='apikey', is_admin=False, api_key_name=name,
-                           api_key_mode=rec.get('tool_access_mode') or 'all', api_key_tools=tools,
-                           api_key_id=rec.get('id'), _db=db if db_ok else None)
+        return _owned_key(AuthContext(authenticated=True, user_id=f'apikey:{name}', user_name=name,
+                                      roles=['api_consumer'], auth_type='apikey', is_admin=False, api_key_name=name,
+                                      api_key_mode=rec.get('tool_access_mode') or 'all', api_key_tools=tools,
+                                      api_key_id=rec.get('id'), _db=db if db_ok else None), raw_key)
 
     # ── Request Auth (unified) ───────────────────────────────────
 

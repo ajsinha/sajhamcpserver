@@ -21,9 +21,9 @@ The design is [SAJHA Net](../architecture/SAJHA%20Net.md); the launcher is descr
 
 ## Prerequisites
 
-- A SAJHA checkout and its Python environment ([Tutorial 1](TUTORIAL_01_getting_started.md)), with the
-  MCP SDK, which federation uses to talk to proxied MCP servers: `pip install "mcp>=2.3,<3"` (it is in
-  `requirements-dev.txt`)
+- A SAJHA checkout and its Python environment ([Tutorial 1](TUTORIAL_01_getting_started.md)),
+  `pip install -r requirements.txt` (it includes the MCP SDK, which federation uses to talk to proxied MCP
+  servers)
 - [Ollama](https://ollama.com) with three models: `qwen3:8b`, `qwen2.5:3b` and `nomic-embed-text`
 - Free ports 3002, 3003 and 3004 (stop a development server you run on 3002 first, or move the lab with
   `SAJHA_LAB_PORT`, step 2)

@@ -264,8 +264,10 @@ class NativeCatalog(CatalogSource):
 def _caller_user(net_hint: str = '') -> Dict[str, Any]:
     from sajha.observability.caller import current
     c = current()
+    # ``Caller.api_key`` is the key's NAME (for the usage ledger), never the key: the raw key a caller
+    # presented is held per request by sajha/auth/presented_key.py, which NetAuthz.key_for reads.
     return {'user_id': c.user_id, 'roles': list(c.roles), 'is_admin': c.is_admin, 'auth_type': c.auth_type,
-            'api_key': c.api_key, 'authenticated': c.user_id not in ('', 'anonymous'), 'net': net_hint}
+            'api_key_name': c.api_key, 'authenticated': c.user_id not in ('', 'anonymous'), 'net': net_hint}
 
 
 class NetProxyTool(BaseMCPTool):

@@ -246,13 +246,24 @@ def overview_view(net: Optional[str] = None, records: Optional[List[Dict[str, An
 
 # ── what one user may use across the net ────────────────────────────
 
+def _disabled_local_names(reg) -> set:
+    """Names a disabled local tool still holds in the registry (a plain name there is not a remote alias)."""
+    if reg is None:
+        return set()
+    from sajha.net.integration.catalogs import NetProxyTool
+    tools = list(reg.tools.values()) if hasattr(reg, 'tools') else []
+    return {t.name for t in tools if not isinstance(t, NetProxyTool) and not getattr(t, 'enabled', True)}
+
+
 def access_view(auth=None) -> Dict[str, Any]:
     """Per net: every plain name of a remote tool with its hosts in resolution order and whether this
     server lets ``auth`` call each, plus this user's local tool count. The host decides again on every
     call (design §11.1); quarantined and blocked copies are listed with their state, never as usable."""
-    from sajha.net.integration.console import LISTED, _local_tools, _may_use, instances_view
+    from sajha.net.integration.console import LISTED, _local_tools, _may_use, _registry, instances_view
     svc = _service()
     local = [t.name for t in _local_tools()]
+    cat = getattr(svc, 'catalogs', None) if svc is not None else None
+    held_disabled = set(_safe(lambda: _disabled_local_names(getattr(cat, 'registry', None) or _registry()), set()))
     mine_local = [n for n in local if _may_use(auth, n)]
     nets: List[Dict[str, Any]] = []
     if svc is None:
@@ -276,7 +287,10 @@ def access_view(auth=None) -> Dict[str, Any]:
             g = groups.setdefault(r['part'], {'name': r['part'], 'alias': '', 'local': r['part'] in local,
                                               'hosts': []})
             if alias_of.get(r['qualified_name']):
-                g['alias'] = alias_of[r['qualified_name']]
+                if alias_of[r['qualified_name']] in held_disabled:
+                    g['held_by_disabled'] = True            # the plain name calls a disabled local tool: not offered
+                else:
+                    g['alias'] = alias_of[r['qualified_name']]
             usable = r['state'] in LISTED and _may_use(auth, r['qualified_name'])
             g['hosts'].append({'instance': r['host_instance'], 'qualified_name': r['qualified_name'],
                                'state': r['state'], 'member_state': states.get(net, {}).get(r['host_instance'], ''),

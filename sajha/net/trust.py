@@ -54,11 +54,16 @@ class FirstUseTrust(Trust):
     """``admission: open`` (owner decision, for now): no CA. A peer's self-signed certificate for this
     net is accepted the first time its instance name is seen, and that key is then remembered against
     the name (``remember``/``known``), so another server claiming the name later is refused loudly."""
+    first_use = True
 
     def __init__(self, net: str, known: Callable[[], Dict[str, str]], remember: Callable[[str, str], None]):
         self.net = net
         self._known = known
         self._remember = remember
+
+    def knows(self, name: str) -> bool:
+        """Is a key remembered for ``name``?"""
+        return (self._known() or {}).get(name) is not None
 
     def check_chain(self, chain, now):
         if len(chain) != 1:

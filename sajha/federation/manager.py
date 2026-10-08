@@ -204,7 +204,8 @@ class FederationManager:
                      None)
         if other is not None:
             return (f'prefix {p} is already used by upstream {other.id} ({_SOURCES.get(other.source, other.source)}); '
-                    f'{cfg.id} ({_SOURCES.get(cfg.source, cfg.source)}) is not loaded')
+                    f'{cfg.id} ({_SOURCES.get(cfg.source, cfg.source)}) is not loaded and exposes no tools. The prefix '
+                    f'defaults to the vendor: give one of them its own "prefix"')
         reg = self.registry
         if reg is not None and getattr(reg, 'tools', None) is not None:
             t = reg.tools.get(p)
@@ -217,9 +218,28 @@ class FederationManager:
         if why:
             self.config_errors[cfg.id] = why
             logger.error(f'federation: {why}')
+            self._prefix_notice()
             return False
+        if str(self.config_errors.get(cfg.id, '')).startswith('prefix '):
+            self.config_errors.pop(cfg.id, None)            # an earlier clash, resolved
         self._upstreams[cfg.id] = _Upstream(cfg)
         return True
+
+    def _prefix_notice(self) -> None:
+        """A configuration error notice while an upstream is not loaded because its prefix clashes (never a
+        silent upstream with no tools); cleared when no clash is left."""
+        clashes = {k: v for k, v in self.config_errors.items() if str(v).startswith('prefix ')}
+        try:
+            from sajha import notices
+            if clashes:
+                notices.raise_notice('federation.prefix_clash', severity='error', source='federation',
+                                     title='A proxied MCP server is not loaded: its tool prefix is taken',
+                                     detail='; '.join(f'{k}: {v}' for k, v in sorted(clashes.items()))[:1000],
+                                     link='/admin/federation', audience='admin', ttl_minutes=0)
+            else:
+                notices.clear_notice('federation.prefix_clash')
+        except Exception as e:
+            logger.debug(f'federation: prefix clash notice: {e}')
 
     def _load_upstreams(self) -> None:
         self.config_errors.clear()
@@ -250,6 +270,7 @@ class FederationManager:
                 self.config_errors[cfg.id] = 'defined in configuration; the stored definition is ignored'
                 continue
             self._add_loaded(cfg)
+        self._prefix_notice()
 
     # ── the mcpServers file (sajha/federation/mcp_servers.py) ──────
     def _file_upstreams(self, yaml_ids, force: bool = False) -> List[UpstreamConfig]:
@@ -318,12 +339,16 @@ class FederationManager:
             added = [i for i in new if i not in old and i not in self._upstreams]
             for i in [u.config.id for u in gone] + changed:
                 self._upstreams.pop(i, None)
+            for i, why in list(self.config_errors.items()):         # clashes of entries the file no longer has
+                if str(why).startswith('prefix ') and f'{i} (the mcpServers file)' in str(why) and i not in new:
+                    self.config_errors.pop(i, None)
             fresh = []
             for i in changed + added:
                 if not self._add_loaded(new[i]):
                     self.file_external = [x for x in self.file_external if x['upstream'] != i]
                     continue
                 fresh.append(self._upstreams[i])
+            self._prefix_notice()
         for up in gone + [old[i] for i in changed]:
             self._teardown(up, forget=False)
         if self.settings.enabled:
