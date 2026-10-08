@@ -6,10 +6,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 Run this file directly in PyCharm (Right-click → Run/Debug)
 or from the command line:
 
-    python run_server.py
-    python run_server.py --host 0.0.0.0 --port 3002
-    python run_server.py --reload
-    python run_server.py --stdio [--user admin | --api-key sja_...]   # MCP over stdin/stdout
+    python run_sajha_web.py
+    python run_sajha_web.py --host 0.0.0.0 --port 3002
+    python run_sajha_web.py --reload
+    python run_sajha_web.py --stdio [--user admin | --api-key sja_...]   # MCP over stdin/stdout
 """
 
 import os

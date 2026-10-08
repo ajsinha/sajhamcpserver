@@ -134,7 +134,7 @@ class SajhaMCPServerWebApp:
         uvicorn.run(webapp.app, ...)
 
     Or in PyCharm:
-        python run_server.py
+        python run_sajha_web.py
     """
 
     def __init__(self):

@@ -66,7 +66,7 @@ workers ([Scaling and State](../architecture/Scaling%20and%20State.md)).
 | Streaming, `subscriptions/listen`, MRTR, tasks | The 2026-07-28 features | MCP Protocol Guide §2 |
 | OAuth 2.1 on `/mcp` | Modes off / optional / required; built-in authorization server or an external IdP | [OAuth Guide](../protocol/OAuth%20Guide.md) |
 | MCP Apps and `x-mcp-header` | Interactive tool views; arguments mirrored into headers | [MCP Apps and Headers Guide](../protocol/MCP%20Apps%20and%20Headers%20Guide.md) |
-| MCP over stdio | `run_server.py --stdio` / `sajha serve --stdio` for desktop clients; one caller per process | [Command Line](../clients/Command%20Line.md) |
+| MCP over stdio | `run_sajha_web.py --stdio` / `sajha serve --stdio` for desktop clients; one caller per process | [Command Line](../clients/Command%20Line.md) |
 | Every HTTP endpoint | Every route the server registers, grouped by route module (`tests/test_documentation_rot.py` fails when one is missing) | [API Reference](../protocol/API%20Reference.md) |
 | A2A | The agent card and the A2A task lifecycle on `POST /a2a` | [API Reference](../protocol/API%20Reference.md); the A2A client in the [Client SDK Guide](../clients/Client%20SDK%20Guide.md) |
 

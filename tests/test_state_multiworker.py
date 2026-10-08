@@ -12,7 +12,7 @@ the checks that used to fail when that state was per process:
 
 Backends: ``database`` (a shared SQLite file: always runs) and ``redis`` (a
 real server at SAJHA_TEST_REDIS_URL, default redis://127.0.0.1:6379/15:
-skipped when none answers).  A final test starts ``run_server.py --workers 2``
+skipped when none answers).  A final test starts ``run_sajha_web.py --workers 2``
 and checks that both workers come up on the shared backend.
 
 Set SAJHA_SKIP_MULTIPROCESS_TESTS=1 to skip this module.
@@ -97,7 +97,7 @@ class Server:
         self.port = _free_port()
         self.base = f"http://127.0.0.1:{self.port}"
         self.log = open(tmp / f"{name}.log", "wb")
-        args = [sys.executable, "run_server.py", "--host", "127.0.0.1", "--port", str(self.port),
+        args = [sys.executable, "run_sajha_web.py", "--host", "127.0.0.1", "--port", str(self.port),
                 "--log-level", "warning"]
         if workers > 1:
             args += ["--workers", str(workers)]

@@ -24,7 +24,7 @@ them on only for protocol testing:
 
 ```bash
 # 1. start the server with the conformance fixtures enabled
-SAJHA_MCP_CONFORMANCE_FIXTURES=true python run_server.py --host 127.0.0.1 --port 3092
+SAJHA_MCP_CONFORMANCE_FIXTURES=true python run_sajha_web.py --host 127.0.0.1 --port 3092
 
 # 2. run every server scenario for spec 2025-11-25
 npx -y @modelcontextprotocol/conformance@0.1.16 server \

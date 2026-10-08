@@ -102,7 +102,7 @@ SAJHA = {
                              ['.github/workflows/mcp-conformance.yml'], 'MCP 2026-07-28 Compliance.md'),
         'remote_transports': _s('Yes', 'Legacy SSE (/mcp/sse) and WebSocket (/mcp/ws) beside Streamable HTTP.',
                                 ['sajha/routes/mcp_routes.py', 'sajha/routes/ws_routes.py'], 'MCP Protocol Guide.md'),
-        'stdio': _s('Yes', 'Serves stdio for desktop clients (sajha serve --stdio, run_server.py --stdio), '
+        'stdio': _s('Yes', 'Serves stdio for desktop clients (sajha serve --stdio, run_sajha_web.py --stdio), '
                            'both eras; identity from --user or --api-key.',
                     ['sajha/cli/stdio.py'], 'Command Line.md'),
         'tasks': _s('Yes', 'Tasks extension on 2026-07-28; a tool opts in with execution.taskSupport.',

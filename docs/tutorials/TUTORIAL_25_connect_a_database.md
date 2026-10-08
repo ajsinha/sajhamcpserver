@@ -52,7 +52,7 @@ depend on SAJHA.
 SAJHA stores a *reference* to the password, never the password:
 
 ```bash
-SHOP_DB_PASSWORD=ro-pw python run_server.py
+SHOP_DB_PASSWORD=ro-pw python run_sajha_web.py
 ```
 
 ### 3. Add the connection

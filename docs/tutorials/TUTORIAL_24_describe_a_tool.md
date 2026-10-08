@@ -26,7 +26,7 @@ with the built-in `mock-toolsmith` model. The design is in
 
 ### 1. Open the page
 
-Start SAJHA (`python run_server.py`), sign in as an admin and open **MCP Studio → Describe
+Start SAJHA (`python run_sajha_web.py`), sign in as an admin and open **MCP Studio → Describe
 a tool** (`/studio/describe`). The side panel says which model alias designs the tools
 (`toolsmith`, mapped to `mock/mock-toolsmith` in `config/application.yml`).
 

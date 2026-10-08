@@ -39,10 +39,10 @@ mcp:
 Use either the command-line flag or an environment variable:
 
 ```bash
-python run_server.py --config config/production.yml
+python run_sajha_web.py --config config/production.yml
 # or
 export SAJHA_CONFIG_FILE=config/production.yml
-python run_server.py
+python run_sajha_web.py
 ```
 
 The startup log confirms which file was loaded:
@@ -52,7 +52,7 @@ Config:  config/production.yml
 Server:  http://0.0.0.0:8080
 ```
 
-`run_server.py` also accepts `--host`, `--port`, `--log-level`, `--workers` and `--reload`. These flags override the file.
+`run_sajha_web.py` also accepts `--host`, `--port`, `--log-level`, `--workers` and `--reload`. These flags override the file.
 
 ### 4. Use placeholders for environment-specific values
 

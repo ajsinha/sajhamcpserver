@@ -40,7 +40,7 @@ Federation is off by default, and SAJHA refuses loopback upstream URLs unless to
 otherwise (an SSRF guard). For this tutorial, start SAJHA with both switched on:
 
 ```bash
-SAJHA_FEDERATION_ENABLED=true SAJHA_FEDERATION_ALLOW_LOCALHOST=true python run_server.py
+SAJHA_FEDERATION_ENABLED=true SAJHA_FEDERATION_ALLOW_LOCALHOST=true python run_sajha_web.py
 ```
 
 (To make it permanent, set `federation.enabled` and `federation.allow_localhost` in

@@ -20,10 +20,10 @@ Log in to SAJHA, find a tool, run it from the browser, then call the same tool f
 ### 1. Start the server
 
 ```bash
-python run_server.py
+python run_sajha_web.py
 ```
 
-The server listens on `server.host` / `server.port` from `config/application.yml` (by default `0.0.0.0:3002`). Override them with `--host` and `--port`, for example `python run_server.py --port 8080`.
+The server listens on `server.host` / `server.port` from `config/application.yml` (by default `0.0.0.0:3002`). Override them with `--host` and `--port`, for example `python run_sajha_web.py --port 8080`.
 
 ### 2. Sign in
 

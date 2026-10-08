@@ -47,7 +47,7 @@ def main():
     
     # Check main files
     print("\n[1] Checking main files...")
-    all_ok &= check_file("run_server.py", "Main entry point")
+    all_ok &= check_file("run_sajha_web.py", "Main entry point")
     all_ok &= check_file("requirements.txt", "Dependencies file")
     all_ok &= check_file("README.md", "Documentation")
     all_ok &= check_file("start.sh", "Quick start script")
@@ -155,7 +155,7 @@ def main():
     if all_ok:
         print("✓ VERIFICATION SUCCESSFUL - All components are properly installed!")
         print("\nTo start the server, run:")
-        print("  python run_server.py")
+        print("  python run_sajha_web.py")
         print("\nOr use the quick start script:")
         print("  ./start.sh")
     else:

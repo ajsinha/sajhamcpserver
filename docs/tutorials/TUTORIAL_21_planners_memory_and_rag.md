@@ -27,7 +27,7 @@ Start the server with plan-and-execute instead:
 
 ```bash
 export SAJHA_AI_ASK_PLANNER=plan_execute
-python run_server.py
+python run_sajha_web.py
 ```
 
 `GET /api/ai/planners` lists every registered planner and the configured default.

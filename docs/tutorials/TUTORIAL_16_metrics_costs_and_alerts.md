@@ -48,7 +48,7 @@ environment only.
 ```bash
 export SAJHA_OBSERVABILITY_METRICS_AUTH=token
 export SAJHA_OBSERVABILITY_METRICS_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-python run_server.py
+python run_sajha_web.py
 ```
 
 Check it:
@@ -165,7 +165,7 @@ that resolves to a private address, is refused (the same SSRF guard as async web
 ```bash
 pip install opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
 docker run --rm -p 16686:16686 -p 4318:4318 jaegertracing/all-in-one
-SAJHA_OBSERVABILITY_OTEL_ENABLED=true OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 python run_server.py
+SAJHA_OBSERVABILITY_OTEL_ENABLED=true OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 python run_sajha_web.py
 ```
 
 Call a tool over MCP, open Jaeger at `http://localhost:16686`, pick service

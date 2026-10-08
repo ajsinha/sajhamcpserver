@@ -10,13 +10,13 @@ git clone https://github.com/ajsinha/sajhamcpserver.git
 cd sajhamcpserver
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python run_server.py
+python run_sajha_web.py
 ```
 
 CI runs on Python 3.12. The server listens on `http://localhost:3002`
 (`server.host` / `server.port`).
 
-`run_server.py` options: `--config <file.yml>`, `--host`, `--port`, `--reload`
+`run_sajha_web.py` options: `--config <file.yml>`, `--host`, `--port`, `--reload`
 (development auto-reload), `--workers` (keep 1 unless `state.backend` is `redis` or
 `database`, see [Scaling and State](../architecture/Scaling%20and%20State.md)), `--log-level`,
 `--stdio` (serve MCP on stdin/stdout for a desktop client instead of HTTP; see

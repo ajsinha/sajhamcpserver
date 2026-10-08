@@ -146,7 +146,7 @@ def test_claimed_routes_exist(web):
     for p in ('/mcp', '/mcp/sse', '/mcp/ws', '/api/ai/ask', '/ask'):
         assert p in paths, p
     assert C.SAJHA['cells']['remote_transports']['verdict'] == 'Yes'
-    # stdio is not an HTTP route: it is sajha/cli/stdio.py (run_server.py --stdio)
+    # stdio is not an HTTP route: it is sajha/cli/stdio.py (run_sajha_web.py --stdio)
     assert C.SAJHA['cells']['stdio']['verdict'] == 'Yes'
     assert os.path.isfile(os.path.join(ROOT, 'sajha/cli/stdio.py'))
     # Federation (sajha/federation/) was being built when this page was written: once its

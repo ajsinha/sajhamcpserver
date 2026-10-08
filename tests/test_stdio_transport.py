@@ -3,7 +3,7 @@ MCP over stdio (sajha/cli/stdio.py): the official SDK client in both eras, the
 transport rules (newline-delimited JSON, nothing but protocol on stdout), identity
 mapping, and notifications/cancelled.
 
-Each test launches ``run_server.py --stdio`` as a subprocess against a scratch
+Each test launches ``run_sajha_web.py --stdio`` as a subprocess against a scratch
 database, exactly as a desktop client would.
 """
 
@@ -61,7 +61,7 @@ class RawServer:
     """A stdio server driven line by line."""
 
     def __init__(self, env, *args):
-        self.proc = subprocess.Popen([sys.executable, str(ROOT / 'run_server.py'), '--stdio', *args],
+        self.proc = subprocess.Popen([sys.executable, str(ROOT / 'run_sajha_web.py'), '--stdio', *args],
                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                      cwd=str(ROOT), env=env,
                                      preexec_fn=_die_with_parent if sys.platform.startswith('linux') else None)
@@ -214,7 +214,7 @@ def test_anonymous_by_default_sees_no_registry_tools(stdio_env):
 
 def test_unknown_user_or_bad_key_refuses_to_start(stdio_env):
     for args in (('--user', 'no_such_user'), ('--api-key', 'sja_not_a_key')):
-        p = subprocess.run([sys.executable, str(ROOT / 'run_server.py'), '--stdio', *args],
+        p = subprocess.run([sys.executable, str(ROOT / 'run_sajha_web.py'), '--stdio', *args],
                            input=b'', capture_output=True, cwd=str(ROOT), env=stdio_env, timeout=120)
         assert p.returncode == 2
         assert p.stdout == b''
@@ -229,7 +229,7 @@ def test_official_sdk_client(stdio_env, mode, version):
     import anyio
     from mcp import Client, StdioServerParameters
 
-    params = StdioServerParameters(command=sys.executable, args=[str(ROOT / 'run_server.py'), '--stdio',
+    params = StdioServerParameters(command=sys.executable, args=[str(ROOT / 'run_sajha_web.py'), '--stdio',
                                                                  '--user', 'admin'],
                                    env=stdio_env, cwd=str(ROOT))
 

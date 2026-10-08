@@ -240,7 +240,7 @@ curl -s http://localhost:3002/mcp -H 'Content-Type: application/json' \
 | Streamable HTTP | `POST /mcp` (`/api/mcp`), `DELETE /mcp` | both | Every current MCP client. The default. |
 | HTTP+SSE (2024-11-05) | `GET /mcp/sse` + `POST /mcp/message` | legacy | Older clients that predate Streamable HTTP. |
 | WebSocket (SAJHA extension) | `/mcp/ws` | legacy | Full-duplex clients; accepts JSON-RPC batches; authenticates with `?token=` or `?api_key=`. |
-| stdio | the server's stdin/stdout (`sajha serve --stdio`, `python run_server.py --stdio`) | both | Desktop clients (Claude Desktop, Claude Code, IDEs) that launch the server as a subprocess. |
+| stdio | the server's stdin/stdout (`sajha serve --stdio`, `python run_sajha_web.py --stdio`) | both | Desktop clients (Claude Desktop, Claude Code, IDEs) that launch the server as a subprocess. |
 
 The legacy SSE and WebSocket streams receive the same change-bus notifications as
 `subscriptions/listen`, and therefore advertise `listChanged: true`. Streamable HTTP
@@ -357,7 +357,7 @@ The official conformance suite needs fixture tools, prompts and resources that a
 production server should not expose. They are off by default:
 
 ```bash
-SAJHA_MCP_CONFORMANCE_FIXTURES=true python run_server.py --host 127.0.0.1 --port 3092
+SAJHA_MCP_CONFORMANCE_FIXTURES=true python run_sajha_web.py --host 127.0.0.1 --port 3092
 npx -y @modelcontextprotocol/conformance@0.1.16        server --url http://127.0.0.1:3092/mcp --spec-version 2025-11-25 --suite all
 npx -y @modelcontextprotocol/conformance@0.2.0-alpha.12 server --url http://127.0.0.1:3092/mcp --spec-version 2026-07-28 --suite all
 ```

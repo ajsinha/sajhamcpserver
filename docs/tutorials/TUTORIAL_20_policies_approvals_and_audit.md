@@ -176,7 +176,7 @@ nc -lk 6601 &                             # a stand-in syslog receiver (prints w
 export SAJHA_AUDIT_EXPORT_SINKS='[
   {"name": "file", "type": "file", "path": "logs/audit/audit-{pid}.cef", "format": "cef"},
   {"name": "syslog", "type": "syslog", "host": "127.0.0.1", "port": 6601, "format": "json"}]'
-python run_server.py
+python run_sajha_web.py
 ```
 
 Repeat a call from step 4. The `nc` window prints RFC 5424 messages

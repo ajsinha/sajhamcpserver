@@ -124,7 +124,7 @@ improved. Without `--no-save` a run is stored, and its id works in `compare` too
 restart SAJHA with:
 
 ```bash
-SAJHA_QUALITY_PROBES_ENABLED=true python run_server.py
+SAJHA_QUALITY_PROBES_ENABLED=true python run_sajha_web.py
 ```
 
 Open **Admin → Operations → Tool health** (`/admin/tool-health`). The Probes table shows each

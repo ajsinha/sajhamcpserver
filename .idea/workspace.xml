@@ -51,7 +51,7 @@
       <change beforePath="$PROJECT_DIR$/docs/userguides/Yahoo_Finance_Tools_Reference_Guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/userguides/Yahoo_Finance_Tools_Reference_Guide.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/logs/server.log" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/run_server.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/run_sajha_web.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/sajha/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sajha/core/apikey_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/apikey_manager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sajha/core/auth_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/sajha/core/auth_manager.py" afterDir="false" />
@@ -149,7 +149,7 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="DEBUG_JUST_MY_CODE" value="false" />
       <option name="RUN_TOOL" value="" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/run_server.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/run_sajha_web.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />

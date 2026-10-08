@@ -3,7 +3,7 @@ MCP 2025-11-25 protocol/transport conformance tests for POST/GET/DELETE /mcp.
 
 Uses FastAPI TestClient against the full app.  The full end-to-end check is
 the official suite:
-    SAJHA_MCP_CONFORMANCE_FIXTURES=true python run_server.py --port 3092
+    SAJHA_MCP_CONFORMANCE_FIXTURES=true python run_sajha_web.py --port 3092
     npx -y @modelcontextprotocol/conformance@0.1.16 server \
         --url http://127.0.0.1:3092/mcp --spec-version 2025-11-25 --suite all
 """

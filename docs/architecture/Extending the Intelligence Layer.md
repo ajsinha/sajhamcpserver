@@ -1087,7 +1087,7 @@ Add the provider to your local `config/application.yml` (2.7, way 2) with
 ```bash
 export ACME_LLM_KEY=anything                                # the fake accepts any key
 export SAJHA_AI_ALIASES_DEFAULT="acme,mock/mock-planner"
-python run_server.py                                        # terminal 2
+python run_sajha_web.py                                        # terminal 2
 ```
 
 `GET /api/ai/config` should list `acme` as active with `default` resolved to

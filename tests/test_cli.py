@@ -2,7 +2,7 @@
 The ``sajha`` command line (clientsdk/sajhaclient/cli).
 
 Offline tests cover argument typing, profiles (file mode 0600, precedence),
-completion and exit codes.  Live tests start a real server (``run_server.py`` on
+completion and exit codes.  Live tests start a real server (``run_sajha_web.py`` on
 a free port, scratch database) once per module and run the commands in-process
 against it over HTTP.
 """
@@ -145,7 +145,7 @@ def live(tmp_path_factory):
     port = _free_port()
     env = {**os.environ, 'SAJHA_DB_PATH': str(d / 'cli.db'), 'PYTHONUNBUFFERED': '1'}
     log = open(d / 'server.log', 'wb')
-    proc = subprocess.Popen([sys.executable, str(ROOT / 'run_server.py'), '--port', str(port),
+    proc = subprocess.Popen([sys.executable, str(ROOT / 'run_sajha_web.py'), '--port', str(port),
                              '--host', '127.0.0.1'], cwd=str(ROOT), env=env, stdout=log, stderr=log,
                             preexec_fn=_die_with_parent if sys.platform.startswith('linux') else None)
     url = f'http://127.0.0.1:{port}'

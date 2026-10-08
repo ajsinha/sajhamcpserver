@@ -87,7 +87,7 @@ Guide: [Kubernetes Deployment](../docs/getting-started/Kubernetes%20Deployment.m
 ## Several workers or hosts
 
 One worker needs nothing extra. More than one worker process (`UVICORN_WORKERS`, or
-`run_server.py --workers N`), or more than one host behind a load balancer, needs a shared
+`run_sajha_web.py --workers N`), or more than one host behind a load balancer, needs a shared
 state store, or OAuth codes, MCP sessions and tasks, rate limits and change notifications
 split between workers. The design is in
 [Scaling and State](../docs/architecture/Scaling%20and%20State.md), and the walkthrough is

@@ -108,14 +108,14 @@ check it by hand: this prints one JSON line (the `server/discover` result) and e
 
 ```bash
 echo '{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}' \
-  | python run_server.py --stdio --user admin 2>/dev/null
+  | python run_sajha_web.py --stdio --user admin 2>/dev/null
 ```
 
 Now register it (use absolute paths and the Python that has SAJHA's requirements):
 
 ```bash
 claude mcp add sajha --env SAJHA_STDIO_USER=admin \
-  -- "$(which python)" "$PWD/run_server.py" --stdio
+  -- "$(which python)" "$PWD/run_sajha_web.py" --stdio
 claude mcp list
 ```
 
@@ -131,7 +131,7 @@ Open Settings > Developer > Edit Config and add:
   "mcpServers": {
     "sajha": {
       "command": "/path/to/python",
-      "args": ["/path/to/sajhamcpserver/run_server.py", "--stdio"],
+      "args": ["/path/to/sajhamcpserver/run_sajha_web.py", "--stdio"],
       "env": { "SAJHA_STDIO_USER": "admin" }
     }
   }
@@ -157,7 +157,7 @@ The stdio process acts as one caller, mapped through SAJHA's access control:
 - `tools list|show|call` work over MCP with schema-typed arguments and meaningful exit codes
 - `ask` streams the tool chain to the terminal
 - `studio deploy` publishes a tool from a file
-- `run_server.py --stdio` (or `sajha serve --stdio`) serves MCP to desktop clients, as
+- `run_sajha_web.py --stdio` (or `sajha serve --stdio`) serves MCP to desktop clients, as
   the user or API key you choose
 
 ## What next

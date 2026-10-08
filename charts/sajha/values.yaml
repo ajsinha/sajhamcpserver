@@ -15,7 +15,7 @@ fullnameOverride: ""
 # Pods. More than one (or autoscaling) needs PostgreSQL and a shared state store; the
 # chart refuses to render otherwise (see "Several replicas" in the guide).
 replicaCount: 1
-# Uvicorn worker processes per pod (run_server.py --workers). Prefer 1 and scale with
+# Uvicorn worker processes per pod (run_sajha_web.py --workers). Prefer 1 and scale with
 # replicas: probes, metrics and resource limits then describe one process.
 workers: 1
 

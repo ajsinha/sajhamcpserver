@@ -95,7 +95,7 @@ COPY --from=deps /opt/venv /opt/venv
 
 WORKDIR /app
 # Code and defaults are owned by root and read-only to the server user.
-COPY run_server.py ./
+COPY run_sajha_web.py ./
 COPY sajha/ sajha/
 COPY config/ config/
 COPY db/ db/
@@ -125,5 +125,5 @@ EXPOSE 3002
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
     CMD ["python", "-c", "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/health' % os.environ.get('SERVER_PORT', '3002'), timeout=4)"]
 
-ENTRYPOINT ["/usr/bin/tini", "--", "python", "/app/run_server.py"]
+ENTRYPOINT ["/usr/bin/tini", "--", "python", "/app/run_sajha_web.py"]
 CMD ["--host", "0.0.0.0"]

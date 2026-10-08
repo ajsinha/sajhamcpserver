@@ -209,7 +209,7 @@ The MCP endpoints (`POST/GET/DELETE /mcp`, `POST/DELETE /api/mcp`, `GET /mcp/sse
 
 In every mode, API keys, SAJHA JWTs and the session cookie keep working on `/mcp`.
 
-**stdio.** `python run_server.py --stdio` (`sajha/cli/stdio.py`) has no HTTP layer, so no
+**stdio.** `python run_sajha_web.py --stdio` (`sajha/cli/stdio.py`) has no HTTP layer, so no
 `authorize_mcp`, Origin check or OAuth: its one caller is fixed at start-up. `--api-key`
 (or `SAJHA_API_KEY`) uses that key's tool access; `--user` (or `SAJHA_STDIO_USER`) takes
 that SAJHA user's roles **without a password**, on the grounds that whoever can start the
@@ -312,7 +312,7 @@ session. Details: [Python Playground](../getting-started/Python%20Playground.md#
 
 - **Allowed hosts.** `security.allowed_hosts` (exact names or `*.example.com`; empty, the default, allows any) makes `AllowedHostsMiddleware` answer 400 to any other `Host` header (and close a WebSocket with 1008), a defence against DNS rebinding and host-header poisoning. `localhost`, `127.0.0.1` and `[::1]` always pass, so local tools and health checks keep working.
 - **Trusted proxies.** `server.trusted_proxies` is passed to uvicorn as `forwarded_allow_ips`: only those proxies' `X-Forwarded-For` and `X-Forwarded-Proto` are believed (empty: uvicorn's default, `FORWARDED_ALLOW_IPS` or `127.0.0.1`). It decides the client address of the per-IP limits and whether a request counts as `https` (HSTS, `Secure` cookies).
-- **TLS.** SAJHA can serve https itself with `server.tls.certfile` and `server.tls.keyfile` (`sajha/core/transport.py`, used by `run_server.py`); the floor is `server.tls.min_version` (`TLSv1.2`, the default, or `TLSv1.3`) with TLS compression off. With `--workers` or `--reload` the floor is TLS 1.2 whatever the setting. Most deployments terminate TLS at a proxy instead.
+- **TLS.** SAJHA can serve https itself with `server.tls.certfile` and `server.tls.keyfile` (`sajha/core/transport.py`, used by `run_sajha_web.py`); the floor is `server.tls.min_version` (`TLSv1.2`, the default, or `TLSv1.3`) with TLS compression off. With `--workers` or `--reload` the floor is TLS 1.2 whatever the setting. Most deployments terminate TLS at a proxy instead.
 - **Outbound timeouts.** Every outbound HTTP call (`urlopen`, `requests`, `httpx`) outside `sajha/net/` passes a timeout; `tests/test_browser_hardening.py` checks the source.
 
 ### Rate limiting and lockout

@@ -36,7 +36,7 @@ WORKDIR /app
 # ── Copy application code (immutable in image) ───────────────
 # Core framework, routes, templates, static assets, SQL scripts
 COPY sajha/           /app/sajha/
-COPY run_server.py    /app/
+COPY run_sajha_web.py    /app/
 COPY db/              /app/db/
 
 # ── Copy default configs (overridden at runtime by S3 or mount) ─

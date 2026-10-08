@@ -38,7 +38,7 @@ export SAJHA_ACCOUNTS_PROVIDERS_GITHUB_CLIENT_ID=Ov23li...           # the clien
 export SAJHA_ACCOUNTS_PROVIDERS_GITHUB_CLIENT_SECRET_REF=env:GITHUB_OAUTH_CLIENT_SECRET
 export GITHUB_OAUTH_CLIENT_SECRET=...                                # the client secret
 export SAJHA_ACCOUNTS_PUBLIC_URL=http://localhost:3002
-python run_server.py
+python run_sajha_web.py
 ```
 
 (The same in YAML: `accounts.providers.github.client_id` and `client_secret_ref` under

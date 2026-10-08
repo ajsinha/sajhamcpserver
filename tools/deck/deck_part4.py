@@ -501,7 +501,7 @@ def _future(F: dict[str, Any]) -> list[dict[str, Any]]:
             "col_w": [1.6, 3.2, 2.6],
             "rows": [
                 ["You are", "Do this first", "Then read"],
-                ["Trying it", "pip install -r requirements.txt; python run_server.py; open localhost:3002",
+                ["Trying it", "pip install -r requirements.txt; python run_sajha_web.py; open localhost:3002",
                  "Quick Start; the tutorials"],
                 ["Connecting a client", "Point it at /mcp, or run sajha serve --stdio", "MCP Protocol Guide; Command Line"],
                 ["Reviewing security", "Read the access policy; try a rule on the Policies test bench",

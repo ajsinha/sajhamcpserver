@@ -25,7 +25,7 @@ Chromium). Roadmap X15; the layout check at phone widths is scripts/check_mobile
 Run it against a running server whose admin does not need a forced password change (a scratch
 database: SAJHA_DB_PATH=/tmp/x.db), for example on another port than the dev server:
 
-    SAJHA_DB_PATH=/tmp/c.db SERVER_PORT=3087 python run_server.py &
+    SAJHA_DB_PATH=/tmp/c.db SERVER_PORT=3087 python run_sajha_web.py &
     python scripts/check_console.py --base http://127.0.0.1:3087 --axe /path/to/axe.min.js
     python scripts/check_console.py --only-a11y --all --theme dark
 

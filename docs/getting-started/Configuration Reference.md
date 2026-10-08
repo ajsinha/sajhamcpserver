@@ -8,9 +8,9 @@ key; a key marked **not used** is loaded but has no effect in this release.
 
 ### The config file
 
-- The file is `config/application.yml`, relative to the working directory (`run_server.py`
+- The file is `config/application.yml`, relative to the working directory (`run_sajha_web.py`
   changes into the project root first).
-- `SAJHA_CONFIG_FILE` selects a different file. `python run_server.py --config <path>`
+- `SAJHA_CONFIG_FILE` selects a different file. `python run_sajha_web.py --config <path>`
   sets that variable before any config is loaded.
 - Nested YAML is flattened to dotted keys (`mcp.auth.mode`). A key whose value is null
   (`key:` with nothing after it) is treated as absent, so the built-in default applies. An
@@ -69,17 +69,17 @@ and the MCP `implementation` (`websiteUrl` = `app.github.repo`). Readers are
 
 ## server
 
-Reader: Settings. The command-line options `--host` and `--port` of `run_server.py` override
+Reader: Settings. The command-line options `--host` and `--port` of `run_sajha_web.py` override
 both keys.
 
 | Key | Default | Env | Purpose / reader |
 |-----|---------|-----|------------------|
-| `server.host` | `0.0.0.0` (YAML `${SERVER_HOST:0.0.0.0}`) | `SERVER_HOST`, `SAJHA_SERVER_HOST` | Bind address (`run_server.py`). Also used in the startup log and the A2A card URL. |
-| `server.port` | `3002` (YAML `${SERVER_PORT:3002}`) | `SERVER_PORT`, `SAJHA_SERVER_PORT` | Listen port (`run_server.py`, `sajha/routes/a2a_routes.py`). |
+| `server.host` | `0.0.0.0` (YAML `${SERVER_HOST:0.0.0.0}`) | `SERVER_HOST`, `SAJHA_SERVER_HOST` | Bind address (`run_sajha_web.py`). Also used in the startup log and the A2A card URL. |
+| `server.port` | `3002` (YAML `${SERVER_PORT:3002}`) | `SERVER_PORT`, `SAJHA_SERVER_PORT` | Listen port (`run_sajha_web.py`, `sajha/routes/a2a_routes.py`). |
 | `server.debug` | `false` | `SAJHA_SERVER_DEBUG` | **Not used.** It is loaded into Settings, but nothing reads it. |
 | `server.max_request_bytes` | `10485760` (min 1024) | `SAJHA_SERVER_MAX_REQUEST_BYTES` | Request bodies above this get 413, by `Content-Length` or while a streamed body is read (`RequestSizeLimitMiddleware`, `sajha/security.py`; read at start-up). |
-| `server.trusted_proxies` | `""` | `SAJHA_SERVER_TRUSTED_PROXIES` | Proxies whose `X-Forwarded-For` / `X-Forwarded-Proto` uvicorn believes (its `forwarded_allow_ips`, comma-separated addresses or `*`; `sajha/core/transport.py`, `run_server.py`). Empty: uvicorn's default, `FORWARDED_ALLOW_IPS` or `127.0.0.1`. |
-| `server.tls.certfile`, `server.tls.keyfile` | `""` | `SAJHA_SERVER_TLS_CERTFILE`, `SAJHA_SERVER_TLS_KEYFILE` | Serve https directly with this certificate chain and key (both or neither; `run_server.py`). Usually TLS ends at a proxy instead. |
+| `server.trusted_proxies` | `""` | `SAJHA_SERVER_TRUSTED_PROXIES` | Proxies whose `X-Forwarded-For` / `X-Forwarded-Proto` uvicorn believes (its `forwarded_allow_ips`, comma-separated addresses or `*`; `sajha/core/transport.py`, `run_sajha_web.py`). Empty: uvicorn's default, `FORWARDED_ALLOW_IPS` or `127.0.0.1`. |
+| `server.tls.certfile`, `server.tls.keyfile` | `""` | `SAJHA_SERVER_TLS_CERTFILE`, `SAJHA_SERVER_TLS_KEYFILE` | Serve https directly with this certificate chain and key (both or neither; `run_sajha_web.py`). Usually TLS ends at a proxy instead. |
 | `server.tls.min_version` | `TLSv1.2` | `SAJHA_SERVER_TLS_MIN_VERSION` | `TLSv1.2` or `TLSv1.3`: the lowest TLS version served (single-process mode; with `--workers` or `--reload` the floor is TLS 1.2). |
 
 Env-only:
@@ -314,8 +314,8 @@ Reader: Settings.
 
 | Key | Default | Env | Purpose / reader |
 |-----|---------|-----|------------------|
-| `logging.level` | `INFO` (YAML `${LOG_LEVEL:INFO}`) | `LOG_LEVEL`, `SAJHA_LOGGING_LEVEL` | Root log level (`run_server.py`). The command-line option `--log-level` overrides it. |
-| `logging.dir` | `./logs` | `SAJHA_LOGGING_DIR` | **Not used.** `run_server.py` always writes to `logs/server.log`. |
+| `logging.level` | `INFO` (YAML `${LOG_LEVEL:INFO}`) | `LOG_LEVEL`, `SAJHA_LOGGING_LEVEL` | Root log level (`run_sajha_web.py`). The command-line option `--log-level` overrides it. |
+| `logging.dir` | `./logs` | `SAJHA_LOGGING_DIR` | **Not used.** `run_sajha_web.py` always writes to `logs/server.log`. |
 | `logging.file` | `""` | `SAJHA_LOGGING_FILE` | **Not used.** |
 
 ## data

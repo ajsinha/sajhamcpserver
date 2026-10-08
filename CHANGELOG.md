@@ -4,6 +4,8 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+- **Upgrading:** the start script is renamed `run_server.py` → `run_sajha_web.py` (same options). Update service files, scripts and container commands that start SAJHA; the shipped Dockerfiles, Helm chart, systemd unit and docs are updated.
+
 - Added: open mode, `sajhanet.plugins.admission: open` (owner decision, the shipped setting for now):
   SAJHA Net without a CA. Self-signed certificates are accepted the first time a name is seen and each
   name is then held to its key (an impostor is refused with `name_conflict`); remembered keys are kept

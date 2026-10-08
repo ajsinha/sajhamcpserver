@@ -664,7 +664,7 @@ def test_federated_tools_are_governed_like_any_tool():
 
 
 def test_stdio_path(tmp_path):
-    """run_server.py --stdio: the call is evaluated with source stdio."""
+    """run_sajha_web.py --stdio: the call is evaluated with source stdio."""
     import subprocess
     pol = tmp_path / 'policies'
     pol.mkdir()
@@ -680,7 +680,7 @@ def test_stdio_path(tmp_path):
             {'jsonrpc': '2.0', 'method': 'notifications/initialized'},
             {'jsonrpc': '2.0', 'id': 2, 'method': 'tools/call',
              'params': {'name': 'calc_percentage_change', 'arguments': {'old_value': 80, 'new_value': 100}}}]
-    p = subprocess.run([sys.executable, str(ROOT / 'run_server.py'), '--stdio', '--user', 'admin'],
+    p = subprocess.run([sys.executable, str(ROOT / 'run_sajha_web.py'), '--stdio', '--user', 'admin'],
                        input=''.join(json.dumps(m) + '\n' for m in msgs).encode(), capture_output=True,
                        cwd=str(ROOT), env=env, timeout=120)
     out = [json.loads(line) for line in p.stdout.decode().splitlines() if line.strip()]

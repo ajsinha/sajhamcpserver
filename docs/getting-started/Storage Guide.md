@@ -127,7 +127,7 @@ an empty string is ignored.
 | `storage.azure.container` / `account_url` / `connection_string` / `prefix` / `cache_dir` | `SAJHA_AZURE_CONTAINER` / `SAJHA_AZURE_ACCOUNT_URL` / `AZURE_STORAGE_CONNECTION_STRING` / `SAJHA_AZURE_PREFIX` / `SAJHA_AZURE_CACHE_DIR` |
 | `storage.gcs.bucket` / `project` / `prefix` / `cache_dir` | `SAJHA_GCS_BUCKET` / `GOOGLE_CLOUD_PROJECT` / `SAJHA_GCS_PREFIX` / `SAJHA_GCS_CACHE_DIR` |
 
-So `SAJHA_STORAGE_BACKEND=s3 SAJHA_S3_BUCKET=my-bucket python run_server.py` starts the S3
+So `SAJHA_STORAGE_BACKEND=s3 SAJHA_S3_BUCKET=my-bucket python run_sajha_web.py` starts the S3
 backend with the shipped `application.yml`. Keep credentials such as
 `AZURE_STORAGE_CONNECTION_STRING` in the environment, never in the YAML. For GCS, an empty
 `project` makes SAJHA call `storage.Client()` without a project, and the Google SDK then

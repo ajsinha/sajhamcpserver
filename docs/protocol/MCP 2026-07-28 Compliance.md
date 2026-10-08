@@ -269,7 +269,7 @@ Tool configs may annotate a top-level (or nested, through `properties` only) `st
 ## 5. Conformance results
 
 ```bash
-SAJHA_MCP_CONFORMANCE_FIXTURES=true python run_server.py --host 127.0.0.1 --port 3092
+SAJHA_MCP_CONFORMANCE_FIXTURES=true python run_sajha_web.py --host 127.0.0.1 --port 3092
 npx -y @modelcontextprotocol/conformance@0.1.16        server --url http://127.0.0.1:3092/mcp --spec-version 2025-11-25 --suite all
 npx -y @modelcontextprotocol/conformance@0.2.0-alpha.12 server --url http://127.0.0.1:3092/mcp --spec-version 2026-07-28 --suite all
 # extension scenarios are not on the spec timeline; run them by name with --force:
@@ -292,7 +292,7 @@ Both server suites were also run with `mcp.auth.mode=optional` (same results). T
 
 ```bash
 SAJHA_MCP_AUTH_MODE=required SAJHA_MCP_AUTH_BUILTIN_CLIENTS='[{"client_id":"conformance","redirect_uris":["http://127.0.0.1:3000/callback"]}]' \
-  python run_server.py --host 127.0.0.1 --port 3092
+  python run_sajha_web.py --host 127.0.0.1 --port 3092
 npx -y @modelcontextprotocol/conformance@0.2.0-alpha.12 authorization --url http://127.0.0.1:3092 \
     --client-id conformance --resource http://127.0.0.1:3092/mcp --spec-version 2026-07-28
 ```

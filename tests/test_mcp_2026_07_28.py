@@ -3,7 +3,7 @@ MCP 2026-07-28 (stateless, "modern") tests for POST/GET/DELETE /mcp.
 
 SAJHA is dual-era: these tests cover the modern path and check that the
 legacy (initialize) path still answers alongside it.  End to end:
-    SAJHA_MCP_CONFORMANCE_FIXTURES=true python run_server.py --port 3092
+    SAJHA_MCP_CONFORMANCE_FIXTURES=true python run_sajha_web.py --port 3092
     npx -y @modelcontextprotocol/conformance@0.2.0-alpha.12 server \
         --url http://127.0.0.1:3092/mcp --spec-version 2026-07-28 --suite all
 """

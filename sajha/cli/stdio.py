@@ -6,7 +6,7 @@ A desktop client (Claude Desktop, Claude Code, an IDE) launches SAJHA as a
 subprocess and talks MCP over its stdin/stdout:
 
     sajha serve --stdio [--user admin | --api-key sja_...]
-    python run_server.py --stdio [...]
+    python run_sajha_web.py --stdio [...]
     python -m sajha.cli.stdio [...]
 
 Transport rules (MCP basic/transports, "stdio"):

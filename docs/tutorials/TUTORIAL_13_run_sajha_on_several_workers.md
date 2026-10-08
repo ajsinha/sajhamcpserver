@@ -27,7 +27,7 @@ is shared and what stays per process, is in
 Start four workers with the default memory backend:
 
 ```bash
-python run_server.py --workers 4
+python run_sajha_web.py --workers 4
 ```
 
 Each worker prints a warning like this one:
@@ -56,7 +56,7 @@ Set the backend through the environment (or set `state.backend: redis` in
 ```bash
 export SAJHA_STATE_BACKEND=redis
 export SAJHA_STATE_REDIS_URL=redis://127.0.0.1:6379/0
-python run_server.py --workers 4
+python run_sajha_web.py --workers 4
 ```
 
 The warning is gone. If Redis is not reachable, start-up stops with an error instead of
@@ -80,8 +80,8 @@ Two servers on two ports make the hand-off visible. Stop the server, then start 
 single-worker servers on the same Redis and the same database:
 
 ```bash
-python run_server.py --port 3002 &
-python run_server.py --port 3003 &
+python run_sajha_web.py --port 3002 &
+python run_sajha_web.py --port 3003 &
 ```
 
 In a second terminal, open a 2026-07-28 `subscriptions/listen` stream on port **3003**:
@@ -121,7 +121,7 @@ service:
 
 ```bash
 export SAJHA_STATE_BACKEND=database
-python run_server.py --workers 4
+python run_sajha_web.py --workers 4
 ```
 
 The `database` backend stores state in two tables, `sajha_state` and `sajha_state_events`,

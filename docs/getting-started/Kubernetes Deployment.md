@@ -43,7 +43,7 @@ the root Markdown files (the in-app help renders `docs/` and `GLOSSARY.md`). Tes
 At run time the image:
 
 - runs as UID/GID 10001 under `tini` (which reaps the sandbox's child processes);
-- starts `run_server.py --host 0.0.0.0` on port 3002 (`SERVER_PORT`);
+- starts `run_sajha_web.py --host 0.0.0.0` on port 3002 (`SERVER_PORT`);
 - writes only to `/app/data`, `/app/logs`, `/app/temp`, `/app/config`,
   `/app/sajha/tools/impl` (MCP Studio output) and `/tmp`, so it runs with a read-only root
   filesystem when those are mounted;
@@ -73,7 +73,7 @@ ignored. The defaults are one pod, SQLite on a `ReadWriteOnce` volume, no ingres
 | Piece | What it does |
 |---|---|
 | Init container `seed` | Same image. Runs `charts/sajha/files/seed.py`: copies the image's `config/` and `sajha/tools/impl/` into the writable volumes (only files the volume lacks, unless `persistence.config.seedMode: overwrite`), writes `config/application.yml` as the image's file with `config.overrides` deep-merged in, and waits for the bundled Redis and the PostgreSQL host to accept connections. |
-| Container `sajha` | `run_server.py --workers <workers>`. `readOnlyRootFilesystem`, no capabilities, no privilege escalation, `RuntimeDefault` seccomp, non-root. |
+| Container `sajha` | `run_sajha_web.py --workers <workers>`. `readOnlyRootFilesystem`, no capabilities, no privilege escalation, `RuntimeDefault` seccomp, non-root. |
 | `/app/data` | PVC (`persistence.data`) or `emptyDir`: SQLite database, generated secrets file, caches, DuckDB data. |
 | `/app/config`, `/app/sajha/tools/impl` | `emptyDir` seeded at every start, or one PVC (`persistence.config`) with sub-paths `config` and `impl`, so admin edits and MCP Studio tools outlive the pod. |
 | `/app/logs`, `/app/temp`, `/tmp` | `emptyDir` with size limits (`/tmp` holds sandbox work directories and the object-store cache). |

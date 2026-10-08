@@ -171,7 +171,7 @@ stdout. Any of these starts it:
 
 ```bash
 sajha serve --stdio --user admin                 # needs the checkout: run inside it, --root, or SAJHA_HOME
-python /path/to/sajhamcpserver/run_server.py --stdio --user admin
+python /path/to/sajhamcpserver/run_sajha_web.py --stdio --user admin
 python -m sajha.cli.stdio --user admin           # with the checkout on PYTHONPATH
 ```
 
@@ -208,7 +208,7 @@ Things to know:
 
 ```bash
 claude mcp add sajha --env SAJHA_STDIO_USER=admin \
-  -- /path/to/sajhamcpserver/venv/bin/python /path/to/sajhamcpserver/run_server.py --stdio
+  -- /path/to/sajhamcpserver/venv/bin/python /path/to/sajhamcpserver/run_sajha_web.py --stdio
 ```
 
 Add `--scope user` to make it available in every project. With an API key instead of a
@@ -224,7 +224,7 @@ In `claude_desktop_config.json` (Settings > Developer > Edit Config):
   "mcpServers": {
     "sajha": {
       "command": "/path/to/sajhamcpserver/venv/bin/python",
-      "args": ["/path/to/sajhamcpserver/run_server.py", "--stdio"],
+      "args": ["/path/to/sajhamcpserver/run_sajha_web.py", "--stdio"],
       "env": { "SAJHA_STDIO_USER": "admin" }
     }
   }
@@ -243,7 +243,7 @@ official Python SDK, for example:
 from mcp import Client, StdioServerParameters
 
 params = StdioServerParameters(command="/path/to/venv/bin/python",
-                               args=["/path/to/sajhamcpserver/run_server.py", "--stdio", "--user", "admin"])
+                               args=["/path/to/sajhamcpserver/run_sajha_web.py", "--stdio", "--user", "admin"])
 async with Client(params) as client:          # mode="auto": server/discover, 2026-07-28
     print((await client.list_tools()).tools[0].name)
 ```
@@ -252,5 +252,5 @@ async with Client(params) as client:          # mode="auto": server/discover, 20
 
 ## 5. Running the HTTP server
 
-`sajha serve` without `--stdio` runs `run_server.py` from the checkout (`--host`,
+`sajha serve` without `--stdio` runs `run_sajha_web.py` from the checkout (`--host`,
 `--port`, and anything after them is passed through), the same as running it directly.

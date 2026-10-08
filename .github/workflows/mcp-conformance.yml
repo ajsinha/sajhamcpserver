@@ -38,7 +38,7 @@ jobs:
         env:
           SAJHA_MCP_CONFORMANCE_FIXTURES: 'true'
         run: |
-          nohup python run_server.py --host 127.0.0.1 --port 3002 > server.log 2>&1 &
+          nohup python run_sajha_web.py --host 127.0.0.1 --port 3002 > server.log 2>&1 &
           for i in $(seq 1 60); do
             curl -sf -o /dev/null http://127.0.0.1:3002/login && exit 0
             sleep 2

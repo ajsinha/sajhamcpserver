@@ -24,12 +24,12 @@ time, they are a shared sky that each question draws its own path across.
 git clone https://github.com/ajsinha/sajhamcpserver.git
 cd sajhamcpserver
 pip install -r requirements.txt
-python run_server.py
+python run_sajha_web.py
 ```
 
 Open **http://localhost:3002**, sign in as `admin` / `admin123` and change the password
 when the banner asks. MCP clients connect to `http://localhost:3002/mcp`; desktop clients
-such as Claude Desktop and Claude Code can run `python run_server.py --stdio` instead.
+such as Claude Desktop and Claude Code can run `python run_sajha_web.py --stdio` instead.
 The secrets, a first MCP call and the Python client are in the
 [Quick Start](docs/getting-started/Quick%20Start.md).
 

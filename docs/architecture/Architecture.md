@@ -11,7 +11,7 @@ and every configuration key to the [Configuration Reference](../getting-started/
 ## 1. Shape of the system
 
 SAJHA is one FastAPI (ASGI) application served by Uvicorn, started by
-`run_server.py` (`--config`, `--host`, `--port`, `--reload`, `--workers`,
+`run_sajha_web.py` (`--config`, `--host`, `--port`, `--reload`, `--workers`,
 `--log-level`, and `--stdio`, which serves MCP on stdin/stdout instead of HTTP; see
 section 11). Everything a client can reach over HTTP comes through one of four doors:
 
@@ -362,7 +362,7 @@ HTTP/SSE/WebSocket, A2A) and, with the `mcp` extra, `SajhaMCPClient` /
 `sajha` command (`clientsdk/sajhaclient/cli/`; the `cli` extra brings its dependencies).
 
 The stdio transport is in the server package: `sajha/cli/stdio.py` (started by
-`python run_server.py --stdio` or `sajha serve --stdio`) builds the registries and an
+`python run_sajha_web.py --stdio` or `sajha serve --stdio`) builds the registries and an
 `MCPHandler` without the web app and serves both protocol eras on stdin/stdout, with one
 caller per process fixed at start-up (`--user`, `--api-key`, or the anonymous policy).
 Guide: [Command Line](../clients/Command%20Line.md).

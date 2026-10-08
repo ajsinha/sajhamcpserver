@@ -235,7 +235,7 @@ set them through the environment.
 
 ## 6. Running several workers
 
-- `python run_server.py --workers N` starts N uvicorn worker processes. In that mode the
+- `python run_sajha_web.py --workers N` starts N uvicorn worker processes. In that mode the
   app is built from `sajha.app:create_app` in each worker, and `WEB_CONCURRENCY` is set so
   each worker knows the count. The container image honours `UVICORN_WORKERS`.
 - At start-up, each worker builds the store. A shared store that does not answer stops
@@ -282,7 +282,7 @@ The AWS CDK stack runs several Fargate tasks with `SAJHA_STATE_BACKEND=database`
   database and backend (database, and redis when available). It checks over HTTP that a
   code issued by A is redeemed by B, a task created on A is read and cancelled on B, sign-in
   failures add up across workers, and an event on A reaches a `subscriptions/listen` stream
-  on B. It also starts `run_server.py --workers 2` and checks that both workers report the
+  on B. It also starts `run_sajha_web.py --workers 2` and checks that both workers report the
   shared backend.
 - `tests/test_state_lease.py` runs the lease contract (exclusive and re-entrant claim,
   renewal only by the holder, expiry and takeover, release, one-slot claims, a race of

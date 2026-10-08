@@ -1138,7 +1138,7 @@ def find_server_root(explicit: Optional[str] = None) -> Path:
         pass
     here = Path.cwd()
     for p in [here, *here.parents]:
-        if (p / "sajha" / "cli" / "stdio.py").is_file() and (p / "run_server.py").is_file():
+        if (p / "sajha" / "cli" / "stdio.py").is_file() and (p / "run_sajha_web.py").is_file():
             return p
     raise CLIError("cannot find the SAJHA server: run from a checkout, or pass --root / set SAJHA_HOME",
                    EXIT_USAGE)
@@ -1161,7 +1161,7 @@ def cmd_serve(ctx: Context) -> int:
             argv += ["--api-key", a.api_key]
         argv += ["--root", str(root)]
         return stdio_main(argv)
-    argv = [sys.executable, str(root / "run_server.py")]
+    argv = [sys.executable, str(root / "run_sajha_web.py")]
     if a.port:
         argv += ["--port", str(a.port)]
     if a.host:

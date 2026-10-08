@@ -39,7 +39,7 @@ spec cannot be used to reach internal services. For this tutorial allow loopback
 the API key where SAJHA can read it by reference:
 
 ```bash
-SAJHA_API_IMPORT_ALLOW_LOCALHOST=true PETSTORE_KEY=demo-key python run_server.py
+SAJHA_API_IMPORT_ALLOW_LOCALHOST=true PETSTORE_KEY=demo-key python run_sajha_web.py
 ```
 
 (The keys are in the [Configuration Reference](../getting-started/Configuration%20Reference.md#api_import).)
