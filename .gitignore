@@ -82,3 +82,6 @@ config/apikeys_db.json
 
 # the mcpServers file may hold credentials (templates: config/mcp_servers.json.example, config/mcp_servers/)
 config/mcp_servers.json
+
+# ── The local test lab's instances: configs, databases, keys and logs (deployment/local-lab/lab.py) ──
+deployment/local-lab/run/

@@ -448,7 +448,8 @@ template with it, so they cannot drift apart.
   entry.
 - **External by default.** An entry is an external server ([SAJHA Net](SAJHA%20Net.md) §5.6): this
   instance offers its tools into its nets as its own, published `<prefix>__<tool>`, and the server is
-  never a member of a net. `"external": false` makes it an ordinary internal federation upstream.
+  never a member of a net. `"external": false` makes it an ordinary internal federation upstream, whose
+  tools a SAJHA Net member offers into its nets under their federation names, like its own tools.
 - **Secrets.** `${NAME}` and `${NAME:default}` in `url`, header values, `command`, `args`, `env` and
   `cwd` are read from the environment. A raw credential still works (the owner's intranet stance): each
   raw `Authorization`-like header is logged once by name (never its value) and listed in an info notice

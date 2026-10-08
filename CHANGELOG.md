@@ -4,6 +4,11 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+- Fixed: tools of internal proxied MCP servers (`external: false`) are now offered into a member's nets
+  under their federation names, like its own tools, as designed (one name, one contract applies to them);
+  they were left out of the net catalog. External servers' tools are still offered only as
+  `<vendor>__<tool>`.
+
 - Fixed: per-member keys (`sajhanet.peer_keys`) now work as designed — the key is one the target
   member issued; the host checks it as its own API key and runs the call as that key's owner
   (audited as `peer_key`). Before, the host refused such a key with `key_not_from_home`.

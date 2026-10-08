@@ -22,6 +22,7 @@ from typing import Any, Callable
 
 from pptx import Presentation
 from pptx.dml.color import RGBColor
+from pptx.enum.dml import MSO_LINE_DASH_STYLE
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Emu, Pt
@@ -112,6 +113,7 @@ def rect(
     line: Any = None,
     lw: float = 1.0,
     shape: Any = MSO_SHAPE.RECTANGLE,
+    dash: bool = False,
 ) -> Any:
     s = sl.shapes.add_shape(shape, In(x), In(y), In(w), In(h))
     if fill is None:
@@ -124,7 +126,11 @@ def rect(
     else:
         s.line.color.rgb = line
         s.line.width = Pt(lw)
+        if dash:
+            s.line.dash_style = MSO_LINE_DASH_STYLE.DASH
     s.shadow.inherit = False
+    if shape == MSO_SHAPE.ROUNDED_RECTANGLE:
+        s.adjustments[0] = min(0.5, 0.10 / max(0.1, min(w, h)))
     return s
 
 
@@ -223,7 +229,11 @@ def fitted(
     raise DoesNotFit(f"text block does not fit {w:.2f}x{h:.2f} at {floor}pt")
 
 
-FOOTER_TEXT = "SAJHA \u2022 Ashutosh Sinha"
+FOOTER_TEXT = "\u00a9 2025-2030 Ashutosh Sinha. All rights reserved. Proprietary."
+NOTICE = (
+    "SAJHA is proprietary software owned by Ashutosh Sinha. \u00a9 2025-2030 Ashutosh Sinha. All rights "
+    "reserved. This presentation grants no licence to use, copy, modify or distribute SAJHA or any part of it."
+)
 ICONS = TOKENS.parents[1] / "icons" / "sajha-icons.svg"
 
 
@@ -382,6 +392,8 @@ def boxed(
     align: Any = PP_ALIGN.CENTER,
     sub: str = "",
     font: str = SANS,
+    dash: bool = False,
+    lw: float = 1.0,
 ) -> Any:
     """A filled shape with its own text, centred, at the largest size that fits; lines in
     ``text`` separated by newlines become paragraphs. ``sub`` is a smaller second line."""
@@ -395,7 +407,9 @@ def boxed(
         s.line.fill.background()
     else:
         s.line.color.rgb = line
-        s.line.width = Pt(1.0)
+        s.line.width = Pt(lw)
+        if dash:
+            s.line.dash_style = MSO_LINE_DASH_STYLE.DASH
     s.shadow.inherit = False
     if shape == MSO_SHAPE.ROUNDED_RECTANGLE:
         s.adjustments[0] = min(0.5, 0.08 / max(0.1, min(w, h)))
@@ -615,7 +629,8 @@ def connect(
 
 
 def notes(sl: Any, text: str) -> None:
-    """The speaker notes: where every number and claim on the slide comes from."""
+    """The speaker notes: where every number and claim on the slide comes from, then (when the
+    slide has them) what to say, the detail that was moved off the slide."""
     sl.notes_slide.notes_text_frame.text = text
 
 

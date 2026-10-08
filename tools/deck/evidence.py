@@ -301,24 +301,144 @@ def studio_creators() -> list[str]:
     return names
 
 
-def workflow_model() -> dict[str, list[str]]:
-    from sajha.workflows import model
-
-    return {"steps": list(model.STEP_KINDS), "triggers": [t for t in model.TRIGGER_TYPES if t != "manual"]}
+WORKFLOWS_GUIDE = ROOT / "docs" / "architecture" / "Workflows.md"
 
 
-def composition_example() -> dict[str, Any]:
-    """Confidence through a three-step composite: the EntropyGuard, as composites use it."""
+def workflow_model() -> dict[str, Any]:
+    """The step kinds, trigger types, joins and run states the workflow engine defines, and the
+    worked example of the Workflows guide (its section 2 definition) parsed and ordered by the
+    engine's own model, so the DAG on the slide is the one the engine would run."""
+    import yaml
+
+    from sajha.workflows import model, store
+
+    m = re.search(r"## 2\. The definition.*?```yaml\n(.*?)```", WORKFLOWS_GUIDE.read_text(encoding="utf-8"), re.S)
+    _need(m, f"no example definition in section 2 of {WORKFLOWS_GUIDE.name}")
+    defn = model.normalize(yaml.safe_load(m.group(1)))
+    require_tools([st["tool"] for st in defn["steps"] if st.get("tool")])
+    return {
+        "steps": list(model.STEP_KINDS),
+        "inner": list(model.INNER_KINDS),
+        "triggers": [t for t in model.TRIGGER_TYPES if t != "manual"],
+        "all_triggers": list(model.TRIGGER_TYPES),
+        "joins": list(model.JOINS),
+        "delivery": list(model.DELIVERY_TYPES),
+        "active": list(store.RUN_ACTIVE),
+        "done": list(store.RUN_DONE),
+        "example": {
+            "name": defn["name"],
+            "order": model.topo_order(defn["steps"]),
+            "steps": [{k: st.get(k) for k in ("id", "kind", "tool", "depends_on", "join", "then", "else", "if")}
+                      for st in defn["steps"]],
+            "triggers": [(t["type"], t.get("cron", "")) for t in defn.get("triggers", [])],
+            "publish": defn.get("publish") or {},
+        },
+    }
+
+
+def composition_compare() -> dict[str, Any]:
+    """The same four tools arranged two ways, through the EntropyGuard composites use:
+    a sequential chain (parent-child) multiplies; a parallel group (sibling) takes its weakest
+    link. Nothing is called; only the confidence arithmetic runs."""
     from sajha.core.composition import EntropyGuard, get_tool_confidence
 
-    steps = require_tools(["fred_10yr_treasury", "fmp_company_profile", "calc_percentage_change"])
-    g = EntropyGuard()
-    rows = []
-    for s in steps:
-        c = get_tool_confidence(s)
-        g.record_step(s, confidence=c)
-        rows.append((s, c, g.cumulative_confidence, g.cumulative_entropy))
-    return {"rows": rows, "max_bits": g.max_entropy_bits}
+    master, *rest = require_tools(["fred_10yr_treasury", "fmp_company_profile", "tavily_news_search",
+                                   "calc_percentage_change"])
+    seq = EntropyGuard()
+    seq.record_step(master, confidence=get_tool_confidence(master))
+    for t in rest:
+        seq.record_step(t, confidence=get_tool_confidence(t))
+    par = EntropyGuard()
+    par.record_step(master, confidence=get_tool_confidence(master))
+    par.begin_parallel()
+    for t in rest:
+        par.record_step(t, confidence=get_tool_confidence(t))
+    par.end_parallel()
+    return {
+        "master": master,
+        "rest": rest,
+        "conf": {t: get_tool_confidence(t) for t in [master, *rest]},
+        "sequential": seq.cumulative_confidence,
+        "parallel": par.cumulative_confidence,
+        "seq_bits": seq.cumulative_entropy,
+        "par_bits": par.cumulative_entropy,
+        "max_bits": seq.max_entropy_bits,
+    }
+
+
+def _shipped(dotted: str) -> Any:
+    """A value of the shipped config/application.yml (``${ENV:default}`` read as its default)."""
+    import yaml
+
+    with open(ROOT / "config" / "application.yml", encoding="utf-8") as f:
+        node: Any = yaml.safe_load(f)
+    for part in dotted.split("."):
+        _need(isinstance(node, dict) and part in node, f"config/application.yml has no {dotted}")
+        node = node[part]
+    if isinstance(node, str):
+        m = re.fullmatch(r"\$\{[A-Z0-9_]+:([^}]*)\}", node.strip())
+        if m:
+            return m.group(1)
+    return node
+
+
+def net() -> dict[str, Any]:
+    """SAJHA Net as the code and the shipped configuration define it: the plug-in implementations
+    registered for each interface, the admission mode the code defaults to and the one shipped,
+    and the shipped limits."""
+    import sajha.net.integration.authz  # noqa: F401  registers the identity resolvers and rules
+    import sajha.net.integration.identity  # noqa: F401
+    from sajha.net import plugins
+    from sajha.net.integration.config import Shared
+    from sajha.tools.naming import SEPARATOR
+
+    reg = {k: sorted(plugins.registered(k)) for k in plugins.INTERFACES}
+    _need(reg.get("admission") and reg.get("identity"), "SAJHA Net registered no admission or identity plug-ins")
+    return {
+        "plugins": reg,
+        "admission_code": Shared().admission,
+        "admission_shipped": _shipped("sajhanet.plugins.admission"),
+        "enabled_shipped": bool(_shipped("sajhanet.enabled")),
+        "test_admin_shipped": bool(_shipped("sajhanet.test_admin_key.enabled")),
+        "identity_shipped": _shipped("sajhanet.user_identity"),
+        "max_hops": _shipped("sajhanet.max_hops"),
+        "max_call_chain": _shipped("sajhanet.max_call_chain"),
+        "max_fallbacks": _shipped("sajhanet.max_fallbacks"),
+        "default_trust": _shipped("sajhanet.default_trust"),
+        "unknown_users": _shipped("sajhanet.users.unknown"),
+        "remote_admin": _shipped("sajhanet.users.remote_admin"),
+        "sep": SEPARATOR,
+        "federation_shipped": bool(_shipped("federation.enabled")),
+        "credential_storage": _shipped("auth.credential_storage"),
+        "openai_api_shipped": bool(_shipped("ai.openai_api.enabled")),
+    }
+
+
+ROADMAP = ROOT / "docs" / "architecture" / "Roadmap.md"
+
+
+def roadmap() -> list[tuple[str, str]]:
+    """Every open item of the Roadmap (its tables in sections 2 to 4): (id, item)."""
+    text = ROADMAP.read_text(encoding="utf-8")
+    m = re.search(r"^## 2\. Now\n(.*?)^## 5\. ", text, re.M | re.S)
+    _need(m, f"no sections 2 to 4 in {ROADMAP.name}")
+    items = re.findall(r"^\| ([NXL]\d+) \| (.+?) \|", m.group(1), re.M)
+    _need(items, f"no open items in {ROADMAP.name}")
+    return items
+
+
+def llm_tool_modes() -> list[str]:
+    from sajha.ai.llm_tools.config import MODES
+
+    return list(MODES)
+
+
+def rag_stores() -> list[str]:
+    from sajha.ai.rag.registry import registered_stores
+
+    names = sorted(registered_stores())
+    _need(names, "no RAG stores registered")
+    return names
 
 
 def providers() -> list[str]:
@@ -589,7 +709,11 @@ def facts() -> dict[str, Any]:
             "connectors": connector_kinds(),
             "studio": studio_creators(),
             "workflows": workflow_model(),
-            "composition": composition_example(),
+            "compose": composition_compare(),
+            "net": net(),
+            "roadmap": roadmap(),
+            "rag_stores": rag_stores(),
+            "llm_modes": llm_tool_modes(),
             "providers": providers(),
             "planners": planners(),
             "ask": ask_run(),

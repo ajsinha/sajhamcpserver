@@ -15,6 +15,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 from __future__ import annotations
 
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -23,8 +24,8 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 AUDIT = ROOT / "tools" / "deck" / "audit.py"
 DECK = "SAJHA-MCP-Server"
-SLIDES = 85
-SECTIONS = 7
+SLIDES = 104
+SECTIONS = 8
 SECTION_SHAPE = "Section numeral"  # tools/deck/theme.py SECTION_SHAPE, on every divider
 # Never on any slide, note or property, in any case.
 BANNED = ("bmo", "erpm")
@@ -124,3 +125,20 @@ def test_the_deck_palette_comes_from_the_web_tokens():
     """The theme reads SAJHA Crimson from tokens.css rather than restating it."""
     source = (ROOT / "tools" / "deck" / "theme.py").read_text(encoding="utf-8")
     assert "tokens.css" in source and "RGBColor(0x" not in source
+
+
+FOOTER = "\u00a9 2025-2030 Ashutosh Sinha. All rights reserved. Proprietary."  # tools/deck/theme.py FOOTER_TEXT
+
+
+def test_every_slide_carries_the_proprietary_footer_and_the_title_the_full_notice():
+    """SAJHA is proprietary: every slide says so in its footer, the title slide carries the full
+    notice (no licence granted, where to ask), and nothing claims SAJHA is open source."""
+    prs = _deck()
+    for i, slide in enumerate(prs.slides, 1):
+        assert FOOTER in _text(slide), f"slide {i} has no proprietary footer"
+    title = _text(prs.slides[0]).lower()
+    assert "proprietary" in title and "no licence" in title and "@" in title
+    claim = re.compile(r"\b(sajha|it)\s+is\s+(an\s+|now\s+)?open[- ]source", re.I)
+    for i, slide in enumerate(prs.slides, 1):
+        for where, text in (("text", _text(slide)), ("notes", _notes(slide))):
+            assert not claim.search(text), f"slide {i} {where} calls SAJHA open source"

@@ -36,45 +36,121 @@ SDKS = f"https://modelcontextprotocol.io/docs/sdk ({READ})"
 SPEC = "https://modelcontextprotocol.io/specification (server features: tools, resources, prompts; transports)"
 
 
+def _what_is_mcp(eras: dict[str, list[str]]) -> dict[str, Any]:
+    """N x M integrations without a shared protocol, N + M with one: drawn, not described."""
+    apps, tools = ["Chat app", "IDE", "Agent"], ["Database", "Search", "CRM", "Files"]
+    ay, ty = [0.17, 0.42, 0.67], [0.12, 0.32, 0.52, 0.72]
+    nodes, edges = [], []
+    for side, x_app, x_tool in (("l", 0.03, 0.31), ("r", 0.56, 0.87)):
+        for i, a in enumerate(apps):
+            nodes.append({"id": f"{side}a{i}", "text": a, "x": x_app, "y": ay[i], "w": 0.12, "h": 0.14,
+                          "style": "accent", "size": 13})
+        for k, t in enumerate(tools):
+            nodes.append({"id": f"{side}t{k}", "text": t, "x": x_tool, "y": ty[k], "w": 0.12, "h": 0.13,
+                          "style": "white", "size": 13})
+    nodes.append({"id": "hub", "text": "MCP", "sub": "one protocol", "x": 0.715, "y": 0.33, "w": 0.11, "h": 0.32,
+                  "style": "dark", "shape": "oval", "size": 18})
+    edges += [{"a": f"la{i}", "b": f"lt{k}", "mode": "c", "arrow": False, "width": 1.0, "gap": 0.03}
+              for i in range(3) for k in range(4)]
+    edges += [{"a": f"ra{i}", "b": "hub", "mode": "c", "arrow": False, "color": "CRIMSON", "width": 1.6} for i in range(3)]
+    edges += [{"a": "hub", "b": f"rt{k}", "mode": "c", "arrow": False, "color": "CRIMSON", "width": 1.6}
+              for k in range(4)]
+    return {
+        "kind": "canvas",
+        "kicker": "What is MCP?",
+        "title": "MCP is one open standard for connecting AI applications to tools and data",
+        "groups": [
+            {"id": "gl", "label": "WITHOUT A SHARED PROTOCOL: N × M INTEGRATIONS", "x": 0.0, "y": 0.0, "w": 0.46,
+             "h": 0.92, "line": "RULE", "color": "SLATE"},
+            {"id": "gr", "label": "WITH MCP: N + M", "x": 0.53, "y": 0.0, "w": 0.47, "h": 0.92},
+        ],
+        "nodes": nodes,
+        "edges": edges,
+        "items": [
+            ("An open standard, neutrally governed", "Introduced by Anthropic in November 2024; in December 2025 donated "
+             "to the Agentic AI Foundation under the Linux Foundation."),
+            ("JSON-RPC 2.0 over a transport", "An application lists a server's tools, calls one, and reads its "
+             "resources and prompts as JSON messages."),
+            ("Two eras in use today", f"Session-based revisions up to {eras['handshake'][0]}, and the stateless "
+             f"{eras['modern'][0]} revision (Section 2)."),
+        ],
+        "items_h": 1.55,
+        "size": 14,
+        "source": f"Introduction: {ANTHROPIC_INTRO}. Foundation, adopters and the server count: {AAIF}. Linear versus "
+        f"quadratic integration effort: {BCG}. Eras: sajha.core.mcp_modern MODERN_PROTOCOL_VERSIONS and "
+        "HANDSHAKE_PROTOCOL_VERSIONS, read at build time. Application and tool names in the drawing are generic.",
+        "talk": "Think of MCP as one plug for every tool: write the server once, and every MCP-capable application can "
+        "use it. Without a shared protocol every application needs its own integration with every tool, so the work "
+        "grows with the product of the two; with one, each side implements the protocol once and the work grows "
+        "with the sum. Anthropic introduced MCP in November 2024. In December 2025 it donated MCP to the Agentic AI "
+        "Foundation, a directed fund under the Linux Foundation co-founded by Anthropic, Block and OpenAI; the "
+        "announcement names ChatGPT, Cursor, Gemini, Microsoft Copilot and Visual Studio Code among the products "
+        "using it, and more than 10,000 active public MCP servers.",
+    }
+
+
+def _patterns(single: list[str], chain: list[str], par: list[str], multi: list[str]) -> dict[str, Any]:
+    """Four ways an agent calls tools, each drawn as the calls it makes."""
+    def tool(i: str, name: str, x: float, y: float, w: float = 0.15) -> dict[str, Any]:
+        return {"id": i, "text": name, "x": x, "y": y, "w": w, "h": 0.1, "style": "white", "size": 11, "bold": False}
+
+    def agent(i: str, x: float, y: float, text: str = "agent") -> dict[str, Any]:
+        return {"id": i, "text": text, "x": x, "y": y, "w": 0.08, "h": 0.14, "style": "accent", "shape": "oval",
+                "size": 11}
+
+    nodes = [
+        agent("a1", 0.02, 0.15), tool("p1", single[0], 0.16, 0.16, 0.2),
+        agent("a2", 0.53, 0.15), tool("c1", chain[0], 0.645, 0.08), tool("c2", chain[1], 0.645, 0.25),
+        tool("c3", chain[2], 0.83, 0.165, 0.16),
+        agent("a3", 0.02, 0.69), tool("q1", par[0], 0.2, 0.57), tool("q2", par[1], 0.2, 0.72), tool("q3", par[2], 0.2, 0.87),
+        agent("a4", 0.53, 0.69, "turns"), tool("u1", multi[0], 0.66, 0.57), tool("u2", multi[1], 0.66, 0.72),
+        tool("u3", multi[2], 0.66, 0.87),
+    ]
+    edges = [
+        {"a": "a1", "b": "p1", "color": "CRIMSON", "both": True},
+        {"a": "a2", "b": "c1", "mode": "c"}, {"a": "c1", "b": "c2", "label": "result feeds", "lsize": 9.5},
+        {"a": "c2", "b": "c3", "mode": "c"},
+        *[{"a": "a3", "b": f"q{i}", "mode": "c", "color": "CRIMSON"} for i in (1, 2, 3)],
+        {"a": "a4", "b": "u1", "mode": "c"}, {"a": "u1", "b": "u2"}, {"a": "u2", "b": "u3"},
+    ]
+    return {
+        "kind": "canvas",
+        "kicker": "Interaction patterns",
+        "title": "Four ways an agent calls tools, shown with tools SAJHA ships",
+        "groups": [
+            {"id": "g1", "label": "SINGLE CALL: one tool, keep reasoning", "x": 0.0, "y": 0.0, "w": 0.48, "h": 0.46},
+            {"id": "g2", "label": "CHAINED: one result feeds the next", "x": 0.51, "y": 0.0, "w": 0.49, "h": 0.46},
+            {"id": "g3", "label": "PARALLEL: independent calls at once", "x": 0.0, "y": 0.5, "w": 0.48, "h": 0.5},
+            {"id": "g4", "label": "MULTI-TURN: explore, then refine", "x": 0.51, "y": 0.5, "w": 0.49, "h": 0.5},
+        ],
+        "texts": [
+            {"x": 0.16, "y": 0.32, "w": 0.3, "h": 0.1, "text": "“What is the change from 80 to 100?”", "italic": True,
+             "size": 12},
+            {"x": 0.37, "y": 0.66, "w": 0.1, "h": 0.25, "text": "plan_execute\nruns them\nside by side", "size": 11},
+        ],
+        "nodes": nodes,
+        "edges": edges,
+        "source": "Tool names checked against the live registry at build time (evidence.require_tools). Parallel "
+        "steps: docs/architecture/Intelligence Layer.md §6 (plan_execute).",
+        "talk": f"Single call: one tool and one result, and the model keeps reasoning. Chained: {chain[0]} finds the "
+        f"company, {chain[1]} reads its facts, {chain[2]} computes the growth. Parallel: {par[0]}, {par[1]} and "
+        f"{par[2]} together; SAJHA's plan_execute planner runs independent steps side by side. Multi-turn: list the "
+        "tables, describe one, then refine the query over several requests.",
+    }
+
+
 def _section1(F: dict[str, Any]) -> list[dict[str, Any]]:
     cat, eras = F["catalog"], F["eras"]
     return [
         {
             "kind": "divider",
-            "num": "1",
             "title": "The Model Context Protocol",
             "sub": "MCP from nothing: what it is, why every AI application should speak it, and how a host, "
             "a client and a server divide the work.",
             "points": ["What MCP is", "Ten principles", "Industry voices", "Primitives", "Host, client, server",
                        "Five steps", "Benefits"],
         },
-        {
-            "kind": "bullets",
-            "kicker": "What is MCP?",
-            "title": "MCP is one open standard for connecting AI applications to tools and data",
-            "items": [
-                ("An open standard, neutrally governed",
-                 "Introduced by Anthropic in November 2024. In December 2025 Anthropic donated it to the Agentic "
-                 "AI Foundation, a directed fund under the Linux Foundation co-founded by Anthropic, Block and OpenAI."),
-                ("Built on JSON-RPC 2.0",
-                 "An application lists a server's tools (tools/list), calls one (tools/call), and reads its "
-                 "resources and prompts, as JSON messages over a transport."),
-                ("N × M becomes N + M",
-                 "Without a shared protocol every application needs its own integration with every tool; with one, "
-                 "each side implements the protocol once, so the work grows linearly, not quadratically."),
-                ("Widely adopted",
-                 "Anthropic's December 2025 announcement names ChatGPT, Cursor, Gemini, Microsoft Copilot and "
-                 "Visual Studio Code among the products using it, and more than 10,000 active public MCP servers."),
-                ("Two eras in use today",
-                 f"Session-based revisions up to {eras['handshake'][0]}, and the stateless {eras['modern'][0]} "
-                 "revision (Section 2)."),
-            ],
-            "note": "Think of it as one plug for every tool: write the server once, and every MCP-capable "
-            "application can use it.",
-            "source": f"Introduction: {ANTHROPIC_INTRO}. Foundation, adopters and the server count: {AAIF}. "
-            f"Linear versus quadratic integration effort: {BCG}. Eras: sajha.core.mcp_modern MODERN_PROTOCOL_VERSIONS "
-            "and HANDSHAKE_PROTOCOL_VERSIONS, read at build time.",
-        },
+        _what_is_mcp(eras),
         {
             "kind": "principles",
             "kicker": "Why it matters",
@@ -177,23 +253,51 @@ def _section1(F: dict[str, Any]) -> list[dict[str, Any]]:
             "source": f"Host, client and server roles: {SPEC} (architecture overview). SAJHA is one such server.",
         },
         {
-            "kind": "steps",
+            "kind": "canvas",
             "kicker": "How AI applications use MCP",
             "title": "Five steps, from discovery to the next tool call",
-            "steps": [
-                ("Discovery", "The host starts a client; the client connects; the server lists its tools with "
-                 "JSON Schemas."),
-                ("Selection", "The model sees the tools in its context and decides which one the request needs."),
-                ("Invocation", "The model emits a structured call; the client sends it as JSON-RPC; the server "
-                 "validates and runs it."),
-                ("Result", "The server returns a structured result; the host feeds it back into the model's "
-                 "context."),
-                ("Iteration", "The model chains further calls, across tools and servers, until it can answer."),
+            "groups": [
+                {"id": "c1", "label": "HOST AND MODEL", "x": 0.0, "y": 0.0, "w": 0.3, "h": 1.0, "fill": "PARCH",
+                 "line": None},
+                {"id": "c2", "label": "MCP CLIENT", "x": 0.35, "y": 0.0, "w": 0.3, "h": 1.0, "fill": "PARCH",
+                 "line": None},
+                {"id": "c3", "label": "MCP SERVER", "x": 0.7, "y": 0.0, "w": 0.3, "h": 1.0, "fill": "PARCH",
+                 "line": None},
             ],
-            "note": "The model discovers capabilities at run time; no tool knowledge is hard-coded in the "
-            "application.",
+            "nodes": [
+                {"id": "d1", "text": "1  Discovery", "sub": "connect; ask for tools/list", "x": 0.38, "y": 0.09,
+                 "w": 0.24, "h": 0.13, "style": "white", "size": 13},
+                {"id": "d2", "text": "tools with JSON Schemas", "x": 0.73, "y": 0.09, "w": 0.24, "h": 0.13,
+                 "style": "white", "size": 13, "bold": False},
+                {"id": "s1", "text": "2  Selection", "sub": "the model picks the tool the request needs", "x": 0.03,
+                 "y": 0.27, "w": 0.24, "h": 0.14, "style": "soft", "size": 13},
+                {"id": "i1", "text": "3  Invocation", "sub": "tools/call as JSON-RPC", "x": 0.38, "y": 0.46,
+                 "w": 0.24, "h": 0.13, "style": "white", "size": 13},
+                {"id": "i2", "text": "validates and runs it", "x": 0.73, "y": 0.46, "w": 0.24, "h": 0.13,
+                 "style": "accent", "size": 13},
+                {"id": "r1", "text": "4  Result", "sub": "fed back into the model's context", "x": 0.03, "y": 0.64,
+                 "w": 0.24, "h": 0.14, "style": "soft", "size": 13},
+                {"id": "t1", "text": "5  Iteration", "sub": "another call, or the answer", "x": 0.03, "y": 0.84,
+                 "w": 0.24, "h": 0.13, "style": "dark", "size": 13},
+            ],
+            "edges": [
+                {"a": "d1", "b": "d2", "color": "CRIMSON"},
+                {"a": "d2", "b": "s1", "mode": "c"},
+                {"a": "s1", "b": "i1", "mode": "c"},
+                {"a": "i1", "b": "i2", "color": "CRIMSON"},
+                {"a": "i2", "b": "r1", "mode": "c"},
+                {"a": "r1", "b": "t1"},
+                {"a": "t1", "b": "i1", "ports": ("r", "b"), "via": [(0.5, 0.905)], "dash": True,
+                 "label": "chain the next call", "lsize": 10, "lseg": 0, "loff": (0.1, 0.0)},
+            ],
+            "note": "The model discovers capabilities at run time; no tool knowledge is hard-coded in the application.",
             "source": f"The protocol flow in {SPEC} (lifecycle, tools/list, tools/call). SAJHA's own loop (Ask SAJHA, "
-            "Section 6) follows the same five steps.",
+            "Section 7) follows the same five steps.",
+            "talk": "Discovery: the host starts a client, the client connects, and the server lists its tools with JSON "
+            "Schemas. Selection: the model sees the tools in its context and decides which one the request needs. "
+            "Invocation: the model emits a structured call; the client sends it as JSON-RPC; the server validates and "
+            "runs it. Result: the server returns a structured result and the host feeds it back into the model's "
+            "context. Iteration: the model chains further calls, across tools and servers, until it can answer.",
         },
         {
             "kind": "table",
@@ -230,7 +334,6 @@ def _section2(F: dict[str, Any]) -> list[dict[str, Any]]:
     return [
         {
             "kind": "divider",
-            "num": "2",
             "title": "MCP integration with AI applications",
             "sub": "Where MCP sits inside an AI application, how an application connects, the transports and "
             "the two eras in use today, and the patterns agents use to call tools.",
@@ -280,24 +383,52 @@ def _section2(F: dict[str, Any]) -> list[dict[str, Any]]:
             "in SAJHA's registry (fred, olap, duckdb, yahoo); policy and audit: docs/architecture/Policy and Audit.md.",
         },
         {
-            "kind": "steps",
+            "kind": "canvas",
             "kicker": "How applications connect",
-            "title": "Connect, discover, invoke, iterate, in either era",
-            "head_w": 2.0,
-            "steps": [
-                ("Connect", f"Session era (up to {eras['handshake'][0]}): an initialize handshake negotiates "
-                 f"capabilities and opens a session. Stateless era ({eras['modern'][0]}): every request names its "
-                 "version; a client may ask server/discover first."),
-                ("Discover", "The client asks for the tool catalog; each tool carries a JSON Schema, so the model "
-                 "knows exactly what it can call and how."),
-                ("Invoke", "The model emits a structured call; the client sends it as a JSON-RPC request and "
-                 "receives a structured result."),
-                ("Iterate", "Results return to the model's context; it chains further calls, across tools and "
-                 "servers, until it can answer."),
+            "title": "Connect, discover, invoke, iterate: the same four moves in either era",
+            "groups": [
+                {"id": "gs", "label": f"SESSION ERA (UP TO {eras['handshake'][0]})", "x": 0.0, "y": 0.0, "w": 0.48,
+                 "h": 0.86},
+                {"id": "gm", "label": f"STATELESS ERA ({eras['modern'][0]})", "x": 0.52, "y": 0.0, "w": 0.48,
+                 "h": 0.86},
             ],
-            "note": f"Official SDKs exist for {listing(F['sdks'])}, with the same pattern in each.",
+            "nodes": [
+                {"id": "s1", "text": "initialize", "sub": "negotiates capabilities", "x": 0.03, "y": 0.11, "w": 0.2,
+                 "h": 0.16, "style": "accent", "size": 14},
+                {"id": "s1b", "text": "Mcp-Session-Id", "sub": "the server opens a session", "x": 0.26, "y": 0.11,
+                 "w": 0.19, "h": 0.16, "style": "soft", "size": 13},
+                {"id": "s2", "text": "tools/list", "sub": "on the session", "x": 0.03, "y": 0.38, "w": 0.2, "h": 0.14,
+                 "style": "white", "size": 14},
+                {"id": "s3", "text": "tools/call", "sub": "on the session", "x": 0.03, "y": 0.62, "w": 0.2, "h": 0.14,
+                 "style": "white", "size": 14},
+                {"id": "s4", "text": "iterate", "sub": "until the model can answer", "x": 0.26, "y": 0.62, "w": 0.19,
+                 "h": 0.14, "style": "box", "size": 13},
+                {"id": "m1", "text": "server/discover", "sub": "optional: what the server offers", "x": 0.55, "y": 0.11,
+                 "w": 0.2, "h": 0.16, "style": "ghost", "size": 14},
+                {"id": "m2", "text": "tools/list", "sub": "names its version in _meta", "x": 0.55, "y": 0.38,
+                 "w": 0.2, "h": 0.14, "style": "white", "size": 14},
+                {"id": "m3", "text": "tools/call", "sub": "every request stands alone", "x": 0.55, "y": 0.62,
+                 "w": 0.2, "h": 0.14, "style": "white", "size": 14},
+                {"id": "m4", "text": "iterate", "sub": "no session to keep", "x": 0.78, "y": 0.62, "w": 0.19,
+                 "h": 0.14, "style": "box", "size": 13},
+            ],
+            "edges": [
+                {"a": "s1", "b": "s1b"}, {"a": "s1", "b": "s2"}, {"a": "s2", "b": "s3"}, {"a": "s3", "b": "s4"},
+                {"a": "s4", "b": "s1b", "dash": True, "arrow": False},
+                {"a": "m1", "b": "m2", "dash": True}, {"a": "m2", "b": "m3"}, {"a": "m3", "b": "m4"},
+            ],
+            "items": [f"Official SDKs exist for {listing(F['sdks'])}, with the same pattern in each; one SAJHA endpoint "
+                      "serves both eras."],
+            "items_h": 0.75,
+            "size": 14,
             "source": f"SDK languages: {SDKS}. Eras: sajha.core.mcp_modern (read at build time); "
             "docs/protocol/MCP Protocol Guide.md for how SAJHA recognises each.",
+            "talk": "Session era: an initialize handshake negotiates capabilities and opens a session, whose id later "
+            "requests carry. Stateless era: every request names its protocol version, and a client may ask "
+            "server/discover first. Then, in both, the client asks for the tool catalog, each tool carrying a JSON "
+            "Schema, so the model knows exactly what it can call and how; the model emits a structured call, the "
+            "client sends it as JSON-RPC and receives a structured result; results return to the model's context and "
+            "it chains further calls until it can answer.",
         },
         {
             "kind": "table",
@@ -360,24 +491,7 @@ def _section2(F: dict[str, Any]) -> list[dict[str, Any]]:
             f"at build time ({cf['legacy']['scenarios']} scenarios on the 2025-11-25 path agree with "
             "docs/protocol/MCP 2025-11-25 Compliance.md). Matrix and branches: .github/workflows/mcp-conformance.yml.",
         },
-        {
-            "kind": "cards",
-            "kicker": "Interaction patterns",
-            "title": "Four ways an agent calls tools, shown with tools SAJHA ships",
-            "cols": 2,
-            "cards": [
-                ("SINGLE CALL", "One tool, one result, keep reasoning", f"“What is the change from 80 to 100?” → "
-                 f"{single[0]}."),
-                ("CHAINED CALLS", "One result feeds the next call", f"{chain[0]} → {chain[1]} → {chain[2]}: "
-                 "find the company, read its facts, compute the growth."),
-                ("PARALLEL CALLS", "Independent calls at once", f"{par[0]}, {par[1]} and {par[2]} together; the "
-                 "plan_execute planner runs independent steps side by side."),
-                ("MULTI-TURN", "A conversation over several requests", f"{multi[0]} → {multi[1]} → {multi[2]}: "
-                 "explore, then refine the query."),
-            ],
-            "source": "Tool names checked against the live registry at build time (evidence.require_tools). Parallel "
-            "steps: docs/architecture/Intelligence Layer.md §6 (plan_execute).",
-        },
+        _patterns(single, chain, par, multi),
         {
             "kind": "cards",
             "kicker": "Beyond list and call",
@@ -428,7 +542,7 @@ def _section2(F: dict[str, Any]) -> list[dict[str, Any]]:
             ],
             "items_h": 1.5,
             "source": f"The tool-use loop in {SPEC} (tools). SAJHA's own instance of this pipeline is Ask SAJHA "
-            "(sajha/ai/intelligence.py), captured in Section 6.",
+            "(sajha/ai/intelligence.py), captured in Section 7.",
         },
     ]
 

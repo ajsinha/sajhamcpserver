@@ -2,8 +2,10 @@
 """
 SAJHA Net catalogs and routing inside SAJHA (design §7, §8, §9, §15, §17.2, §17.4; protocol §10, §15).
 
-* :class:`NativeCatalog` (catalog source ``native``): this server's own registry tools, never proxies
-  or federated tools, with each tool's configured ``version``. Re-export (design §14, protocol §16) is
+* :class:`NativeCatalog` (catalog source ``native``): this server's own registry tools and the tools of
+  its internal proxied MCP servers (under their federation names), never proxies of other members, with
+  each tool's configured ``version``; external proxied servers' tools are published as
+  ``<vendor>__<tool>``. Re-export (design §14, protocol §16) is
   separate: with ``reexport`` on for a net and a re-export rule matching, :meth:`NetCatalogs.reexports`
   offers into that net tools this server imported (from the same net, with ``origin``; from another
   net, as a bridge, as its own), and a call to one is relayed onward (:meth:`NetCatalogs._relay`).
@@ -151,11 +153,17 @@ def _registry():
     return get_tools_registry()
 
 
-def _own_tools(reg) -> List[BaseMCPTool]:
+def _own_tools(reg, external_upstreams=frozenset()) -> List[BaseMCPTool]:
+    """This server's registry tools offered into a net under their own names: its native tools and
+    the tools of its INTERNAL proxied MCP servers (owner decision: an internal proxied server keeps its
+    tool names and is governed like a local tool, so one name, one contract applies to it). Proxies of
+    other members, and the tools of EXTERNAL proxied servers (offered separately as <vendor>__<tool>,
+    see :func:`_external_tools`), are left out."""
     from sajha.federation.tool import FederatedTool
     with reg._tools_lock:
         items = list(reg.tools.values())
-    return [t for t in items if t.enabled and not isinstance(t, (NetProxyTool, FederatedTool))]
+    return [t for t in items if t.enabled and not isinstance(t, NetProxyTool)
+            and not (isinstance(t, FederatedTool) and getattr(t, 'upstream_id', None) in external_upstreams)]
 
 
 def _external_tools(reg, servers: List[Any], net: str) -> List[Tuple[Any, Any]]:
@@ -227,7 +235,8 @@ class NativeCatalog(CatalogSource):
 
     def _own(self, reg) -> List[Dict[str, Any]]:
         out = []
-        for tool in _own_tools(reg):
+        external = frozenset(x.upstream for x in self.external_servers())
+        for tool in _own_tools(reg, external):
             try:
                 d = tool.to_mcp_format()
             except Exception as e:

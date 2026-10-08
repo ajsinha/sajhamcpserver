@@ -394,3 +394,26 @@ def test_external_servers_from_the_mcp_servers_file_and_prefix_clashes(tmp_path,
     assert any('var_calc' in e and 'local tool' in e for e in problems)
     from sajha import notices
     assert any(n['id'] == 'sajhanet.external_servers' for n in notices.list_notices(state='all'))
+
+
+def test_internal_proxied_tools_are_offered_under_their_own_names(tmp_path, isolate):  # noqa: F811
+    """Owner decision: an internal proxied MCP server keeps its tool names and is governed like a local
+    tool, so its tools are offered into the net (and fall under one name, one contract); an external
+    server's tools are offered only as <vendor>__<tool>, never under their raw federation names."""
+    conn = Capture()
+    fed = FakeFederation()
+    home = Peer(tmp_path, 'cust-na', conn, [Who('lookup', owner='cust-na')], [(M, True, [])])
+    internal = _search(fed, 'price', Q, 'quote')                      # registry name pricefed__quote
+    external = _search(fed, 'acme', Q, 'search')                      # registry name acmefed__search
+    a = Peer(tmp_path, 'risk-eu', conn, [Who('var_calc', owner='risk-eu'), internal, external],
+             [(M, False, ['https://cust-na.test'])],
+             cat=CatalogSettings(external_servers=[ExternalServer(upstream='acme', vendor='acme')]))
+    start(home, a)
+    join(home, [a])
+    settle([home, a])
+    names = set(home.reg.tools)
+    assert 'acme-net__risk-eu__pricefed__quote' in names and 'pricefed__quote' in names
+    assert 'acme-net__risk-eu__acme__search' in names
+    assert 'acme-net__risk-eu__acmefed__search' not in names           # never under its raw name
+    for p in (home, a):
+        p.svc.stop()

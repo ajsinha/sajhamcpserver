@@ -93,13 +93,12 @@ def _overview(F: dict[str, Any]) -> list[dict[str, Any]]:
     return [
         {
             "kind": "divider",
-            "num": "3",
             "title": "The SAJHA MCP server",
             "sub": "SAJHA (साझा, Hindi for “shared”): one self-hosted server that holds the tools an organisation's "
             "agents use, serves them to any MCP client, and applies one set of identities, permissions, rules and "
             "records to every call.",
-            "points": ["Overview", "Tools in the box", "MCP Studio", "Architecture", "Web console",
-                       "Access and authentication", "Policy and audit", "Deploy anywhere"],
+            "points": ["Overview", "Tools in the box", "MCP Studio", "Federation", "Architecture", "Web console",
+                       "Access and authentication", "Credentials", "Policy and audit", "Deploy anywhere"],
         },
         {
             "kind": "stats",
@@ -138,6 +137,8 @@ def _overview(F: dict[str, Any]) -> list[dict[str, Any]]:
                  "planners, memory, document search and evals; the offline mock is the default."),
                 ("Every client's language", "Both MCP eras, four transports, its own OAuth 2.1 server, and the "
                  "official conformance suite in CI."),
+                ("Many servers, one net", "SAJHA Net joins servers across boundaries; each keeps its own data, rules "
+                 "and models, and only governed calls cross."),
                 ("Runs where your data is", "Laptop, VM, Docker, Kubernetes; SQLite or PostgreSQL; local disk or an "
                  "object store."),
             ],
@@ -187,45 +188,87 @@ def _overview(F: dict[str, Any]) -> list[dict[str, Any]]:
             "The example sentence is illustrative.",
         },
         {
-            "kind": "split",
+            "kind": "canvas",
             "kicker": "APIs and databases",
             "title": "An API description or a database becomes governed, read-only tools",
-            "left": {
-                "head": "Import an API",
-                "items": [
-                    "OpenAPI 3.x, Swagger 2.0 or a GraphQL endpoint becomes a preview of every operation: name, JSON "
-                    "Schema in and out, read-only and destructive hints.",
-                    "Choose, test one call, deploy; credentials only as secret references.",
-                    "Every call passes an SSRF guard; re-import shows a diff.",
-                ],
-            },
-            "right": {
-                "head": "Data connectors",
-                "items": [
-                    f"SQL: {listing(F['connectors']['sql'])}. Search: {listing(F['connectors']['search'])}.",
-                    "Read-only three times over: a statement guard, a read-only session and the login's own grants.",
-                    f"Curated views become typed tools; {listing(F['connectors']['per_user'])} can sign in as each user.",
-                ],
-            },
-            "source": "Connector kinds: sajha/connectors/model.py KINDS, read at build time. docs/architecture/API "
-            "Import.md and Data Connectors.md.",
+            "groups": [
+                {"id": "ga", "label": "IMPORT AN API", "x": 0.0, "y": 0.0, "w": 1.0, "h": 0.46},
+                {"id": "gd", "label": "DATA CONNECTORS", "x": 0.0, "y": 0.52, "w": 1.0, "h": 0.48},
+            ],
+            "nodes": [
+                {"id": "a1", "text": "OpenAPI 3, Swagger 2 or GraphQL", "x": 0.02, "y": 0.12, "w": 0.18, "h": 0.26,
+                 "style": "white", "shape": "doc", "size": 14},
+                {"id": "a2", "text": "Preview", "sub": "every operation: name, schemas, read-only and destructive hints",
+                 "x": 0.25, "y": 0.11, "w": 0.22, "h": 0.26, "style": "soft", "size": 14},
+                {"id": "a3", "text": "Choose and test", "sub": "one live call; credentials only as secret references",
+                 "x": 0.52, "y": 0.11, "w": 0.2, "h": 0.26, "style": "soft", "size": 14},
+                {"id": "a4", "text": "Deployed tools", "sub": "every call through an SSRF guard; re-import shows a diff",
+                 "x": 0.77, "y": 0.11, "w": 0.21, "h": 0.26, "style": "accent", "size": 14},
+                {"id": "d1", "text": "Your database", "sub": "SQL: " + listing(F["connectors"]["sql"][:4]) + ", ...",
+                 "x": 0.02, "y": 0.64, "w": 0.18, "h": 0.28, "style": "white", "shape": "can", "size": 14},
+                {"id": "d2", "text": "Read-only three times", "sub": "statement guard, read-only session, the login's "
+                 "own grants", "x": 0.25, "y": 0.65, "w": 0.22, "h": 0.26, "style": "dark", "size": 14},
+                {"id": "d3", "text": "Curated views", "sub": "become typed tools", "x": 0.52, "y": 0.65, "w": 0.2,
+                 "h": 0.26, "style": "soft", "size": 14},
+                {"id": "d4", "text": f"prefix{F['net']['sep']}operation", "sub": listing(F["connectors"]["per_user"])
+                 + " can sign in as each user", "x": 0.77, "y": 0.65, "w": 0.21, "h": 0.26, "style": "accent",
+                 "size": 14},
+            ],
+            "edges": [{"a": "a1", "b": "a2"}, {"a": "a2", "b": "a3"}, {"a": "a3", "b": "a4", "color": "CRIMSON"},
+                      {"a": "d1", "b": "d2"}, {"a": "d2", "b": "d3"}, {"a": "d3", "b": "d4", "color": "CRIMSON"}],
+            "source": "Connector kinds: sajha/connectors/model.py KINDS and PER_USER_KINDS, read at build time. "
+            "docs/architecture/API Import.md and Data Connectors.md.",
+            "talk": f"Import an API: an OpenAPI 3.x, Swagger 2.0 or GraphQL description becomes a preview of every "
+            "operation, with its name, JSON Schema in and out, and read-only and destructive hints; an administrator "
+            "chooses, tests one call and deploys. Credentials are kept only as secret references, every call passes "
+            "an SSRF guard, and a re-import shows a diff. Data connectors: SQL databases ("
+            f"{listing(F['connectors']['sql'])}) and search stores ({listing(F['connectors']['search'])}) are read "
+            "through a statement guard, a read-only session and the login's own grants; curated views become typed "
+            "tools, named with the connector's prefix.",
         },
         {
-            "kind": "bullets",
+            "kind": "canvas",
             "kicker": "Federation",
             "title": "Other MCP servers' tools join the catalog under SAJHA's rules",
-            "intro": "SAJHA can front another MCP server: its tools appear as <prefix>__<tool>, and every call to "
-            "them passes SAJHA's access policy, rules, cache, circuit breakers and audit. It is off by default.",
-            "items": [
-                ("Approval before exposure", "An upstream's tools wait for an administrator; a changed definition "
-                 "waits again."),
-                ("Screened text", "Descriptions and results are screened for injected instructions; flagged items "
-                 "wait for a person."),
-                ("Fenced network", "Upstream and token addresses pass an SSRF guard; a user's own token can be "
-                 "passed through instead of a shared one."),
-                ("Not isolated", "An upstream runs where it runs; SAJHA governs the calls, not its process."),
+            "groups": [{"id": "sj", "label": "SAJHA" + (" (FEDERATION SHIPS OFF)" if not F["net"]["federation_shipped"]
+                                                        else ""), "x": 0.2, "y": 0.0, "w": 0.6, "h": 1.0}],
+            "nodes": [
+                {"id": "u1", "text": "weather MCP server", "sub": "Streamable HTTP", "x": 0.0, "y": 0.06, "w": 0.16,
+                 "h": 0.17, "style": "white", "size": 13},
+                {"id": "u2", "text": "fetch MCP server", "sub": "stdio", "x": 0.0, "y": 0.35, "w": 0.16, "h": 0.17,
+                 "style": "white", "size": 13},
+                {"id": "mf", "text": "mcpServers file", "sub": "the JSON desktop clients use", "x": 0.0, "y": 0.68,
+                 "w": 0.16, "h": 0.22, "style": "box", "shape": "doc", "size": 13},
+                {"id": "g1", "text": "SSRF guard", "sub": "on upstream and token addresses", "x": 0.23, "y": 0.18,
+                 "w": 0.165, "h": 0.24, "style": "soft", "shape": "hex", "size": 13},
+                {"id": "g2", "text": "Approval", "sub": "each tool waits for an administrator; a change waits again",
+                 "x": 0.42, "y": 0.18, "w": 0.165, "h": 0.24, "style": "soft", "size": 13},
+                {"id": "g3", "text": "Screening", "sub": "descriptions and results checked for injected instructions",
+                 "x": 0.61, "y": 0.18, "w": 0.165, "h": 0.24, "style": "soft", "size": 13},
+                {"id": "cat", "text": f"weather{F['net']['sep']}get_forecast", "sub": "in the catalog, under access, "
+                 "policy, cache, breakers and audit", "x": 0.3, "y": 0.62, "w": 0.4, "h": 0.2, "style": "accent",
+                 "size": 15},
+                {"id": "cl", "text": "MCP clients", "sub": "and Ask SAJHA", "x": 0.85, "y": 0.6, "w": 0.15, "h": 0.24,
+                 "style": "white", "shape": "oval", "size": 13},
             ],
-            "source": "docs/architecture/Federation.md; sajha/federation/; GLOSSARY.md 'Federation', 'Tool poisoning'.",
+            "edges": [
+                {"a": "u1", "b": "g1", "mode": "c"}, {"a": "u2", "b": "g1", "mode": "c"},
+                {"a": "mf", "b": "u2", "dash": True, "label": "defines", "lsize": 10},
+                {"a": "g1", "b": "g2"}, {"a": "g2", "b": "g3"},
+                {"a": "g3", "b": "cat", "mode": "c", "color": "CRIMSON"}, {"a": "cat", "b": "cl", "color": "CRIMSON"},
+            ],
+            "note": "Not isolated: an upstream runs where it runs; SAJHA governs the calls, not its process. A user's own "
+            "token can be passed through instead of a shared one.",
+            "source": "docs/architecture/Federation.md (§4 names, §6 approval, §9 security, §10 the mcpServers file); "
+            "sajha/federation/; GLOSSARY.md 'Federation', 'Tool poisoning'. federation.enabled read from the shipped "
+            "config/application.yml at build time. The upstream names are illustrative.",
+            "talk": "SAJHA can front another MCP server, a proxied MCP server: its tools appear as prefix, two "
+            "underscores, tool, and every call to them passes SAJHA's access policy, rules, cache, circuit breakers "
+            "and audit. Upstreams come from application.yml, the console, or the mcpServers file that Claude Desktop, "
+            "Cursor and VS Code use, so an administrator can paste a block they already have; secrets come from the "
+            "environment. An upstream's tools wait for an administrator's approval, and a changed definition waits "
+            "again. Descriptions and results are screened for injected instructions; flagged items wait for a person. "
+            "Section 5 shows how an external server's tools enter a SAJHA Net under its vendor's prefix.",
         },
     ]
 
@@ -348,7 +391,7 @@ def _access(F: dict[str, Any]) -> list[dict[str, Any]]:
             "col_w": [1.5, 3.9, 2.3],
             "rows": [
                 ["Layer", "Mechanism", "Protects against"],
-                ["Authentication", "Session cookie, SAJHA JWT, API keys (SHA-256 stored), OAuth 2.1 on /mcp",
+                ["Authentication", "Session cookie, single sign-on, revocable SAJHA JWT, API keys, OAuth 2.1 on /mcp",
                  "Unknown callers"],
                 ["Authorization", "Role permissions and API-key modes, per tool, on every path", "Privilege escalation"],
                 ["Policy", "Deny, require approval, constrain arguments, rate limits and quotas, redaction",
@@ -367,44 +410,150 @@ def _access(F: dict[str, Any]) -> list[dict[str, Any]]:
             "docs/architecture/Policy and Audit.md.",
         },
         {
-            "kind": "table",
+            "kind": "canvas",
             "kicker": "Authentication",
-            "title": "Four ways to prove who is calling, one access policy behind them",
-            "col_w": [1.5, 3.3, 2.7],
-            "rows": [
-                ["Caller", "How it proves who it is", "Where it is accepted"],
-                ["A person in the console", "Sign-in form, then the sajha_token cookie (HttpOnly, SameSite=Lax)",
-                 "The web console"],
-                ["A script with a password", "POST /api/auth/login returns a SAJHA JWT (default HS256, 60 minutes)",
-                 "REST, /mcp, WebSocket (?token=)"],
-                ["An automation", "An API key sja_… issued by an administrator, optionally expiring",
-                 "REST, /mcp, WebSocket (?api_key=)"],
-                ["An OAuth client", "An access token from SAJHA's authorization server or yours",
-                 "The MCP endpoints only"],
+            "title": "Four ways to prove who is calling, and one access policy behind them",
+            "nodes": [
+                {"id": "p", "text": "A person in the console", "sub": "sign-in form or single sign-on: the "
+                 "sajha_token cookie", "x": 0.0, "y": 0.0, "w": 0.27, "h": 0.18, "style": "white", "size": 13},
+                {"id": "s", "text": "A script with a password", "sub": "POST /api/auth/login: a SAJHA JWT",
+                 "x": 0.0, "y": 0.26, "w": 0.27, "h": 0.18, "style": "white", "size": 13},
+                {"id": "k", "text": "An automation", "sub": "an API key sja_… from an administrator or its owner",
+                 "x": 0.0, "y": 0.52, "w": 0.27, "h": 0.18, "style": "white", "size": 13},
+                {"id": "o", "text": "An OAuth client", "sub": "an access token, MCP endpoints only", "x": 0.0,
+                 "y": 0.78, "w": 0.27, "h": 0.18, "style": "white", "size": 13},
+                {"id": "ar", "text": "authenticate_request", "sub": "tried in order: 1 Bearer JWT, 2 X-API-Key, "
+                 "3 Authorization: sja_…, 4 the cookie", "x": 0.36, "y": 0.06, "w": 0.24, "h": 0.58, "style": "dark",
+                 "size": 14},
+                {"id": "rs", "text": "Resource server on /mcp", "sub": "issuer, audience, expiry, scope", "x": 0.36,
+                 "y": 0.76, "w": 0.24, "h": 0.22, "style": "soft", "size": 13},
+                {"id": "ap", "text": "One access policy", "sub": "sajha/auth/access.py: roles' patterns or the key's "
+                 "mode", "x": 0.69, "y": 0.3, "w": 0.15, "h": 0.4, "style": "accent", "size": 14},
+                {"id": "t", "text": "tools", "x": 0.89, "y": 0.4, "w": 0.11, "h": 0.2, "style": "white",
+                 "shape": "oval", "size": 14},
             ],
-            "note": "Order tried: Bearer JWT, X-API-Key, Authorization: sja_…, then the cookie. A credential that "
-            "fails is refused, never treated as anonymous.",
+            "edges": [
+                {"a": "p", "b": "ar", "mode": "c"}, {"a": "s", "b": "ar", "mode": "c"}, {"a": "k", "b": "ar", "mode": "c"},
+                {"a": "o", "b": "rs"},
+                {"a": "ar", "b": "ap", "mode": "c", "color": "CRIMSON"}, {"a": "rs", "b": "ap", "mode": "c",
+                                                                          "color": "CRIMSON"},
+                {"a": "ap", "b": "t", "color": "CRIMSON"},
+            ],
+            "note": "A credential that fails is refused, never treated as anonymous. Every SAJHA JWT can be revoked "
+            "before it expires: sign out, or sign out everywhere.",
             "source": "sajha/auth/__init__.py AuthManager.authenticate_request; sajha/routes/auth_routes.py; "
-            "sajha/core/config.py (auth.jwt.algorithm, auth.jwt.expiry_minutes); docs/security/Security Model.md §1–§2.",
+            "sajha/auth/sso.py; sajha/auth/revocation.py; sajha/core/config.py (auth.jwt.algorithm, "
+            "auth.jwt.expiry_minutes); docs/security/Security Model.md §1–§2.",
+            "talk": "A person signs in with the form, or with an OpenID Connect provider when single sign-on is on, and "
+            "gets the sajha_token cookie (HttpOnly, SameSite=Lax). A script posts a user id and password to "
+            "/api/auth/login and gets a SAJHA JWT (default HS256, 60 minutes). An automation uses an API key that an "
+            "administrator issued or a user created for themselves. An OAuth client brings an access token from "
+            "SAJHA's own authorization server or yours, accepted on the MCP endpoints only. Whichever way, the same "
+            "access policy decides which tools the caller may see and run, on REST, MCP in both eras, SSE, "
+            "WebSocket, stdio and A2A. Sign-out records the token id in the state store; sign out everywhere raises "
+            "the user's token version, which every token carries.",
         },
         {
-            "kind": "bullets",
+            "kind": "canvas",
             "kicker": "OAuth 2.1",
             "title": "OAuth 2.1 on /mcp: SAJHA's own authorization server, or yours",
-            "intro": "An authorization server issues tokens; a resource server accepts them. SAJHA can be both, or only "
-            "the second behind your identity provider. It is off by default (mcp.auth.mode: off, optional or "
-            "required); API keys and SAJHA's own tokens work in every mode.",
-            "items": [
-                ("Resource server", "Protected-resource metadata (RFC 9728); audience-bound tokens (RFC 8707), so a "
-                 "token issued for another API is refused; scopes mcp:read and mcp:tools."),
-                ("Built-in authorization server", "Authorization code with PKCE S256, client ID metadata documents, "
-                 "optional dynamic registration, rotating refresh tokens with reuse detection."),
-                ("Not single sign-on", "OAuth here controls who may call /mcp; it is not SSO for the web console."),
+            "nodes": [
+                {"id": "c", "text": "MCP client", "x": 0.0, "y": 0.36, "w": 0.16, "h": 0.24, "style": "white",
+                 "shape": "oval", "size": 15},
+                {"id": "as", "text": "Authorization server", "sub": "SAJHA's own, or your identity provider: PKCE S256, "
+                 "rotating refresh tokens", "x": 0.36, "y": 0.0, "w": 0.3, "h": 0.24, "style": "dark", "size": 14},
+                {"id": "rs", "text": "Resource server: SAJHA /mcp", "sub": "audience-bound tokens; scopes mcp:read, "
+                 "mcp:tools", "x": 0.36, "y": 0.7, "w": 0.3, "h": 0.24, "style": "accent", "size": 14},
+                {"id": "u", "text": "the user", "sub": "signs in and consents", "x": 0.82, "y": 0.02, "w": 0.16,
+                 "h": 0.2, "style": "soft", "shape": "oval", "size": 13},
+                {"id": "pol", "text": "then the user's tool access", "sub": "as for any caller", "x": 0.79, "y": 0.72,
+                 "w": 0.21, "h": 0.2, "style": "box", "size": 13},
             ],
+            "edges": [
+                {"a": "rs", "b": "c", "ports": ("l", "b"), "at": (0.5, 0.5), "via": [(0.08, 0.82)], "dash": True,
+                 "label": "1  no token: 401 and metadata", "lsize": 10.5, "lseg": 0},
+                {"a": "c", "b": "as", "mode": "c", "color": "CRIMSON", "label": "2  authorize with PKCE; 3  code for token",
+                 "lsize": 10.5, "loff": (-0.6, -0.05)},
+                {"a": "as", "b": "u", "both": True},
+                {"a": "c", "b": "rs", "ports": ("r", "t"), "at": (0.5, 0.25), "color": "CRIMSON",
+                 "label": "4  Bearer token", "lsize": 10.5, "loff": (0.95, 0.1)},
+                {"a": "rs", "b": "pol"},
+            ],
+            "note": f"Off by default (mcp.auth.mode: off, optional or required); API keys and SAJHA's own tokens work in "
+            "every mode. OAuth here controls who may call /mcp; console sign-in is separate.",
             "source": "docs/protocol/OAuth Guide.md §1–§2; sajha/auth/oauth/settings.py (DEFAULT_SCOPES), "
             "resource_server.py, authorization_server.py; sajha/routes/oauth_routes.py.",
+            "talk": "An authorization server issues tokens; a resource server accepts them. SAJHA can be both, or only "
+            "the resource server behind your identity provider. A client that calls /mcp without a token gets 401 with "
+            "a pointer to the protected-resource metadata (RFC 9728), which names the authorization server. The client "
+            "runs the authorization-code flow with PKCE S256 and the resource indicator (RFC 8707), so the token's "
+            "audience is SAJHA's /mcp and a token issued for another API is refused. SAJHA's built-in server supports "
+            "client ID metadata documents, optional dynamic registration, and rotating refresh tokens with reuse "
+            "detection. After the token checks, the user's own tool access applies as for any caller.",
         },
+        _credentials(F),
     ]
+
+
+def _credentials(F: dict[str, Any]) -> dict[str, Any]:
+    """Where credentials live and which copy wins, how they are stored, sign-in, and the browser's guards."""
+    nt = F["net"]
+    store = nt["credential_storage"]
+    col = lambda i, t, sub, x, y, st="white", h=0.15: {"id": i, "text": t, "sub": sub, "x": x, "y": y, "w": 0.17,
+                                                      "h": h, "style": st, "size": 12}
+    nodes = [
+        col("uf", "config/users.json", "wins: applied at start and on change", 0.015, 0.1),
+        col("ut", "users table", "everything else", 0.015, 0.33),
+        col("kf", "config/apikeys.json", "wins: checked first", 0.205, 0.1),
+        col("kd", "database", "validated on every request", 0.205, 0.33),
+        col("kj", "config/apikeys_db.json", "last: only if the database cannot answer", 0.205, 0.56, h=0.17),
+        {"id": "plain", "text": f"Stored {store} by default" if store == "plain" else f"Stored {store}",
+         "sub": "the owner's decision for intranet use; set hashed and run python -m sajha.auth rehash to switch",
+         "x": 0.015, "y": 0.79, "w": 0.36, "h": 0.19, "style": "warn", "size": 13},
+        col("sso", "Single sign-on", "OpenID Connect, beside passwords", 0.43, 0.1),
+        col("rev", "Revocable sessions", "sign out; sign out everywhere", 0.43, 0.3),
+        col("lock", "Throttle and lockout", "per address and per account", 0.43, 0.5),
+        {"id": "tak", "text": "Test admin key", "sub": "ships " + ("on" if nt["test_admin_shipped"] else "off") +
+         ": a critical notice shows while it is active", "x": 0.43, "y": 0.72, "w": 0.17, "h": 0.2, "style": "warn",
+         "size": 12},
+        col("csp", "Content-Security-Policy", "scripts only with a per-response nonce", 0.81, 0.1),
+        col("csrf", "Cross-site check", "cookie requests from another site refused", 0.81, 0.3),
+        col("org", "Origin allow-list", "on /mcp, against DNS rebinding", 0.81, 0.5),
+        col("tls", "TLS at the proxy", "plus HSTS and other headers", 0.81, 0.7),
+    ]
+    edges = [{"a": "uf", "b": "ut", "label": "else", "lsize": 10}, {"a": "kf", "b": "kd", "label": "else", "lsize": 10},
+             {"a": "kd", "b": "kj", "label": "else", "lsize": 10}]
+    return {
+        "kind": "canvas",
+        "kicker": "Credentials, sign-in and the browser",
+        "title": "Where credentials live, and how sign-in and the browser are guarded",
+        "groups": [
+            {"id": "g1", "label": "CREDENTIALS: USERS / API KEYS", "x": 0.0, "y": 0.0, "w": 0.39, "h": 1.0},
+            {"id": "g2", "label": "SIGN-IN", "x": 0.415, "y": 0.0, "w": 0.2, "h": 1.0},
+            {"id": "g3", "label": "BROWSER AND TRANSPORT", "x": 0.795, "y": 0.0, "w": 0.205, "h": 1.0},
+        ],
+        "nodes": nodes,
+        "edges": edges,
+        "texts": [{"x": 0.635, "y": 0.1, "w": 0.15, "h": 0.8, "size": 12,
+                   "text": "Every SAJHA JWT\ncarries an id and\nthe user's token\nversion, so it can\nbe withdrawn "
+                   "before\nit expires.\n\nAn API key is not\na session: revoke\nor rotate it."}],
+        "source": "docs/security/Security Model.md §1 ('Credential storage and files', 'Test admin key', 'Console single "
+        "sign-on', 'Revocable sign-in'), §3 (security headers and CSP, CSRF, Origin allow-list), §8 (known "
+        "limitations: plain storage by default, the test admin key ships on). auth.credential_storage and "
+        "sajhanet.test_admin_key.enabled read from the shipped config/application.yml at build time.",
+        "talk": "Users and API keys live in the database, and administrators can also keep them in two credential "
+        "files beside it. config/users.json wins: it is applied to the users table at start-up and whenever it "
+        "changes. For an API key, config/apikeys.json is checked first and wins for every key it holds; then the "
+        "database, read on every request so a revoked key stops at once; and only when the database does not know "
+        "the key or does not answer, the periodic dump config/apikeys_db.json. Passwords and API keys are stored "
+        "plain by default: that is the owner's decision for intranet use, and a warning notice stays up while it "
+        "is on. Setting auth.credential_storage to hashed and running the rehash command switches every stored "
+        "value to a hash; both forms keep working across the switch. The test admin key ships on for development "
+        "and testing and shows a critical notice while active; turn it off before production. Single sign-on with "
+        "an OpenID Connect provider works beside passwords. In the browser, a Content-Security-Policy with a nonce "
+        "per response, a cross-site check on every state-changing cookie request, and an Origin allow-list on /mcp; "
+        "TLS ends at the proxy or ingress.",
+    }
 
 
 def _flows(F: dict[str, Any]) -> list[dict[str, Any]]:
@@ -419,7 +568,8 @@ def _flows(F: dict[str, Any]) -> list[dict[str, Any]]:
                 "   └─ Server returns the sign-in form",
                 "2. Browser → POST /login { user_id, password }",
                 "   ├─ Per-IP throttle: too many failures → 429",
-                "   ├─ bcrypt check against the stored hash",
+                "   ├─ Password check (stored plain by default,",
+                "   │    or a bcrypt hash under hashed storage)",
                 "   ├─ Repeated failures lock the account → 423",
                 "   └─ If valid:",
                 "      ├─ Issue a SAJHA JWT (auth.jwt.*, default HS256, 60 min)",
@@ -432,7 +582,8 @@ def _flows(F: dict[str, Any]) -> list[dict[str, Any]]:
                 "   └─ User reloaded from the database: a disabled user",
                 "      is out at once",
             ],
-            "source": "sajha/routes/auth_routes.py (login_form, _set_session_cookie); sajha/auth/password.py (bcrypt); "
+            "source": "sajha/routes/auth_routes.py (login_form, _set_session_cookie); sajha/auth/password.py "
+            "(verify_password accepts plain or bcrypt; auth.credential_storage); "
             "sajha/security.py (login throttle); docs/security/Security Model.md §1 'Web login', 'Session cookie'.",
         },
         {
@@ -465,8 +616,9 @@ def _flows(F: dict[str, Any]) -> list[dict[str, Any]]:
             "band": "Script or agent  →  SAJHA server",
             "lines": [
                 "1. An administrator creates a key (console, POST /admin/apikeys/create)",
-                "   ├─ Key: sja_ + 48 hex characters, shown once",
-                "   ├─ Stored: SHA-256 hash and an 8-character prefix",
+                "   ├─ Key: sja_ + 48 hex characters",
+                "   ├─ Stored: SHA-256 (for lookup), 8-character prefix,",
+                "   │    and the raw key under plain storage (default)",
                 "   └─ Tool access mode: all | allowlist | denylist | regex",
                 "2. Client → any request with",
                 "   └─ X-API-Key: sja_…   (or Authorization: sja_…)",
@@ -587,37 +739,48 @@ def _policy(F: dict[str, Any]) -> list[dict[str, Any]]:
             "source": policy_src,
         },
         {
-            "kind": "split",
+            "kind": "canvas",
             "kicker": "Audit, tampered with",
             "title": "Change one stored field and the audit says which record and which field",
-            "left_w": 0.5,
-            "left": {
-                "head": "Captured while building this deck",
-                "lines": [
-                    "# write a short chain, signed every 5 records",
-                    f"✓ verify: {aud['records']} records, {aud['anchors']} signed anchors, ok={aud['ok_before']}",
-                    "",
-                    "# change one stored outcome, deny -> ok",
-                    f"UPDATE audit_chain SET outcome='ok' WHERE seq={aud['seq']}",
-                    "",
-                    f"✗ verify: ok={aud['ok_after']}",
-                    *[ln for p in aud["problems"] for ln in wrap(p, 48)],
-                ],
-            },
-            "right": {
-                "head": "How",
-                "items": [
-                    ("Chained", "Each record's SHA-256 covers the previous record's hash, so an edit, deletion, "
-                     "insertion or reordering breaks the chain."),
-                    ("Signed", "The head is signed (RS256) every N records, every few minutes and at shutdown."),
-                    ("Checked", "python -m sajha.audit verify, or the Audit page."),
-                    ("Exported", f"To {listing(siem['types'])} sinks ({listing(siem['flavors'])}) as "
-                     f"{listing(f.upper() if f != 'ocsf' else 'OCSF' for f in siem['formats'])}."),
-                ],
-            },
+            "panels": [{"x": 0.0, "y": 0.0, "w": 0.47, "h": 1.0, "size": 13, "lines": [
+                "# captured while building this deck",
+                "# write a short chain, signed every 5 records",
+                f"✓ verify: {aud['records']} records, {aud['anchors']} signed anchors, ok={aud['ok_before']}",
+                "",
+                "# change one stored outcome, deny -> ok",
+                f"UPDATE audit_chain SET outcome='ok' WHERE seq={aud['seq']}",
+                "",
+                f"✗ verify: ok={aud['ok_after']}",
+                *[ln for p in aud["problems"] for ln in wrap(p, 44)],
+            ]}],
+            "nodes": [
+                *[{"id": f"r{i}", "text": f"record {n}", "sub": "hash over its fields and the previous hash" if i == 0 else
+                   ("changed: its hash no longer matches" if n == aud["seq"] else "carries the previous record's hash"),
+                   "x": 0.52, "y": 0.02 + i * 0.2, "w": 0.24, "h": 0.15, "style": "bad" if n == aud["seq"] else "white",
+                   "size": 13} for i, n in enumerate(range(max(1, aud["seq"] - 1), max(1, aud["seq"] - 1) + 4))],
+                {"id": "an", "text": "signed anchor", "sub": "the head, RS256, every N records, every few minutes, "
+                 "at shutdown", "x": 0.81, "y": 0.38, "w": 0.19, "h": 0.25, "style": "dark", "size": 13},
+                {"id": "vf", "text": "verify", "sub": "python -m sajha.audit verify, or the Audit page", "x": 0.81,
+                 "y": 0.02, "w": 0.19, "h": 0.24, "style": "accent", "size": 13},
+                {"id": "sx", "text": "SIEM export", "sub": f"{listing(siem['types'])} sinks, as "
+                 f"{listing(f.upper() if f != 'ocsf' else 'OCSF' for f in siem['formats'])}", "x": 0.81, "y": 0.74,
+                 "w": 0.19, "h": 0.25, "style": "box", "size": 13},
+            ],
+            "edges": [
+                *[{"a": f"r{i}", "b": f"r{i + 1}", "color": "CRIMSON"} for i in range(3)],
+                {"a": "r3", "b": "an", "mode": "c", "dash": True},
+                {"a": "an", "b": "vf"},
+            ],
+            "note": "An edit, a deletion, an insertion or a reordering breaks the chain at the record where it happened.",
             "source": "Run while the deck was built (tools/deck/evidence.py, audit_example): sajha.audit.chain.ChainWriter "
             "on a temporary SQLite file with a throwaway RSA key, then sajha.audit.verify.verify before and after one "
-            "UPDATE. SIEM: sajha/audit/sinks.py TYPES and FLAVORS, sajha/audit/formats.py FORMATS.",
+            "UPDATE. SIEM: sajha/audit/sinks.py TYPES and FLAVORS, sajha/audit/formats.py FORMATS. The tampered record is "
+            "drawn in red.",
+            "talk": "Each record's SHA-256 covers its fields and the previous record's hash, so changing any stored field "
+            "makes that record's hash wrong, and deleting, inserting or reordering records breaks the links. The head of the chain is signed with RS256 every "
+            "N records, every few minutes and at shutdown. The verifier names the "
+            "record and the field that changed, as the captured run on the left shows. Records stream to a SIEM over "
+            f"{listing(siem['types'])} ({listing(siem['flavors'])}).",
         },
         {
             "kind": "stats",

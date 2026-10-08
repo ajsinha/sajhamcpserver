@@ -123,6 +123,10 @@ def title(s: dict[str, Any]) -> None:
     T.para(tf, "Ashutosh Sinha", size=20, color=T.WHITE, bold=True, font="Georgia", first=True, space_after=4)
     T.para(tf, s["date"], size=13, color=T.PINK_L, space_after=2)
     T.para(tf, s["version"], size=11, color=T.PINK, space_after=0)
+    if s.get("notice"):
+        T.fitted(sl, T.ML + T.CW * 0.52, 4.8, T.CW * 0.48, 1.6,
+                 lambda tf, z: T.para(tf, s["notice"], size=z, color=T.PINK_L, first=True, space_after=0, line=1.2),
+                 12, 9)
     T.footer(sl, T.PINK)
 
 
@@ -334,7 +338,7 @@ def thanks(s: dict[str, Any]) -> None:
 
 
 def divider(s: dict[str, Any]) -> None:
-    T.divider(s["num"], s["title"], s["sub"], s["points"])
+    T.divider(s["num"], s["title"], s["sub"], s["points"])  # num: set by sajha_deck.slides, in order
 
 
 def bullets(s: dict[str, Any]) -> None:
@@ -552,6 +556,232 @@ def context(s: dict[str, Any]) -> None:
         T.card(sl, bx, by, bw, bh, n.get("num", ""), n["head"], n.get("body", ""))
 
 
+# ── canvas: a free diagram of native shapes ────────────────────────────
+
+SHAPES = {
+    "round": MSO_SHAPE.ROUNDED_RECTANGLE,
+    "rect": MSO_SHAPE.RECTANGLE,
+    "oval": MSO_SHAPE.OVAL,
+    "hex": MSO_SHAPE.HEXAGON,
+    "chev": MSO_SHAPE.CHEVRON,
+    "pent": MSO_SHAPE.PENTAGON,
+    "diamond": MSO_SHAPE.DIAMOND,
+    "can": MSO_SHAPE.CAN,
+    "doc": MSO_SHAPE.FLOWCHART_DOCUMENT,
+}
+
+CANVAS_STYLES = {
+    # fill, text colour, outline, dashed outline
+    "box": ("PARCH", "INK", "RULE", False),
+    "white": ("WHITE", "INK", "RULE", False),
+    "accent": ("CRIMSON", "WHITE", None, False),
+    "dark": ("CRIMSON_D", "WHITE", None, False),
+    "navy": ("NAVY", "WHITE", None, False),
+    "soft": ("PINK_L", "INK", None, False),
+    "ok": ("WHITE", "INK", "OK", False),
+    "warn": ("WHITE", "INK", "WARN", False),
+    "bad": ("BAD", "WHITE", None, False),
+    "gold": ("GOLD", "INK", None, False),
+    "ghost": ("WHITE", "CRIMSON_D", "CRIMSON", True),
+    "line": ("WHITE", "INK", "CRIMSON", False),
+}
+
+
+def _clip(box: tuple[float, float, float, float], shape: str, tx: float, ty: float) -> tuple[float, float]:
+    """Where the line from the centre of ``box`` towards (tx, ty) leaves the shape."""
+    x, y, w, h = box
+    cx, cy = x + w / 2, y + h / 2
+    dx, dy = tx - cx, ty - cy
+    if abs(dx) < 1e-9 and abs(dy) < 1e-9:
+        return cx, cy
+    a, b = w / 2, h / 2
+    if shape == "oval":
+        t = 1.0 / ((dx / a) ** 2 + (dy / b) ** 2) ** 0.5
+    elif shape == "diamond":
+        t = 1.0 / (abs(dx) / a + abs(dy) / b)
+    else:
+        t = min(a / abs(dx) if dx else 1e9, b / abs(dy) if dy else 1e9)
+    return cx + dx * t, cy + dy * t
+
+
+def _port(box: tuple[float, float, float, float], side: str, at: float = 0.5) -> tuple[float, float]:
+    x, y, w, h = box
+    return {"l": (x, y + h * at), "r": (x + w, y + h * at), "t": (x + w * at, y), "b": (x + w * at, y + h)}[side]
+
+
+def _away(p: tuple[float, float], q: tuple[float, float], gap: float) -> tuple[float, float]:
+    """p moved ``gap`` towards q."""
+    dx, dy = q[0] - p[0], q[1] - p[1]
+    d = max(1e-9, (dx * dx + dy * dy) ** 0.5)
+    return p[0] + dx / d * gap, p[1] + dy / d * gap
+
+
+def _line(sl: Any, p1: tuple[float, float], p2: tuple[float, float], color: Any, width: float, dash: bool,
+          head: bool, tail: bool) -> Any:
+    from pptx.enum.dml import MSO_LINE_DASH_STYLE
+    from pptx.oxml.ns import qn
+
+    c = T.connect(sl, p1[0], p1[1], p2[0], p2[1], color, width)
+    if dash:
+        c.line.dash_style = MSO_LINE_DASH_STYLE.DASH
+    ln = c.line._get_or_add_ln()
+    if tail:
+        ln.append(ln.makeelement(qn("a:headEnd"), {"type": "triangle", "w": "med", "len": "med"}))
+    if head:
+        ln.append(ln.makeelement(qn("a:tailEnd"), {"type": "triangle", "w": "med", "len": "med"}))
+    return c
+
+
+def _edge(sl: Any, e: dict[str, Any], box: dict, shapes: dict, area: tuple[float, float, float, float]) -> None:
+    x0, y0, w0, h0 = area
+    A, B = box[e["a"]], box[e["b"]]
+    gap = e.get("gap", 0.05)
+    via = [(x0 + fx * w0, y0 + fy * h0) for fx, fy in e.get("via", [])]
+    if e.get("ports"):
+        pa, pb = e["ports"]
+        p1 = _port(A, pa, e.get("at", (0.5, 0.5))[0])
+        p2 = _port(B, pb, e.get("at", (0.5, 0.5))[1])
+    elif via:
+        p1 = _clip(A, shapes[e["a"]], *via[0])
+        p2 = _clip(B, shapes[e["b"]], *via[-1])
+    else:
+        ax, ay, aw, ah = A
+        bx, by, bw, bh = B
+        xlo, xhi = max(ax, bx), min(ax + aw, bx + bw)
+        ylo, yhi = max(ay, by), min(ay + ah, by + bh)
+        if e.get("mode") != "c" and xhi - xlo > 0.15 and not (ylo < yhi):
+            mid = (xlo + xhi) / 2
+            down = by > ay
+            p1, p2 = (mid, ay + ah if down else ay), (mid, by if down else by + bh)
+        elif e.get("mode") != "c" and yhi - ylo > 0.15 and not (xlo < xhi):
+            mid = (ylo + yhi) / 2
+            right = bx > ax
+            p1, p2 = (ax + aw if right else ax, mid), (bx if right else bx + bw, mid)
+        else:
+            p1 = _clip(A, shapes[e["a"]], bx + bw / 2, by + bh / 2)
+            p2 = _clip(B, shapes[e["b"]], ax + aw / 2, ay + ah / 2)
+    pts = [p1, *via, p2]
+    span = ((pts[1][0] - pts[0][0]) ** 2 + (pts[1][1] - pts[0][1]) ** 2) ** 0.5
+    if len(pts) == 2 and span < 2 * gap + 0.12:
+        raise T.DoesNotFit(f"edge {e['a']} -> {e['b']} is too short to draw ({span:.2f} in)")
+    pts[0] = _away(pts[0], pts[1], gap)
+    pts[-1] = _away(pts[-1], pts[-2], gap)
+    color = _c(e.get("color", "SLATE"))
+    width = e.get("width", 1.6)
+    dash = e.get("dash", False)
+    both = e.get("both", False)
+    arrow = e.get("arrow", True)
+    for i in range(len(pts) - 1):
+        last, first = i == len(pts) - 2, i == 0
+        _line(sl, pts[i], pts[i + 1], color, width, dash, head=arrow and last, tail=both and first)
+    if e.get("label"):
+        k = e.get("lseg", (len(pts) - 2) // 2)
+        (ax_, ay_), (bx_, by_) = pts[k], pts[k + 1]
+        f = e.get("lpos", 0.5)
+        mx, my = ax_ + (bx_ - ax_) * f, ay_ + (by_ - ay_) * f
+        size = e.get("lsize", 9.5)
+        lw = e.get("lw", min(4.5, len(e["label"]) * size * 0.56 / 72 + 0.2))
+        dx, dy = e.get("loff", (0.0, 0.0))
+        vertical = abs(bx_ - ax_) < abs(by_ - ay_)
+        if vertical:
+            lx, ly, al = mx + 0.07 + dx, my - 0.10 + dy, PP_ALIGN.LEFT
+        else:
+            lx, ly, al = mx - lw / 2 + dx, my - 0.26 + dy, PP_ALIGN.CENTER
+        tf = T.txt(sl, lx, ly, lw, 0.22, align=al)
+        T.para(tf, e["label"], size=size, color=_c(e.get("lcolor", "SLATE")), italic=e.get("litalic", True),
+               bold=e.get("lbold", False), space_after=0, first=True)
+
+
+def _legend(sl: Any, lg: dict[str, Any], area: tuple[float, float, float, float]) -> None:
+    x0, y0, w0, h0 = area
+    x, y = x0 + lg["x"] * w0, y0 + lg["y"] * h0
+    cols = lg.get("cols", len(lg["items"]))
+    cw = lg["w"] * w0 / cols
+    size = lg.get("size", 10)
+    rh = lg.get("row_h", 0.30)
+    for i, item in enumerate(lg["items"]):
+        style, label = item[0], item[1]
+        shape = item[2] if len(item) > 2 else "round"
+        r, c = divmod(i, cols)
+        bx, by = x + c * cw, y + r * rh
+        if style.startswith("edge:"):
+            kind = style.split(":", 1)[1]
+            _line(sl, (bx, by + 0.11), (bx + 0.36, by + 0.11), T.CRIMSON if "crimson" in kind else T.SLATE, 1.6,
+                  "dash" in kind, head=True, tail=False)
+        else:
+            fill, color, line, dash = CANVAS_STYLES[style]
+            T.rect(sl, bx, by, 0.36, 0.22, fill=_c(fill), line=_c(line) if line else (T.RULE if fill == "WHITE" else None),
+                   lw=1.0, shape=SHAPES[shape], dash=dash)
+        tf = T.txt(sl, bx + 0.44, by + 0.01, cw - 0.48, 0.24)
+        T.para(tf, label, size=size, color=T.SLATE, first=True, space_after=0)
+
+
+def _label(tf: Any, z: float, t: dict[str, Any]) -> None:
+    for i, ln in enumerate(t["text"].split("\n")):
+        p = T.para(tf, ln, size=z, color=_c(t.get("color", "SLATE")), bold=t.get("bold", False),
+                   italic=t.get("italic", False), first=i == 0, space_after=1, line=1.1, font=t.get("font", "Calibri"))
+        p.alignment = t.get("align", PP_ALIGN.LEFT)
+
+
+def canvas(s: dict[str, Any]) -> None:
+    """A free diagram of native, editable shapes: groups (outlined or tinted regions with a
+    label), nodes (shapes with their own text), edges (straight connectors, optionally through
+    waypoints, with arrowheads and labels), free labels, monospaced panels, bullet lists and a
+    legend. Positions are fractions of the diagram area, so a diagram keeps its proportions if
+    the margins move. Edges are drawn last, ending a small gap short of the shapes they join, so
+    no line runs under a filled shape."""
+    sl, y = T.content(s["title"], s.get("kicker"))
+    y = _intro(sl, y, s.get("intro"))
+    bottom = _note(sl, s.get("note"))
+    x0, w0 = T.ML, T.CW
+    side = s.get("side")
+    if side:
+        sw = T.CW * side.get("w", 0.32)
+        T.fitted(sl, T.ML + T.CW - sw, y, sw, bottom - y, lambda tf, size: _items(tf, side["items"], size),
+                 side.get("size", 16), 9.5)
+        w0 = T.CW - sw - 0.35
+    items_h = s.get("items_h", 0.0) if s.get("items") else 0.0
+    h0 = bottom - y - (items_h + GAP if items_h else 0)
+    area = (x0, y, w0, h0)
+    box: dict[str, tuple[float, float, float, float]] = {}
+    shapes: dict[str, str] = {}
+    for n in s.get("groups", []) + s.get("nodes", []):
+        box[n["id"]] = (x0 + n["x"] * w0, y + n["y"] * h0, n["w"] * w0, n["h"] * h0)
+        shapes[n["id"]] = n.get("shape", "round" if n in s.get("nodes", []) else "rect")
+    for g in s.get("groups", []):
+        bx, by, bw, bh = box[g["id"]]
+        T.rect(sl, bx, by, bw, bh, fill=_c(g["fill"]) if g.get("fill") else None,
+               line=_c(g.get("line", "CRIMSON")) if g.get("line", "CRIMSON") else None, lw=g.get("lw", 1.25),
+               dash=g.get("dash", False), shape=SHAPES[g.get("shape", "rect")])
+        if g.get("label"):
+            tf = T.txt(sl, bx + 0.12, by + 0.07, bw - 0.24, 0.26, align=g.get("align", PP_ALIGN.LEFT))
+            T.para(tf, g["label"], size=g.get("size", 11), color=_c(g.get("color", "CRIMSON_D")), bold=True,
+                   first=True, space_after=0)
+    for p in s.get("panels", []):
+        T.panel(sl, x0 + p["x"] * w0, y + p["y"] * h0, p["w"] * w0, p["h"] * h0, p["lines"], p.get("size", 12))
+    for n in s.get("nodes", []):
+        bx, by, bw, bh = box[n["id"]]
+        fill, color, line, dash = CANVAS_STYLES[n.get("style", "box")]
+        T.boxed(sl, bx, by, bw, bh, n["text"], fill=_c(fill), color=_c(color), line=_c(line) if line else None,
+                start=n.get("size", 14), floor=n.get("floor", 9), sub=n.get("sub", ""), bold=n.get("bold", True),
+                shape=SHAPES[shapes[n["id"]]], dash=dash, lw=1.25 if line else 1.0,
+                font=n.get("font", "Calibri"))
+    for t in s.get("texts", []):
+        tx, ty, tw, th = x0 + t["x"] * w0, y + t["y"] * h0, t["w"] * w0, t["h"] * h0
+        T.fitted(sl, tx, ty, tw, th, lambda tf, z, t=t: _label(tf, z, t), t.get("size", 12), t.get("floor", 9))
+    for li in s.get("lists", []):
+        T.fitted(sl, x0 + li["x"] * w0, y + li["y"] * h0, li["w"] * w0, li["h"] * h0,
+                 lambda tf, size, li=li: _items(tf, li["items"], size), li.get("size", 15), 9.5)
+    if s.get("legend"):
+        _legend(sl, s["legend"], area)
+    for e in s.get("edges", []):
+        _edge(sl, e, box, shapes, area)
+    if s.get("items"):
+        top = bottom - items_h
+        T.fitted(sl, T.ML, top, T.CW, items_h, lambda tf, size: _items(tf, s["items"], size),
+                 s.get("size", 16), 9)
+
+
 KINDS = {
     "tldr": tldr,
     "principles": principles,
@@ -569,6 +799,7 @@ KINDS = {
     "stats": stats,
     "split": split,
     "flow": flow,
+    "canvas": canvas,
 }
 
 
@@ -588,4 +819,7 @@ def render(slides: list[dict[str, Any]]) -> None:
         except T.DoesNotFit as exc:
             raise T.DoesNotFit(f"slide {i} ({spec.get('title')!r}): {exc}") from exc
         if spec.get("source"):
-            T.notes(T._state["prs"].slides[-1], "Source: " + spec["source"])
+            text = "Source: " + spec["source"]
+            if spec.get("talk"):
+                text += "\n\nSpeaker notes: " + spec["talk"]
+            T.notes(T._state["prs"].slides[-1], text)

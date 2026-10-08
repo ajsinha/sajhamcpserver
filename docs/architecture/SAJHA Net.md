@@ -241,7 +241,9 @@ nobody did anything wrong. Vendors and external servers keep such tools apart.
   external servers, and never a local tool's name.
 - **Internal servers keep their names.** Every member (a SAJHA instance, an agent-fronted server, a
   sponsored server) is internal: its tools keep their names and one name, one contract applies to them.
-  A SAJHA instance is always a member; to offer another SAJHA's tools under a vendor prefix, define it as
+  So are a member's **internal proxied MCP servers** (`external: false`): their tools are offered into the
+  net under their federation names (`<prefix>__<tool>`), governed and exported like the member's own
+  tools (`_own_tools`, `sajha/net/integration/catalogs.py`). A SAJHA instance is always a member; to offer another SAJHA's tools under a vendor prefix, define it as
   an external server (a federation upstream on its `/mcp`). A sponsored entry with `external: true`, a net
   entry with `external`, and the agent's `--external` are refused with a message pointing here.
 - **Rules accept either name.** At the defining server, export rules and tool blocks match the
