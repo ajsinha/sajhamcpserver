@@ -130,7 +130,7 @@ auth:
   # How passwords and API keys are stored: plain (as given; the owner's intranet setting) or hashed
   # (bcrypt / SHA-256). Values stored either way keep working after a switch; to hash everything run
   # `python -m sajha.auth rehash`. docs/security/Security Model.md "Credential storage and files"
-  credential_storage: ${SAJHA_AUTH_CREDENTIAL_STORAGE:plain}
+  credential_storage: plain
   users_file:
     path: config/users.json             # administrators' users; always win over the database
   credential_files:
