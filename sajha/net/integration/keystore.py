@@ -257,12 +257,19 @@ def body_of_key(key, owner) -> Dict[str, Any]:
 
 
 def body_of_file_record(rec: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """The record body of a persistent-file record (sajha/auth/persistent_keys.py) with an owner."""
-    if not rec.get('owner') or not rec.get('id') or not rec.get('sha256'):
+    """The record body of a persistent-file record (sajha/auth/persistent_keys.py) with an owner. A record
+    may hold the raw ``key`` (plain credential storage, the administrators' file) or its ``sha256``; only
+    the hash is published. Test admin records are never published: a host honours the test admin key only
+    from its OWN keys file while its own switch is on, so publishing it would bypass that switch."""
+    if not rec.get('owner') or not rec.get('id') or rec.get('test_admin'):
+        return None
+    from sajha.auth.persistent_keys import record_hash
+    kh = record_hash(rec)
+    if not kh:
         return None
     return {
         'key_id': str(rec['id']), 'key_prefix': str(rec.get('prefix') or '')[:16], 'name': str(rec.get('name') or '')[:255],
-        'key_hash': str(rec['sha256']).lower(),
+        'key_hash': str(kh).lower(),
         'owner': {'user_id': str(rec['owner']), 'user_name': str(rec['owner']),
                   'display_name': str(rec.get('owner_name') or rec['owner']),
                   'roles': sorted(str(r) for r in rec.get('roles') or [])},

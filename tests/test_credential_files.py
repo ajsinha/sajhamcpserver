@@ -155,3 +155,25 @@ def test_pages_are_admin_only_and_new_keys_show_once(app, files):  # noqa: F811
     u = c.post('/api/admin/users/file', headers=_bearer(admin_tok),
                json={'user_id': 'cf_paged', 'password': 'paged-pass-1', 'roles': 'user'})
     assert u.status_code == 200 and 'password' not in json.dumps(u.json()['user']).replace('has_password', '')
+
+
+def test_peer_keys_from_yaml_are_read(monkeypatch):
+    """sajhanet.peer_keys in application.yml (flattened by the config loader) is honoured, not only the
+    SAJHA_SAJHANET_PEER_KEYS JSON."""
+    from sajha.core import config
+    from sajha.net.integration.authz import peer_key_for
+    monkeypatch.delenv('SAJHA_SAJHANET_PEER_KEYS', raising=False)
+    monkeypatch.setitem(config._CFG, 'sajhanet.peer_keys.acme-net/peer-b', 'sja_yaml_key')
+    monkeypatch.setitem(config._CFG, 'sajhanet.peer_keys.peer-c', '${CF_YAML_C:sja_c}')
+    assert peer_key_for('acme-net', 'peer-b') == 'sja_yaml_key'
+    assert peer_key_for('other', 'peer-c') == 'sja_c'
+
+
+def test_raw_key_file_records_reach_the_key_directory_but_test_admin_never_does():
+    from sajha.auth.persistent_keys import record_hash
+    from sajha.net.integration.keystore import body_of_file_record
+    rec = {'id': 'f1', 'key': 'sja_raw_file_key', 'owner': 'alice', 'roles': ['user'], 'enabled': True}
+    body = body_of_file_record(rec)
+    assert body is not None and body['key_hash'] == record_hash(rec)
+    assert 'sja_raw_file_key' not in str(body)                              # the hash travels, never the key
+    assert body_of_file_record(dict(rec, test_admin=True)) is None          # never published

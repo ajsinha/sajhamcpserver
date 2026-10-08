@@ -209,20 +209,29 @@ def key_allows(user: Optional[Dict[str, Any]], net: str, host: str, tool: str) -
 
 # ── the identity resolver ───────────────────────────────────────────
 
+def _peer_keys() -> Dict[str, Any]:
+    """``sajhanet.peer_keys`` as a mapping: the JSON in ``SAJHA_SAJHANET_PEER_KEYS`` wins; otherwise the
+    YAML mapping, which the configuration loader stores flattened (``sajhanet.peer_keys.<name>``)."""
+    import json
+    import os
+    env = os.environ.get('SAJHA_SAJHANET_PEER_KEYS')
+    if env is not None:
+        try:
+            keys = json.loads(env)
+        except ValueError:
+            return {}
+        return keys if isinstance(keys, dict) else {}
+    from sajha.core import config as _config
+    prefix = 'sajhanet.peer_keys.'
+    return {k[len(prefix):]: v for k, v in dict(getattr(_config, '_CFG', {}) or {}).items()
+            if isinstance(k, str) and k.startswith(prefix) and v not in (None, '')}
+
+
 def peer_key_for(net: str, host: str) -> str:
     """The API key this server is configured to use toward ``host`` in ``net``
     (``sajhanet.peer_keys``: ``{"<net>/<instance>": key}`` or ``{"<instance>": key}``; values may be
     ``${ENV_NAME}`` references). Local configuration only; never published. '' when none."""
-    from sajha.core.config import _get
-    keys = _get('sajhanet.peer_keys', {}) or {}
-    if isinstance(keys, str):                          # SAJHA_SAJHANET_PEER_KEYS as JSON
-        import json
-        try:
-            keys = json.loads(keys)
-        except ValueError:
-            return ''
-    if not isinstance(keys, dict):
-        return ''
+    keys = _peer_keys()
     v = keys.get(f'{net}/{host}') or keys.get(host) or ''
     v = str(v or '').strip()
     if v.startswith('${') and v.endswith('}'):
