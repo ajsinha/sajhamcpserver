@@ -190,9 +190,9 @@ CATALOG: List[dict] = [
                'Planner files in full: keys, every stage type, transitions and bounded loops, the when '
                'expression grammar, verify checks, validation messages, JSON Schema, shipped strategies, '
                'and the planner editor.'),
-            _g('SAJHA Net (design)', 'SAJHA Net.md', 'bi-diagram-3',
-               'SAJHA servers sharing tools across domains (core built; section 5.5 says what): gossip membership, '
-               'automatic proxy tools, API-key identity with a synced key directory, two-sided authorization, blocks.'),
+            _g('SAJHA Net', 'SAJHA Net.md', 'bi-diagram-3',
+               'SAJHA servers sharing tools while each keeps its own data, rules and AI: membership (open mode or a CA), '
+               'proxy tools, vendors and proxied MCP servers, identity across servers, residency, re-export, the console.'),
             _p('SAJHA Net instances', 'net_instances_page', 'bi-hdd-network',
                'Every instance in your nets, this server first, and the tools each offers you, with Try it.'),
             _p('Your net access', 'net_access_page', 'bi-person-check',
@@ -387,6 +387,39 @@ CATALOG: List[dict] = [
             _g('28. Build a SAJHA Net', 'TUTORIAL_28_build_a_sajha_net.md', 'bi-share',
                'Three instances in one net: a founder with its CA, two joining through it, a tool called across '
                'as yourself, a block, the test admin key and per-member keys.'),
+            _g('29. The local test lab', 'TUTORIAL_29_local_test_lab.md', 'bi-pc-display',
+               'Three instances on one laptop with a local Ollama model: the net forming, remote tools, Ask SAJHA, '
+               'an LLM tool and a planner, a crash and fallback, a conflict, a block, residency, a vendor\'s tools.'),
+            _g('30. Credential files and test keys', 'TUTORIAL_30_credentials_and_test_keys.md', 'bi-key',
+               'The users and keys files, what the test admin key does across a net, calling as yourself once it is '
+               'off, and a per-member key.'),
+            _g('31. Open admission and the CA', 'TUTORIAL_31_open_admission_and_the_ca.md', 'bi-patch-check',
+               'First-use keys and a name conflict, forgetting a replaced key, then switching the lab to its CA: '
+               'tokens, enrollment and revocation.'),
+            _g('32. The SAJHA Net console', 'TUTORIAL_32_the_sajha_net_console.md', 'bi-diagram-3',
+               'A tour of the badge, Instances, Your net access, the Net overview with its topology map and admission '
+               'panel, Remote tools and the admin page.'),
+            _g('33. Proxied MCP servers', 'TUTORIAL_33_proxied_mcp_servers.md', 'bi-plug',
+               'The mcpServers file: an external server offered to the net under its vendor\'s prefix, an internal '
+               'one that stays local, the templates and sajhanet.external_servers.'),
+            _g('34. Sponsor a server and the SAJHA Net agent', 'TUTORIAL_34_sponsor_a_server_and_the_net_agent.md',
+               'bi-person-plus', 'Make a plain MCP server a member: sponsored by a SAJHA instance, or fronted by the '
+               'agent, and call both as yourself.'),
+            _g('35. Data residency across instances', 'TUTORIAL_35_data_residency_across_instances.md', 'bi-globe2',
+               'Data classes and residency rules: a home refusing a host for EU data, and a host redacting a figure '
+               'for one destination.'),
+            _g('36. Planners and LLM tools across the net', 'TUTORIAL_36_planners_and_llm_tools_across_the_net.md',
+               'bi-signpost-2', 'Locality in shortlists and restrictions, a planner with remote tools, a remote LLM '
+               'tool charged by its host, and the call-chain limit.'),
+            _g('37. Re-export and bridges', 'TUTORIAL_37_reexport_and_bridges.md', 'bi-arrow-left-right',
+               'Offer imported tools onward within a net and between two nets, with the assertion and token-exchange '
+               'identity resolvers.'),
+            _g('38. The SAJHA Net conformance runner', 'TUTORIAL_38_net_conformance_runner.md', 'bi-clipboard-check',
+               'Run the protocol\'s conformance cases against an instance, a sponsored member, an agent and the '
+               'library, and read the skips.'),
+            _g('39. Console single sign-on', 'TUTORIAL_39_console_single_sign_on.md', 'bi-door-open',
+               'Sign in to three instances once through a fake OpenID Connect provider: linking, roles, provider '
+               'sign-out, and what to set for a real one.'),
         ],
     },
     {

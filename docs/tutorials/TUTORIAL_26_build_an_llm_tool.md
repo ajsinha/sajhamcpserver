@@ -183,3 +183,7 @@ raising System Notices as it does. `GET /metrics` shows `sajha_llm_tool_stopped_
   ([Tutorial 21](TUTORIAL_21_planners_memory_and_rag.md))
 - Constrain who may call your tool and what it may run: [Tutorial 20](TUTORIAL_20_policies_approvals_and_audit.md)
 - Give your assistant its own strategy, checked and bounded: [Tutorial 27](TUTORIAL_27_write_a_planner.md)
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

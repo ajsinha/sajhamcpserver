@@ -206,3 +206,7 @@ curl -s -X POST http://localhost:3002/mcp -H "Authorization: Bearer $TOKEN" -H '
 - Connect a warehouse or a vector store: [Data Connectors Reference Guide](../tools/enterprise/Data%20Connectors%20Reference%20Guide.md)
 - Constrain who may call `shop__query`: [Tutorial 20](TUTORIAL_20_policies_approvals_and_audit.md)
 - Build tools whose work a model does: [Tutorial 26](TUTORIAL_26_build_an_llm_tool.md)
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

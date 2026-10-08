@@ -116,3 +116,7 @@ the same for any user on `/admin/connections` (for example when someone leaves).
   `auth: {type: connected_account, provider: github}`: each user's calls carry their own
   token ([Connected Accounts §7](../architecture/Connected%20Accounts.md#7-federation-token-passthrough)).
 * Next tutorial: [Import an OpenAPI Spec](TUTORIAL_19_import_an_openapi_spec.md)
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

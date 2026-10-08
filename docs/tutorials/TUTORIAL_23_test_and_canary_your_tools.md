@@ -219,3 +219,7 @@ Finally, delete `calc_percentage_change.yaml` from `config/tool_versions/` to re
   a rollback
 - [Configuration Reference](../getting-started/Configuration%20Reference.md#quality): the `quality.*` keys
 - Next tutorial: [Describe a Tool](TUTORIAL_24_describe_a_tool.md)
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

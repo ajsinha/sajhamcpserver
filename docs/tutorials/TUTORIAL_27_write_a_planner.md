@@ -215,3 +215,7 @@ To change the desk without surprising the tools that pin it:
 - A stage type of your own, in code: [Extending the Intelligence Layer](../architecture/Extending%20the%20Intelligence%20Layer.md)
   section 4.6
 - Next tutorial: [Tutorial 28: Build a SAJHA Net](TUTORIAL_28_build_a_sajha_net.md)
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

@@ -227,3 +227,7 @@ file or an allow-listed webhook with `delivery`; or chain a composite tool
 ([Tutorial 3](TUTORIAL_03_build_a_composite_tool.md)) as a `composite` step.
 
 Next tutorial: [Test and Canary Your Tools](TUTORIAL_23_test_and_canary_your_tools.md).
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

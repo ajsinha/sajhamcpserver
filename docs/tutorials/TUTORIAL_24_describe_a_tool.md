@@ -169,3 +169,7 @@ Three proposals and one deployed tool, each checked as untrusted input, tested b
 could be deployed, and deployed only as the exact version you approved.
 
 Next tutorial: [Connect a Database](TUTORIAL_25_connect_a_database.md).
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

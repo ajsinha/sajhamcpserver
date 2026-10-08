@@ -149,7 +149,8 @@ A forwarded call carries exactly one API key, chosen in this order:
 1. **A per-member key** set for the target in `sajhanet.peer_keys` (`"demo-net/cust-na": "sja_..."`, or
    a `${ENV}` reference). It is local configuration, never published, and works only when the target's
    own `config/apikeys.json` has a record with the same key. Use it when one member has issued your
-   server a key of its own.
+   server a key of its own. [Tutorial 30](TUTORIAL_30_credentials_and_test_keys.md), step 4, shows a
+   configuration checked end to end on the local test lab.
 2. **The test admin key**, while `sajhanet.test_admin_key.enabled` is on and this server's
    `config/apikeys.json` has a record marked `"test_admin": true`. That is what the demo uses: every
    call arrives at the host as the test administrator. A critical notice shows on every page while it
@@ -176,8 +177,9 @@ curl -s -X POST http://127.0.0.1:3202/api/sajhanet/nets/demo-net/blocks \
 
 The answer's `effect` says what changes. Repeat the call of step 6: it now comes back with
 `isError: true` and `_meta["io.sajha/net"].refusal` naming the reason and the instance that refused. A
-call by plain name would move on to the next host offering the tool; a call by qualified name never
-does. Remove the block with `DELETE /api/sajhanet/nets/demo-net/blocks/<id>` (the id is in the answer,
+host's refusal is a decision, not an outage, so even a call by plain name does not move on to another
+host; a block set at the home instead (`"level": "outbound"` on `risk-eu`, naming `cust-na`) hides
+`cust-na`'s tools there, and a plain name then resolves to the other hosts. Remove the block with `DELETE /api/sajhanet/nets/demo-net/blocks/<id>` (the id is in the answer,
 and in **Admin > SAJHA Net**). Blocks can also name one tool, one remote user (`alice@risk-eu`), the
 other direction, or a whole instance, and can expire.
 
@@ -207,4 +209,8 @@ The containers keep their data inside, so the next `up` starts a new net.
   sections 7 to 9
 - The keys and their defaults: [Configuration Reference](../getting-started/Configuration%20Reference.md#sajha-net)
 - Nets on Kubernetes: [Kubernetes Deployment](../getting-started/Kubernetes%20Deployment.md#sajha-net)
-- This is the last tutorial; the [documentation index](../README.md) lists every guide
+- Run three instances without containers, with a local LLM: [Tutorial 29: The Local Test Lab](TUTORIAL_29_local_test_lab.md)
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

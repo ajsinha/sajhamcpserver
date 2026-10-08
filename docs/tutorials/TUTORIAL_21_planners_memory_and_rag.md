@@ -172,3 +172,7 @@ SAJHA's own guides only.
 - Use a real model for planning, rewrites and summaries:
   [Intelligence Layer §4](../architecture/Intelligence%20Layer.md#4-configuration)
 - Next tutorial: [Schedule a Workflow](TUTORIAL_22_schedule_a_workflow.md)
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

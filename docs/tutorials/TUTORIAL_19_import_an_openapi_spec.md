@@ -183,3 +183,7 @@ spec file works the same way, and `--graphql` imports a GraphQL endpoint by intr
   OAuth client credentials, per-user connected accounts, GraphQL, and the limits
 - [MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md#import-an-api)
 - Next tutorial: [Policies, Approvals and a Tamper-Evident Audit](TUTORIAL_20_policies_approvals_and_audit.md)
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

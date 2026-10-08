@@ -204,3 +204,7 @@ seconds) and unset `SAJHA_AUDIT_EXPORT_SINKS`.
 - Every `policy.*` and `audit.*` key: [Configuration Reference](../getting-started/Configuration%20Reference.md#policy-and-audit)
 - The rest of the security model: [Security Model](../security/Security%20Model.md)
 - Next tutorial: [Planners, Conversation Memory and Document Search](TUTORIAL_21_planners_memory_and_rag.md)
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

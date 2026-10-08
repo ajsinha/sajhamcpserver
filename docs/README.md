@@ -19,19 +19,21 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
    [Database Setup](getting-started/Database%20Setup.md),
    [Security Model](security/Security%20Model.md) and
    [Policy and Audit](architecture/Policy%20and%20Audit.md)
-6. The [architecture](#architecture) guide for each subsystem you use
+6. The [architecture](#architecture) guide for each subsystem you use; for several servers
+   sharing tools, [SAJHA Net](architecture/SAJHA%20Net.md) and then the
+   [SAJHA Net Protocol](protocol/SAJHA%20Net%20Protocol.md)
 
 ## How this folder is organised
 
 | Folder | What is in it |
 |---|---|
-| `getting-started/` | The map, quick start, configuration reference, database setup, storage, Kubernetes |
-| `protocol/` | MCP protocol guide, the two compliance reports, API reference, OAuth, MCP Apps and headers |
-| `architecture/` | How the server is built, and one design guide per subsystem: composition, the intelligence layer, federation, connected accounts, API import, tool generation, data connectors, policy and audit, sandbox, scaling, observability, workflows, tool quality; the roadmap |
+| `getting-started/` | The map, quick start, configuration reference, database setup, storage, Kubernetes, the Python Playground |
+| `protocol/` | MCP protocol guide, the two compliance reports, API reference, OAuth, MCP Apps and headers, the SAJHA Net protocol |
+| `architecture/` | How the server is built, and one design or as-built guide per subsystem: composition, the intelligence layer and its extension, LLM tools, planners, federation, SAJHA Net, connected accounts, API import, tool generation, data connectors, policy and audit, system notices, sandbox, scaling, observability, workflows, tool quality; the implementation plan and the roadmap |
 | `studio/` | MCP Studio and its creators |
 | `tools/` | One reference guide per tool provider, by category; prompts |
 | `tutorials/` | Step-by-step walkthroughs, numbered |
-| `clients/` | The Python client SDK; the `sajha` command line and desktop (stdio) clients |
+| `clients/` | The Python client SDK; the `sajha` command line and desktop (stdio) clients; the SAJHA Net agent |
 | `security/` | The security model |
 | `archive/` | Point-in-time reports, not maintained |
 | `requirements/` | The original requirements document |
@@ -54,15 +56,15 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [OAuth Guide](protocol/OAuth%20Guide.md)
 - [MCP Apps and Headers Guide](protocol/MCP%20Apps%20and%20Headers%20Guide.md)
 - [API Reference](protocol/API%20Reference.md)
-- [SAJHA Net Protocol](protocol/SAJHA%20Net%20Protocol.md): specification (not built) of the `io.sajha/net` extension that SAJHA Net participants speak: endpoints, signed requests, gossip, key directory, call forwarding, errors, conformance tests
+- [SAJHA Net Protocol](protocol/SAJHA%20Net%20Protocol.md): the `io.sajha/net` extension SAJHA Net participants speak: endpoints, signed requests, gossip, key directory, call forwarding, errors, conformance tests
 
 ## Architecture
 
-- [Architecture](architecture/Architecture.md)
+- [Architecture](architecture/Architecture.md): the process, request paths, components and where their code lives; the console's pages (§10)
 - [Composition Framework](architecture/Composition%20Framework.md)
-- [Intelligence Layer](architecture/Intelligence%20Layer.md)
+- [Intelligence Layer](architecture/Intelligence%20Layer.md): LLM providers and models behind `sajha.ai.llm`, aliases, budgets and policy, Ask SAJHA, planners, conversation memory, document search, the OpenAI-compatible endpoint
 - [Extending the Intelligence Layer](architecture/Extending%20the%20Intelligence%20Layer.md): writing a provider, a model and a planner
-- [Federation](architecture/Federation.md): other MCP servers' tools behind SAJHA's governance
+- [Federation](architecture/Federation.md): proxied MCP servers: other MCP servers' tools behind SAJHA's governance, the mcpServers file, internal and external servers
 - [API Import](architecture/API%20Import.md): an OpenAPI, Swagger or GraphQL description to a reviewed set of tools
 - [Data Connectors](architecture/Data%20Connectors.md): databases, warehouses, vector stores and search clusters as governed, read-only tools: the statement guard, limits, masking, curated views, per-user credentials
 - [Tool Generation](architecture/Tool%20Generation.md): Describe a tool, from a sentence to a checked, tested tool an administrator approves
@@ -73,11 +75,11 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Workflows](architecture/Workflows.md): DAGs of tools, composites and Ask SAJHA steps; cron, webhook, file and event triggers; durable runs that resume after a crash; re-run from a step; publish as a tool
 - [Tool Quality](architecture/Tool%20Quality.md): test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, rollback and sunset dates
 - [Policy and Audit](architecture/Policy%20and%20Audit.md): declarative rules on every tool call (deny, approval, argument constraints, rate limits, quotas, redaction, injection screening); the hash-chained, signed audit and SIEM export
-- [LLM Tools](architecture/LLM%20Tools.md): tools whose work is done by a model, configured like any tool and governed the same way (modes, memory, resource safety, sampling, the OpenAI-compatible endpoint and configurable planners built)
+- [LLM Tools](architecture/LLM%20Tools.md): tools whose work is done by a model, configured like any tool and governed the same way: modes, memory, resource safety, sampling, the OpenAI-compatible endpoint and configurable planners
 - [Planner Reference](architecture/Planner%20Reference.md): the reference for planner files (`config/planners`): keys, the stage library, transitions and bounded loops, the `when` expression language, verify checks, validation messages, a JSON Schema and every shipped strategy in full
-- [SAJHA Net](architecture/SAJHA%20Net.md): design (not built) for several SAJHA servers sharing tools while each keeps its own data, policy, AI and memory
+- [SAJHA Net](architecture/SAJHA%20Net.md): several SAJHA servers sharing tools while each keeps its own data, policy, AI and memory: nets, membership, admission, remote tools, identity, residency, re-export, sponsored and external servers, the console (design and as built)
 - [System Notices](architecture/System%20Notices.md): what needs attention, from every subsystem: the console banner, the dashboard System status panel, the navbar badge, acknowledgement and the admin API
-- [Implementation Plan](architecture/Implementation%20Plan.md): the build order for LLM tools, SAJHA Net and open roadmap items, in five waves
+- [Implementation Plan](architecture/Implementation%20Plan.md): the build order for LLM tools, SAJHA Net and open roadmap items, wave by wave, with each wave's status
 - [Roadmap](architecture/Roadmap.md): what is not built yet and what should come next, by horizon (now, next, later), each item linked to the guide that records the gap
 
 ## MCP Studio
@@ -162,13 +164,24 @@ These guides document each provider's tools, parameters and API keys.
 26. [Tutorial 26: Build an LLM Tool](tutorials/TUTORIAL_26_build_an_llm_tool.md)
 27. [Tutorial 27: Write a Planner](tutorials/TUTORIAL_27_write_a_planner.md)
 28. [Tutorial 28: Build a SAJHA Net](tutorials/TUTORIAL_28_build_a_sajha_net.md)
+29. [Tutorial 29: The Local Test Lab](tutorials/TUTORIAL_29_local_test_lab.md)
+30. [Tutorial 30: Credential Files and Test Keys](tutorials/TUTORIAL_30_credentials_and_test_keys.md)
+31. [Tutorial 31: Open Admission and the CA](tutorials/TUTORIAL_31_open_admission_and_the_ca.md)
+32. [Tutorial 32: The SAJHA Net Console](tutorials/TUTORIAL_32_the_sajha_net_console.md)
+33. [Tutorial 33: Proxied MCP Servers](tutorials/TUTORIAL_33_proxied_mcp_servers.md)
+34. [Tutorial 34: Sponsor a Server and the SAJHA Net Agent](tutorials/TUTORIAL_34_sponsor_a_server_and_the_net_agent.md)
+35. [Tutorial 35: Data Residency Across Instances](tutorials/TUTORIAL_35_data_residency_across_instances.md)
+36. [Tutorial 36: Planners and LLM Tools Across the Net](tutorials/TUTORIAL_36_planners_and_llm_tools_across_the_net.md)
+37. [Tutorial 37: Re-export and Bridges](tutorials/TUTORIAL_37_reexport_and_bridges.md)
+38. [Tutorial 38: The SAJHA Net Conformance Runner](tutorials/TUTORIAL_38_net_conformance_runner.md)
+39. [Tutorial 39: Console Single Sign-On](tutorials/TUTORIAL_39_console_single_sign_on.md)
 
 ## Clients and security
 
 - [Client SDK Guide](clients/Client%20SDK%20Guide.md)
 - [Command Line](clients/Command%20Line.md): the `sajha` CLI, and SAJHA over stdio for desktop clients
 - [SAJHA Net Agent](clients/SAJHA%20Net%20Agent.md): any MCP server as a SAJHA Net participant, the reference library and the conformance suite
-- [Security Model](security/Security%20Model.md)
+- [Security Model](security/Security%20Model.md): credentials and the credential files, single sign-on, roles and tool access, OAuth, transport protections, the deployment checklist
 
 ## Elsewhere in the repository
 
@@ -176,3 +189,7 @@ These guides document each provider's tools, parameters and API keys.
 - [Archive](archive/README.md): old audits and notes, not maintained
 - How SAJHA compares with other MCP products: the server's `/comparison` page (data in `sajha/web/competitive.py`)
 - [The deck](../tools/deck/GUIDE.md): `docs/publications/SAJHA-MCP-Server.pptx`, rebuilt from source with every number derived at build time
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
