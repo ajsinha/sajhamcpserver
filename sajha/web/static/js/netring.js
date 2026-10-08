@@ -2,10 +2,12 @@
  * SAJHA MCP Server — the SAJHA Net ring on the landing page (beside the constellation).
  * Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
  *
- * Eight SAJHA servers on a ring play five short scenes in a loop: they find each other by
+ * Eight SAJHA servers on a ring play six short scenes in a loop: they find each other by
  * gossip; one question fans out to tools on other servers and the results come home; a
  * server goes down and a call falls back to another; a server offering a different contract
- * quarantines a tool until the contracts agree. Server and tool names are examples; the
+ * quarantines a tool until the contracts agree; calls reach proxied MCP servers. Two members
+ * carry proxied MCP servers outside the ring (solid: internal, names kept; dashed: external,
+ * never a member, tools published as vendor__tool by the member that proxies them). Server and tool names are examples; the
  * design is docs/architecture/SAJHA Net.md. Colours come from CSS classes using the theme
  * tokens, so the ring follows all four themes. With prefers-reduced-motion the ring shows one
  * still, complete frame. The loop pauses while the ring is off screen or the tab is hidden.
@@ -17,8 +19,11 @@
   var svg = root.querySelector('svg');
   var NS = 'http://www.w3.org/2000/svg';
   var CX = 280, CY = 312, R = 168;
-  var NAMES = ['risk-eu', 'treasury-na', 'cust-na', 'research', 'quant-na', 'risk-apac', 'ops-eu', 'vendor-search'];
-  var TAGS = ['home', 'rates', 'customers', 'LLM tools', 'models', 'risk', 'operations', 'sponsored'];
+  var NAMES = ['risk-eu', 'treasury-na', 'cust-na', 'research', 'quant-na', 'risk-apac', 'ops-eu', 'docs-eu'];
+  var TAGS = ['home', 'rates', 'customers', 'LLM tools', 'models', 'risk', 'operations', 'documents'];
+  // proxied MCP servers: [member index, name, external?, angle offset from the member's outward direction, distance]
+  var PROXIED = [[3, 'github', true, 0.27, 72], [3, 'context7', true, 0.95, 70],
+                 [5, 'pricing-svc', false, -0.27, 72], [5, 'fetch', true, -0.95, 70]];
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var layer = {
     chords: svg.querySelector('[data-layer="chords"]'), arrows: svg.querySelector('[data-layer="arrows"]'),
@@ -62,6 +67,26 @@
     el('text', { x: tx, y: y + 13, 'class': 'lp2-net-tag', 'text-anchor': anchor }, g).textContent = TAGS[i];
     return { g: g, dots: dots };
   });
+
+  var proxied = PROXIED.map(function (d) {
+    var p = P[d[0]], a = p.a + d[3], x = p.x + d[4] * Math.cos(a), y = p.y + d[4] * Math.sin(a);
+    var g = el('g', { 'class': 'lp2-net-proxy' + (d[2] ? ' is-external' : ' is-internal') }, layer.nodes);
+    el('line', { x1: p.x + 22 * Math.cos(a), y1: p.y + 22 * Math.sin(a), x2: x - 11 * Math.cos(a), y2: y - 11 * Math.sin(a),
+                 'class': 'lp2-net-proxy-link' }, g);
+    el('rect', { x: x - 10, y: y - 10, width: 20, height: 20, rx: 5, 'class': 'lp2-net-proxy-box' }, g);
+    el('text', { x: x, y: y + 23, 'class': 'lp2-net-proxy-name', 'text-anchor': 'middle' }, g).textContent = d[1];
+    return { g: g, x: x, y: y, member: d[0] };
+  });
+  var lg = el('g', { 'class': 'lp2-net-legend' }, layer.nodes);
+  el('rect', { x: 14, y: 556, width: 12, height: 12, rx: 3, 'class': 'lp2-net-proxy-box is-internal-key' }, lg);
+  el('text', { x: 32, y: 566 }, lg).textContent = 'proxied, internal';
+  el('rect', { x: 138, y: 556, width: 12, height: 12, rx: 3, 'class': 'lp2-net-proxy-box is-external-key' }, lg);
+  el('text', { x: 156, y: 566 }, lg).textContent = 'proxied, external: not a member, tools as vendor__tool';
+  function toProxy(k) {
+    var q = proxied[k], p = P[q.member];
+    return el('path', { d: 'M' + p.x + ' ' + p.y + ' L' + q.x + ' ' + q.y, 'class': 'lp2-net-arrow is-proxy' }, layer.arrows);
+  }
+  function lit(k, on) { proxied[k].g.classList.toggle('is-target', on); }
 
   function cls(i, c, on) { nodes[i].g.classList.toggle(c, on); }
   function clearFx() { layer.arrows.textContent = ''; layer.fx.textContent = ''; }
@@ -126,6 +151,7 @@
       n.dots.forEach(function (d) { d.setAttribute('class', 'lp2-net-tool'); });
     });
     cls(0, 'is-home', true);
+    proxied.forEach(function (q) { q.g.classList.remove('is-target'); });
   }
 
   var SCENES = [
@@ -187,6 +213,30 @@
       holders.forEach(function (i) { cls(i, 'is-conflict', false); nodes[i].dots[1].setAttribute('class', 'lp2-net-tool is-restored'); });
       bubble('quant-na fixed', 'The contracts agree again. <code>var_calc</code> is back on every server.', 'good');
       await wait(2500);
+    }],
+    ['Proxied MCP servers', async function (tk) {
+      reset(true);
+      bubble('analyst on risk-eu calls github__search_issues', '<b>github</b> is external: never a member. <code>research</code> proxies it and offers its tools as its own, named <code>github__…</code>.');
+      await wait(1600); if (tk !== token) return;
+      cls(3, 'is-target', true);
+      var hop = arrow(0, 3, '', 'github__search_issues');
+      await packet(hop, false, 1100); if (tk !== token) return;
+      var px = toProxy(0); lit(0, true);
+      await packet(px, false, 600); await packet(px, true, 600); if (tk !== token) return;
+      await packet(hop, true, 950);
+      bubble('result on risk-eu', 'research applied its own rules and audit on the way. The github endpoint never left research.', 'good');
+      await wait(2300); if (tk !== token) return;
+      reset(true);
+      bubble('ops-eu calls price_bond', '<b>pricing-svc</b> is internal: proxied by <code>risk-apac</code>, its tool keeps its name.');
+      await wait(1500); if (tk !== token) return;
+      cls(5, 'is-target', true);
+      var hop2 = arrow(6, 5, '', 'price_bond');
+      await packet(hop2, false, 850); if (tk !== token) return;
+      var px2 = toProxy(2); lit(2, true);
+      await packet(px2, false, 600); await packet(px2, true, 600); if (tk !== token) return;
+      await packet(hop2, true, 800);
+      bubble('result on ops-eu', 'Same governance either way; only external servers get the vendor prefix.', 'good');
+      await wait(2300);
     }]
   ];
 

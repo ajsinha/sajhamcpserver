@@ -1778,6 +1778,14 @@ pre.pg-repr { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--sajha-indigo) 5
 .lp2-net-node.is-down .lp2-net-tool { opacity: .12; }
 .lp2-net-tool.is-quarantined { fill: var(--sajha-crimson-tint); stroke: var(--sajha-bad); stroke-width: 2; }
 .lp2-net-tool.is-restored { fill: var(--sajha-ok); stroke: var(--sajha-ok); }
+.lp2-net-proxy-link { stroke: var(--t-muted); stroke-width: 1.5; }
+.lp2-net-proxy.is-external .lp2-net-proxy-link { stroke-dasharray: 4 3; }
+.lp2-net-proxy-box { fill: var(--sajha-crimson-tint); stroke: var(--sajha-crimson); stroke-width: 2; transition: stroke .3s, fill .3s; }
+.lp2-net-proxy.is-external .lp2-net-proxy-box, .lp2-net-proxy-box.is-external-key { fill: var(--sajha-surface); stroke: var(--sajha-warn); stroke-dasharray: 4 2.5; }
+.lp2-net-proxy.is-target .lp2-net-proxy-box { stroke-width: 3; fill: var(--sajha-glow); }
+.lp2-net-proxy-name { font-size: 11px; fill: var(--t-muted); }
+.lp2-net-legend text { font-size: 11.5px; fill: var(--t-muted); }
+.lp2-net-arrow.is-proxy { stroke: var(--sajha-warn); stroke-width: 2; fill: none; opacity: .8; }
 .lp2-net-name { font: 600 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: var(--sajha-ink); }
 .lp2-net-node.is-down .lp2-net-name { fill: var(--t-muted); }
 .lp2-net-tag { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; fill: var(--t-muted); }
