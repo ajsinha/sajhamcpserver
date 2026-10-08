@@ -256,3 +256,7 @@ What each returns, the limits that apply and the errors it can give are in
 | `the query timed out after Ns and was cancelled` | `limits.timeout_seconds`; narrow the query or raise the limit |
 | `truncated: true` | The row or byte cap; add filters or aggregate |
 | Many harmless queries refused | sqlglot is not installed and the scanner is conservative: `pip install 'sqlglot'` |
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

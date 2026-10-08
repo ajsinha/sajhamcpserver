@@ -301,3 +301,7 @@ The AWS CDK stack runs several Fargate tasks with `SAJHA_STATE_BACKEND=database`
   renewal only by the holder, expiry and takeover, release, one-slot claims, a race of
   six claimants, the `Lease` keeper's renewal and loss) on the same backends; the real
   Redis case is skipped when no server answers at `SAJHA_TEST_REDIS_URL`.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

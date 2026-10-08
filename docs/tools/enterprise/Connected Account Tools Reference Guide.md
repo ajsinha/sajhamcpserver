@@ -70,3 +70,7 @@ url, params=..., json_body=...)`; `self.token()` is the bound token (its `connec
 the account name and scopes). Any other tool can declare `auth.connected_account` in its
 config and read `sajha.accounts.current_token("<provider>")`. Results of such tools are
 never cached.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

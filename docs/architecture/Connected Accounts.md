@@ -290,3 +290,7 @@ Limits: GitHub OAuth-app tokens do not expire and have no refresh token; Microso
 token revocation endpoint (disconnect deletes the token; revoke sessions in Entra ID if
 needed); Atlassian tools need the user's cloud id (Atlassian's accessible-resources endpoint on
 `api.atlassian.com`), which a `connected_http_request` binding can reach.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

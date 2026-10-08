@@ -51,3 +51,7 @@ docker compose -f deployment/sajhanet-demo/docker-compose.yml -p sajhanet-demo d
 
 The data lives in the containers (no volumes), so `down` discards the CA key and the certificates: the
 next `up` starts a new net.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

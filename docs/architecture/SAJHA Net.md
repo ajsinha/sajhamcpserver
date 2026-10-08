@@ -1389,3 +1389,7 @@ falls back when a host is down, quarantines and re-activates a conflict, and res
 (names, signatures, membership, the CA, catalogs, routing, identity, keys, residency, re-export, vendors,
 planners, console, plug-ins) and the mixed conformance run; the agent's own tests are in
 `sajhanet_agent/tests/`.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

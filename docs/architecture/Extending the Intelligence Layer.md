@@ -1236,3 +1236,7 @@ mode). Add your store to its `make_store` and `STORES` (or copy the cases), and 
 - [ ] Both searches run where the data is and return only `top_k` rows; `replace_document`
       streams its chunks and is atomic.
 - [ ] It is thread safe and passes the cases of `tests/ai/test_rag_store_contract.py`.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

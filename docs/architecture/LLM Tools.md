@@ -1710,3 +1710,7 @@ All decided by the owner:
 | A general-purpose workflow language for planners | Workflows already exist for long-running processes; planners need a small, validated stage library that the service can enforce, not arbitrary code or expressions. |
 | Store full tool results with each turn | Disk grows with data volume; results may hold data the audit log already records under its own retention. |
 | Always use the client's model (sampling only) | Thin callers have no model; servers cannot rely on clients declaring sampling; governance of the model choice is lost. |
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

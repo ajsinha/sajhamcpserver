@@ -229,3 +229,7 @@ or denied by policy, 404 unknown or expired draft, 409 a precondition in §6 (wi
   the backend can (see [Sandbox](Sandbox.md#network-allowlist)).
 * Tests show behaviour on their cases, not correctness; the review of the files is the
   control, which is why a deploy needs it.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

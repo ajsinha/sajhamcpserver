@@ -19,3 +19,7 @@ Every value is described in [`values.yaml`](values.yaml) and validated by
 [Kubernetes Deployment](../../docs/getting-started/Kubernetes%20Deployment.md); the
 walkthrough on kind is
 [Tutorial 17](../../docs/tutorials/TUTORIAL_17_deploy_sajha_on_kubernetes.md).
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

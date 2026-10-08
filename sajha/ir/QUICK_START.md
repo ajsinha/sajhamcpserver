@@ -73,3 +73,7 @@ print(f"Found {len(docs)} documents")
 
 ---
 Built to handle all S&P 500 companies with 95% success rate!
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

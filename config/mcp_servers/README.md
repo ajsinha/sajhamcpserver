@@ -53,3 +53,7 @@ for that entry (the rest of the file still loads).
 - Prefer `${NAME}` references over raw secrets. A raw secret works (SAJHA shows a notice), but then
   treat `config/mcp_servers.json` like a password file.
 - Narrow what you expose with `tools`; most servers include tools that write or delete.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

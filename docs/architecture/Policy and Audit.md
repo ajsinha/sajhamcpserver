@@ -652,3 +652,7 @@ from both `audit_chain` and `audit_anchors` once its records are safe in the SIE
 part of a chain breaks its verification (section 7.4: `seq` must be contiguous from 0);
 deleting a whole chain is not detectable from what remains, which is why the SIEM copy is
 the witness. On PostgreSQL, partitioning `audit_chain` by `ts` makes this a partition drop.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

@@ -207,3 +207,7 @@ reflects.
 | `table connected_accounts is missing` | Same, for the connected-accounts vault. |
 | SQLite start-up names a missing column | The development database is older than the code. Recreate it (delete the file; section 1); to keep its data, run the printed `ALTER TABLE` instead. |
 | `indexes of the schema file are missing` | Start-up continues; run the printed `CREATE INDEX` statements. |
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

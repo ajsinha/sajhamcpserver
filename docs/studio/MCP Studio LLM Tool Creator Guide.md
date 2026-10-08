@@ -143,3 +143,7 @@ Studio-made LLM tool with Studio's ordinary delete (`POST /admin/studio/delete`)
 - [Planner Reference](../architecture/Planner%20Reference.md): planner files and the planner editor
 - [MCP Studio User Guide](MCP%20Studio%20User%20Guide.md): permissions, ownership, deploy and delete
 - [API Reference](../protocol/API%20Reference.md): the endpoints this page uses
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

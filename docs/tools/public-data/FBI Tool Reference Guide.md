@@ -234,3 +234,7 @@ Invalid arguments (unknown state or offense, malformed ORI, year out of range, `
 - Each call is one or two requests (one per state for `fbi_compare_states`), so a `DEMO_KEY` is exhausted quickly.
 
 See the [Glossary](../../../GLOSSARY.md) for FBI, UCR, NIBRS and ORI.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

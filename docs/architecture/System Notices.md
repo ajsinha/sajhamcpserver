@@ -191,3 +191,7 @@ services on one database state store seeing and changing the same notices; forwa
 source above; the API, the stream and the banner, badge and panel in rendered pages.
 `scripts/check_mobile.py` (`--notices`) checks the banner, panel and badge at phone and desktop
 widths in each theme.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

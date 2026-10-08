@@ -405,3 +405,7 @@ API Import. The catalog and the pools are per process.
 * Weaviate and Chroma adapters are not built (section 9).
 * Snowflake, BigQuery and Databricks are tested with mocked DB-API connections; PostgreSQL,
   MySQL, SQLite and DuckDB against real databases.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

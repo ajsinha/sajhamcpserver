@@ -18,3 +18,7 @@ current release.
 Rules: a document moves here when it stops being maintained; it is not edited
 afterwards except for a one-line "archived" note at the top; live documents do not
 link here for facts.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

@@ -254,3 +254,7 @@ async with Client(params) as client:          # mode="auto": server/discover, 20
 
 `sajha serve` without `--stdio` runs `run_sajha_web.py` from the checkout (`--host`,
 `--port`, and anything after them is passed through), the same as running it directly.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

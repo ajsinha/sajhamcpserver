@@ -725,3 +725,7 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Reference library** | `sajha.net.library`: a complete SAJHA Net participant built from the protocol core alone (`NetParticipant`), for a Python MCP server that joins a net itself; the SAJHA Net agent is built on it. |
 | **SAJHA Net conformance suite** | The cases of the SAJHA Net protocol's §20, run by `python -m sajha.net.conformance` against a SAJHA instance, an agent or a sponsored participant over HTTP, or against the protocol core (`--target library`); every case is reported pass, fail or skip with its reason. |
 | **SAJHA Net plug-in** | A third-party implementation of one of SAJHA Net's plug-in interfaces (membership, admission, connector, identity, catalog source, key directory store, rules, snapshot sink, routing), loaded at start from `sajhanet.plugins.modules` or the entry-point group `sajha.net.plugins`, and selectable only after it passes its contract check. |
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

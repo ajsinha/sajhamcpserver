@@ -427,3 +427,7 @@ session sends the page's CSRF token as `X-CSRF-Token`); every route is listed in
 JUnit), `tests/test_quality_lint.py`, `tests/test_quality_probes.py`,
 `tests/test_quality_evals.py` (offline on the mock provider), `tests/test_quality_versions.py`
 (routing, canary stickiness, rollback, deprecation, MCP exposure), and the pages.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

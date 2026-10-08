@@ -355,3 +355,7 @@ Simply follow the integration guide and you're ready to scrape investor relation
 **All files are in `/mnt/user-data/outputs/`**
 
 Start with: [INTEGRATION_GUIDE.md](computer:///mnt/user-data/outputs/INTEGRATION_GUIDE.md)
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

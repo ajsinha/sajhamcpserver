@@ -172,3 +172,7 @@ and details: [Configuration Reference](Configuration%20Reference.md#playground).
 | Page | `sajha/web/templates/playground/playground.html`, `sajha/web/static/js/playground.js` |
 | Asset fetcher | `scripts/fetch_pyodide.py` |
 | Tests | `tests/test_playground.py` |
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

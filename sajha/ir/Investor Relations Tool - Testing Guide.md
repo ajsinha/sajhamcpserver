@@ -500,3 +500,7 @@ for test in test_cases:
 **Testing Status**: Ready for Testing  
 **Last Updated**: 2025  
 **Version**: 1.0.0
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

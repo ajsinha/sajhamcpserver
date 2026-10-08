@@ -280,3 +280,7 @@ shell.
   for pure-Python tools are possible additions.
 - Template creators (REST, DB query, ...) run in-process by design; a hand-edited
   generated module is trusted like any other code under `sajha/tools/impl/`.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

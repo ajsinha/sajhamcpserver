@@ -523,3 +523,7 @@ including re-approval after a definition change and held versions (`on_change: h
 injection screen, refresh on a list change, MRTR pass-through, an upstream that is down
 at start-up and one that goes down later, the SSRF guard, the store, the admin API, and
 that federated tools appear in `tools/list` on both eras and in Ask SAJHA's shortlist.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

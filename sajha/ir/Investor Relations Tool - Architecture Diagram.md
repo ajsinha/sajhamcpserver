@@ -417,3 +417,7 @@ Concrete Scrapers → Implement Abstract Base
 - ✅ Testability
 - ✅ Extensibility
 - ✅ Reliability
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

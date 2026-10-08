@@ -2355,3 +2355,7 @@ No decisions are open.
 | First host to offer a name fixes its contract | Needs agreement on who was first, which gossip cannot give reliably, and silently serves one contract while another host believes it serves the name; quarantine until the hosts agree has no winner to dispute |
 | Versions side by side under one name | Callers and models choose by name; two contracts behind one name would make a call's meaning depend on routing. A new contract gets a new name |
 | Retrying only on the same host | A host that is down or draining would fail every call by plain name although another host offers the same tool |
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

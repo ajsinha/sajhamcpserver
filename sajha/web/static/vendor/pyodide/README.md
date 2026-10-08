@@ -19,3 +19,7 @@ alternative is `playground.assets: cdn`, which loads Pyodide from
 Content-Security-Policy only.
 
 The guide is `docs/getting-started/Python Playground.md`.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

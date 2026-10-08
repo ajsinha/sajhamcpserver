@@ -87,3 +87,7 @@ interface** — callers are unaffected. Not needed today.
 `studio` (8), `tools` (4), `db` (3). Migrate in the order above (reads before writes,
 assets before state). The SQLite/audit/cache writers stay on a real filesystem until
 their managed-service target (item 6) is decided.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

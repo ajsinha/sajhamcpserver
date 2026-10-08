@@ -179,3 +179,7 @@ the disagreement.
 
 - Commit or push only when asked. Never rewrite published history.
 - When other agents may be working, stage explicit paths, never `git add -A`.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

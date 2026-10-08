@@ -309,3 +309,7 @@ the System Notices design, and every open Roadmap item appears exactly once in t
 | Roadmap Next (X2–X17) | X4, X17: wave 1; X7 (closed), X8, X9: wave 2; X2, X15: wave 3; X5, X6: wave 5; X3, X10–X14, X16: section 8 |
 | Roadmap Later (L1–L16) | L16 (SAJHA Net): waves 4–5; all others: section 8 |
 | System Notices | wave 1 (service, console, first sources); its later sources with the waves that add them (LLM tools: 2; SAJHA Net: 4) |
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

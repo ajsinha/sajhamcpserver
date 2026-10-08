@@ -13,3 +13,7 @@ walk-through is [Tutorial 16](../../docs/tutorials/TUTORIAL_16_metrics_costs_and
 Several workers behind one port: see section 2.4 of the guide (a shared `state.backend`
 merges every worker into each scrape under a `worker` label). Prefer one worker per
 container and one scrape target per container.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

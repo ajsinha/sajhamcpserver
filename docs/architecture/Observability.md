@@ -371,3 +371,7 @@ on the families above) and `grafana-sajha-dashboard.json` (an importable dashboa
   of responses. There is no tenant dimension: SAJHA has no tenants.
 * **Conformance**: the middleware and MCP wrappers do not change a response; the
   conformance suites run unchanged.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

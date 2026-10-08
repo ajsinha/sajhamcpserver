@@ -2494,3 +2494,7 @@ The design leaves these open or states them loosely; this specification decides 
 - The MCP specification, eras 2025-11-25 and 2026-07-28, as SAJHA implements them:
   [MCP Protocol Guide](MCP%20Protocol%20Guide.md).
 - The design this specifies: [SAJHA Net](../architecture/SAJHA%20Net.md).
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

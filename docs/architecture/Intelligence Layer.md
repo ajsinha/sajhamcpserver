@@ -730,3 +730,7 @@ tool registered by any path is shortlisted without a reload.
 - Freshness and agreement in the confidence score; trimming history on `ContextTooLong`.
 - Document connectors (SharePoint, Drive, Confluence, or a connected account) as RAG sources;
   today a source is a folder in the storage backend, or an upload. No OCR for scanned PDFs.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

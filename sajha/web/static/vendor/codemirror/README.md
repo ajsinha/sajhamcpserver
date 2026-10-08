@@ -15,3 +15,7 @@ npx esbuild entry.js --bundle --minify --format=iife --legal-comments=eof \
 ```
 
 Built from codemirror 6.0.2, @codemirror/view 6.43.13, @codemirror/lang-python 6.2.1.
+
+---
+
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
