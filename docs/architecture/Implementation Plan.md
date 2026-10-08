@@ -4,7 +4,7 @@
 > section 2 is the per-wave record). This is the build order for the two features,
 > [LLM Tools](LLM%20Tools.md) (with the [Planner Reference](Planner%20Reference.md)) and
 > [SAJHA Net](SAJHA%20Net.md) (with the [SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md)),
-> together with the open [Roadmap](Roadmap.md) items, grouped into five waves. The designs say
+> together with the open [Roadmap](Roadmap.md) items, grouped into waves (five planned at the start; wave 6 added by the owner). The designs say
 > *what* to build; this plan says *in which order* and *what has to be true* before each wave is
 > done. Items are referred to by the IDs and step numbers their owning documents use.
 

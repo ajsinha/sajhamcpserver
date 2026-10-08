@@ -133,7 +133,7 @@ CATALOG: List[dict] = [
                'signed requests, gossip, key directory, call forwarding headers, error codes, conformance tests.'),
             _g('API Reference', 'API Reference.md', 'bi-signpost-split',
                'Every HTTP endpoint the server registers: REST, MCP, OAuth, A2A, AI, Studio, '
-               'workflows, policy, quality and connector routes.'),
+               'workflows, policy, quality, connector, notices, OpenAI-compatible and SAJHA Net routes.'),
             _b('Interactive API docs', 'swagger_ui_html', 'bi-braces',
                'The OpenAPI description of the REST API, explorable and callable (Swagger UI).'),
             _b('ReDoc API reference', 'redoc_html', 'bi-book',
@@ -156,9 +156,10 @@ CATALOG: List[dict] = [
             _g('Extending the Intelligence Layer', 'Extending the Intelligence Layer.md', 'bi-plug',
                'Write a provider, a model or a planner: settings, error mapping, registration, '
                'testing, with runnable examples.', badge='Developers'),
-            _g('Federation', 'Federation.md', 'bi-diagram-2',
-               'Front other MCP servers: their tools under SAJHA\'s access control, audit, cache, '
-               'circuit breakers and approval; the Proxied MCP servers page and config/mcp_servers.json.'),
+            _g('Federation: proxied MCP servers', 'Federation.md', 'bi-diagram-2',
+               'Embed other MCP servers and proxy calls to them: their tools under SAJHA\'s access control, '
+               'audit, cache, circuit breakers and approval; internal or external, the mcpServers file '
+               '(config/mcp_servers.json) and the Proxied MCP servers page.'),
             _g('Connected Accounts', 'Connected Accounts.md', 'bi-link-45deg',
                'Users link GitHub, Slack, Google, Microsoft 365 and other accounts once; tools and '
                'federated servers act as them. Providers, PKCE flow, token vault, refresh, security.'),
@@ -185,27 +186,34 @@ CATALOG: List[dict] = [
                'tools: drivers, the statement guard, limits, masking, curated views, per-user credentials.'),
             _g('LLM tools', 'LLM Tools.md', 'bi-chat-square-text',
                'Tools whose work is done by a model, configured like any tool: seven modes, running as the '
-               'caller, conversation memory, spill to disk and the memory guard; config-driven planners (design).'),
+               'caller, conversation memory, spill to disk and the memory guard, sampling, configurable planners, '
+               'the OpenAI-compatible endpoint, and remote LLM tools across a SAJHA Net.'),
             _g('Planner reference', 'Planner Reference.md', 'bi-signpost-split',
                'Planner files in full: keys, every stage type, transitions and bounded loops, the when '
                'expression grammar, verify checks, validation messages, JSON Schema, shipped strategies, '
                'and the planner editor.'),
             _g('SAJHA Net', 'SAJHA Net.md', 'bi-diagram-3',
-               'SAJHA servers sharing tools while each keeps its own data, rules and AI: membership (open mode or a CA), '
-               'proxy tools, vendors and proxied MCP servers, identity across servers, residency, re-export, the console.'),
+               'SAJHA servers sharing tools while each keeps its own data, rules and AI: membership and admission (open, '
+               'manual or the net\'s CA), proxy tools, vendors and external servers, sponsored servers and the agent, '
+               'identity across servers, residency, the call-chain budget, re-export and bridges, the console.'),
             _p('SAJHA Net instances', 'net_instances_page', 'bi-hdd-network',
                'Every instance in your nets, this server first, and the tools each offers you, with Try it.'),
             _p('Your net access', 'net_access_page', 'bi-person-check',
                'Every remote tool by name, the hosts offering it in resolution order, and which you may use.'),
             _p('Net overview', 'admin_sajhanet_overview_page', 'bi-diagram-3',
                'Administrators: one net at a glance, with its topology map, members, admission, notices, conflicts, blocks and recent calls.'),
+            _p('Remote tools', 'admin_sajhanet_tools_page', 'bi-diagram-2',
+               'Administrators: the host and tool table, approving tools held for review, and contract conflicts.'),
+            _p('SAJHA Net admin', 'admin_sajhanet_page', 'bi-share',
+               'Administrators: membership in each net, adding a peer, admission, blocks, remote users and the key directory.'),
             _g('System notices', 'System Notices.md', 'bi-exclamation-triangle',
                'One place where SAJHA shows what needs attention: notices from the schema check, circuit '
-               'breakers, workflows, LLM providers, federation and alert rules; the console banner, the '
-               'dashboard System status panel, the navbar badge, acknowledgement and the admin API.'),
+               'breakers, workflows, LLM providers and LLM tools, proxied MCP servers, the tools registry, '
+               'credentials, SAJHA Net and alert rules; the console banner, the dashboard System status panel, '
+               'the navbar badge, acknowledgement and the admin API.'),
             _g('Implementation plan', 'Implementation Plan.md', 'bi-list-ol',
-               'The build order for LLM tools, SAJHA Net and the open roadmap items, in five waves, '
-               'each a release with its contents, dependencies, exit gates and risks.'),
+               'The build order for LLM tools, SAJHA Net and the open roadmap items, wave by wave, '
+               'each a release with its status, contents, dependencies, exit gates and risks.'),
             _g('Roadmap', 'Roadmap.md', 'bi-signpost-2',
                'What is not built yet and what should come next: release hygiene, the gaps the guides record, '
                'and recommended enhancements, each with its size, dependencies and the guide that owns it.'),
@@ -429,14 +437,15 @@ CATALOG: List[dict] = [
             _g('Client SDK Guide', 'Client SDK Guide.md', 'bi-plug',
                'SajhaMCPClient on the official SDK; the REST and A2A clients.'),
             _g('Command Line', 'Command Line.md', 'bi-terminal',
-               'The sajha CLI (tools, prompts, ask, Studio, federation) and MCP over stdio for '
-               'Claude Desktop, Claude Code and IDEs.'),
+               'The sajha CLI (tools, prompts, ask, Studio, federation, SAJHA Net, workflows, the database '
+               'helper) and MCP over stdio for Claude Desktop, Claude Code and IDEs.'),
             _g('SAJHA Net Agent', 'SAJHA Net Agent.md', 'bi-hdd-network',
                'Any MCP server as a SAJHA Net participant: the agent, the reference library, sponsoring '
                'instead, and the conformance suite.'),
             _g('Security Model', 'Security Model.md', 'bi-shield-check',
-               'Credentials, roles, tool access, OAuth, Origin checks, headers, rate limits, the '
-               'security fixes, known limitations and the deployment checklist.'),
+               'Credentials and the credential files, the test admin key, console single sign-on, roles, tool '
+               'access, OAuth, Origin checks, headers, rate limits, the security fixes, known limitations and '
+               'the deployment checklist.'),
         ],
     },
     {

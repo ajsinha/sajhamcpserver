@@ -33,8 +33,10 @@ PAGE_HELP: dict = {
         'terms': ['System notice', 'Tool', 'Prompt', 'Circuit breaker', 'Tool cache / cache_ttl'],
         'guide': 'Quick Start.md'},
     'tools_list': {
-        'what': 'Every tool the server has loaded; open one to inspect its schema, run it or see its configuration.',
-        'terms': _TOOLS_TERMS,
+        'what': 'Every tool you may use here: this server\'s own, proxied MCP servers\' and, in a SAJHA Net, other '
+                'instances\' (with net badges and local or remote filters); open one to inspect its schema, run it or '
+                'see its configuration.',
+        'terms': _TOOLS_TERMS + ['Namespaced tool', 'Proxy tool'],
         'guide': 'TUTORIAL_01_getting_started.md'},
     'tool_execute_page': {
         'what': 'Run one tool with arguments you enter, and see the result exactly as an MCP client would.',
@@ -132,12 +134,14 @@ PAGE_HELP: dict = {
                   'Enabled / Tool Status', 'Force reload'],
         'guide': 'TUTORIAL_02_create_a_custom_tool.md'},
     'admin_users_page': {
-        'what': 'Accounts and their roles.',
-        'terms': ['RBAC', 'User ID', 'Role', 'Password hash', 'Session token', 'Account status'],
+        'what': 'Accounts and their roles, including any linked or created at single sign-on; the Users file '
+                'button opens config/users.json, whose users win over the database.',
+        'terms': ['RBAC', 'User ID', 'Role', 'Credential storage', 'Users file', 'Console single sign-on',
+                  'Session token', 'Account status'],
         'guide': 'Security Model.md'},
     'change_password_page': {
         'what': 'Change your own password; required while it is a default or an administrator set it.',
-        'terms': ['Password hash', 'Must change password', 'Account lockout', 'Session token'],
+        'terms': ['Credential storage', 'Password hash', 'Must change password', 'Account lockout', 'Session token'],
         'guide': 'Security Model.md'},
     'account_connections_page': {
         'what': 'Link your accounts at other services once (GitHub, Slack, Google, Microsoft 365, ...); tools that '
@@ -150,10 +154,12 @@ PAGE_HELP: dict = {
         'guide': 'Connected Accounts.md'},
     'admin_user_create_page': {
         'what': 'Create an account and give it a role.',
-        'terms': ['User ID', 'RBAC', 'Password hash', 'Role', 'Tool access', 'Account status'],
+        'terms': ['User ID', 'RBAC', 'Credential storage', 'Password hash', 'Role', 'Tool access', 'Account status'],
         'guide': 'Security Model.md'},
     'apikeys_file_page': {
-        'what': 'The administrators\' API keys file (config/apikeys.json): keys here are checked first and win over the database; test admin keys sign in as an administrator while enabled.',
+        'what': 'The administrators\' API keys file (config/apikeys.json): keys here are checked first and win over '
+                'the database; test admin keys sign in as an administrator, here and across SAJHA Net, while '
+                'sajhanet.test_admin_key.enabled is on.',
         'terms': ['API keys file', 'API key', 'Persistent API key', 'Keys database dump', 'Test admin', 'Credential storage'],
         'guide': 'Security Model.md'},
     'users_file_page': {
@@ -161,8 +167,9 @@ PAGE_HELP: dict = {
         'terms': ['Users file', 'Test admin', 'Credential storage', 'Role'],
         'guide': 'Security Model.md'},
     'apikeys_list': {
-        'what': 'Every API key, its owner and state: assign owners to older keys, rotate, disable, revoke.',
-        'terms': ['API key', 'Key owner', 'Default API key', 'Persistent API key', 'Tool access mode',
+        'what': 'Every API key, its owner and state: assign owners to older keys, rotate, disable, revoke; the Keys '
+                'file button opens config/apikeys.json, whose keys win over the database.',
+        'terms': ['API key', 'Key owner', 'API keys file', 'Default API key', 'Persistent API key', 'Tool access mode',
                   'Key rotation', 'Key revocation'],
         'guide': 'Security Model.md'},
     'apikey_create_page': {
@@ -194,10 +201,11 @@ PAGE_HELP: dict = {
         'guide': 'Federation.md'},
     'admin_sajhanet_page': {
         'what': 'The SAJHA Nets this server belongs to: its name and certificate in each, whether it has joined, the '
-                'members it knows and their states; add a peer by address; blocks, remote users and the net key '
+                'members it knows and their states; add a peer by address and remove runtime seeds; the admission '
+                'panel (first-use keys, pins or the CA); blocks, remote users, links and role maps, and the net key '
                 'directory of each net.',
         'terms': ['SAJHA Net', 'Net name', 'Instance name', 'Seed', 'Net of one', 'Member state', 'Name conflict',
-                  'SAJHA Net CA', 'Saved peer list', 'Net block', 'Net user', 'User link', 'Role map',
+                  'Admission mode', 'First-use key', 'Manual mode', 'SAJHA Net CA', 'Saved peer list', 'Net block', 'Net user', 'User link', 'Role map',
                   'Net key directory'],
         'guide': 'SAJHA Net.md'},
     'net_instances_page': {
